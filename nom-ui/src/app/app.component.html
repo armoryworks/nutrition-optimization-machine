@@ -1,0 +1,28 @@
+<header class="app-header">
+  <div class="header-left">
+   NOM
+  </div>
+  <div class="header-right">
+    <div class="user-icon-container">
+      
+    </div>
+    <button class="burger-menu" (click)="toggleMenu()">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </button>
+  </div>
+</header>
+
+<nav class="sidenav" [class.open]="isMenuOpen" (click)="stopPropagation($event)">
+  <ul>
+    <li><a href="#">Dashboard</a></li>
+    <li><a href="#">Settings</a></li>
+    <li><a href="#">Profile</a></li>
+    <li><a href="#">Logout</a></li>
+  </ul>
+</nav>
+
+<main class="app-content" (click)="closeMenuOnBodyClick()">
+  <router-outlet></router-outlet>
+</main>

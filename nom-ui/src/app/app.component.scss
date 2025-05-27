@@ -1,0 +1,173 @@
+// --- Variables ---
+$header-bg-color: #333;
+$header-text-color: white;
+$sidenav-bg-color: #222;
+$sidenav-link-hover-color: #444;
+$sidenav-border-color: #444;
+
+$breakpoint-mobile: 768px;
+$breakpoint-desktop: $breakpoint-mobile + 1px;
+
+// --- Base Styles ---
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// --- Header Styles ---
+.app-header {
+  background-color: $header-bg-color;
+  color: $header-text-color;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+  .header-left {
+    display: flex;
+    align-items: center;
+
+    .app-logo-svg {
+      height: 50px; /* Adjust height as needed for the header */
+      width: auto; /* Maintain aspect ratio */
+      max-width: 200px; /* Limit max width for larger screens */
+      margin-right: 10px; /* Space between logo and other elements if any */
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+
+    .user-icon-container {
+      margin-right: 15px; // Space between user icon and burger menu
+    }
+
+    .user-icon {
+      width: 32px; // Adjust size as needed
+      height: 32px;
+      border-radius: 50%;
+      background-color: #555; // Placeholder background
+      display: block; // Ensures no extra space below img
+    }
+
+    .burger-menu {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 30px;
+      height: 25px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      box-sizing: border-box;
+
+      .bar {
+        width: 100%;
+        height: 3px;
+        background-color: $header-text-color;
+        border-radius: 5px;
+        transition: all 0.3s ease-in-out;
+      }
+    }
+  }
+}
+
+// --- Side Navigation Styles ---
+.sidenav {
+  position: fixed;
+  top: 0;
+  right: -250px; // Hidden by default
+  width: 250px;
+  height: 100%;
+  background-color: $sidenav-bg-color;
+  color: $header-text-color;
+  padding-top: 60px; // Space for header
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+  transition: right 0.3s ease-in-out;
+  z-index: 1000; // Ensure it's above other content
+
+  &.open {
+    right: 0; // Slide in
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0; // Remove default margin
+
+    li {
+      a {
+        display: block;
+        padding: 15px 20px;
+        text-decoration: none;
+        color: $header-text-color;
+        border-bottom: 1px solid $sidenav-border-color;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: $sidenav-link-hover-color;
+        }
+      }
+    }
+  }
+}
+
+// --- Main Content Styles ---
+.app-content {
+  flex-grow: 1; // Allows content to take up remaining space
+  padding: 20px;
+  // Add padding to the right to avoid content being hidden by open sidenav
+  transition: margin-right 0.3s ease-in-out;
+}
+
+// --- Responsive Adjustments ---
+@media (max-width: $breakpoint-mobile) {
+  .app-header {
+    .header-left {
+      .app-logo-svg {
+        height: 40px; /* Smaller height on mobile */
+        max-width: 150px; /* Smaller max width on mobile */
+      }
+    }
+
+    .header-right {
+      .burger-menu {
+        display: flex; // Burger menu always visible on smaller screens
+      }
+
+      .user-icon-container {
+        margin-right: 10px;
+      }
+    }
+  }
+}
+
+@media (min-width: $breakpoint-desktop) {
+  // On larger screens, you might choose to hide the burger menu and show a full navigation bar
+  .app-header {
+    .header-right {
+      .burger-menu {
+        display: none; // Hide burger menu on larger screens
+      }
+    }
+  }
+
+  // If the sidenav is meant to be a permanent fixture on larger screens, adjust its positioning
+  .sidenav {
+    position: relative; // Take it out of fixed positioning
+    right: auto;
+    width: 200px; // Adjust width as needed
+    height: auto;
+    padding-top: 0;
+    box-shadow: none;
+    flex-shrink: 0; // Prevent it from shrinking
+  }
+
+  .app-content {
+    margin-right: 0; // No margin needed if sidenav is inline
+  }
+}
