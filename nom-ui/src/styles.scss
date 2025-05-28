@@ -1,1 +1,34 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+@use 'nom-theme';
+
+
+@include mat.core();
+
+html {
+    .dark-theme {
+
+        @include mat.theme((color: (primary: nom-theme.$primary-palette,
+                    tertiary: nom-theme.$tertiary-palette,
+                    theme-type: dark,
+                ),
+                typography: Roboto,
+                density: 0,
+            ));
+    }
+
+    .light-theme {
+
+        @include mat.theme((color: (primary: nom-theme.$primary-palette,
+        tertiary: nom-theme.$tertiary-palette,
+                    theme-type: light,
+                ),
+                typography: Roboto,
+                density: 0,
+            ));
+    }
+
+    // Use high contrast dark theme colors when users prefer contrast
+    @media (prefers-contrast: more) {
+        @include nom-theme.high-contrast-overrides(dark);
+    }
+}

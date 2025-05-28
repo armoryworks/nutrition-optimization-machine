@@ -1,28 +1,54 @@
-<header class="app-header">
-  <div class="header-left">
-   NOM
-  </div>
-  <div class="header-right">
-    <div class="user-icon-container">
-      
-    </div>
-    <button class="burger-menu" (click)="toggleMenu()">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-    </button>
-  </div>
-</header>
+<mat-toolbar color="primary">
+  <span>NOM - Nutrition Optimization Machine</span>
+  <span class="spacer"></span>
 
-<nav class="sidenav" [class.open]="isMenuOpen" (click)="stopPropagation($event)">
-  <ul>
-    <li><a href="#">Dashboard</a></li>
-    <li><a href="#">Settings</a></li>
-    <li><a href="#">Profile</a></li>
-    <li><a href="#">Logout</a></li>
-  </ul>
-</nav>
+  <button mat-icon-button aria-label="Toggle navigation" (click)="openNavigation()">
+    <mat-icon>menu</mat-icon>
+  </button>
 
-<main class="app-content" (click)="closeMenuOnBodyClick()">
-  <router-outlet></router-outlet>
-</main>
+  <button mat-icon-button aria-label="User profile" (click)="openUserProfile()">
+    <mat-icon>account_circle</mat-icon>
+  </button>
+
+  <button mat-icon-button (click)="toggleTheme()" aria-label="Toggle theme">
+    <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+  </button>
+</mat-toolbar>
+
+<div class="content" [class.dark-theme-background]="isDarkTheme">
+  <mat-card class="dashboard-card">
+    <mat-card-header>
+      <mat-card-title>Welcome to NOM!</mat-card-title>
+      <mat-card-subtitle><!--do I want to use this?--></mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p>Eat my widgets</p>
+
+      <mat-divider></mat-divider>
+
+      <div class="feature-section">
+        <h3>Quick Actions</h3>
+        <button mat-raised-button color="primary" class="action-button">
+          <mat-icon>add_circle_outline</mat-icon> Add New Meal
+        </button>
+        <button mat-button color="accent" class="action-button">
+          <mat-icon>list</mat-icon> View Shopping List
+        </button>
+        <button mat-button color="accent" class="action-button">
+          <mat-icon>calendar_month</mat-icon> View Calendar
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width-input">
+        <mat-label>Search for Recipes</mat-label>
+        <input matInput placeholder="e.g., 'high protein breakfast'">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<footer class="app-footer" [class.dark-theme-footer]="isDarkTheme">
+  <span>&copy; {{ currentYear }} NOM - Nutrition Optimization Machine</span>
+</footer>
