@@ -1,0 +1,4 @@
+CREATE TABLE Reference.reference_group (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(255)
+);
