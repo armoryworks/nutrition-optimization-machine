@@ -15,6 +15,10 @@ builder.Services.AddDbContext<AuthContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AuthConnection"),
                         b => b.MigrationsAssembly("Nom.Data")));
 
+builder.Services.AddDbContext<ReferenceContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("AuthConnection"),
+                        b => b.MigrationsAssembly("Nom.Data")));
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddIdentityApiEndpoints<IdentityUser>()
