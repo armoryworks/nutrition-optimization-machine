@@ -1,0 +1,95 @@
+<div class="login">
+  <mat-card class="login__card">
+    <mat-card-header class="login__header">
+      <mat-card-title class="login__title">Welcome Back!</mat-card-title>
+      <mat-card-subtitle class="login__subtitle"
+        >Sign in to your account</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="login__progress-bar"
+    ></mat-progress-bar>
+    <mat-card-content class="login__content">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login__form">
+        <mat-form-field appearance="outline" class="login__form-field">
+          <mat-label>Email Address</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            required
+            class="login__input"
+          />
+          <mat-icon matSuffix class="login__icon">email</mat-icon>
+          <mat-error
+            *ngIf="loginForm.get('email')?.hasError('required')"
+            class="login__error"
+          >
+            Email is required.
+          </mat-error>
+          <mat-error
+            *ngIf="loginForm.get('email')?.hasError('email')"
+            class="login__error"
+          >
+            Please enter a valid email address.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="login__form-field">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="password"
+            required
+            class="login__input"
+          />
+          <mat-icon matSuffix class="login__icon">lock</mat-icon>
+          <mat-error
+            *ngIf="loginForm.get('password')?.hasError('required')"
+            class="login__error"
+          >
+            Password is required.
+          </mat-error>
+        </mat-form-field>
+
+        <div class="login__options-row">
+          <mat-checkbox
+            formControlName="rememberMe"
+            class="login__remember-me-checkbox"
+            >Remember Me</mat-checkbox
+          >
+          <a routerLink="/forgot-password" class="login__forgot-password-link"
+            >Forgot Password?</a
+          >
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="loginForm.invalid || isLoading"
+          class="login__button"
+        >
+          <span *ngIf="!isLoading">Sign In</span>
+          <mat-spinner
+            *ngIf="isLoading"
+            [diameter]="20"
+            class="login__spinner"
+          ></mat-spinner>
+        </button>
+      </form>
+    </mat-card-content>
+    <mat-card-footer class="login__footer">
+      <div class="login__register-link">
+        New to our platform?
+        <a routerLink="/register" class="login__register-link-anchor"
+          >Create an Account</a
+        >
+      </div>
+    </mat-card-footer>
+  </mat-card>
+</div>

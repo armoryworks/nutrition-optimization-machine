@@ -1,0 +1,181 @@
+<div class="two-factor">
+  <mat-card class="two-factor__card">
+    <mat-card-header class="two-factor__header">
+      <mat-card-title class="two-factor__title"
+        >Two-Factor Authentication (2FA)</mat-card-title
+      >
+      <mat-card-subtitle class="two-factor__subtitle"
+        >Enhance your account security</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="two-factor__progress-bar"
+    ></mat-progress-bar>
+    <mat-card-content class="two-factor__content">
+      <form
+        [formGroup]="twoFactorForm"
+        (ngSubmit)="onSubmit()"
+        class="two-factor__form"
+      >
+        <div class="two-factor__toggle-section">
+          <mat-slide-toggle
+            color="primary"
+            formControlName="enable"
+            class="two-factor__toggle"
+          >
+            {{
+              is2faEnabled
+                ? "2FA is CURRENTLY ENABLED"
+                : "Enable Two-Factor Authentication"
+            }}
+          </mat-slide-toggle>
+          <p class="two-factor__toggle-description">
+            {{
+              is2faEnabled
+                ? "Your account is protected by 2FA. You will need a verification code to log in."
+                : "Add an extra layer of security to your account with 2FA."
+            }}
+          </p>
+        </div>
+
+        <ng-container *ngIf="twoFactorForm.get('enable')?.value">
+          <mat-divider class="two-factor__divider"></mat-divider>
+          <div class="two-factor__setup-section">
+            <h3 class="two-factor__section-heading">Authenticator App Setup</h3>
+            <p class="two-factor__instruction-text">
+              Scan the QR code with your authenticator app (e.g., Google
+              Authenticator, Authy) or manually enter the shared key.
+            </p>
+            <div class="two-factor__qr-and-key-row">
+              <div class="two-factor__qr-code-placeholder">
+                <img
+                  src="https://placehold.co/180x180/EEEEEE/333333?text=QR+Code"
+                  alt="QR Code"
+                  class="two-factor__qr-code-image"
+                />
+              </div>
+              <div class="two-factor__shared-key-details">
+                <p class="two-factor__shared-key-label">
+                  <strong>Shared Key:</strong>
+                </p>
+                <div class="two-factor__shared-key-box">
+                  <code class="two-factor__shared-key-code">{{
+                    sharedKey
+                  }}</code>
+                  <button
+                    mat-icon-button
+                    (click)="copyRecoveryCodes()"
+                    matTooltip="Copy Shared Key"
+                    class="two-factor__copy-button"
+                  >
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <mat-form-field
+              appearance="outline"
+              class="two-factor__form-field two-factor__form-field--verification-code"
+            >
+              <mat-label>Verification Code from App</mat-label>
+              <input
+                matInput
+                type="text"
+                formControlName="twoFactorCode"
+                required
+                maxlength="6"
+                pattern="^\d{6}$"
+                class="two-factor__input"
+              />
+              <mat-icon matSuffix class="two-factor__icon"
+                >verified_user</mat-icon
+              >
+              <mat-error
+                *ngIf="twoFactorForm.get('twoFactorCode')?.hasError('required')"
+                class="two-factor__error"
+              >
+                Verification code is required.
+              </mat-error>
+              <mat-error
+                *ngIf="twoFactorForm.get('twoFactorCode')?.hasError('pattern')"
+                class="two-factor__error"
+              >
+                Please enter a valid 6-digit code.
+              </mat-error>
+            </mat-form-field>
+
+            <mat-divider class="two-factor__divider"></mat-divider>
+            <h3 class="two-factor__section-heading">Recovery Codes</h3>
+            <p class="two-factor__instruction-text">
+              Save these recovery codes in a safe place. They can be used to log
+              in if you lose access to your authenticator app.
+            </p>
+            <div class="two-factor__recovery-codes-box">
+              <span
+                *ngFor="let code of recoveryCodes"
+                class="two-factor__recovery-code"
+                >{{ code }}</span
+              >
+              <button
+                mat-flat-button
+                color="accent"
+                (click)="copyRecoveryCodes()"
+                class="two-factor__copy-codes-button"
+              >
+                <mat-icon>content_copy</mat-icon> Copy Codes
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <mat-divider class="two-factor__divider"></mat-divider>
+
+        <div class="two-factor__options-section">
+          <mat-checkbox
+            formControlName="resetSharedKey"
+            class="two-factor__option-checkbox"
+            [disabled]="!is2faEnabled"
+          >
+            Reset Authenticator Key (If you lose your app)
+          </mat-checkbox>
+          <mat-checkbox
+            formControlName="resetRecoverCodes"
+            class="two-factor__option-checkbox"
+            [disabled]="!is2faEnabled"
+          >
+            Generate New Recovery Codes
+          </mat-checkbox>
+          <mat-checkbox
+            formControlName="forgetMachine"
+            class="two-factor__option-checkbox"
+          >
+            Forget this browser/device for 2FA
+          </mat-checkbox>
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="twoFactorForm.invalid || isLoading"
+          class="two-factor__button"
+        >
+          <span *ngIf="!isLoading">{{
+            twoFactorForm.get("enable")?.value
+              ? "Update 2FA Settings"
+              : "Enable 2FA"
+          }}</span>
+          <mat-spinner
+            *ngIf="isLoading"
+            [diameter]="20"
+            class="two-factor__spinner"
+          ></mat-spinner>
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

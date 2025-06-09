@@ -1,0 +1,328 @@
+.two-factor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 16px; // Default mobile padding
+  background-color: #f5f5f5;
+  box-sizing: border-box;
+
+  &__card {
+    width: 100%;
+    max-width: 400px; // Mobile max width
+    padding: 20px; // Default mobile padding
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+  }
+
+  &__progress-bar {
+    // Styles for progress bar
+  }
+
+  &__toggle-section {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+
+  &__toggle {
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 16px; // Default toggle font size
+    display: flex;
+    justify-content: space-between;
+  }
+
+  &__toggle-description {
+    font-size: 14px; // Default description font size
+    color: #666;
+    margin: 0;
+  }
+
+  &__divider {
+    margin: 20px 0; // Default divider spacing
+  }
+
+  &__setup-section {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  &__section-heading {
+    font-size: 20px; // Default heading font size
+    margin-bottom: 15px;
+    color: #333;
+    text-align: center; // Center heading on mobile
+  }
+
+  &__instruction-text {
+    font-size: 14px; // Default instruction font size
+    color: #666;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+
+  &__qr-code-placeholder {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  &__qr-code-image {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-width: 150px; // Ensure it fits mobile
+    height: auto;
+  }
+
+  &__shared-key-details {
+    margin-top: 15px;
+    text-align: center;
+  }
+
+  &__shared-key-label {
+    font-size: 14px;
+    margin: 0 0 5px 0;
+  }
+
+  &__shared-key-box {
+    background-color: #f0f0f0;
+    padding: 10px 15px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center; // Center content on mobile
+    word-break: break-all;
+  }
+
+  &__shared-key-code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px; // Default code font size
+    color: #000;
+  }
+
+  &__copy-button {
+    margin-left: 10px;
+    flex-shrink: 0;
+  }
+
+  &__form-field {
+    width: 100%;
+    margin-bottom: 15px;
+
+    &--verification-code {
+      max-width: 250px; // Smaller width for code input on mobile
+      margin-left: auto;
+      margin-right: auto;
+      display: block; // Ensures centering
+    }
+  }
+
+  &__option-checkbox {
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 14px; // Default checkbox font size
+  }
+
+  &__recovery-codes-box {
+    background-color: #f9f9f9;
+    border: 1px dashed #ccc;
+    padding: 15px; // Default mobile padding
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; // Default mobile gap
+    justify-content: center;
+  }
+
+  &__recovery-code {
+    background-color: #e8f0fe;
+    padding: 6px 10px; // Default code padding
+    border-radius: 4px;
+    font-family: "Courier New", Courier, monospace;
+    font-weight: bold;
+    font-size: 13px; // Default code font size
+    color: #3f51b5;
+    white-space: nowrap;
+  }
+
+  &__copy-codes-button {
+    margin-top: 15px; // Space from codes
+    padding: 8px 15px;
+    font-size: 14px;
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+      margin-right: 5px;
+    }
+  }
+
+  &__options-section {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__button {
+    width: 100%;
+    height: 48px; // Default button height
+    font-size: 16px; // Default button font size
+    margin-top: 20px;
+  }
+
+  &__spinner {
+    margin-left: 8px;
+  }
+
+  &__error {
+    font-size: 12px;
+  }
+
+  // Mobile specific adjustments (for very small screens)
+  @media (max-width: 360px) {
+    &__card {
+      padding: 15px;
+    }
+    &__button {
+      font-size: 14px;
+    }
+    &__toggle,
+    &__option-checkbox {
+      font-size: 14px;
+    }
+    &__shared-key-code {
+      font-size: 13px;
+    }
+    &__recovery-code {
+      font-size: 12px;
+      padding: 5px 8px;
+    }
+    &__qr-code-image {
+      max-width: 120px;
+    }
+  }
+
+  // Desktop adjustments
+  @media (min-width: 768px) {
+    padding: 20px; // Desktop padding
+    background-color: #e0e0e0;
+
+    &__card {
+      max-width: 700px; // Desktop max width
+      padding: 30px; // Desktop padding
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      background-color: #ffffff;
+    }
+
+    &__toggle-section {
+      margin-bottom: 25px;
+    }
+
+    &__toggle {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    &__toggle-description {
+      font-size: 14px;
+    }
+
+    &__divider {
+      margin: 30px 0; // Desktop divider spacing
+    }
+
+    &__setup-section {
+      margin-top: 30px;
+      margin-bottom: 30px;
+    }
+
+    &__section-heading {
+      font-size: 20px;
+      margin-bottom: 15px;
+      text-align: left; // Align left on desktop
+    }
+
+    &__instruction-text {
+      font-size: 15px;
+      margin-bottom: 20px;
+      text-align: left; // Align left on desktop
+    }
+
+    &__qr-and-key-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    &__qr-code-image {
+      max-width: 180px; // Larger QR on desktop
+    }
+
+    &__shared-key-details {
+      flex-grow: 1;
+      margin-top: 0;
+      text-align: left;
+    }
+
+    &__shared-key-label {
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    &__shared-key-box {
+      justify-content: space-between; // Space between key and copy button
+      code {
+        font-size: 16px;
+      }
+      button {
+        margin-left: 10px;
+      }
+    }
+
+    &__form-field--verification-code {
+      max-width: 300px; // Larger width for code input on desktop
+      margin-left: 0;
+      margin-right: 0;
+      display: block; // Keep it block for centering if needed
+    }
+
+    &__recovery-codes-box {
+      padding: 20px; // Larger padding
+      gap: 10px;
+      justify-content: center; // Keep centered or adjust as needed
+    }
+
+    &__recovery-code {
+      padding: 8px 12px;
+      font-size: 15px;
+    }
+
+    &__copy-codes-button {
+      margin-top: 15px;
+      margin-left: 15px;
+    }
+
+    &__options-section {
+      margin-top: 30px;
+      margin-bottom: 20px;
+      gap: 15px;
+    }
+
+    &__option-checkbox {
+      font-size: 15px;
+    }
+
+    &__button {
+      height: 52px; // Desktop button height
+      font-size: 18px; // Desktop button font size
+      margin-top: 20px;
+    }
+  }
+}

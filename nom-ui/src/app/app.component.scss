@@ -1,125 +1,388 @@
-@use '@angular/material' as mat;
-@include mat.core();
+/* app.component.scss */
+
+// --- Variables (Only non-theme specific SASS variables remain) ---
+$breakpoint-mobile: 768px;
 
 body {
-    margin: 0;
-    font-family: Roboto, "Helvetica Neue", sans-serif;
-  }
+  margin: 0;
+  font-family: Inter, sans-serif; // Consistent font
+  transition: background-color 0.3s ease, color 0.3s ease; // Smooth theme transition
+}
 
+// --- Base Styles ---
 :host {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
-  border: 1px solid var(--mat-sys-outline-variant);
-  font: var(--mat-sys-body-large);
 }
 
-.spacer {
-  flex: 1 1 auto;
+body {
+  color: var(--text-color);
 }
 
-.content {
-  padding: 24px;
-  flex-grow: 1;
-  transition: background-color 0.3s ease;
+// Styles for Material components (these rely on the CSS variables set on body)
+mat-card {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+mat-form-field {
+  .mat-form-field-wrapper {
+    background-color: var(--input-background) !important;
+    border-radius: 4px;
+  }
+  .mat-form-field-label,
+  .mat-form-field-hint,
+  .mat-form-field-prefix,
+  .mat-form-field-suffix,
+  .mat-form-field-ripple,
+  .mat-form-field-subscript-wrapper {
+    color: var(--input-text-color) !important;
+  }
+  input.mat-input-element {
+    color: var(--input-text-color) !important;
+    &::placeholder {
+      color: var(--input-placeholder-color) !important;
+    }
+  }
+  mat-error {
+    color: var(
+      --mat-form-field-error-color,
+      red
+    ) !important; /* Fallback to default Material error color */
+  }
+}
+
+// --- Header Styles ---
+.app-header {
+  background-color: var(--header-background);
+  color: var(--header-text-color);
+  padding: 15px 20px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.dashboard-card {
-  width: 100%;
-  max-width: 700px;
-  margin-bottom: 24px;
-}
-
-.feature-section {
-  margin-top: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  position: relative; // Needed for absolute positioning of user menu dropdown
 
-  h3 {
-    width: 100%;
-    margin-bottom: 10px;
-    text-align: center;
+  &__left {
+    display: flex;
+    align-items: center;
+  }
+
+  &__logo-svg {
+    height: 50px; /* Adjust height as needed for the header */
+    width: auto; /* Maintain aspect ratio */
+    max-width: 200px; /* Limit max width for larger screens */
+    margin-right: 10px; /* Space between logo and other elements if any */
+
+    // Inherit fill for static text elements
+    text {
+      fill: var(--header-text-color);
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    position: relative; // Crucial for positioning the dropdown relative to this container
+    gap: 10px; // Space between theme toggle and user menu
+  }
+
+  &__theme-toggle {
+    color: var(--header-text-color); // Inherit based on theme
   }
 }
 
-.action-button {
-  min-width: 150px;
-  flex-grow: 1;
-  mat-icon {
-    margin-right: 8px;
-  }
-}
+// --- User Menu Styles ---
+.app-user-menu {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  z-index: 100; // Higher than sidenav for popover
 
-.full-width-input {
-  width: 100%;
-  margin-top: 20px;
-}
-
-.app-footer {
-  padding: 16px 24px;
-  color: white;
-  text-align: center;
-  font-size: 0.8em;
-  transition: background-color 0.3s ease;
-
-  &.dark-theme-footer {
-    color: white;
-  }
-}
-
-@media (max-width: 600px) {
-  .content {
-    padding: 16px;
+  &:hover {
+    background-color: var(
+      --user-menu-link-hover-background
+    ); // Using theme's hover color
   }
 
-  .dashboard-card {
-    margin-bottom: 16px;
+  &__icon-container {
+    position: relative;
+    margin-right: 10px;
   }
 
-  .feature-section {
-    .action-button {
+  &__user-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--user-icon-background);
+    display: block;
+  }
+
+  &__status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: gray; // Default logged out, can be changed by theme later
+    border: 2px solid var(--status-indicator-border-color);
+    &--logged-in {
+      background-color: var(--status-success-color); // Green when logged in
+    }
+  }
+
+  &__burger-menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 25px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    box-sizing: border-box;
+    margin-left: 5px; // Space from icon
+
+    .app-user-menu__bar {
       width: 100%;
-      min-width: unset;
+      height: 3px;
+      background-color: var(--burger-menu-bar-color);
+      border-radius: 5px;
+      transition: all 0.3s ease-in-out;
     }
 
-    h3 {
-      text-align: left;
+    &--open {
+      .app-user-menu__bar:nth-child(1) {
+        transform: translateY(11px) rotate(45deg);
+      }
+      .app-user-menu__bar:nth-child(2) {
+        opacity: 0;
+      }
+      .app-user-menu__bar:nth-child(3) {
+        transform: translateY(-11px) rotate(-45deg);
+      }
     }
   }
 
-  mat-toolbar {
-    padding-left: 16px;
-    padding-right: 16px;
-    font-size: 16px;
-    span {
-      font-size: 16px;
+  &__dropdown {
+    position: absolute;
+    top: 100%; // Position below the user icon
+    right: 0;
+    background-color: var(--user-menu-background);
+    color: var(--user-menu-text-color);
+    border: 1px solid var(--user-menu-border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 280px; // A reasonable minimum width for popover
+    max-width: 90vw; // Ensure it doesn't overflow on small screens
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
+    z-index: 99; // Below main sidenav but above general content
+
+    &--open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+  }
+
+  &__logged-in-list {
+    list-style: none;
+    padding: 10px 0;
+    margin: 0;
+
+    li {
+      .app-user-menu__link {
+        display: block;
+        padding: 10px 20px;
+        text-decoration: none;
+        color: var(--user-menu-text-color);
+        white-space: nowrap; // Prevent text wrapping
+        &:hover {
+          background-color: var(--user-menu-link-hover-background);
+        }
+        &--logout {
+          color: var(--danger-color); // Red for logout
+          &:hover {
+            background-color: var(
+              --danger-light-background-color
+            ); // Lighter red on hover
+          }
+        }
+      }
+    }
+  }
+
+  &__logged-out-content {
+    padding: 15px;
+
+    .app-user-menu__prompt {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+      text-align: center;
+      color: var(--text-color);
+    }
+
+    .app-user-menu__login-component {
+      max-width: 100%;
+      box-shadow: none !important;
+      .login__card {
+        padding: 0;
+        box-shadow: none !important;
+        border-radius: 0;
+      }
+      .login__header,
+      .login__footer {
+        display: none !important;
+      }
+    }
+
+    .app-user-menu__register-prompt {
+      font-size: 0.9em;
+      text-align: center;
+      margin-top: 15px;
+      margin-bottom: 10px;
+      color: var(--secondary-text-color);
+    }
+
+    .app-user-menu__register-link {
+      color: var(--link-color);
+      text-decoration: none;
+      &:hover {
+        text-decoration: underline;
+        color: var(--link-hover-color);
+      }
+    }
+
+    .app-user-menu__mock-login-button {
+      display: block;
+      width: 100%;
+      padding: 8px 15px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9em;
+      background-color: var(--mock-login-button-background);
+      color: var(--mock-login-button-text-color);
+      &:hover {
+        background-color: var(--mock-login-button-hover-background);
+      }
     }
   }
 }
 
-@media (min-width: 601px) and (max-width: 900px) {
-  .content {
-    padding: 20px;
+// --- Side Navigation Styles ---
+.app-sidenav {
+  position: fixed;
+  top: 0;
+  right: -250px; // Hidden by default
+  width: 250px;
+  height: 100%;
+  background-color: var(--sidenav-background);
+  color: var(--sidenav-link-color);
+  padding-top: 60px; // Space for header
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+  transition: right 0.3s ease-in-out;
+  z-index: 1000; // Ensure it's above other content
+
+  &--open {
+    right: 0; // Slide in
   }
 
-  .dashboard-card {
-    max-width: 90%;
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      .app-sidenav__link {
+        display: block;
+        padding: 15px 20px;
+        text-decoration: none;
+        color: var(--sidenav-link-color);
+        border-bottom: 1px solid var(--sidenav-border-color);
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--sidenav-link-hover-background);
+        }
+      }
+    }
+  }
+}
+
+// --- Main Content Styles ---
+.app-content {
+  flex-grow: 1;
+  padding: 20px;
+  transition: margin-right 0.3s ease-in-out;
+}
+
+// --- Footer Styles ---
+.app-footer {
+  padding: 15px 20px;
+  text-align: center;
+  font-size: 0.9em;
+  background-color: var(--footer-background);
+  color: var(--footer-text-color);
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+// --- Responsive Adjustments ---
+@media (max-width: $breakpoint-mobile) {
+  .app-header {
+    &__left {
+      .app-header__logo-svg {
+        height: 40px;
+        max-width: 150px;
+      }
+    }
   }
 
-  .feature-section {
-    justify-content: flex-start;
+  .app-user-menu {
+    &__dropdown {
+      min-width: 250px;
+    }
+  }
+}
+
+@media (min-width: $breakpoint-mobile + 1px) {
+  .app-header {
+    &__right {
+      .app-user-menu__burger-menu {
+        display: none;
+      }
+    }
   }
 
-  h3 {
-    text-align: left;
+  .app-sidenav {
+    position: relative;
+    right: auto;
+    width: 200px;
+    height: auto;
+    padding-top: 0;
+    box-shadow: none;
+    flex-shrink: 0;
+  }
+
+  .app-content {
+    margin-right: 0;
+  }
+
+  .app-user-menu {
+    &__dropdown {
+      min-width: 350px;
+    }
   }
 }

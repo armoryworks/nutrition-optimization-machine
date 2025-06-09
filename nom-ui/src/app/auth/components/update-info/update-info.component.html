@@ -1,0 +1,109 @@
+<div class="update-info">
+  <mat-card class="update-info__card">
+    <mat-card-header class="update-info__header">
+      <mat-card-title class="update-info__title">
+        Account Settings
+      </mat-card-title>
+      <mat-card-subtitle class="update-info__subtitle">
+        Update your email or password
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="update-info__progress-bar"
+    ></mat-progress-bar>
+    <mat-card-content class="update-info__content">
+      <form
+        [formGroup]="updateInfoForm"
+        (ngSubmit)="onSubmit()"
+        class="update-info__form"
+      >
+        <p class="update-info__instruction-text">
+          Leave fields blank if you don't want to change them. Your current
+          password is required to save any changes.
+        </p>
+
+        <mat-form-field appearance="outline" class="update-info__form-field">
+          <mat-label>New Email (Optional)</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="newEmail"
+            class="update-info__input"
+          />
+          <mat-icon matSuffix class="update-info__icon">email</mat-icon>
+          <mat-error
+            *ngIf="updateInfoForm.get('newEmail')?.hasError('email')"
+            class="update-info__error"
+          >
+            Please enter a valid email address.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="update-info__form-field">
+          <mat-label>New Password (Optional)</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="newPassword"
+            class="update-info__input"
+          />
+          <mat-icon matSuffix class="update-info__icon">lock</mat-icon>
+          <mat-error
+            *ngIf="updateInfoForm.get('newPassword')?.hasError('minlength')"
+            class="update-info__error"
+          >
+            New Password must be at least 8 characters.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="update-info__form-field">
+          <mat-label>Current Password (Required)</mat-label>
+          <input
+            matInput
+            type="password"
+            formControlName="oldPassword"
+            required
+            class="update-info__input"
+          />
+          <mat-icon matSuffix class="update-info__icon">vpn_key</mat-icon>
+          <mat-error
+            *ngIf="
+              updateInfoForm.get('oldPassword')?.hasError('required') &&
+              updateInfoForm.get('oldPassword')?.touched
+            "
+            class="update-info__error"
+          >
+            Current password is required to confirm changes.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-error
+          *ngIf="
+            updateInfoForm.hasError('noUpdateFields') && updateInfoForm.touched
+          "
+          class="update-info__error update-info__error--form-level"
+        >
+          Please provide a new email or a new password to update.
+        </mat-error>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="updateInfoForm.invalid || isLoading"
+          class="update-info__button"
+        >
+          <span *ngIf="!isLoading">Save Changes</span>
+          <mat-spinner
+            *ngIf="isLoading"
+            [diameter]="20"
+            class="update-info__spinner"
+          ></mat-spinner>
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

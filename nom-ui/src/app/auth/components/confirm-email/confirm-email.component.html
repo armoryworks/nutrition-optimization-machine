@@ -1,0 +1,77 @@
+<div class="confirm-email">
+  <mat-card class="confirm-email__card">
+    <mat-card-header class="confirm-email__header">
+      <mat-card-title class="confirm-email__title"
+        >Email Confirmation</mat-card-title
+      >
+      <mat-card-subtitle class="confirm-email__subtitle"
+        >Verifying your account...</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="confirm-email__progress-bar"
+    ></mat-progress-bar>
+    <mat-card-content class="confirm-email__content">
+      <div
+        *ngIf="confirmationStatus === 'loading'"
+        class="confirm-email__loading-state"
+      >
+        <mat-spinner class="confirm-email__spinner"></mat-spinner>
+        <p class="confirm-email__message">{{ message }}</p>
+      </div>
+
+      <div
+        *ngIf="confirmationStatus === 'success'"
+        class="confirm-email__success-state"
+      >
+        <mat-icon color="accent" class="confirm-email__status-icon"
+          >check_circle</mat-icon
+        >
+        <h2 class="confirm-email__status-heading">
+          Email Confirmed Successfully!
+        </h2>
+        <p class="confirm-email__message">{{ message }}</p>
+        <button
+          mat-raised-button
+          color="primary"
+          routerLink="/login"
+          class="confirm-email__button"
+        >
+          Go to Login
+        </button>
+      </div>
+
+      <div
+        *ngIf="confirmationStatus === 'failure'"
+        class="confirm-email__failure-state"
+      >
+        <mat-icon color="warn" class="confirm-email__status-icon"
+          >error</mat-icon
+        >
+        <h2 class="confirm-email__status-heading">Confirmation Failed</h2>
+        <p class="confirm-email__message">{{ message }}</p>
+        <div class="confirm-email__action-buttons-group">
+          <button
+            mat-stroked-button
+            color="primary"
+            routerLink="/send-confirmation"
+            class="confirm-email__button"
+          >
+            Resend Confirmation Email
+          </button>
+          <button
+            mat-raised-button
+            color="accent"
+            routerLink="/contact"
+            class="confirm-email__button"
+          >
+            Contact Support
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

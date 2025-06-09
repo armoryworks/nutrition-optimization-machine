@@ -1,0 +1,80 @@
+<div class="send-confirmation-email">
+  <mat-card class="send-confirmation-email__card">
+    <mat-card-header class="send-confirmation-email__header">
+      <mat-card-title class="send-confirmation-email__title"
+        >Resend Confirmation Email</mat-card-title
+      >
+      <mat-card-subtitle class="send-confirmation-email__subtitle"
+        >If you haven't received it, we can send another one.</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="send-confirmation-email__progress-bar"
+    ></mat-progress-bar>
+    <mat-card-content class="send-confirmation-email__content">
+      <p class="send-confirmation-email__instruction-text">
+        Enter the email address you registered with to receive a new
+        confirmation email.
+      </p>
+      <form
+        [formGroup]="sendConfirmationEmailForm"
+        (ngSubmit)="onSubmit()"
+        class="send-confirmation-email__form"
+      >
+        <mat-form-field
+          appearance="outline"
+          class="send-confirmation-email__form-field"
+        >
+          <mat-label>Email Address</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            required
+            class="send-confirmation-email__input"
+          />
+          <mat-icon matSuffix class="send-confirmation-email__icon"
+            >email</mat-icon
+          >
+          <mat-error
+            *ngIf="sendConfirmationEmailForm.get('email')?.hasError('required')"
+            class="send-confirmation-email__error"
+          >
+            Email is required.
+          </mat-error>
+          <mat-error
+            *ngIf="sendConfirmationEmailForm.get('email')?.hasError('email')"
+            class="send-confirmation-email__error"
+          >
+            Please enter a valid email address.
+          </mat-error>
+        </mat-form-field>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="sendConfirmationEmailForm.invalid || isLoading"
+          class="send-confirmation-email__button"
+        >
+          <span *ngIf="!isLoading">Resend Confirmation Email</span>
+          <mat-spinner
+            *ngIf="isLoading"
+            [diameter]="20"
+            class="send-confirmation-email__spinner"
+          ></mat-spinner>
+        </button>
+      </form>
+    </mat-card-content>
+    <mat-card-actions align="end" class="send-confirmation-email__actions">
+      <p class="send-confirmation-email__back-to-login-prompt">
+        <a routerLink="/login" class="send-confirmation-email__login-link"
+          >Back to Login</a
+        >
+      </p>
+    </mat-card-actions>
+  </mat-card>
+</div>
