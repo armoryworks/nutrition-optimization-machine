@@ -1,34 +1,41 @@
-/* app.component.scss */
-
-// --- Variables (Only non-theme specific SASS variables remain) ---
-$breakpoint-mobile: 768px;
+@use "../variables" as vars;
 
 body {
   margin: 0;
-  font-family: Inter, sans-serif; // Consistent font
+  // Use a fallback font here in case Roboto is not loaded or for very early rendering.
+  // The Material system properties will explicitly use Roboto.
+  font-family: Inter, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease; // Smooth theme transition
+  height: 100vh; // Ensure body takes full viewport height
 }
 
-// --- Base Styles ---
+// --- Base Layout for Fixed Header/Footer and Scrollable Content ---
 :host {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100vh; // Ensure it takes full viewport height
+  height: 100vh; // Explicitly set height for flex to work correctly
 }
 
 body {
-  color: var(--text-color);
+  color: var(--mat-sys-on-background); // Main text color for the body
+  background-color: var(
+    --mat-sys-background
+  ); // Main background color for the body
+  // All margin/padding removed to allow full layout control by :host
 }
 
 // Styles for Material components (these rely on the CSS variables set on body)
 mat-card {
-  background-color: var(--card-background) !important;
-  color: var(--text-color) !important;
+  background-color: var(--mat-sys-surface-container) !important;
+  color: var(--mat-sys-on-surface) !important;
 }
 
 mat-form-field {
   .mat-form-field-wrapper {
-    background-color: var(--input-background) !important;
+    background-color: var(
+      --mat-sys-surface-container-low
+    ) !important; // A subtle background for input fields
     border-radius: 4px;
   }
   .mat-form-field-label,
@@ -37,32 +44,31 @@ mat-form-field {
   .mat-form-field-suffix,
   .mat-form-field-ripple,
   .mat-form-field-subscript-wrapper {
-    color: var(--input-text-color) !important;
+    color: var(--mat-sys-on-surface) !important;
   }
   input.mat-input-element {
-    color: var(--input-text-color) !important;
+    color: var(--mat-sys-on-surface) !important;
+    // Placeholder font properties should also be inherited from Material's form-field typography
     &::placeholder {
-      color: var(--input-placeholder-color) !important;
+      color: var(--mat-sys-outline) !important; // Placeholder color
     }
   }
   mat-error {
-    color: var(
-      --mat-form-field-error-color,
-      red
-    ) !important; /* Fallback to default Material error color */
+    color: var(--mat-sys-error) !important;
   }
 }
 
 // --- Header Styles ---
 .app-header {
-  background-color: var(--header-background);
-  color: var(--header-text-color);
-  padding: 15px 20px;
+  background-color: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  padding: 0; // Removed padding
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 5px rgba(var(--mat-sys-shadow), 0.2); // Using theme-provided RGB for shadow
   position: relative; // Needed for absolute positioning of user menu dropdown
+  flex-shrink: 0; // Prevent header from shrinking
 
   &__left {
     display: flex;
@@ -74,10 +80,11 @@ mat-form-field {
     width: auto; /* Maintain aspect ratio */
     max-width: 200px; /* Limit max width for larger screens */
     margin-right: 10px; /* Space between logo and other elements if any */
+    padding: 15px 20px; // Re-added padding inside logo container for spacing
 
     // Inherit fill for static text elements
     text {
-      fill: var(--header-text-color);
+      fill: currentColor; // Inherit color from parent (.app-header)
     }
   }
 
@@ -86,10 +93,11 @@ mat-form-field {
     align-items: center;
     position: relative; // Crucial for positioning the dropdown relative to this container
     gap: 10px; // Space between theme toggle and user menu
+    padding: 15px 20px; // Re-added padding to the right for spacing
   }
 
   &__theme-toggle {
-    color: var(--header-text-color); // Inherit based on theme
+    color: var(--mat-sys-on-surface); // Inherit based on theme
   }
 }
 
@@ -106,8 +114,8 @@ mat-form-field {
 
   &:hover {
     background-color: var(
-      --user-menu-link-hover-background
-    ); // Using theme's hover color
+      --mat-sys-surface-container-low
+    ); // Using a lower surface for hover
   }
 
   &__icon-container {
@@ -119,7 +127,9 @@ mat-form-field {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: var(--user-icon-background);
+    background-color: var(
+      --mat-sys-secondary
+    ); // Example using secondary color for user icon
     display: block;
   }
 
@@ -130,10 +140,14 @@ mat-form-field {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: gray; // Default logged out, can be changed by theme later
-    border: 2px solid var(--status-indicator-border-color);
+    background-color: var(
+      --mat-sys-on-surface-variant
+    ); // Default logged out, from theme
+    border: 2px solid var(--mat-sys-surface-container-high); // Border matches header background
     &--logged-in {
-      background-color: var(--status-success-color); // Green when logged in
+      background-color: var(
+        --status-success-color
+      ); // Green for logged in, keeping explicit if no Material equivalent exists
     }
   }
 
@@ -153,7 +167,9 @@ mat-form-field {
     .app-user-menu__bar {
       width: 100%;
       height: 3px;
-      background-color: var(--burger-menu-bar-color);
+      background-color: var(
+        --mat-sys-on-surface
+      ); // Burger bar color matches header text
       border-radius: 5px;
       transition: all 0.3s ease-in-out;
     }
@@ -175,11 +191,13 @@ mat-form-field {
     position: absolute;
     top: 100%; // Position below the user icon
     right: 0;
-    background-color: var(--user-menu-background);
-    color: var(--user-menu-text-color);
-    border: 1px solid var(--user-menu-border-color);
+    background-color: var(
+      --mat-sys-surface-bright
+    ); // A brighter surface for the dropdown
+    color: var(--mat-sys-on-surface);
+    border: 1px solid var(--mat-sys-outline);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.15);
     min-width: 280px; // A reasonable minimum width for popover
     max-width: 90vw; // Ensure it doesn't overflow on small screens
     opacity: 0;
@@ -205,16 +223,19 @@ mat-form-field {
         display: block;
         padding: 10px 20px;
         text-decoration: none;
-        color: var(--user-menu-text-color);
+        color: var(--mat-sys-on-surface);
         white-space: nowrap; // Prevent text wrapping
+        font: var(--mat-sys-body-medium); // Using Material typography
         &:hover {
-          background-color: var(--user-menu-link-hover-background);
+          background-color: var(
+            --mat-sys-surface-container-low
+          ); // Hover effect for links
         }
         &--logout {
-          color: var(--danger-color); // Red for logout
+          color: var(--mat-sys-error); // Red for logout
           &:hover {
             background-color: var(
-              --danger-light-background-color
+              --mat-sys-error-container
             ); // Lighter red on hover
           }
         }
@@ -228,9 +249,9 @@ mat-form-field {
     .app-user-menu__prompt {
       margin-top: 0;
       margin-bottom: 15px;
-      font-size: 1.1em;
+      font: var(--mat-sys-title-medium); // Using Material typography
       text-align: center;
-      color: var(--text-color);
+      color: var(--mat-sys-on-surface);
     }
 
     .app-user-menu__login-component {
@@ -248,19 +269,19 @@ mat-form-field {
     }
 
     .app-user-menu__register-prompt {
-      font-size: 0.9em;
+      font: var(--mat-sys-body-small); // Using Material typography
       text-align: center;
       margin-top: 15px;
       margin-bottom: 10px;
-      color: var(--secondary-text-color);
+      color: var(--mat-sys-on-surface-variant);
     }
 
     .app-user-menu__register-link {
-      color: var(--link-color);
+      color: var(--mat-sys-primary);
       text-decoration: none;
       &:hover {
         text-decoration: underline;
-        color: var(--link-hover-color);
+        color: var(--mat-sys-primary-fixed-variant);
       }
     }
 
@@ -272,11 +293,11 @@ mat-form-field {
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 0.9em;
-      background-color: var(--mock-login-button-background);
-      color: var(--mock-login-button-text-color);
+      font: var(--mat-sys-label-large); // Using Material typography
+      background-color: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
       &:hover {
-        background-color: var(--mock-login-button-hover-background);
+        background-color: var(--mat-sys-primary-container);
       }
     }
   }
@@ -289,10 +310,10 @@ mat-form-field {
   right: -250px; // Hidden by default
   width: 250px;
   height: 100%;
-  background-color: var(--sidenav-background);
-  color: var(--sidenav-link-color);
-  padding-top: 60px; // Space for header
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+  background-color: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+  padding-top: 60px; // Space for header (adjust based on actual header height)
+  box-shadow: -2px 0 5px rgba(var(--mat-sys-shadow), 0.3);
   transition: right 0.3s ease-in-out;
   z-index: 1000; // Ensure it's above other content
 
@@ -310,12 +331,13 @@ mat-form-field {
         display: block;
         padding: 15px 20px;
         text-decoration: none;
-        color: var(--sidenav-link-color);
-        border-bottom: 1px solid var(--sidenav-border-color);
+        color: var(--mat-sys-on-surface);
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
         transition: background-color 0.2s ease;
+        font: var(--mat-sys-body-large); // Using Material typography
 
         &:hover {
-          background-color: var(--sidenav-link-hover-background);
+          background-color: var(--mat-sys-surface-container-low);
         }
       }
     }
@@ -324,23 +346,28 @@ mat-form-field {
 
 // --- Main Content Styles ---
 .app-content {
-  flex-grow: 1;
-  padding: 20px;
+  flex-grow: 1; // Allows content to take up remaining space
+  overflow-y: auto; // Makes content scrollable
+  padding: 0; // Removed padding
   transition: margin-right 0.3s ease-in-out;
+  background-color: var(
+    --mat-sys-background
+  ); // Ensure content background matches body
 }
 
 // --- Footer Styles ---
 .app-footer {
-  padding: 15px 20px;
+  padding: 0; // Removed padding
   text-align: center;
-  font-size: 0.9em;
-  background-color: var(--footer-background);
-  color: var(--footer-text-color);
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  font: var(--mat-sys-body-small); // Using Material typography
+  background-color: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  box-shadow: 0 -2px 5px rgba(var(--mat-sys-shadow), 0.1);
+  flex-shrink: 0; // Prevent footer from shrinking
 }
 
 // --- Responsive Adjustments ---
-@media (max-width: $breakpoint-mobile) {
+@media (max-width: vars.$breakpoint-mobile) {
   .app-header {
     &__left {
       .app-header__logo-svg {
@@ -357,7 +384,7 @@ mat-form-field {
   }
 }
 
-@media (min-width: $breakpoint-mobile + 1px) {
+@media (min-width: vars.$breakpoint-mobile + 1px) {
   .app-header {
     &__right {
       .app-user-menu__burger-menu {

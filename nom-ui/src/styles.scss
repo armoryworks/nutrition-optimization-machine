@@ -1,34 +1,371 @@
-@use '@angular/material' as mat;
-@use 'nom-theme';
-
+@use "@angular/material" as mat;
+@use "nom-theme";
+@use "variables" as vars;
 
 @include mat.core();
 
 html {
-    .dark-theme {
+  .dark-theme {
+    @include mat.theme(
+      (
+        color: (
+          primary: nom-theme.$primary-palette,
+          tertiary: nom-theme.$tertiary-palette,
+          theme-type: dark,
+        ),
+        typography: Roboto,
+        density: 0,
+      )
+    );
+  }
 
-        @include mat.theme((color: (primary: nom-theme.$primary-palette,
-                    tertiary: nom-theme.$tertiary-palette,
-                    theme-type: dark,
-                ),
-                typography: Roboto,
-                density: 0,
-            ));
+  .light-theme {
+    @include mat.theme(
+      (
+        color: (
+          primary: nom-theme.$primary-palette,
+          tertiary: nom-theme.$tertiary-palette,
+          theme-type: light,
+        ),
+        typography: Roboto,
+        density: 0,
+      )
+    );
+  }
+
+  // Use high contrast dark theme colors when users prefer contrast
+  @media (prefers-contrast: more) {
+    @include nom-theme.high-contrast-overrides(dark);
+  }
+}
+
+//* system.scss */
+
+// --- Base Layout Elements ---
+.nom-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 16px; // Default mobile padding
+  background-color: var(--mat-sys-background); // Main background color
+  box-sizing: border-box;
+  color: var(--mat-sys-on-background); // Main text color
+}
+
+// --- Common Card Styles ---
+.nom-card {
+  width: 100%;
+  max-width: 400px; // Mobile max width
+  padding: 20px; // Default mobile padding
+  box-shadow: 0 4px 8px rgba(var(--mat-sys-shadow), 0.1); // Shadow using system shadow color
+  border-radius: 8px;
+  background-color: var(--mat-sys-surface-container); // Card background color
+  color: var(--mat-sys-on-surface); // Text color on card
+}
+
+.nom-card__header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.nom-card__title {
+  margin: 0;
+  font: var(--mat-sys-headline-large); // Using headline-large for main titles
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-card__subtitle {
+  margin-top: 5px;
+  font: var(--mat-sys-body-large); // Using body-large for subtitles
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-card__progress-bar {
+  // Material handles its own progress bar colors
+}
+
+.nom-card__content {
+  padding: 20px 0;
+}
+
+.nom-card__footer {
+  padding-top: 15px;
+  text-align: center;
+}
+
+// --- Common Form Elements ---
+.nom-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-form__field {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.nom-form__input {
+  // Material handles most input styling directly via its themes,
+  // including font properties based on its form-field typography config.
+}
+
+.nom-form__icon {
+  // Material icons inherit color from parent
+}
+
+.nom-form__error {
+  font: var(--mat-sys-body-small); // Using body-small for error messages
+  color: var(--mat-sys-error);
+  margin-top: 5px;
+}
+
+// Special form field modifiers
+.nom-form__field--centered {
+  max-width: 250px; // Example for verification code, etc.
+  margin-left: auto;
+  margin-right: auto;
+  display: block; // Ensures centering
+}
+
+// --- Common Buttons ---
+.nom-button {
+  width: 100%;
+  height: 48px;
+  font: var(--mat-sys-label-large); // Using label-large for buttons
+  margin-top: 10px;
+  // Material handles its own primary/accent button colors
+}
+
+.nom-button__spinner {
+  margin-left: 8px;
+}
+
+// --- Common Text and Links ---
+.nom-instruction-text {
+  font: var(--mat-sys-body-medium); // Using body-medium for instruction text
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: var(
+    --mat-sys-body-medium-line-height
+  ); // Use specific line-height from var
+}
+
+.nom-prompt-text {
+  font: var(--mat-sys-body-medium); // Using body-medium for prompt text
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+  margin-top: 20px;
+  line-height: var(
+    --mat-sys-body-medium-line-height
+  ); // Use specific line-height from var
+}
+
+.nom-link {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font: inherit; // Inherit font from parent, or set specifically if needed
+  &:hover {
+    text-decoration: underline;
+    color: var(--mat-sys-primary-fixed-variant);
+  }
+}
+
+.nom-message-text {
+  // For success/failure messages, descriptions
+  font: var(--mat-sys-body-large); // Using body-large for messages
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: var(
+    --mat-sys-body-large-line-height
+  ); // Use specific line-height from var
+  text-align: center;
+}
+
+.nom-small-text {
+  // For smaller descriptive text
+  font: var(--mat-sys-body-small); // Using body-small for small text
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// --- Common Sections and Layouts ---
+.nom-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  gap: 15px; // Default gap for items in a section
+}
+
+.nom-section__heading {
+  font: var(
+    --mat-sys-headline-medium
+  ); // Using headline-medium for section headings
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  text-align: center;
+}
+
+.nom-horizontal-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px; // Default gap for items in a horizontal group
+}
+
+.nom-divider {
+  margin: 20px 0;
+  background-color: var(--mat-sys-outline-variant);
+}
+
+// --- Common Status and Iconography ---
+.nom-status-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  // Material handles `color="accent"` and `color="warn"` for icons
+}
+
+.nom-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+// --- Common Code Display Elements ---
+.nom-code-box {
+  background-color: var(--mat-sys-surface-container-low);
+  padding: 10px 15px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center; // Center content on mobile
+  word-break: break-all;
+  gap: 10px; // Space between code and copy button
+}
+
+.nom-code-box--dashed {
+  border: 1px dashed var(--mat-sys-outline);
+}
+
+.nom-code-label {
+  font: var(--mat-sys-label-large); // Using label-large for code labels
+  font-weight: var(
+    --mat-sys-label-large-weight-prominent
+  ); // Explicitly use prominent weight
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-code-text {
+  font-family: "Courier New", Courier, monospace; // Monospace for code
+  font: var(--mat-sys-body-medium); // Using body-medium for code text
+  color: var(--mat-sys-on-surface);
+  flex-grow: 1; // Allow code to take space
+}
+
+.nom-code-item {
+  // For individual recovery codes
+  background-color: var(--mat-sys-primary-container);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: "Courier New", Courier, monospace; // Monospace for code
+  font: var(--mat-sys-label-medium); // Using label-medium for code items
+  font-weight: var(
+    --mat-sys-label-medium-weight-prominent
+  ); // Explicitly use prominent weight
+  color: var(--mat-sys-on-primary);
+  white-space: nowrap;
+}
+
+.nom-qr-code-image {
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 4px;
+  max-width: 150px; // Default mobile size
+  height: auto;
+}
+
+// --- Responsive Adjustments for Common Elements ---
+@media (min-width: vars.$breakpoint-mobile) {
+  .nom-page-container {
+    padding: 20px;
+  }
+  .nom-card {
+    max-width: 500px; // Desktop card width
+    padding: 30px;
+    box-shadow: 0 8px 16px rgba(var(--mat-sys-shadow), 0.2);
+    border-radius: 12px;
+  }
+  .nom-card__header {
+    margin-bottom: 30px;
+  }
+  .nom-card__title {
+    font: var(--mat-sys-display-small); // Larger title on desktop
+  }
+  .nom-card__subtitle {
+    font: var(--mat-sys-headline-small); // Larger subtitle on desktop
+  }
+  .nom-card__content {
+    padding: 30px 0;
+  }
+  .nom-form__field {
+    margin-bottom: 20px;
+  }
+  .nom-button {
+    height: 52px;
+    font: var(--mat-sys-label-large); // Consistent label-large
+    margin-top: 15px;
+  }
+  .nom-instruction-text,
+  .nom-prompt-text,
+  .nom-message-text,
+  .nom-small-text {
+    font-size: var(
+      --mat-sys-body-large-size
+    ); // Use body-large size for desktop instructions/prompts/messages
+    margin-bottom: 25px; // For instruction/prompt text
+  }
+  .nom-card__footer {
+    padding-top: 20px;
+  }
+
+  .nom-section {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    gap: 20px;
+  }
+  .nom-section__heading {
+    font: var(--mat-sys-headline-large); // Larger heading on desktop
+    text-align: left;
+  }
+  .nom-horizontal-group {
+    gap: 20px;
+  }
+  .nom-divider {
+    margin: 30px 0;
+  }
+  .nom-status-icon {
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+  }
+  .nom-code-box {
+    justify-content: space-between; // Space between code and copy button
+    .nom-code-text {
+      // Referencing from system.scss
+      font: var(--mat-sys-body-large); // Larger code text on desktop
     }
-
-    .light-theme {
-
-        @include mat.theme((color: (primary: nom-theme.$primary-palette,
-        tertiary: nom-theme.$tertiary-palette,
-                    theme-type: light,
-                ),
-                typography: Roboto,
-                density: 0,
-            ));
-    }
-
-    // Use high contrast dark theme colors when users prefer contrast
-    @media (prefers-contrast: more) {
-        @include nom-theme.high-contrast-overrides(dark);
-    }
+  }
+  .nom-code-item {
+    font: var(--mat-sys-label-large); // Larger code item on desktop
+    padding: 8px 12px;
+  }
+  .nom-qr-code-image {
+    max-width: 180px;
+  }
+  .nom-spinner-container {
+    gap: 20px;
+  }
 }

@@ -1,100 +1,84 @@
-<div class="registration">
-  <mat-card class="registration__card">
-    <mat-card-header class="registration__header">
-      <mat-card-title class="registration__title"
+<div class="nom-page-container registration">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header">
+      <mat-card-title class="nom-card__title"
         >Create Your Account</mat-card-title
       >
-      <mat-card-subtitle class="registration__subtitle"
+      <mat-card-subtitle class="nom-card__subtitle"
         >Join us and get started!</mat-card-subtitle
       >
     </mat-card-header>
+    @if (isLoading) {
     <mat-progress-bar
-      *ngIf="isLoading"
       mode="indeterminate"
       color="primary"
-      class="registration__progress-bar"
+      class="nom-card__progress-bar"
     ></mat-progress-bar>
-    <mat-card-content class="registration__content">
+    }
+    <mat-card-content class="nom-card__content">
       <form
         [formGroup]="registrationForm"
         (ngSubmit)="onSubmit()"
-        class="registration__form"
+        class="nom-form"
       >
-        <mat-form-field appearance="outline" class="registration__form-field">
+        <mat-form-field appearance="outline" class="nom-form__field">
           <mat-label>Email Address</mat-label>
           <input
             matInput
             type="email"
             formControlName="email"
             required
-            class="registration__input"
+            class="nom-form__input"
           />
-          <mat-icon matSuffix class="registration__icon">email</mat-icon>
-          <mat-error
-            *ngIf="registrationForm.get('email')?.hasError('required')"
-            class="registration__error"
-          >
-            Email is required.
-          </mat-error>
-          <mat-error
-            *ngIf="registrationForm.get('email')?.hasError('email')"
-            class="registration__error"
-          >
+          <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
+          @if (registrationForm.get('email')?.hasError('required')) {
+          <mat-error class="nom-form__error"> Email is required. </mat-error>
+          } @if (registrationForm.get('email')?.hasError('email')) {
+          <mat-error class="nom-form__error">
             Please enter a valid email address.
           </mat-error>
+          }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="registration__form-field">
+        <mat-form-field appearance="outline" class="nom-form__field">
           <mat-label>Password</mat-label>
           <input
             matInput
             type="password"
             formControlName="password"
             required
-            class="registration__input"
+            class="nom-form__input"
           />
-          <mat-icon matSuffix class="registration__icon">lock</mat-icon>
-          <mat-error
-            *ngIf="registrationForm.get('password')?.hasError('required')"
-            class="registration__error"
-          >
-            Password is required.
-          </mat-error>
-          <mat-error
-            *ngIf="registrationForm.get('password')?.hasError('minlength')"
-            class="registration__error"
-          >
+          <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
+          @if (registrationForm.get('password')?.hasError('required')) {
+          <mat-error class="nom-form__error"> Password is required. </mat-error>
+          } @if (registrationForm.get('password')?.hasError('minlength')) {
+          <mat-error class="nom-form__error">
             Password must be at least 8 characters.
           </mat-error>
+          }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="registration__form-field">
+        <mat-form-field appearance="outline" class="nom-form__field">
           <mat-label>Confirm Password</mat-label>
           <input
             matInput
             type="password"
             formControlName="confirmPassword"
             required
-            class="registration__input"
+            class="nom-form__input"
           />
-          <mat-icon matSuffix class="registration__icon">lock_open</mat-icon>
-          <mat-error
-            *ngIf="
-              registrationForm.get('confirmPassword')?.hasError('required')
-            "
-            class="registration__error"
-          >
+          <mat-icon matSuffix class="nom-form__icon">lock_open</mat-icon>
+          @if (registrationForm.get('confirmPassword')?.hasError('required')) {
+          <mat-error class="nom-form__error">
             Confirm Password is required.
           </mat-error>
-          <mat-error
-            *ngIf="
-              registrationForm.hasError('mismatch') &&
-              registrationForm.get('confirmPassword')?.dirty
-            "
-            class="registration__error"
-          >
+          } @if (registrationForm.hasError('mismatch') &&
+          registrationForm.get('confirmPassword')?.dirty) {
+          <mat-error class="nom-form__error">
             Passwords do not match.
           </mat-error>
+          }
         </mat-form-field>
 
         <mat-checkbox
@@ -103,43 +87,39 @@
           class="registration__terms-checkbox"
         >
           I agree to the
-          <a
-            routerLink="/terms"
-            target="_blank"
-            class="registration__terms-link"
+          <a routerLink="/terms" target="_blank" class="nom-link"
             >Terms of Service</a
           >
         </mat-checkbox>
-        <mat-error
-          *ngIf="
-            registrationForm.get('acceptTerms')?.hasError('requiredTrue') &&
-            registrationForm.get('acceptTerms')?.touched
-          "
-          class="registration__error"
-        >
+        @if (registrationForm.get('acceptTerms')?.hasError('requiredTrue') &&
+        registrationForm.get('acceptTerms')?.touched) {
+        <mat-error class="nom-form__error">
           You must accept the terms.
         </mat-error>
+        }
 
         <button
           mat-raised-button
           color="primary"
           type="submit"
           [disabled]="registrationForm.invalid || isLoading"
-          class="registration__button"
+          class="nom-button"
         >
-          <span *ngIf="!isLoading">Register Account</span>
+          @if (!isLoading) {
+          <span>Register Account</span>
+          } @if (isLoading) {
           <mat-spinner
-            *ngIf="isLoading"
             [diameter]="20"
-            class="registration__spinner"
+            class="nom-button__spinner"
           ></mat-spinner>
+          }
         </button>
       </form>
     </mat-card-content>
-    <mat-card-actions align="end" class="registration__actions">
-      <p class="registration__login-prompt">
+    <mat-card-actions align="end" class="nom-card__footer">
+      <p class="nom-prompt-text">
         Already have an account?
-        <a routerLink="/login" class="registration__login-link">Login Here</a>
+        <a routerLink="/login" class="nom-link">Login Here</a>
       </p>
     </mat-card-actions>
   </mat-card>

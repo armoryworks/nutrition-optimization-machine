@@ -1,45 +1,6 @@
 <header class="app-header">
   <div class="app-header__left">
-    <svg
-      viewBox="0 0 400 200"
-      preserveAspectRatio="xMidYMid meet"
-      class="app-header__logo-svg"
-    >
-      <defs>
-        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-          <feOffset dx="3" dy="3" />
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      <g
-        transform="translate(200, 75)"
-        text-anchor="middle"
-        font-family="'Comic Sans MS', cursive, sans-serif"
-        font-weight="bold"
-        font-size="80"
-      >
-        <text x="5" y="5" fill="#8B0000" filter="url(#shadow)">NOM</text>
-        <text x="3" y="3" fill="#B22222" filter="url(#shadow)">NOM</text>
-        <text x="1" y="1" fill="#FF4500" filter="url(#shadow)">NOM</text>
-        <text x="0" y="0" fill="#FF8C00" filter="url(#shadow)">NOM</text>
-      </g>
-
-      <text
-        x="200"
-        y="180"
-        text-anchor="middle"
-        font-family="Arial, sans-serif"
-        font-size="20"
-        fill="#333"
-      >
-        Nutrition Optimization Machine
-      </text>
-    </svg>
+    <!--logo goes here-->
   </div>
   <div class="app-header__right">
     <button
@@ -52,6 +13,7 @@
 
     <div class="app-user-menu" (click)="toggleUserMenu()">
       <div class="app-user-menu__icon-container">
+        <!-- User icon placeholder image -->
         <img
           src="https://placehold.co/24x24/0000FF/FFFFFF?text=U"
           alt="User"
@@ -62,85 +24,65 @@
           [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"
         ></span>
       </div>
-      <button
-        class="app-user-menu__burger-menu"
-        [class.app-user-menu__burger-menu--open]="isUserMenuOpen"
-      >
-        <div class="app-user-menu__bar"></div>
-        <div class="app-user-menu__bar"></div>
-        <div class="app-user-menu__bar"></div>
-      </button>
 
       <!-- User Popover/Dropdown Menu -->
       <div
         class="app-user-menu__dropdown"
         [class.app-user-menu__dropdown--open]="isUserMenuOpen"
       >
-        <ng-container *ngIf="isLoggedIn; else loggedOutMenu">
-          <ul class="app-user-menu__logged-in-list">
-            <li>
-              <a
-                routerLink="/update-info"
-                (click)="toggleUserMenu()"
-                class="app-user-menu__link"
-                >Update Profile</a
-              >
-            </li>
-            <li>
-              <a
-                routerLink="/update-two-factor"
-                (click)="toggleUserMenu()"
-                class="app-user-menu__link"
-                >2FA Settings</a
-              >
-            </li>
-            <li>
-              <a
-                (click)="mockLogout()"
-                class="app-user-menu__link app-user-menu__link--logout"
-                >Logout</a
-              >
-            </li>
-          </ul>
-        </ng-container>
-
-        <ng-template #loggedOutMenu>
-          <div class="app-user-menu__logged-out-content">
-            <h4 class="app-user-menu__prompt">Welcome!</h4>
-            <!-- Embedding the Login Component directly -->
-            <app-login class="app-user-menu__login-component"></app-login>
-            <p class="app-user-menu__register-prompt">
-              Don't have an account?
-              <a
-                routerLink="/register"
-                (click)="toggleUserMenu()"
-                class="app-user-menu__register-link"
-                >Register Here</a
-              >
-            </p>
-            <!-- A mock login button for demonstration, remove if app-login is fully functional -->
-            <button
-              (click)="mockLogin()"
-              class="app-user-menu__mock-login-button"
+        @if (isLoggedIn) {
+        <ul class="app-user-menu__logged-in-list">
+          <li>
+            <a
+              routerLink="/update-info"
+              (click)="toggleUserMenu()"
+              class="app-user-menu__link"
+              >Update Profile</a
             >
-              Mock Login
-            </button>
-          </div>
-        </ng-template>
+          </li>
+          <li>
+            <a
+              routerLink="/update-two-factor"
+              (click)="toggleUserMenu()"
+              class="app-user-menu__link"
+              >2FA Settings</a
+            >
+          </li>
+          <li>
+            <a
+              (click)="mockLogout()"
+              class="app-user-menu__link app-user-menu__link--logout"
+              >Logout</a
+            >
+          </li>
+        </ul>
+        } @else {
+        <div class="app-user-menu__logged-out-content">
+          <h4 class="app-user-menu__prompt">Welcome!</h4>
+          <!-- Embedding the Login Component directly -->
+          <app-login class="app-user-menu__login-component"></app-login>
+          <p class="app-user-menu__register-prompt">
+            Don't have an account?
+            <a
+              routerLink="/register"
+              (click)="toggleUserMenu()"
+              class="app-user-menu__register-link"
+              >Register Here</a
+            >
+          </p>
+          <!-- A mock login button for demonstration -->
+          <button
+            (click)="mockLogin()"
+            class="app-user-menu__mock-login-button"
+          >
+            Mock Login
+          </button>
+        </div>
+        }
       </div>
     </div>
   </div>
 </header>
-
-<nav class="app-sidenav" [class.app-sidenav--open]="isMenuOpen">
-  <ul>
-    <li><a href="#" class="app-sidenav__link">Dashboard</a></li>
-    <li><a href="#" class="app-sidenav__link">Settings</a></li>
-    <li><a href="#" class="app-sidenav__link">Profile</a></li>
-    <li><a href="#" class="app-sidenav__link">Logout</a></li>
-  </ul>
-</nav>
-
 <main class="app-content">
   <router-outlet></router-outlet>
 </main>

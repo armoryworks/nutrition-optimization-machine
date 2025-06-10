@@ -62,33 +62,33 @@ export class UpdateInfoComponent implements OnInit {
   // Custom validator to ensure newPassword has confirmNewPassword if newPassword is provided
   // and that oldPassword is required if either newEmail or newPassword is provided
   updateInfoConditionalValidator(control: AbstractControl) {
-    const newPassword = this.updateInfoForm.get("newPassword")?.value;
-    const oldPassword = this.updateInfoForm.get("oldPassword")?.value;
-    const newEmail = this.updateInfoForm.get("newEmail")?.value;
+    const newPassword = control.get("newPassword")?.value;
+    const oldPassword = control.get("oldPassword")?.value;
+    const newEmail = control.get("newEmail")?.value;
 
     // If a new password is provided, old password is required
     if (newPassword && !oldPassword) {
-      this.updateInfoForm.get("oldPassword")?.setErrors({ required: true });
+      control.get("oldPassword")?.setErrors({ required: true });
     } else {
       if (
         !newPassword &&
         !newEmail &&
-        this.updateInfoForm.get("oldPassword")?.hasError("required")
+        control.get("oldPassword")?.hasError("required")
       ) {
-        this.updateInfoForm.get("oldPassword")?.setErrors(null);
+        control.get("oldPassword")?.setErrors(null);
       }
     }
 
     // If new email is provided, old password is required
     if (newEmail && !oldPassword) {
-      this.updateInfoForm.get("oldPassword")?.setErrors({ required: true });
+      control.get("oldPassword")?.setErrors({ required: true });
     } else {
       if (
         !newPassword &&
         !newEmail &&
-        this.updateInfoForm.get("oldPassword")?.hasError("required")
+        control.get("oldPassword")?.hasError("required")
       ) {
-        this.updateInfoForm.get("oldPassword")?.setErrors(null);
+        control.get("oldPassword")?.setErrors(null);
       }
     }
 

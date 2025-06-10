@@ -1,26 +1,27 @@
-<div class="two-factor">
-  <mat-card class="two-factor__card">
-    <mat-card-header class="two-factor__header">
-      <mat-card-title class="two-factor__title"
+<div class="nom-page-container two-factor">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header">
+      <mat-card-title class="nom-card__title"
         >Two-Factor Authentication (2FA)</mat-card-title
       >
-      <mat-card-subtitle class="two-factor__subtitle"
+      <mat-card-subtitle class="nom-card__subtitle"
         >Enhance your account security</mat-card-subtitle
       >
     </mat-card-header>
+    @if (isLoading) {
     <mat-progress-bar
-      *ngIf="isLoading"
       mode="indeterminate"
       color="primary"
-      class="two-factor__progress-bar"
+      class="nom-card__progress-bar"
     ></mat-progress-bar>
-    <mat-card-content class="two-factor__content">
+    }
+    <mat-card-content class="nom-card__content">
       <form
         [formGroup]="twoFactorForm"
         (ngSubmit)="onSubmit()"
-        class="two-factor__form"
+        class="nom-form"
       >
-        <div class="two-factor__toggle-section">
+        <div class="nom-section two-factor__toggle-section">
           <mat-slide-toggle
             color="primary"
             formControlName="enable"
@@ -32,7 +33,7 @@
                 : "Enable Two-Factor Authentication"
             }}
           </mat-slide-toggle>
-          <p class="two-factor__toggle-description">
+          <p class="nom-message-text">
             {{
               is2faEnabled
                 ? "Your account is protected by 2FA. You will need a verification code to log in."
@@ -41,100 +42,88 @@
           </p>
         </div>
 
-        <ng-container *ngIf="twoFactorForm.get('enable')?.value">
-          <mat-divider class="two-factor__divider"></mat-divider>
-          <div class="two-factor__setup-section">
-            <h3 class="two-factor__section-heading">Authenticator App Setup</h3>
-            <p class="two-factor__instruction-text">
-              Scan the QR code with your authenticator app (e.g., Google
-              Authenticator, Authy) or manually enter the shared key.
-            </p>
-            <div class="two-factor__qr-and-key-row">
-              <div class="two-factor__qr-code-placeholder">
-                <img
-                  src="https://placehold.co/180x180/EEEEEE/333333?text=QR+Code"
-                  alt="QR Code"
-                  class="two-factor__qr-code-image"
-                />
-              </div>
-              <div class="two-factor__shared-key-details">
-                <p class="two-factor__shared-key-label">
-                  <strong>Shared Key:</strong>
-                </p>
-                <div class="two-factor__shared-key-box">
-                  <code class="two-factor__shared-key-code">{{
-                    sharedKey
-                  }}</code>
-                  <button
-                    mat-icon-button
-                    (click)="copyRecoveryCodes()"
-                    matTooltip="Copy Shared Key"
-                    class="two-factor__copy-button"
-                  >
-                    <mat-icon>content_copy</mat-icon>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <mat-form-field
-              appearance="outline"
-              class="two-factor__form-field two-factor__form-field--verification-code"
-            >
-              <mat-label>Verification Code from App</mat-label>
-              <input
-                matInput
-                type="text"
-                formControlName="twoFactorCode"
-                required
-                maxlength="6"
-                pattern="^\d{6}$"
-                class="two-factor__input"
+        @if (twoFactorForm.get('enable')?.value) {
+        <mat-divider class="nom-divider"></mat-divider>
+        <div class="nom-section two-factor__setup-section">
+          <h3 class="nom-section__heading">Authenticator App Setup</h3>
+          <p class="nom-instruction-text">
+            Scan the QR code with your authenticator app (e.g., Google
+            Authenticator, Authy) or manually enter the shared key.
+          </p>
+          <div class="two-factor__qr-and-key-row nom-horizontal-group">
+            <div class="two-factor__qr-code-placeholder">
+              <img
+                src="https://placehold.co/180x180/EEEEEE/333333?text=QR+Code"
+                alt="QR Code"
+                class="nom-qr-code-image"
               />
-              <mat-icon matSuffix class="two-factor__icon"
-                >verified_user</mat-icon
-              >
-              <mat-error
-                *ngIf="twoFactorForm.get('twoFactorCode')?.hasError('required')"
-                class="two-factor__error"
-              >
-                Verification code is required.
-              </mat-error>
-              <mat-error
-                *ngIf="twoFactorForm.get('twoFactorCode')?.hasError('pattern')"
-                class="two-factor__error"
-              >
-                Please enter a valid 6-digit code.
-              </mat-error>
-            </mat-form-field>
-
-            <mat-divider class="two-factor__divider"></mat-divider>
-            <h3 class="two-factor__section-heading">Recovery Codes</h3>
-            <p class="two-factor__instruction-text">
-              Save these recovery codes in a safe place. They can be used to log
-              in if you lose access to your authenticator app.
-            </p>
-            <div class="two-factor__recovery-codes-box">
-              <span
-                *ngFor="let code of recoveryCodes"
-                class="two-factor__recovery-code"
-                >{{ code }}</span
-              >
-              <button
-                mat-flat-button
-                color="accent"
-                (click)="copyRecoveryCodes()"
-                class="two-factor__copy-codes-button"
-              >
-                <mat-icon>content_copy</mat-icon> Copy Codes
-              </button>
+            </div>
+            <div class="two-factor__shared-key-details nom-section">
+              <p class="nom-code-label">Shared Key:</p>
+              <div class="nom-code-box">
+                <code class="nom-code-text">{{ sharedKey }}</code>
+                <button
+                  mat-icon-button
+                  (click)="copyRecoveryCodes()"
+                  matTooltip="Copy Shared Key"
+                >
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
-        </ng-container>
 
-        <mat-divider class="two-factor__divider"></mat-divider>
+          <mat-form-field
+            appearance="outline"
+            class="nom-form__field nom-form__field--centered"
+          >
+            <mat-label>Verification Code from App</mat-label>
+            <input
+              matInput
+              type="text"
+              formControlName="twoFactorCode"
+              required
+              maxlength="6"
+              pattern="^\d{6}$"
+              class="nom-form__input"
+            />
+            <mat-icon matSuffix class="nom-form__icon">verified_user</mat-icon>
+            @if (twoFactorForm.get('twoFactorCode')?.hasError('required')) {
+            <mat-error class="nom-form__error">
+              Verification code is required.
+            </mat-error>
+            } @if (twoFactorForm.get('twoFactorCode')?.hasError('pattern')) {
+            <mat-error class="nom-form__error">
+              Please enter a valid 6-digit code.
+            </mat-error>
+            }
+          </mat-form-field>
 
-        <div class="two-factor__options-section">
+          <mat-divider class="nom-divider"></mat-divider>
+          <h3 class="nom-section__heading">Recovery Codes</h3>
+          <p class="nom-instruction-text">
+            Save these recovery codes in a safe place. They can be used to log
+            in if you lose access to your authenticator app.
+          </p>
+          <div class="nom-code-box nom-code-box--dashed nom-horizontal-group">
+            @for (code of recoveryCodes; track $index) {
+            <span class="nom-code-item">{{ code }}</span>
+            }
+            <button
+              mat-flat-button
+              color="accent"
+              (click)="copyRecoveryCodes()"
+              class="nom-button two-factor__copy-codes-button"
+            >
+              <mat-icon>content_copy</mat-icon> Copy Codes
+            </button>
+          </div>
+        </div>
+        }
+
+        <mat-divider class="nom-divider"></mat-divider>
+
+        <div class="nom-section two-factor__options-section">
           <mat-checkbox
             formControlName="resetSharedKey"
             class="two-factor__option-checkbox"
@@ -162,18 +151,20 @@
           color="primary"
           type="submit"
           [disabled]="twoFactorForm.invalid || isLoading"
-          class="two-factor__button"
+          class="nom-button"
         >
-          <span *ngIf="!isLoading">{{
+          @if (!isLoading) {
+          <span>{{
             twoFactorForm.get("enable")?.value
               ? "Update 2FA Settings"
               : "Enable 2FA"
           }}</span>
+          } @if (isLoading) {
           <mat-spinner
-            *ngIf="isLoading"
             [diameter]="20"
-            class="two-factor__spinner"
+            class="nom-button__spinner"
           ></mat-spinner>
+          }
         </button>
       </form>
     </mat-card-content>
