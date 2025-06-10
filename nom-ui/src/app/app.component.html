@@ -24,66 +24,62 @@
           [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"
         ></span>
       </div>
-
-      <!-- User Popover/Dropdown Menu -->
-      <div
-        class="app-user-menu__dropdown"
-        [class.app-user-menu__dropdown--open]="isUserMenuOpen"
-      >
-        @if (isLoggedIn) {
-        <ul class="app-user-menu__logged-in-list">
-          <li>
-            <a
-              routerLink="/update-info"
-              (click)="toggleUserMenu()"
-              class="app-user-menu__link"
-              >Update Profile</a
-            >
-          </li>
-          <li>
-            <a
-              routerLink="/update-two-factor"
-              (click)="toggleUserMenu()"
-              class="app-user-menu__link"
-              >2FA Settings</a
-            >
-          </li>
-          <li>
-            <a
-              (click)="mockLogout()"
-              class="app-user-menu__link app-user-menu__link--logout"
-              >Logout</a
-            >
-          </li>
-        </ul>
-        } @else {
-        <div class="app-user-menu__logged-out-content">
-          <h4 class="app-user-menu__prompt">Welcome!</h4>
-          <!-- Embedding the Login Component directly -->
-          <app-login class="app-user-menu__login-component"></app-login>
-          <p class="app-user-menu__register-prompt">
-            Don't have an account?
-            <a
-              routerLink="/register"
-              (click)="toggleUserMenu()"
-              class="app-user-menu__register-link"
-              >Register Here</a
-            >
-          </p>
-          <!-- A mock login button for demonstration -->
-          <button
-            (click)="mockLogin()"
-            class="app-user-menu__mock-login-button"
-          >
-            Mock Login
-          </button>
-        </div>
-        }
-      </div>
     </div>
   </div>
 </header>
 <main class="app-content">
+  <!-- User Popover/Dropdown Menu -->
+  <div
+    class="app-user-menu__dropdown"
+    [class.app-user-menu__dropdown--open]="isUserMenuOpen"
+  >
+    @if (isLoggedIn) {
+    <ul class="app-user-menu__logged-in-list">
+      <li>
+        <a
+          routerLink="/update-info"
+          (click)="toggleUserMenu()"
+          class="app-user-menu__link"
+          >Update Profile</a
+        >
+      </li>
+      <li>
+        <a
+          routerLink="/update-two-factor"
+          (click)="toggleUserMenu()"
+          class="app-user-menu__link"
+          >2FA Settings</a
+        >
+      </li>
+      <li>
+        <a
+          (click)="mockLogout()"
+          class="app-user-menu__link app-user-menu__link--logout"
+          >Logout</a
+        >
+      </li>
+    </ul>
+    } @else {
+    <div class="app-user-menu__logged-out-content">
+      <h4 class="app-user-menu__prompt">Welcome!</h4>
+      <!-- Embedding the Login Component directly -->
+      <app-login class="app-user-menu__login-component"></app-login>
+      <p class="app-user-menu__register-prompt">
+        Don't have an account?
+        <a
+          routerLink="/register"
+          (click)="toggleUserMenu()"
+          class="app-user-menu__register-link"
+          >Register Here</a
+        >
+      </p>
+      <!-- A mock login button for demonstration -->
+      <button (click)="mockLogin()" class="app-user-menu__mock-login-button">
+        Mock Login
+      </button>
+    </div>
+    }
+  </div>
   <router-outlet></router-outlet>
 </main>
 

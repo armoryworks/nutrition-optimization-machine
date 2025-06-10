@@ -7,6 +7,11 @@ body {
   font-family: Inter, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease; // Smooth theme transition
   height: 100vh; // Ensure body takes full viewport height
+  color: var(--mat-sys-on-background); // Main text color for the body
+  background-color: var(
+    --mat-sys-background
+  ); // Main background color for the body
+  // All margin/padding removed to allow full layout control by :host
 }
 
 // --- Base Layout for Fixed Header/Footer and Scrollable Content ---
@@ -15,14 +20,6 @@ body {
   flex-direction: column;
   min-height: 100vh; // Ensure it takes full viewport height
   height: 100vh; // Explicitly set height for flex to work correctly
-}
-
-body {
-  color: var(--mat-sys-on-background); // Main text color for the body
-  background-color: var(
-    --mat-sys-background
-  ); // Main background color for the body
-  // All margin/padding removed to allow full layout control by :host
 }
 
 // Styles for Material components (these rely on the CSS variables set on body)
@@ -60,6 +57,11 @@ mat-form-field {
 
 // --- Header Styles ---
 .app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
   background-color: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface);
   padding: 0; // Removed padding
@@ -67,7 +69,6 @@ mat-form-field {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 5px rgba(var(--mat-sys-shadow), 0.2); // Using theme-provided RGB for shadow
-  position: relative; // Needed for absolute positioning of user menu dropdown
   flex-shrink: 0; // Prevent header from shrinking
 
   &__left {
@@ -188,9 +189,11 @@ mat-form-field {
   }
 
   &__dropdown {
-    position: absolute;
-    top: 100%; // Position below the user icon
+    position: fixed;
+    top: 72px; // Position below the user icon
     right: 0;
+    overflow-y: auto;
+    max-height: calc(100vh - 112px);
     background-color: var(
       --mat-sys-surface-bright
     ); // A brighter surface for the dropdown
@@ -255,7 +258,9 @@ mat-form-field {
     }
 
     .app-user-menu__login-component {
+      display: block;
       max-width: 100%;
+      max-height: 750px;
       box-shadow: none !important;
       .login__card {
         padding: 0;
@@ -346,6 +351,11 @@ mat-form-field {
 
 // --- Main Content Styles ---
 .app-content {
+  position: fixed;
+  top: 72px;
+  bottom: 40px;
+  left: 0;
+  right: 0;
   flex-grow: 1; // Allows content to take up remaining space
   overflow-y: auto; // Makes content scrollable
   padding: 0; // Removed padding
@@ -357,6 +367,11 @@ mat-form-field {
 
 // --- Footer Styles ---
 .app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
   padding: 0; // Removed padding
   text-align: center;
   font: var(--mat-sys-body-small); // Using Material typography
