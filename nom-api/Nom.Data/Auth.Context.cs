@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Nom.Data
 {
+    /// <summary>
+    /// The classes associated with this DbContext come from Microsoft.AspNetCore.Identity and are not directly contained in the project
+    /// </summary>
     public class AuthContext : IdentityDbContext
     {
         public AuthContext(DbContextOptions<AuthContext> options) : base(options)

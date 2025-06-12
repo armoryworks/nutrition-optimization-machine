@@ -1,0 +1,24 @@
+@use '../../../../../../variables.scss' as vars;
+
+.update-info {
+  // All core layout, typography, and color styling is now managed by .nom- classes from system.scss.
+  // This component's SCSS should primarily handle specific overrides or unique child elements.
+
+  &__error--form-level {
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    display: block;
+    color: var(--mat-sys-error); // Using Material System error color
+    font: var(--mat-sys-body-small); // Apply body-small typography
+
+    @media (min-width: vars.$breakpoint-mobile) {
+      margin-top: -10px;
+      margin-bottom: 20px;
+      font-size: var(
+        --mat-sys-body-medium-size
+      ); // Larger font for desktop error message
+    }
+  }
+  // The .nom-card and .nom-button responsive adjustments are handled by system.scss
+}

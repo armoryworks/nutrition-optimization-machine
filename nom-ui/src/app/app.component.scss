@@ -1,4 +1,4 @@
-@use "../variables" as vars;
+@use '../variables' as vars;
 
 body {
   margin: 0;
@@ -213,6 +213,13 @@ mat-form-field {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
+    }
+
+    &.app-user-menu__login-component {
+      padding: 0px;
+    }
+    .login {
+      padding: 0 !important;
     }
   }
 

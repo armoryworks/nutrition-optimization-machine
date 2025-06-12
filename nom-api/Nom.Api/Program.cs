@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Nom.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,9 +34,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapIdentityApi<IdentityUser>();
+app.MapGroup("/auth")
+    .MapIdentityApi<IdentityUser>();
 
-app.UseHttpsRedirection();
+// setup custom logout functionality
+app.MapPost("/auth/logout", async (SignInManager<IdentityUser> signInManager) =>
+        {
+            await signInManager.SignOutAsync();
+            return Results.Ok("User logged out successfully");
+        });
+
+//app.UseHttpsRedirection();
+app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 
 app.UseAuthorization();
 
