@@ -60,7 +60,7 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.configService.getSettings();
+    this.configService.loadSettings();
     this.isDarkTheme = localStorage.getItem('theme') === 'dark';
     this.applyThemeClass();
     this.checkLoggedIn();

@@ -24,6 +24,7 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
+              "src/assets",
               {
                 "glob": "**/*",
                 "input": "public"
@@ -60,10 +61,12 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "nom-ui:build:production"
+              "buildTarget": "nom-ui:build:production",
+              "proxyConfig": "proxy.config.json"
             },
             "development": {
-              "buildTarget": "nom-ui:build:development"
+              "buildTarget": "nom-ui:build:development",
+              "proxyConfig": "proxy.config.development.json"
             }
           },
           "defaultConfiguration": "development"

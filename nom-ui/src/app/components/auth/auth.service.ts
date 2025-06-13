@@ -45,17 +45,11 @@ export class AuthService {
     useCookies: boolean = false,
     useSessionCookies: boolean = false
   ): Observable<LoginResponse> {
-    return this.httpClient.post<LoginResponse>(
-      'http://localhost:5035/auth/login',
-      credentials
-    );
+    return this.httpClient.post<LoginResponse>('/api/auth/login', credentials);
   }
 
   logout(): Observable<void> {
-    return this.httpClient.post<void>(
-      'http://localhost:5035/auth/logout',
-      undefined
-    );
+    return this.httpClient.post<void>('/api/auth/logout', undefined);
   }
 
   /**

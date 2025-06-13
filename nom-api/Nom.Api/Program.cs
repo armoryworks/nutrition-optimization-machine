@@ -34,17 +34,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapGroup("/auth")
+app.MapGroup("api/auth")
     .MapIdentityApi<IdentityUser>();
 
 // setup custom logout functionality
-app.MapPost("/auth/logout", async (SignInManager<IdentityUser> signInManager) =>
+app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager) =>
         {
             await signInManager.SignOutAsync();
             return Results.Ok("User logged out successfully");
         });
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 
 app.UseAuthorization();
