@@ -5,10 +5,13 @@ import {
   Inject,
   PLATFORM_ID,
 } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common'; // Import isPlatformBrowser
-import { RouterOutlet, RouterLink } from '@angular/router';
-
-// Angular Material Imports
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import {
+  RouterOutlet,
+  RouterLink,
+  Router,
+  NavigationStart,
+} from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -56,7 +59,8 @@ export class AppComponent implements OnInit {
     private snackBar: MatSnackBar,
     private configService: NomConfigService,
     private authManagerService: AuthManagerService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -64,6 +68,13 @@ export class AppComponent implements OnInit {
     this.isDarkTheme = localStorage.getItem('theme') === 'dark';
     this.applyThemeClass();
     this.checkLoggedIn();
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        if (this.isUserMenuOpen) {
+          this.toggleUserMenu();
+        }
+      }
+    });
   }
 
   checkLoggedIn() {

@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
+import { Router, RouterLink } from '@angular/router'; // Import RouterLink for button navigation
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -22,6 +22,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '../auth.service';
 import { RegisterUser } from '../models/register-user';
+import { catchError, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'app-registration',
@@ -51,7 +54,8 @@ export class RegistrationComponent implements OnInit {
   constructor(
     private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -78,10 +82,10 @@ export class RegistrationComponent implements OnInit {
    */
   onSubmit(): void {
     if (this.registrationForm.invalid) {
-      this.snackBar.open(
+      this.notificationService.info(
         'Please fill all required fields and correct errors.',
-        'Close',
-        { duration: 3000 }
+        3000,
+        'Dismiss'
       );
       return;
     }
@@ -92,20 +96,18 @@ export class RegistrationComponent implements OnInit {
     this.authService.register(userData).subscribe({
       next: (response) => {
         this.isLoading = false;
-        if (response.success) {
-          this.snackBar.open(response.message, 'Dismiss', { duration: 5000 });
-        } else {
-          this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        }
+        this.router.navigate(['/home']);
+        this.notificationService.success(
+          'Registration Was Successful',
+          3000,
+          'Dismiss'
+        );
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Registration error:', error);
-        this.snackBar.open(
-          'An unexpected error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
-        );
+        const errorMessage = error.message; // Access the processed error message
+        this.notificationService.error(errorMessage, 5000, 'Dismiss');
+        console.error('Registration failed:', error);
       },
     });
   }

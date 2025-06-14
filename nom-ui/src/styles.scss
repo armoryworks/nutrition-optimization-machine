@@ -1,6 +1,6 @@
-@use "@angular/material" as mat;
-@use "nom-theme";
-@use "variables" as vars;
+@use '@angular/material' as mat;
+@use 'nom-theme';
+@use 'variables' as vars;
 
 @include mat.core();
 
@@ -259,7 +259,7 @@ html {
 }
 
 .nom-code-text {
-  font-family: "Courier New", Courier, monospace; // Monospace for code
+  font-family: 'Courier New', Courier, monospace; // Monospace for code
   font: var(--mat-sys-body-medium); // Using body-medium for code text
   color: var(--mat-sys-on-surface);
   flex-grow: 1; // Allow code to take space
@@ -270,7 +270,7 @@ html {
   background-color: var(--mat-sys-primary-container);
   padding: 6px 10px;
   border-radius: 4px;
-  font-family: "Courier New", Courier, monospace; // Monospace for code
+  font-family: 'Courier New', Courier, monospace; // Monospace for code
   font: var(--mat-sys-label-medium); // Using label-medium for code items
   font-weight: var(
     --mat-sys-label-medium-weight-prominent
@@ -366,5 +366,73 @@ html {
   }
   .nom-spinner-container {
     gap: 20px;
+  }
+}
+
+/* The main 'block' for snackbars */
+.snackbar {
+  // This rule targets the internal Angular Material snackbar surface
+  // to ensure our custom background colors and text colors are not overridden
+  // by Material's default internal styling.
+  &-success,
+  &-info,
+  &-warning,
+  &-error {
+    box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
+      0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12);
+    border-radius: 5px !important; // Updated to 5px rounded corners
+    .mdc-snackbar__surface,
+    .mat-mdc-snackbar-surface {
+      background-color: transparent !important; // Make Material's internal background transparent
+      color: inherit !important; // Inherit color from our parent .snackbar-* class
+    }
+  }
+
+  // Modifier for success theme (compiles to .snackbar-success)
+  &-success {
+    background-color: #d4edda !important; /* Pastel Green */
+    color: #155724 !important; /* Darker Green for text (high contrast) */
+    border: 2px solid #155724 !important; // 2px border matching text color
+
+    // Element for the action button within the success theme
+    .mat-mdc-button.mat-mdc-snack-bar-action {
+      color: #155724 !important; /* Match text color for action button */
+    }
+  }
+
+  // Modifier for info theme (compiles to .snackbar-info)
+  &-info {
+    background-color: #cce5ff !important; /* Pastel Blue */
+    color: #004085 !important; /* Darker Blue for text (high contrast) */
+    border: 2px solid #004085 !important; // 2px border matching text color
+
+    // Element for the action button within the info theme
+    .mat-mdc-button.mat-mdc-snack-bar-action {
+      color: #004085 !important;
+    }
+  }
+
+  // Modifier for warning theme (compiles to .snackbar-warning)
+  &-warning {
+    background-color: #fff3cd !important; /* Pastel Yellow/Cream */
+    color: #664d03 !important; /* Darker Yellow/Brown for text (high contrast) */
+    border: 2px solid #664d03 !important; // 2px border matching text color
+
+    // Element for the action button within the warning theme
+    .mat-mdc-button.mat-mdc-snack-bar-action {
+      color: #664d03 !important;
+    }
+  }
+
+  // Modifier for error theme (compiles to .snackbar-error)
+  &-error {
+    background-color: #f8d7da !important; /* Pastel Red/Pink */
+    color: #721c24 !important; /* Darker Red for text (high contrast) */
+    border: 2px solid #721c24 !important; // 2px border matching text color
+
+    // Element for the action button within the error theme
+    .mat-mdc-button.mat-mdc-snack-bar-action {
+      color: #721c24 !important;
+    }
   }
 }

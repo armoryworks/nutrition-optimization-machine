@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, delay, tap } from 'rxjs/operators';
 import { RegisterUser } from './models/register-user';
 import { LoginUser } from './models/login-user';
 import { ForgotPassword } from './models/forgot-password';
@@ -10,7 +10,11 @@ import { SendConfirmationEmail } from './models/send-confirmation-email';
 import { UpdateInfo } from './models/update-info';
 import { UpdateTwoFactor } from './models/update-two-factor';
 import { LoginResponse } from './models/login-response';
-import { HttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+} from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
@@ -18,33 +22,18 @@ import { HttpClient } from '@angular/common/http';
 export class AuthService {
   constructor(private httpClient: HttpClient) {}
 
-  /**
-   * Placeholder for user registration.
-   * @param userData User registration details adhering to RegisterUser interface.
-   * @returns Observable of any.
-   */
-  register(userData: RegisterUser): Observable<any> {
-    console.log('Registering user:', userData);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Registration successful. Please verify your email.',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock registration complete.'))
-    );
+  register(userData: RegisterUser): Observable<void> {
+    return this.httpClient
+      .post<void>('/api/auth/register', userData)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Placeholder for user login.
-   * @param credentials User login credentials adhering to LoginUser interface.
-   * @returns Observable of any.
-   */
   login(
     credentials: LoginUser,
     useCookies: boolean = false,
     useSessionCookies: boolean = false
   ): Observable<LoginResponse> {
+    //not going to code up cookie stuff, for now
     return this.httpClient.post<LoginResponse>('/api/auth/login', credentials);
   }
 
@@ -86,20 +75,10 @@ export class AuthService {
     );
   }
 
-  /**
-   * Placeholder for sending confirmation email.
-   * @param data Email data adhering to SendConfirmationEmail interface.
-   * @returns Observable of any.
-   */
   sendConfirmationEmail(data: SendConfirmationEmail): Observable<any> {
-    console.log('Sending confirmation email to:', data.email);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Confirmation email sent. Please check your inbox.',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock send email complete.'))
+    return this.httpClient.post<void>(
+      '/api/auth/resendConfirmationEmail',
+      data
     );
   }
 
@@ -143,11 +122,68 @@ export class AuthService {
    * @returns Observable of any.
    */
   confirmEmail(data: ConfirmEmail): Observable<any> {
-    console.log('Confirming email with data:', data);
-    // Simulate API call for confirming email
-    return of({ success: true, message: 'Email confirmed successfully!' }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock email confirmation complete.'))
-    );
+    var confirmParams: HttpParams = new HttpParams();
+    confirmParams.append('userId', data.userId);
+    confirmParams.append('code', data.code);
+    if (data.changedEmail) {
+      confirmParams.append('changedEmail', data.changedEmail);
+    }
+
+    return this.httpClient.get('/api/auth/confirmEmail', {
+      params: confirmParams,
+    });
+  }
+
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = 'An unknown error occurred. Please try again.';
+
+    if (error.error instanceof ErrorEvent) {
+      // Client-side or network error occurred.
+      errorMessage = `Network error: ${error.error.message}. Please check your internet connection.`;
+    } else {
+      // The backend returned an unsuccessful response code.
+      // The response body may contain clues as to what went wrong.
+      if (error.status === 400) {
+        // Check if the error response has a structured 'errors' object (like ProblemDetails)
+        if (
+          error.error &&
+          error.error.errors &&
+          typeof error.error.errors === 'object'
+        ) {
+          const validationErrors = error.error.errors;
+          const messages: string[] = [];
+
+          // Iterate over the keys of the 'errors' object (e.g., "DuplicateUserName")
+          for (const key in validationErrors) {
+            if (validationErrors.hasOwnProperty(key)) {
+              const errorArray = validationErrors[key];
+              // Each key's value is an array of error messages
+              if (Array.isArray(errorArray)) {
+                messages.push(...errorArray); // Add all messages from this array
+              }
+            }
+          }
+          // If specific messages are found, use them. Otherwise, provide a generic 400 error.
+          errorMessage =
+            messages.length > 0
+              ? messages.join('\n')
+              : 'Invalid registration data. Please check your inputs.';
+        } else if (error.error && typeof error.error === 'string') {
+          // Fallback for plain text error messages
+          errorMessage = error.error;
+        } else {
+          errorMessage = 'Invalid registration data. Please check your inputs.';
+        }
+      } else if (error.status === 500) {
+        errorMessage = 'Internal server error. Please try again later.';
+      } else {
+        errorMessage = `Server responded with status: ${
+          error.status
+        }. Message: ${error.message || 'No specific message.'}`;
+      }
+    }
+    // Re-throw the error with the processed message.
+    // The component will subscribe to this re-thrown error and use NotificationService.
+    return throwError(() => new Error(errorMessage));
   }
 }

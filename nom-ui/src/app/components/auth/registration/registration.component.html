@@ -73,13 +73,14 @@
           <mat-error class="nom-form__error">
             Confirm Password is required.
           </mat-error>
-          } @if (registrationForm.hasError('mismatch') &&
-          registrationForm.get('confirmPassword')?.dirty) {
-          <mat-error class="nom-form__error">
-            Passwords do not match.
-          </mat-error>
           }
         </mat-form-field>
+
+        @if (!registrationForm.get('confirmPassword')?.hasError('required') &&
+        registrationForm.hasError('mismatch') &&
+        registrationForm.get('confirmPassword')?.dirty) {
+        <mat-error class="nom-form__error"> Passwords do not match. </mat-error>
+        }
 
         <mat-checkbox
           formControlName="acceptTerms"
