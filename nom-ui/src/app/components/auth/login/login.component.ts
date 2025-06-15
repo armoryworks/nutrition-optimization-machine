@@ -5,7 +5,6 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
 
@@ -18,10 +17,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
 import { AuthService } from '../auth.service';
 import { AuthManagerService } from '../../../utilities/services/auth-manager.service';
 import { LoginResponse } from '../models/login-response';
 import { LoginUser } from '../models/login-user';
+import { NotificationService } from '../../../utilities/services/notification.service'; // Import NotificationService
 
 @Component({
   selector: 'app-login',
@@ -51,7 +52,7 @@ export class LoginComponent implements OnInit {
     private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
     private authService: AuthService,
     private authManager: AuthManagerService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -66,31 +67,41 @@ export class LoginComponent implements OnInit {
    * Handles the login form submission.
    */
   onSubmit(): void {
+    this.loginForm.markAllAsTouched(); // Mark all fields as touched for immediate validation feedback
+
     if (this.loginForm.invalid) {
-      this.snackBar.open('Please enter your email and password.', 'Close', {
-        duration: 3000,
-      });
+      // Use NotificationService for client-side validation feedback
+      this.notificationService.warning(
+        'Please enter a valid email and password.'
+      );
       return;
     }
 
     this.isLoading = true;
     const credentials: LoginUser = this.loginForm.getRawValue();
-    this.authManager.rememberMe = !!credentials.rememberMe;
+    this.authManager.rememberMe = !!credentials.rememberMe; // Ensure boolean conversion
+
     this.authService.login(credentials).subscribe({
       next: (response: LoginResponse) => {
         this.isLoading = false;
+        // Update AuthManagerService with login response details
         this.authManager.refreshToken = response.refreshToken;
         this.authManager.token = response.accessToken;
         this.authManager.tokenExpiration =
           response.expiresIn + new Date().getTime();
+
+        // Display success notification
+        this.notificationService.success('Logged in successfully!');
+        // Optionally, navigate to a dashboard or home page after successful login
+        // this.router.navigate(['/dashboard']);
       },
       error: (error: any) => {
         this.isLoading = false;
         console.error('Login error:', error);
-        this.snackBar.open(
-          'An unexpected error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
+        // The error.message is already processed by the AuthService's handleError
+        this.notificationService.error(
+          error.message ||
+            'An unexpected error occurred during login. Please try again.'
         );
       },
     });

@@ -4,8 +4,8 @@ import {
   Validators,
   ReactiveFormsModule,
   NonNullableFormBuilder,
+  AbstractControl,
 } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 
 // Angular Material Imports
@@ -14,14 +14,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTooltipModule } from '@angular/material/tooltip'; // For tooltips
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatListModule } from '@angular/material/list';
+
 import { AuthService } from '../auth.service';
-import { UpdateTwoFactor } from '../models/update-two-factor';
-import { MatDividerModule } from '@angular/material/divider';
+import { UpdateTwoFactorResponse } from '../models/update-two-factor-response';
+import { UpdateTwoFactor } from '../models/update-two-factor'; // Import the UpdateTwoFactor model
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'app-update-two-factor',
@@ -33,13 +34,11 @@ import { MatDividerModule } from '@angular/material/divider';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatDividerModule,
     MatIconModule,
-    MatCheckboxModule,
-    MatSlideToggleModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
-    MatTooltipModule, // Add MatTooltipModule
+    MatSlideToggleModule,
+    MatListModule,
   ],
   templateUrl: './update-two-factor.component.html',
   styleUrls: ['./update-two-factor.component.scss'],
@@ -47,105 +46,162 @@ import { MatDividerModule } from '@angular/material/divider';
 })
 export class UpdateTwoFactorComponent implements OnInit {
   twoFactorForm!: FormGroup;
-  isLoading = false;
-  is2faEnabled: boolean = false; // Mock user's current 2FA status
-  sharedKey: string = 'MOCK_SHARED_KEY_ABC123'; // Mock shared key for setup
-  recoveryCodes: string[] = ['CODE1', 'CODE2', 'CODE3', 'CODE4', 'CODE5']; // Mock recovery codes
+  isLoading = false; // For form submission
+
+  // We cannot fetch initial status from backend without getTwoFactorStatus
+  // So, initialize with a default "disabled" status
+  current2faStatus: UpdateTwoFactorResponse = {
+    sharedKey: '',
+    recoveryCodesLeft: 0,
+    recoverCodes: [],
+    isTwoFactorEnabled: false, // Default to disabled
+    isMachineRemembered: false,
+  };
+
+  sharedKeyToDisplay: string | null = null; // For display and QR code
+  recoveryCodesToDisplay: string[] = []; // For displaying new recovery codes
 
   constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
+    private nonNullableFb: NonNullableFormBuilder,
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
-    this.twoFactorForm = this.nonNullableFb.group({
-      enable: [this.is2faEnabled],
-      twoFactorCode: ['', [Validators.pattern(/^\d{6}$/)]], // Code is required conditionally
-      resetSharedKey: [false],
-      resetRecoverCodes: [false],
-      forgetMachine: [false],
-    });
+    this.twoFactorForm = this.nonNullableFb.group(
+      {
+        enable2fa: [this.current2faStatus.isTwoFactorEnabled], // Initialize with default disabled status
+        password: ['', Validators.required],
+        twoFactorCode: [''], // Required when disabling
+        rememberMachine: [this.current2faStatus.isMachineRemembered], // This checkbox maps to forgetMachine
+      },
+      { validators: this.twoFactorConditionalValidator }
+    );
 
-    // Add conditional validation for twoFactorCode
-    this.twoFactorForm.get('enable')?.valueChanges.subscribe((enabled) => {
-      this.is2faEnabled = enabled;
-      const twoFactorCodeControl = this.twoFactorForm.get('twoFactorCode');
-      if (twoFactorCodeControl) {
-        if (enabled) {
-          twoFactorCodeControl.setValidators([
-            Validators.required,
-            Validators.pattern(/^\d{6}$/),
-          ]);
-          twoFactorCodeControl.enable();
-        } else {
-          twoFactorCodeControl.clearValidators();
-          twoFactorCodeControl.disable();
-          twoFactorCodeControl.setValue(''); // Clear value when disabling
-        }
-        twoFactorCodeControl.updateValueAndValidity();
-      }
+    // Watch for changes in enable2fa toggle to adjust validation
+    this.twoFactorForm.get('enable2fa')?.valueChanges.subscribe((value) => {
+      this.twoFactorForm.get('password')?.updateValueAndValidity();
+      this.twoFactorForm.get('twoFactorCode')?.updateValueAndValidity();
     });
+  }
 
-    // Initially disable code if 2FA is not enabled (based on initial this.is2faEnabled)
-    if (!this.is2faEnabled) {
-      this.twoFactorForm.get('twoFactorCode')?.disable();
+  // Form-level validator for 2FA logic
+  twoFactorConditionalValidator(control: AbstractControl) {
+    const enable2fa = control.get('enable2fa')?.value;
+    const passwordControl = control.get('password');
+    const twoFactorCodeControl = control.get('twoFactorCode');
+
+    // Ensure password is required for any update operation
+    if (!passwordControl?.value) {
+      passwordControl?.setErrors({ required: true });
+    } else {
+      passwordControl?.setErrors(null);
     }
+
+    // Two-factor code required when disabling 2FA
+    // The code field is only shown if enable2fa is false in HTML,
+    // so this validator will align with that.
+    if (passwordControl?.valid && !enable2fa) {
+      if (!twoFactorCodeControl?.value) {
+        twoFactorCodeControl?.setErrors({ required: true });
+      } else {
+        twoFactorCodeControl?.setErrors(null);
+      }
+    } else {
+      // If enabling or password not valid, clear code errors
+      twoFactorCodeControl?.setErrors(null);
+    }
+
+    // If password field is valid and was marked required, clear its error
+    if (passwordControl?.valid && passwordControl?.hasError('required')) {
+      passwordControl.setErrors(null);
+    }
+
+    return null; // No form-level errors for now, specific control errors are set
   }
 
   /**
-   * Handles the 2FA form submission.
+   * Generates the otpauth URI for QR code display.
+   * @param sharedKey The base32 encoded shared key from the backend.
+   * @param email The user's email address.
+   * @param issuer The issuer name (your app's name).
+   * @returns The otpauth URI string.
+   */
+  generateOtpAuthUri(
+    sharedKey: string,
+    email: string,
+    issuer: string = 'NutritionOptimizationMachine'
+  ): string {
+    const encodedIssuer = encodeURIComponent(issuer);
+    const encodedEmail = encodeURIComponent(email);
+    return `otpauth://totp/${encodedIssuer}:${encodedEmail}?secret=${sharedKey}&issuer=${encodedIssuer}`;
+  }
+
+  /**
+   * Handles the form submission for 2FA changes.
    */
   onSubmit(): void {
-    // If disabling 2FA, clear twoFactorCode validators if not enabling
-    if (!this.twoFactorForm.get('enable')?.value) {
-      this.twoFactorForm.get('twoFactorCode')?.clearValidators();
-      this.twoFactorForm.get('twoFactorCode')?.updateValueAndValidity();
-    }
+    this.twoFactorForm.markAllAsTouched(); // Mark all controls as touched
+    this.twoFactorForm.updateValueAndValidity(); // Recalculate validation state
 
-    this.twoFactorForm.markAllAsTouched();
     if (this.twoFactorForm.invalid) {
-      this.snackBar.open('Please correct the form errors.', 'Close', {
-        duration: 3000,
-      });
+      this.notificationService.warning(
+        'Please correct the highlighted errors in the form.'
+      );
       return;
     }
 
     this.isLoading = true;
-    const data: UpdateTwoFactor = this.twoFactorForm.getRawValue();
+    const formData = this.twoFactorForm.getRawValue();
 
-    this.authService.updateTwoFactorAuth(data).subscribe({
-      next: (response: any) => {
+    // Construct updateData according to the UpdateTwoFactor interface
+    const updateData: UpdateTwoFactor = {
+      enable: formData.enable2fa,
+      twoFactorCode: formData.twoFactorCode, // twoFactorCode is now a string, not optional
+      resetSharedKey: false, // Assuming these will be controlled by separate UI elements if needed
+      resetRecoverCodes: false, // Assuming these will be controlled by separate UI elements if needed
+      forgetMachine: !formData.rememberMachine, // Invert rememberMachine to map to forgetMachine
+    };
+
+    this.authService.updateTwoFactorAuth(updateData).subscribe({
+      next: (response: UpdateTwoFactorResponse) => {
         this.isLoading = false;
-        if (response.success) {
-          this.snackBar.open(response.message, 'Dismiss', { duration: 7000 });
-          this.is2faEnabled = data.enable; // Update local state
-          // Reset only relevant parts of the form based on success
-          if (data.enable) {
-            this.twoFactorForm.get('twoFactorCode')?.setValue('');
-            this.twoFactorForm.get('twoFactorCode')?.markAsUntouched();
-            this.twoFactorForm.get('resetSharedKey')?.setValue(false);
-            this.twoFactorForm.get('resetRecoverCodes')?.setValue(false);
-          } else {
-            this.twoFactorForm.reset({
-              enable: false,
-              twoFactorCode: '',
-              resetSharedKey: false,
-              resetRecoverCodes: false,
-              forgetMachine: false,
-            });
-          }
+        this.current2faStatus = response; // Update the component's status with the latest from the backend
+        this.twoFactorForm.get('password')?.reset(); // Clear password after operation
+        this.twoFactorForm.get('twoFactorCode')?.reset(); // Clear code
+
+        // Determine success message and display setup info based on the response's isTwoFactorEnabled
+        if (response.isTwoFactorEnabled) {
+          this.sharedKeyToDisplay = response.sharedKey;
+          this.recoveryCodesToDisplay = response.recoverCodes;
+          this.notificationService.success(
+            'Two-Factor Authentication enabled successfully! Please save your recovery codes.'
+          );
         } else {
-          this.snackBar.open(response.message, 'Close', { duration: 5000 });
+          // 2FA was disabled
+          this.sharedKeyToDisplay = null;
+          this.recoveryCodesToDisplay = [];
+          this.notificationService.success(
+            'Two-Factor Authentication disabled successfully!'
+          );
         }
+
+        // Ensure the toggle reflects the actual state returned from the backend
+        this.twoFactorForm.patchValue(
+          {
+            enable2fa: response.isTwoFactorEnabled,
+            rememberMachine: response.isMachineRemembered, // Assuming rememberMachine directly maps to isMachineRemembered
+          },
+          { emitEvent: false }
+        ); // Don't trigger valueChanges observer again, preventing loop
+
+        this.twoFactorForm.setErrors(null); // Reset form-level errors
       },
-      error: (error: any) => {
+      error: (error) => {
         this.isLoading = false;
-        console.error('Update 2FA error:', error);
-        this.snackBar.open(
-          'An unexpected error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
+        console.error('2FA update error:', error);
+        this.notificationService.error(
+          error.message || 'Failed to update 2FA settings.'
         );
       },
     });
@@ -153,26 +209,34 @@ export class UpdateTwoFactorComponent implements OnInit {
 
   // Helper to copy recovery codes to clipboard
   copyRecoveryCodes(): void {
-    if (this.recoveryCodes && this.recoveryCodes.length > 0) {
-      const codesText = this.recoveryCodes.join('\n');
-      const textarea = document.createElement('textarea');
-      textarea.value = codesText;
-      textarea.style.position = 'fixed';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        this.snackBar.open('Recovery codes copied to clipboard!', 'Dismiss', {
-          duration: 3000,
-        });
-      } catch (err) {
+    const codesText = this.recoveryCodesToDisplay.join('\n');
+    navigator.clipboard
+      .writeText(codesText)
+      .then(() => {
+        this.notificationService.info('Recovery codes copied to clipboard!');
+      })
+      .catch((err) => {
         console.error('Could not copy text: ', err);
-        this.snackBar.open('Failed to copy recovery codes.', 'Close', {
-          duration: 3000,
+        this.notificationService.error(
+          'Failed to copy codes. Please copy manually.'
+        );
+      });
+  }
+
+  // Helper to copy shared key to clipboard
+  copySharedKey(): void {
+    if (this.sharedKeyToDisplay) {
+      navigator.clipboard
+        .writeText(this.sharedKeyToDisplay)
+        .then(() => {
+          this.notificationService.info('Shared key copied to clipboard!');
+        })
+        .catch((err) => {
+          console.error('Could not copy text: ', err);
+          this.notificationService.error(
+            'Failed to copy shared key. Please copy manually.'
+          );
         });
-      } finally {
-        document.body.removeChild(textarea);
-      }
     }
   }
 }

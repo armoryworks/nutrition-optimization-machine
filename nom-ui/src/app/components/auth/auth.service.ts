@@ -15,6 +15,8 @@ import {
   HttpErrorResponse,
   HttpParams,
 } from '@angular/common/http';
+import { CurrentInfo } from './models/current-info';
+import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
 
 @Injectable({
   providedIn: 'root',
@@ -34,69 +36,45 @@ export class AuthService {
     useSessionCookies: boolean = false
   ): Observable<LoginResponse> {
     //not going to code up cookie stuff, for now
-    return this.httpClient.post<LoginResponse>('/api/auth/login', credentials);
+    return this.httpClient
+      .post<LoginResponse>('/api/auth/login', credentials)
+      .pipe(catchError(this.handleError));
   }
 
   logout(): Observable<void> {
-    return this.httpClient.post<void>('/api/auth/logout', undefined);
+    return this.httpClient
+      .post<void>('/api/auth/logout', undefined)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Placeholder for forgot password request.
-   * @param data Forgot password request data adhering to ForgotPassword interface.
-   * @returns Observable of any.
-   */
-  forgotPassword(data: ForgotPassword): Observable<any> {
-    console.log('Forgot password request for:', data.email);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Password reset link sent to your email.',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock forgot password complete.'))
-    );
+  forgotPassword(data: ForgotPassword): Observable<void> {
+    return this.httpClient
+      .post<void>('/api/auth/forgotPassword', data)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Placeholder for password reset.
-   * @param resetData Password reset details adhering to ResetPassword interface.
-   * @returns Observable of any.
-   */
   resetPassword(resetData: ResetPassword): Observable<any> {
-    console.log('Resetting password:', resetData);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Your password has been reset successfully.',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock password reset complete.'))
-    );
+    return this.httpClient
+      .post<void>('/api/auth/resetPassword', resetData)
+      .pipe(catchError(this.handleError));
   }
 
-  sendConfirmationEmail(data: SendConfirmationEmail): Observable<any> {
-    return this.httpClient.post<void>(
-      '/api/auth/resendConfirmationEmail',
-      data
-    );
+  sendConfirmationEmail(data: SendConfirmationEmail): Observable<void> {
+    return this.httpClient
+      .post<void>('/api/auth/resendConfirmationEmail', data)
+      .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Placeholder for updating account information (email and/or password).
-   * @param updateData UpdateInfo data.
-   * @returns Observable of any.
-   */
-  updateInfo(updateData: UpdateInfo): Observable<any> {
-    console.log('Updating account info:', updateData);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Account information updated successfully.',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock account info update complete.'))
-    );
+  getInfo(): Observable<CurrentInfo> {
+    return this.httpClient
+      .get<CurrentInfo>('/api/auth/manage/info')
+      .pipe(catchError(this.handleError));
+  }
+
+  updateInfo(updateData: UpdateInfo): Observable<void> {
+    return this.httpClient
+      .post<void>('/api/auth/manage/info', updateData)
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -104,16 +82,12 @@ export class AuthService {
    * @param data UpdateTwoFactor data.
    * @returns Observable of any.
    */
-  updateTwoFactorAuth(data: UpdateTwoFactor): Observable<any> {
-    console.log('Updating 2FA settings:', data);
-    // Simulate API call
-    return of({
-      success: true,
-      message: 'Two-Factor Authentication settings updated!',
-    }).pipe(
-      delay(1000),
-      tap(() => console.log('Mock 2FA update complete.'))
-    );
+  updateTwoFactorAuth(
+    data: UpdateTwoFactor
+  ): Observable<UpdateTwoFactorResponse> {
+    return this.httpClient
+      .post<UpdateTwoFactorResponse>('/api/auth/manage/3fa', data)
+      .pipe(catchError(this.handleError));
   }
 
   /**

@@ -4,9 +4,6 @@
       <mat-card-title class="nom-card__title"
         >Create Your Account</mat-card-title
       >
-      <mat-card-subtitle class="nom-card__subtitle"
-        >Join us and get started!</mat-card-subtitle
-      >
     </mat-card-header>
     @if (isLoading) {
     <mat-progress-bar
@@ -31,9 +28,11 @@
             class="nom-form__input"
           />
           <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (registrationForm.get('email')?.hasError('required')) {
+          @if (registrationForm.get('email')?.hasError('required') &&
+          registrationForm.get('email')?.touched) {
           <mat-error class="nom-form__error"> Email is required. </mat-error>
-          } @if (registrationForm.get('email')?.hasError('email')) {
+          } @if (registrationForm.get('email')?.hasError('email') &&
+          registrationForm.get('email')?.touched) {
           <mat-error class="nom-form__error">
             Please enter a valid email address.
           </mat-error>
@@ -50,9 +49,11 @@
             class="nom-form__input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
-          @if (registrationForm.get('password')?.hasError('required')) {
+          @if (registrationForm.get('password')?.hasError('required') &&
+          registrationForm.get('password')?.touched) {
           <mat-error class="nom-form__error"> Password is required. </mat-error>
-          } @if (registrationForm.get('password')?.hasError('minlength')) {
+          } @if (registrationForm.get('password')?.hasError('minlength') &&
+          registrationForm.get('password')?.touched) {
           <mat-error class="nom-form__error">
             Password must be at least 8 characters.
           </mat-error>
@@ -69,17 +70,20 @@
             class="nom-form__input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock_open</mat-icon>
-          @if (registrationForm.get('confirmPassword')?.hasError('required')) {
+          @if (registrationForm.get('confirmPassword')?.hasError('required') &&
+          registrationForm.get('confirmPassword')?.touched) {
           <mat-error class="nom-form__error">
             Confirm Password is required.
           </mat-error>
           }
         </mat-form-field>
 
-        @if (!registrationForm.get('confirmPassword')?.hasError('required') &&
-        registrationForm.hasError('mismatch') &&
-        registrationForm.get('confirmPassword')?.dirty) {
-        <mat-error class="nom-form__error"> Passwords do not match. </mat-error>
+        <!-- Place the password mismatch error AFTER the confirm password field's mat-form-field -->
+        @if (registrationForm.hasError('mismatch') &&
+        registrationForm.get('confirmPassword')?.touched) {
+        <mat-error class="nom-form__error form-level-error">
+          Passwords do not match.
+        </mat-error>
         }
 
         <mat-checkbox
@@ -117,10 +121,12 @@
         </button>
       </form>
     </mat-card-content>
-    <mat-card-actions align="end" class="nom-card__footer">
+    <mat-card-actions class="nom-card__footer">
       <p class="nom-prompt-text">
         Already have an account?
-        <a routerLink="/login" class="nom-link">Login Here</a>
+        <span class="nom-link" (click)="openUserMenuFromFooter()"
+          >Login Here</span
+        >
       </p>
     </mat-card-actions>
   </mat-card>

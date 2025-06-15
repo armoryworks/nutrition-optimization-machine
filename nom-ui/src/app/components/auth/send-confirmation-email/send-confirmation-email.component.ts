@@ -5,7 +5,6 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
 
@@ -17,8 +16,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
 import { AuthService } from '../auth.service';
 import { SendConfirmationEmail } from '../models/send-confirmation-email';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'app-send-confirmation-email',
@@ -46,7 +47,7 @@ export class SendConfirmationEmailComponent implements OnInit {
   constructor(
     private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -59,10 +60,10 @@ export class SendConfirmationEmailComponent implements OnInit {
    * Handles the form submission to send a confirmation email.
    */
   onSubmit(): void {
+    this.sendConfirmationEmailForm.markAllAsTouched(); // Mark all fields as touched for immediate validation feedback
+
     if (this.sendConfirmationEmailForm.invalid) {
-      this.snackBar.open('Please enter a valid email address.', 'Close', {
-        duration: 3000,
-      });
+      this.notificationService.warning('Please enter a valid email address.');
       return;
     }
 
@@ -73,19 +74,17 @@ export class SendConfirmationEmailComponent implements OnInit {
     this.authService.sendConfirmationEmail(data).subscribe({
       next: (response) => {
         this.isLoading = false;
-        if (response.success) {
-          this.snackBar.open(response.message, 'Dismiss', { duration: 7000 });
-        } else {
-          this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        }
+        this.notificationService.success(
+          'Confirmation email sent. Please check your inbox!'
+        );
+        this.sendConfirmationEmailForm.reset(); // Optionally reset the form on success
       },
       error: (error) => {
         this.isLoading = false;
         console.error('Send confirmation email error:', error);
-        this.snackBar.open(
-          'An unexpected error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
+        // The error.message is already processed by the AuthService's handleError
+        this.notificationService.error(
+          error.message || 'An unexpected error occurred. Please try again.'
         );
       },
     });

@@ -4,6 +4,7 @@ import {
   ViewEncapsulation,
   Inject,
   PLATFORM_ID,
+  OnDestroy, // Import OnDestroy
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
@@ -23,7 +24,8 @@ import { LoginComponent } from './components/auth/login/login.component';
 import { NomConfigService } from './utilities/services/nom-config.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
 import { AuthService } from './components/auth/auth.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from './utilities/services/notification.service';
+import { Subscription } from 'rxjs'; // Import Subscription
 
 @Component({
   selector: 'app-root',
@@ -46,7 +48,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./app.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
+  // Implement OnDestroy
   title = 'NOM - Nutrition Optimization Machine';
   isMenuOpen: boolean = false; // For the main burger menu
   isLoggedIn: boolean = false; // Mock user login status
@@ -54,9 +57,11 @@ export class AppComponent implements OnInit {
   isDarkTheme: boolean = false; // For theme toggling
   currentYear: number = new Date().getFullYear(); // For copyright year
 
+  private subscriptions: Subscription = new Subscription(); // To manage subscriptions
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     private configService: NomConfigService,
     private authManagerService: AuthManagerService,
     private authService: AuthService,
@@ -68,20 +73,44 @@ export class AppComponent implements OnInit {
     this.isDarkTheme = localStorage.getItem('theme') === 'dark';
     this.applyThemeClass();
     this.checkLoggedIn();
-    this.router.events.subscribe((event) => {
-      if (event instanceof NavigationStart) {
-        if (this.isUserMenuOpen) {
+
+    // Subscribe to router events for menu closing
+    this.subscriptions.add(
+      this.router.events.subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          if (this.isUserMenuOpen) {
+            this.toggleUserMenu(); // Close user menu on navigation start
+          }
+          // Also close main menu on navigation
+          if (this.isMenuOpen) {
+            this.toggleMenu();
+          }
+        }
+      })
+    );
+
+    // Subscribe to the new signal from AuthManagerService to open the user menu
+    this.subscriptions.add(
+      this.authManagerService.openUserMenuSignal.subscribe(() => {
+        if (!this.isUserMenuOpen) {
+          // Only open if it's not already open
           this.toggleUserMenu();
         }
-      }
-    });
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe(); // Unsubscribe from all subscriptions
   }
 
   checkLoggedIn() {
-    this.authManagerService.userLogin.subscribe(() => {
-      this.isLoggedIn = !!this.authManagerService.token;
-    });
-    //have to access token or call checkUserLoggedInStatus at least once
+    this.subscriptions.add(
+      // Add to subscriptions for proper cleanup
+      this.authManagerService.userLogin.subscribe(() => {
+        this.isLoggedIn = !!this.authManagerService.token;
+      })
+    );
     this.authManagerService.checkUserLoggedInStatus();
   }
 
@@ -116,12 +145,18 @@ export class AppComponent implements OnInit {
 
   logout(): void {
     this.isUserMenuOpen = false;
-    this.authService.logout().subscribe(() => {
-      this.authManagerService.clearStorageAfterLogout();
-      this.isLoggedIn = false;
-      this.snackBar.open('Logged Out Successfully', undefined, {
-        duration: 2000,
-      });
+    this.authService.logout().subscribe({
+      next: () => {
+        this.authManagerService.clearStorageAfterLogout();
+        this.isLoggedIn = false;
+        this.notificationService.success('Logged Out Successfully');
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.notificationService.error(
+          error.message || 'Failed to log out. Please try again.'
+        );
+      },
     });
   }
 }

@@ -2,6 +2,8 @@
 @use 'nom-theme';
 @use 'variables' as vars;
 
+// 1. Angular Material Core and Theming
+// ------------------------------------
 @include mat.core();
 
 html {
@@ -33,15 +35,16 @@ html {
     );
   }
 
-  // Use high contrast dark theme colors when users prefer contrast
+  // High contrast overrides for accessibility, applied directly to html when media query matches
   @media (prefers-contrast: more) {
     @include nom-theme.high-contrast-overrides(dark);
   }
 }
 
-//* system.scss */
+// 2. Base Layout Elements & Common Components
+// --------------------------------------------
 
-// --- Base Layout Elements ---
+// Page Container
 .nom-page-container {
   display: flex;
   justify-content: center;
@@ -52,7 +55,7 @@ html {
   color: var(--mat-sys-on-background); // Main text color
 }
 
-// --- Common Card Styles ---
+// Common Card Styles
 .nom-card {
   width: 100%;
   max-width: 400px; // Mobile max width
@@ -61,86 +64,85 @@ html {
   border-radius: 8px;
   background-color: var(--mat-sys-surface-container); // Card background color
   color: var(--mat-sys-on-surface); // Text color on card
+
+  &__header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  &__title {
+    margin: 0;
+    font: var(--mat-sys-headline-large); // Using headline-large for main titles
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__subtitle {
+    margin-top: 5px;
+    font: var(--mat-sys-body-large); // Using body-large for subtitles
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__progress-bar {
+    // Material handles its own progress bar colors
+  }
+
+  &__content {
+    padding: 20px 0;
+  }
+
+  &__footer {
+    padding-top: 15px;
+    text-align: center;
+  }
 }
 
-.nom-card__header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.nom-card__title {
-  margin: 0;
-  font: var(--mat-sys-headline-large); // Using headline-large for main titles
-  color: var(--mat-sys-on-surface);
-}
-
-.nom-card__subtitle {
-  margin-top: 5px;
-  font: var(--mat-sys-body-large); // Using body-large for subtitles
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.nom-card__progress-bar {
-  // Material handles its own progress bar colors
-}
-
-.nom-card__content {
-  padding: 20px 0;
-}
-
-.nom-card__footer {
-  padding-top: 15px;
-  text-align: center;
-}
-
-// --- Common Form Elements ---
+// Common Form Elements
 .nom-form {
   display: flex;
   flex-direction: column;
+
+  &__field {
+    width: 100%;
+    margin-bottom: 15px;
+
+    &--centered {
+      max-width: 250px; // Example for verification code, etc.
+      margin-left: auto;
+      margin-right: auto;
+      display: block; // Ensures centering
+    }
+  }
+
+  &__input {
+    // Material handles most input styling directly via its themes,
+    // including font properties based on its form-field typography config.
+  }
+
+  &__icon {
+    // Material icons inherit color from parent
+  }
+
+  &__error {
+    font: var(--mat-sys-body-small); // Using body-small for error messages
+    color: var(--mat-sys-error);
+    margin-top: 5px;
+  }
 }
 
-.nom-form__field {
-  width: 100%;
-  margin-bottom: 15px;
-}
-
-.nom-form__input {
-  // Material handles most input styling directly via its themes,
-  // including font properties based on its form-field typography config.
-}
-
-.nom-form__icon {
-  // Material icons inherit color from parent
-}
-
-.nom-form__error {
-  font: var(--mat-sys-body-small); // Using body-small for error messages
-  color: var(--mat-sys-error);
-  margin-top: 5px;
-}
-
-// Special form field modifiers
-.nom-form__field--centered {
-  max-width: 250px; // Example for verification code, etc.
-  margin-left: auto;
-  margin-right: auto;
-  display: block; // Ensures centering
-}
-
-// --- Common Buttons ---
+// Common Buttons
 .nom-button {
   width: 100%;
   height: 48px;
   font: var(--mat-sys-label-large); // Using label-large for buttons
   margin-top: 10px;
   // Material handles its own primary/accent button colors
+
+  &__spinner {
+    margin-left: 8px;
+  }
 }
 
-.nom-button__spinner {
-  margin-left: 8px;
-}
-
-// --- Common Text and Links ---
+// Common Text and Links
 .nom-instruction-text {
   font: var(--mat-sys-body-medium); // Using body-medium for instruction text
   color: var(--mat-sys-on-surface-variant);
@@ -165,6 +167,7 @@ html {
   color: var(--mat-sys-primary);
   text-decoration: none;
   font: inherit; // Inherit font from parent, or set specifically if needed
+  cursor: pointer;
   &:hover {
     text-decoration: underline;
     color: var(--mat-sys-primary-fixed-variant);
@@ -188,22 +191,22 @@ html {
   color: var(--mat-sys-on-surface-variant);
 }
 
-// --- Common Sections and Layouts ---
+// Common Sections and Layouts
 .nom-section {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
   margin-bottom: 20px;
   gap: 15px; // Default gap for items in a section
-}
 
-.nom-section__heading {
-  font: var(
-    --mat-sys-headline-medium
-  ); // Using headline-medium for section headings
-  margin: 0;
-  color: var(--mat-sys-on-surface);
-  text-align: center;
+  &__heading {
+    font: var(
+      --mat-sys-headline-medium
+    ); // Using headline-medium for section headings
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+    text-align: center;
+  }
 }
 
 .nom-horizontal-group {
@@ -218,7 +221,7 @@ html {
   background-color: var(--mat-sys-outline-variant);
 }
 
-// --- Common Status and Iconography ---
+// Common Status and Iconography
 .nom-status-icon {
   font-size: 64px;
   width: 64px;
@@ -233,7 +236,7 @@ html {
   gap: 15px;
 }
 
-// --- Common Code Display Elements ---
+// Common Code Display Elements
 .nom-code-box {
   background-color: var(--mat-sys-surface-container-low);
   padding: 10px 15px;
@@ -243,26 +246,26 @@ html {
   justify-content: center; // Center content on mobile
   word-break: break-all;
   gap: 10px; // Space between code and copy button
-}
 
-.nom-code-box--dashed {
-  border: 1px dashed var(--mat-sys-outline);
-}
+  &--dashed {
+    border: 1px dashed var(--mat-sys-outline);
+  }
 
-.nom-code-label {
-  font: var(--mat-sys-label-large); // Using label-large for code labels
-  font-weight: var(
-    --mat-sys-label-large-weight-prominent
-  ); // Explicitly use prominent weight
-  margin: 0;
-  color: var(--mat-sys-on-surface);
-}
+  .nom-code-label {
+    font: var(--mat-sys-label-large); // Using label-large for code labels
+    font-weight: var(
+      --mat-sys-label-large-weight-prominent
+    ); // Explicitly use prominent weight
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+  }
 
-.nom-code-text {
-  font-family: 'Courier New', Courier, monospace; // Monospace for code
-  font: var(--mat-sys-body-medium); // Using body-medium for code text
-  color: var(--mat-sys-on-surface);
-  flex-grow: 1; // Allow code to take space
+  .nom-code-text {
+    font-family: 'Courier New', Courier, monospace; // Monospace for code
+    font: var(--mat-sys-body-medium); // Using body-medium for code text
+    color: var(--mat-sys-on-surface);
+    flex-grow: 1; // Allow code to take space
+  }
 }
 
 .nom-code-item {
@@ -286,7 +289,8 @@ html {
   height: auto;
 }
 
-// --- Responsive Adjustments for Common Elements ---
+// 3. Responsive Adjustments for Common Elements
+// ----------------------------------------------
 @media (min-width: vars.$breakpoint-mobile) {
   .nom-page-container {
     padding: 20px;
@@ -353,7 +357,6 @@ html {
   .nom-code-box {
     justify-content: space-between; // Space between code and copy button
     .nom-code-text {
-      // Referencing from system.scss
       font: var(--mat-sys-body-large); // Larger code text on desktop
     }
   }
@@ -369,23 +372,23 @@ html {
   }
 }
 
-/* The main 'block' for snackbars */
+// 4. Themed Snackbar Styles
+// --------------------------
 .snackbar {
+  // Common properties for all snackbar themes
+  padding: 16px;
+  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12);
+  border-radius: 5px !important; // Consistent border-radius for all snackbars
+
   // This rule targets the internal Angular Material snackbar surface
-  // to ensure our custom background colors and text colors are not overridden
-  // by Material's default internal styling.
-  &-success,
-  &-info,
-  &-warning,
-  &-error {
-    box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
-      0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12);
-    border-radius: 5px !important; // Updated to 5px rounded corners
-    .mdc-snackbar__surface,
-    .mat-mdc-snackbar-surface {
-      background-color: transparent !important; // Make Material's internal background transparent
-      color: inherit !important; // Inherit color from our parent .snackbar-* class
-    }
+  // to ensure our custom background colors and text colors are applied
+  // without being overridden by Material's default internal styling.
+  // We make their internal background transparent and color inherit.
+  .mdc-snackbar__surface,
+  .mat-mdc-snackbar-surface {
+    background-color: transparent !important;
+    color: inherit !important;
   }
 
   // Modifier for success theme (compiles to .snackbar-success)
@@ -394,7 +397,7 @@ html {
     color: #155724 !important; /* Darker Green for text (high contrast) */
     border: 2px solid #155724 !important; // 2px border matching text color
 
-    // Element for the action button within the success theme
+    // Action button within the success theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #155724 !important; /* Match text color for action button */
     }
@@ -406,7 +409,7 @@ html {
     color: #004085 !important; /* Darker Blue for text (high contrast) */
     border: 2px solid #004085 !important; // 2px border matching text color
 
-    // Element for the action button within the info theme
+    // Action button within the info theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #004085 !important;
     }
@@ -418,7 +421,7 @@ html {
     color: #664d03 !important; /* Darker Yellow/Brown for text (high contrast) */
     border: 2px solid #664d03 !important; // 2px border matching text color
 
-    // Element for the action button within the warning theme
+    // Action button within the warning theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #664d03 !important;
     }
@@ -430,7 +433,7 @@ html {
     color: #721c24 !important; /* Darker Red for text (high contrast) */
     border: 2px solid #721c24 !important; // 2px border matching text color
 
-    // Element for the action button within the error theme
+    // Action button within the error theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #721c24 !important;
     }

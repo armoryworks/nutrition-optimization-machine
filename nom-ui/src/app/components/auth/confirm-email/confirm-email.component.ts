@@ -1,17 +1,17 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router'; // Import RouterLink for button navigation
-import { MatSnackBar } from '@angular/material/snack-bar';
-
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'; // Import ActivatedRoute and Router
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatIconModule } from '@angular/material/icon';
+import { MatIconModule } from '@angular/material/icon'; // Often used for status icons
+
 import { AuthService } from '../auth.service';
 import { ConfirmEmail } from '../models/confirm-email';
+import { NotificationService } from '../../../utilities/services/notification.service'; // Correct path
 
 @Component({
   selector: 'app-confirm-email',
@@ -23,7 +23,7 @@ import { ConfirmEmail } from '../models/confirm-email';
     MatProgressSpinnerModule,
     MatProgressBarModule,
     MatIconModule,
-    RouterLink, // Add RouterLink for navigation
+    RouterLink, // For navigation buttons
   ],
   templateUrl: './confirm-email.component.html',
   styleUrls: ['./confirm-email.component.scss'],
@@ -31,64 +31,69 @@ import { ConfirmEmail } from '../models/confirm-email';
 })
 export class ConfirmEmailComponent implements OnInit {
   isLoading = true;
-  confirmationStatus: 'loading' | 'success' | 'failure' = 'loading';
-  message: string = 'Confirming your email address...';
-  userId: string = '';
-  code: string = '';
-  changedEmail: string | null = null;
+  confirmationStatus: 'pending' | 'success' | 'failure' = 'pending';
+  confirmationMessage: string = 'Confirming your email address...';
 
   constructor(
-    private route: ActivatedRoute,
+    private route: ActivatedRoute, // To access query parameters
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService, // Use NotificationService
+    private router: Router // To redirect after confirmation
   ) {}
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
-      this.userId = params['userId'] || '';
-      this.code = params['code'] || '';
-      this.changedEmail = params['changedEmail'] || null;
+      const userId = params['userId'];
+      const code = params['code'];
+      const changedEmail = params['changedEmail'];
 
-      if (this.userId && this.code) {
-        this.sendConfirmation();
-      } else {
+      if (!userId || !code) {
         this.confirmationStatus = 'failure';
-        this.message = 'Invalid confirmation link. Missing user ID or code.';
+        this.confirmationMessage =
+          'Invalid email confirmation link. Missing user ID or code.';
         this.isLoading = false;
-        this.snackBar.open(this.message, 'Close', { duration: 5000 });
+        this.notificationService.error(this.confirmationMessage);
+        return;
       }
-    });
-  }
 
-  private sendConfirmation(): void {
-    this.isLoading = true;
-    const confirmData: ConfirmEmail = {
-      userId: this.userId,
-      code: this.code,
-      changedEmail: this.changedEmail || undefined,
-    };
+      const confirmationData: ConfirmEmail = {
+        userId: userId,
+        code: code,
+        changedEmail: changedEmail || undefined, // Only include if present
+      };
 
-    this.authService.confirmEmail(confirmData).subscribe({
-      next: (response) => {
-        this.isLoading = false;
-        if (response.success) {
-          this.confirmationStatus = 'success';
-          this.message = response.message;
-          this.snackBar.open(response.message, 'Dismiss', { duration: 7000 });
-        } else {
+      this.authService.confirmEmail(confirmationData).subscribe({
+        next: (response) => {
+          this.isLoading = false;
+          // Assuming AuthService.confirmEmail returns an object with success/message (Observable<any>)
+          if (response && response.success) {
+            this.confirmationStatus = 'success';
+            this.confirmationMessage =
+              response.message || 'Your email has been successfully confirmed!';
+            this.notificationService.success(this.confirmationMessage);
+            // Optionally redirect after a delay
+            setTimeout(() => {
+              this.router.navigate(['/login']);
+            }, 3000);
+          } else {
+            this.confirmationStatus = 'failure';
+            this.confirmationMessage =
+              response?.message ||
+              'Email confirmation failed. The link might be invalid or expired.';
+            this.notificationService.error(this.confirmationMessage);
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
           this.confirmationStatus = 'failure';
-          this.message = response.message;
-          this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.confirmationStatus = 'failure';
-        this.message =
-          'An unexpected error occurred during email confirmation. Please try again or contact support.';
-        console.error('Email confirmation error:', error);
-        this.snackBar.open(this.message, 'Close', { duration: 5000 });
-      },
+          console.error('Email confirmation error:', error);
+          // The error.message is already processed by AuthService.handleError
+          this.confirmationMessage =
+            error.message ||
+            'An unexpected error occurred during email confirmation.';
+          this.notificationService.error(this.confirmationMessage);
+        },
+      });
     });
   }
 }

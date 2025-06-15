@@ -5,7 +5,6 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -17,8 +16,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
 import { AuthService } from '../auth.service';
 import { ForgotPassword } from '../models/forgot-password';
+import { NotificationService } from '../../../utilities/services/notification.service'; // Adjust path if necessary
 
 @Component({
   selector: 'app-forgot-password',
@@ -46,7 +47,7 @@ export class ForgotPasswordComponent implements OnInit {
   constructor(
     private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private notificationService: NotificationService // Use NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -59,10 +60,10 @@ export class ForgotPasswordComponent implements OnInit {
    * Handles the forgot password form submission.
    */
   onSubmit(): void {
+    this.forgotPasswordForm.markAllAsTouched(); // Mark all fields as touched for immediate validation feedback
+
     if (this.forgotPasswordForm.invalid) {
-      this.snackBar.open('Please enter a valid email address.', 'Close', {
-        duration: 3000,
-      });
+      this.notificationService.warning('Please enter a valid email address.');
       return;
     }
 
@@ -72,19 +73,16 @@ export class ForgotPasswordComponent implements OnInit {
     this.authService.forgotPassword(data).subscribe({
       next: (response) => {
         this.isLoading = false;
-        if (response.success) {
-          this.snackBar.open(response.message, 'Dismiss', { duration: 7000 });
-        } else {
-          this.snackBar.open(response.message, 'Close', { duration: 5000 });
-        }
+        this.notificationService.success(
+          'Password reset link sent. Please check your inbox!'
+        );
       },
       error: (error) => {
         this.isLoading = false;
         console.error('Forgot password error:', error);
-        this.snackBar.open(
-          'An unexpected error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
+        // The error.message is already processed by the AuthService's handleError
+        this.notificationService.error(
+          error.message || 'An unexpected error occurred. Please try again.'
         );
       },
     });

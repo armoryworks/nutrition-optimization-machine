@@ -4,60 +4,47 @@
       <mat-card-title class="nom-card__title"
         >Email Confirmation</mat-card-title
       >
-      <mat-card-subtitle class="nom-card__subtitle"
-        >Verifying your account...</mat-card-subtitle
-      >
     </mat-card-header>
-    @if (isLoading) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    }
-    <mat-card-content class="nom-card__content">
-      @if (confirmationStatus === 'loading') {
-      <div class="nom-spinner-container">
-        <mat-spinner></mat-spinner>
-        <p class="nom-message-text">{{ message }}</p>
+
+    <mat-card-content class="nom-card__content text-center">
+      @if (isLoading) {
+      <mat-progress-bar
+        mode="indeterminate"
+        color="primary"
+        class="nom-card__progress-bar"
+      ></mat-progress-bar>
+      <div class="status-message loading">
+        <mat-spinner [diameter]="40"></mat-spinner>
+        <p>{{ confirmationMessage }}</p>
       </div>
       } @else if (confirmationStatus === 'success') {
-      <div class="nom-spinner-container">
-        <mat-icon color="accent" class="nom-status-icon">check_circle</mat-icon>
-        <h2 class="nom-section__heading">Email Confirmed Successfully!</h2>
-        <p class="nom-message-text">{{ message }}</p>
+      <div class="status-message success">
+        <mat-icon color="primary" class="status-icon">check_circle</mat-icon>
+        <p>{{ confirmationMessage }}</p>
         <button
           mat-raised-button
           color="primary"
           routerLink="/login"
-          class="nom-button"
+          class="mt-4"
         >
           Go to Login
         </button>
       </div>
-      } @else if (confirmationStatus === 'failure') {
-      <div class="nom-spinner-container">
-        <mat-icon color="warn" class="nom-status-icon">error</mat-icon>
-        <h2 class="nom-section__heading">Confirmation Failed</h2>
-        <p class="nom-message-text">{{ message }}</p>
-        <div class="nom-horizontal-group">
-          <button
-            mat-stroked-button
-            color="primary"
-            routerLink="/send-confirmation"
-            class="nom-button"
-          >
-            Resend Confirmation Email
-          </button>
-          <button
-            mat-raised-button
-            color="accent"
-            routerLink="/contact"
-            class="nom-button"
-          >
-            Contact Support
-          </button>
-        </div>
+      } @else {
+      <div class="status-message failure">
+        <mat-icon color="warn" class="status-icon">error</mat-icon>
+        <p>{{ confirmationMessage }}</p>
+        <button
+          mat-raised-button
+          color="accent"
+          routerLink="/resend-confirmation-email"
+          class="mt-4"
+        >
+          Resend Confirmation Email
+        </button>
+        <button mat-button routerLink="/login" class="mt-2">
+          Back to Login
+        </button>
       </div>
       }
     </mat-card-content>
