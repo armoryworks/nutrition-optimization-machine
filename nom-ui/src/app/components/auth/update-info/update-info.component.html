@@ -6,20 +6,37 @@
         >Update your email or password</mat-card-subtitle
       >
     </mat-card-header>
-    @if (isLoading) {
+
+    <!-- Initial Loading State -->
+    @if (isInitialLoading) {
+    <mat-progress-bar
+      mode="indeterminate"
+      color="accent"
+      class="nom-card__progress-bar"
+    ></mat-progress-bar>
+    } @else if (isLoading) {
+    <!-- Form Submission Loading State -->
     <mat-progress-bar
       mode="indeterminate"
       color="primary"
       class="nom-card__progress-bar"
     ></mat-progress-bar>
     }
+
     <mat-card-content class="nom-card__content">
+      @if (!isInitialLoading) {
+      <!-- Only show form after initial data is loaded -->
       <form
         [formGroup]="updateInfoForm"
         (ngSubmit)="onSubmit()"
         class="nom-form"
       >
         <p class="nom-instruction-text">
+          Your current email address is: <strong>{{ currentEmail }}</strong>
+          @if (isEmailConfirmed !== null) {
+            ({{ isEmailConfirmed ? 'Confirmed' : 'Not Confirmed' }})
+          }
+          <br />
           Leave fields blank if you don't want to change them. Your current
           password is required to save any changes.
         </p>
@@ -33,7 +50,7 @@
             class="nom-form__input"
           />
           <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (updateInfoForm.get('newEmail')?.hasError('email')) {
+          @if (updateInfoForm.get('newEmail')?.hasError('email') && updateInfoForm.get('newEmail')?.touched) {
           <mat-error class="nom-form__error">
             Please enter a valid email address.
           </mat-error>
@@ -49,7 +66,7 @@
             class="nom-form__input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
-          @if (updateInfoForm.get('newPassword')?.hasError('minlength')) {
+          @if (updateInfoForm.get('newPassword')?.hasError('minlength') && updateInfoForm.get('newPassword')?.touched) {
           <mat-error class="nom-form__error">
             New Password must be at least 8 characters.
           </mat-error>
@@ -98,6 +115,7 @@
           }
         </button>
       </form>
+      }
     </mat-card-content>
   </mat-card>
 </div>

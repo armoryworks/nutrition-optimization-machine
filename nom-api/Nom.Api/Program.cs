@@ -12,18 +12,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AuthContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AuthConnection"),
-                        b => b.MigrationsAssembly("Nom.Data")));
 
-builder.Services.AddDbContext<ReferenceContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AuthConnection"),
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
                         b => b.MigrationsAssembly("Nom.Data")));
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddIdentityApiEndpoints<IdentityUser>()
-.AddEntityFrameworkStores<AuthContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>();
 
 var app = builder.Build();
 

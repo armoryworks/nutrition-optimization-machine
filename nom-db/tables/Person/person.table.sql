@@ -1,5 +1,5 @@
 CREATE TABLE Person.person (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(255),
-    username VARCHAR(80) NULL UNIQUE REFERENCES Auth.oauth_users(username)
+    userId text NULL UNIQUE REFERENCES auth.AspNetUsers(Id)
 );
