@@ -9,10 +9,8 @@ using Nom.Data.Nutrient;
 using Nom.Data.Shopping;
 using Nom.Data.Person;
 using Nom.Data.Question;
+using Nom.Data.Audit;
 using System.Collections.Generic;
-// Removed: using Nom.Data.Configurations; // No longer needed
-// Removed: using System.Linq;           // No longer needed for audit loop
-// Removed: using System.Reflection;     // No longer needed for audit loop
 
 namespace Nom.Data
 {
@@ -40,6 +38,7 @@ namespace Nom.Data
         public DbSet<GoalEntity> Goals { get; set; } = default!;
         public DbSet<GoalItemEntity> GoalItems { get; set; } = default!;
         public DbSet<RestrictionEntity> Restrictions { get; set; } = default!;
+        public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
         #endregion
 
         #region Recipe DbSets
@@ -67,9 +66,8 @@ namespace Nom.Data
         public DbSet<AnswerEntity> Answers { get; set; } = default!;
         #endregion
 
-        // --- NEW: Audit Log DbSet ---
+        // Audit Log DbSet
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
-        // --- END NEW ---
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -78,7 +76,7 @@ namespace Nom.Data
             // Explicitly map Identity tables to the 'auth' schema
             modelBuilder.HasDefaultSchema("auth");
 
-            // Configure PersonEntity to be in 'person' schema
+            #region Person Namespace Fluent API Configurations
             modelBuilder.Entity<PersonEntity>().ToTable("Person", schema: "person");
             modelBuilder.Entity<PersonAttributeEntity>().ToTable("PersonAttribute", schema: "person");
 
@@ -88,22 +86,43 @@ namespace Nom.Data
                 .IsUnique()
                 .HasFilter("\"InvitationCode\" IS NOT NULL");
 
-            // --- NEW: Configure AuditLogEntryEntity ---
+            // Configure the relationship between PersonEntity and PlanEntity (PlansAdministering)
+            modelBuilder.Entity<PersonEntity>()
+                .HasMany(p => p.PlansAdministering)
+                .WithOne(plan => plan.CreatedByPerson)
+                .HasForeignKey(plan => plan.CreatedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Person can be a participant in many plans
+            modelBuilder.Entity<PersonEntity>()
+                .HasMany(p => p.PlanParticipations)
+                .WithOne(pp => pp.Person)
+                .HasForeignKey(pp => pp.PersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Person can create many PlanParticipant records
+            modelBuilder.Entity<PersonEntity>()
+                .HasMany(p => p.CreatedPlanParticipations)
+                .WithOne(pp => pp.CreatedByPerson)
+                .HasForeignKey(pp => pp.CreatedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict);
+            #endregion
+
+            #region Audit Namespace Fluent API Configurations
             modelBuilder.Entity<AuditLogEntryEntity>()
-                .ToTable("AuditLogEntry", schema: "audit"); // Map to 'audit' schema
+                .ToTable("AuditLogEntry", schema: "audit");
 
             modelBuilder.Entity<AuditLogEntryEntity>()
                 .HasOne(ale => ale.ChangedByPerson)
-                .WithMany() // Person has many audit entries, but AuditLogEntry does not expose a Person navigation collection
+                .WithMany()
                 .HasForeignKey(ale => ale.ChangedByPersonId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a person if they're referenced in audit logs
-            // --- END NEW ---
-
-            #region Fluent API Configurations by Namespace
-            // These sections remain largely unchanged, as BaseEntity no longer dictates audit FKs
-            // and we're not adding new audit-related Fluent API here.
+                .OnDelete(DeleteBehavior.Restrict);
+            #endregion
 
             #region Reference Namespace Fluent API Configurations
+            modelBuilder.Entity<GroupEntity>()
+                .ToTable("Group", schema: "reference");
+
             modelBuilder.Entity<ReferenceEntity>()
                 .HasMany(r => r.Groups)
                 .WithMany(g => g.References)
@@ -139,67 +158,110 @@ namespace Nom.Data
                 .HasValue<CuisineTypeViewEntity>((long)ReferenceDiscriminatorEnum.CuisineType)
                 .HasValue<QuestionCategoryViewEntity>((long)ReferenceDiscriminatorEnum.QuestionCategory)
                 .HasValue<AnswerTypeViewEntity>((long)ReferenceDiscriminatorEnum.AnswerType)
+                .HasValue<PlanInvitationRoleViewEntity>((long)ReferenceDiscriminatorEnum.PlanInvitationRole)
                 ;
 
             #endregion // End of Reference Namespace Fluent API Configurations
 
             #region Plan Namespace Fluent API Configurations
-            modelBuilder.Entity<Plan.MealEntity>()
-                .HasMany(m => m.Recipes)
-                .WithMany(r => r.Meals)
-                .UsingEntity<Dictionary<string, object>>(
-                    "MealRecipeIndex",
-                    j => j.HasOne<Recipe.RecipeEntity>()
-                            .WithMany()
-                            .HasForeignKey("RecipeId")
-                            .HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId"),
-                    j => j.HasOne<Plan.MealEntity>()
-                            .WithMany()
-                            .HasForeignKey("MealId")
-                            .HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId"),
-                    j =>
-                    {
-                        j.ToTable("meal_recipe_index", "plan");
-                        j.HasKey("MealId", "RecipeId");
-                    });
+            modelBuilder.Entity<PlanEntity>()
+                .ToTable("Plan", schema: "plan");
 
-            modelBuilder.Entity<Plan.PlanEntity>()
+            // Unique index for InvitationCode on PlanEntity
+            modelBuilder.Entity<PlanEntity>()
+                .HasIndex(p => p.InvitationCode)
+                .IsUnique()
+                .HasFilter("\"InvitationCode\" IS NOT NULL");
+
+            // Plan has many Restrictions
+            modelBuilder.Entity<PlanEntity>()
+                .HasMany(p => p.Restrictions)
+                .WithOne(r => r.Plan)
+                .HasForeignKey(r => r.PlanId)
+                .IsRequired(false) // PlanId is nullable on RestrictionEntity
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Plan has many Participants
+            modelBuilder.Entity<PlanEntity>()
                 .HasMany(p => p.Participants)
-                .WithMany(p => p.PlansParticipatingIn)
-                .UsingEntity<Dictionary<string, object>>(
-                    "PlanPersonIndex",
-                    j => j.HasOne<Person.PersonEntity>()
-                            .WithMany()
-                            .HasForeignKey("PersonId")
-                            .HasConstraintName("FK_PlanPersonIndex_PersonEntity_PersonId"),
-                    j => j.HasOne<Plan.PlanEntity>()
-                            .WithMany()
-                            .HasForeignKey("PlanId")
-                            .HasConstraintName("FK_PlanPersonIndex_PlanEntity_PlanId"),
-                    j =>
-                    {
-                        j.ToTable("plan_person_index", "plan");
-                        j.HasKey("PlanId", "PersonId");
-                    });
+                .WithOne(pp => pp.Plan)
+                .HasForeignKey(pp => pp.PlanId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Plan.PlanEntity>()
-                .HasMany(p => p.Administrators)
-                .WithMany(p => p.PlansAdministering)
-                .UsingEntity<Dictionary<string, object>>(
-                    "PlanPersonAdministratorIndex",
-                    j => j.HasOne<Person.PersonEntity>()
-                            .WithMany()
-                            .HasForeignKey("PersonId")
-                            .HasConstraintName("FK_PlanPersonAdministratorIndex_PersonEntity_PersonId"),
-                    j => j.HasOne<Plan.PlanEntity>()
-                            .WithMany()
-                            .HasForeignKey("PlanId")
-                            .HasConstraintName("FK_PlanPersonAdministratorIndex_PlanEntity_PlanId"),
-                    j =>
-                    {
-                        j.ToTable("plan_person_administrator_index", "plan");
-                        j.HasKey("PlanId", "PersonId");
-                    });
+            // Configure Plan.RestrictionEntity
+            modelBuilder.Entity<RestrictionEntity>()
+                .ToTable("Restriction", schema: "plan");
+
+            // CRITICAL: CHECK CONSTRAINT for RestrictionEntity - At least one of PersonId or PlanId must be non-null.
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasCheckConstraint("CHK_Restriction_PersonOrPlan",
+                                    "\"PersonId\" IS NOT NULL OR \"PlanId\" IS NOT NULL");
+
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasOne(r => r.Person)
+                .WithMany()
+                .HasForeignKey(r => r.PersonId)
+                .IsRequired(false) // PersonId is nullable
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasOne(r => r.RestrictionType)
+                .WithMany()
+                .HasForeignKey(r => r.RestrictionTypeId)
+                .IsRequired(false) // RestrictionTypeId is nullable on the entity
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasOne(r => r.Ingredient)
+                .WithMany()
+                .HasForeignKey(r => r.IngredientId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasOne(r => r.Nutrient)
+                .WithMany()
+                .HasForeignKey(r => r.NutrientId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RestrictionEntity>()
+                .HasOne(r => r.CreatedByPerson)
+                .WithMany()
+                .HasForeignKey(r => r.CreatedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
+            // Configure PlanParticipantEntity
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .ToTable("PlanParticipant", schema: "plan");
+
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .HasKey(pp => new { pp.PlanId, pp.PersonId }); // Composite primary key
+
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .HasOne(pp => pp.Plan)
+                .WithMany(p => p.Participants)
+                .HasForeignKey(pp => pp.PlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .HasOne(pp => pp.Person)
+                .WithMany(p => p.PlanParticipations) // Assuming PersonEntity has PlanParticipations collection
+                .HasForeignKey(pp => pp.PersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .HasOne(pp => pp.Role)
+                .WithMany()
+                .HasForeignKey(pp => pp.RoleRefId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlanParticipantEntity>()
+                .HasOne(pp => pp.CreatedByPerson)
+                .WithMany(p => p.CreatedPlanParticipations)
+                .HasForeignKey(pp => pp.CreatedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             #endregion // End of Plan Namespace Fluent API Configurations
 
@@ -281,8 +343,8 @@ namespace Nom.Data
                 .HasOne(a => a.Person)
                 .WithMany()
                 .HasForeignKey(a => a.PersonId)
-                .IsRequired(false) // PersonId on AnswerEntity can be null if it's a "system" answer or temporary, etc.
-                .OnDelete(DeleteBehavior.Cascade); // If person is deleted, cascade answers.
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<AnswerEntity>()
                 .HasOne(a => a.Plan)
@@ -290,17 +352,13 @@ namespace Nom.Data
                 .HasForeignKey(a => a.PlanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // --- NEW: Fluent API for AnswerEntity's specific audit fields ---
+            // Fluent API for AnswerEntity's specific audit fields
             modelBuilder.Entity<AnswerEntity>()
                 .HasOne(a => a.CreatedByPerson)
-                .WithMany() // No inverse collection on Person for this specific audit
+                .WithMany()
                 .HasForeignKey(a => a.CreatedByPersonId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a person if they created answers
-            // --- END NEW ---
-
+                .OnDelete(DeleteBehavior.Restrict);
             #endregion // End of Question Namespace Fluent API Configurations
-
-            #endregion // End of Fluent API Configurations by Namespace region
         }
     }
 }

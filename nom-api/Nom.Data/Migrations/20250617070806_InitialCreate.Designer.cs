@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250617054341_InitialCreate")]
+    [Migration("20250617070806_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -26,19 +26,19 @@ namespace Nom.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("MealRecipeIndex", b =>
+            modelBuilder.Entity("MealEntityRecipeEntity", b =>
                 {
-                    b.Property<long>("MealId")
+                    b.Property<long>("MealsId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("RecipeId")
+                    b.Property<long>("RecipesId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("MealId", "RecipeId");
+                    b.HasKey("MealsId", "RecipesId");
 
-                    b.HasIndex("RecipeId");
+                    b.HasIndex("RecipesId");
 
-                    b.ToTable("meal_recipe_index", "plan");
+                    b.ToTable("MealEntityRecipeEntity", "auth");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -237,7 +237,7 @@ namespace Nom.Data.Migrations
                     b.ToTable("AspNetUserTokens", "auth");
                 });
 
-            modelBuilder.Entity("Nom.Data.AuditLogEntryEntity", b =>
+            modelBuilder.Entity("Nom.Data.Audit.AuditLogEntryEntity", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -269,6 +269,9 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
+                    b.Property<long?>("PersonEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("PropertyName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -279,6 +282,8 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChangedByPersonId");
+
+                    b.HasIndex("PersonEntityId");
 
                     b.ToTable("AuditLogEntry", "audit");
                 });
@@ -402,8 +407,8 @@ namespace Nom.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("InvitationCode")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -418,8 +423,6 @@ namespace Nom.Data.Migrations
                     b.HasIndex("InvitationCode")
                         .IsUnique()
                         .HasFilter("\"InvitationCode\" IS NOT NULL");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Person", "person");
                 });
@@ -555,8 +558,8 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateOnly?>("BeginDate")
-                        .HasColumnType("date");
+                    b.Property<long>("CreatedByPersonId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
@@ -565,18 +568,64 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("InvitationCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(2047)
-                        .HasColumnType("character varying(2047)");
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByPersonId");
+
+                    b.HasIndex("InvitationCode")
+                        .IsUnique()
+                        .HasFilter("\"InvitationCode\" IS NOT NULL");
+
                     b.ToTable("Plan", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.PlanParticipantEntity", b =>
+                {
+                    b.Property<long>("PlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("JoinedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RoleRefId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("PlanId", "PersonId");
+
+                    b.HasIndex("CreatedByPersonId");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("RoleRefId");
+
+                    b.ToTable("PlanParticipant", "plan");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.RestrictionEntity", b =>
@@ -589,6 +638,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateOnly?>("BeginDate")
                         .HasColumnType("date");
+
+                    b.Property<long>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
@@ -611,13 +666,15 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("PersonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("PlanId")
+                    b.Property<long?>("PlanId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("RestrictionTypeId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByPersonId");
 
                     b.HasIndex("IngredientId");
 
@@ -629,7 +686,10 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("RestrictionTypeId");
 
-                    b.ToTable("Restriction", "plan");
+                    b.ToTable("Restriction", "plan", t =>
+                        {
+                            t.HasCheckConstraint("CHK_Restriction_PersonOrPlan", "\"PersonId\" IS NOT NULL OR \"PlanId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("Nom.Data.Question.AnswerEntity", b =>
@@ -651,6 +711,9 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long?>("PersonEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("PersonId")
                         .HasColumnType("bigint");
 
@@ -663,6 +726,8 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByPersonId");
+
+                    b.HasIndex("PersonEntityId");
 
                     b.HasIndex("PersonId");
 
@@ -1037,8 +1102,7 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PersonId")
-                        .IsUnique();
+                    b.HasIndex("PersonId");
 
                     b.ToTable("ShoppingPreference", "shopping");
                 });
@@ -1075,36 +1139,6 @@ namespace Nom.Data.Migrations
                     b.HasIndex("StatusId");
 
                     b.ToTable("ShoppingTrip", "shopping");
-                });
-
-            modelBuilder.Entity("PlanPersonAdministratorIndex", b =>
-                {
-                    b.Property<long>("PlanId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("PersonId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("PlanId", "PersonId");
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("plan_person_administrator_index", "plan");
-                });
-
-            modelBuilder.Entity("PlanPersonIndex", b =>
-                {
-                    b.Property<long>("PlanId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("PersonId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("PlanId", "PersonId");
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("plan_person_index", "plan");
                 });
 
             modelBuilder.Entity("RecipeTypeIndex", b =>
@@ -1156,21 +1190,21 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(11L);
+                    b.HasDiscriminator().HasValue(1001L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.CuisineTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(9L);
+                    b.HasDiscriminator().HasValue(3001L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.GoalTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(7L);
+                    b.HasDiscriminator().HasValue(2001L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.ItemStatusTypeViewEntity", b =>
@@ -1198,14 +1232,21 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(8L);
+                    b.HasDiscriminator().HasValue(3000L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.PlanInvitationRoleViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(4000L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.QuestionCategoryViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(10L);
+                    b.HasDiscriminator().HasValue(1000L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.RecipeTypeViewEntity", b =>
@@ -1219,7 +1260,7 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
-                    b.HasDiscriminator().HasValue(6L);
+                    b.HasDiscriminator().HasValue(2000L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.ShoppingStatusTypeViewEntity", b =>
@@ -1229,21 +1270,19 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(4L);
                 });
 
-            modelBuilder.Entity("MealRecipeIndex", b =>
+            modelBuilder.Entity("MealEntityRecipeEntity", b =>
                 {
                     b.HasOne("Nom.Data.Plan.MealEntity", null)
                         .WithMany()
-                        .HasForeignKey("MealId")
+                        .HasForeignKey("MealsId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId");
+                        .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", null)
                         .WithMany()
-                        .HasForeignKey("RecipeId")
+                        .HasForeignKey("RecipesId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId");
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1297,13 +1336,17 @@ namespace Nom.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Nom.Data.AuditLogEntryEntity", b =>
+            modelBuilder.Entity("Nom.Data.Audit.AuditLogEntryEntity", b =>
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "ChangedByPerson")
                         .WithMany()
                         .HasForeignKey("ChangedByPersonId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", null)
+                        .WithMany("AuditLogEntriesCreated")
+                        .HasForeignKey("PersonEntityId");
 
                     b.Navigation("ChangedByPerson");
                 });
@@ -1367,15 +1410,6 @@ namespace Nom.Data.Migrations
                     b.Navigation("AttributeType");
 
                     b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>
@@ -1449,29 +1483,86 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
                 });
 
-            modelBuilder.Entity("Nom.Data.Plan.RestrictionEntity", b =>
+            modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
-                        .WithMany()
-                        .HasForeignKey("IngredientId");
+                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
+                        .WithMany("PlansAdministering")
+                        .HasForeignKey("CreatedByPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
-                        .WithMany()
-                        .HasForeignKey("NutrientId");
+                    b.Navigation("CreatedByPerson");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.PlanParticipantEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
+                        .WithMany("CreatedPlanParticipations")
+                        .HasForeignKey("CreatedByPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
-                        .WithMany()
-                        .HasForeignKey("PersonId");
+                        .WithMany("PlanParticipations")
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
-                        .WithMany("Restrictions")
+                        .WithMany("Participants")
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleRefId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByPerson");
+
+                    b.Navigation("Person");
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.RestrictionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
+                        .WithMany()
+                        .HasForeignKey("CreatedByPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
+                        .WithMany()
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
+                        .WithMany("Restrictions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "RestrictionType")
                         .WithMany()
-                        .HasForeignKey("RestrictionTypeId");
+                        .HasForeignKey("RestrictionTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByPerson");
 
                     b.Navigation("Ingredient");
 
@@ -1491,6 +1582,10 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("CreatedByPersonId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", null)
+                        .WithMany("AnswersCreated")
+                        .HasForeignKey("PersonEntityId");
 
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
                         .WithMany()
@@ -1566,13 +1661,13 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "Creator")
-                        .WithMany("CreatedRecipes")
+                        .WithMany()
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Person.PersonEntity", "Curator")
-                        .WithMany("CuratedRecipes")
+                        .WithMany()
                         .HasForeignKey("CuratedById");
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "QuantityMeasurementType")
@@ -1651,7 +1746,7 @@ namespace Nom.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
-                        .WithMany("PantryItems")
+                        .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1674,8 +1769,8 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingPreferenceEntity", b =>
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
-                        .WithOne("ShoppingPreference")
-                        .HasForeignKey("Nom.Data.Shopping.ShoppingPreferenceEntity", "PersonId")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1685,7 +1780,7 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingTripEntity", b =>
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
-                        .WithMany("ShoppingTrips")
+                        .WithMany()
                         .HasForeignKey("PersonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1697,40 +1792,6 @@ namespace Nom.Data.Migrations
                     b.Navigation("Person");
 
                     b.Navigation("Status");
-                });
-
-            modelBuilder.Entity("PlanPersonAdministratorIndex", b =>
-                {
-                    b.HasOne("Nom.Data.Person.PersonEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_PlanPersonAdministratorIndex_PersonEntity_PersonId");
-
-                    b.HasOne("Nom.Data.Plan.PlanEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_PlanPersonAdministratorIndex_PlanEntity_PlanId");
-                });
-
-            modelBuilder.Entity("PlanPersonIndex", b =>
-                {
-                    b.HasOne("Nom.Data.Person.PersonEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_PlanPersonIndex_PersonEntity_PersonId");
-
-                    b.HasOne("Nom.Data.Plan.PlanEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_PlanPersonIndex_PlanEntity_PlanId");
                 });
 
             modelBuilder.Entity("RecipeTypeIndex", b =>
@@ -1797,15 +1858,17 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
                 {
+                    b.Navigation("AnswersCreated");
+
                     b.Navigation("Attributes");
 
-                    b.Navigation("CreatedRecipes");
+                    b.Navigation("AuditLogEntriesCreated");
 
-                    b.Navigation("CuratedRecipes");
+                    b.Navigation("CreatedPlanParticipations");
 
-                    b.Navigation("ShoppingPreference");
+                    b.Navigation("PlanParticipations");
 
-                    b.Navigation("ShoppingTrips");
+                    b.Navigation("PlansAdministering");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>
@@ -1819,7 +1882,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("Meals");
 
-                    b.Navigation("PantryItems");
+                    b.Navigation("Participants");
 
                     b.Navigation("Restrictions");
                 });

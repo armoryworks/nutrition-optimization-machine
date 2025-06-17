@@ -1,34 +1,28 @@
-// Nom.Data/CustomMigration.cs
 using Microsoft.EntityFrameworkCore.Migrations;
 using Nom.Data.Reference;
 using Nom.Data.Question;
-using Microsoft.EntityFrameworkCore.Metadata; // Required for NpgsqlValueGenerationStrategy
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using System;
-using System.Data;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata; // For NpgsqlValueGenerationStrategy
+using System.Linq;
 
 namespace Nom.Data
 {
-    /// <summary>
-    /// Provides static methods to encapsulate custom migration logic
-    /// such as data seeding and view creation/dropping.
-    /// These methods are implemented as extension methods for MigrationBuilder.
-    /// </summary>
     public static class CustomMigration
     {
         public static void ApplyCustomUpOperations(this MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(name: "question");
             migrationBuilder.EnsureSchema(name: "person");
-            migrationBuilder.EnsureSchema(name: "audit"); // Ensure audit schema
-
-            // --- REMOVED: Create AuditLogEntry table and its index from here ---
-            // EF Core will automatically generate this based on DbSet<AuditLogEntryEntity> in ApplicationDbContext.
+            migrationBuilder.EnsureSchema(name: "audit");
+            // No need to EnsureSchema("restriction") as RestrictionEntity is in 'plan' schema
+            migrationBuilder.EnsureSchema(name: "plan"); // Ensure 'plan' schema exists for PlanParticipant
 
             SeedInitialSystemPerson(migrationBuilder);
 
             AddReferenceGroups(migrationBuilder);
             AddAnswerTypes(migrationBuilder);
+            AddRestrictionTypes(migrationBuilder); // Seed restriction types
+            AddPlanInvitationRoles(migrationBuilder); // NEW: Seed Plan Invitation Roles
             CreateReferenceGroupView(migrationBuilder);
             SeedInitialQuestions(migrationBuilder);
         }
@@ -37,17 +31,18 @@ namespace Nom.Data
         {
             RemoveInitialQuestions(migrationBuilder);
             DropReferenceGroupView(migrationBuilder);
+            RemovePlanInvitationRoles(migrationBuilder); // NEW: Remove Plan Invitation Roles
+            RemoveRestrictionTypes(migrationBuilder);
             RemoveAnswerTypes(migrationBuilder);
             RemoveReferenceGroups(migrationBuilder);
-
-            // --- REMOVED: Drop AuditLogEntry table from here ---
-            // EF Core will automatically generate this based on DbSet<AuditLogEntryEntity> in ApplicationDbContext.
 
             RemoveInitialSystemPerson(migrationBuilder);
 
             migrationBuilder.DropSchema(name: "question");
             migrationBuilder.DropSchema(name: "person");
-            migrationBuilder.DropSchema(name: "audit"); // Drop audit schema
+            migrationBuilder.DropSchema(name: "audit");
+            // No need to DropSchema("restriction")
+            migrationBuilder.DropSchema(name: "plan"); // Drop 'plan' schema
         }
 
         public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
@@ -89,7 +84,8 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.NutrientType, "Nutrient Types", "Categories of nutrients (e.g., macronutrients, vitamins, minerals)." },
                     { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian)." },
                     { (long)ReferenceDiscriminatorEnum.QuestionCategory, "Question Categories (Meta-Group)", "A meta-group for all question categories." },
-                    { (long)ReferenceDiscriminatorEnum.AnswerType, "Answer Types (Meta-Group)", "A meta-group for all answer types." }
+                    { (long)ReferenceDiscriminatorEnum.AnswerType, "Answer Types (Meta-Group)", "A meta-group for all answer types." },
+                    { (long)ReferenceDiscriminatorEnum.PlanInvitationRole, "Plan Invitation Roles", "Roles for invited participants in a plan (e.g., Admin, Member)." } // NEW GROUP
                 });
         }
 
@@ -111,7 +107,8 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.NutrientType,
                     (long)ReferenceDiscriminatorEnum.CuisineType,
                     (long)ReferenceDiscriminatorEnum.QuestionCategory,
-                    (long)ReferenceDiscriminatorEnum.AnswerType
+                    (long)ReferenceDiscriminatorEnum.AnswerType,
+                    (long)ReferenceDiscriminatorEnum.PlanInvitationRole // REMOVE NEW GROUP
                 });
         }
 
@@ -141,6 +138,121 @@ namespace Nom.Data
                     1000L, 1001L, 1002L, 1003L
                 });
         }
+
+        public static void AddRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long restrictionGroupId = (long)ReferenceDiscriminatorEnum.RestrictionType;
+
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description" },
+                values: new object[,]
+                {
+                    { 2000L, "Gluten-Free", "Excludes all gluten-containing grains (wheat, barley, rye)." },
+                    { 2001L, "Dairy-Free", "Excludes all dairy products (milk, cheese, yogurt)." },
+                    { 2002L, "Lactose-Intolerant", "Excludes lactose, common in dairy." },
+                    { 2003L, "Vegan", "Excludes all animal products (meat, dairy, eggs, honey)." },
+                    { 2004L, "Vegetarian", "Excludes meat, poultry, and fish." },
+                    { 2005L, "Pescatarian", "Excludes meat and poultry, but includes fish and seafood." },
+                    { 2006L, "Keto", "Very low-carb, high-fat diet." },
+                    { 2007L, "Paleo", "Focuses on whole, unprocessed foods, mimicking ancestral diets." },
+                    { 2008L, "Mediterranean", "Emphasizes fruits, vegetables, whole grains, olive oil, lean proteins." },
+                    { 2009L, "Dash Diet", "Dietary Approaches to Stop Hypertension." },
+                    { 2010L, "Kosher", "Adheres to Jewish dietary laws." },
+                    { 2011L, "Halal", "Adheres to Islamic dietary laws." },
+                    { 2012L, "Nut Allergy", "Avoidance of nuts (peanuts, tree nuts)." },
+                    { 2013L, "Egg Allergy", "Avoidance of eggs." },
+                    { 2014L, "Soy Allergy", "Avoidance of soy products." },
+                    { 2015L, "Fish Allergy", "Avoidance of fish." },
+                    { 2016L, "Shellfish Allergy", "Avoidance of shellfish." },
+                    { 2017L, "Sesame Allergy", "Avoidance of sesame." },
+                    { 2018L, "Corn Allergy", "Avoidance of corn." },
+                    { 2019L, "Sulfites Sensitivity", "Avoidance of sulfites." }
+                });
+
+            foreach (long id in new long[] { 2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, restrictionGroupId });
+            }
+        }
+
+        public static void RemoveRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long restrictionGroupId = (long)ReferenceDiscriminatorEnum.RestrictionType;
+
+            foreach (long id in new long[] { 2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L })
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, restrictionGroupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[]
+                {
+                    2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L
+                });
+        }
+
+        // NEW: Seed Plan Invitation Roles
+        public static void AddPlanInvitationRoles(MigrationBuilder migrationBuilder)
+        {
+            long planInvitationRoleGroupId = (long)ReferenceDiscriminatorEnum.PlanInvitationRole;
+
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description" },
+                values: new object[,]
+                {
+                    { 3000L, "Plan Admin", "A person who can manage plan settings, participants, and overall plan details." },
+                    { 3001L, "Plan Member", "A person who participates in the plan and has individual settings." }
+                });
+
+            foreach (long id in new long[] { 3000L, 3001L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, planInvitationRoleGroupId });
+            }
+        }
+
+        // NEW: Remove Plan Invitation Roles
+        public static void RemovePlanInvitationRoles(MigrationBuilder migrationBuilder)
+        {
+            long planInvitationRoleGroupId = (long)ReferenceDiscriminatorEnum.PlanInvitationRole;
+
+            foreach (long id in new long[] { 3000L, 3001L })
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, planInvitationRoleGroupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[]
+                {
+                    3000L, 3001L
+                });
+        }
+
 
         public static void CreateReferenceGroupView(MigrationBuilder migrationBuilder)
         {
@@ -188,6 +300,9 @@ namespace Nom.Data
                     // Section 2: Additional Persons (dynamically added in UI, this provides the question template)
                     { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, null, null },
 
+                    // NEW QUESTION: Invitation Code
+                    { 27L, "Do you have an invitation code to join an existing plan?", null, questionCategoryId, textInputAnswerTypeId, 270, true, false, null, null }, // Q27 for invitation code
+
                     // Section 3: Dietary Foundations & Values
                     { 4L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", null, questionCategoryId, yesNoAnswerTypeId, 40, true, false, "false", null },
                     { 5L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 50, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", null },
@@ -227,7 +342,8 @@ namespace Nom.Data
                 keyColumn: "Id",
                 keyValues: new object[]
                 {
-                    1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 26L
+                    1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 26L,
+                    27L // REMOVE NEW QUESTION
                 });
         }
     }

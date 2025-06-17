@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Person; // For ChangedByPerson navigation
 
-namespace Nom.Data
+namespace Nom.Data.Audit
 {
     /// <summary>
     /// Represents an entry in the application's audit log.

@@ -15,12 +15,13 @@ namespace Nom.Data.Plan
     [Table("Restriction", Schema = "plan")] // Table name capitalized, schema lowercase
     public class RestrictionEntity : BaseEntity
     {
-        [Required]
-        public long PlanId { get; set; }
+        // Changed to nullable: A restriction can exist without being directly tied to a plan
+        // if it's purely person-specific. The CHECK constraint will enforce at least one of PlanId or PersonId.
+        public long? PlanId { get; set; } 
         [ForeignKey(nameof(PlanId))]
-        public virtual PlanEntity Plan { get; set; } = default!;
+        public virtual PlanEntity? Plan { get; set; } // Also make navigation property nullable
 
-        public long? PersonId { get; set; } // NULLable if restriction applies to all plan participants
+        public long? PersonId { get; set; } // NULLable if restriction applies to all plan participants, or just a specific person on the plan
         [ForeignKey(nameof(PersonId))]
         public virtual PersonEntity? Person { get; set; }
 
@@ -31,7 +32,7 @@ namespace Nom.Data.Plan
         [MaxLength(2047)]
         public string? Description { get; set; }
 
-        public long? RestrictionTypeId { get; set; } // NULLable in SQL
+        public long? RestrictionTypeId { get; set; } // NULLable in SQL, FK to ReferenceEntity
         [ForeignKey(nameof(RestrictionTypeId))]
         public virtual ReferenceEntity? RestrictionType { get; set; } // e.g., Allergy, Preference, Medical
 
@@ -48,5 +49,16 @@ namespace Nom.Data.Plan
 
         [Column(TypeName = "date")]
         public DateOnly? EndDate { get; set; }
+
+        // --- AUDIT FIELDS FOR THIS ENTITY ---
+        [Required]
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+        [Required]
+        public long CreatedByPersonId { get; set; } // The person (often "System" initially) who added this restriction
+
+        [ForeignKey(nameof(CreatedByPersonId))]
+        public virtual PersonEntity CreatedByPerson { get; set; } = default!;
+        // --- END AUDIT FIELDS ---
     }
 }
