@@ -8,7 +8,11 @@ using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
 using Nom.Data.Shopping;
 using Nom.Data.Person;
+using Nom.Data.Question;
 using System.Collections.Generic;
+// Removed: using Nom.Data.Configurations; // No longer needed
+// Removed: using System.Linq;           // No longer needed for audit loop
+// Removed: using System.Reflection;     // No longer needed for audit loop
 
 namespace Nom.Data
 {
@@ -58,6 +62,15 @@ namespace Nom.Data
         public DbSet<PantryItemEntity> PantryItems { get; set; } = default!;
         #endregion
 
+        #region Question DbSets
+        public DbSet<QuestionEntity> Questions { get; set; } = default!;
+        public DbSet<AnswerEntity> Answers { get; set; } = default!;
+        #endregion
+
+        // --- NEW: Audit Log DbSet ---
+        public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
+        // --- END NEW ---
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -69,14 +82,28 @@ namespace Nom.Data
             modelBuilder.Entity<PersonEntity>().ToTable("Person", schema: "person");
             modelBuilder.Entity<PersonAttributeEntity>().ToTable("PersonAttribute", schema: "person");
 
-            // --- REMOVED: Explicit Fluent API for Person-Recipe, Person-ShoppingPreference, Person-ShoppingTrip ---
-            // These relationships are now handled by [InverseProperty] and [ForeignKey] attributes on the entities.
+            // Configure unique index for InvitationCode on PersonEntity
+            modelBuilder.Entity<PersonEntity>()
+                .HasIndex(p => p.InvitationCode)
+                .IsUnique()
+                .HasFilter("\"InvitationCode\" IS NOT NULL");
+
+            // --- NEW: Configure AuditLogEntryEntity ---
+            modelBuilder.Entity<AuditLogEntryEntity>()
+                .ToTable("AuditLogEntry", schema: "audit"); // Map to 'audit' schema
+
+            modelBuilder.Entity<AuditLogEntryEntity>()
+                .HasOne(ale => ale.ChangedByPerson)
+                .WithMany() // Person has many audit entries, but AuditLogEntry does not expose a Person navigation collection
+                .HasForeignKey(ale => ale.ChangedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a person if they're referenced in audit logs
+            // --- END NEW ---
 
             #region Fluent API Configurations by Namespace
+            // These sections remain largely unchanged, as BaseEntity no longer dictates audit FKs
+            // and we're not adding new audit-related Fluent API here.
 
             #region Reference Namespace Fluent API Configurations
-
-            // Reference-Group Implicit Many-to-Many with explicit join table name "ReferenceIndex"
             modelBuilder.Entity<ReferenceEntity>()
                 .HasMany(r => r.Groups)
                 .WithMany(g => g.References)
@@ -110,6 +137,8 @@ namespace Nom.Data
                 .HasValue<GoalTypeViewEntity>((long)ReferenceDiscriminatorEnum.GoalType)
                 .HasValue<NutrientTypeViewEntity>((long)ReferenceDiscriminatorEnum.NutrientType)
                 .HasValue<CuisineTypeViewEntity>((long)ReferenceDiscriminatorEnum.CuisineType)
+                .HasValue<QuestionCategoryViewEntity>((long)ReferenceDiscriminatorEnum.QuestionCategory)
+                .HasValue<AnswerTypeViewEntity>((long)ReferenceDiscriminatorEnum.AnswerType)
                 ;
 
             #endregion // End of Reference Namespace Fluent API Configurations
@@ -136,11 +165,11 @@ namespace Nom.Data
 
             modelBuilder.Entity<Plan.PlanEntity>()
                 .HasMany(p => p.Participants)
-                .WithMany(p => p.PlansParticipatingIn) // This still explicitly links to PersonEntity's collection
+                .WithMany(p => p.PlansParticipatingIn)
                 .UsingEntity<Dictionary<string, object>>(
                     "PlanPersonIndex",
                     j => j.HasOne<Person.PersonEntity>()
-                            .WithMany() // Person has many PlansParticipatingIn (M-M)
+                            .WithMany()
                             .HasForeignKey("PersonId")
                             .HasConstraintName("FK_PlanPersonIndex_PersonEntity_PersonId"),
                     j => j.HasOne<Plan.PlanEntity>()
@@ -155,11 +184,11 @@ namespace Nom.Data
 
             modelBuilder.Entity<Plan.PlanEntity>()
                 .HasMany(p => p.Administrators)
-                .WithMany(p => p.PlansAdministering) // This still explicitly links to PersonEntity's collection
+                .WithMany(p => p.PlansAdministering)
                 .UsingEntity<Dictionary<string, object>>(
                     "PlanPersonAdministratorIndex",
                     j => j.HasOne<Person.PersonEntity>()
-                            .WithMany() // Person has many PlansAdministering (M-M)
+                            .WithMany()
                             .HasForeignKey("PersonId")
                             .HasConstraintName("FK_PlanPersonAdministratorIndex_PersonEntity_PersonId"),
                     j => j.HasOne<Plan.PlanEntity>()
@@ -220,6 +249,48 @@ namespace Nom.Data
                         j.HasKey("ShoppingTripId", "MealId");
                     });
             #endregion // End of Shopping Namespace Fluent API Configurations
+
+            #region Question Namespace Fluent API Configurations
+            // Configure QuestionEntity
+            modelBuilder.Entity<QuestionEntity>()
+                .ToTable("Question", schema: "question");
+
+            modelBuilder.Entity<QuestionEntity>()
+                .HasOne(q => q.QuestionCategory)
+                .WithMany()
+                .HasForeignKey(q => q.QuestionCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<QuestionEntity>()
+                .HasOne(q => q.AnswerType)
+                .WithMany()
+                .HasForeignKey(q => q.AnswerTypeRefId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure AnswerEntity
+            modelBuilder.Entity<AnswerEntity>()
+                .ToTable("Answer", schema: "question");
+
+            modelBuilder.Entity<AnswerEntity>()
+                .HasOne(a => a.Question)
+                .WithMany()
+                .HasForeignKey(a => a.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AnswerEntity>()
+                .HasOne(a => a.Plan)
+                .WithMany()
+                .HasForeignKey(a => a.PlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AnswerEntity>()
+                .HasOne(a => a.Person)
+                .WithMany()
+                .HasForeignKey(a => a.PersonId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            #endregion // End of Question Namespace Fluent API Configurations
 
             #endregion // End of Fluent API Configurations by Namespace region
         }

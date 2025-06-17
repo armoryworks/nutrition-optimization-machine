@@ -234,6 +234,52 @@ namespace Nom.Data.Migrations
                     b.ToTable("AspNetUserTokens", "auth");
                 });
 
+            modelBuilder.Entity("Nom.Data.AuditLogEntryEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("ChangedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("EntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("PropertyName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByPersonId");
+
+                    b.ToTable("AuditLogEntry", "audit");
+                });
+
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientComponentEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -352,7 +398,12 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("InvitationCode")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
@@ -360,6 +411,10 @@ namespace Nom.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InvitationCode")
+                        .IsUnique()
+                        .HasFilter("\"InvitationCode\" IS NOT NULL");
 
                     b.HasIndex("UserId");
 
@@ -572,6 +627,91 @@ namespace Nom.Data.Migrations
                     b.HasIndex("RestrictionTypeId");
 
                     b.ToTable("Restriction", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Question.AnswerEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AnswerText")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("AnsweredDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("QuestionId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("Answer", "question");
+                });
+
+            modelBuilder.Entity("Nom.Data.Question.QuestionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AnswerTypeRefId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DefaultAnswer")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Hint")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequiredForPlanCreation")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("QuestionCategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ValidationRegex")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnswerTypeRefId");
+
+                    b.HasIndex("QuestionCategoryId");
+
+                    b.ToTable("Question", "question");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.IngredientEntity", b =>
@@ -1004,6 +1144,13 @@ namespace Nom.Data.Migrations
                     b.ToTable("shopping_trip_meal_index", "shopping");
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.AnswerTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(11L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.CuisineTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -1044,6 +1191,13 @@ namespace Nom.Data.Migrations
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
                     b.HasDiscriminator().HasValue(8L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.QuestionCategoryViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(10L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.RecipeTypeViewEntity", b =>
@@ -1133,6 +1287,17 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Nom.Data.AuditLogEntryEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "ChangedByPerson")
+                        .WithMany()
+                        .HasForeignKey("ChangedByPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByPerson");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientComponentEntity", b =>
@@ -1309,6 +1474,51 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
 
                     b.Navigation("RestrictionType");
+                });
+
+            modelBuilder.Entity("Nom.Data.Question.AnswerEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Question.QuestionEntity", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("Nom.Data.Question.QuestionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "AnswerType")
+                        .WithMany()
+                        .HasForeignKey("AnswerTypeRefId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.GroupEntity", "QuestionCategory")
+                        .WithMany()
+                        .HasForeignKey("QuestionCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AnswerType");
+
+                    b.Navigation("QuestionCategory");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.IngredientNutrientEntity", b =>

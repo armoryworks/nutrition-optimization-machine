@@ -1,6 +1,11 @@
-// Nom.Data/Migrations/Custom/CustomMigration.cs
+// Nom.Data/CustomMigration.cs
 using Microsoft.EntityFrameworkCore.Migrations;
-using Nom.Data.Reference; // Required for ReferenceDiscriminatorEnum
+using Nom.Data.Reference;
+using Nom.Data.Question;
+using Microsoft.EntityFrameworkCore.Metadata; // Required for NpgsqlValueGenerationStrategy
+using System;
+using System.Data;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata; // For DBNull.Value
 
 namespace Nom.Data
 {
@@ -11,31 +16,97 @@ namespace Nom.Data
     /// </summary>
     public static class CustomMigration
     {
-        // --- High-level Extension Methods for MigrationBuilder ---
-
-        /// <summary>
-        /// Applies all custom 'Up' operations (e.g., seeding data, creating views).
-        /// This should be called at a suitable point in a migration's Up() method
-        /// AFTER all necessary tables have been created.
-        /// </summary>
         public static void ApplyCustomUpOperations(this MigrationBuilder migrationBuilder)
         {
-            AddReferenceGroups(migrationBuilder);        // Call internal static method
-            CreateReferenceGroupView(migrationBuilder);  // Call internal static method
+            migrationBuilder.EnsureSchema(name: "question");
+            migrationBuilder.EnsureSchema(name: "person");
+            migrationBuilder.EnsureSchema(name: "audit"); // Ensure audit schema
+
+            // --- NEW: Create AuditLogEntry table ---
+            migrationBuilder.CreateTable(
+                name: "AuditLogEntry",
+                schema: "audit",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EntityType = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    EntityId = table.Column<long>(type: "bigint", nullable: false),
+                    ChangeType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    PropertyName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    OldValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    NewValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ChangedByPersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditLogEntry", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AuditLogEntry_Person_ChangedByPersonId",
+                        column: x => x.ChangedByPersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLogEntry_ChangedByPersonId",
+                schema: "audit",
+                table: "AuditLogEntry",
+                column: "ChangedByPersonId");
+            // --- END NEW: Create AuditLogEntry table ---
+
+
+            SeedInitialSystemPerson(migrationBuilder);
+
+            AddReferenceGroups(migrationBuilder); // CORRECTED: Added "Restriction Types" Name
+            AddAnswerTypes(migrationBuilder);
+            CreateReferenceGroupView(migrationBuilder);
+            SeedInitialQuestions(migrationBuilder); // CORRECTED: Removed extra DBNull.Value
         }
 
-        /// <summary>
-        /// Applies all custom 'Down' operations (e.g., dropping views, deleting seeded data).
-        /// This should be called at a suitable point in a migration's Down() method
-        /// BEFORE any tables that depend on these objects are dropped.
-        /// </summary>
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
         {
-            DropReferenceGroupView(migrationBuilder);    // Call internal static method
-            RemoveReferenceGroups(migrationBuilder);     // Call internal static method
+            RemoveInitialQuestions(migrationBuilder);
+            DropReferenceGroupView(migrationBuilder);
+            RemoveAnswerTypes(migrationBuilder);
+            RemoveReferenceGroups(migrationBuilder);
+
+            // --- NEW: Drop AuditLogEntry table ---
+            migrationBuilder.DropTable(
+                name: "AuditLogEntry",
+                schema: "audit");
+            // --- END NEW: Drop AuditLogEntry table ---
+
+            RemoveInitialSystemPerson(migrationBuilder);
+
+            migrationBuilder.DropSchema(name: "question");
+            migrationBuilder.DropSchema(name: "person");
+            migrationBuilder.DropSchema(name: "audit"); // Drop audit schema
         }
 
-        // --- Lower-level, specific custom migration operations (remain static for internal use) ---
+        public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.InsertData(
+                schema: "person",
+                table: "Person",
+                columns: new[] { "Id", "Name", "UserId", "InvitationCode" },
+                values: new object[,]
+                {
+                    { 1L, "System", DBNull.Value, DBNull.Value }
+                });
+        }
+
+        public static void RemoveInitialSystemPerson(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "person",
+                table: "Person",
+                keyColumn: "Id",
+                keyValues: new object[] { 1L });
+        }
 
         public static void AddReferenceGroups(MigrationBuilder migrationBuilder)
         {
@@ -50,10 +121,12 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.RecipeType, "Recipe Types", "Categorization of recipes (e.g., appetizer, main course, dessert)." },
                     { (long)ReferenceDiscriminatorEnum.ShoppingStatusType, "Shopping Status Types", "Statuses for shopping trips (e.g., planned, completed, canceled)." },
                     { (long)ReferenceDiscriminatorEnum.ItemStatusType, "Item Status Types", "Statuses for pantry items (e.g., on list, in pantry, used, expired)." },
-                    { (long)ReferenceDiscriminatorEnum.RestrictionType, "Restriction Types", "Dietary restrictions (e.g., gluten-free, vegan)." },
+                    { (long)ReferenceDiscriminatorEnum.RestrictionType, "Restriction Types", "Dietary restrictions (e.g., gluten-free, vegan)." }, 
                     { (long)ReferenceDiscriminatorEnum.GoalType, "Goal Types", "Nutritional goals (e.g., weight loss, muscle gain)." },
                     { (long)ReferenceDiscriminatorEnum.NutrientType, "Nutrient Types", "Categories of nutrients (e.g., macronutrients, vitamins, minerals)." },
-                    { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian)." }
+                    { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian)." },
+                    { (long)ReferenceDiscriminatorEnum.QuestionCategory, "Question Categories (Meta-Group)", "A meta-group for all question categories." },
+                    { (long)ReferenceDiscriminatorEnum.AnswerType, "Answer Types (Meta-Group)", "A meta-group for all answer types." }
                 });
         }
 
@@ -73,7 +146,36 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.RestrictionType,
                     (long)ReferenceDiscriminatorEnum.GoalType,
                     (long)ReferenceDiscriminatorEnum.NutrientType,
-                    (long)ReferenceDiscriminatorEnum.CuisineType
+                    (long)ReferenceDiscriminatorEnum.CuisineType,
+                    (long)ReferenceDiscriminatorEnum.QuestionCategory,
+                    (long)ReferenceDiscriminatorEnum.AnswerType
+                });
+        }
+
+        public static void AddAnswerTypes(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description" },
+                values: new object[,]
+                {
+                    { 1000L, "Yes/No", "A binary true/false answer." },
+                    { 1001L, "Text Input", "A free-form text answer." },
+                    { 1002L, "Multi-Select", "Multiple choices can be selected (answer stored as JSON array)." },
+                    { 1003L, "Single-Select", "Only one choice can be selected." }
+                });
+        }
+
+        public static void RemoveAnswerTypes(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[]
+                {
+                    1000L, 1001L, 1002L, 1003L
                 });
         }
 
@@ -91,7 +193,7 @@ namespace Nom.Data
                 FROM
                     reference.""Reference"" AS ref
                 INNER JOIN
-                    reference.""ReferenceIndex"" AS idx ON ref.""Id"" = idx.""ReferenceId"" 
+                    reference.""ReferenceIndex"" AS idx ON ref.""Id"" = idx.""ReferenceId""
                 INNER JOIN
                     reference.""Group"" AS grp ON grp.""Id"" = idx.""GroupId"";
             ");
@@ -100,6 +202,70 @@ namespace Nom.Data
         public static void DropReferenceGroupView(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("DROP VIEW IF EXISTS reference.ReferenceGroupView;");
+        }
+
+        public static void SeedInitialQuestions(MigrationBuilder migrationBuilder)
+        {
+            long questionCategoryId = (long)ReferenceDiscriminatorEnum.QuestionCategory;
+            long yesNoAnswerTypeId = 1000L;
+            long textInputAnswerTypeId = 1001L;
+            long multiSelectAnswerTypeId = 1002L;
+            long singleSelectAnswerTypeId = 1003L;
+
+            migrationBuilder.InsertData(
+                schema: "question",
+                table: "Question",
+                columns: new[] { "Id", "Text", "Hint", "QuestionCategoryId", "AnswerTypeRefId", "DisplayOrder", "IsActive", "IsRequiredForPlanCreation", "DefaultAnswer", "ValidationRegex" },
+                values: new object[,]
+                {
+                    // Section 1: Getting Started
+                    { 1L, "What name should we use for you within the plan?", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 10, true, true, DBNull.Value, DBNull.Value },
+                    { 2L, "Will anyone else be participating in this plan with you (e.g., family members, roommates)?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 20, true, false, "false", DBNull.Value },
+
+                    // Section 2: Additional Persons (dynamically added in UI, this provides the question template)
+                    { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, DBNull.Value, DBNull.Value },
+
+                    // Section 3: Dietary Foundations & Values
+                    { 4L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 40, true, false, "false", DBNull.Value },
+                    { 5L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 50, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", DBNull.Value },
+                    { 6L, "Please describe any specific cultural or traditional food restrictions, inclusions, or fasting periods:", "e.g., no pork, no beef, specific holiday foods, Ramadan, Lent", questionCategoryId, textInputAnswerTypeId, 60, true, false, DBNull.Value, DBNull.Value },
+
+                    // Section 4: Health & Medical Dietary Adjustments
+                    { 7L, "Are there any allergies, intolerances, or medical conditions that require specific dietary adjustments for anyone on the plan?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 70, true, false, "false", DBNull.Value },
+                    { 8L, "Please indicate any diagnosed food allergies for participants:", "Select all that apply, or type 'Other' for unlisted.", questionCategoryId, multiSelectAnswerTypeId, 80, true, false, "[\"Peanuts\",\"Tree Nuts\",\"Dairy\",\"Eggs\",\"Soy\",\"Wheat\",\"Fish\",\"Shellfish\",\"Sesame\",\"Corn\",\"Sulfites\"]", DBNull.Value },
+                    { 9L, "Is anyone managing Gluten Sensitivity or Celiac Disease?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 90, true, false, "false", DBNull.Value },
+                    { 10L, "Is anyone managing Lactose Intolerance?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 100, true, false, "false", DBNull.Value },
+                    { 11L, "Is anyone managing Type 1 Diabetes?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 110, true, false, "false", DBNull.Value },
+                    { 12L, "Is anyone managing Type 2 Diabetes?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 120, true, false, "false", DBNull.Value },
+                    { 13L, "Is anyone managing High Blood Pressure?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 130, true, false, "false", DBNull.Value },
+                    { 14L, "Is anyone managing High Cholesterol?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 140, true, false, "false", DBNull.Value },
+                    { 15L, "Is anyone managing Gastrointestinal Conditions (e.g., Crohn's, IBS, Leaky Gut, GERD)?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 150, true, false, "false", DBNull.Value },
+                    { 16L, "Please specify gastrointestinal conditions or specific triggers/avoidances:", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 160, true, false, DBNull.Value, DBNull.Value },
+                    { 17L, "Is anyone managing Kidney Disease?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 170, true, false, "false", DBNull.Value },
+                    { 18L, "Please specify kidney disease stage or specific restrictions (e.g., low potassium, low phosphorus):", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 180, true, false, DBNull.Value, DBNull.Value },
+                    { 19L, "Is anyone managing Gout?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 190, true, false, "false", DBNull.Value },
+                    { 20L, "Are there any other medical conditions or health goals impacting diet (e.g., anemia, specific vitamin deficiencies, pregnancy/lactation needs, specific medication interactions)? Please describe:", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 200, true, false, DBNull.Value, DBNull.Value },
+
+                    // Section 5: Personal Food Preferences & Aversions
+                    { 21L, "Are there any specific foods, ingredients, or textures that you or other participants strongly dislike or prefer to avoid?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 210, true, false, "false", DBNull.Value },
+                    { 22L, "Which ingredients or foods do you want to exclude?", "e.g., Cilantro, Mushrooms, Olives, Bell Peppers", questionCategoryId, multiSelectAnswerTypeId, 220, true, false, "[\"Cilantro\",\"Mushrooms\",\"Olives\",\"Bell Peppers\",\"Onions\",\"Garlic\",\"Spicy Foods (general)\",\"Fishy taste\",\"Gamey meats\"]", DBNull.Value },
+                    { 23L, "Are there any textures you strongly dislike?", "e.g., mushy, slimy, gritty, soggy, crunchy (if aversion)", questionCategoryId, multiSelectAnswerTypeId, 230, true, false, "[\"Mushy\",\"Slimy\",\"Gritty\",\"Chewy (e.g., undercooked beans)\",\"Soggy\",\"Crunchy\"]", DBNull.Value },
+                    { 24L, "What spice level do you generally prefer?", DBNull.Value, questionCategoryId, singleSelectAnswerTypeId, 240, true, false, "Mild", "[\"Mild\",\"Medium\",\"Spicy\",\"Very Spicy\"]" }, // CORRECTED LINE: Removed extra DBNull.Value
+                    { 25L, "Are there any preferred cooking methods?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 250, true, false, "[\"Grilled\",\"Baked\",\"Roasted\",\"Stir-fried\",\"Slow-cooked\",\"Pressure cooked\",\"Raw\"]", DBNull.Value },
+                    { 26L, "Do you have any other general food likes or dislikes (e.g., preference for specific cuisines, dislike of strong odors)?", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 260, true, false, DBNull.Value, DBNull.Value }
+                });
+        }
+
+        public static void RemoveInitialQuestions(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "question",
+                table: "Question",
+                keyColumn: "Id",
+                keyValues: new object[]
+                {
+                    1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 26L
+                });
         }
     }
 }

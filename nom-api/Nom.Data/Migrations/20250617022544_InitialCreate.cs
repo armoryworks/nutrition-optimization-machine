@@ -13,7 +13,13 @@ namespace Nom.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
+                name: "question");
+
+            migrationBuilder.EnsureSchema(
                 name: "auth");
+
+            migrationBuilder.EnsureSchema(
+                name: "audit");
 
             migrationBuilder.EnsureSchema(
                 name: "plan");
@@ -276,8 +282,9 @@ namespace Nom.Data.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    UserId = table.Column<string>(type: "text", nullable: true)
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: true),
+                    InvitationCode = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -458,6 +465,42 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Question",
+                schema: "question",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Text = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Hint = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    QuestionCategoryId = table.Column<long>(type: "bigint", nullable: false),
+                    AnswerTypeRefId = table.Column<long>(type: "bigint", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRequiredForPlanCreation = table.Column<bool>(type: "boolean", nullable: false),
+                    DefaultAnswer = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    ValidationRegex = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Question", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Question_Group_QuestionCategoryId",
+                        column: x => x.QuestionCategoryId,
+                        principalSchema: "reference",
+                        principalTable: "Group",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Question_Reference_AnswerTypeRefId",
+                        column: x => x.AnswerTypeRefId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ReferenceIndex",
                 schema: "reference",
                 columns: table => new
@@ -482,6 +525,34 @@ namespace Nom.Data.Migrations
                         principalTable: "Reference",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AuditLogEntry",
+                schema: "audit",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EntityType = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    EntityId = table.Column<long>(type: "bigint", nullable: false),
+                    ChangeType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    PropertyName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    OldValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    NewValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ChangedByPersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditLogEntry", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AuditLogEntry_Person_ChangedByPersonId",
+                        column: x => x.ChangedByPersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -772,6 +843,45 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Answer",
+                schema: "question",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    QuestionId = table.Column<long>(type: "bigint", nullable: false),
+                    PlanId = table.Column<long>(type: "bigint", nullable: false),
+                    PersonId = table.Column<long>(type: "bigint", nullable: true),
+                    AnswerText = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    AnsweredDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Answer", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Answer_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Answer_Plan_PlanId",
+                        column: x => x.PlanId,
+                        principalSchema: "plan",
+                        principalTable: "Plan",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Answer_Question_QuestionId",
+                        column: x => x.QuestionId,
+                        principalSchema: "question",
+                        principalTable: "Question",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "meal_recipe_index",
                 schema: "plan",
                 columns: table => new
@@ -979,6 +1089,24 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Answer_PersonId",
+                schema: "question",
+                table: "Answer",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Answer_PlanId",
+                schema: "question",
+                table: "Answer",
+                column: "PlanId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Answer_QuestionId",
+                schema: "question",
+                table: "Answer",
+                column: "QuestionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 schema: "auth",
                 table: "AspNetRoleClaims",
@@ -1021,6 +1149,12 @@ namespace Nom.Data.Migrations
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLogEntry_ChangedByPersonId",
+                schema: "audit",
+                table: "AuditLogEntry",
+                column: "ChangedByPersonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Goal_GoalTypeId",
@@ -1161,6 +1295,14 @@ namespace Nom.Data.Migrations
                 column: "ShoppingTripId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Person_InvitationCode",
+                schema: "person",
+                table: "Person",
+                column: "InvitationCode",
+                unique: true,
+                filter: "\"InvitationCode\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Person_UserId",
                 schema: "person",
                 table: "Person",
@@ -1189,6 +1331,18 @@ namespace Nom.Data.Migrations
                 schema: "plan",
                 table: "plan_person_index",
                 column: "PersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Question_AnswerTypeRefId",
+                schema: "question",
+                table: "Question",
+                column: "AnswerTypeRefId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Question_QuestionCategoryId",
+                schema: "question",
+                table: "Question",
+                column: "QuestionCategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipe_CreatedById",
@@ -1304,11 +1458,19 @@ namespace Nom.Data.Migrations
                 schema: "shopping",
                 table: "ShoppingTrip",
                 column: "StatusId");
+
+            migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.ApplyCustomUpOperations();
+
+            migrationBuilder.DropTable(
+                name: "Answer",
+                schema: "question");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
                 schema: "auth");
@@ -1328,6 +1490,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens",
                 schema: "auth");
+
+            migrationBuilder.DropTable(
+                name: "AuditLogEntry",
+                schema: "audit");
 
             migrationBuilder.DropTable(
                 name: "GoalItem",
@@ -1394,6 +1560,10 @@ namespace Nom.Data.Migrations
                 schema: "shopping");
 
             migrationBuilder.DropTable(
+                name: "Question",
+                schema: "question");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles",
                 schema: "auth");
 
@@ -1404,10 +1574,6 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "Recipe",
                 schema: "recipe");
-
-            migrationBuilder.DropTable(
-                name: "Group",
-                schema: "reference");
 
             migrationBuilder.DropTable(
                 name: "Ingredient",
@@ -1424,6 +1590,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "ShoppingTrip",
                 schema: "shopping");
+
+            migrationBuilder.DropTable(
+                name: "Group",
+                schema: "reference");
 
             migrationBuilder.DropTable(
                 name: "Plan",
