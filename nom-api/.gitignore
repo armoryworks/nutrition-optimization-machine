@@ -1,7 +1,8 @@
 ##Custom Shiz
 
 ## IGNORE THE APPSETTINGS.DEVELOPMENT.JSON -- some connection crap is in here and each consuming dev should handle that
-appsettings.Development.json
+*.development.json
+*.Development.json
 
 
 ## Ignore Visual Studio temporary files, build results, and

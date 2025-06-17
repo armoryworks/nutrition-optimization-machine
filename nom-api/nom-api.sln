@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nom.Api", "Nom.Api\Nom.Api.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nom.Data", "Nom.Data\Nom.Data.csproj", "{6E33292D-F6D6-4923-BEF0-8BB0C5B0C2DB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nom.Orch", "Nom.Orch\Nom.Orch.csproj", "{D87485D3-2DF0-494C-B95B-0A70468257BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{6E33292D-F6D6-4923-BEF0-8BB0C5B0C2DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E33292D-F6D6-4923-BEF0-8BB0C5B0C2DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E33292D-F6D6-4923-BEF0-8BB0C5B0C2DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D87485D3-2DF0-494C-B95B-0A70468257BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D87485D3-2DF0-494C-B95B-0A70468257BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D87485D3-2DF0-494C-B95B-0A70468257BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D87485D3-2DF0-494C-B95B-0A70468257BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

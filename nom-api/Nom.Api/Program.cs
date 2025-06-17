@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Nom.Data;
+using Nom.Orch;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<IdentityUser>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+
+builder.Services.AddOrchestrationServices();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

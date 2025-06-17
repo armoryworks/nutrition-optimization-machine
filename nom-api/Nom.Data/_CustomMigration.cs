@@ -5,7 +5,7 @@ using Nom.Data.Question;
 using Microsoft.EntityFrameworkCore.Metadata; // Required for NpgsqlValueGenerationStrategy
 using System;
 using System.Data;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata; // For DBNull.Value
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata; // For NpgsqlValueGenerationStrategy
 
 namespace Nom.Data
 {
@@ -22,49 +22,15 @@ namespace Nom.Data
             migrationBuilder.EnsureSchema(name: "person");
             migrationBuilder.EnsureSchema(name: "audit"); // Ensure audit schema
 
-            // --- NEW: Create AuditLogEntry table ---
-            migrationBuilder.CreateTable(
-                name: "AuditLogEntry",
-                schema: "audit",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EntityType = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    EntityId = table.Column<long>(type: "bigint", nullable: false),
-                    ChangeType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    PropertyName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    OldValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    NewValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ChangedByPersonId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AuditLogEntry", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AuditLogEntry_Person_ChangedByPersonId",
-                        column: x => x.ChangedByPersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AuditLogEntry_ChangedByPersonId",
-                schema: "audit",
-                table: "AuditLogEntry",
-                column: "ChangedByPersonId");
-            // --- END NEW: Create AuditLogEntry table ---
-
+            // --- REMOVED: Create AuditLogEntry table and its index from here ---
+            // EF Core will automatically generate this based on DbSet<AuditLogEntryEntity> in ApplicationDbContext.
 
             SeedInitialSystemPerson(migrationBuilder);
 
-            AddReferenceGroups(migrationBuilder); // CORRECTED: Added "Restriction Types" Name
+            AddReferenceGroups(migrationBuilder);
             AddAnswerTypes(migrationBuilder);
             CreateReferenceGroupView(migrationBuilder);
-            SeedInitialQuestions(migrationBuilder); // CORRECTED: Removed extra DBNull.Value
+            SeedInitialQuestions(migrationBuilder);
         }
 
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
@@ -74,11 +40,8 @@ namespace Nom.Data
             RemoveAnswerTypes(migrationBuilder);
             RemoveReferenceGroups(migrationBuilder);
 
-            // --- NEW: Drop AuditLogEntry table ---
-            migrationBuilder.DropTable(
-                name: "AuditLogEntry",
-                schema: "audit");
-            // --- END NEW: Drop AuditLogEntry table ---
+            // --- REMOVED: Drop AuditLogEntry table from here ---
+            // EF Core will automatically generate this based on DbSet<AuditLogEntryEntity> in ApplicationDbContext.
 
             RemoveInitialSystemPerson(migrationBuilder);
 
@@ -95,7 +58,7 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "UserId", "InvitationCode" },
                 values: new object[,]
                 {
-                    { 1L, "System", DBNull.Value, DBNull.Value }
+                    { 1L, "System", null, null }
                 });
         }
 
@@ -121,7 +84,7 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.RecipeType, "Recipe Types", "Categorization of recipes (e.g., appetizer, main course, dessert)." },
                     { (long)ReferenceDiscriminatorEnum.ShoppingStatusType, "Shopping Status Types", "Statuses for shopping trips (e.g., planned, completed, canceled)." },
                     { (long)ReferenceDiscriminatorEnum.ItemStatusType, "Item Status Types", "Statuses for pantry items (e.g., on list, in pantry, used, expired)." },
-                    { (long)ReferenceDiscriminatorEnum.RestrictionType, "Restriction Types", "Dietary restrictions (e.g., gluten-free, vegan)." }, 
+                    { (long)ReferenceDiscriminatorEnum.RestrictionType, "Restriction Types", "Dietary restrictions (e.g., gluten-free, vegan)." },
                     { (long)ReferenceDiscriminatorEnum.GoalType, "Goal Types", "Nutritional goals (e.g., weight loss, muscle gain)." },
                     { (long)ReferenceDiscriminatorEnum.NutrientType, "Nutrient Types", "Categories of nutrients (e.g., macronutrients, vitamins, minerals)." },
                     { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian)." },
@@ -219,40 +182,40 @@ namespace Nom.Data
                 values: new object[,]
                 {
                     // Section 1: Getting Started
-                    { 1L, "What name should we use for you within the plan?", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 10, true, true, DBNull.Value, DBNull.Value },
-                    { 2L, "Will anyone else be participating in this plan with you (e.g., family members, roommates)?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 20, true, false, "false", DBNull.Value },
+                    { 1L, "What name should we use for you within the plan?", null, questionCategoryId, textInputAnswerTypeId, 10, true, true, null, null },
+                    { 2L, "Will anyone else be participating in this plan with you (e.g., family members, roommates)?", null, questionCategoryId, yesNoAnswerTypeId, 20, true, false, "false", null },
 
                     // Section 2: Additional Persons (dynamically added in UI, this provides the question template)
-                    { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, DBNull.Value, DBNull.Value },
+                    { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, null, null },
 
                     // Section 3: Dietary Foundations & Values
-                    { 4L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 40, true, false, "false", DBNull.Value },
-                    { 5L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 50, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", DBNull.Value },
-                    { 6L, "Please describe any specific cultural or traditional food restrictions, inclusions, or fasting periods:", "e.g., no pork, no beef, specific holiday foods, Ramadan, Lent", questionCategoryId, textInputAnswerTypeId, 60, true, false, DBNull.Value, DBNull.Value },
+                    { 4L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", null, questionCategoryId, yesNoAnswerTypeId, 40, true, false, "false", null },
+                    { 5L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 50, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", null },
+                    { 6L, "Please describe any specific cultural or traditional food restrictions, inclusions, or fasting periods:", "e.g., no pork, no beef, specific holiday foods, Ramadan, Lent", questionCategoryId, textInputAnswerTypeId, 60, true, false, null, null },
 
                     // Section 4: Health & Medical Dietary Adjustments
-                    { 7L, "Are there any allergies, intolerances, or medical conditions that require specific dietary adjustments for anyone on the plan?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 70, true, false, "false", DBNull.Value },
-                    { 8L, "Please indicate any diagnosed food allergies for participants:", "Select all that apply, or type 'Other' for unlisted.", questionCategoryId, multiSelectAnswerTypeId, 80, true, false, "[\"Peanuts\",\"Tree Nuts\",\"Dairy\",\"Eggs\",\"Soy\",\"Wheat\",\"Fish\",\"Shellfish\",\"Sesame\",\"Corn\",\"Sulfites\"]", DBNull.Value },
-                    { 9L, "Is anyone managing Gluten Sensitivity or Celiac Disease?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 90, true, false, "false", DBNull.Value },
-                    { 10L, "Is anyone managing Lactose Intolerance?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 100, true, false, "false", DBNull.Value },
-                    { 11L, "Is anyone managing Type 1 Diabetes?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 110, true, false, "false", DBNull.Value },
-                    { 12L, "Is anyone managing Type 2 Diabetes?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 120, true, false, "false", DBNull.Value },
-                    { 13L, "Is anyone managing High Blood Pressure?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 130, true, false, "false", DBNull.Value },
-                    { 14L, "Is anyone managing High Cholesterol?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 140, true, false, "false", DBNull.Value },
-                    { 15L, "Is anyone managing Gastrointestinal Conditions (e.g., Crohn's, IBS, Leaky Gut, GERD)?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 150, true, false, "false", DBNull.Value },
-                    { 16L, "Please specify gastrointestinal conditions or specific triggers/avoidances:", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 160, true, false, DBNull.Value, DBNull.Value },
-                    { 17L, "Is anyone managing Kidney Disease?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 170, true, false, "false", DBNull.Value },
-                    { 18L, "Please specify kidney disease stage or specific restrictions (e.g., low potassium, low phosphorus):", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 180, true, false, DBNull.Value, DBNull.Value },
-                    { 19L, "Is anyone managing Gout?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 190, true, false, "false", DBNull.Value },
-                    { 20L, "Are there any other medical conditions or health goals impacting diet (e.g., anemia, specific vitamin deficiencies, pregnancy/lactation needs, specific medication interactions)? Please describe:", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 200, true, false, DBNull.Value, DBNull.Value },
+                    { 7L, "Are there any allergies, intolerances, or medical conditions that require specific dietary adjustments for anyone on the plan?", null, questionCategoryId, yesNoAnswerTypeId, 70, true, false, "false", null },
+                    { 8L, "Please indicate any diagnosed food allergies for participants:", "Select all that apply, or type 'Other' for unlisted.", questionCategoryId, multiSelectAnswerTypeId, 80, true, false, "[\"Peanuts\",\"Tree Nuts\",\"Dairy\",\"Eggs\",\"Soy\",\"Wheat\",\"Fish\",\"Shellfish\",\"Sesame\",\"Corn\",\"Sulfites\"]", null },
+                    { 9L, "Is anyone managing Gluten Sensitivity or Celiac Disease?", null, questionCategoryId, yesNoAnswerTypeId, 90, true, false, "false", null },
+                    { 10L, "Is anyone managing Lactose Intolerance?", null, questionCategoryId, yesNoAnswerTypeId, 100, true, false, "false", null },
+                    { 11L, "Is anyone managing Type 1 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 110, true, false, "false", null },
+                    { 12L, "Is anyone managing Type 2 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 120, true, false, "false", null },
+                    { 13L, "Is anyone managing High Blood Pressure?", null, questionCategoryId, yesNoAnswerTypeId, 130, true, false, "false", null },
+                    { 14L, "Is anyone managing High Cholesterol?", null, questionCategoryId, yesNoAnswerTypeId, 140, true, false, "false", null },
+                    { 15L, "Is anyone managing Gastrointestinal Conditions (e.g., Crohn's, IBS, Leaky Gut, GERD)?", null, questionCategoryId, yesNoAnswerTypeId, 150, true, false, "false", null },
+                    { 16L, "Please specify gastrointestinal conditions or specific triggers/avoidances:", null, questionCategoryId, textInputAnswerTypeId, 160, true, false, null, null },
+                    { 17L, "Is anyone managing Kidney Disease?", null, questionCategoryId, yesNoAnswerTypeId, 170, true, false, "false", null },
+                    { 18L, "Please specify kidney disease stage or specific restrictions (e.g., low potassium, low phosphorus):", null, questionCategoryId, textInputAnswerTypeId, 180, true, false, null, null },
+                    { 19L, "Is anyone managing Gout?", null, questionCategoryId, yesNoAnswerTypeId, 190, true, false, "false", null },
+                    { 20L, "Are there any other medical conditions or health goals impacting diet (e.g., anemia, specific vitamin deficiencies, pregnancy/lactation needs, specific medication interactions)? Please describe:", null, questionCategoryId, textInputAnswerTypeId, 200, true, false, null, null },
 
                     // Section 5: Personal Food Preferences & Aversions
-                    { 21L, "Are there any specific foods, ingredients, or textures that you or other participants strongly dislike or prefer to avoid?", DBNull.Value, questionCategoryId, yesNoAnswerTypeId, 210, true, false, "false", DBNull.Value },
-                    { 22L, "Which ingredients or foods do you want to exclude?", "e.g., Cilantro, Mushrooms, Olives, Bell Peppers", questionCategoryId, multiSelectAnswerTypeId, 220, true, false, "[\"Cilantro\",\"Mushrooms\",\"Olives\",\"Bell Peppers\",\"Onions\",\"Garlic\",\"Spicy Foods (general)\",\"Fishy taste\",\"Gamey meats\"]", DBNull.Value },
-                    { 23L, "Are there any textures you strongly dislike?", "e.g., mushy, slimy, gritty, soggy, crunchy (if aversion)", questionCategoryId, multiSelectAnswerTypeId, 230, true, false, "[\"Mushy\",\"Slimy\",\"Gritty\",\"Chewy (e.g., undercooked beans)\",\"Soggy\",\"Crunchy\"]", DBNull.Value },
-                    { 24L, "What spice level do you generally prefer?", DBNull.Value, questionCategoryId, singleSelectAnswerTypeId, 240, true, false, "Mild", "[\"Mild\",\"Medium\",\"Spicy\",\"Very Spicy\"]" }, // CORRECTED LINE: Removed extra DBNull.Value
-                    { 25L, "Are there any preferred cooking methods?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 250, true, false, "[\"Grilled\",\"Baked\",\"Roasted\",\"Stir-fried\",\"Slow-cooked\",\"Pressure cooked\",\"Raw\"]", DBNull.Value },
-                    { 26L, "Do you have any other general food likes or dislikes (e.g., preference for specific cuisines, dislike of strong odors)?", DBNull.Value, questionCategoryId, textInputAnswerTypeId, 260, true, false, DBNull.Value, DBNull.Value }
+                    { 21L, "Are there any specific foods, ingredients, or textures that you or other participants strongly dislike or prefer to avoid?", null, questionCategoryId, yesNoAnswerTypeId, 210, true, false, "false", null },
+                    { 22L, "Which ingredients or foods do you want to exclude?", "e.g., Cilantro, Mushrooms, Olives, Bell Peppers", questionCategoryId, multiSelectAnswerTypeId, 220, true, false, "[\"Cilantro\",\"Mushrooms\",\"Olives\",\"Bell Peppers\",\"Onions\",\"Garlic\",\"Spicy Foods (general)\",\"Fishy taste\",\"Gamey meats\"]", null },
+                    { 23L, "Are there any textures you strongly dislike?", "e.g., mushy, slimy, gritty, soggy, crunchy (if aversion)", questionCategoryId, multiSelectAnswerTypeId, 230, true, false, "[\"Mushy\",\"Slimy\",\"Gritty\",\"Chewy (e.g., undercooked beans)\",\"Soggy\",\"Crunchy\"]", null },
+                    { 24L, "What spice level do you generally prefer?", null, questionCategoryId, singleSelectAnswerTypeId, 240, true, false, "Mild", "[\"Mild\",\"Medium\",\"Spicy\",\"Very Spicy\"]" },
+                    { 25L, "Are there any preferred cooking methods?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 250, true, false, "[\"Grilled\",\"Baked\",\"Roasted\",\"Stir-fried\",\"Slow-cooked\",\"Pressure cooked\",\"Raw\"]", null },
+                    { 26L, "Do you have any other general food likes or dislikes (e.g., preference for specific cuisines, dislike of strong odors)?", null, questionCategoryId, textInputAnswerTypeId, 260, true, false, null, null }
                 });
         }
 

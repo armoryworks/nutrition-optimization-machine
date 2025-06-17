@@ -1,53 +1,46 @@
+// Nom.Data/Question/AnswerEntity.cs
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Plan;    // For PlanEntity reference
-using Nom.Data.Person;  // For PersonEntity reference
+using Nom.Data.Person; // For PersonEntity navigation
+using Nom.Data.Plan; // For PlanEntity navigation
+using Nom.Data.Reference; // For QuestionEntity navigation
 
 namespace Nom.Data.Question
 {
-    /// <summary>
-    /// Stores a user's answer to a specific question, linked to a plan and optionally a person.
-    /// Maps to the 'question.Answer' table.
-    /// </summary>
     [Table("Answer", Schema = "question")]
-    public class AnswerEntity : BaseEntity
+    public class AnswerEntity : BaseEntity // Inherits Id only from BaseEntity
     {
-        /// <summary>
-        /// Foreign key to the QuestionEntity that this answer corresponds to.
-        /// </summary>
         [Required]
         public long QuestionId { get; set; }
+
         [ForeignKey(nameof(QuestionId))]
         public virtual QuestionEntity Question { get; set; } = default!;
 
-        /// <summary>
-        /// Foreign key to the PlanEntity that this answer is associated with.
-        /// </summary>
         [Required]
-        public long PlanId { get; set; }
-        [ForeignKey(nameof(PlanId))]
-        public virtual PlanEntity Plan { get; set; } = default!;
+        public long PersonId { get; set; }
 
-        /// <summary>
-        /// Optional foreign key to the PersonEntity who provided this answer (if specific to an individual in the plan).
-        /// </summary>
-        public long? PersonId { get; set; }
         [ForeignKey(nameof(PersonId))]
-        public virtual PersonEntity? Person { get; set; }
+        public virtual PersonEntity Person { get; set; } = default!;
 
-        /// <summary>
-        /// The actual answer provided by the user, stored as text.
-        /// For complex answer types (multi-select), this could be a JSON string.
-        /// </summary>
-        [Required]
-        [MaxLength(4000)] // Sufficient length for text or JSON answers
-        public required string AnswerText { get; set; }
+        public long? PlanId { get; set; } // Nullable, as onboarding answers aren't tied to a plan initially
 
-        /// <summary>
-        /// Timestamp when the answer was recorded.
-        /// </summary>
+        [ForeignKey(nameof(PlanId))]
+        public virtual PlanEntity? Plan { get; set; }
+
+        // --- NEW/UPDATED: Fields for the actual answer and its specific audit info ---
+        [Required] // An answer must have a value
+        [MaxLength(4000)] // Sufficient length for text or JSON array strings
+        public required string AnswerText { get; set; } // Renamed from SubmittedAnswer for clarity
+
         [Required]
-        public DateTime AnsweredDate { get; set; } = DateTime.UtcNow; // Default to UTC now
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+        [Required]
+        public long CreatedByPersonId { get; set; }
+
+        [ForeignKey(nameof(CreatedByPersonId))]
+        public virtual PersonEntity CreatedByPerson { get; set; } = default!; // The person who created/submitted this answer
+        // --- END NEW/UPDATED ---
     }
 }

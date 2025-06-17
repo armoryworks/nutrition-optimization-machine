@@ -250,7 +250,7 @@ namespace Nom.Data
                     });
             #endregion // End of Shopping Namespace Fluent API Configurations
 
-            #region Question Namespace Fluent API Configurations
+           #region Question Namespace Fluent API Configurations
             // Configure QuestionEntity
             modelBuilder.Entity<QuestionEntity>()
                 .ToTable("Question", schema: "question");
@@ -278,17 +278,25 @@ namespace Nom.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<AnswerEntity>()
+                .HasOne(a => a.Person)
+                .WithMany()
+                .HasForeignKey(a => a.PersonId)
+                .IsRequired(false) // PersonId on AnswerEntity can be null if it's a "system" answer or temporary, etc.
+                .OnDelete(DeleteBehavior.Cascade); // If person is deleted, cascade answers.
+
+            modelBuilder.Entity<AnswerEntity>()
                 .HasOne(a => a.Plan)
                 .WithMany()
                 .HasForeignKey(a => a.PlanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // --- NEW: Fluent API for AnswerEntity's specific audit fields ---
             modelBuilder.Entity<AnswerEntity>()
-                .HasOne(a => a.Person)
-                .WithMany()
-                .HasForeignKey(a => a.PersonId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(a => a.CreatedByPerson)
+                .WithMany() // No inverse collection on Person for this specific audit
+                .HasForeignKey(a => a.CreatedByPersonId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a person if they created answers
+            // --- END NEW ---
 
             #endregion // End of Question Namespace Fluent API Configurations
 

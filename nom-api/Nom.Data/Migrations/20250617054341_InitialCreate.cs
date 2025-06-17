@@ -1,3 +1,4 @@
+using Nom.Data;
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -850,14 +851,22 @@ namespace Nom.Data.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionId = table.Column<long>(type: "bigint", nullable: false),
-                    PlanId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    PlanId = table.Column<long>(type: "bigint", nullable: true),
                     AnswerText = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
-                    AnsweredDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Answer", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Answer_Person_CreatedByPersonId",
+                        column: x => x.CreatedByPersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Answer_Person_PersonId",
                         column: x => x.PersonId,
@@ -1087,6 +1096,12 @@ namespace Nom.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Answer_CreatedByPersonId",
+                schema: "question",
+                table: "Answer",
+                column: "CreatedByPersonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Answer_PersonId",
@@ -1458,15 +1473,13 @@ namespace Nom.Data.Migrations
                 schema: "shopping",
                 table: "ShoppingTrip",
                 column: "StatusId");
-
             migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.ApplyCustomUpOperations();
-
+            migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropTable(
                 name: "Answer",
                 schema: "question");
@@ -1610,6 +1623,7 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "AspNetUsers",
                 schema: "auth");
+            migrationBuilder.ApplyCustomUpOperations();
         }
     }
 }

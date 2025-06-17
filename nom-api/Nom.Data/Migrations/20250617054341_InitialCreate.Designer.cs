@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250617022544_InitialCreate")]
+    [Migration("20250617054341_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -645,19 +645,24 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
-                    b.Property<DateTime>("AnsweredDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("PersonId")
+                    b.Property<long>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("PlanId")
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PlanId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("QuestionId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByPersonId");
 
                     b.HasIndex("PersonId");
 
@@ -1481,6 +1486,12 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Question.AnswerEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
+                        .WithMany()
+                        .HasForeignKey("CreatedByPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
                         .WithMany()
                         .HasForeignKey("PersonId")
@@ -1489,14 +1500,15 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Nom.Data.Question.QuestionEntity", "Question")
                         .WithMany()
                         .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("CreatedByPerson");
 
                     b.Navigation("Person");
 
