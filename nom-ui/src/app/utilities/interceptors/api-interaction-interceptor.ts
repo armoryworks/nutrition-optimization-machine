@@ -18,12 +18,12 @@ export class ApiInteractionInterceptor implements HttpInterceptor {
   ): Observable<HttpEvent<any>> {
     if (
       this.configService?.config?.serverUri &&
-      !req.url.startsWith('http://') && // Ensure it's not already an absolute URL
+      !req.url.startsWith('http://') &&
       !req.url.startsWith('https://') &&
       req.url.startsWith('/api/')
     ) {
       const modifiedReq = req.clone({
-        url: this.configService.config.serverUri + req.url,
+        url: `${this.configService.config.serverUri}${req.url}`,
       });
       return next.handle(modifiedReq);
     }

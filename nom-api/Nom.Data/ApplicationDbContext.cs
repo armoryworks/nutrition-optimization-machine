@@ -329,6 +329,14 @@ namespace Nom.Data
                 .HasForeignKey(q => q.AnswerTypeRefId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<QuestionEntity>()
+                .Property(q => q.NextQuestionOnTrue)
+                .IsRequired(false); // Nullable long for optional workflow question ID
+
+            modelBuilder.Entity<QuestionEntity>()
+                .Property(q => q.NextQuestionOnFalse)
+                .IsRequired(false); // Nullable long for optional workflow question ID
+
             // Configure AnswerEntity
             modelBuilder.Entity<AnswerEntity>()
                 .ToTable("Answer", schema: "question");

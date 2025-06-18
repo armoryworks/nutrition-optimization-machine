@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nom.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250618080246_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -502,14 +505,6 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("NutrientId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("NextStepOnTrue")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("NextStepOnFalse")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<long?>("TimeframeTypeId")
                         .HasColumnType("bigint");
 
@@ -728,6 +723,12 @@ namespace Nom.Data.Migrations
                     b.Property<long>("QuestionId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("NextQuestionOnTrue")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("NextQuestionOnFalse")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByPersonId");
@@ -782,12 +783,6 @@ namespace Nom.Data.Migrations
                     b.Property<string>("ValidationRegex")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
-
-                    b.Property<long?>("NextQuestionOnTrue")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("NextQuestionOnFalse")
-                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 

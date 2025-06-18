@@ -1,5 +1,0 @@
-CREATE TABLE Person.person (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(255),
-    userId text NULL UNIQUE REFERENCES auth.AspNetUsers(Id)
-);

@@ -1,6 +1,0 @@
-CREATE TABLE Reference.reference (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description VARCHAR(511) NULL,
-    sort_order SMALLINT NULL
-);

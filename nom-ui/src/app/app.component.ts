@@ -20,10 +20,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LoginComponent } from './components/auth/login/login.component';
+import { LoginComponent } from './auth/login/login.component';
 import { NomConfigService } from './utilities/services/nom-config.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
-import { AuthService } from './components/auth/auth.service';
+import { AuthService } from './auth/auth.service';
 import { NotificationService } from './utilities/services/notification.service';
 import { Subscription } from 'rxjs'; // Import Subscription
 
@@ -151,7 +151,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.isLoggedIn = false;
         this.notificationService.success('Logged Out Successfully');
       },
-      error: (error) => {
+      error: (error: any) => {
+        // Add type annotation for error
         console.error('Logout error:', error);
         this.notificationService.error(
           error.message || 'Failed to log out. Please try again.'

@@ -1,0 +1,631 @@
+Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
+
+Document Version: 1.0
+Date: June 18, 2025
+1. Introduction
+
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, and foundational system architecture.
+
+The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current capabilities, its intended user interactions, and the underlying business rules it enforces.
+2. Executive Summary
+
+The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.
+3. User Roles & Personas
+
+The following primary user roles and system actors have been identified and considered in the developed functionalities:
+
+    New User / Prospect: An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.
+
+    Authenticated User: A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
+
+    Plan Administrator: An authenticated user who creates and manages nutritional plans, and can invite others to join.
+
+    Plan Member: An authenticated user who participates in an existing nutritional plan.
+
+    System: An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
+
+4. Functional Requirements
+4.1. User Onboarding & Profile Completion
+
+Objective: To efficiently collect essential user data and personal preferences immediately following account registration, establishing a foundational user profile.
+
+    FR-1.1: Dynamic Questionnaire Retrieval: The system shall retrieve and present a predefined sequence of onboarding questions to the user upon initial access.
+
+    FR-1.2: Adaptive Question Types: The questionnaire shall support various question and input types, including:
+
+        Text Input: For free-form answers (e.g., names, open-ended responses).
+
+        Yes/No: For binary choices.
+
+        Multi-Select: For choosing multiple options from a predefined list (e.g., multiple dietary foundations, multiple allergies).
+
+        Single-Select: For choosing a single option from a predefined list.
+
+    FR-1.3: Input Validation: The system shall enforce validation rules for user answers:
+
+        Required Fields: Mandatory questions must be answered before proceeding.
+
+        Format Validation: Text inputs may adhere to specified regular expression patterns (e.g., for email, phone numbers, if applicable).
+
+        Selection Validity: Selected options for multi/single-select questions must be from the predefined list.
+
+    FR-1.4: Multi-Step Progress: The questionnaire shall be presented as a multi-step wizard, allowing users to focus on one question at a time.
+
+    FR-1.5: Navigation Control: Users shall have the ability to navigate forward and backward through the questionnaire. Navigating backward should retain previously entered answers.
+
+    FR-1.6: Answer Persistence: User answers shall be saved securely and persistently upon submission, associated with the respective user's profile.
+
+    FR-1.7: Conditional Restriction Allocation Questions: If the user indicates that more people are added to the plan (e.g., via the "Will anyone else be participating..." question), and any "restriction" question (e.g., dietary foundations, allergies, gluten sensitivity, lactose intolerance) receives an affirmative answer (i.e., 'true' for Yes/No, or any selection for Multi-Select):
+
+        For each such affirmative answer, a subsequent question shall be presented asking if the specific <restriction-name> applies to everyone on the plan, or only to specific individuals.
+
+        If the user selects "specific individuals," a multi-select or checkbox list shall be provided for that <restriction-name>, allowing the user to specify which person(s) on the plan (including themselves) have this restriction.
+
+        This sequence of conditional questions (scope of restriction, then specific individuals) shall repeat for each distinct affirmative restriction identified.
+
+4.2. Dietary Restriction Management & Inference
+
+Objective: To automatically identify and record dietary restrictions based on user responses during onboarding, streamlining the personalization of nutritional plans.
+
+    FR-2.1: Automatic Restriction Inference: The system shall automatically infer and create Restriction records based on specific user answers provided in the onboarding questionnaire.
+
+        Example: A "Yes" answer to "Is anyone managing Gluten Sensitivity or Celiac Disease?" should infer a "Gluten-Free" restriction.
+
+        Example: Selection of "Vegan" from a "Dietary Foundations" multi-select question should infer a "Vegan" restriction.
+
+    FR-2.2: Person-Level Restriction Association: Inferred restrictions during onboarding shall be primarily associated with the individual Person completing the questionnaire.
+
+    FR-2.3: System Auditability: All automatically inferred restrictions shall be auditable, with the System designated as the creator of record for these entries.
+
+    FR-2.4: Prevention of Duplicates: The system shall prevent the creation of duplicate Restriction records for the same Person (or Plan, if applicable) and the same Restriction Type.
+
+    FR-2.5: Mandatory Restriction Association: Each Restriction record must be linked to at least one Person or one Plan to ensure logical data integrity.
+
+    FR-2.6: Post-Processing on Completion: Upon completion of the entire onboarding questionnaire, the collected answers shall be post-processed to infer and create the final RestrictionEntity entries in the database, reflecting the determined restrictions for individuals and/or the overall plan.
+
+4.3. Plan Invitation & Participation
+
+Objective: To enable users to join existing nutritional plans through a secure invitation mechanism.
+
+    FR-3.1: Invitation Code Input: The onboarding process shall include an optional step for users to input a unique invitation code.
+
+    FR-3.2: Plan Linking: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user's Person record to the corresponding Plan using a PlanParticipant entity.
+
+    FR-3.3: Role Assignment: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
+
+4.4. Authentication & Authorization
+
+Objective: To secure system access and protect sensitive user data and functionalities.
+
+    FR-4.1: Authenticated Access: Most API endpoints shall require a valid authentication token (e.g., JWT) for access, ensuring only authenticated users can perform actions or retrieve sensitive data.
+
+    FR-4.2: Anonymous Access for Onboarding: Specific public endpoints (e.g., fetching initial onboarding questions) shall be accessible without prior authentication to facilitate the initial user journey.
+
+    FR-4.3: User Registration: The system shall support user registration, creating new user accounts and associated Person records.
+
+    FR-4.4: User Login: The system shall support user login, issuing authentication tokens upon successful credential verification.
+
+5. Domain Areas and Business Rules
+
+This section describes the core business domains within the NOM program and the key rules that govern their behavior and data integrity.
+5.1. User/Person Management Domain
+
+Purpose: Manages individual user accounts and associated personal profiles within the system.
+
+    Rule-5.1.1 (Unique Identification): Each Person record shall have a unique identifier.
+
+    Rule-5.1.2 (Account Creation): Users must register with a unique email address and a password meeting minimum complexity requirements.
+
+    Rule-5.1.3 (Email Confirmation): User email addresses should be confirmable to ensure validity and security.
+
+    Rule-5.1.4 (Password Security): Users must be able to securely reset forgotten passwords and update existing passwords, requiring validation of their current identity.
+
+    Rule-5.1.5 (Two-Factor Authentication - 2FA): Users can opt to enable 2FA for enhanced login security, which requires a one-time code from an authenticator app in addition to their password. The system must support the generation of shared keys and recovery codes.
+
+    Rule-5.1.6 (Invitation Code Uniqueness): InvitationCodes associated with Person records (for inviting others to join a person-specific context, if applicable) must be unique.
+
+5.2. Questionnaire/Onboarding Domain
+
+Purpose: Guides new users through initial data collection to personalize their experience and gather foundational information.
+
+    Rule-5.2.1 (Question Ordering): Questions are presented in a predefined DisplayOrder to ensure a coherent user flow.
+
+    Rule-5.2.2 (Required Questions): Questions marked as IsRequiredForPlanCreation must receive a valid answer before the user can complete the onboarding process.
+
+    Rule-5.2.3 (Answer Type Adherence): User responses must conform to the AnswerType specified for each question (e.g., boolean for Yes/No, valid selections for Multi-Select).
+
+    Rule-5.2.4 (Conditional Logic Feedback): (Implicit) The system should be capable of providing appropriate validation feedback if complex conditional logic is applied (e.g., if question B only appears if question A is answered "Yes").
+
+5.3. Plan Management Domain
+
+Purpose: Facilitates the creation, management, and participation in shared nutritional plans.
+
+    Rule-5.3.1 (Plan Uniqueness): Each Plan shall have a unique identifier and a unique InvitationCode (if applicable) for joining.
+
+    Rule-5.3.2 (Plan Administrator): Every Plan must be associated with a Person designated as its CreatedByPersonId.
+
+    Rule-5.3.3 (Participant Association): PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
+
+    Rule-5.3.4 (Participant Roles): Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
+
+5.4. Reference Data Management Domain
+
+Purpose: Provides a centralized, extensible system for managing predefined, static lists and types used across various domains.
+
+    Rule-5.4.1 (Categorization): Reference items are organized into Groups (e.g., "Measurement Type", "Nutrient Type", "Meal Type") to provide context.
+
+    Rule-5.4.2 (Many-to-Many Association): A Reference item can belong to multiple Groups, and a Group can contain multiple Reference items. This relationship is managed implicitly by the system.
+
+    Rule-5.4.3 (View Entity Discriminators): Specialized "view" entities (GroupedReferenceViewEntity and its derived types) are used to allow frontend systems to easily filter and categorize reference data by their associated Groups.
+
+5.5. Dietary Restriction Management Domain
+
+Purpose: Records and applies dietary constraints for individuals or entire plans to tailor nutritional recommendations.
+
+    Rule-5.5.1 (Association Constraint): Every Restriction must be explicitly linked to either a Person OR a Plan (or both), but not neither.
+
+    Rule-5.5.2 (Type Definition): Each Restriction must be categorized by a RestrictionType defined in the Reference Data domain.
+
+    Rule-5.5.3 (Uniqueness per Context): A specific RestrictionType can only be applied once per Person or once per Plan to avoid redundant entries.
+
+    Rule-5.5.4 (Audit Trail): Every Restriction record must capture who CreatedByPersonId it and CreatedDate.
+
+5.6. Nutrient Management Domain
+
+Purpose: Defines and categorizes individual nutrients, their compositional relationships, and establishes nutritional intake guidelines.
+
+    Rule-5.6.1 (Nutrient Typing): Each Nutrient must be assigned a NutrientType (e.g., Macronutrient, Vitamin, Mineral) from the Reference Data domain.
+
+    Rule-5.6.2 (Component Relationships): NutrientComponent records define how a MicroNutrient is contained within a MacroNutrient, specifying the Measurement and MeasurementType (e.g., 5mg of Iron per 100g of Protein).
+
+    Rule-5.6.3 (Guideline Basis): NutrientGuideline records specify recommended intake levels (MinimumMeasurement, MaximumMeasurement) for nutrients based on a GuidelineBasisType (e.g., RDA, AI, UL) and a MeasurementType, both sourced from Reference Data.
+
+6. Non-Functional Requirements
+6.1. Performance
+
+    NFR-6.1.1: Responsive UI: The user interface for the questionnaire should load quickly and respond smoothly to user interactions, minimizing perceived delays.
+
+    NFR-6.1.2: Efficient API Calls: Backend API endpoints for fetching questions and submitting answers should respond within acceptable timeframes to ensure a fluid user experience.
+
+6.2. Security
+
+    NFR-6.2.1: Data Protection: All sensitive user data (e.g., passwords, personal information, dietary restrictions) shall be transmitted and stored securely.
+
+    NFR-6.2.2: Input Sanitization: User inputs shall be properly sanitized and validated to prevent common web vulnerabilities (e.g., XSS, SQL injection).
+
+    NFR-6.2.3: Access Control: The system shall enforce proper authorization checks to ensure users can only access data and perform actions they are permitted to.
+
+6.3. Maintainability & Scalability
+
+    NFR-6.3.1: Modular Architecture: The application shall be built with a modular, domain-driven architecture (both frontend and backend) to facilitate independent development, testing, and deployment of features.
+
+    NFR-6.3.2: Consistent Conventions: Strict adherence to naming conventions, coding standards (e.g., BEM for CSS, explicit property assignment in TS constructors), and design patterns to ensure code readability and ease of maintenance.
+
+    NFR-6.3.3: Separation of Concerns: Clear boundaries shall be maintained between UI components, business logic (orchestration services), data access layers, and API endpoints.
+
+    NFR-6.3.4: Extensibility: The questionnaire and restriction management systems should be designed to allow for the easy addition of new questions, answer types, and restriction inference rules in the future without significant code refactoring.
+
+6.4. Usability
+
+    NFR-6.4.1: Intuitive Workflow: The onboarding questionnaire should be easy to understand and navigate for all users.
+
+    NFR-6.4.2: Clear Feedback: Users shall receive immediate and clear feedback on their actions, including loading states, validation errors, and submission success/failure messages.
+
+    NFR-6.4.3: Responsive Design: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
+
+7. High-Level System Architecture (Refined)
+
+    Frontend (nom-ui - Angular):
+
+        Framework: Angular (Standalone Components).
+
+        UI Library: Angular Material.
+
+        Styling: SCSS with BEM methodology, leveraging global styles.scss for theming and core components.
+
+        Form Management: Reactive Forms for robust validation and state management.
+
+        Structure: Domain-driven directory organization (src/app/<domain>/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/.
+
+        Model Naming: FooModel for core domain entities, SubmitFooRequestModel for outbound API payloads, _BaseCommonModel for base interfaces/classes.
+
+        Service Naming: FooService for domain-specific API interaction, <functional-description>-common.service.ts for shared services.
+
+        Pipe Naming: <functional-description>-common.pipe.ts for shared pipes.
+
+        Component Naming: Standard Angular component naming, nested within feature folders.
+
+        Model Instantiation: Explicit property-by-property assignment in constructors.
+
+    Backend (nom-api - ASP.NET Core Web API):
+
+        Framework: .NET Core.
+
+        Data Access: Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL.
+
+        Business Logic: Orchestration Services encapsulate complex business rules and coordinate data access (e.g., QuestionOrchestrationService).
+
+        API Design: RESTful endpoints adhering to standard HTTP methods and status codes.
+
+        Security: ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; [Authorize] and [AllowAnonymous] attributes for endpoint-level authorization.
+
+        Database Schema: Reflects relationships between Persons, Plans, Questions, Answers, Restrictions, and Reference data (including implicitly managed many-to-many relationships).
+
+    Database (PostgreSQL):
+
+        Relational database storing all application data.
+
+        Includes tables for users, questions, answers, plans, participants, and reference data.
+
+8. Future Considerations / Out of Scope (Current Project Phase)
+
+    Detailed plan creation and modification (beyond basic invitation linking).
+
+    Comprehensive recipe management and meal scheduling.
+
+    Advanced user profile management beyond initial onboarding data.
+
+    Detailed analytics and reporting.
+
+    Real-time communication features.
+
+    Payment processing or subscription management.
+
+9. Technical Details and Component Mapping
+
+This section provides a detailed mapping between the high-level functional requirements and domain rules described earlier, and the specific technical components (frontend and backend) responsible for their implementation.
+9.1. Frontend Components & UI Interaction Flow
+
+This subsection details the Angular components that drive the user interface and handle client-side interactions.
+
+    9.1.1. OnboardingWizardComponent
+
+        File: src/app/onboarding/components/onboarding-wizard/onboarding-wizard.component.ts
+
+        HTML Template: src/app/onboarding/components/onboarding-wizard/onboarding-wizard.component.html
+
+        Functional Requirements Mapping:
+
+            FR-1.1 (Dynamic Questionnaire Retrieval): The fetchQuestions() method (Angular TS) subscribes to QuestionService.getOnboardingQuestions() to retrieve the list of QuestionModels.
+
+            FR-1.2 (Adaptive Question Types): The onboarding-wizard.component.html template uses @switch (currentQuestion.answerType) to conditionally render mat-form-field (Text Input), mat-radio-group (Yes/No, Single-Select), or mat-checkbox (Multi-Select) elements.
+
+            FR-1.3 (Input Validation):
+
+                Angular's ReactiveFormsModule is utilized, with FormGroup and FormControl.
+
+                Validators.required is applied based on question.isRequiredForPlanCreation.
+
+                Validators.pattern(question.validationRegex) is dynamically applied for Text Input types if a regex is provided.
+
+                The component's goToNextQuestion() method checks currentAnswerForm.invalid before allowing navigation.
+
+                Error messages are displayed using mat-error tags in the HTML, conditional on hasError('required'), hasError('email'), hasError('minlength'), hasError('pattern'), etc., and touched state.
+
+            FR-1.4 (Multi-Step Progress): The component manages currentQuestionIndex to display one question at a time. The header dynamically shows "Onboarding Questions ({{ currentQuestionIndex + 1 }}/{{ questions.length }})".
+
+            FR-1.5 (Navigation Control):
+
+                goToNextQuestion() method increments currentQuestionIndex.
+
+                goToPreviousQuestion() method decrements currentQuestionIndex.
+
+                Buttons for navigation (mat-button) are enabled/disabled based on currentQuestionIndex and isSubmitting state.
+
+            FR-1.6 (Answer Persistence - Client-Side Collection): The onAnswerChange() method updates the allCollectedAnswers private property, which stores answers in a {[key: number]: string} map.
+
+            FR-1.7 (Conditional Restriction Allocation Questions): (Future Implementation in UI) This functional requirement currently describes desired behavior. The present OnboardingWizardComponent's logic handles a linear flow. Implementing FR-1.7 would require:
+
+                Fetching all possible Persons on the plan (e.g., from PlanParticipant entities, likely via a new API endpoint).
+
+                Adding conditional logic within goToNextQuestion() to insert or skip new "sub-questions" based on answers to initial restriction questions (e.g., question.id === 2 for "Will anyone else be participating..." and then subsequent restriction questions like question.id === 5, 8, 9, 10).
+
+                The UI (onboarding-wizard.component.html) would need new @if blocks and dynamic loops to render these sub-questions and the person-specific multi-selects.
+
+        FR-2.6 (Post-Processing Trigger): The submitAnswers() method (Angular TS) makes the final API call to QuestionService.submitOnboardingAnswers() once all questions are completed.
+
+    9.1.2. RegistrationComponent
+
+        File: src/app/components/auth/registration/registration.component.ts
+
+        HTML Template: src/app/components/auth/registration/registration.component.html
+
+        Functional Requirements Mapping:
+
+            FR-4.3 (User Registration): The onSubmit() method calls AuthService.register() with user-provided credentials.
+
+        Domain Rules Mapping:
+
+            Rule-5.1.2 (Account Creation): registrationForm uses Validators.required, Validators.email, Validators.minLength(8) for email and password fields.
+
+            Rule-5.1.4 (Password Security): The passwordMatchValidator ensures password and confirmPassword fields match.
+
+    9.1.3. LoginComponent
+
+        File: src/app/components/auth/login/login.component.ts
+
+        HTML Template: src/app/components/auth/login/login.component.html
+
+        Functional Requirements Mapping:
+
+            FR-4.4 (User Login): The onSubmit() method calls AuthService.login() to authenticate the user.
+
+    9.1.4. Other Authentication-Related Components
+
+        ForgotPasswordComponent (src/app/components/auth/forgot-password/forgot-password.component.ts): Implements FR-5.1.4 (Password Security - initiate reset).
+
+        ResetPasswordComponent (src/app/components/auth/reset-password/reset-password.component.ts): Implements FR-5.1.4 (Password Security - complete reset).
+
+        SendConfirmationEmailComponent (src/app/components/auth/send-confirmation-email/send-confirmation-email.component.ts): Implements FR-5.1.3 (Email Confirmation - resend).
+
+        ConfirmEmailComponent (src/app/components/auth/confirm-email/confirm-email.component.ts): Implements FR-5.1.3 (Email Confirmation - confirm).
+
+        UpdateInfoComponent (src/app/components/auth/update-info/update-info.component.ts): Implements aspects of user profile update and FR-5.1.4 (Password Security - update password) and FR-5.1.3 (Email Confirmation - change email).
+
+        UpdateTwoFactorComponent (src/app/components/auth/update-two-factor/update-two-factor.component.ts): Implements FR-5.1.5 (Two-Factor Authentication - enable/disable 2FA, manage recovery codes). The generateOtpAuthUri helper method aids in QR code generation.
+
+9.2. Frontend Services & Data Flow
+
+This subsection details the Angular services responsible for communicating with the backend API and managing client-side state.
+
+    9.2.1. QuestionService
+
+        File: src/app/question/services/question.service.ts
+
+        Functional Requirements Mapping:
+
+            FR-1.1 (Dynamic Questionnaire Retrieval): The getOnboardingQuestions() method makes an HTTP GET request to /api/Question/onboarding and maps the raw API response into QuestionModel instances, parsing defaultAnswer into options arrays where applicable.
+
+            FR-1.6 (Answer Persistence - API Submission): The submitOnboardingAnswers() method makes an HTTP POST request to /api/Question/answers, sending a SubmitAnswersRequestModel payload to the backend.
+
+            FR-2.6 (Post-Processing Trigger): submitOnboardingAnswers() is the mechanism by which the frontend initiates the backend's post-processing of answers.
+
+        Data Structures Used: QuestionModel, SubmitAnswersRequestModel, ApiResponseCommonModel.
+
+    9.2.2. AuthService
+
+        File: src/app/components/auth/auth.service.ts
+
+        Functional Requirements Mapping:
+
+            FR-4.1 (Authenticated Access): Acts as the primary interface for all authenticated API calls.
+
+            FR-4.3 (User Registration): The register() method handles new user creation.
+
+            FR-4.4 (User Login): The login() method handles user authentication and receives LoginResponse (containing JWT).
+
+            FR-5.1.3 (Email Confirmation): confirmEmail() and sendConfirmationEmail() methods.
+
+            FR-5.1.4 (Password Security): forgotPassword() and resetPassword() methods.
+
+            FR-5.1.5 (Two-Factor Authentication): getTwoFactorStatus() and updateTwoFactorAuth() methods.
+
+            User profile updates via updateInfo().
+
+        Error Handling: The handleError() private method centralizes API error processing, extracting user-friendly messages from HttpErrorResponse (including validation errors from 400 Bad Requests).
+
+    9.2.3. AuthManagerService
+
+        File: src/app/utilities/services/auth-manager.service.ts
+
+        Role: Manages client-side authentication state, including JWT (_accessToken, _refreshToken), token expiration, and the "remember me" preference. It dynamically chooses between localStorage and sessionStorage.
+
+        Functional Requirements Mapping:
+
+            FR-4.4 (User Login): Stores JWTs (token, refreshToken, tokenExpiration) received from AuthService.login().
+
+            FR-5.1.5 (Two-Factor Authentication): Manages _rememberMe preference, impacting how the machine is remembered for 2FA.
+
+        Key Properties: token, refreshToken, tokenExpiration, rememberMe, userLogin (BehaviorSubject for login status changes), openUserMenuSignal (Subject for UI events).
+
+        Key Methods: checkUserLoggedInStatus() (verifies current login state), clearStorageAfterLogout() (resets all auth data and state).
+
+    9.2.4. NotificationService
+
+        File: src/app/utilities/services/notification.service.ts
+
+        Role: Provides a consistent interface for displaying user feedback notifications across the application (success, info, warning, error).
+
+        Functional Requirements Mapping:
+
+            NFR-6.4.2 (Clear Feedback): Directly implements this NFR by abstracting MatSnackBar and providing themed notification methods.
+
+        Key Methods: success(), info(), warning(), error().
+
+        Dependencies: Uses Angular Material's MatSnackBar and custom SCSS classes (snackbar-success, snackbar-info, snackbar-warning, snackbar-error from styles.scss).
+
+9.3. Frontend Models & Data Structures
+
+This subsection details the TypeScript models that define the structure of data exchanged between the frontend and backend, or used for internal application state.
+
+    9.3.1. _BaseCommonModel
+
+        File: src/app/common/models/_base-common.model.ts
+
+        Purpose: Defines a base interface for common properties like id that are shared across many domain models, promoting consistency and reusability. Filename prefix _ indicates it's meant for inheritance/implementation.
+
+    9.3.2. ApiResponseCommonModel
+
+        File: src/app/common/models/api-response-common.model.ts
+
+        Purpose: Defines a common structure for API responses that primarily convey status and messages (e.g., success confirmations, error messages). Used by various services (e.g., AuthService, QuestionService).
+
+    9.3.3. QuestionModel
+
+        File: src/app/question/models/question.model.ts
+
+        Functional Requirements Mapping: Supports FR-1.1 (structure for retrieved questions), FR-1.2 (defines answerType), FR-1.3 (contains isRequiredForPlanCreation, validationRegex), FR-5.2.1 (contains displayOrder).
+
+        Key Properties: id, text, hint, answerType, displayOrder, isActive, isRequiredForPlanCreation, defaultAnswer, validationRegex, options (dynamically populated by QuestionService).
+
+        Instantiation: Constructor uses explicit property-by-property assignment (e.g., this.id = data.id;).
+
+    9.3.4. AnswerModel
+
+        File: src/app/question/models/answer.model.ts
+
+        Functional Requirements Mapping: Defines the structure for individual answers as part of FR-1.6 (Answer Persistence).
+
+        Key Properties: questionId, submittedAnswer.
+
+        Instantiation: Constructor uses explicit property-by-property assignment.
+
+    9.3.5. SubmitAnswersRequestModel
+
+        File: src/app/question/models/submit-answers-request.model.ts
+
+        Functional Requirements Mapping: Defines the complete payload structure for submitting answers as part of FR-1.6 and FR-2.6.
+
+        Key Properties: personId, answers (an array of AnswerModel instances).
+
+        Instantiation: Constructor explicitly assigns personId and maps the raw answers array to an array of AnswerModel instances.
+
+    9.3.6. Other Authentication-Related Models:
+
+        RegisterUser: src/app/components/auth/models/register-user.ts (for FR-4.3).
+
+        LoginUser: src/app/components/auth/models/login-user.ts (for FR-4.4).
+
+        LoginResponse: src/app/components/auth/models/login-response.ts (response from FR-4.4).
+
+        ForgotPassword: src/app/components/auth/models/forgot-password.ts (for FR-5.1.4).
+
+        ResetPassword: src/app/components/auth/models/reset-password.ts (for FR-5.1.4).
+
+        ConfirmEmail: src/app/components/auth/models/confirm-email.ts (for FR-5.1.3).
+
+        SendConfirmationEmail: src/app/components/auth/models/send-confirmation-email.ts (for FR-5.1.3).
+
+        UpdateInfo: src/app/components/auth/models/update-info.ts (for FR-5.1.4 related updates).
+
+        CurrentInfo: src/app/components/auth/models/current-info.ts (retrieved user info).
+
+        UpdateTwoFactor: src/app/components/auth/models/update-two-factor.ts (request to update 2FA, for FR-5.1.5).
+
+        UpdateTwoFactorResponse: src/app/components/auth/models/update-two-factor-response.ts (response from 2FA update, for FR-5.1.5).
+
+9.4. Backend Services & Business Logic
+
+This subsection details the ASP.NET Core backend services that implement the core business logic.
+
+    9.4.1. QuestionOrchestrationService (C#)
+
+        File: Nom.Orch/Services/QuestionOrchestrationService.cs
+
+        Functional Requirements Mapping:
+
+            FR-1.1 (Dynamic Questionnaire Retrieval): The GetRequiredOnboardingQuestionsAsync() method queries the database for IsRequiredForPlanCreation questions and orders them by DisplayOrder. It maps database entities to QuestionOrchestrationModels for API response.
+
+            FR-1.6 (Answer Persistence): SubmitOnboardingAnswersAsync() receives answers, validates them against question types, and persists them as AnswerEntity records.
+
+            FR-2.1 (Automatic Restriction Inference): SubmitOnboardingAnswersAsync() calls InferAndAddRestrictions() based on specific question IDs (e.g., Q5, Q8, Q9, Q10) and answers.
+
+            FR-2.2 (Person-Level Restriction Association): InferAndAddRestrictions() creates RestrictionEntity records linked to the PersonId.
+
+            FR-2.3 (System Auditability): InferAndAddRestrictions() sets CreatedByPersonId to the "System" person's ID (typically 1L).
+
+            FR-2.4 (Prevention of Duplicates): InferAndAddRestrictions() includes logic to check for existing restrictions before adding new ones based on RestrictionTypeId, PersonId, and PlanId. SubmitOnboardingAnswersAsync also handles distinctness.
+
+            FR-2.5 (Mandatory Restriction Association): The AddRestrictionIfNotFound helper enforces that a Restriction must have either a PersonId or PlanId.
+
+            FR-2.6 (Post-Processing on Completion): SubmitOnboardingAnswersAsync() is the central method that orchestrates saving answers and inferring/saving restrictions after all questions are submitted.
+
+        Domain Rules Mapping: Directly implements rules within the Questionnaire/Onboarding (5.2) and Dietary Restriction Management (5.5) domains.
+
+        Key Methods: GetRequiredOnboardingQuestionsAsync, SubmitOnboardingAnswersAsync, InferAndAddRestrictions, AddRestrictionIfNotFound, MapReferenceIdToAnswerTypeEnum, ParseJsonStringToList, GetReferenceIdByNameAsync.
+
+9.5. Backend Entities & Database Mapping
+
+This subsection outlines the Entity Framework Core entities that define the database schema and their relationship to business rules.
+
+    9.5.1. QuestionEntity
+
+        File: Nom.Data/Question/QuestionEntity.cs
+
+        Functional Requirements Mapping: Defines structure for FR-1.1, FR-1.2, FR-1.3.
+
+        Domain Rules Mapping: Directly implements Rule-5.2.1 (DisplayOrder), Rule-5.2.2 (IsRequiredForPlanCreation), and Rule-5.2.3 (AnswerTypeRefId, ValidationRegex).
+
+    9.5.2. AnswerEntity
+
+        File: Nom.Data/Question/AnswerEntity.cs (Implicit from context, not explicitly provided but assumed)
+
+        Functional Requirements Mapping: Defines structure for FR-1.6.
+
+    9.5.3. RestrictionEntity
+
+        File: Nom.Data/Plan/RestrictionEntity.cs (or similar)
+
+        Functional Requirements Mapping: Defines structure for FR-2.1, FR-2.2, FR-2.3.
+
+        Domain Rules Mapping: Directly implements Rule-5.5.1 (via schema constraints/logic), Rule-5.5.2 (RestrictionTypeId), Rule-5.5.3 (backend service logic for uniqueness), Rule-5.5.4 (CreatedByPersonId, CreatedDate).
+
+    9.5.4. PersonEntity
+
+        File: Nom.Data/Person/PersonEntity.cs (Implicit from context)
+
+        Domain Rules Mapping: Key entity for Rule-5.1.1 (Unique Identification), central to User/Person Management Domain (5.1).
+
+    9.5.5. PlanEntity
+
+        File: Nom.Data/Plan/PlanEntity.cs (Implicit from context)
+
+        Domain Rules Mapping: Key entity for Rule-5.3.1 (Plan Uniqueness), Rule-5.3.2 (CreatedByPersonId).
+
+    9.5.6. PlanParticipantEntity
+
+        File: Nom.Data/Plan/PlanParticipantEntity.cs (Implicit from context)
+
+        Functional Requirements Mapping: Links Person to Plan for FR-3.2.
+
+        Domain Rules Mapping: Directly implements Rule-5.3.3 (Participant Association), Rule-5.3.4 (Participant Roles).
+
+    9.5.7. ReferenceEntity and GroupEntity
+
+        Files: Nom.Data/Reference/ReferenceEntity.cs, Nom.Data/Reference/GroupEntity.cs
+
+        Domain Rules Mapping: ReferenceEntity and its relationship with GroupEntity (managed via ApplicationDbContext's UsingEntity configuration) directly implement Rule-5.4.1 (Categorization) and Rule-5.4.2 (Many-to-Many Association) of the Reference Data Management Domain. ReferenceEntity is also crucial for AnswerTypeRefId on QuestionEntity, RestrictionTypeId on RestrictionEntity, and NutrientTypeId, MeasurementTypeId, GuidelineBasisTypeId on Nutrient entities.
+
+    9.5.8. GroupedReferenceViewEntity
+
+        File: Nom.Data/Reference/GroupedReferenceViewEntity.cs (and derived types like AnswerTypeGroupedReferenceViewEntity)
+
+        Domain Rules Mapping: Directly implements Rule-5.4.3 (View Entity Discriminators), providing a structured view for frontend consumption.
+
+    9.5.9. NutrientEntity, NutrientComponentEntity, NutrientGuidelineEntity
+
+        Files: Nom.Data/Nutrient/NutrientEntity.cs, Nom.Data/Nutrient/NutrientComponentEntity.cs, Nom.Data/Nutrient/NutrientGuidelineEntity.cs
+
+        Domain Rules Mapping: These entities define the schema for the Nutrient Management Domain (5.6), implementing Rule-5.6.1 (Nutrient Typing via NutrientTypeId), Rule-5.6.2 (MacroNutrientId, MicroNutrientId, Measurement, MeasurementTypeId), and Rule-5.6.3 (GuidelineBasisTypeId, MeasurementTypeId, MinimumMeasurement, MaximumMeasurement).
+
+9.6. Frontend Pipes & Global Styles
+
+    9.6.1. JsonParseCommonPipe
+
+        File: src/app/common/pipes/json-parse-common.pipe.ts
+
+        Role: Utility pipe to safely parse JSON strings into JavaScript objects directly within Angular templates.
+
+        Usage: Used in onboarding-wizard.component.html to interpret defaultAnswer for Multi-Select and Single-Select questions (e.g., (currentAnswerForm.get('answer')?.value | jsonParseCommon)?.includes(option)).
+
+    9.6.2. Global SCSS Styles
+
+        Files: src/styles.scss, src/nom-theme.scss (and src/variables.scss implicitly)
+
+        Non-Functional Requirements Mapping: Directly implements aspects of NFR-6.4.3 (Responsive Design) and NFR-6.3.2 (Consistent Conventions - BEM classes, Material theming).
+
+        Key Elements:
+
+            .nom-page-container: Provides responsive page layout.
+
+            .nom-card: Defines common card aesthetics.
+
+            .nom-form, .nom-form__field, .nom-form__input: Standardized form element styling.
+
+            .nom-button: Consistent button styling.
+
+            .nom-instruction-text, .nom-prompt-text, .nom-message-text, .nom-link: Standardized text and link styles.
+
+            .snackbar-* classes (e.g., snackbar-success): Applied by NotificationService for themed toast messages, contributing to NFR-6.4.2 (Clear Feedback).
+
+            Media queries @media (min-width: vars.$breakpoint-mobile): Ensure adaptive design for various screen sizes.

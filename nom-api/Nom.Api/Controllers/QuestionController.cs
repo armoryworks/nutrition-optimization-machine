@@ -8,10 +8,12 @@ using Nom.Orch.Interfaces; // For IQuestionOrchestrationService
 using Nom.Orch.Models.Question; // For AnswerOrchestrationModel
 using Nom.Orch.Enums; // ADDED: To use AnswerTypeEnum for mapping
 using Microsoft.Extensions.Logging;
-using System; // For Exception
+using System;
+using Microsoft.AspNetCore.Authorization; // For Exception
 
 namespace Nom.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class QuestionController : ControllerBase
@@ -83,9 +85,14 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (submissionModel.PersonId <= 0)
+            {
+                _logger.LogWarning("SubmitOnboardingAnswers: Person ID is not available for submission.");
+                return BadRequest(new { Message = "Person ID is not available for submission." });
+            }
+
             try
             {
-                // Map API input answers to orchestration-level answer models
                 var orchestrationAnswers = submissionModel.Answers.Select(a => new AnswerOrchestrationModel
                 {
                     QuestionId = a.QuestionId,
@@ -105,15 +112,13 @@ namespace Nom.Api.Controllers
                 else
                 {
                     _logger.LogError("SubmitOnboardingAnswers: Failed to process or save answers for Person ID: {PersonId}. Check previous logs for details.", submissionModel.PersonId);
-                    ModelState.AddModelError(string.Empty, "Failed to process answers. Please check input and try again.");
-                    return StatusCode(StatusCodes.Status500InternalServerError, ModelState);
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to process answers. Please check input and try again." });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SubmitOnboardingAnswers: An unexpected error occurred while submitting answers for Person ID: {PersonId}", submissionModel.PersonId);
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred.");
-                return StatusCode(StatusCodes.Status500InternalServerError, ModelState);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An unexpected error occurred." });
             }
         }
     }

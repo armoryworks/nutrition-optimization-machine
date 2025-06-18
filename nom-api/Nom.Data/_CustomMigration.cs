@@ -25,11 +25,13 @@ namespace Nom.Data
             AddPlanInvitationRoles(migrationBuilder); // NEW: Seed Plan Invitation Roles
             CreateReferenceGroupView(migrationBuilder);
             SeedInitialQuestions(migrationBuilder);
+            SeedAdditionalRestrictionQuestions(migrationBuilder);
         }
 
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
         {
             RemoveInitialQuestions(migrationBuilder);
+            RemoveAdditionalRestrictionQuestions(migrationBuilder);
             DropReferenceGroupView(migrationBuilder);
             RemovePlanInvitationRoles(migrationBuilder); // NEW: Remove Plan Invitation Roles
             RemoveRestrictionTypes(migrationBuilder);
@@ -47,14 +49,16 @@ namespace Nom.Data
 
         public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
         {
+            #pragma warning disable CS8625 // Disable warnings for nullable reference type assignments
             migrationBuilder.InsertData(
                 schema: "person",
                 table: "Person",
                 columns: new[] { "Id", "Name", "UserId", "InvitationCode" },
                 values: new object[,]
                 {
-                    { 1L, "System", null, null }
+                    { 1L, "System", null, null } // Use null directly for nullable columns
                 });
+            #pragma warning restore CS8625 // Re-enable warnings
         }
 
         public static void RemoveInitialSystemPerson(MigrationBuilder migrationBuilder)
@@ -253,7 +257,6 @@ namespace Nom.Data
                 });
         }
 
-
         public static void CreateReferenceGroupView(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
@@ -286,52 +289,53 @@ namespace Nom.Data
             long textInputAnswerTypeId = 1001L;
             long multiSelectAnswerTypeId = 1002L;
             long singleSelectAnswerTypeId = 1003L;
-
+            #pragma warning disable CS8625 // Disable warnings for nullable reference type assignments
             migrationBuilder.InsertData(
                 schema: "question",
                 table: "Question",
-                columns: new[] { "Id", "Text", "Hint", "QuestionCategoryId", "AnswerTypeRefId", "DisplayOrder", "IsActive", "IsRequiredForPlanCreation", "DefaultAnswer", "ValidationRegex" },
+                columns: new[] { "Id", "Text", "Hint", "QuestionCategoryId", "AnswerTypeRefId", "DisplayOrder", "IsActive", "IsRequiredForPlanCreation", "DefaultAnswer", "ValidationRegex", "NextQuestionOnTrue", "NextQuestionOnFalse" },
                 values: new object[,]
                 {
                     // Section 1: Getting Started
-                    { 1L, "What name should we use for you within the plan?", null, questionCategoryId, textInputAnswerTypeId, 10, true, true, null, null },
-                    { 2L, "Will anyone else be participating in this plan with you (e.g., family members, roommates)?", null, questionCategoryId, yesNoAnswerTypeId, 20, true, false, "false", null },
+                    { 1L, "Will anyone else be participating in this plan with you (e.g., family members, roommates)?", null, questionCategoryId, yesNoAnswerTypeId, 10, true, false, "false", null, 2L, 4L },
+                    { 2L, "How many people will be participating in this plan?", "Enter the number of participants.", questionCategoryId, textInputAnswerTypeId, 20, true, false, null, @"^\d+$", null, null },
 
                     // Section 2: Additional Persons (dynamically added in UI, this provides the question template)
-                    { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, null, null },
+                    { 3L, "Participant's Name:", "Enter the name of an additional person sharing this plan.", questionCategoryId, textInputAnswerTypeId, 30, true, false, null, null, null, null },
 
                     // NEW QUESTION: Invitation Code
-                    { 27L, "Do you have an invitation code to join an existing plan?", null, questionCategoryId, textInputAnswerTypeId, 270, true, false, null, null }, // Q27 for invitation code
+                    { 4L, "Do you have an invitation code to join an existing plan?", null, questionCategoryId, textInputAnswerTypeId, 40, true, false, null, null, null, null },
 
                     // Section 3: Dietary Foundations & Values
-                    { 4L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", null, questionCategoryId, yesNoAnswerTypeId, 40, true, false, "false", null },
-                    { 5L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 50, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", null },
-                    { 6L, "Please describe any specific cultural or traditional food restrictions, inclusions, or fasting periods:", "e.g., no pork, no beef, specific holiday foods, Ramadan, Lent", questionCategoryId, textInputAnswerTypeId, 60, true, false, null, null },
+                    { 5L, "Are there any societal, religious, or ethical dietary practices you or other participants follow?", null, questionCategoryId, yesNoAnswerTypeId, 50, true, false, "false", null, 6L, null },
+                    { 6L, "Which of the following dietary foundations apply to anyone participating?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 60, true, false, "[\"Kosher\",\"Halal\",\"Vegetarian\",\"Vegan\",\"Pescatarian\",\"Pollotarian\",\"Flexitarian\",\"Paleo\",\"Keto\",\"Mediterranean\",\"Dash Diet\"]", null, null, null },
+                    { 7L, "Please describe any specific cultural or traditional food restrictions, inclusions, or fasting periods:", "e.g., no pork, no beef, specific holiday foods, Ramadan, Lent", questionCategoryId, textInputAnswerTypeId, 70, true, false, null, null, null, null },
 
                     // Section 4: Health & Medical Dietary Adjustments
-                    { 7L, "Are there any allergies, intolerances, or medical conditions that require specific dietary adjustments for anyone on the plan?", null, questionCategoryId, yesNoAnswerTypeId, 70, true, false, "false", null },
-                    { 8L, "Please indicate any diagnosed food allergies for participants:", "Select all that apply, or type 'Other' for unlisted.", questionCategoryId, multiSelectAnswerTypeId, 80, true, false, "[\"Peanuts\",\"Tree Nuts\",\"Dairy\",\"Eggs\",\"Soy\",\"Wheat\",\"Fish\",\"Shellfish\",\"Sesame\",\"Corn\",\"Sulfites\"]", null },
-                    { 9L, "Is anyone managing Gluten Sensitivity or Celiac Disease?", null, questionCategoryId, yesNoAnswerTypeId, 90, true, false, "false", null },
-                    { 10L, "Is anyone managing Lactose Intolerance?", null, questionCategoryId, yesNoAnswerTypeId, 100, true, false, "false", null },
-                    { 11L, "Is anyone managing Type 1 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 110, true, false, "false", null },
-                    { 12L, "Is anyone managing Type 2 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 120, true, false, "false", null },
-                    { 13L, "Is anyone managing High Blood Pressure?", null, questionCategoryId, yesNoAnswerTypeId, 130, true, false, "false", null },
-                    { 14L, "Is anyone managing High Cholesterol?", null, questionCategoryId, yesNoAnswerTypeId, 140, true, false, "false", null },
-                    { 15L, "Is anyone managing Gastrointestinal Conditions (e.g., Crohn's, IBS, Leaky Gut, GERD)?", null, questionCategoryId, yesNoAnswerTypeId, 150, true, false, "false", null },
-                    { 16L, "Please specify gastrointestinal conditions or specific triggers/avoidances:", null, questionCategoryId, textInputAnswerTypeId, 160, true, false, null, null },
-                    { 17L, "Is anyone managing Kidney Disease?", null, questionCategoryId, yesNoAnswerTypeId, 170, true, false, "false", null },
-                    { 18L, "Please specify kidney disease stage or specific restrictions (e.g., low potassium, low phosphorus):", null, questionCategoryId, textInputAnswerTypeId, 180, true, false, null, null },
-                    { 19L, "Is anyone managing Gout?", null, questionCategoryId, yesNoAnswerTypeId, 190, true, false, "false", null },
-                    { 20L, "Are there any other medical conditions or health goals impacting diet (e.g., anemia, specific vitamin deficiencies, pregnancy/lactation needs, specific medication interactions)? Please describe:", null, questionCategoryId, textInputAnswerTypeId, 200, true, false, null, null },
+                    { 8L, "Are there any allergies, intolerances, or medical conditions that require specific dietary adjustments for anyone on the plan?", null, questionCategoryId, yesNoAnswerTypeId, 80, true, false, "false", null, 9L, null },
+                    { 9L, "Please indicate any diagnosed food allergies for participants:", "Select all that apply, or type 'Other' for unlisted.", questionCategoryId, multiSelectAnswerTypeId, 90, true, false, "[\"Peanuts\",\"Tree Nuts\",\"Dairy\",\"Eggs\",\"Soy\",\"Wheat\",\"Fish\",\"Shellfish\",\"Sesame\",\"Corn\",\"Sulfites\"]", null, null, null },
+                    { 10L, "Is anyone managing Gluten Sensitivity or Celiac Disease?", null, questionCategoryId, yesNoAnswerTypeId, 100, true, false, "false", null, null, null },
+                    { 11L, "Is anyone managing Lactose Intolerance?", null, questionCategoryId, yesNoAnswerTypeId, 110, true, false, "false", null, null, null },
+                    { 12L, "Is anyone managing Type 1 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 120, true, false, "false", null, null, null },
+                    { 13L, "Is anyone managing Type 2 Diabetes?", null, questionCategoryId, yesNoAnswerTypeId, 130, true, false, "false", null, null, null },
+                    { 14L, "Is anyone managing High Blood Pressure?", null, questionCategoryId, yesNoAnswerTypeId, 140, true, false, "false", null, null, null },
+                    { 15L, "Is anyone managing High Cholesterol?", null, questionCategoryId, yesNoAnswerTypeId, 150, true, false, "false", null, null, null },
+                    { 16L, "Is anyone managing Gastrointestinal Conditions (e.g., Crohn's, IBS, Leaky Gut, GERD)?", null, questionCategoryId, yesNoAnswerTypeId, 160, true, false, "false", null, null, null },
+                    { 17L, "Please specify gastrointestinal conditions or specific triggers/avoidances:", null, questionCategoryId, textInputAnswerTypeId, 170, true, false, null, null, null, null },
+                    { 18L, "Is anyone managing Kidney Disease?", null, questionCategoryId, yesNoAnswerTypeId, 180, true, false, "false", null, null, null },
+                    { 19L, "Please specify kidney disease stage or specific restrictions (e.g., low potassium, low phosphorus):", null, questionCategoryId, textInputAnswerTypeId, 190, true, false, null, null, null, null },
+                    { 20L, "Is anyone managing Gout?", null, questionCategoryId, yesNoAnswerTypeId, 200, true, false, "false", null, null, null },
+                    { 21L, "Are there any other medical conditions or health goals impacting diet (e.g., anemia, specific vitamin deficiencies, pregnancy/lactation needs, specific medication interactions)? Please describe:", null, questionCategoryId, textInputAnswerTypeId, 210, true, false, null, null, null, null },
 
                     // Section 5: Personal Food Preferences & Aversions
-                    { 21L, "Are there any specific foods, ingredients, or textures that you or other participants strongly dislike or prefer to avoid?", null, questionCategoryId, yesNoAnswerTypeId, 210, true, false, "false", null },
-                    { 22L, "Which ingredients or foods do you want to exclude?", "e.g., Cilantro, Mushrooms, Olives, Bell Peppers", questionCategoryId, multiSelectAnswerTypeId, 220, true, false, "[\"Cilantro\",\"Mushrooms\",\"Olives\",\"Bell Peppers\",\"Onions\",\"Garlic\",\"Spicy Foods (general)\",\"Fishy taste\",\"Gamey meats\"]", null },
-                    { 23L, "Are there any textures you strongly dislike?", "e.g., mushy, slimy, gritty, soggy, crunchy (if aversion)", questionCategoryId, multiSelectAnswerTypeId, 230, true, false, "[\"Mushy\",\"Slimy\",\"Gritty\",\"Chewy (e.g., undercooked beans)\",\"Soggy\",\"Crunchy\"]", null },
-                    { 24L, "What spice level do you generally prefer?", null, questionCategoryId, singleSelectAnswerTypeId, 240, true, false, "Mild", "[\"Mild\",\"Medium\",\"Spicy\",\"Very Spicy\"]" },
-                    { 25L, "Are there any preferred cooking methods?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 250, true, false, "[\"Grilled\",\"Baked\",\"Roasted\",\"Stir-fried\",\"Slow-cooked\",\"Pressure cooked\",\"Raw\"]", null },
-                    { 26L, "Do you have any other general food likes or dislikes (e.g., preference for specific cuisines, dislike of strong odors)?", null, questionCategoryId, textInputAnswerTypeId, 260, true, false, null, null }
+                    { 22L, "Are there any specific foods, ingredients, or textures that you or other participants strongly dislike or prefer to avoid?", null, questionCategoryId, yesNoAnswerTypeId, 220, true, false, "false", null, null, null },
+                    { 23L, "Which ingredients or foods do you want to exclude?", "e.g., Cilantro, Mushrooms, Olives, Bell Peppers", questionCategoryId, multiSelectAnswerTypeId, 230, true, false, "[\"Cilantro\",\"Mushrooms\",\"Olives\",\"Bell Peppers\",\"Onions\",\"Garlic\",\"Spicy Foods (general)\",\"Fishy taste\",\"Gamey meats\"]", null, null, null },
+                    { 24L, "Are there any textures you strongly dislike?", "e.g., mushy, slimy, gritty, soggy, crunchy (if aversion)", questionCategoryId, multiSelectAnswerTypeId, 240, true, false, "[\"Mushy\",\"Slimy\",\"Gritty\",\"Chewy (e.g., undercooked beans)\",\"Soggy\",\"Crunchy\"]", null, null, null },
+                    { 25L, "What spice level do you generally prefer?", null, questionCategoryId, singleSelectAnswerTypeId, 250, true, false, "Mild", "[\"Mild\",\"Medium\",\"Spicy\",\"Very Spicy\"]", null, null },
+                    { 26L, "Are there any preferred cooking methods?", "Select all that apply.", questionCategoryId, multiSelectAnswerTypeId, 260, true, false, "[\"Grilled\",\"Baked\",\"Roasted\",\"Stir-fried\",\"Slow-cooked\",\"Pressure cooked\",\"Raw\"]", null, null, null },
+                    { 27L, "Do you have any other general food likes or dislikes (e.g., preference for specific cuisines, dislike of strong odors)?", null, questionCategoryId, textInputAnswerTypeId, 270, true, false, null, null, null, null }
                 });
+            #pragma warning restore CS8625 // Re-enable warnings
         }
 
         public static void RemoveInitialQuestions(MigrationBuilder migrationBuilder)
@@ -342,9 +346,36 @@ namespace Nom.Data
                 keyColumn: "Id",
                 keyValues: new object[]
                 {
-                    1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 26L,
-                    27L // REMOVE NEW QUESTION
+                    1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 26L, 27L
                 });
+        }
+
+        public static void SeedAdditionalRestrictionQuestions(MigrationBuilder migrationBuilder)
+        {
+            long questionCategoryId = (long)ReferenceDiscriminatorEnum.QuestionCategory;
+            long yesNoAnswerTypeId = 1000L;
+            long textInputAnswerTypeId = 1001L;
+            long multiSelectAnswerTypeId = 1002L;
+
+            migrationBuilder.InsertData(
+                schema: "question",
+                table: "Question",
+                columns: new[] { "Id", "Text", "Hint", "QuestionCategoryId", "AnswerTypeRefId", "DisplayOrder", "IsActive", "IsRequiredForPlanCreation", "DefaultAnswer", "ValidationRegex", "NextQuestionOnTrue", "NextQuestionOnFalse" },
+                values: new object[,]
+                {
+                    { 28L, "Should this restriction apply to the entire plan?", null, questionCategoryId, yesNoAnswerTypeId, 280, true, false, "false", null, 29L, null },
+                    { 29L, "Which participant(s) should this restriction apply to?", "Select all participants or leave blank for none.", questionCategoryId, multiSelectAnswerTypeId, 290, true, false, null, null, null, null },
+                    { 30L, "Please provide additional details or notes about this restriction:", "Optional description or clarification.", questionCategoryId, textInputAnswerTypeId, 300, true, false, null, null, null, null }
+                });
+        }
+
+        public static void RemoveAdditionalRestrictionQuestions(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "question",
+                table: "Question",
+                keyColumn: "Id",
+                keyValues: new object[] { 28L, 29L, 30L });
         }
     }
 }

@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using Nom.Api.Models.Person;
 using Nom.Orch.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Nom.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class PersonController : ControllerBase
@@ -27,7 +29,7 @@ namespace Nom.Api.Controllers
         /// Creates a new person profile and links it to an existing Identity user.
         /// This endpoint assumes the Identity user has already been registered via another mechanism.
         /// </summary>
-        /// <param name="model">The person creation request data, including the Identity User ID and person's name.</param>
+        /// <param name="model">The person creation request data, including the person's name.</param>
         /// <returns>The created Person profile data.</returns>
         [HttpPost] // POST to /api/Person
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -37,34 +39,43 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("CreatePerson: Invalid ModelState for request with IdentityUserId: {IdentityUserId}", model.IdentityUserId);
+                _logger.LogWarning("CreatePerson: Invalid ModelState for request.");
                 return BadRequest(ModelState);
             }
 
             try
             {
-                // Delegate to the orchestration service to create the Person entity
-                var personEntity = await _personOrchestrationService.SetupNewRegisteredPersonAsync(model.IdentityUserId, model.PersonName);
+                // Infer IdentityUserId from the context user
+                var identityUserId = User?.Identity?.Name; // Assuming Name contains the IdentityUserId
+                if (string.IsNullOrEmpty(identityUserId))
+                {
+                    _logger.LogWarning("CreatePerson: Unable to infer IdentityUserId from the context user.");
+                    return Unauthorized(new { Message = "User identity could not be determined." });
+                }
 
-                _logger.LogInformation("CreatePerson: Person entity {PersonId} created and linked to Identity user {IdentityUserId}", personEntity.Id, personEntity.UserId);
+                var personEntity = await _personOrchestrationService.SetupNewRegisteredPersonAsync(identityUserId, model.PersonName);
 
-                // Map the PersonEntity to the PersonCreateResponseModel for the API response
+                if (personEntity == null || personEntity.Id <= 0)
+                {
+                    _logger.LogError("CreatePerson: Failed to create person entity for Identity user {IdentityUserId}", identityUserId);
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to create person entity." });
+                }
+
+                _logger.LogInformation("CreatePerson: Person entity {PersonId} created and linked to Identity user {IdentityUserId}", personEntity.Id, identityUserId);
+
                 var responseModel = new PersonCreateResponseModel
                 {
                     Id = personEntity.Id,
                     Name = personEntity.Name,
                     UserId = personEntity.UserId
-                    // REMOVED: InvitationCode = personEntity.InvitationCode
-                    // InvitationCode is no longer included in the response sent to the frontend.
                 };
 
-                return CreatedAtAction(nameof(GetPersonById), new { id = responseModel.Id }, responseModel);
+                return CreatedAtRoute("GetPersonById", new { id = responseModel.Id }, responseModel);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "CreatePerson: Failed to create person profile for Identity user {IdentityUserId}", model.IdentityUserId);
-                ModelState.AddModelError(string.Empty, "An error occurred during person profile creation.");
-                return StatusCode(StatusCodes.Status500InternalServerError, ModelState);
+                _logger.LogError(ex, "CreatePerson: Failed to create person profile for Identity user.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An error occurred during person profile creation." });
             }
         }
 
@@ -73,7 +84,7 @@ namespace Nom.Api.Controllers
         /// </summary>
         /// <param name="id">The ID of the person to retrieve.</param>
         /// <returns>The person profile data.</returns>
-        [HttpGet("{id}")] // GET /api/Person/{id}
+        [HttpGet("{id}", Name = "GetPersonById")] // GET /api/Person/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetPersonById(long id)

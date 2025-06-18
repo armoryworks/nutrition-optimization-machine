@@ -15,27 +15,66 @@ using System.Text.Json; // For JsonSerializer
 namespace Nom.Orch.Services
 {
     /// <summary>
-    /// Implements the business logic for managing questions and answers,
-    /// primarily focused on fetching onboarding questions and submitting answers.
-    /// Also infers and saves dietary restrictions based on answers.
+    /// Implements the business logic for managing questions and answers.
+    /// Provides methods for fetching onboarding questions, submitting answers, and inferring dietary restrictions.
     /// </summary>
     public class QuestionOrchestrationService : IQuestionOrchestrationService
     {
         private readonly ApplicationDbContext _dbContext;
 
+        /// <summary>
+        /// Initializes a new instance of the QuestionOrchestrationService class.
+        /// </summary>
+        /// <param name="dbContext">The database context for accessing question and answer entities.</param>
         public QuestionOrchestrationService(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
         /// <summary>
-        /// Retrieves a list of questions that are required for initial user onboarding or plan creation.
+        /// Retrieves a list of questions required for initial user onboarding or plan creation.
         /// </summary>
         /// <returns>A list of QuestionOrchestrationModel containing relevant questions.</returns>
         public async Task<List<QuestionOrchestrationModel>> GetRequiredOnboardingQuestionsAsync()
         {
             var questions = await _dbContext.Questions
                                             .Where(q => q.IsRequiredForPlanCreation)
+                                            .OrderBy(q => q.DisplayOrder)
+                                            .ToListAsync();
+
+            var questionModels = new List<QuestionOrchestrationModel>();
+
+            foreach (var question in questions)
+            {
+                var answerTypeEnum = MapReferenceIdToAnswerTypeEnum(question.AnswerTypeRefId);
+
+                questionModels.Add(new QuestionOrchestrationModel
+                {
+                    Id = question.Id,
+                    Text = question.Text,
+                    Hint = question.Hint,
+                    QuestionCategoryId = question.QuestionCategoryId,
+                    AnswerType = answerTypeEnum,
+                    DisplayOrder = question.DisplayOrder,
+                    IsActive = question.IsActive,
+                    IsRequiredForPlanCreation = question.IsRequiredForPlanCreation,
+                    DefaultAnswer = question.DefaultAnswer,
+                    ValidationRegex = question.ValidationRegex,
+                    Options = ParseJsonStringToList(question.DefaultAnswer)
+                });
+            }
+
+            return questionModels;
+        }
+
+        /// <summary>
+        /// Retrieves a list of restriction assignment questions.
+        /// </summary>
+        /// <returns>A list of QuestionOrchestrationModel containing restriction assignment questions.</returns>
+        public async Task<List<QuestionOrchestrationModel>> GetRestrictionAssignmentQuestionsAsync()
+        {
+            var questions = await _dbContext.Questions
+                                            .Where(q => q.Id >= 28L && q.Id <= 30L) // Fetch restriction assignment questions
                                             .OrderBy(q => q.DisplayOrder)
                                             .ToListAsync();
 
@@ -262,8 +301,89 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Helper method to map a Reference.Id (from QuestionEntity.AnswerTypeRefId) to AnswerTypeEnum.
+        /// Submits and processes a collection of answers for restriction assignment questions.
         /// </summary>
+        /// <param name="planId">The ID of the plan submitting the answers.</param>
+        /// <param name="answers">A list of AnswerOrchestrationModel containing the question ID and submitted answer.</param>
+        /// <returns>True if all answers were successfully processed and saved; otherwise, false.</returns>
+        public async Task<bool> SubmitRestrictionAssignmentAnswersAsync(long planId, List<AnswerOrchestrationModel> answers)
+        {
+            if (planId <= 0 || answers == null || !answers.Any())
+            {
+                Console.WriteLine("SubmitRestrictionAssignmentAnswers: Invalid planId or no answers provided.");
+                return false;
+            }
+
+            var plan = await _dbContext.Plans.FirstOrDefaultAsync(p => p.Id == planId);
+            if (plan == null)
+            {
+                Console.WriteLine($"SubmitRestrictionAssignmentAnswers: Plan with ID {planId} not found.");
+                return false;
+            }
+
+            var questionIds = answers.Select(a => a.QuestionId).Distinct().ToList();
+            var questions = await _dbContext.Questions
+                                            .Where(q => questionIds.Contains(q.Id))
+                                            .ToDictionaryAsync(q => q.Id);
+
+            var answersToSave = new List<AnswerEntity>();
+
+            foreach (var submittedAnswer in answers)
+            {
+                if (!questions.TryGetValue(submittedAnswer.QuestionId, out var question))
+                {
+                    Console.WriteLine($"SubmitRestrictionAssignmentAnswers: Question with ID {submittedAnswer.QuestionId} not found for submitted answer.");
+                    continue;
+                }
+
+                var answerType = MapReferenceIdToAnswerTypeEnum(question.AnswerTypeRefId);
+                string? processedAnswerValue = submittedAnswer.SubmittedAnswer;
+
+                // Save the answer entity itself
+                var existingAnswer = await _dbContext.Answers
+                                                     .FirstOrDefaultAsync(a => a.PlanId == planId && a.QuestionId == question.Id);
+
+                if (existingAnswer != null)
+                {
+                    existingAnswer.AnswerText = processedAnswerValue ?? String.Empty;
+                }
+                else
+                {
+                    answersToSave.Add(new AnswerEntity
+                    {
+                        QuestionId = question.Id,
+                        PersonId = null, // Restriction assignment answers are tied to a plan
+                        PlanId = planId,
+                        AnswerText = processedAnswerValue ?? String.Empty,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = plan.CreatedByPersonId // The person who created the plan
+                    });
+                }
+            }
+
+            if (answersToSave.Any())
+            {
+                _dbContext.Answers.AddRange(answersToSave);
+            }
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+                Console.WriteLine($"SubmitRestrictionAssignmentAnswers: Successfully processed and saved answers for Plan ID {planId}.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SubmitRestrictionAssignmentAnswers: Error saving answers for Plan ID {planId}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Maps a reference ID to its corresponding AnswerTypeEnum value.
+        /// </summary>
+        /// <param name="referenceId">The reference ID to map.</param>
+        /// <returns>The corresponding AnswerTypeEnum value.</returns>
         private AnswerTypeEnum MapReferenceIdToAnswerTypeEnum(long referenceId)
         {
             return referenceId switch
@@ -277,8 +397,10 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Helper method to parse a JSON string into a List<string>.
+        /// Parses a JSON string into a list of strings.
         /// </summary>
+        /// <param name="jsonString">The JSON string to parse.</param>
+        /// <returns>A list of strings, or null if parsing fails.</returns>
         private List<string>? ParseJsonStringToList(string? jsonString)
         {
             if (string.IsNullOrWhiteSpace(jsonString))
@@ -297,8 +419,13 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Helper method to infer and add restrictions based on question answers.
+        /// Infers and adds dietary restrictions based on question answers.
         /// </summary>
+        /// <param name="questionId">The ID of the question being answered.</param>
+        /// <param name="answerValue">The value of the answer provided.</param>
+        /// <param name="personId">The ID of the person associated with the answer.</param>
+        /// <param name="createdByPersonId">The ID of the person creating the restrictions.</param>
+        /// <param name="restrictionsToSave">The list of restrictions to save.</param>
         private async Task InferAndAddRestrictions(
             long questionId,
             string? answerValue,
@@ -435,6 +562,12 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Helper to add a RestrictionEntity if it doesn't already exist for the given person/plan and type.
         /// </summary>
+        /// <param name="questionId">The ID of the question being answered.</param>
+        /// <param name="personId">The ID of the person associated with the restriction.</param>
+        /// <param name="planId">The ID of the plan associated with the restriction, if applicable.</param>
+        /// <param name="restrictionTypeName">The name of the restriction type.</param>
+        /// <param name="createdByPersonId">The ID of the person creating the restriction.</param>
+        /// <param name="restrictionsToSave">The list of restrictions to save.</param>
         private async Task AddRestrictionIfNotFound(
             long questionId,
             long? personId,
@@ -484,6 +617,9 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Retrieves the Id of a ReferenceEntity by its Name and GroupId.
         /// </summary>
+        /// <param name="name">The name of the reference entity.</param>
+        /// <param name="groupId">The ID of the reference group.</param>
+        /// <returns>The ID of the reference entity, or 0 if not found.</returns>
         private async Task<long> GetReferenceIdByNameAsync(string name, long groupId)
         {
             // Corrected query: Now that ReferenceEntity.Groups is correctly configured for many-to-many,

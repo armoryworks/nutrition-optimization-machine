@@ -65,5 +65,17 @@ namespace Nom.Data.Question
         /// </summary>
         [MaxLength(500)]
         public string? ValidationRegex { get; set; }
+
+        /// <summary>
+        /// Defines the next question in the workflow if the answer to this question is true.
+        /// Only relevant for boolean answers.
+        /// </summary>
+        public long? NextQuestionOnTrue { get; set; } // Optional workflow question ID
+
+        /// <summary>
+        /// Defines the next question in the workflow if the answer to this question is false.
+        /// Only relevant for boolean answers.
+        /// </summary>
+        public long? NextQuestionOnFalse { get; set; } // Optional workflow question ID
     }
 }

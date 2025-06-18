@@ -31,26 +31,19 @@ namespace Nom.Orch.Services
         /// <returns>The newly created PersonEntity.</returns>
         public async Task<PersonEntity> SetupNewRegisteredPersonAsync(string identityUserId, string personName)
         {
-            // First, ensure the "System" person exists for auditing purposes.
-            // In a real application, you'd likely have this seeded by a startup process
-            // or ensure it exists before any audit logs are created.
-            // For now, we'll ensure it exists.
+            // Ensure the "System" person exists
             var systemPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.Id == 1L);
             if (systemPerson == null)
             {
-                // This scenario should ideally be handled by your CustomMigration.SeedInitialSystemPerson.
-                // If it's truly missing here, it means the migration didn't run or completed incorrectly.
-                // For robustness in application code, we can create a fallback system person,
-                // but this implies a potential issue in the migration process.
                 systemPerson = new PersonEntity
                 {
                     Id = 1L,
                     Name = "System",
-                    UserId = null, // System user isn't a human user, no IdentityUser ID
-                    InvitationCode = null // System user doesn't need an invitation code
+                    UserId = null,
+                    InvitationCode = null
                 };
                 _dbContext.Persons.Add(systemPerson);
-                await _dbContext.SaveChangesAsync(); // Save the system person immediately
+                await _dbContext.SaveChangesAsync();
             }
 
             // Generate a unique invitation code for the new person
@@ -59,7 +52,7 @@ namespace Nom.Orch.Services
             var newPerson = new PersonEntity
             {
                 Name = personName,
-                UserId = identityUserId, // Link to the IdentityUser
+                UserId = identityUserId,
                 InvitationCode = invitationCode
             };
 

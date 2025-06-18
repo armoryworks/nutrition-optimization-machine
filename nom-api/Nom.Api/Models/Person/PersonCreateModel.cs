@@ -10,13 +10,6 @@ namespace Nom.Api.Models.Person // UPDATED NAMESPACE
     public class PersonCreateModel
     {
         /// <summary>
-        /// The ID of the existing IdentityUser to link to this new Person profile.
-        /// </summary>
-        [Required(ErrorMessage = "Identity User ID is required.")]
-        [StringLength(450, ErrorMessage = "Identity User ID cannot exceed 450 characters.")]
-        public required string IdentityUserId { get; set; }
-
-        /// <summary>
         /// The name for the new person profile.
         /// </summary>
         [Required(ErrorMessage = "Person name is required.")]

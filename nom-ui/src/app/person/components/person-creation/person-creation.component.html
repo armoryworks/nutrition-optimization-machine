@@ -1,0 +1,54 @@
+<div class="nom-page-container">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header">
+      <mat-card-title class="nom-card__title"
+        >Create Your Profile</mat-card-title
+      >
+    </mat-card-header>
+
+    <mat-card-content class="nom-card__content">
+      <form [formGroup]="personForm" class="nom-form">
+        <mat-form-field appearance="outline" class="nom-form__field">
+          <mat-label>Your Name</mat-label>
+          <input
+            matInput
+            type="text"
+            formControlName="name"
+            class="nom-form__input"
+            placeholder="Enter your name"
+          />
+          <mat-error *ngIf="personForm.get('name')?.hasError('required')">
+            Name is required.
+          </mat-error>
+          <mat-error *ngIf="personForm.get('name')?.hasError('minlength')">
+            Name must be at least 2 characters long.
+          </mat-error>
+        </mat-form-field>
+
+        <div class="text-center mt-4">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="submitPerson()"
+            [disabled]="isSubmitting"
+            class="nom-button"
+          >
+            <span *ngIf="!isSubmitting">Submit</span>
+            <mat-spinner
+              *ngIf="isSubmitting"
+              [diameter]="20"
+              class="nom-button__spinner"
+            ></mat-spinner>
+          </button>
+        </div>
+      </form>
+
+      <div
+        *ngIf="error"
+        class="nom-form__error form-level-error nom-message-text mt-4"
+      >
+        {{ error }}
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
