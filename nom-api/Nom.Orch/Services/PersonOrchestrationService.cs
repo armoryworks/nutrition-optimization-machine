@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore; // For ToListAsync() and FirstOrDefaultAsync()
+using Microsoft.AspNetCore.Http;
 
 namespace Nom.Orch.Services
 {
@@ -16,10 +17,12 @@ namespace Nom.Orch.Services
     public class PersonOrchestrationService : IPersonOrchestrationService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public PersonOrchestrationService(ApplicationDbContext dbContext)
+        public PersonOrchestrationService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
         {
             _dbContext = dbContext;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -85,6 +88,20 @@ namespace Nom.Orch.Services
             } while (!isUnique);
 
             return code;
+        }
+
+        /// <summary>
+        /// Retrieves the current PersonId from the authenticated user's claims.
+        /// </summary>
+        /// <returns>The PersonId if available, otherwise null.</returns>
+        public long GetCurrentPersonId()
+        {
+            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
+            {
+                return personId;
+            }
+            throw new InvalidOperationException("PersonId claim is missing or invalid.");
         }
     }
 }

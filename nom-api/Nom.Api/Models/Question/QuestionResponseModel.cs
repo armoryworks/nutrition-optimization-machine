@@ -15,7 +15,6 @@ namespace Nom.Api.Models.Question
         public required string AnswerType { get; set; } // Will be the string name of the enum (e.g., "Yes/No", "TextInput")
         public int DisplayOrder { get; set; }
         public bool IsActive { get; set; }
-        public bool IsRequiredForPlanCreation { get; set; }
         public string? DefaultAnswer { get; set; } // For text inputs or single default choice
         public string? ValidationRegex { get; set; } // Regex for text input validation
         public List<string>? Options { get; set; } // For multi-select/single-select choices

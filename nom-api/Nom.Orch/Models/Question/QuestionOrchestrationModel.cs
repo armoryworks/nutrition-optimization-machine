@@ -17,7 +17,6 @@ namespace Nom.Orch.Models.Question
         public AnswerTypeEnum AnswerType { get; set; } // UPDATED: Changed type to AnswerTypeEnum
         public int DisplayOrder { get; set; }
         public bool IsActive { get; set; }
-        public bool IsRequiredForPlanCreation { get; set; }
         public string? DefaultAnswer { get; set; } // For Yes/No, single-select defaults
         public string? ValidationRegex { get; set; } // Regex for text input validation
         public List<string>? Options { get; set; } // For multi-select/single-select options

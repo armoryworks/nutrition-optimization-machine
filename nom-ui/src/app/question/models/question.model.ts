@@ -9,13 +9,12 @@ export class QuestionModel implements BaseCommonModel {
   text: string;
   hint: string | null;
   questionCategoryId: number;
-  answerType: 'Yes/No' | 'TextInput' | 'MultiSelect' | 'SingleSelect';
+  answerType: 'YesNo' | 'TextInput' | 'MultiSelect' | 'SingleSelect';
   displayOrder: number;
   isActive: boolean;
-  isRequiredForPlanCreation: boolean;
-  defaultAnswer: string | null; // This will be a JSON string for options in Multi/Single-Select
+  defaultAnswer: string | null; // Default value for the answer. For select types, this can be a pre-selected value.
   validationRegex: string | null;
-  options?: string[]; // Derived from defaultAnswer for select types in the frontend
+  options: string; // Available choices for 'MultiSelect' or 'SingleSelect' types.
 
   constructor(data: any = {}) {
     this.id = data.id;
@@ -25,7 +24,6 @@ export class QuestionModel implements BaseCommonModel {
     this.answerType = data.answerType;
     this.displayOrder = data.displayOrder;
     this.isActive = data.isActive;
-    this.isRequiredForPlanCreation = data.isRequiredForPlanCreation;
     this.defaultAnswer = data.defaultAnswer;
     this.validationRegex = data.validationRegex;
     this.options = data.options; // This property is set during mapping in the service

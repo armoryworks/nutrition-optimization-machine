@@ -17,12 +17,16 @@ import {
 } from '@angular/common/http';
 import { CurrentInfo } from './models/current-info';
 import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
+import { AuthManagerService } from '../utilities/services/auth-manager.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  constructor(private httpClient: HttpClient) {}
+  constructor(
+    private httpClient: HttpClient,
+    private authManager: AuthManagerService
+  ) {}
 
   register(userData: RegisterUser): Observable<void> {
     return this.httpClient
@@ -38,13 +42,15 @@ export class AuthService {
     //not going to code up cookie stuff, for now
     return this.httpClient
       .post<LoginResponse>('/api/auth/login', credentials)
-      .pipe(catchError(this.handleError));
-  }
-
-  autoLogin(credentials: LoginUser): Observable<LoginResponse> {
-    return this.httpClient
-      .post<LoginResponse>('/api/auth/login', credentials)
-      .pipe(catchError(this.handleError));
+      .pipe(catchError(this.handleError))
+      .pipe(
+        tap((response: LoginResponse) => {
+          this.authManager.refreshToken = response.refreshToken;
+          this.authManager.token = response.accessToken;
+          this.authManager.tokenExpiration =
+            response.expiresIn + new Date().getTime();
+        })
+      );
   }
 
   logout(): Observable<void> {

@@ -108,10 +108,10 @@ export class RegistrationComponent implements OnInit {
           password: userData.password,
           twoFactorCode: '', // Default value for twoFactorCode
           toFactorRecoveryCode: '', // Default value for toFactorRecoveryCode
-          rememberMe: false, // Default value for rememberMe
+          rememberMe: true, // Default value for rememberMe
         };
 
-        this.authService.autoLogin(loginCredentials).subscribe({
+        this.authService.login(loginCredentials).subscribe({
           next: () => {
             this.isLoading = false;
             this.notificationService.success(

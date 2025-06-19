@@ -130,11 +130,9 @@ Purpose: Guides new users through initial data collection to personalize their e
 
     Rule-5.2.1 (Question Ordering): Questions are presented in a predefined DisplayOrder to ensure a coherent user flow.
 
-    Rule-5.2.2 (Required Questions): Questions marked as IsRequiredForPlanCreation must receive a valid answer before the user can complete the onboarding process.
+    Rule-5.2.2 (Answer Type Adherence): User responses must conform to the AnswerType specified for each question (e.g., boolean for Yes/No, valid selections for Multi-Select).
 
-    Rule-5.2.3 (Answer Type Adherence): User responses must conform to the AnswerType specified for each question (e.g., boolean for Yes/No, valid selections for Multi-Select).
-
-    Rule-5.2.4 (Conditional Logic Feedback): (Implicit) The system should be capable of providing appropriate validation feedback if complex conditional logic is applied (e.g., if question B only appears if question A is answered "Yes").
+    Rule-5.2.3 (Conditional Logic Feedback): (Implicit) The system should be capable of providing appropriate validation feedback if complex conditional logic is applied (e.g., if question B only appears if question A is answered "Yes").
 
 5.3. Plan Management Domain
 
@@ -294,8 +292,6 @@ This subsection details the Angular components that drive the user interface and
 
                 Angular's ReactiveFormsModule is utilized, with FormGroup and FormControl.
 
-                Validators.required is applied based on question.isRequiredForPlanCreation.
-
                 Validators.pattern(question.validationRegex) is dynamically applied for Text Input types if a regex is provided.
 
                 The component's goToNextQuestion() method checks currentAnswerForm.invalid before allowing navigation.
@@ -454,9 +450,9 @@ This subsection details the TypeScript models that define the structure of data 
 
         File: src/app/question/models/question.model.ts
 
-        Functional Requirements Mapping: Supports FR-1.1 (structure for retrieved questions), FR-1.2 (defines answerType), FR-1.3 (contains isRequiredForPlanCreation, validationRegex), FR-5.2.1 (contains displayOrder).
+        Functional Requirements Mapping: Supports FR-1.1 (structure for retrieved questions), FR-1.2 (defines answerType), FR-5.2.1 (contains displayOrder).
 
-        Key Properties: id, text, hint, answerType, displayOrder, isActive, isRequiredForPlanCreation, defaultAnswer, validationRegex, options (dynamically populated by QuestionService).
+        Key Properties: id, text, hint, answerType, displayOrder, isActive, defaultAnswer, validationRegex, options (dynamically populated by QuestionService).
 
         Instantiation: Constructor uses explicit property-by-property assignment (e.g., this.id = data.id;).
 
@@ -514,7 +510,7 @@ This subsection details the ASP.NET Core backend services that implement the cor
 
         Functional Requirements Mapping:
 
-            FR-1.1 (Dynamic Questionnaire Retrieval): The GetRequiredOnboardingQuestionsAsync() method queries the database for IsRequiredForPlanCreation questions and orders them by DisplayOrder. It maps database entities to QuestionOrchestrationModels for API response.
+            FR-1.1 (Dynamic Questionnaire Retrieval): The GetRequiredOnboardingQuestionsAsync() method queries the database for questions and orders them by DisplayOrder. It maps database entities to QuestionOrchestrationModels for API response.
 
             FR-1.6 (Answer Persistence): SubmitOnboardingAnswersAsync() receives answers, validates them against question types, and persists them as AnswerEntity records.
 
@@ -544,7 +540,7 @@ This subsection outlines the Entity Framework Core entities that define the data
 
         Functional Requirements Mapping: Defines structure for FR-1.1, FR-1.2, FR-1.3.
 
-        Domain Rules Mapping: Directly implements Rule-5.2.1 (DisplayOrder), Rule-5.2.2 (IsRequiredForPlanCreation), and Rule-5.2.3 (AnswerTypeRefId, ValidationRegex).
+        Domain Rules Mapping: Directly implements Rule-5.2.1 (DisplayOrder), and Rule-5.2.2 (AnswerTypeRefId, ValidationRegex).
 
     9.5.2. AnswerEntity
 

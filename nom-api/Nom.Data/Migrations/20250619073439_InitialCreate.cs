@@ -317,8 +317,7 @@ namespace Nom.Data.Migrations
                     OldValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     NewValue = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ChangedByPersonId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonEntityId = table.Column<long>(type: "bigint", nullable: true)
+                    ChangedByPersonId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -330,12 +329,6 @@ namespace Nom.Data.Migrations
                         principalTable: "Person",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_AuditLogEntry_Person_PersonEntityId",
-                        column: x => x.PersonEntityId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -507,9 +500,11 @@ namespace Nom.Data.Migrations
                     AnswerTypeRefId = table.Column<long>(type: "bigint", nullable: false),
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    IsRequiredForPlanCreation = table.Column<bool>(type: "boolean", nullable: false),
                     DefaultAnswer = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    ValidationRegex = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                    ValidationRegex = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Options = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    NextQuestionOnTrue = table.Column<long>(type: "bigint", nullable: true),
+                    NextQuestionOnFalse = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -813,12 +808,9 @@ namespace Nom.Data.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false),
-                    PlanId = table.Column<long>(type: "bigint", nullable: true),
                     AnswerText = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonEntityId = table.Column<long>(type: "bigint", nullable: true)
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -830,26 +822,6 @@ namespace Nom.Data.Migrations
                         principalTable: "Person",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Answer_Person_PersonEntityId",
-                        column: x => x.PersonEntityId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Answer_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Answer_Plan_PlanId",
-                        column: x => x.PlanId,
-                        principalSchema: "plan",
-                        principalTable: "Plan",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Answer_Question_QuestionId",
                         column: x => x.QuestionId,
@@ -1127,24 +1099,6 @@ namespace Nom.Data.Migrations
                 column: "CreatedByPersonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Answer_PersonEntityId",
-                schema: "question",
-                table: "Answer",
-                column: "PersonEntityId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Answer_PersonId",
-                schema: "question",
-                table: "Answer",
-                column: "PersonId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Answer_PlanId",
-                schema: "question",
-                table: "Answer",
-                column: "PlanId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Answer_QuestionId",
                 schema: "question",
                 table: "Answer",
@@ -1199,12 +1153,6 @@ namespace Nom.Data.Migrations
                 schema: "audit",
                 table: "AuditLogEntry",
                 column: "ChangedByPersonId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AuditLogEntry_PersonEntityId",
-                schema: "audit",
-                table: "AuditLogEntry",
-                column: "PersonEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Goal_GoalTypeId",

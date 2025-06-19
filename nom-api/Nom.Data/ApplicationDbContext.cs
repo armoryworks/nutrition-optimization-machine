@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 
 using Nom.Data.Reference;
 using Nom.Data.Plan;
@@ -10,15 +11,17 @@ using Nom.Data.Shopping;
 using Nom.Data.Person;
 using Nom.Data.Question;
 using Nom.Data.Audit;
-using System.Collections.Generic;
 
 namespace Nom.Data
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
         #region Identity DbSets
@@ -69,6 +72,62 @@ namespace Nom.Data
         // Audit Log DbSet
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
 
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SetAuditProperties();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void SetAuditProperties()
+        {
+            var personId = GetCurrentPersonId();
+            if (personId == null) return; // Or use a system user ID
+
+            var entries = ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+            foreach (var entry in entries)
+            {
+                // Skip auditing the audit log itself
+                if (entry.Entity is AuditLogEntryEntity) continue;
+
+                if (entry.State == EntityState.Added)
+                {
+                    if (entry.Metadata.FindProperty("CreatedByPersonId") != null)
+                    {
+                        entry.Property("CreatedByPersonId").CurrentValue = personId;
+                    }
+                    if (entry.Metadata.FindProperty("CreatedDate") != null)
+                    {
+                        entry.Property("CreatedDate").CurrentValue = DateTime.UtcNow;
+                    }
+                }
+
+                if (entry.State == EntityState.Modified)
+                {
+                    if (entry.Metadata.FindProperty("ModifiedByPersonId") != null)
+                    {
+                        entry.Property("ModifiedByPersonId").CurrentValue = personId;
+                    }
+                    if (entry.Metadata.FindProperty("ModifiedDate") != null)
+                    {
+                        entry.Property("ModifiedDate").CurrentValue = DateTime.UtcNow;
+                    }
+                }
+            }
+        }
+
+        private long? GetCurrentPersonId()
+        {
+            var personIdClaim = _httpContextAccessor?.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
+            {
+                return personId;
+            }
+            // Fallback or error handling
+            return 1; // Default to "System" user
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -114,7 +173,7 @@ namespace Nom.Data
 
             modelBuilder.Entity<AuditLogEntryEntity>()
                 .HasOne(ale => ale.ChangedByPerson)
-                .WithMany()
+                .WithMany(p => p.AuditLogEntriesCreated)
                 .HasForeignKey(ale => ale.ChangedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
             #endregion
@@ -194,8 +253,8 @@ namespace Nom.Data
 
             // CRITICAL: CHECK CONSTRAINT for RestrictionEntity - At least one of PersonId or PlanId must be non-null.
             modelBuilder.Entity<RestrictionEntity>()
-                .HasCheckConstraint("CHK_Restriction_PersonOrPlan",
-                                    "\"PersonId\" IS NOT NULL OR \"PlanId\" IS NOT NULL");
+            .ToTable(t => t.HasCheckConstraint("CHK_Restriction_PersonOrPlan",
+                                    "\"PersonId\" IS NOT NULL OR \"PlanId\" IS NOT NULL"));
 
             modelBuilder.Entity<RestrictionEntity>()
                 .HasOne(r => r.Person)
@@ -347,23 +406,10 @@ namespace Nom.Data
                 .HasForeignKey(a => a.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<AnswerEntity>()
-                .HasOne(a => a.Person)
-                .WithMany()
-                .HasForeignKey(a => a.PersonId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<AnswerEntity>()
-                .HasOne(a => a.Plan)
-                .WithMany()
-                .HasForeignKey(a => a.PlanId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             // Fluent API for AnswerEntity's specific audit fields
             modelBuilder.Entity<AnswerEntity>()
                 .HasOne(a => a.CreatedByPerson)
-                .WithMany()
+                .WithMany(p => p.AnswersCreated)
                 .HasForeignKey(a => a.CreatedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
             #endregion // End of Question Namespace Fluent API Configurations

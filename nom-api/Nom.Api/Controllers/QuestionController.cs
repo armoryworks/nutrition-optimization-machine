@@ -19,13 +19,16 @@ namespace Nom.Api.Controllers
     public class QuestionController : ControllerBase
     {
         private readonly IQuestionOrchestrationService _questionOrchestrationService;
+        private readonly IPersonOrchestrationService _personOrchestrationService;
         private readonly ILogger<QuestionController> _logger;
 
         public QuestionController(
             IQuestionOrchestrationService questionOrchestrationService,
+            IPersonOrchestrationService personOrchestrationService,
             ILogger<QuestionController> logger)
         {
             _questionOrchestrationService = questionOrchestrationService;
+            _personOrchestrationService = personOrchestrationService;
             _logger = logger;
         }
 
@@ -52,7 +55,6 @@ namespace Nom.Api.Controllers
                     AnswerType = q.AnswerType.ToString(), // UPDATED: Just convert AnswerTypeEnum to string
                     DisplayOrder = q.DisplayOrder,
                     IsActive = q.IsActive,
-                    IsRequiredForPlanCreation = q.IsRequiredForPlanCreation,
                     DefaultAnswer = q.DefaultAnswer,
                     ValidationRegex = q.ValidationRegex,
                     Options = q.Options
@@ -71,55 +73,60 @@ namespace Nom.Api.Controllers
         /// <summary>
         /// Submits a collection of answers for a person's onboarding questions.
         /// </summary>
-        /// <param name="submissionModel">The model containing the Person ID and a list of answers.</param>
+        /// <param name="model">The model containing a list of answers.</param>
         /// <returns>A status indicating whether the answers were successfully submitted.</returns>
         [HttpPost("answers")] // POST /api/Question/answers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> SubmitOnboardingAnswers([FromBody] QuestionAnswerSubmissionModel submissionModel)
+        public async Task<IActionResult> SubmitOnboardingAnswers([FromBody] QuestionAnswerSubmissionModel model)
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("SubmitOnboardingAnswers: Invalid ModelState for Person ID: {PersonId}", submissionModel.PersonId);
+                _logger.LogWarning("SubmitOnboardingAnswers: Invalid ModelState.");
                 return BadRequest(ModelState);
             }
 
-            if (submissionModel.PersonId <= 0)
+            // Get the person ID from the user's claims or context
+            var personId = GetPersonIdFromUserContext();
+
+            if (personId == 0)
             {
-                _logger.LogWarning("SubmitOnboardingAnswers: Person ID is not available for submission.");
-                return BadRequest(new { Message = "Person ID is not available for submission." });
+                _logger.LogWarning("SubmitOnboardingAnswers: Unable to determine the current user's Person ID.");
+                return Unauthorized(new { Message = "Unable to determine the current user's Person ID." });
             }
 
             try
             {
-                var orchestrationAnswers = submissionModel.Answers.Select(a => new AnswerOrchestrationModel
+                var answers = model.Answers.Select(a => new AnswerOrchestrationModel
                 {
                     QuestionId = a.QuestionId,
                     SubmittedAnswer = a.SubmittedAnswer
                 }).ToList();
 
-                var success = await _questionOrchestrationService.SubmitOnboardingAnswersAsync(
-                    submissionModel.PersonId,
-                    orchestrationAnswers
-                );
+                var success = await _questionOrchestrationService.SubmitOnboardingAnswersAsync(personId, answers);
 
                 if (success)
                 {
-                    _logger.LogInformation("SubmitOnboardingAnswers: Successfully submitted answers for Person ID: {PersonId}", submissionModel.PersonId);
+                    _logger.LogInformation("SubmitOnboardingAnswers: Successfully submitted answers for Person ID: {PersonId}", personId);
                     return Ok(new { Message = "Answers submitted successfully." });
                 }
                 else
                 {
-                    _logger.LogError("SubmitOnboardingAnswers: Failed to process or save answers for Person ID: {PersonId}. Check previous logs for details.", submissionModel.PersonId);
+                    _logger.LogError("SubmitOnboardingAnswers: Failed to process or save answers for Person ID: {PersonId}. Check previous logs for details.", personId);
                     return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to process answers. Please check input and try again." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "SubmitOnboardingAnswers: An unexpected error occurred while submitting answers for Person ID: {PersonId}", submissionModel.PersonId);
+                _logger.LogError(ex, "SubmitOnboardingAnswers: An unexpected error occurred while submitting answers for Person ID: {PersonId}", personId);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An unexpected error occurred." });
             }
+        }
+
+        private long GetPersonIdFromUserContext()
+        {
+            return this._personOrchestrationService.GetCurrentPersonId();
         }
     }
 }

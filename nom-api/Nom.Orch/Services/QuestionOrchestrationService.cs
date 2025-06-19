@@ -38,7 +38,6 @@ namespace Nom.Orch.Services
         public async Task<List<QuestionOrchestrationModel>> GetRequiredOnboardingQuestionsAsync()
         {
             var questions = await _dbContext.Questions
-                                            .Where(q => q.IsRequiredForPlanCreation)
                                             .OrderBy(q => q.DisplayOrder)
                                             .ToListAsync();
 
@@ -57,10 +56,9 @@ namespace Nom.Orch.Services
                     AnswerType = answerTypeEnum,
                     DisplayOrder = question.DisplayOrder,
                     IsActive = question.IsActive,
-                    IsRequiredForPlanCreation = question.IsRequiredForPlanCreation,
                     DefaultAnswer = question.DefaultAnswer,
                     ValidationRegex = question.ValidationRegex,
-                    Options = ParseJsonStringToList(question.DefaultAnswer)
+                    Options = ParseJsonStringToList(question.Options)
                 });
             }
 
@@ -93,10 +91,9 @@ namespace Nom.Orch.Services
                     AnswerType = answerTypeEnum,
                     DisplayOrder = question.DisplayOrder,
                     IsActive = question.IsActive,
-                    IsRequiredForPlanCreation = question.IsRequiredForPlanCreation,
                     DefaultAnswer = question.DefaultAnswer,
                     ValidationRegex = question.ValidationRegex,
-                    Options = ParseJsonStringToList(question.DefaultAnswer)
+                    Options = ParseJsonStringToList(question.Options)
                 });
             }
 
@@ -104,7 +101,7 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Submits and processes a collection of answers for a given person.
+        /// Submits and processes a collection of answers for onboarding questions.
         /// Performs validation against question types and stores the answers.
         /// Also infers and creates RestrictionEntity records based on specific answers.
         /// </summary>
@@ -113,7 +110,7 @@ namespace Nom.Orch.Services
         /// <returns>True if all answers were successfully processed and saved; otherwise, false.</returns>
         public async Task<bool> SubmitOnboardingAnswersAsync(long personId, List<AnswerOrchestrationModel> answers)
         {
-            if (personId <= 0 || answers == null || !answers.Any())
+            if (answers == null || !answers.Any())
             {
                 Console.WriteLine("SubmitOnboardingAnswers: Invalid personId or no answers provided.");
                 return false;
@@ -168,11 +165,6 @@ namespace Nom.Orch.Services
                         }
                         break;
                     case AnswerTypeEnum.TextInput:
-                        if (question.IsRequiredForPlanCreation && string.IsNullOrWhiteSpace(processedAnswerValue))
-                        {
-                            Console.WriteLine($"SubmitOnboardingAnswers: Required text input question {question.Id} has no answer.");
-                            continue;
-                        }
                         if (!string.IsNullOrWhiteSpace(question.ValidationRegex) && !string.IsNullOrWhiteSpace(processedAnswerValue))
                         {
                             try
@@ -199,11 +191,8 @@ namespace Nom.Orch.Services
                                 var deserializedList = JsonSerializer.Deserialize<List<string>>(processedAnswerValue);
                                 if (deserializedList == null || !deserializedList.Any())
                                 {
-                                    if (question.IsRequiredForPlanCreation)
-                                    {
-                                        Console.WriteLine($"SubmitOnboardingAnswers: Required multi/single select question {question.Id} has no valid selections.");
-                                        continue;
-                                    }
+                                    Console.WriteLine($"SubmitOnboardingAnswers: Required multi/single select question {question.Id} has no valid selections.");
+                                    continue;
                                 }
                             }
                             catch (JsonException ex)
@@ -212,11 +201,6 @@ namespace Nom.Orch.Services
                                 continue;
                             }
                         }
-                        else if (question.IsRequiredForPlanCreation)
-                        {
-                            Console.WriteLine($"SubmitOnboardingAnswers: Required multi/single select question {question.Id} has no answer provided.");
-                            continue;
-                        }
                         break;
                     default:
                         Console.WriteLine($"SubmitOnboardingAnswers: Unhandled answer type for question {question.Id}: {answerType}");
@@ -224,36 +208,23 @@ namespace Nom.Orch.Services
                 }
                 // --- End Standard Validation Logic ---
 
-                // --- Restriction Inference Logic ---
+                // Restriction Inference Logic
                 await InferAndAddRestrictions(
                     question.Id,
                     processedAnswerValue,
-                    personId, // The person who this restriction applies to
+                    personId,
                     systemPersonId, // The "System" who is recording this restriction
                     restrictionsToSave
                 );
-                // --- END NEW ---
 
                 // Save the answer entity itself
-                var existingAnswer = await _dbContext.Answers
-                                                     .FirstOrDefaultAsync(a => a.PersonId == personId && a.QuestionId == question.Id);
-
-                if (existingAnswer != null)
+                answersToSave.Add(new AnswerEntity
                 {
-                    existingAnswer.AnswerText = processedAnswerValue ?? String.Empty;
-                }
-                else
-                {
-                    answersToSave.Add(new AnswerEntity
-                    {
-                        QuestionId = question.Id,
-                        PersonId = personId,
-                        PlanId = null, // Onboarding answers not tied to a plan initially
-                        AnswerText = processedAnswerValue ?? String.Empty,
-                        CreatedDate = DateTime.UtcNow,
-                        CreatedByPersonId = person.Id // The person who submitted the answer
-                    });
-                }
+                    QuestionId = question.Id,
+                    AnswerText = processedAnswerValue ?? string.Empty,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = systemPersonId // The "System" person who submitted the answer
+                });
             }
 
             if (answersToSave.Any())
@@ -338,27 +309,14 @@ namespace Nom.Orch.Services
 
                 var answerType = MapReferenceIdToAnswerTypeEnum(question.AnswerTypeRefId);
                 string? processedAnswerValue = submittedAnswer.SubmittedAnswer;
-
-                // Save the answer entity itself
-                var existingAnswer = await _dbContext.Answers
-                                                     .FirstOrDefaultAsync(a => a.PlanId == planId && a.QuestionId == question.Id);
-
-                if (existingAnswer != null)
-                {
-                    existingAnswer.AnswerText = processedAnswerValue ?? String.Empty;
-                }
-                else
-                {
                     answersToSave.Add(new AnswerEntity
                     {
                         QuestionId = question.Id,
-                        PersonId = null, // Restriction assignment answers are tied to a plan
-                        PlanId = planId,
                         AnswerText = processedAnswerValue ?? String.Empty,
                         CreatedDate = DateTime.UtcNow,
                         CreatedByPersonId = plan.CreatedByPersonId // The person who created the plan
                     });
-                }
+
             }
 
             if (answersToSave.Any())
@@ -429,7 +387,7 @@ namespace Nom.Orch.Services
         private async Task InferAndAddRestrictions(
             long questionId,
             string? answerValue,
-            long? personId,
+            long personId,
             long createdByPersonId,
             List<RestrictionEntity> restrictionsToSave)
         {
@@ -440,7 +398,7 @@ namespace Nom.Orch.Services
 
             // A restriction must be tied to at least a person OR a plan.
             // For onboarding, we are initially only linking to a person (PlanId will be null here).
-            if (personId == null) // Or (personId == null && planId == null) if planId was passed in
+            if (personId == 0) // Or (personId == null && planId == null) if planId was passed in
             {
                 Console.WriteLine($"InferRestrictions: Cannot add restriction without a PersonId (or PlanId if applicable). QuestionId: {questionId}");
                 return;
@@ -570,18 +528,12 @@ namespace Nom.Orch.Services
         /// <param name="restrictionsToSave">The list of restrictions to save.</param>
         private async Task AddRestrictionIfNotFound(
             long questionId,
-            long? personId,
+            long personId,
             long? planId,
             string restrictionTypeName,
             long createdByPersonId,
             List<RestrictionEntity> restrictionsToSave)
         {
-            if (personId == null && planId == null)
-            {
-                Console.WriteLine($"ERROR: Attempted to add restriction '{restrictionTypeName}' without either a PersonId or PlanId. This is not allowed by the database schema. QuestionId: {questionId}");
-                return;
-            }
-
             var restrictionTypeRefId = await GetReferenceIdByNameAsync(restrictionTypeName, (long)ReferenceDiscriminatorEnum.RestrictionType);
 
             if (restrictionTypeRefId == 0)
@@ -606,11 +558,11 @@ namespace Nom.Orch.Services
                     CreatedDate = DateTime.UtcNow,
                     CreatedByPersonId = createdByPersonId
                 });
-                Console.WriteLine($"Inferred and added restriction: '{restrictionTypeName}' for Person ID {personId?.ToString() ?? "N/A"} and Plan ID {planId?.ToString() ?? "N/A"}.");
+                Console.WriteLine($"Inferred and added restriction: '{restrictionTypeName}' for Person ID {personId} and Plan ID {planId?.ToString() ?? "N/A"}.");
             }
             else
             {
-                Console.WriteLine($"Restriction: '{restrictionTypeName}' already exists for Person ID {personId?.ToString() ?? "N/A"} and Plan ID {planId?.ToString() ?? "N/A"}. Skipping.");
+                Console.WriteLine($"Restriction: '{restrictionTypeName}' already exists for Person ID {personId} and Plan ID {planId?.ToString() ?? "N/A"}. Skipping.");
             }
         }
 

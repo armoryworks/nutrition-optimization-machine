@@ -1,15 +1,11 @@
 <div class="nom-page-container">
   <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
+    <mat-card-header class="nom-card__header nom-section">
+      @if (currentQuestion?.hint) {
+      <p class="nom-instruction-text mb-4">{{ currentQuestion?.hint }}</p>
+      }
       <mat-card-title class="nom-card__title">
-        <ng-container *ngIf="submitMessage; else questionHeader">
-          Questionnaire Complete!
-        </ng-container>
-        <ng-template #questionHeader>
-          Onboarding Questions ({{ currentQuestionIndex + 1 }}/{{
-            questions.length
-          }})
-        </ng-template>
+        {{ currentQuestion?.text }}
       </mat-card-title>
     </mat-card-header>
 
@@ -34,18 +30,6 @@
       currentQuestion) {
       <form [formGroup]="currentAnswerForm" class="nom-form">
         <div class="nom-section mb-8">
-          <label
-            class="nom-section__heading text-xl font-semibold text-gray-800 mb-2"
-          >
-            {{ currentQuestion.text }}
-            @if (currentQuestion.isRequiredForPlanCreation) {
-            <span class="text-red-500 ml-1">*</span>
-            }
-          </label>
-          @if (currentQuestion.hint) {
-          <p class="nom-instruction-text mb-4">{{ currentQuestion.hint }}</p>
-          }
-
           <!-- Dynamic input rendering based on answerType -->
           @switch (currentQuestion.answerType) { @case ('TextInput') {
           <mat-form-field appearance="outline" class="nom-form__field">
@@ -69,7 +53,7 @@
             <mat-error class="nom-form__error"> Invalid format. </mat-error>
             }
           </mat-form-field>
-          } @case ('Yes/No') {
+          } @case ('YesNo') {
           <mat-radio-group
             aria-label="Select an option"
             formControlName="answer"
@@ -93,20 +77,23 @@
             This field is required.
           </mat-error>
           } } @case ('MultiSelect') {
-          <div class="nom-horizontal-group flex-wrap justify-center my-4">
+          <div class="my-4 grid grid-cols-2 gap-4">
             @if (currentQuestion.options; as options) { @for (option of options;
             track option) {
-            <mat-checkbox
-              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
-              [checked]="
-                (
-                  currentAnswerForm.get('answer')?.value | jsonParseCommon
-                )?.includes(option)
-              "
-              (change)="onAnswerChange(option)"
+            <div
+              class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200"
             >
-              {{ option }}
-            </mat-checkbox>
+              <mat-checkbox
+                [checked]="
+                  (
+                    currentAnswerForm.get('answer')?.value | jsonParseCommon
+                  )?.includes(option)
+                "
+                (change)="onAnswerChange(option)"
+              >
+                {{ option }}
+              </mat-checkbox>
+            </div>
             } } @else {
             <p class="nom-message-text text-red-500">
               No options available for this multi-select question.
@@ -114,8 +101,7 @@
             }
           </div>
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
-          currentAnswerForm.get('answer')?.touched &&
-          currentQuestion.isRequiredForPlanCreation) {
+          currentAnswerForm.get('answer')?.touched) {
           <mat-error class="nom-form__error text-center">
             Please select at least one option.
           </mat-error>

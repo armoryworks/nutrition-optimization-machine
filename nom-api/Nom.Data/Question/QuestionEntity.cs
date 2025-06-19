@@ -48,12 +48,6 @@ namespace Nom.Data.Question
         public bool IsActive { get; set; } = true;
 
         /// <summary>
-        /// Indicates if answering this question is required to proceed with plan creation.
-        /// </summary>
-        [Required]
-        public bool IsRequiredForPlanCreation { get; set; } = false;
-
-        /// <summary>
         /// Optional default answer value, useful for Yes/No toggles or pre-filling.
         /// Can be JSON for complex types (e.g., default multi-select options).
         /// </summary>
@@ -65,6 +59,12 @@ namespace Nom.Data.Question
         /// </summary>
         [MaxLength(500)]
         public string? ValidationRegex { get; set; }
+
+        /// <summary>
+        /// A JSON string representing the available options for 'MultiSelect' or 'SingleSelect' answer types.
+        /// </summary>
+        [MaxLength(2047)]
+        public string? Options { get; set; }
 
         /// <summary>
         /// Defines the next question in the workflow if the answer to this question is true.

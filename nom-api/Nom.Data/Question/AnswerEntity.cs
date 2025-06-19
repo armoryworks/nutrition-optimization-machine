@@ -17,17 +17,6 @@ namespace Nom.Data.Question
         [ForeignKey(nameof(QuestionId))]
         public virtual QuestionEntity Question { get; set; } = default!;
 
-        [Required]
-        public long PersonId { get; set; }
-
-        [ForeignKey(nameof(PersonId))]
-        public virtual PersonEntity Person { get; set; } = default!;
-
-        public long? PlanId { get; set; } // Nullable, as onboarding answers aren't tied to a plan initially
-
-        [ForeignKey(nameof(PlanId))]
-        public virtual PlanEntity? Plan { get; set; }
-
         // --- NEW/UPDATED: Fields for the actual answer and its specific audit info ---
         [Required] // An answer must have a value
         [MaxLength(4000)] // Sufficient length for text or JSON array strings

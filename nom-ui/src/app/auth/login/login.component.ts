@@ -85,10 +85,6 @@ export class LoginComponent implements OnInit {
       next: (response: LoginResponse) => {
         this.isLoading = false;
         // Update AuthManagerService with login response details
-        this.authManager.refreshToken = response.refreshToken;
-        this.authManager.token = response.accessToken;
-        this.authManager.tokenExpiration =
-          response.expiresIn + new Date().getTime();
 
         // Display success notification
         this.notificationService.success('Logged in successfully!');

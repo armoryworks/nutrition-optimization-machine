@@ -25,20 +25,9 @@ export class QuestionService {
    * @returns An observable containing a list of questions.
    */
   getOnboardingQuestions(): Observable<QuestionModel[]> {
-    return this.http.get<QuestionModel[]>('/api/Question/onboarding').pipe(
-      map((questions) =>
-        questions.map((q) => ({
-          ...q,
-          options:
-            (q.answerType === 'MultiSelect' ||
-              q.answerType === 'SingleSelect') &&
-            q.defaultAnswer
-              ? JSON.parse(q.defaultAnswer)
-              : undefined,
-        }))
-      ),
-      tap((questions) => console.log('Fetched questions:', questions))
-    );
+    return this.http
+      .get<QuestionModel[]>('/api/Question/onboarding')
+      .pipe(tap((questions) => console.log('Fetched questions:', questions)));
   }
 
   /**

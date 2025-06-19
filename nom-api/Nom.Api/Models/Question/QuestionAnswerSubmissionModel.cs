@@ -10,12 +10,6 @@ namespace Nom.Api.Models.Question
     public class QuestionAnswerSubmissionModel
     {
         /// <summary>
-        /// The ID of the person submitting the answers.
-        /// </summary>
-        [Required(ErrorMessage = "Person ID is required for answer submission.")]
-        public long PersonId { get; set; }
-
-        /// <summary>
         /// The list of answers submitted by the person.
         /// </summary>
         [Required(ErrorMessage = "At least one answer must be submitted.")]

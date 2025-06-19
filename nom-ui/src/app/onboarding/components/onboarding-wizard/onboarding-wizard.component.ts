@@ -108,7 +108,7 @@ export class OnboardingWizardComponent implements OnInit {
     } else if (question.defaultAnswer !== null) {
       initialValue = question.defaultAnswer;
     } else {
-      if (question.answerType === 'Yes/No') {
+      if (question.answerType === 'YesNo') {
         initialValue = 'false';
       } else if (
         question.answerType === 'MultiSelect' ||
@@ -118,9 +118,7 @@ export class OnboardingWizardComponent implements OnInit {
       }
     }
 
-    const validators = question.isRequiredForPlanCreation
-      ? [Validators.required]
-      : [];
+    const validators = [];
     if (question.validationRegex && question.validationRegex.length > 0) {
       validators.push(Validators.pattern(question.validationRegex));
     }
@@ -150,7 +148,7 @@ export class OnboardingWizardComponent implements OnInit {
         } else {
           processedValue = JSON.stringify([...currentSelections, value]);
         }
-      } else if (question.answerType === 'Yes/No') {
+      } else if (question.answerType === 'YesNo') {
         processedValue = String(value);
       } else if (question.answerType === 'SingleSelect') {
         processedValue = JSON.stringify([value]);
@@ -193,10 +191,7 @@ export class OnboardingWizardComponent implements OnInit {
   }
 
   submitAnswers(): void {
-    if (this.personId === null) {
-      this.error = 'Person ID is not available for submission.';
-      return;
-    }
+    
 
     this.isSubmitting = true;
     this.error = null;

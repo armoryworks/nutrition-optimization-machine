@@ -24,5 +24,8 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         /// <returns>A unique invitation code string.</returns>
         Task<string> GenerateUniqueInvitationCodeAsync();
+
+     
+        long GetCurrentPersonId();
     }
 }
