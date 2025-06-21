@@ -1,0 +1,293 @@
+<div class="nom-page-container">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header">
+      <mat-card-title class="nom-card__title">
+        @if (submitMessage) { Onboarding Complete! } @else { Onboarding:
+        {{ currentStepTitle }}
+        }
+      </mat-card-title>
+    </mat-card-header>
+
+    @if (isLoading || isSubmitting) {
+    <mat-progress-bar
+      mode="indeterminate"
+      color="primary"
+      class="nom-card__progress-bar"
+    ></mat-progress-bar>
+    }
+
+    <mat-card-content class="nom-card__content">
+      @if (error && !submitMessage) {
+      <div class="nom-form__error form-level-error nom-message-text mb-4">
+        {{ error }}
+      </div>
+      } @else if (submitMessage) {
+      <div
+        class="text-center p-4 rounded-md"
+        [ngClass]="{
+          'bg-green-100 text-green-700': submitMessage.includes('successfully'),
+          'bg-red-100 text-red-700': !submitMessage.includes('successfully')
+        }"
+      >
+        <p class="nom-message-text font-semibold">{{ submitMessage }}</p>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="onCompletionRedirect()"
+          class="nom-button mt-4"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+      } @else { @if (currentStep?.id === 'personDetails') {
+      <app-person-edit
+        [person]="onboardingData.personDetails"
+        (formSubmitted)="onPersonDetailsSubmitted($event)"
+      ></app-person-edit>
+      } @else if (currentStep?.id === 'healthAttributes') {
+      <app-person-health-edit
+        [attributes]="onboardingData.attributes"
+        [currentPersonId]="onboardingData.personId"
+        (formSubmitted)="onHealthAttributesSubmitted($event)"
+        (skipStep)="skipCurrentStep()"
+      >
+      </app-person-health-edit>
+      } @else if (currentStep?.component === 'app-restriction-edit') {
+      <app-restriction-edit
+        [restrictions]="filteredRestrictionsForCurrentPerson"
+        [currentPersonId]="currentRestrictionPersonId"
+        [allPersonsInPlan]="allPersonsInPlan"
+        (formSubmitted)="onRestrictionsSubmitted($event)"
+        (skipStep)="skipCurrentStep()"
+      >
+      </app-restriction-edit>
+      } @else if (currentStep?.id === 'invitationCode') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">Invitation Code (Optional)</h3>
+        <p class="nom-instruction-text">
+          Do you have an invitation code to join an existing plan?
+        </p>
+        <mat-form-field
+          appearance="outline"
+          class="nom-form__field nom-form__field--centered"
+        >
+          <mat-label>Invitation Code</mat-label>
+          <input
+            matInput
+            type="text"
+            [formControl]="invitationCodeFormControl"
+            class="nom-form__input"
+            placeholder="Enter code"
+            (change)="
+              onInvitationCodeEntered(invitationCodeFormControl.value || '')
+            "
+          />
+        </mat-form-field>
+      </div>
+      } @else if (currentStep?.id === 'hasAdditionalParticipants') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">Additional Participants</h3>
+        <p class="nom-instruction-text">
+          Will anyone else be participating in this plan with you (e.g., family
+          members, roommates)?
+        </p>
+        <div class="nom-horizontal-group flex-wrap justify-center my-4">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onYesNoAnswer('hasAdditionalParticipants', true)"
+            class="nom-button mr-2"
+          >
+            Yes
+          </button>
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="onYesNoAnswer('hasAdditionalParticipants', false)"
+            class="nom-button"
+          >
+            No
+          </button>
+        </div>
+      </div>
+      } @else if (currentStep?.id === 'numberOfAdditionalParticipants') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">How Many People?</h3>
+        <p class="nom-instruction-text">
+          How many additional people will be participating?
+        </p>
+        <mat-form-field
+          appearance="outline"
+          class="nom-form__field nom-form__field--centered"
+        >
+          <mat-label>Number of People</mat-label>
+          <input
+            matInput
+            type="number"
+            [formControl]="numberOfAdditionalParticipantsControl"
+            class="nom-form__input"
+            placeholder="Enter a number"
+            min="0"
+            (change)="
+              onNumberInput(
+                'numberOfAdditionalParticipants',
+                numberOfAdditionalParticipantsControl.value || 0
+              )
+            "
+          />
+        </mat-form-field>
+      </div>
+      } @else if (currentStep?.id === 'additionalParticipantNames') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">Participant Names</h3>
+        <p class="nom-instruction-text">
+          Enter names for the additional participants.
+        </p>
+        @for (person of onboardingData.additionalParticipantDetails; let i =
+        $index; track i) {
+        <mat-form-field appearance="outline" class="nom-form__field">
+          <mat-label>Person {{ i + 2 }} Name</mat-label>
+          <input
+            matInput
+            type="text"
+            [value]="person.name"
+            (input)="updateAdditionalParticipantName(i, $event)"
+            class="nom-form__input"
+            placeholder="Enter name"
+          />
+        </mat-form-field>
+        }
+      </div>
+      } @else if (currentStep?.id === 'applyIndividualPreferences') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">Individual Preferences</h3>
+        <p class="nom-instruction-text">
+          Should individual preferences be applied to each person participating
+          on the plan?
+        </p>
+        <div class="nom-horizontal-group flex-wrap justify-center my-4">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="
+              onYesNoAnswer('applyIndividualPreferencesToEachPerson', true)
+            "
+            class="nom-button mr-2"
+          >
+            Yes
+          </button>
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="
+              onYesNoAnswer('applyIndividualPreferencesToEachPerson', false)
+            "
+            class="nom-button"
+          >
+            No
+          </button>
+        </div>
+      </div>
+      } @else if (currentStep?.id === 'summary') {
+      <div class="nom-section">
+        <h3 class="nom-section__heading">Review Your Onboarding Details</h3>
+        <p class="nom-instruction-text">
+          Please review the information you have provided before submitting.
+        </p>
+
+        <mat-card class="nom-card p-4 mb-4">
+          <h4 class="text-xl font-semibold text-indigo-700">Your Details:</h4>
+          <p class="nom-message-text">
+            Name: {{ onboardingData.personDetails.name }}
+          </p>
+        </mat-card>
+
+        @if (onboardingData.attributes && onboardingData.attributes.length > 0)
+        {
+        <mat-card class="nom-card p-4 mb-4">
+          <h4 class="text-xl font-semibold text-indigo-700">
+            Your Health Attributes:
+          </h4>
+          @for (attr of onboardingData.attributes; track
+          attr.attributeTypeRefId) {
+          <p class="nom-message-text">
+            {{ attr.attributeTypeRefId }}: {{ attr.value }}
+          </p>
+          }
+        </mat-card>
+        } @if (onboardingData.restrictions && onboardingData.restrictions.length
+        > 0) {
+        <mat-card class="nom-card p-4 mb-4">
+          <h4 class="text-xl font-semibold text-indigo-700">Restrictions:</h4>
+          @for (res of onboardingData.restrictions; track res.id || res.name) {
+          <p class="nom-message-text">
+            {{ res.name }}
+            @if (res.appliesToEntirePlan) { (Applies to Plan) } @else if
+            (res.affectedPersonIds && res.affectedPersonIds.length > 0) { (For:
+            @for (personId of res.affectedPersonIds; track personId) {
+            {{ getPersonName(personId, 'Unknown') }}
+            } ) } @else { (For:
+            {{ getPersonName(res.personId, 'You') }}) }
+          </p>
+          }
+        </mat-card>
+        } @if (onboardingData.hasAdditionalParticipants &&
+        onboardingData.additionalParticipantDetails &&
+        onboardingData.additionalParticipantDetails.length > 0) {
+        <mat-card class="nom-card p-4 mb-4">
+          <h4 class="text-xl font-semibold text-indigo-700">
+            Additional Participants:
+          </h4>
+          @for (person of onboardingData.additionalParticipantDetails; track
+          person.id || person.name) {
+          <p class="nom-message-text">- {{ person.name }}</p>
+          }
+        </mat-card>
+        }
+      </div>
+      } }
+    </mat-card-content>
+
+    @if (!submitMessage) {
+    <mat-card-actions
+      class="nom-card__footer flex justify-between items-center px-6 py-4"
+    >
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="previousStep()"
+        [disabled]="currentStepIndex === 0 || isSubmitting"
+        class="nom-button"
+      >
+        Previous
+      </button>
+
+      @if (isSkippable()) {
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="skipCurrentStep()"
+        [disabled]="isSubmitting"
+        class="nom-button"
+      >
+        Skip
+      </button>
+      }
+
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="nextStep()"
+        [disabled]="isSubmitting"
+        class="nom-button"
+      >
+        @if (!isSubmitting) {
+        <span>{{ isSubmitStep() ? 'Submit Onboarding' : 'Next' }}</span>
+        } @else {
+        <mat-spinner diameter="20" class="nom-button__spinner"></mat-spinner>
+        }
+      </button>
+    </mat-card-actions>
+    }
+  </mat-card>
+</div>

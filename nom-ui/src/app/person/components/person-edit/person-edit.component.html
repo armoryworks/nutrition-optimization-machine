@@ -1,0 +1,22 @@
+<form [formGroup]="personForm" class="nom-form">
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Your Name</mat-label>
+    <input
+      matInput
+      type="text"
+      formControlName="name"
+      class="nom-form__input"
+      placeholder="Enter your full name"
+    />
+    <mat-icon matSuffix class="nom-form__icon">person</mat-icon>
+    @if (personForm.get('name')?.hasError('required') &&
+    personForm.get('name')?.touched) {
+    <mat-error class="nom-form__error">Name is required.</mat-error>
+    } @if (personForm.get('name')?.hasError('maxlength') &&
+    personForm.get('name')?.touched) {
+    <mat-error class="nom-form__error"
+      >Name cannot exceed 100 characters.</mat-error
+    >
+    }
+  </mat-form-field>
+</form>

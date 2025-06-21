@@ -1,6 +1,7 @@
 // Nom.Orch/Interfaces/IPersonOrchestrationService.cs
 using System.Threading.Tasks;
-using Nom.Data.Person; // Assuming PersonEntity is needed here
+using Nom.Data.Person;
+using Nom.Orch.Models.Person; // Assuming PersonEntity is needed here
 
 namespace Nom.Orch.Interfaces
 {
@@ -25,7 +26,11 @@ namespace Nom.Orch.Interfaces
         /// <returns>A unique invitation code string.</returns>
         Task<string> GenerateUniqueInvitationCodeAsync();
 
+        Task<bool> CompleteOnboardingAsync(OnboardingCompleteRequest request);
+        // Add other person-related orchestration methods here as needed
+
      
         long GetCurrentPersonId();
+        
     }
 }

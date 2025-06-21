@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Plan;
-using Nom.Data.Question;
 using Nom.Data.Audit; // For PlanEntity and PlanParticipantEntity
 
 namespace Nom.Data.Person
@@ -39,7 +38,6 @@ namespace Nom.Data.Person
 
         // Navigation properties for relationships where this person is the 'CreatedByPerson'
         public virtual ICollection<PlanEntity> PlansAdministering { get; set; } = new List<PlanEntity>();
-        public virtual ICollection<AnswerEntity> AnswersCreated { get; set; } = new List<AnswerEntity>();
         public virtual ICollection<AuditLogEntryEntity> AuditLogEntriesCreated { get; set; } = new List<AuditLogEntryEntity>();
 
         // NEW: Navigation property for participations this person is part of

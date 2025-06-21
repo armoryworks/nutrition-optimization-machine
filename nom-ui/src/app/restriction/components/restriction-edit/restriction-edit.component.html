@@ -1,0 +1,470 @@
+<form [formGroup]="restrictionForm" class="nom-form">
+  <!-- 3.a.1. Societal, Religious, or Ethical Dietary Practices -->
+  <div class="nom-section">
+    <h3 class="nom-section__heading">
+      Societal, Religious, or Ethical Dietary Practices
+    </h3>
+    <p class="nom-instruction-text">
+      Select all that apply to anyone participating:
+    </p>
+
+    <div class="nom-horizontal-group flex-wrap justify-center my-4">
+      @for (option of societalReligiousEthicalOptions; track option) {
+      <mat-checkbox
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        [checked]="
+          isMultiSelectOptionSelected('societalReligiousEthical', option)
+        "
+        (change)="
+          onMultiSelectChange(
+            'societalReligiousEthical',
+            option,
+            $event.checked
+          )
+        "
+      >
+        {{ option }}
+      </mat-checkbox>
+      }
+    </div>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Fasting Schedule?</mat-label>
+      <input
+        matInput
+        type="text"
+        formControlName="fastingSchedule"
+        class="nom-form__input"
+        placeholder="e.g., Intermittent, Lent"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Mandatory Inclusions?</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="ingredientSearchControl"
+        class="nom-form__input"
+        placeholder="Search and select ingredients..."
+      />
+      <mat-select
+        [formControlName]="'mandatoryInclusions'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('mandatoryInclusions', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('mandatoryInclusions')?.value | jsonParseCommon
+        "
+      >
+        @for (ingredient of (filteredIngredients$ | async); track ingredient) {
+        <mat-option [value]="ingredient">{{ ingredient }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- 3.a.2. Allergies and other Medical Restrictions -->
+  <div class="nom-section">
+    <h3 class="nom-section__heading">
+      Allergies and other Medical Restrictions
+    </h3>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Allergies</mat-label>
+      <mat-select
+        [formControlName]="'allergies'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="onMultiSelectChange('allergies', $event.value, true)"
+        [value]="restrictionForm.get('allergies')?.value | jsonParseCommon"
+      >
+        @for (allergy of allergyOptions; track allergy) {
+        <mat-option [value]="allergy">{{ allergy }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-radio-group
+      aria-label="Celiac or Gluten Sensitivity?"
+      formControlName="celiacOrGlutenSensitivity"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Celiac Disease or Gluten Sensitivity?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="Lactose Intolerance?"
+      formControlName="lactoseIntolerance"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Lactose Intolerance?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="Type 1 Diabetes?"
+      formControlName="type1Diabetes"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Type 1 Diabetes?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="Type 2 Diabetes?"
+      formControlName="type2Diabetes"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Type 2 Diabetes?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="High Blood Pressure?"
+      formControlName="highBloodPressure"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>High Blood Pressure?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="High Cholesterol?"
+      formControlName="highCholesterol"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>High Cholesterol?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Gastrointestinal Conditions?</mat-label>
+      <mat-select
+        [formControlName]="'gastrointestinalConditions'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('gastrointestinalConditions', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('gastrointestinalConditions')?.value
+            | jsonParseCommon
+        "
+      >
+        @for (condition of gastrointestinalConditionsOptions; track condition) {
+        <mat-option [value]="condition">{{ condition }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Kidney Disease Restrictions?</mat-label>
+      <mat-select
+        [formControlName]="'kidneyDiseaseRestrictions'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('kidneyDiseaseRestrictions', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('kidneyDiseaseRestrictions')?.value
+            | jsonParseCommon
+        "
+      >
+        @for (restriction of kidneyDiseaseRestrictionsOptions; track
+        restriction) {
+        <mat-option [value]="restriction">{{ restriction }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-radio-group
+      aria-label="Gout?"
+      formControlName="gout"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Gout?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="Anemia?"
+      formControlName="anemia"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Anemia?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-radio-group
+      aria-label="Pregnancy?"
+      formControlName="pregnancy"
+      class="nom-horizontal-group flex-wrap justify-center my-4"
+    >
+      <mat-label>Pregnancy?</mat-label>
+      <mat-radio-button
+        [value]="'true'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >Yes</mat-radio-button
+      >
+      <mat-radio-button
+        [value]="'false'"
+        class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+        >No</mat-radio-button
+      >
+    </mat-radio-group>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Vitamin/Mineral Deficiencies</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="micronutrientSearchControl"
+        class="nom-form__input"
+        placeholder="Search and select micronutrients..."
+      />
+      <mat-select
+        [formControlName]="'vitaminMineralDeficiencies'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('vitaminMineralDeficiencies', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('vitaminMineralDeficiencies')?.value
+            | jsonParseCommon
+        "
+      >
+        @for (nutrient of (filteredMicronutrients$ | async); track nutrient) {
+        <mat-option [value]="nutrient">{{ nutrient }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Prescription Interactions?</mat-label>
+      <input
+        matInput
+        type="text"
+        formControlName="prescriptionInteractions"
+        class="nom-form__input"
+        placeholder="e.g., Grapefruit, Vitamin K"
+      />
+    </mat-form-field>
+  </div>
+
+  <!-- 3.a.3. Personal Preferences -->
+  <div class="nom-section">
+    <h3 class="nom-section__heading">Personal Preferences</h3>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Spice Level Preferred</mat-label>
+      <mat-select
+        formControlName="spiceLevelPreferred"
+        class="nom-form__input-select"
+      >
+        @for (level of spiceLevelOptions; track level) {
+        <mat-option [value]="level">{{ level }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Ingredients Disliked</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="ingredientSearchControl"
+        class="nom-form__input"
+        placeholder="Search and select ingredients..."
+      />
+      <mat-select
+        [formControlName]="'ingredientsDisliked'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('ingredientsDisliked', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('ingredientsDisliked')?.value | jsonParseCommon
+        "
+      >
+        @for (ingredient of (filteredIngredients$ | async); track ingredient) {
+        <mat-option [value]="ingredient">{{ ingredient }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Textures Disliked</mat-label>
+      <mat-select
+        [formControlName]="'texturesDisliked'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('texturesDisliked', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('texturesDisliked')?.value | jsonParseCommon
+        "
+      >
+        @for (texture of texturesDislikedOptions; track texture) {
+        <mat-option [value]="texture">{{ texture }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>Preferred Cooking Methods</mat-label>
+      <mat-select
+        [formControlName]="'preferredCookingMethods'"
+        multiple
+        class="nom-form__input-select"
+        (selectionChange)="
+          onMultiSelectChange('preferredCookingMethods', $event.value, true)
+        "
+        [value]="
+          restrictionForm.get('preferredCookingMethods')?.value
+            | jsonParseCommon
+        "
+      >
+        @for (method of preferredCookingMethodsOptions; track method) {
+        <mat-option [value]="method">{{ method }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Conditional Allocation Questions (FR-1.7) -->
+  <div
+    formArrayName="conditionalAllocations"
+    class="nom-section"
+    *ngIf="
+      affirmativeRestrictionsList.length > 0 && allPersonsInPlan.length > 1
+    "
+  >
+    <h3 class="nom-section__heading">Who do these restrictions apply to?</h3>
+    <p class="nom-instruction-text">
+      For each restriction, specify if it applies to everyone or specific
+      individuals.
+    </p>
+
+    @for (allocationGroup of conditionalAllocations.controls; track
+    allocationGroup.get('restrictionName')?.value) {
+    <div [formGroup]="allocationGroup" class="nom-card p-4 mb-4">
+      <p class="nom-prompt-text font-semibold text-lg">
+        {{ allocationGroup.get('restrictionName')?.value }} applies to:
+      </p>
+      <mat-radio-group
+        [formControlName]="'appliesToEntirePlan'"
+        class="nom-horizontal-group flex-wrap justify-center my-2"
+      >
+        <mat-radio-button [value]="true" class="m-1 bg-blue-50 rounded-md p-2"
+          >Everyone on the Plan</mat-radio-button
+        >
+        <mat-radio-button [value]="false" class="m-1 bg-blue-50 rounded-md p-2"
+          >Specific Individuals</mat-radio-button
+        >
+      </mat-radio-group>
+
+      @if (allocationGroup.get('appliesToEntirePlan')?.value === false) {
+      <mat-form-field appearance="outline" class="nom-form__field mt-4">
+        <mat-label>Select Affected Person(s)</mat-label>
+        <mat-select
+          [formControlName]="'affectedPersonIds'"
+          multiple
+          class="nom-form__input-select"
+        >
+          @for (person of allPersonsInPlan; track person.id) {
+          <mat-option [value]="person.id">{{ person.name }}</mat-option>
+          }
+        </mat-select>
+        @if
+        (allocationGroup.get('affectedPersonIds')?.hasError('noAffectedPersons')
+        && allocationGroup.get('affectedPersonIds')?.touched) {
+        <mat-error class="nom-form__error"
+          >Please select at least one person.</mat-error
+        >
+        }
+      </mat-form-field>
+      }
+    </div>
+    }
+  </div>
+</form>

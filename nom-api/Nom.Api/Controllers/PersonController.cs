@@ -6,6 +6,7 @@ using Nom.Api.Models.Person;
 using Nom.Orch.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
+using Nom.Orch.Models.Person;
 
 namespace Nom.Api.Controllers
 {
@@ -92,6 +93,28 @@ namespace Nom.Api.Controllers
             // This is a placeholder. In a real scenario, you'd fetch the person from your service layer.
             _logger.LogInformation("Attempting to get person with ID: {PersonId}", id);
             return NotFound(); // Placeholder: No actual implementation to fetch yet
+        }
+
+        /// <summary>
+        /// Handles the complete onboarding process for a newly registered or existing user.
+        /// Receives consolidated person details, attributes, and restrictions.
+        /// </summary>
+        /// <param name="request">The comprehensive onboarding data.</param>
+        [HttpPost("onboarding-complete")]
+        public async Task<IActionResult> OnboardingComplete([FromBody] OnboardingCompleteRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var success = await _personOrchestrationService.CompleteOnboardingAsync(request);
+
+            if (success)
+            {
+                return Ok(new { message = "Onboarding completed successfully." });
+            }
+            return StatusCode(500, new { message = "Failed to complete onboarding due to an internal error." });
         }
     }
 }

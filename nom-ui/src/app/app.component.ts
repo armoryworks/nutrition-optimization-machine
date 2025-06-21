@@ -160,4 +160,18 @@ export class AppComponent implements OnInit, OnDestroy {
       },
     });
   }
+
+  onOnboardingComplete(success: boolean): void {
+    console.log(
+      'Onboarding Workflow completed:',
+      success ? 'Successfully!' : 'With errors.'
+    );
+    if (success) {
+      // In a real application, you would navigate the user to their dashboard
+      // Example: this.router.navigate(['/dashboard']);
+      alert('Onboarding complete! Redirecting to dashboard (simulated).');
+    } else {
+      alert('There was an issue completing your onboarding. Please try again.');
+    }
+  }
 }

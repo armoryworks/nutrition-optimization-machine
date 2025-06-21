@@ -7,7 +7,7 @@ import { SendConfirmationEmailComponent } from './auth/send-confirmation-email/s
 import { UpdateInfoComponent } from './auth/update-info/update-info.component';
 import { UpdateTwoFactorComponent } from './auth/update-two-factor/update-two-factor.component';
 import { HomeComponent } from './home/home.component';
-import { OnboardingWizardComponent } from './onboarding/components/onboarding-wizard/onboarding-wizard.component';
+import { OnboardingWorkflowComponent } from './onboarding/components/onboarding-workflow/onboarding-workflow.component';
 
 export const routes: Routes = [
   { path: 'home', component: HomeComponent },
@@ -18,7 +18,7 @@ export const routes: Routes = [
   { path: 'send-confirmation', component: SendConfirmationEmailComponent },
   { path: 'update-info', component: UpdateInfoComponent },
   { path: 'update-two-factor', component: UpdateTwoFactorComponent },
-  { path: 'onboarding', component: OnboardingWizardComponent },
+  { path: 'onboarding', component: OnboardingWorkflowComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' }, // Default route
   { path: '**', redirectTo: '/home' }, // Wildcard route for any other invalid path
 ];

@@ -1,0 +1,39 @@
+<form [formGroup]="healthAttributesForm" class="nom-form">
+  <div class="nom-section">
+    <h3 class="nom-section__heading">Health Attributes (Optional)</h3>
+    <p class="nom-instruction-text">
+      Provide some health details to help us personalize your plan.
+    </p>
+
+    @for (attrType of attributeTypes; track attrType.id) { @if
+    (attrType.options) {
+    <!-- For select-box attributes like 'Activity Level' -->
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>{{ attrType.name }}</mat-label>
+      <mat-select [formControlName]="getFormControlName(attrType.name)">
+        @for (option of attrType.options; track option) {
+        <mat-option [value]="option">{{ option }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    } @else {
+    <!-- For text input attributes like 'Height', 'Weight' -->
+    <mat-form-field appearance="outline" class="nom-form__field">
+      <mat-label>{{ attrType.name }} ({{ attrType.unit }})</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControlName]="getFormControlName(attrType.name)"
+        class="nom-form__input"
+        placeholder="Enter {{ attrType.name.toLowerCase() }}"
+      />
+      <mat-icon
+        matSuffix
+        fontSet="fa"
+        class="nom-form__icon"
+        [fontIcon]="attrType.icon"
+      ></mat-icon>
+    </mat-form-field>
+    } }
+  </div>
+</form>
