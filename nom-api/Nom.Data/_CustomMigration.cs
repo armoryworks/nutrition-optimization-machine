@@ -219,7 +219,7 @@ namespace Nom.Data
         public static void CreateReferenceGroupView(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
-                CREATE OR REPLACE VIEW reference.ReferenceGroupView AS
+                CREATE OR REPLACE VIEW reference.""ReferenceGroupView"" AS
                 SELECT
                     ref.""Id"" AS ReferenceId,
                     ref.""Name"" AS ReferenceName,
@@ -238,7 +238,7 @@ namespace Nom.Data
 
         public static void DropReferenceGroupView(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("DROP VIEW IF EXISTS reference.ReferenceGroupView;");
+            migrationBuilder.Sql(@"DROP VIEW IF EXISTS reference.""ReferenceGroupView"";");
         }
 
 
