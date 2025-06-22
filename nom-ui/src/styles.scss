@@ -103,7 +103,13 @@ html {
 
   &__field {
     width: 100%;
+    flex-basis: 100%;
     margin-bottom: 15px;
+
+    &.half-width {
+      width: calc(50% - 10px); // For inputs that should be half-width
+      flex-basis: calc(50% - 10px);
+    }
 
     &--centered {
       max-width: 250px; // Example for verification code, etc.
@@ -194,10 +200,15 @@ html {
 // Common Sections and Layouts
 .nom-section {
   display: flex;
-  flex-direction: column;
+  flex-flow: wrap;
   margin-top: 20px;
   margin-bottom: 20px;
   gap: 15px; // Default gap for items in a section
+
+  & > * {
+    width: 100%;
+    flex-basis: 100%;
+  }
 
   &__heading {
     font: var(

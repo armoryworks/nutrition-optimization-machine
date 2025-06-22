@@ -1,10 +1,10 @@
 import {
   Component,
   OnInit,
-  Input,
   Output,
   EventEmitter,
   ViewEncapsulation,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -13,13 +13,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
-import { finalize } from 'rxjs'; // Keep finalize import
+import { finalize } from 'rxjs';
 
-// Import all child components
+// Import all child components for ViewChild references
 import { PersonEditComponent } from '../../../person/components/person-edit/person-edit.component';
 import { PersonHealthEditComponent } from '../../../person/components/person-health-edit/person-health-edit.component';
-import { PlanEditComponent } from '../../../plan/components/plan-edit/plan-edit.component';
-import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component'; // Corrected path previously
+import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component';
 
 // Import Models and Services
 import { PersonModel } from '../../../person/models/person.model';
@@ -27,7 +26,7 @@ import { PersonAttributeModel } from '../../../person/models/person-attribute.mo
 import { RestrictionModel } from '../../../restriction/models/restriction.model';
 import { OnboardingCompleteRequestModel } from '../../models/onboarding-complete-request.model';
 import { PersonService } from '../../../person/services/person.service';
-import { NotificationService } from '../../../utilities/services/notification.service'; // For snackbar
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum';
@@ -54,7 +53,8 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
   encapsulation: ViewEncapsulation.None,
 })
 export class OnboardingWorkflowComponent implements OnInit {
-  @Input() principalPersonId: number | null = null;
+  private _principalPersonId: number | null = null;
+
   @Output() onboardingComplete = new EventEmitter<boolean>();
 
   currentStepIndex: number = 0;
@@ -69,7 +69,12 @@ export class OnboardingWorkflowComponent implements OnInit {
   currentAdditionalParticipantIndex: number = 0;
   allPersonsInPlan: PersonModel[] = [];
 
-  // Define steps and their properties (rest of the array remains the same)
+  @ViewChild(PersonEditComponent) personEditComponent?: PersonEditComponent;
+  @ViewChild(PersonHealthEditComponent)
+  personHealthEditComponent?: PersonHealthEditComponent;
+  @ViewChild(RestrictionEditComponent)
+  restrictionEditComponent?: RestrictionEditComponent;
+
   workflowSteps = [
     {
       id: 'personDetails',
@@ -161,8 +166,6 @@ export class OnboardingWorkflowComponent implements OnInit {
     },
   ];
 
-  // FormControl for UI-only steps that use it (e.g., Invitation Code, Number of Participants)
-  // These were missing in your previous .ts, adding them here to avoid potential errors in template
   invitationCodeFormControl = new FormControl<string | null>(
     null,
     Validators.minLength(1)
@@ -178,20 +181,15 @@ export class OnboardingWorkflowComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // if (this.principalPersonId) {
-    //   this.onboardingData.personId = this.principalPersonId;
-    //   this.allPersonsInPlan.push(
-    //     new PersonModel({ id: this.principalPersonId, name: 'You (Primary)' })
-    //   );
-    // } else {
-    //   this.error = 'User not identified for onboarding. Please log in again.';
-    //   console.error(this.error);
-    // }
+    this._principalPersonId = -1;
+    this.onboardingData.personId = this._principalPersonId;
+
+    this.allPersonsInPlan.push(
+      new PersonModel({ id: this._principalPersonId, name: 'You (Primary)' })
+    );
   }
 
-  // --- NEW GETTER FOR FILTERING RESTRICTIONS ---
   get filteredRestrictionsForCurrentPerson(): RestrictionModel[] {
-    // Return an empty array if restrictions are null/undefined or if currentPersonId is not set
     if (
       !this.onboardingData.restrictions ||
       this.currentRestrictionPersonId === null ||
@@ -199,25 +197,27 @@ export class OnboardingWorkflowComponent implements OnInit {
     ) {
       return [];
     }
-    // Filter the restrictions based on the current person's ID
     return this.onboardingData.restrictions.filter(
       (r) => r.personId === this.currentRestrictionPersonId
     );
   }
-  // --- END NEW GETTER ---
 
   get currentStep(): any {
     if (
-      this.currentStepIndex ===
-        this.workflowSteps.findIndex((s) => s.id === 'summary') &&
-      this.currentAdditionalParticipantIndex < this.allPersonsInPlan.length
+      this.onboardingData.hasAdditionalParticipants &&
+      this.onboardingData.applyIndividualPreferencesToEachPerson &&
+      this.currentAdditionalParticipantIndex < this.allPersonsInPlan.length &&
+      this.currentStepIndex >=
+        this.workflowSteps.findIndex((s) => s.id === 'societalRestrictions') &&
+      this.currentStepIndex <
+        this.workflowSteps.findIndex((s) => s.id === 'summary')
     ) {
       return {
         id: 'restrictionCollectionPerPerson',
-        title:
-          'Restrictions for ' +
-          (this.allPersonsInPlan[this.currentAdditionalParticipantIndex]
-            ?.name || `Person ${this.currentAdditionalParticipantIndex + 1}`),
+        title: `Restrictions for ${
+          this.allPersonsInPlan[this.currentAdditionalParticipantIndex]?.name ||
+          `Person ${this.currentAdditionalParticipantIndex + 1}`
+        }`,
         component: 'app-restriction-edit',
         dataProperty: 'restrictions',
         required: false,
@@ -253,18 +253,18 @@ export class OnboardingWorkflowComponent implements OnInit {
 
   onPersonDetailsSubmitted(person: PersonModel): void {
     this.onboardingData.personDetails = person;
-    const principalPerson = this.allPersonsInPlan.find(
-      (p) => p.id === this.principalPersonId
+    const principalPersonInList = this.allPersonsInPlan.find(
+      (p) => p.id === this._principalPersonId
     );
-    if (principalPerson) {
-      principalPerson.name = person.name;
+    if (principalPersonInList) {
+      principalPersonInList.name = person.name;
     }
-    this.nextStep();
+    this.nextStepInternal(); // Call internal nextStep
   }
 
   onHealthAttributesSubmitted(attributes: PersonAttributeModel[]): void {
     this.onboardingData.attributes = attributes;
-    this.nextStep();
+    this.nextStepInternal(); // Call internal nextStep
   }
 
   onRestrictionsSubmitted(restrictions: RestrictionModel[]): void {
@@ -279,40 +279,71 @@ export class OnboardingWorkflowComponent implements OnInit {
 
     this.onboardingData.restrictions.push(...restrictions);
 
-    this.nextStep();
+    const lastRestrictionStepIndex = this.workflowSteps.findIndex(
+      (s) => s.id === 'personalPreferences'
+    );
+
+    if (
+      this.currentStepIndex === lastRestrictionStepIndex ||
+      (this.currentStep.id === 'restrictionCollectionPerPerson' &&
+        this.currentStepIndex === lastRestrictionStepIndex)
+    ) {
+      if (
+        this.onboardingData.hasAdditionalParticipants &&
+        this.onboardingData.applyIndividualPreferencesToEachPerson &&
+        this.currentAdditionalParticipantIndex <
+          this.allPersonsInPlan.length - 1
+      ) {
+        this.currentAdditionalParticipantIndex++;
+        this.currentStepIndex = this.workflowSteps.findIndex(
+          (s) => s.id === 'societalRestrictions'
+        );
+        this.focusOnCurrentStep();
+        return;
+      }
+    }
+    this.nextStepInternal(); // Call internal nextStep
   }
 
+  // RE-ADDED: onInvitationCodeEntered
   onInvitationCodeEntered(code: string): void {
     this.onboardingData.planInvitationCode = code;
-    this.nextStep();
+    this.nextStepInternal();
   }
 
+  // RE-ADDED: onYesNoAnswer
   onYesNoAnswer(propertyName: string, answer: boolean): void {
     (this.onboardingData as any)[propertyName] = answer;
-    if (propertyName === 'hasAdditionalParticipants' && answer === false) {
-      this.currentStepIndex = this.workflowSteps.findIndex(
-        (s) => s.id === 'summary'
-      );
-      this.onboardingData.numberOfAdditionalParticipants = 0;
-      this.onboardingData.additionalParticipantDetails = [];
-      this.allPersonsInPlan = [this.allPersonsInPlan[0]];
-    } else {
-      if (propertyName === 'hasAdditionalParticipants' && answer === true) {
+
+    if (propertyName === 'hasAdditionalParticipants') {
+      if (answer === false) {
+        this.currentStepIndex = this.workflowSteps.findIndex(
+          (s) => s.id === 'summary'
+        );
+        this.onboardingData.numberOfAdditionalParticipants = 0;
+        this.onboardingData.additionalParticipantDetails = [];
+        this.allPersonsInPlan = [this.allPersonsInPlan[0]];
+        this.currentAdditionalParticipantIndex = 0;
+        this.nextStepInternal();
+      } else {
         if (
-          !this.allPersonsInPlan.some((p) => p.id === this.principalPersonId)
+          !this.allPersonsInPlan.some((p) => p.id === this._principalPersonId)
         ) {
           this.allPersonsInPlan.unshift(
             new PersonModel({
-              id: this.principalPersonId || 0,
+              id: this._principalPersonId || 0,
               name: 'You (Primary)',
             })
           );
         }
+        this.nextStepInternal();
       }
+    } else if (propertyName === 'applyIndividualPreferencesToEachPerson') {
+      this.nextStepInternal();
     }
-    this.nextStep();
   }
 
+  // RE-ADDED: onNumberInput
   onNumberInput(propertyName: string, value: number): void {
     (this.onboardingData as any)[propertyName] = value;
     const newParticipantsCount = value;
@@ -323,8 +354,8 @@ export class OnboardingWorkflowComponent implements OnInit {
       for (let i = existingParticipantsCount; i < newParticipantsCount; i++) {
         this.onboardingData.additionalParticipantDetails.push(
           new PersonModel({
-            id: 0,
-            name: `Person ${this.allPersonsInPlan.length + 1}`,
+            id: -(i + 2),
+            name: `Person ${i + 2}`,
           })
         );
       }
@@ -341,16 +372,75 @@ export class OnboardingWorkflowComponent implements OnInit {
       ...this.onboardingData.additionalParticipantDetails,
     ];
 
-    this.nextStep();
+    this.nextStepInternal();
   }
 
+  // RE-ADDED: onNamesEntered
   onNamesEntered(persons: PersonModel[]): void {
     this.onboardingData.additionalParticipantDetails = persons;
-    this.allPersonsInPlan = [this.allPersonsInPlan[0], ...persons];
-    this.nextStep();
+    persons.forEach((person, index) => {
+      if (this.allPersonsInPlan[index + 1]) {
+        this.allPersonsInPlan[index + 1].name = person.name;
+      }
+    });
+    this.nextStepInternal();
   }
 
-  nextStep(): void {
+  // --- NEW PUBLIC METHOD TO BE CALLED BY "NEXT" BUTTON ---
+  triggerChildComponentSubmission(): void {
+    this.error = null;
+
+    if (this.isSubmitStep()) {
+      this.submitOnboardingData();
+      return;
+    }
+
+    switch (this.currentStep?.component) {
+      case 'app-person-edit':
+        this.personEditComponent?.submitForm();
+        break;
+      case 'app-person-health-edit':
+        this.personHealthEditComponent?.submitForm();
+        break;
+      case 'app-restriction-edit':
+        this.restrictionEditComponent?.submitForm();
+        break;
+      case 'ui-only-invitation-code':
+        this.onInvitationCodeEntered(
+          this.invitationCodeFormControl.value || ''
+        );
+        break;
+      case 'ui-only-yes-no':
+        // These steps are typically handled by direct button clicks that call onYesNoAnswer.
+        // If 'Next' button is used, we need to ensure the choice is captured or a default is made.
+        // For now, assuming onYesNoAnswer is called directly via specific buttons.
+        // If a 'Next' button is the *only* way to advance, you'd need logic here
+        // to infer what 'Yes'/'No' means for the current step, or ensure a radio button group
+        // is part of the UI and its value can be accessed via a FormControl.
+        // For simplicity, we assume the specific 'Yes'/'No' buttons call the handler directly.
+        break;
+      case 'ui-only-number-input':
+        this.onNumberInput(
+          'numberOfAdditionalParticipants',
+          this.numberOfAdditionalParticipantsControl.value || 0
+        );
+        break;
+      case 'ui-only-name-slots':
+        this.onNamesEntered(this.onboardingData.additionalParticipantDetails);
+        break;
+      case 'ui-only-summary':
+        this.submitOnboardingData();
+        break;
+      default:
+        // For any other UI-only steps that don't have explicit submission methods, just advance.
+        this.nextStepInternal();
+        break;
+    }
+  }
+
+  // --- RENAMED: internal method for step progression, called by event handlers ---
+  private nextStepInternal(): void {
+    // Renamed from nextStep() to avoid confusion
     this.error = null;
 
     if (this.currentStepIndex < this.workflowSteps.length - 1) {
@@ -367,18 +457,21 @@ export class OnboardingWorkflowComponent implements OnInit {
     const summaryStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'summary'
     );
+    const firstRestrictionStepIndex = this.workflowSteps.findIndex(
+      (s) => s.id === 'societalRestrictions'
+    );
+
     if (
-      this.currentStepIndex === summaryStepIndex &&
+      this.currentStepIndex >=
+        this.workflowSteps.findIndex(
+          (s) => s.id === 'applyIndividualPreferences'
+        ) &&
       this.onboardingData.hasAdditionalParticipants &&
-      this.onboardingData.applyIndividualPreferencesToEachPerson
+      this.onboardingData.applyIndividualPreferencesToEachPerson &&
+      this.currentAdditionalParticipantIndex < this.allPersonsInPlan.length
     ) {
-      if (
-        this.currentAdditionalParticipantIndex < this.allPersonsInPlan.length
-      ) {
-        this.currentAdditionalParticipantIndex++;
-        this.currentStepIndex = this.workflowSteps.findIndex(
-          (s) => s.id === 'societalRestrictions'
-        );
+      if (this.currentStep.component !== 'app-restriction-edit') {
+        this.currentStepIndex = firstRestrictionStepIndex;
       }
     }
 
@@ -399,17 +492,45 @@ export class OnboardingWorkflowComponent implements OnInit {
     const summaryStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'summary'
     );
+    const firstRestrictionStepIndex = this.workflowSteps.findIndex(
+      (s) => s.id === 'societalRestrictions'
+    );
+    const lastRestrictionStepIndex = this.workflowSteps.findIndex(
+      (s) => s.id === 'personalPreferences'
+    );
+
     if (
-      this.currentStepIndex >=
-        this.workflowSteps.findIndex((s) => s.id === 'societalRestrictions') &&
-      this.currentStepIndex < summaryStepIndex &&
+      this.currentStep?.component === 'app-restriction-edit' &&
       this.onboardingData.hasAdditionalParticipants &&
-      this.currentAdditionalParticipantIndex > 0
+      this.onboardingData.applyIndividualPreferencesToEachPerson &&
+      this.currentAdditionalParticipantIndex >= 0
     ) {
-      this.currentAdditionalParticipantIndex--;
-      this.currentStepIndex = this.workflowSteps.findIndex(
-        (s) => s.id === 'personalPreferences'
-      );
+      if (
+        this.currentStepIndex === firstRestrictionStepIndex &&
+        this.currentAdditionalParticipantIndex > 0
+      ) {
+        this.currentAdditionalParticipantIndex--;
+        this.currentStepIndex = lastRestrictionStepIndex;
+      } else if (this.currentStepIndex > firstRestrictionStepIndex) {
+        this.currentStepIndex--;
+      } else if (
+        this.currentStepIndex === firstRestrictionStepIndex &&
+        this.currentAdditionalParticipantIndex === 0
+      ) {
+        let targetIndex = this.workflowSteps.findIndex(
+          (s) => s.id === 'applyIndividualPreferences'
+        );
+        if (targetIndex === -1) {
+          targetIndex = this.workflowSteps.findIndex(
+            (s) => s.id === 'additionalParticipantNames'
+          );
+        }
+        this.currentStepIndex = targetIndex;
+      } else {
+        if (this.currentStepIndex > 0) {
+          this.currentStepIndex--;
+        }
+      }
     } else if (this.currentStepIndex > 0) {
       this.currentStepIndex--;
       while (
@@ -435,7 +556,7 @@ export class OnboardingWorkflowComponent implements OnInit {
           (this.onboardingData as any)[dataProp] = null;
         }
       }
-      this.nextStep();
+      this.nextStepInternal(); // Call internal nextStep
     }
   }
 
@@ -446,7 +567,7 @@ export class OnboardingWorkflowComponent implements OnInit {
     this.error = null;
     this.submitMessage = null;
 
-    this.onboardingData.personId = this.principalPersonId || 0;
+    this.onboardingData.personId = this._principalPersonId || 0;
 
     this.personService
       .submitOnboardingComplete(this.onboardingData)
@@ -460,6 +581,24 @@ export class OnboardingWorkflowComponent implements OnInit {
           this.submitMessage =
             response.message || 'Onboarding completed successfully!';
           this.notificationService.success(this.submitMessage);
+
+          if (
+            response &&
+            response.data &&
+            typeof response.data.newPersonId === 'number'
+          ) {
+            const newRealPrincipalId = response.data.newPersonId;
+            this._principalPersonId = newRealPrincipalId;
+            this.onboardingData.personId = newRealPrincipalId;
+
+            const primaryPersonInList = this.allPersonsInPlan.find(
+              (p) => p.id === -1
+            );
+            if (primaryPersonInList) {
+              primaryPersonInList.id = newRealPrincipalId;
+            }
+          }
+          this.onboardingComplete.emit(true);
         },
         error: (err) => {
           console.error('Onboarding submission failed:', err);
@@ -475,13 +614,16 @@ export class OnboardingWorkflowComponent implements OnInit {
     this.onboardingComplete.emit(true);
   }
 
-  updateAdditionalParticipantName(index: number, control: any): void {
-    console.log(control);
+  updateAdditionalParticipantName(index: number, event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    const name = inputElement.value;
 
-    // if (this.onboardingData.additionalParticipantDetails[index]) {
-    //   this.onboardingData.additionalParticipantDetails[index].name = 'bob';
-    //   this.allPersonsInPlan[index + 1].name = 'bob';
-    // }
+    if (this.onboardingData.additionalParticipantDetails[index]) {
+      this.onboardingData.additionalParticipantDetails[index].name = name;
+      if (this.allPersonsInPlan[index + 1]) {
+        this.allPersonsInPlan[index + 1].name = name;
+      }
+    }
   }
 
   getPersonName(personId: number | null, defaultRetVal: string): string {

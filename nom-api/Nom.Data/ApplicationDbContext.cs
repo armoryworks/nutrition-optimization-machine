@@ -10,14 +10,17 @@ using Nom.Data.Shopping;
 using Nom.Data.Person;
 using Nom.Data.Audit;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 
 namespace Nom.Data
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private IHttpContextAccessor _httpContextAccessor;
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         }
 
         #region Identity DbSets
@@ -85,26 +88,12 @@ namespace Nom.Data
                 .IsUnique()
                 .HasFilter("\"InvitationCode\" IS NOT NULL");
 
-            // Configure the relationship between PersonEntity and PlanEntity (PlansAdministering)
-            modelBuilder.Entity<PersonEntity>()
-                .HasMany(p => p.PlansAdministering)
-                .WithOne(plan => plan.CreatedByPerson)
-                .HasForeignKey(plan => plan.CreatedByPersonId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             // Person can be a participant in many plans
             modelBuilder.Entity<PersonEntity>()
                 .HasMany(p => p.PlanParticipations)
                 .WithOne(pp => pp.Person)
                 .HasForeignKey(pp => pp.PersonId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Person can create many PlanParticipant records
-            modelBuilder.Entity<PersonEntity>()
-                .HasMany(p => p.CreatedPlanParticipations)
-                .WithOne(pp => pp.CreatedByPerson)
-                .HasForeignKey(pp => pp.CreatedByPersonId)
-                .OnDelete(DeleteBehavior.Restrict);
             #endregion
 
             #region Audit Namespace Fluent API Configurations
@@ -192,7 +181,7 @@ namespace Nom.Data
 
             // CRITICAL: CHECK CONSTRAINT for RestrictionEntity - At least one of PersonId or PlanId must be non-null.
             modelBuilder.Entity<RestrictionEntity>()
-            .ToTable(t=>t.HasCheckConstraint("CHK_Restriction_PersonOrPlan",
+            .ToTable(t => t.HasCheckConstraint("CHK_Restriction_PersonOrPlan",
                                     "\"PersonId\" IS NOT NULL OR \"PlanId\" IS NOT NULL"));
 
             modelBuilder.Entity<RestrictionEntity>()
@@ -223,12 +212,6 @@ namespace Nom.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<RestrictionEntity>()
-                .HasOne(r => r.CreatedByPerson)
-                .WithMany()
-                .HasForeignKey(r => r.CreatedByPersonId)
-                .OnDelete(DeleteBehavior.Restrict);
-
 
             // Configure PlanParticipantEntity
             modelBuilder.Entity<PlanParticipantEntity>()
@@ -253,12 +236,6 @@ namespace Nom.Data
                 .HasOne(pp => pp.Role)
                 .WithMany()
                 .HasForeignKey(pp => pp.RoleRefId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<PlanParticipantEntity>()
-                .HasOne(pp => pp.CreatedByPerson)
-                .WithMany(p => p.CreatedPlanParticipations)
-                .HasForeignKey(pp => pp.CreatedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             #endregion // End of Plan Namespace Fluent API Configurations
@@ -310,5 +287,47 @@ namespace Nom.Data
                     });
             #endregion // End of Shopping Namespace Fluent API Configurations
         }
+        public override int SaveChanges()
+        {
+            ApplyAuditInformation();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInformation();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyAuditInformation()
+        {
+            long? currentPersonId = _httpContextAccessor?.HttpContext?.User?.Claims?
+                .FirstOrDefault(c => c.Type == "PersonId")?.Value is string personIdStr && long.TryParse(personIdStr, out long id) ? (long?)id : 1L; // Default to 1L if not found or parsing fails
+
+
+
+            var entries = ChangeTracker.Entries()
+                .Where(e => e.Entity is IAuditableEntity && (
+                    e.State == EntityState.Added ||
+                    e.State == EntityState.Modified));
+
+            foreach (var entry in entries)
+            {
+                var auditableEntity = (IAuditableEntity)entry.Entity;
+
+                if (entry.State == EntityState.Added)
+                {
+                    auditableEntity.CreatedDate = DateTime.UtcNow;
+                    auditableEntity.CreatedByPersonId = auditableEntity.CreatedByPersonId ?? currentPersonId; // Prefer explicitly set, else current
+                }
+
+                if (entry.State == EntityState.Modified)
+                {
+                    auditableEntity.LastModifiedDate = DateTime.UtcNow;
+                    auditableEntity.LastModifiedByPersonId = auditableEntity.LastModifiedByPersonId ?? currentPersonId; // Prefer explicitly set, else current
+                }
+            }
+        }
     }
+
 }

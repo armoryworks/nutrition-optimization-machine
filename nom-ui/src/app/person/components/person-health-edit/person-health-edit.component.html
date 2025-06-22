@@ -9,7 +9,7 @@
     (attrType.options) {
     <!-- For select-box attributes like 'Activity Level' -->
     <mat-form-field appearance="outline" class="nom-form__field">
-      <mat-label>{{ attrType.name }}</mat-label>
+      <mat-label>{{ attrType.label }}</mat-label>
       <mat-select [formControlName]="getFormControlName(attrType.name)">
         @for (option of attrType.options; track option) {
         <mat-option [value]="option">{{ option }}</mat-option>
@@ -18,14 +18,18 @@
     </mat-form-field>
     } @else {
     <!-- For text input attributes like 'Height', 'Weight' -->
-    <mat-form-field appearance="outline" class="nom-form__field">
-      <mat-label>{{ attrType.name }} ({{ attrType.unit }})</mat-label>
+    <mat-form-field
+      appearance="outline"
+      class="nom-form__field"
+      [ngClass]="attrType.class"
+    >
+      <mat-label>{{ attrType.label }} ({{ attrType.unit }})</mat-label>
       <input
         matInput
         type="text"
         [formControlName]="getFormControlName(attrType.name)"
         class="nom-form__input"
-        placeholder="Enter {{ attrType.name.toLowerCase() }}"
+        placeholder="Enter {{ attrType?.label?.toLowerCase() }}"
       />
       <mat-icon
         matSuffix

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250620071838_InitialCreate")]
+    [Migration("20250622083344_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -269,9 +269,6 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
-                    b.Property<long?>("PersonEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("PropertyName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -283,8 +280,6 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("ChangedByPersonId");
 
-                    b.HasIndex("PersonEntityId");
-
                     b.ToTable("AuditLogEntry", "audit");
                 });
 
@@ -295,6 +290,18 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("MacroNutrientId")
                         .HasColumnType("bigint");
@@ -319,9 +326,21 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -341,8 +360,20 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("GuidelineBasisTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("MaximumMeasurement")
                         .HasColumnType("decimal(18,4)");
@@ -378,6 +409,18 @@ namespace Nom.Data.Migrations
                     b.Property<long>("AttributeTypeId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly?>("OnDate")
                         .HasColumnType("date");
 
@@ -406,9 +449,21 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("InvitationCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -438,6 +493,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly?>("BeginDate")
                         .HasColumnType("date");
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
@@ -448,6 +509,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("GoalTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -474,6 +541,12 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
@@ -487,6 +560,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsQuantifiable")
                         .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal?>("MeasurementMaximum")
                         .HasColumnType("decimal(18,2)");
@@ -531,9 +610,21 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("MealTypeId")
                         .HasColumnType("bigint");
@@ -558,8 +649,11 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long>("CreatedByPersonId")
+                    b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
@@ -572,6 +666,12 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -581,8 +681,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("date");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CreatedByPersonId");
 
                     b.HasIndex("InvitationCode")
                         .IsUnique()
@@ -599,7 +697,7 @@ namespace Nom.Data.Migrations
                     b.Property<long>("PersonId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("CreatedByPersonId")
+                    b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
@@ -614,12 +712,16 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("JoinedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("RoleRefId")
                         .HasColumnType("bigint");
 
                     b.HasKey("PlanId", "PersonId");
-
-                    b.HasIndex("CreatedByPersonId");
 
                     b.HasIndex("PersonId");
 
@@ -639,7 +741,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly?>("BeginDate")
                         .HasColumnType("date");
 
-                    b.Property<long>("CreatedByPersonId")
+                    b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
@@ -654,6 +756,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -673,8 +781,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CreatedByPersonId");
 
                     b.HasIndex("IngredientId");
 
@@ -700,9 +806,21 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -722,8 +840,20 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("Measurement")
                         .HasColumnType("decimal(18,2)");
@@ -756,6 +886,12 @@ namespace Nom.Data.Migrations
                     b.Property<long>("CreatedById")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long?>("CuratedById")
                         .HasColumnType("bigint");
 
@@ -772,6 +908,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsCurated")
                         .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -803,8 +945,20 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("Measurement")
                         .HasColumnType("decimal(18,2)");
@@ -834,10 +988,22 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
@@ -870,8 +1036,20 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -921,8 +1099,20 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -944,6 +1134,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly>("AcquisitionDate")
                         .HasColumnType("date");
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly?>("ExpectedExpirationDate")
                         .HasColumnType("date");
 
@@ -952,6 +1148,12 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("ItemStatusTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("MeasurementTypeId")
                         .HasColumnType("bigint");
@@ -999,8 +1201,20 @@ namespace Nom.Data.Migrations
                     b.Property<bool>("AutoGenerateShoppingList")
                         .HasColumnType("boolean");
 
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IncludePantryItems")
                         .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("PersonId")
                         .HasColumnType("bigint");
@@ -1022,6 +1236,18 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateOnly?>("ActualDate")
                         .HasColumnType("date");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1235,10 +1461,6 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Person.PersonEntity", null)
-                        .WithMany("AuditLogEntriesCreated")
-                        .HasForeignKey("PersonEntityId");
-
                     b.Navigation("ChangedByPerson");
                 });
 
@@ -1374,25 +1596,8 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
                 });
 
-            modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
-                {
-                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
-                        .WithMany("PlansAdministering")
-                        .HasForeignKey("CreatedByPersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByPerson");
-                });
-
             modelBuilder.Entity("Nom.Data.Plan.PlanParticipantEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
-                        .WithMany("CreatedPlanParticipations")
-                        .HasForeignKey("CreatedByPersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
                         .WithMany("PlanParticipations")
                         .HasForeignKey("PersonId")
@@ -1411,8 +1616,6 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("CreatedByPerson");
-
                     b.Navigation("Person");
 
                     b.Navigation("Plan");
@@ -1422,12 +1625,6 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Plan.RestrictionEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Person.PersonEntity", "CreatedByPerson")
-                        .WithMany()
-                        .HasForeignKey("CreatedByPersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
@@ -1452,8 +1649,6 @@ namespace Nom.Data.Migrations
                         .WithMany()
                         .HasForeignKey("RestrictionTypeId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CreatedByPerson");
 
                     b.Navigation("Ingredient");
 
@@ -1695,13 +1890,7 @@ namespace Nom.Data.Migrations
                 {
                     b.Navigation("Attributes");
 
-                    b.Navigation("AuditLogEntriesCreated");
-
-                    b.Navigation("CreatedPlanParticipations");
-
                     b.Navigation("PlanParticipations");
-
-                    b.Navigation("PlansAdministering");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>

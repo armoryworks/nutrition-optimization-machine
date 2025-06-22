@@ -26,7 +26,7 @@ namespace Nom.Orch.Interfaces
         /// <returns>A unique invitation code string.</returns>
         Task<string> GenerateUniqueInvitationCodeAsync();
 
-        Task<bool> CompleteOnboardingAsync(OnboardingCompleteRequest request);
+        Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request, string currentIdentityUserId);
         // Add other person-related orchestration methods here as needed
 
      

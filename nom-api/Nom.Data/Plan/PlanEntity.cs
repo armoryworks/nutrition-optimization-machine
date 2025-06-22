@@ -41,18 +41,6 @@ namespace Nom.Data.Plan
         public DateOnly? EndDate { get; set; }
 
         /// <summary>
-        /// Foreign key to the PersonEntity who created/administers this plan.
-        /// </summary>
-        [Required]
-        public long CreatedByPersonId { get; set; }
-
-        /// <summary>
-        /// Navigation property to the PersonEntity who created/administers this plan.
-        /// </summary>
-        [ForeignKey(nameof(CreatedByPersonId))]
-        public virtual PersonEntity CreatedByPerson { get; set; } = default!;
-
-        /// <summary>
         /// A unique, nullable code for inviting new participants to this plan.
         /// </summary>
         [MaxLength(50)]

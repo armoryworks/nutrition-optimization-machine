@@ -17,7 +17,7 @@ namespace Nom.Data.Plan
     {
         // Changed to nullable: A restriction can exist without being directly tied to a plan
         // if it's purely person-specific. The CHECK constraint will enforce at least one of PlanId or PersonId.
-        public long? PlanId { get; set; } 
+        public long? PlanId { get; set; }
         [ForeignKey(nameof(PlanId))]
         public virtual PlanEntity? Plan { get; set; } // Also make navigation property nullable
 
@@ -49,16 +49,5 @@ namespace Nom.Data.Plan
 
         [Column(TypeName = "date")]
         public DateOnly? EndDate { get; set; }
-
-        // --- AUDIT FIELDS FOR THIS ENTITY ---
-        [Required]
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-
-        [Required]
-        public long CreatedByPersonId { get; set; } // The person (often "System" initially) who added this restriction
-
-        [ForeignKey(nameof(CreatedByPersonId))]
-        public virtual PersonEntity CreatedByPerson { get; set; } = default!;
-        // --- END AUDIT FIELDS ---
     }
 }

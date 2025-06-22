@@ -1,105 +1,115 @@
 Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 
-Document Version: 1.1
-Date: June 18, 2025
+Document Version: 1.2
+Date: June 21, 2025
+
 1. Introduction
 
 This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, and foundational system architecture.
 
-The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current capabilities, its intended user interactions, and the underlying business rules it enforces.
+The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current capabilities, its intended user interactions, and the underlying business rules it enforces. This version also includes critical insights into the project's development context, technology choices, and common workflow practices, aiming to provide a comprehensive handover for any new developer or AI collaborator joining the project.
+
+1.1. Project Vision
+
+The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).
+
 2. Executive Summary
 
 The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.
+
+Current Development Status: The core user onboarding workflow (steps for personal details, health attributes, and restrictions for the primary user) is largely implemented on the frontend and integrated with the backend Person and Restriction services. The foundational data models and database migrations are in place. Work is actively progressing on iterating through additional participants for their individual restriction collection.
+
 3. User Roles & Personas
 
 The following primary user roles and system actors have been identified and considered in the developed functionalities:
 
-    New User / Prospect: An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.
+*New User / Prospect*: An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.
 
-    Authenticated User: A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
+*Authenticated User*: A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
 
-    Plan Administrator: An authenticated user who creates and manages nutritional plans, and can invite others to join.
+*Plan Administrator*: An authenticated user who creates and manages nutritional plans, and can invite others to join.
 
-    Plan Member: An authenticated user who participates in an existing nutritional plan.
+*Plan Member*: An authenticated user who participates in an existing nutritional plan.
 
-    System: An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
+*System*: An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
 
 4. Functional Requirements
+
 4.1. User Onboarding & Profile Completion
 
 Objective: To efficiently collect essential user data and personal preferences immediately following account registration, establishing a foundational user profile.
 
-    FR-1.1: Multi-Step Onboarding Workflow: The system shall present a guided, multi-step onboarding process, composed of reusable domain-specific edit components.
+*FR-1.1*: Multi-Step Onboarding Workflow: The system shall present a guided, multi-step onboarding process, composed of reusable domain-specific edit components.
 
-    FR-1.2: Core Profile Data Collection: The initial step shall collect essential personal profile details for the newly registered user.
+*FR-1.2*: Core Profile Data Collection: The initial step shall collect essential personal profile details for the newly registered user.
 
-    FR-1.3: Health Attributes Collection: The workflow shall include an optional step for collecting health-related attributes.
+*FR-1.3*: Health Attributes Collection: The workflow shall include an optional step for collecting health-related attributes.
 
-    FR-1.4: Iterative Restriction Collection: The workflow shall guide the user through defining dietary restrictions. This step will repeat for each major 'Restriction Type' (societal/religious/ethical, allergies/medical, personal preferences).
+*FR-1.4*: Iterative Restriction Collection: The workflow shall guide the user through defining dietary restrictions. This step will repeat for each major 'Restriction Type' (societal/religious/ethical, allergies/medical, personal preferences).
 
-        FR-1.4.1: Restriction Scope Selection: For each identified restriction, the user shall be prompted to specify if it applies to everyone on the plan or to specific individuals.
+    *FR-1.4.1*: Restriction Scope Selection: For each identified restriction, the user shall be prompted to specify if it applies to everyone on the plan or to specific individuals.
 
-        FR-1.4.2: Individual Restriction Assignment: If a restriction applies to specific individuals, the user shall be provided with a selection list to designate which person(s) (including themselves) are affected.
+    *FR-1.4.2*: Individual Restriction Assignment: If a restriction applies to specific individuals, the user shall be provided with a selection list to designate which person(s) (including themselves) are affected.
 
-    FR-1.5: Workflow Control Navigation: Each step in the onboarding process shall be wrapped with a user interface providing "Next", "Back", "Skip" (where optional), "Yes", "No", and "Submit" (where applicable) buttons to control navigation and data submission.
+*FR-1.5*: Workflow Control Navigation: Each step in the onboarding process shall be wrapped with a user interface providing "Next", "Back", "Skip" (where optional), "Yes", "No", and "Submit" (where applicable) buttons to control navigation and data submission.
 
-    FR-1.6: UI-Only Workflow Steps: Certain steps may be purely for workflow control, collecting user decisions without immediate API interaction, influencing subsequent steps.
+*FR-1.6*: UI-Only Workflow Steps: Certain steps may be purely for workflow control, collecting user decisions without immediate API interaction, influencing subsequent steps.
 
-    FR-1.7: Final Onboarding Data Submission: Upon completing all required onboarding steps, a summary shall be presented, allowing the user to review and submit all collected PersonEntity, PersonAttributeEntity, and RestrictionEntity data in a single operation.
+*FR-1.7*: Final Onboarding Data Submission: Upon completing all required onboarding steps, a summary shall be presented, allowing the user to review and submit all collected PersonEntity, PersonAttributeEntity, and RestrictionEntity data in a single operation.
 
-    FR-1.8: Multi-Participant Onboarding (Conditional):
+*FR-1.8*: Multi-Participant Onboarding (Conditional):
 
-        FR-1.8.1: Participation Inquiry: An optional UI-only step shall ask if additional people will participate in the plan.
+    *FR-1.8.1*: Participation Inquiry: An optional UI-only step shall ask if additional people will participate in the plan.
 
-        FR-1.8.2: Participant Count: If affirmative, a subsequent UI-only step shall ask how many additional people will participate.
+    *FR-1.8.2*: Participant Count: If affirmative, a subsequent UI-only step shall ask how many additional people will participate.
 
-        FR-1.8.3: Blank Name Slots: The system shall present blank name slots for the specified number of additional participants.
+    *FR-1.8.3*: Blank Name Slots: The system shall present blank name slots for the specified number of additional participants.
 
-        FR-1.8.4: Individual Preference Application: An optional UI-only step shall ask if individual preferences should apply to each person on the plan.
+    *FR-1.8.4*: Individual Preference Application: An optional UI-only step shall ask if individual preferences should apply to each person on the plan.
 
-        FR-1.8.5: Iterative Participant Onboarding: Step 1.4 (Iterative Restriction Collection) shall be reused and repeated for each additional person added to the plan, allowing the user to skip at any point during these repetitions.
+    *FR-1.8.5*: Iterative Participant Onboarding: Step 1.4 (Iterative Restriction Collection) shall be reused and repeated for each additional person added to the plan, allowing the user to skip at any point during these repetitions.
 
 4.2. Dietary Restriction Management & Inference
 
 Objective: To automatically identify and record dietary restrictions based on user responses during onboarding, streamlining the personalization of nutritional plans.
 
-    FR-2.1: Restriction Data Capture: The system shall capture detailed dietary restrictions, including categorization into "societal, religious, or ethical practices", "allergies and medical restrictions", and "personal preferences".
+*FR-2.1*: Restriction Data Capture: The system shall capture detailed dietary restrictions, including categorization into "societal, religious, or ethical practices", "allergies and medical restrictions", and "personal preferences".
 
-    FR-2.2: Specific Restriction Details:
+*FR-2.2*: Specific Restriction Details:
 
-        Societal/Religious/Ethical: Capture selections from predefined lists (e.g., Kosher, Vegan), fasting schedules, and mandatory inclusions (searchable list of curated ingredients).
+    *Societal/Religious/Ethical*: Capture selections from predefined lists (e.g., Kosher, Vegan), fasting schedules, and mandatory inclusions (searchable list of curated ingredients).
 
-        Allergies/Medical: Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn's, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.
+    *Allergies/Medical*: Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn's, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.
 
-        Personal Preferences: Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
+    *Personal Preferences*: Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
 
-    FR-2.3: Person- or Plan-Level Association: Restrictions collected during onboarding must be associable with either specific individuals (PersonEntity) or the entire PlanEntity, as determined by FR-1.4.1.
+*FR-2.3*: Person- or Plan-Level Association: Restrictions collected during onboarding must be associable with either specific individuals (PersonEntity) or the entire PlanEntity, as determined by FR-1.4.1.
 
-    FR-2.4: Prevention of Duplicates: The system shall prevent the creation of duplicate Restriction records for the same Person (or Plan, if applicable) and the same Restriction Type.
+*FR-2.4*: Prevention of Duplicates: The system shall prevent the creation of duplicate Restriction records for the same Person (or Plan, if applicable) and the same Restriction Type.
 
-    FR-2.5: Auditability: All created Restriction records shall include audit information, indicating their creation time and the creating Person (or System).
+*FR-2.5*: Auditability: All created Restriction records shall include audit information, indicating their creation time and the creating Person (or System).
 
 4.3. Plan Invitation & Participation
 
 Objective: To enable users to join existing nutritional plans through a secure invitation mechanism.
 
-    FR-3.1: Invitation Code Input: The onboarding process shall include an optional step for users to input a unique invitation code.
+*FR-3.1*: Invitation Code Input: The onboarding process shall include an optional step for users to input a unique invitation code.
 
-    FR-3.2: Plan Linking: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user's Person record to the corresponding Plan using a PlanParticipant entity.
+*FR-3.2*: Plan Linking: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user's Person record to the corresponding Plan using a PlanParticipant entity.
 
-    FR-3.3: Role Assignment: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
+*FR-3.3*: Role Assignment: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
 
 4.4. Authentication & Authorization
 
 Objective: To secure system access and protect sensitive user data and functionalities.
 
-    FR-4.1: Authenticated Access: Most API endpoints shall require a valid authentication token (e.g., JWT) for access, ensuring only authenticated users can perform actions or retrieve sensitive data.
+*FR-4.1*: Authenticated Access: Most API endpoints shall require a valid authentication token (e.g., JWT) for access, ensuring only authenticated users can perform actions or retrieve sensitive data.
 
-    FR-4.2: Anonymous Access for Onboarding: Specific public endpoints (e.g., initial user registration) shall be accessible without prior authentication to facilitate the initial user journey.
+*FR-4.2*: Anonymous Access for Onboarding: Specific public endpoints (e.g., initial user registration) shall be accessible without prior authentication to facilitate the initial user journey.
 
-    FR-4.3: User Registration: The system shall support user registration, creating new user accounts and associated Person records.
+*FR-4.3*: User Registration: The system shall support user registration, creating new user accounts and associated Person records.
 
-    FR-4.4: User Login: The system shall support user login, issuing authentication tokens upon successful credential verification.
+*FR-4.4*: User Login: The system shall support user login, issuing authentication tokens upon successful credential verification.
 
 5. Domain Areas and Business Rules
 
@@ -108,164 +118,164 @@ This section describes the core business domains within the NOM program and the 
 
 Purpose: Manages individual user accounts and associated personal profiles within the system.
 
-    Rule-5.1.1 (Unique Identification): Each Person record shall have a unique identifier.
+*Rule-5.1.1* (Unique Identification): Each Person record shall have a unique identifier.
 
-    Rule-5.1.2 (Account Creation): Users must register with a unique email address and a password meeting minimum complexity requirements.
+*Rule-5.1.2* (Account Creation): Users must register with a unique email address and a password meeting minimum complexity requirements.
 
-    Rule-5.1.3 (Email Confirmation): User email addresses should be confirmable to ensure validity and security.
+*Rule-5.1.3* (Email Confirmation): User email addresses should be confirmable to ensure validity and security.
 
-    Rule-5.1.4 (Password Security): Users must be able to securely reset forgotten passwords and update existing passwords, requiring validation of their current identity.
+*Rule-5.1.4* (Password Security): Users must be able to securely reset forgotten passwords and update existing passwords, requiring validation of their current identity.
 
-    Rule-5.1.5 (Two-Factor Authentication - 2FA): Users can opt to enable 2FA for enhanced login security, which requires a one-time code from an authenticator app in addition to their password. The system must support the generation of shared keys and recovery codes.
+*Rule-5.1.5* (Two-Factor Authentication - 2FA): Users can opt to enable 2FA for enhanced login security, which requires a one-time code from an authenticator app in addition to their password. The system must support the generation of shared keys and recovery codes.
 
-    Rule-5.1.6 (Invitation Code Uniqueness): InvitationCodes associated with Person records (for inviting others to join a person-specific context, if applicable) must be unique.
+*Rule-5.1.6* (Invitation Code Uniqueness): InvitationCodes associated with Person records (for inviting others to join a person-specific context, if applicable) must be unique.
 
 5.2. Questionnaire/Onboarding Domain
 
 Purpose: Guides new users through initial data collection to personalize their experience and gather foundational information.
 
-    Rule-5.2.1 (Workflow Sequencing): The onboarding process follows a predefined sequence of steps, leveraging reusable edit components.
+*Rule-5.2.1* (Workflow Sequencing): The onboarding process follows a predefined sequence of steps, leveraging reusable edit components.
 
-    Rule-5.2.2 (Data Aggregation): All data collected across multiple steps and components during onboarding shall be aggregated into a single, comprehensive payload for final submission.
+*Rule-5.2.2* (Data Aggregation): All data collected across multiple steps and components during onboarding shall be aggregated into a single, comprehensive payload for final submission.
 
-    Rule-5.2.3 (Conditional Step Execution): The execution of certain onboarding steps (e.g., additional participant details, individual restriction assignments) is conditional based on prior user input.
+*Rule-5.2.3* (Conditional Step Execution): The execution of certain onboarding steps (e.g., additional participant details, individual restriction assignments) is conditional based on prior user input.
 
-    Rule-5.2.4 (Data Integrity on Navigation): User inputs must be preserved when navigating back and forth through the onboarding wizard.
+*Rule-5.2.4* (Data Integrity on Navigation): User inputs must be preserved when navigating back and forth through the onboarding wizard.
 
 5.3. Plan Management Domain
 
 Purpose: Facilitates the creation, management, and participation in shared nutritional plans.
 
-    Rule-5.3.1 (Plan Uniqueness): Each Plan shall have a unique identifier and a unique InvitationCode (if applicable) for joining.
+*Rule-5.3.1* (Plan Uniqueness): Each Plan shall have a unique identifier and a unique InvitationCode (if applicable) for joining.
 
-    Rule-5.3.2 (Plan Administrator): Every Plan must be associated with a Person designated as its CreatedByPersonId.
+*Rule-5.3.2* (Plan Administrator): Every Plan must be associated with a Person designated as its CreatedByPersonId.
 
-    Rule-5.3.3 (Participant Association): PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
+*Rule-5.3.3* (Participant Association): PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
 
-    Rule-5.3.4 (Participant Roles): Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
+*Rule-5.3.4* (Participant Roles): Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
 
 5.4. Reference Data Management Domain
 
 Purpose: Provides a centralized, extensible system for managing predefined, static lists and types used across various domains.
 
-    Rule-5.4.1 (Categorization): Reference items are organized into Groups (e.g., "Measurement Type", "Nutrient Type", "Meal Type") to provide context.
+*Rule-5.4.1* (Categorization): Reference items are organized into Groups (e.g., "Measurement Type", "Nutrient Type", "Meal Type") to provide context.
 
-    Rule-5.4.2 (Many-to-Many Association): A Reference item can belong to multiple Groups, and a Group can contain multiple Reference items. This relationship is managed implicitly by the system.
+*Rule-5.4.2* (Many-to-Many Association): A Reference item can belong to multiple Groups, and a Group can contain multiple Reference items. This relationship is managed implicitly by the system.
 
-    Rule-5.4.3 (View Entity Discriminators): Specialized "view" entities (GroupedReferenceViewEntity and its derived types) are used to allow frontend systems to easily filter and categorize reference data by their associated Groups.
+*Rule-5.4.3* (View Entity Discriminators): Specialized "view" entities (GroupedReferenceViewEntity and its derived types) are used to allow frontend systems to easily filter and categorize reference data by their associated Groups.
 
 5.5. Dietary Restriction Management Domain
 
 Purpose: Records and applies dietary constraints for individuals or entire plans to tailor nutritional recommendations.
 
-    Rule-5.5.1 (Association Constraint): Every Restriction must be explicitly linked to either a Person OR a Plan (or both), but not neither.
+*Rule-5.5.1* (Association Constraint): Every Restriction must be explicitly linked to either a Person OR a Plan (or both), but not neither.
 
-    Rule-5.5.2 (Type Definition): Each Restriction must be categorized by a RestrictionType defined in the Reference Data domain.
+*Rule-5.5.2* (Type Definition): Each Restriction must be categorized by a RestrictionType defined in the Reference Data domain.
 
-    Rule-5.5.3 (Uniqueness per Context): A specific RestrictionType can only be applied once per Person or once per Plan to avoid redundant entries.
+*Rule-5.5.3* (Uniqueness per Context): A specific RestrictionType can only be applied once per Person or once per Plan to avoid redundant entries.
 
-    Rule-5.5.4 (Audit Trail): Every Restriction record must capture who CreatedByPersonId it and CreatedDate.
+*Rule-5.5.4* (Audit Trail): Every Restriction record must capture who CreatedByPersonId it and CreatedDate.
 
 5.6. Nutrient Management Domain
 
 Purpose: Defines and categorizes individual nutrients, their compositional relationships, and establishes nutritional intake guidelines.
 
-    Rule-5.6.1 (Nutrient Typing): Each Nutrient must be assigned a NutrientType (e.g., Macronutrient, Vitamin, Mineral) from the Reference Data domain.
+*Rule-5.6.1* (Nutrient Typing): Each Nutrient must be assigned a NutrientType (e.g., Macronutrient, Vitamin, Mineral) from the Reference Data domain.
 
-    Rule-5.6.2 (Component Relationships): NutrientComponent records define how a MicroNutrient is contained within a MacroNutrient, specifying the Measurement and MeasurementType (e.g., 5mg of Iron per 100g of Protein).
+*Rule-5.6.2* (Component Relationships): NutrientComponent records define how a MicroNutrient is contained within a MacroNutrient, specifying the Measurement and MeasurementType (e.g., 5mg of Iron per 100g of Protein).
 
-    Rule-5.6.3 (Guideline Basis): NutrientGuideline records specify recommended intake levels (MinimumMeasurement, MaximumMeasurement) for nutrients based on a GuidelineBasisType (e.g., RDA, AI, UL) and a MeasurementType, both sourced from Reference Data.
+*Rule-5.6.3* (Guideline Basis): NutrientGuideline records specify recommended intake levels (MinimumMeasurement, MaximumMeasurement) for nutrients based on a GuidelineBasisType (e.g., RDA, AI, UL) and a MeasurementType, both sourced from Reference Data.
 
 6. Non-Functional Requirements
 6.1. Performance
 
-    NFR-6.1.1: Responsive UI: The user interface for the questionnaire should load quickly and respond smoothly to user interactions, minimizing perceived delays.
+*NFR-6.1.1*: Responsive UI: The user interface for the questionnaire should load quickly and respond smoothly to user interactions, minimizing perceived delays.
 
-    NFR-6.1.2: Efficient API Calls: Backend API endpoints for fetching questions and submitting answers should respond within acceptable timeframes to ensure a fluid user experience.
+*NFR-6.1.2*: Efficient API Calls: Backend API endpoints for fetching questions and submitting answers should respond within acceptable timeframes to ensure a fluid user experience.
 
 6.2. Security
 
-    NFR-6.2.1: Data Protection: All sensitive user data (e.g., passwords, personal information, dietary restrictions) shall be transmitted and stored securely.
+*NFR-6.2.1*: Data Protection: All sensitive user data (e.g., passwords, personal information, dietary restrictions) shall be transmitted and stored securely.
 
-    NFR-6.2.2: Input Sanitization: User inputs shall be properly sanitized and validated to prevent common web vulnerabilities (e.g., XSS, SQL injection).
+*NFR-6.2.2*: Input Sanitization: User inputs shall be properly sanitized and validated to prevent common web vulnerabilities (e.g., XSS, SQL injection).
 
-    NFR-6.2.3: Access Control: The system shall enforce proper authorization checks to ensure users can only access data and perform actions they are permitted to.
+*NFR-6.2.3*: Access Control: The system shall enforce proper authorization checks to ensure users can only access data and perform actions they are permitted to.
 
 6.3. Maintainability & Scalability
 
-    NFR-6.3.1: Modular Architecture: The application shall be built with a modular, domain-driven architecture (both frontend and backend) to facilitate independent development, testing, and deployment of features.
+*NFR-6.3.1*: Modular Architecture: The application shall be built with a modular, domain-driven architecture (both frontend and backend) to facilitate independent development, testing, and deployment of features.
 
-    NFR-6.3.2: Consistent Conventions: Strict adherence to naming conventions, coding standards (e.g., BEM for CSS, explicit property assignment in TS constructors), and design patterns to ensure code readability and ease of maintenance.
+*NFR-6.3.2*: Consistent Conventions: Strict adherence to naming conventions, coding standards (e.g., BEM for CSS, explicit property assignment in TS constructors), and design patterns to ensure code readability and ease of maintenance.
 
-    NFR-6.3.3: Separation of Concerns: Clear boundaries shall be maintained between UI components, business logic (orchestration services), data access layers, and API endpoints.
+*NFR-6.3.3*: Separation of Concerns: Clear boundaries shall be maintained between UI components, business logic (orchestration services), data access layers, and API endpoints.
 
-    NFR-6.3.4: Extensibility: The system should be designed to allow for the easy addition of new restriction types and participant management scenarios in the future without significant code refactoring.
+*NFR-6.3.4*: Extensibility: The system should be designed to allow for the easy addition of new restriction types and participant management scenarios in the future without significant code refactoring.
 
 6.4. Usability
 
-    NFR-6.4.1: Intuitive Workflow: The onboarding process should be easy to understand and navigate for all users.
+*NFR-6.4.1*: Intuitive Workflow: The onboarding process should be easy to understand and navigate for all users.
 
-    NFR-6.4.2: Clear Feedback: Users shall receive immediate and clear feedback on their actions, including loading states, validation errors, and submission success/failure messages.
+*NFR-6.4.2*: Clear Feedback: Users shall receive immediate and clear feedback on their actions, including loading states, validation errors, and submission success/failure messages.
 
-    NFR-6.4.3: Responsive Design: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
+*NFR-6.4.3*: Responsive Design: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
 
 7. High-Level System Architecture (Refined)
 
-    Frontend (nom-ui - Angular):
+*Frontend (nom-ui - Angular)*:
 
-        Framework: Angular (Standalone Components).
+    *Framework*: Angular (Standalone Components).
 
-        UI Library: Angular Material.
+    *UI Library*: Angular Material.
 
-        Styling: SCSS with BEM methodology, leveraging global styles.scss for theming and core components.
+    *Styling*: SCSS with BEM methodology, leveraging global styles.scss for theming and core components.
 
-        Form Management: Reactive Forms for robust validation and state management.
+    *Form Management*: Reactive Forms for robust validation and state management.
 
-        Structure: Domain-driven directory organization (src/app/<domain>/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/.
+    *Structure*: Domain-driven directory organization (src/app/<domain>/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/.
 
-        Model Naming: FooModel for core domain entities, SubmitFooRequestModel for outbound API payloads, _BaseCommonModel for base interfaces/classes.
+    *Model Naming*: FooModel for core domain entities, SubmitFooRequestModel for outbound API payloads, _BaseCommonModel for base interfaces/classes.
 
-        Service Naming: FooService for domain-specific API interaction, <functional-description>-common.service.ts for shared services.
+    *Service Naming*: FooService for domain-specific API interaction, <functional-description>-common.service.ts for shared services.
 
-        Pipe Naming: <functional-description>-common.pipe.ts for shared pipes.
+    *Pipe Naming*: <functional-description>-common.pipe.ts for shared pipes.
 
-        Component Naming: Standard Angular component naming, nested within feature folders.
+    *Component Naming*: Standard Angular component naming, nested within feature folders.
 
-        Model Instantiation: Explicit property-by-property assignment in constructors.
+    *Model Instantiation*: Explicit property-by-property assignment in constructors.
 
-    Backend (nom-api - ASP.NET Core Web API):
+*Backend (nom-api - ASP.NET Core Web API)*:
 
-        Framework: .NET Core.
+    *Framework*: .NET Core.
 
-        Data Access: Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL.
+    *Data Access*: Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL.
 
-        Business Logic: Orchestration Services encapsulate complex business rules and coordinate data access (e.g., PersonOrchestrationService for onboarding submission).
+    *Business Logic*: Orchestration Services encapsulate complex business rules and coordinate data access (e.g., PersonOrchestrationService for onboarding submission).
 
-        API Design: RESTful endpoints adhering to standard HTTP methods and status codes.
+    *API Design*: RESTful endpoints adhering to standard HTTP methods and status codes.
 
-        Security: ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; [Authorize] and [AllowAnonymous] attributes for endpoint-level authorization.
+    *Security*: ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; [Authorize] and [AllowAnonymous] attributes for endpoint-level authorization.
 
-        Database Schema: Reflects relationships between Persons, Plans, Questions, Answers, Restrictions, and Reference data (including implicitly managed many-to-many relationships).
+    *Database Schema*: Reflects relationships between Persons, Plans, Questions, Answers, Restrictions, and Reference data (including implicitly managed many-to-many relationships).
 
-    Database (PostgreSQL):
+*Database (PostgreSQL)*:
 
-        Relational database storing all application data.
+    *Relational database storing all application data.*
 
-        Includes tables for users, questions, answers, plans, participants, and reference data.
+    *Includes tables for users, questions, answers, plans, participants, and reference data.*
 
 8. Future Considerations / Out of Scope (Current Project Phase)
 
-    Detailed plan creation and modification (beyond basic invitation linking).
+*Detailed plan creation and modification (beyond basic invitation linking).*
 
-    Comprehensive recipe management and meal scheduling.
+*Comprehensive recipe management and meal scheduling.*
 
-    Advanced user profile management beyond initial onboarding data.
+*Advanced user profile management beyond initial onboarding data.*
 
-    Detailed analytics and reporting.
+*Detailed analytics and reporting.*
 
-    Real-time communication features.
+*Real-time communication features.*
 
-    Payment processing or subscription management.
+*Payment processing or subscription management.*
 
 9. Technical Details and Component Mapping
 
@@ -274,420 +284,787 @@ This section provides a detailed mapping between the high-level functional requi
 
 This subsection details the Angular components that drive the user interface and handle client-side interactions.
 
-    9.1.1. OnboardingWorkflowComponent
+*9.1.1*. OnboardingWorkflowComponent
 
-        Files: src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts, src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html, src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
+    *Files*: src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts, src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html, src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
 
-        Role: This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.
+    *Role*: This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-1.1 (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.
+        *FR-1.1* (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.
 
-            FR-1.5 (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic. It will contain buttons like "Next", "Back", "Skip", "Yes", "No", and the final "Submit" button.
+        *FR-1.5* (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic. It will contain buttons like "Next", "Back", "Skip", "Yes", "No", and the final "Submit" button.
 
-            FR-1.6 (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps (e.g., "Will anyone else be participating?") in its internal state (onboardingData), without immediate API calls.
+        *FR-1.6* (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps (e.g., "Will anyone else be participating?") in its internal state (onboardingData), without immediate API calls.
 
-            FR-1.7 (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.
+        *FR-1.7* (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.
 
-            FR-1.8 (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants and loop through RestrictionEditComponent for each.
+        *FR-1.8* (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants and loop through RestrictionEditComponent for each.
 
-            FR-2.6 (Post-Processing Trigger - UI): Initiates the backend's PersonController.OnboardingComplete call.
+        *FR-2.6* (Post-Processing Trigger - UI): Initiates the backend's PersonController.OnboardingComplete call.
 
-        Domain Rules Mapping:
+    *Domain Rules Mapping*:
 
-            Rule-5.2.1 (Workflow Sequencing): Directly manages the sequence of steps.
+        *Rule-5.2.1* (Workflow Sequencing): Directly manages the sequence of steps.
 
-            Rule-5.2.2 (Data Aggregation): Maintains a central onboardingData object (OnboardingCompleteRequestModel) to collect data from child components.
+        *Rule-5.2.2* (Data Aggregation): Maintains a central onboardingData object (OnboardingCompleteRequestModel) to collect data from child components.
 
-            Rule-5.2.3 (Conditional Step Execution): Logic within nextStep() and skipStep() will evaluate user choices to determine the subsequent step.
+        *Rule-5.2.3* (Conditional Step Execution): Logic within nextStep() and skipStep() will evaluate user choices to determine the subsequent step.
 
-            Rule-5.2.4 (Data Integrity on Navigation): Passes collected data to child components for pre-population when navigating "Back."
+        *Rule-5.2.4* (Data Integrity on Navigation): Passes collected data to child components for pre-population when navigating "Back."
 
-    9.1.2. PersonEditComponent
+*9.1.2*. PersonEditComponent
 
-        Files: src/app/person/components/person-edit/person-edit.component.ts, src/app/person/components/person-edit/person-edit.component.html, src/app/person/components/person-edit/person-edit.component.scss
+    *Files*: src/app/person/components/person-edit/person-edit.component.ts, src/app/person/components/person-edit/person-edit.component.html, src/app/person/components/person-edit/person-edit.component.scss
 
-        Role: Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).
+    *Role*: Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).
 
-        Functional Requirements Mapping: Directly implements FR-1.2 (Core Profile Data Collection).
+    *Functional Requirements Mapping*: Directly implements FR-1.2 (Core Profile Data Collection).
 
-        Domain Rules Mapping: Ensures data collected adheres to Rule-5.1.1 (Unique Identification - though uniqueness is often backend-enforced for id) and other Person related rules if fields are added (e.g., name validation).
+    *Domain Rules Mapping*: Ensures data collected adheres to Rule-5.1.1 (Unique Identification - though uniqueness is often backend-enforced for id) and other Person related rules if fields are added (e.g., name validation).
 
-    9.1.3. PersonHealthEditComponent
+*9.1.3*. PersonHealthEditComponent
 
-        Files: src/app/person/components/person-health-edit/person-health-edit.component.ts, src/app/person/components/person-health-edit/person-health-edit.component.html, src/app/person/components/person-health-edit/person-health-edit.component.scss
+    *Files*: src/app/person/components/person-health-edit/person-health-edit.component.ts, src/app/person/components/person-health-edit/person-health-edit.component.html, src/app/person/components/person-health-edit/person-health-edit.component.scss
 
-        Role: Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).
+    *Role*: Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).
 
-        Functional Requirements Mapping: Directly implements FR-1.3 (Health Attributes Collection).
+    *Functional Requirements Mapping*: Directly implements FR-1.3 (Health Attributes Collection).
 
-        Domain Rules Mapping: Ensures data collected aligns with future PersonAttribute domain rules (e.g., valid ranges for height/weight).
+    *Domain Rules Mapping*: Ensures data collected aligns with future PersonAttribute domain rules (e.g., valid ranges for height/weight).
 
-    9.1.4. RestrictionEditComponent
+*9.1.4*. RestrictionEditComponent
 
-        Files: src/app/restriction/components/restriction-edit/restriction-edit.component.ts, src/app/restriction/components/restriction-edit/restriction-edit.component.html, src/app/restriction/components/restriction-edit/restriction-edit.component.scss
+    *Files*: src/app/restriction/components/restriction-edit/restriction-edit.component.ts, src/app/restriction/components/restriction-edit/restriction-edit.component.html, src/app/restriction/components/restriction-edit/restriction-edit.component.scss
 
-        Role: A reusable component to allow users to define RestrictionEntity data. It will dynamically render complex sub-questions and selection lists based on the Restriction Type being configured.
+    *Role*: A reusable component to allow users to define RestrictionEntity data. It will dynamically render complex sub-questions and selection lists based on the Restriction Type being configured.
 
-        Functional Requirements Mapping: Directly implements FR-1.4 (Iterative Restriction Collection) and FR-2.1 (Restriction Data Capture), FR-2.2 (Specific Restriction Details). It will manage FR-1.4.1 and FR-1.4.2 internally for conditional rendering of scope and individual assignment.
+    *Functional Requirements Mapping*: Directly implements FR-1.4 (Iterative Restriction Collection) and FR-2.1 (Restriction Data Capture), FR-2.2 (Specific Restriction Details). It will manage FR-1.4.1 and FR-1.4.2 internally for conditional rendering of scope and individual assignment.
 
-        Domain Rules Mapping: Ensures collected data adheres to Rule-5.5.1 (Association Constraint - will pass relevant person/plan ID), Rule-5.5.2 (Type Definition), and handles input for rules like Rule-5.5.3 (Uniqueness - though enforcement is backend).
+    *Domain Rules Mapping*: Ensures collected data adheres to Rule-5.5.1 (Association Constraint - will pass relevant person/plan ID), Rule-5.5.2 (Type Definition), and handles input for rules like Rule-5.5.3 (Uniqueness - though enforcement is backend).
 
-    9.1.5. PlanEditComponent (Skeleton)
+*9.1.5*. PlanEditComponent (Skeleton)
 
-        Files: src/app/plan/components/plan-edit/plan-edit.component.ts, src/app/plan/components/plan-edit/plan-edit.component.html, src/app/plan/components/plan-edit/plan-edit.component.scss
+    *Files*: src/app/plan/components/plan-edit/plan-edit.component.ts, src/app/plan/components/plan-edit/plan-edit.component.html, src/app/plan/components/plan-edit/plan-edit.component.scss
 
-        Role: Currently a skeleton, its primary role in onboarding will be to host and reuse the RestrictionEditComponent if plan-wide restrictions are being set (per FR-1.4.1).
+    *Role*: Currently a skeleton, its primary role in onboarding will be to host and reuse the RestrictionEditComponent if plan-wide restrictions are being set (per FR-1.4.1).
 
-        Functional Requirements Mapping: Serves as a container for other components as part of the onboarding flow.
+    *Functional Requirements Mapping*: Serves as a container for other components as part of the onboarding flow.
 
-    9.1.6. RegistrationComponent
+*9.1.6*. RegistrationComponent
 
-        File: src/app/components/auth/registration/registration.component.ts
+    *File*: src/app/components/auth/registration/registration.component.ts
 
-        HTML Template: src/app/components/auth/registration/registration.component.html
+    *HTML Template*: src/app/components/auth/registration/registration.component.html
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-4.3 (User Registration): The onSubmit() method calls AuthService.register() with user-provided credentials.
+        *FR-4.3* (User Registration): The onSubmit() method calls AuthService.register() with user-provided credentials.
 
-        Domain Rules Mapping:
+    *Domain Rules Mapping*:
 
-            Rule-5.1.2 (Account Creation): registrationForm uses Validators.required, Validators.email, Validators.minLength(8) for email and password fields.
+        *Rule-5.1.2* (Account Creation): registrationForm uses Validators.required, Validators.email, Validators.minLength(8) for email and password fields.
 
-            Rule-5.1.4 (Password Security): The passwordMatchValidator ensures password and confirmPassword fields match.
+        *Rule-5.1.4* (Password Security): The passwordMatchValidator ensures password and confirmPassword fields match.
 
-    9.1.7. LoginComponent
+*9.1.7*. LoginComponent
 
-        File: src/app/components/auth/login/login.component.ts
+    *File*: src/app/components/auth/login/login.component.ts
 
-        HTML Template: src/app/components/auth/login/login.component.html
+    *HTML Template*: src/app/components/auth/login/login.component.html
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-4.4 (User Login): The onSubmit() method calls AuthService.login() to authenticate the user.
+        *FR-4.4* (User Login): The onSubmit() method calls AuthService.login() to authenticate the user.
 
-    9.1.8. Other Authentication-Related Components
+*9.1.8*. Other Authentication-Related Components
 
-        ForgotPasswordComponent (src/app/components/auth/forgot-password/forgot-password.component.ts): Implements FR-5.1.4 (Password Security - initiate reset).
+    *ForgotPasswordComponent* (src/app/components/auth/forgot-password/forgot-password.component.ts): Implements FR-5.1.4 (Password Security - initiate reset).
 
-        ResetPasswordComponent (src/app/components/auth/reset-password/reset-password.component.ts): Implements FR-5.1.4 (Password Security - complete reset).
+    *ResetPasswordComponent* (src/app/components/auth/reset-password/reset-password.component.ts): Implements FR-5.1.4 (Password Security - complete reset).
 
-        SendConfirmationEmailComponent (src/app/components/auth/send-confirmation-email/send-confirmation-email.component.ts): Implements FR-5.1.3 (Email Confirmation - resend).
+    *SendConfirmationEmailComponent* (src/app/components/auth/send-confirmation-email/send-confirmation-email.component.ts): Implements FR-5.1.3 (Email Confirmation - resend).
 
-        ConfirmEmailComponent (src/app/components/auth/confirm-email/confirm-email.component.ts): Implements FR-5.1.3 (Email Confirmation - confirm).
+    *ConfirmEmailComponent* (src/app/components/auth/confirm-email/confirm-email.component.ts): Implements FR-5.1.3 (Email Confirmation - confirm).
 
-        UpdateInfoComponent (src/app/components/auth/update-info/update-info.component.ts): Implements aspects of user profile update and FR-5.1.4 (Password Security - update password) and FR-5.1.3 (Email Confirmation - change email).
+    *UpdateInfoComponent* (src/app/components/auth/update-info/update-info.component.ts): Implements aspects of user profile update and FR-5.1.4 (Password Security - update password) and FR-5.1.3 (Email Confirmation - change email).
 
-        UpdateTwoFactorComponent (src/app/components/auth/update-two-factor/update-two-factor.component.ts): Implements FR-5.1.5 (Two-Factor Authentication - enable/disable 2FA, manage recovery codes). The generateOtpAuthUri helper method aids in QR code generation.
+    *UpdateTwoFactorComponent* (src/app/components/auth/update-two-factor/update-two-factor.component.ts): Implements FR-5.1.5 (Two-Factor Authentication - enable/disable 2FA, manage recovery codes). The generateOtpAuthUri helper method aids in QR code generation.
 
 9.2. Frontend Services & Data Flow
 
 This subsection details the Angular services responsible for communicating with the backend API and managing client-side state.
 
-    9.2.1. PersonService
+*9.2.1*. PersonService
 
-        File: src/app/person/services/person.service.ts
+    *File*: src/app/person/services/person.service.ts
 
-        Role: Handles all API interactions related to the Person domain, including the composite onboarding submission.
+    *Role*: Handles all API interactions related to the Person domain, including the composite onboarding submission.
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-1.7 (Final Onboarding Data Submission): Will contain a new method (e.g., submitOnboardingComplete()) making an HTTP POST request to /api/Person/onboarding-complete.
+        *FR-1.7* (Final Onboarding Data Submission): Will contain a new method (e.g., submitOnboardingComplete()) making an HTTP POST request to /api/Person/onboarding-complete.
 
-        Data Structures Used: PersonModel, PersonAttributeModel, RestrictionModel, OnboardingCompleteRequestModel (new model).
+    *Data Structures Used*: PersonModel, PersonAttributeModel, RestrictionModel, OnboardingCompleteRequestModel (new model).
 
-    9.2.2. RestrictionService
+*9.2.2*. RestrictionService
 
-        File: src/app/restriction/services/restriction.service.ts
+    *File*: src/app/restriction/services/restriction.service.ts
 
-        Role: Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.
+    *Role*: Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-2.2 (Specific Restriction Details): Will contain methods to fetch lists of curated ingredients (for 3.a.1.c.1, 3.a.3.b.1), and micronutrients (for 3.a.2.n.1).
+        *FR-2.2* (Specific Restriction Details): Will contain methods to fetch lists of curated ingredients (for 3.a.1.c.1, 3.a.3.b.1), and micronutrients (for 3.a.2.n.1).
 
-        Data Structures Used: RestrictionModel.
+    *Data Structures Used*: RestrictionModel.
 
-    9.2.3. AuthService
+*9.2.3*. AuthService
 
-        File: src/app/components/auth/auth.service.ts
+    *File*: src/app/components/auth/auth.service.ts
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-4.1 (Authenticated Access): Acts as the primary interface for all authenticated API calls.
+        *FR-4.1* (Authenticated Access): Acts as the primary interface for all authenticated API calls.
 
-            FR-4.3 (User Registration): The register() method handles new user creation.
+        *FR-4.3* (User Registration): The register() method handles new user creation.
 
-            FR-4.4 (User Login): The login() method handles user authentication and receives LoginResponse (containing JWT).
+        *FR-4.4* (User Login): The login() method handles user authentication and receives LoginResponse (containing JWT).
 
-            FR-5.1.3 (Email Confirmation): confirmEmail() and sendConfirmationEmail() methods.
+        *FR-5.1.3* (Email Confirmation): confirmEmail() and sendConfirmationEmail() methods.
 
-            FR-5.1.4 (Password Security): forgotPassword() and resetPassword() methods.
+        *FR-5.1.4* (Password Security): forgotPassword() and resetPassword() methods.
 
-            FR-5.1.5 (Two-Factor Authentication): getTwoFactorStatus() and updateTwoFactorAuth() methods.
+        *FR-5.1.5* (Two-Factor Authentication): getTwoFactorStatus() and updateTwoFactorAuth() methods.
 
-            User profile updates via updateInfo().
+        User profile updates via updateInfo().
 
-        Error Handling: The handleError() private method centralizes API error processing, extracting user-friendly messages from HttpErrorResponse (including validation errors from 400 Bad Requests).
+    *Error Handling*: The handleError() private method centralizes API error processing, extracting user-friendly messages from HttpErrorResponse (including validation errors from 400 Bad Requests).
 
-    9.2.4. AuthManagerService
+*9.2.4*. AuthManagerService
 
-        File: src/app/utilities/services/auth-manager.service.ts
+    *File*: src/app/utilities/services/auth-manager.service.ts
 
-        Role: Manages client-side authentication state, including JWT (_accessToken, _refreshToken), token expiration, and the "remember me" preference. It dynamically chooses between localStorage and sessionStorage.
+    *Role*: Manages client-side authentication state, including JWT (_accessToken, _refreshToken), token expiration, and the "remember me" preference. It dynamically chooses between localStorage and sessionStorage.
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            FR-4.4 (User Login): Stores JWTs (token, refreshToken, tokenExpiration) received from AuthService.login().
+        *FR-4.4* (User Login): Stores JWTs (token, refreshToken, tokenExpiration) received from AuthService.login().
 
-            FR-5.1.5 (Two-Factor Authentication): Manages _rememberMe preference, impacting how the machine is remembered for 2FA.
+        *FR-5.1.5* (Two-Factor Authentication): Manages _rememberMe preference, impacting how the machine is remembered for 2FA.
 
-        Key Properties: token, refreshToken, tokenExpiration, rememberMe, userLogin (BehaviorSubject for login status changes), openUserMenuSignal (Subject for UI events).
+    *Key Properties*: token, refreshToken, tokenExpiration, rememberMe, userLogin (BehaviorSubject for login status changes), openUserMenuSignal (Subject for UI events).
 
-        Key Methods: checkUserLoggedInStatus() (verifies current login state), clearStorageAfterLogout() (resets all auth data and state).
+    *Key Methods*: checkUserLoggedInStatus() (verifies current login state), clearStorageAfterLogout() (resets all auth data and state).
 
-    9.2.5. NotificationService
+*9.2.5*. NotificationService
 
-        File: src/app/utilities/services/notification.service.ts
+    *File*: src/app/utilities/services/notification.service.ts
 
-        Role: Provides a consistent interface for displaying user feedback notifications across the application (success, info, warning, error).
+    *Role*: Provides a consistent interface for displaying user feedback notifications across the application (success, info, warning, error).
 
-        Functional Requirements Mapping:
+    *Functional Requirements Mapping*:
 
-            NFR-6.4.2 (Clear Feedback): Directly implements this NFR by abstracting MatSnackBar and providing themed notification methods.
+        *NFR-6.4.2* (Clear Feedback): Directly implements this NFR by abstracting MatSnackBar and providing themed notification methods.
 
-        Key Methods: success(), info(), warning(), error().
+    *Key Methods*: success(), info(), warning(), error().
 
-        Dependencies: Uses Angular Material's MatSnackBar and custom SCSS classes (snackbar-success, snackbar-info, snackbar-warning, snackbar-error from styles.scss).
+    *Dependencies*: Uses Angular Material's MatSnackBar and custom SCSS classes (snackbar-success, snackbar-info, snackbar-warning, snackbar-error from styles.scss).
 
 9.3. Frontend Models & Data Structures
 
 This subsection details the TypeScript models that define the structure of data exchanged between the frontend and backend, or used for internal application state.
 
-    9.3.1. _BaseCommonModel
+*9.3.1*. _BaseCommonModel
 
-        File: src/app/common/models/_base-common.model.ts
+    *File*: src/app/common/models/_base-common.model.ts
 
-        Purpose: Defines a base interface for common properties like id that are shared across many domain models, promoting consistency and reusability. Filename prefix _ indicates it's meant for inheritance/implementation.
+    *Purpose*: Defines a base interface for common properties like id that are shared across many domain models, promoting consistency and reusability. Filename prefix _ indicates it's meant for inheritance/implementation.
 
-    9.3.2. ApiResponseCommonModel
+*9.3.2*. ApiResponseCommonModel
 
-        File: src/app/common/models/api-response-common.model.ts
+    *File*: src/app/common/models/api-response-common.model.ts
 
-        Purpose: Defines a common structure for API responses that primarily convey status and messages (e.g., success confirmations, error messages). Used by various services (e.g., AuthService, PersonService).
+    *Purpose*: Defines a common structure for API responses that primarily convey status and messages (e.g., success confirmations, error messages). Used by various services (e.g., AuthService, PersonService).
 
-    9.3.3. PersonModel
+*9.3.3*. PersonModel
 
-        File: src/app/person/models/person.model.ts (New file)
+    *File*: src/app/person/models/person.model.ts (New file)
 
-        Functional Requirements Mapping: The core data structure for FR-1.2 (Core Profile Data Collection).
+    *Functional Requirements Mapping*: The core data structure for FR-1.2 (Core Profile Data Collection).
 
-        Domain Rules Mapping: Represents the Person entity from User/Person Management Domain (5.1).
+    *Domain Rules Mapping*: Represents the Person entity from User/Person Management Domain (5.1).
 
-        Key Properties: (e.g., id, name, email, etc., matching PersonEntity).
+    *Key Properties*: (e.g., id, name, email, etc., matching PersonEntity).
 
-        Instantiation: Constructor uses explicit property-by-property assignment.
+    *Instantiation*: Constructor uses explicit property-by-property assignment.
 
-    9.3.4. PersonAttributeModel
+*9.3.4*. PersonAttributeModel
 
-        File: src/app/person/models/person-attribute.model.ts (New file)
+    *File*: src/app/person/models/person-attribute.model.ts (New file)
 
-        Functional Requirements Mapping: Data structure for FR-1.3 (Health Attributes Collection).
+    *Functional Requirements Mapping*: Data structure for FR-1.3 (Health Attributes Collection).
 
-        Domain Rules Mapping: Represents the PersonAttribute entity.
+    *Domain Rules Mapping*: Represents the PersonAttribute entity.
 
-        Key Properties: (e.g., id, personId, attributeType, value, etc., matching PersonAttributeEntity).
+    *Key Properties*: (e.g., id, personId, attributeType, value, etc., matching PersonAttributeEntity).
 
-        Instantiation: Constructor uses explicit property-by-property assignment.
+    *Instantiation*: Constructor uses explicit property-by-property assignment.
 
-    9.3.5. RestrictionModel
+*9.3.5*. RestrictionModel
 
-        File: src/app/restriction/models/restriction.model.ts (New file)
+    *File*: src/app/restriction/models/restriction.model.ts (New file)
 
-        Functional Requirements Mapping: Data structure for FR-1.4 (Iterative Restriction Collection) and FR-2.1 (Restriction Data Capture).
+    *Functional Requirements Mapping*: Data structure for FR-1.4 (Iterative Restriction Collection) and FR-2.1 (Restriction Data Capture).
 
-        Domain Rules Mapping: Represents the Restriction entity from Dietary Restriction Management Domain (5.5).
+    *Domain Rules Mapping*: Represents the Restriction entity from Dietary Restriction Management Domain (5.5).
 
-        Key Properties: (e.g., id, personId, planId, restrictionTypeId, name, description, etc., matching RestrictionEntity).
+    *Key Properties*: (e.g., id, personId, planId, restrictionTypeId, name, description, etc., matching RestrictionEntity).
 
-        Instantiation: Constructor uses explicit property-by-property assignment.
+    *Instantiation*: Constructor uses explicit property-by-property assignment.
 
-    9.3.6. OnboardingCompleteRequestModel
+*9.3.6*. OnboardingCompleteRequestModel
 
-        File: src/app/onboarding/models/onboarding-complete-request.model.ts (New file)
+    *File*: src/app/onboarding/models/onboarding-complete-request.model.ts (New file)
 
-        Functional Requirements Mapping: The consolidated payload for FR-1.7 (Final Onboarding Data Submission).
+    *Functional Requirements Mapping*: The consolidated payload for FR-1.7 (Final Onboarding Data Submission).
 
-        Key Properties: Will contain person (PersonModel), attributes (PersonAttributeModel[]), restrictions (RestrictionModel[]), and potentially planInvitationCode (string) if provided.
+    *Key Properties*: Will contain person (PersonModel), attributes (PersonAttributeModel[]), restrictions (RestrictionModel[]), and potentially planInvitationCode (string) if provided.
 
-        Instantiation: Constructor explicitly assigns properties and maps nested arrays to their respective model instances.
+    *Instantiation*: Constructor explicitly assigns properties and maps nested arrays to their respective model instances.
 
-    9.3.7. Other Authentication-Related Models:
+*9.3.7*. Other Authentication-Related Models:
 
-        RegisterUser: src/app/components/auth/models/register-user.ts (for FR-4.3).
+    *RegisterUser*: src/app/components/auth/models/register-user.ts (for FR-4.3).
 
-        LoginUser: src/app/components/auth/models/login-user.ts (for FR-4.4).
+    *LoginUser*: src/app/components/auth/models/login-user.ts (for FR-4.4).
 
-        LoginResponse: src/app/components/auth/models/login-response.ts (response from FR-4.4).
+    *LoginResponse*: src/app/components/auth/models/login-response.ts (response from FR-4.4).
 
-        ForgotPassword: src/app/components/auth/models/forgot-password.ts (for FR-5.1.4).
+    *ForgotPassword*: src/app/components/auth/models/forgot-password.ts (for FR-5.1.4).
 
-        ResetPassword: src/app/components/auth/models/reset-password.ts (for FR-5.1.4).
+    *ResetPassword*: src/app/components/auth/models/reset-password.ts (for FR-5.1.4).
 
-        ConfirmEmail: src/app/components/auth/models/confirm-email.ts (for FR-5.1.3).
+    *ConfirmEmail*: src/app/components/auth/models/confirm-email.ts (for FR-5.1.3).
 
-        SendConfirmationEmail: src/app/components/auth/models/send-confirmation-email.ts (for FR-5.1.3).
+    *SendConfirmationEmail*: src/app/components/auth/models/send-confirmation-email.ts (for FR-5.1.3).
 
-        UpdateInfo: src/app/components/auth/models/update-info.ts (for FR-5.1.4 related updates).
+    *UpdateInfo*: src/app/components/auth/models/update-info.ts (for FR-5.1.4 related updates).
 
-        CurrentInfo: src/app/components/auth/models/current-info.ts (retrieved user info).
+    *CurrentInfo*: src/app/components/auth/models/current-info.ts (retrieved user info).
 
-        UpdateTwoFactor: src/app/components/auth/models/update-two-factor.ts (request to update 2FA, for FR-5.1.5).
+    *UpdateTwoFactor*: src/app/components/auth/models/update-two-factor.ts (request to update 2FA, for FR-5.1.5).
 
-        UpdateTwoFactorResponse: src/app/components/auth/models/update-two-factor-response.ts (response from 2FA update, for FR-5.1.5).
+    *UpdateTwoFactorResponse*: src/app/components/auth/models/update-two-factor-response.ts (response from 2FA update, for FR-5.1.5).
 
 9.4. Backend Services & Business Logic
 
 This subsection details the ASP.NET Core backend services that implement the core business logic.
 
-    9.4.1. PersonOrchestrationService (C# - NEW/UPDATED)
+*9.4.1*. PersonOrchestrationService (C# - NEW/UPDATED)
 
-        File: Nom.Orch/Services/PersonOrchestrationService.cs
+    *File*: Nom.Orch/Services/PersonOrchestrationService.cs
 
-        Role: This service will now handle the orchestration of the onboarding completion. It will take the OnboardingCompleteRequest DTO from the API, and manage the creation/update of PersonEntity, PersonAttributeEntity, and RestrictionEntity records.
+    *Role*: This service will now handle the orchestration of the onboarding completion. It will take the OnboardingCompleteRequest DTO from the API, and manage the creation/update of PersonEntity, PersonAttributeEntity, and RestrictionEntity records.
 
-        Functional Requirements Mapping: Directly implements FR-1.7 (Final Onboarding Data Submission - backend processing), FR-2.1 (Automatic Restriction Inference - backend portion), FR-2.3 (Person- or Plan-Level Association - backend handling), FR-2.4 (Prevention of Duplicates), FR-2.5 (Auditability), FR-3.2 (Plan Linking), FR-3.3 (Role Assignment).
+    *Functional Requirements Mapping*: Directly implements FR-1.7 (Final Onboarding Data Submission - backend processing), FR-2.1 (Automatic Restriction Inference - backend portion), FR-2.3 (Person- or Plan-Level Association - backend handling), FR-2.4 (Prevention of Duplicates), FR-2.5 (Auditability), FR-3.2 (Plan Linking), FR-3.3 (Role Assignment).
 
-        Domain Rules Mapping: Will enforce Rule-5.1.1 (Unique Person), Rule-5.2.2 (Data Aggregation - backend receipt), Rule-5.5.1 (Association Constraint), Rule-5.5.3 (Uniqueness per Context), Rule-5.5.4 (Audit Trail).
+    *Domain Rules Mapping*: Will enforce Rule-5.1.1 (Unique Person), Rule-5.2.2 (Data Aggregation - backend receipt), Rule-5.5.1 (Association Constraint), Rule-5.5.3 (Uniqueness per Context), Rule-5.5.4 (Audit Trail).
 
-        Key Methods: A new method like CompleteOnboardingAsync(OnboardingCompleteRequest request, long userId) that orchestrates saving all related entities.
+    *Key Methods*: A new method like CompleteOnboardingAsync(OnboardingCompleteRequest request, long userId) that orchestrates saving all related entities.
 
-    9.4.2. PersonController (C# - NEW/UPDATED)
+*9.4.2*. PersonController (C# - NEW/UPDATED)
 
-        File: Nom.Api/Controllers/PersonController.cs
+    *File*: Nom.Api/Controllers/PersonController.cs
 
-        Role: Will expose the API endpoint for the final onboarding submission.
+    *Role*: Will expose the API endpoint for the final onboarding submission.
 
-        Functional Requirements Mapping: Will contain a new endpoint [HttpPost("onboarding-complete")] that receives the OnboardingCompleteRequest and delegates to PersonOrchestrationService.
+    *Functional Requirements Mapping*: Will contain a new endpoint [HttpPost("onboarding-complete")] that receives the OnboardingCompleteRequest and delegates to PersonOrchestrationService.
 
-        Security: Will likely be [Authorize] to ensure only an authenticated user can complete their onboarding.
+    *Security*: Will likely be [Authorize] to ensure only an authenticated user can complete their onboarding.
 
-    9.4.3. RestrictionOrchestrationService (C# - NEW/UPDATED)
+*9.4.3*. RestrictionOrchestrationService (C# - NEW/UPDATED)
 
-        File: Nom.Orch/Services/RestrictionOrchestrationService.cs
+    *File*: Nom.Orch/Services/RestrictionOrchestrationService.cs
 
-        Role: Dedicated service to handle complex business logic related to RestrictionEntity management, including fetching ingredient/nutrient lists.
+    *Role*: Dedicated service to handle complex business logic related to RestrictionEntity management, including fetching ingredient/nutrient lists.
 
-        Functional Requirements Mapping: Supports FR-2.2 (Specific Restriction Details - providing lists for selection).
+    *Functional Requirements Mapping*: Supports FR-2.2 (Specific Restriction Details - providing lists for selection).
 
-        Key Methods: GetCuratedIngredientsAsync(), GetMicronutrientsAsync().
+    *Key Methods*: GetCuratedIngredientsAsync(), GetMicronutrientsAsync().
 
-    9.4.4. RestrictionController (C# - NEW/UPDATED)
+*9.4.4*. RestrictionController (C# - NEW/UPDATED)
 
-        File: Nom.Api/Controllers/RestrictionController.cs
+    *File*: Nom.Api/Controllers/RestrictionController.cs
 
-        Role: Will expose API endpoints for fetching data required by RestrictionEditComponent.
+    *Role*: Will expose API endpoints for fetching data required by RestrictionEditComponent.
 
-        Functional Requirements Mapping: Will contain endpoints like [HttpGet("curated-ingredients")] and [HttpGet("micronutrients")].
+    *Functional Requirements Mapping*: Will contain endpoints like [HttpGet("curated-ingredients")] and [HttpGet("micronutrients")].
 
-    9.4.5. AuthOrchestrationService (C# - Existing)
+*9.4.5*. AuthOrchestrationService (C# - Existing)
 
-        File: Nom.Orch/Services/AuthOrchestrationService.cs
+    *File*: Nom.Orch/Services/AuthOrchestrationService.cs
 
-        Functional Requirements Mapping: Backend implementation for FR-4.3, FR-4.4, FR-5.1.3, FR-5.1.4, FR-5.1.5.
+    *Functional Requirements Mapping*: Backend implementation for FR-4.3, FR-4.4, FR-5.1.3, FR-5.1.4, FR-5.1.5.
 
-        Domain Rules Mapping: Enforces Rule-5.1.2, Rule-5.1.3, Rule-5.1.4, Rule-5.1.5.
+    *Domain Rules Mapping*: Enforces Rule-5.1.2, Rule-5.1.3, Rule-5.1.4, Rule-5.1.5.
 
 9.5. Backend Entities & Database Mapping
 
 This subsection outlines the Entity Framework Core entities that define the database schema and their relationship to business rules.
 
-    9.5.1. PersonEntity
+*9.5.1*. PersonEntity
 
-        File: Nom.Data/Person/PersonEntity.cs
+    *File*: Nom.Data/Person/PersonEntity.cs
 
-        Functional Requirements Mapping: Stores core user profile data (FR-1.2).
+    *Functional Requirements Mapping*: Stores core user profile data (FR-1.2).
 
-        Domain Rules Mapping: Key entity for Rule-5.1.1 (Unique Identification), central to User/Person Management Domain (5.1). Also contains InvitationCode (Rule-5.1.6).
+    *Domain Rules Mapping*: Key entity for Rule-5.1.1 (Unique Identification), central to User/Person Management Domain (5.1). Also contains InvitationCode (Rule-5.1.6).
 
-    9.5.2. PersonAttributeEntity
+*9.5.2*. PersonAttributeEntity
 
-        File: Nom.Data/Person/PersonAttributeEntity.cs
+    *File*: Nom.Data/Person/PersonAttributeEntity.cs
 
-        Functional Requirements Mapping: Stores health attributes (FR-1.3).
+    *Functional Requirements Mapping*: Stores health attributes (FR-1.3).
 
-        Domain Rules Mapping: Supports the User/Person Management Domain (5.1).
+    *Domain Rules Mapping*: Supports the User/Person Management Domain (5.1).
 
-    9.5.3. RestrictionEntity
+*9.5.3*. RestrictionEntity
 
-        File: Nom.Data/Plan/RestrictionEntity.cs (or similar)
+    *File*: Nom.Data/Plan/RestrictionEntity.cs (or similar)
 
-        Functional Requirements Mapping: Stores dietary restrictions (FR-2.1, FR-2.2, FR-2.3).
+    *Functional Requirements Mapping*: Stores dietary restrictions (FR-2.1, FR-2.2, FR-2.3).
 
-        Domain Rules Mapping: Directly implements Rule-5.5.1 (Association Constraint - via schema check/logic in ApplicationDbContext), Rule-5.5.2 (Type Definition via RestrictionTypeId), Rule-5.5.3 (Uniqueness per Context - backend service logic for uniqueness), Rule-5.5.4 (Audit Trail via CreatedByPersonId, CreatedDate).
+    *Domain Rules Mapping*: Directly implements Rule-5.5.1 (Association Constraint - via schema check/logic in ApplicationDbContext), Rule-5.5.2 (Type Definition via RestrictionTypeId), Rule-5.5.3 (Uniqueness per Context - backend service logic for uniqueness), Rule-5.5.4 (Audit Trail via CreatedByPersonId, CreatedDate).
 
-    9.5.4. PlanEntity
+*9.5.4*. PlanEntity
 
-        File: Nom.Data/Plan/PlanEntity.cs (Implicit from context)
+    *File*: Nom.Data/Plan/PlanEntity.cs (Implicit from context)
 
-        Domain Rules Mapping: Key entity for Rule-5.3.1 (Plan Uniqueness), Rule-5.3.2 (CreatedByPersonId).
+    *Domain Rules Mapping*: Key entity for Rule-5.3.1 (Plan Uniqueness), Rule-5.3.2 (CreatedByPersonId).
 
-    9.5.5. PlanParticipantEntity
+*9.5.5*. PlanParticipantEntity
 
-        File: Nom.Data/Plan/PlanParticipantEntity.cs (Implicit from context)
+    *File*: Nom.Data/Plan/PlanParticipantEntity.cs (Implicit from context)
 
-        Functional Requirements Mapping: Links Person to Plan for FR-3.2.
+    *Functional Requirements Mapping*: Links Person to Plan for FR-3.2.
 
-        Domain Rules Mapping: Directly implements Rule-5.3.3 (Participant Association), Rule-5.3.4 (Participant Roles).
+    *Domain Rules Mapping*: Directly implements Rule-5.3.3 (Participant Association), Rule-5.3.4 (Participant Roles).
 
-    9.5.6. ReferenceEntity and GroupEntity
+*9.5.6*. ReferenceEntity and GroupEntity
 
-        Files: Nom.Data/Reference/ReferenceEntity.cs, Nom.Data/Reference/GroupEntity.cs
+    *Files*: Nom.Data/Reference/ReferenceEntity.cs, Nom.Data/Reference/GroupEntity.cs
 
-        Domain Rules Mapping: ReferenceEntity and its relationship with GroupEntity (managed via ApplicationDbContext's UsingEntity configuration) directly implement Rule-5.4.1 (Categorization) and Rule-5.4.2 (Many-to-Many Association) of the Reference Data Management Domain. ReferenceEntity is also crucial for RestrictionTypeId on RestrictionEntity, and various IDs in the Nutrient domain (NutrientTypeId, MeasurementTypeId, GuidelineBasisTypeId).
+    *Domain Rules Mapping*: ReferenceEntity and its relationship with GroupEntity (managed via ApplicationDbContext's UsingEntity configuration) directly implement Rule-5.4.1 (Categorization) and Rule-5.4.2 (Many-to-Many Association) of the Reference Data Management Domain. ReferenceEntity is also crucial for RestrictionTypeId on RestrictionEntity, and various IDs in the Nutrient domain (NutrientTypeId, MeasurementTypeId, GuidelineBasisTypeId).
 
-    9.5.7. GroupedReferenceViewEntity
+*9.5.7*. GroupedReferenceViewEntity
 
-        File: Nom.Data/Reference/GroupedReferenceViewEntity.cs (and derived types like AnswerTypeGroupedReferenceViewEntity - though AnswerEntity is now removed)
+    *File*: Nom.Data/Reference/GroupedReferenceViewEntity.cs (and derived types like AnswerTypeGroupedReferenceViewEntity - though AnswerEntity is now removed)
 
-        Domain Rules Mapping: Directly implements Rule-5.4.3 (View Entity Discriminators), providing a structured view for backend processing (e.g., in RestrictionOrchestrationService to look up restriction types).
+    *Domain Rules Mapping*: Directly implements Rule-5.4.3 (View Entity Discriminators), providing a structured view for backend processing (e.g., in RestrictionOrchestrationService to look up restriction types).
 
-    9.5.8. NutrientEntity, NutrientComponentEntity, NutrientGuidelineEntity
+*9.5.8*. NutrientEntity, NutrientComponentEntity, NutrientGuidelineEntity
 
-        Files: Nom.Data/Nutrient/NutrientEntity.cs, Nom.Data/Nutrient/NutrientComponentEntity.cs, Nom.Data/Nutrient/NutrientGuidelineEntity.cs
+    *Files*: Nom.Data/Nutrient/NutrientEntity.cs, Nom.Data/Nutrient/NutrientComponentEntity.cs, Nom.Data/Nutrient/NutrientGuidelineEntity.cs
 
-        Domain Rules Mapping: These entities define the schema for the Nutrient Management Domain (5.6), implementing Rule-5.6.1 (Nutrient Typing via NutrientTypeId), Rule-5.6.2 (MacroNutrientId, MicroNutrientId, Measurement, MeasurementTypeId), and Rule-5.6.3 (GuidelineBasisTypeId, MeasurementTypeId, MinimumMeasurement, MaximumMeasurement).
+    *Domain Rules Mapping*: These entities define the schema for the Nutrient Management Domain (5.6), implementing Rule-5.6.1 (Nutrient Typing via NutrientTypeId), Rule-5.6.2 (MacroNutrientId, MicroNutrientId, Measurement, MeasurementTypeId), and Rule-5.6.3 (GuidelineBasisTypeId, MeasurementTypeId, MinimumMeasurement, MaximumMeasurement).
 
 9.6. Frontend Pipes & Global Styles
 
-    9.6.1. JsonParseCommonPipe
+*9.6.1*. JsonParseCommonPipe
 
-        File: src/app/common/pipes/json-parse-common.pipe.ts
+    *File*: src/app/common/pipes/json-parse-common.pipe.ts
 
-        Role: Utility pipe to safely parse JSON strings into JavaScript objects directly within Angular templates.
+    *Role*: Utility pipe to safely parse JSON strings into JavaScript objects directly within Angular templates.
 
-        Usage: Used in RestrictionEditComponent.html (if applicable) to interpret data for multi-select options.
+    *Usage*: Used in RestrictionEditComponent.html (if applicable) to interpret data for multi-select options.
 
-    9.6.2. Global SCSS Styles
+*9.6.2*. Global SCSS Styles
 
-        Files: src/styles.scss, src/nom-theme.scss (and src/variables.scss implicitly)
+    *Files*: src/styles.scss, src/nom-theme.scss (and src/variables.scss implicitly)
 
-        Non-Functional Requirements Mapping: Directly implements aspects of NFR-6.4.3 (Responsive Design) and NFR-6.3.2 (Consistent Conventions - BEM classes, Material theming).
+    *Non-Functional Requirements Mapping*: Directly implements aspects of NFR-6.4.3 (Responsive Design) and NFR-6.3.2 (Consistent Conventions - BEM classes, Material theming).
 
-        Key Elements:
+    *Key Elements*:
 
-            .nom-page-container: Provides responsive page layout.
+        *.nom-page-container*: Provides responsive page layout.
 
-            .nom-card: Defines common card aesthetics.
+        *.nom-card*: Defines common card aesthetics.
 
-            .nom-form, .nom-form__field, .nom-form__input: Standardized form element styling.
+        *.nom-form, .nom-form__field, .nom-form__input*: Standardized form element styling.
 
-            .nom-button: Consistent button styling.
+        *.nom-button*: Consistent button styling.
 
-            .nom-instruction-text, .nom-prompt-text, .nom-message-text, .nom-link: Standardized text and link styles.
+        *.nom-instruction-text, .nom-prompt-text, .nom-message-text, .nom-link*: Standardized text and link styles.
 
-            .snackbar-* classes (e.g., snackbar-success): Applied by NotificationService for themed toast messages, contributing to NFR-6.4.2 (Clear Feedback).
+        *.snackbar-* classes (e.g., snackbar-success): Applied by NotificationService for themed toast messages, contributing to NFR-6.4.2 (Clear Feedback).
 
-            Media queries @media (min-width: vars.$breakpoint-mobile): Ensure adaptive design for various screen sizes.
+        *Media queries @media (min-width: vars.$breakpoint-mobile)*: Ensure adaptive design for various screen sizes.
+
+10. Development Context and Workflow
+
+This section provides additional practical details about the project, intended to give a new collaborator immediate context for understanding the codebase and contributing effectively.
+
+10.1. Current Project Status
+
+    Onboarding Workflow (Core):
+
+        Frontend (nom-ui): The OnboardingWorkflowComponent is the central orchestrator. PersonEditComponent and PersonHealthEditComponent are largely complete. The RestrictionEditComponent is implemented to handle various restriction types and the conditional allocation logic (plan-wide vs. specific individuals).
+
+        Backend (Nom.Api, Nom.Orch, Nom.Data): Basic CRUD for Person and Restriction entities is supported. The PersonOrchestrationService handles the consolidated OnboardingCompleteRequest submission, mapping frontend DTOs to backend entities and persisting them. Core API endpoints for onboarding data submission and restriction reference data are in place.
+
+    Authentication: Basic user registration, login, and JWT-based authentication are functional. Interceptors are set up for automatic token handling.
+
+    Immediate Next Focus:
+
+        Frontend: Completing the iterative flow for additional participants within the OnboardingWorkflowComponent, ensuring each participant can have their restrictions collected individually if applyIndividualPreferencesToEachPerson is true. This also means correctly managing the currentAdditionalParticipantIndex and re-rendering RestrictionEditComponent for each person.
+
+        Backend: Refining the PersonOrchestrationService logic for handling multiple participants and their associated restrictions, including linking them to the correct PlanEntity (even if it's a new, implied plan for a single user).
+
+10.2. Technology Stack Rationale
+
+    Angular (Frontend): Chosen for its robust framework, opinionated structure, excellent tooling (Angular CLI), and strong support for large-scale enterprise applications. Standalone components are utilized for better modularity and tree-shaking.
+
+    Angular Material (UI Library): Provides pre-built, accessible, and themable UI components, accelerating development and ensuring a consistent user experience.
+
+    Tailwind CSS (Styling): A utility-first CSS framework that allows for rapid UI development directly in HTML, reducing context switching and promoting consistency. It pairs well with Angular Material for custom layouts and fine-grained control.
+
+    .NET Core (Backend): Selected for its high performance, cross-platform compatibility, extensive libraries, and strong developer ecosystem, making it suitable for scalable API development.
+
+    Entity Framework Core (ORM): Simplifies database interactions by mapping C# objects to database tables, reducing boilerplate SQL code and improving developer productivity.
+
+    PostgreSQL (Database): A powerful, open-source relational database known for its reliability, feature richness, and extensibility, ideal for a growing application.
+
+    RxJS (Reactive Programming): Leveraged heavily in Angular for asynchronous operations (HTTP calls, event handling), promoting a more declarative and composable codebase.
+
+10.3. Key Learnings & Debugging Tips
+
+    AOT Compilation Sensitivity: Angular's AOT compiler is strict. Avoid complex JavaScript expressions (like regex literals or arrow functions within filter/map callbacks) directly in HTML template bindings. Move such logic into component TypeScript methods (e.g., getters or helper functions).
+
+    Standalone Component Imports: Every standalone component must explicitly import all modules (even Angular Material ones like MatButtonModule, MatFormFieldModule) it directly uses in its @Component({ imports: [...] }) array. Missing imports are a common source of runtime errors or subtle AOT issues.
+
+    Data Flow: Be mindful of Angular's unidirectional data flow. @Input receives data, @Output emits events. Avoid direct child manipulation; instead, parent components should react to emitted events and update their own state, which then flows back down.
+
+    Backend API URLs: Always double-check apiUrl constants in frontend services (PersonService, RestrictionService). These frequently need adjustment between local development and deployment environments.
+
+    Interceptor Order: The order of HTTP_INTERCEPTORS in app.config.ts matters. Ensure BearerInterceptor runs before ApiInteractionInterceptor if the latter depends on an authenticated request.
+
+    Browser Caching: During frontend development, browser caching can sometimes cause issues. Clearing browser cache or using "Incognito/Private" mode can help. ng serve usually handles this well, but ng build --watch or specific browser setups might require manual intervention.
+
+    Debugging (ng serve): Leverage browser developer tools for debugging Angular code. Set breakpoints in TypeScript and inspect component state. For backend issues, use the debugger in Visual Studio/VS Code.
+
+10.4. Development Workflow & Practices
+
+    Feature Branches: All new development should occur on dedicated feature branches, branched off main.
+
+    Pull Requests (PRs): All code changes are submitted via PRs, requiring at least one reviewer.
+
+    Code Reviews: Focus on consistency (naming, styling), adherence to architectural patterns, testability, and clarity.
+
+    Unit Tests: While not extensively covered yet, the intention is to implement unit tests for services (using mocks) and isolated component logic.
+
+    End-to-End Tests: Future consideration using tools like Cypress or Playwright for critical user flows.
+
+    Linting: Pre-commit hooks or CI/CD pipelines enforce linting rules (ESLint for TS, Stylelint for SCSS) to maintain code quality.
+
+10.5. Source Control Usage
+The entire codebase is managed on GitHub. All files referenced in this specification can be directly accessed and reviewed at the following base URL:
+
+    GitHub Repository Base URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
+
+Specific file locations are provided within the "Detailed File Outline" (Section II) for direct navigation. Always ensure your local branch is synchronized with main to work on the latest features.
+
+II. Detailed File Outline with GitHub Repository Locations
+
+Here's a comprehensive list of the files discussed and generated, with their relative paths within your project and direct links to their locations in your GitHub repository: https://github.com/danielhokanson/nutrition-optimization-machine.
+
+GitHub Repository Base URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
+A. Backend Files (C# - .NET Solution)
+
+    Project: Nom.Data
+
+        Nom.Data/ApplicationDbContext.cs
+
+            Relative Path: Nom.Data/ApplicationDbContext.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/ApplicationDbContext.cs
+
+        Nom.Data/Person/PersonEntity.cs (Existing, but crucial context)
+
+            Relative Path: Nom.Data/Person/PersonEntity.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Person/PersonEntity.cs
+
+        Nom.Data/Person/PersonAttributeEntity.cs (Existing, but crucial context)
+
+            Relative Path: Nom.Data/Person/PersonAttributeEntity.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Person/PersonAttributeEntity.cs
+
+        Nom.Data/Plan/RestrictionEntity.cs (Existing, but crucial context for restrictions)
+
+            Relative Path: Nom.Data/Plan/RestrictionEntity.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Plan/RestrictionEntity.cs
+
+    Project: Nom.Orch
+
+        Nom.Orch/Interfaces/IPersonOrchestrationService.cs
+
+            Relative Path: Nom.Orch/Interfaces/IPersonOrchestrationService.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IPersonOrchestrationService.cs
+
+        Nom.Orch/Services/PersonOrchestrationService.cs
+
+            Relative Path: Nom.Orch/Services/PersonOrchestrationService.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PersonOrchestrationService.cs
+
+        Nom.Orch/Models/Person/PersonDetailsRequest.cs
+
+            Relative Path: Nom.Orch/Models/Person/PersonDetailsRequest.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonDetailsRequest.cs
+
+        Nom.Orch/Models/Person/PersonAttributeRequest.cs
+
+            Relative Path: Nom.Orch/Models/Person/PersonAttributeRequest.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonAttributeRequest.cs
+
+        Nom.Orch/Models/Person/RestrictionRequest.cs
+
+            Relative Path: Nom.Orch/Models/Person/RestrictionRequest.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/RestrictionRequest.cs
+
+        Nom.Orch/Models/Person/OnboardingCompleteRequest.cs
+
+            Relative Path: Nom.Orch/Models/Person/OnboardingCompleteRequest.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/OnboardingCompleteRequest.cs
+
+        Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs
+
+            Relative Path: Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs
+
+        Nom.Orch/Services/RestrictionOrchestrationService.cs
+
+            Relative Path: Nom.Orch/Services/RestrictionOrchestrationService.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/RestrictionOrchestrationService.cs
+
+    Project: Nom.Api
+
+        Nom.Api/Controllers/PersonController.cs
+
+            Relative Path: Nom.Api/Controllers/PersonController.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/PersonController.cs
+
+        Nom.Api/Controllers/RestrictionController.cs
+
+            Relative Path: Nom.Api/Controllers/RestrictionController.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/RestrictionController.cs
+
+        Nom.Api/Program.cs (For DI registration of new services)
+
+            Relative Path: Nom.Api/Program.cs
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Program.cs (Ensure AddScoped<IPersonOrchestrationService, PersonOrchestrationService>() and AddScoped<IRestrictionOrchestrationService, RestrictionOrchestrationService>() are present)
+
+B. Frontend Files (Angular - nom-ui)
+
+    Root Configuration:
+
+        nom-ui/src/main.ts (Bootstrap file)
+
+            Relative Path: nom-ui/src/main.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/main.ts
+
+        nom-ui/src/app/app.config.ts (Global application configuration/providers)
+
+            Relative Path: nom-ui/src/app/app.config.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.config.ts
+
+        nom-ui/src/app/app.component.ts (Root component)
+
+            Relative Path: nom-ui/src/app/app.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.component.ts
+
+        nom-ui/src/app/app.component.scss (Root component styles)
+
+            Relative Path: nom-ui/src/app/app.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.component.scss
+
+        nom-ui/src/styles.scss (Global styles, includes Tailwind)
+
+            Relative Path: nom-ui/src/styles.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/styles.scss
+
+    Common Utilities:
+
+        nom-ui/src/app/common/models/_base-common.model.ts
+
+            Relative Path: nom-ui/src/app/common/models/_base-common.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/models/_base-common.model.ts
+
+        nom-ui/src/app/common/models/api-response-common.model.ts
+
+            Relative Path: nom-ui/src/app/common/models/api-response-common.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/models/api-response-common.model.ts
+
+        nom-ui/src/app/common/pipes/json-parse-common.pipe.ts
+
+            Relative Path: nom-ui/src/app/common/pipes/json-parse-common.pipe.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/pipes/json-parse-common.pipe.ts
+
+    Person Domain:
+
+        nom-ui/src/app/person/models/person.model.ts
+
+            Relative Path: nom-ui/src/app/person/models/person.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/models/person.model.ts
+
+        nom-ui/src/app/person/models/person-attribute.model.ts
+
+            Relative Path: nom-ui/src/app/person/models/person-attribute.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/models/person-attribute.model.ts
+
+        nom-ui/src/app/person/services/person.service.ts
+
+            Relative Path: nom-ui/src/app/person/services/person.service.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/services/person.service.ts
+
+        nom-ui/src/app/person/components/person-edit/person-edit.component.ts
+
+            Relative Path: nom-ui/src/app/person/components/person-edit/person-edit.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.ts
+
+        nom-ui/src/app/person/components/person-edit/person-edit.component.html
+
+            Relative Path: nom-ui/src/app/person/components/person-edit/person-edit.component.html
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.html
+
+        nom-ui/src/app/person/components/person-edit/person-edit.component.scss
+
+            Relative Path: nom-ui/src/app/person/components/person-edit/person-edit.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.scss
+
+        nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.ts
+
+            Relative Path: nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.ts
+
+        nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.html
+
+            Relative Path: nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.html
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.html
+
+        nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.scss
+
+            Relative Path: nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.scss
+
+    Restriction Domain:
+
+        nom-ui/src/app/restriction/models/restriction.model.ts
+
+            Relative Path: nom-ui/src/app/restriction/models/restriction.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/models/restriction.model.ts
+
+        nom-ui/src/app/restriction/services/restriction.service.ts
+
+            Relative Path: nom-ui/src/app/restriction/services/restriction.service.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/services/restriction.service.ts
+
+        nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.ts
+
+            Relative Path: nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.ts
+
+        nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.html
+
+            Relative Path: nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.html
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.html
+
+        nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.scss
+
+            Relative Path: nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.scss
+
+    Plan Domain (Skeleton):
+
+        nom-ui/src/app/plan/components/plan-edit/plan-edit.component.ts
+
+            Relative Path: nom-ui/src/app/plan/components/plan-edit/plan-edit.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.ts
+
+        nom-ui/src/app/plan/components/plan-edit/plan-edit.component.html
+
+            Relative Path: nom-ui/src/app/plan/components/plan-edit/plan-edit.component.html
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.html
+
+        nom-ui/src/app/plan/components/plan-edit/plan-edit.component.scss
+
+            Relative Path: nom-ui/src/app/plan/components/plan-edit/plan-edit.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.scss
+
+    Onboarding Feature (New Workflow):
+
+        nom-ui/src/app/onboarding/models/onboarding-complete-request.model.ts
+
+            Relative Path: nom-ui/src/app/onboarding/models/onboarding-complete-request.model.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/models/onboarding-complete-request.model.ts
+
+        nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
+
+            Relative Path: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
+
+        nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html
+
+            Relative Path: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html
+
+        nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
+
+            Relative Path: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
+
+            GitHub URL: https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
+
+11. Suggested context for next Gemini Session
+**Project Context: Nutritional Optimization Machine (NOM)** We are developing the **Nutritional Optimization Machine (NOM)**, a personalized nutritional planning application. Our core goal is comprehensive dietary restriction management and personalized meal planning. **1. Project Status & Immediate Focus:** * **Current Phase:** User onboarding workflow. * **Implemented:** Core person details, health attributes, and restrictions for the primary user are functional on the frontend and integrated with the backend. Authentication (registration, login, JWT) is also in place. * **Immediate Next Task:** Continuing development on the frontend's `OnboardingWorkflowComponent` to handle the iterative collection of dietary restrictions for **additional participants** (e.g., family members) within a single plan, including specific preferences per person. **2. Technology Stack:** * **Frontend (Angular `nom-ui`):** Angular (Standalone Components), Angular Material, Tailwind CSS, Reactive Forms, RxJS. * **Backend (.NET Solution):** .NET Core Web API (`Nom.Api`), Orchestration layer (`Nom.Orch`), Entity Framework Core (`Nom.Data`) for PostgreSQL. **3. Architectural Patterns & Key Components:** * **Domain-Driven Structure:** Code is organized by domain (e.g., `person/`, `restriction/`, `onboarding/`). * **Component Composition:** `OnboardingWorkflowComponent` orchestrates `PersonEditComponent`, `PersonHealthEditComponent`, and `RestrictionEditComponent`. * **Layered Backend:** Clear separation between API, business logic, and data access. * **Key Services:** `PersonService`, `RestrictionService` (frontend); `PersonOrchestrationService`, `RestrictionOrchestrationService` (backend). **4. Coding Conventions & Best Practices:** * **Naming:** `kebab-case` for file names/selectors, `PascalCase` for classes/enums. `camelCase` for variables/methods. * **Angular:** Prioritize AOT compilation. Standalone components *must* explicitly import all Angular Material modules they use. Use getters in TS for complex template logic (e.g., `filter` operations). * **Error Handling:** `NotificationService` for user feedback, HTTP interceptors (Bearer, API Interaction). * **Data Flow:** `@Input` down, `@Output` up. **5. Source Control:** * The full codebase is on GitHub: `https://github.com/danielhokanson/nutrition-optimization-machine/`. * Relative file paths within the repo follow a standard structure (e.g., `nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts`). **6. Recent Debugging Insights (for your context):** * Resolved "JIT compiler not available" errors by ensuring `BrowserAnimationsModule` and `HttpClientModule` are correctly imported in `app.config.ts` for AOT. * Resolved "Parser Error: Bindings cannot contain assignments" by moving `filter` logic from HTML templates into component getters (e.g., `filteredRestrictionsForCurrentPerson`). * Always perform a clean build (`npm install`, delete `.angular`, `dist`) for persistent issues. **Given this context, I need assistance with [specific task related to your "Immediate Next Task"].**

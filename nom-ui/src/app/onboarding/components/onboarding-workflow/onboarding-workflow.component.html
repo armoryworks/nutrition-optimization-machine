@@ -14,14 +14,14 @@
       color="primary"
       class="nom-card__progress-bar"
     ></mat-progress-bar>
-    }
-
+    } @if (error && !submitMessage) {
     <mat-card-content class="nom-card__content">
-      @if (error && !submitMessage) {
       <div class="nom-form__error form-level-error nom-message-text mb-4">
         {{ error }}
       </div>
-      } @else if (submitMessage) {
+    </mat-card-content>
+    } @else if (submitMessage) {
+    <mat-card-content class="nom-card__content">
       <div
         class="text-center p-4 rounded-md"
         [ngClass]="{
@@ -39,7 +39,10 @@
           Go to Dashboard
         </button>
       </div>
-      } @else { @if (currentStep?.id === 'personDetails') {
+    </mat-card-content>
+    } @else {
+    <mat-card-content class="nom-card__content">
+      @if (currentStep?.id === 'personDetails') {
       <app-person-edit
         [person]="onboardingData.personDetails"
         (formSubmitted)="onPersonDetailsSubmitted($event)"
@@ -57,6 +60,7 @@
         [restrictions]="filteredRestrictionsForCurrentPerson"
         [currentPersonId]="currentRestrictionPersonId"
         [allPersonsInPlan]="allPersonsInPlan"
+        [restrictionType]="currentStep.restrictionType"
         (formSubmitted)="onRestrictionsSubmitted($event)"
         (skipStep)="skipCurrentStep()"
       >
@@ -195,13 +199,16 @@
           Please review the information you have provided before submitting.
         </p>
 
+        <!-- Summary of Primary Person -->
         <mat-card class="nom-card p-4 mb-4">
           <h4 class="text-xl font-semibold text-indigo-700">Your Details:</h4>
           <p class="nom-message-text">
-            Name: {{ onboardingData.personDetails.name }}
+            Name: {{ onboardingData.personDetails.name || 'N/A' }}
           </p>
+          <!-- Add other person details here -->
         </mat-card>
 
+        <!-- Summary of Health Attributes -->
         @if (onboardingData.attributes && onboardingData.attributes.length > 0)
         {
         <mat-card class="nom-card p-4 mb-4">
@@ -215,8 +222,11 @@
           </p>
           }
         </mat-card>
-        } @if (onboardingData.restrictions && onboardingData.restrictions.length
-        > 0) {
+        }
+
+        <!-- Summary of Restrictions -->
+        @if (onboardingData.restrictions && onboardingData.restrictions.length >
+        0) {
         <mat-card class="nom-card p-4 mb-4">
           <h4 class="text-xl font-semibold text-indigo-700">Restrictions:</h4>
           @for (res of onboardingData.restrictions; track res.id || res.name) {
@@ -227,11 +237,15 @@
             @for (personId of res.affectedPersonIds; track personId) {
             {{ getPersonName(personId, 'Unknown') }}
             } ) } @else { (For:
-            {{ getPersonName(res.personId, 'You') }}) }
+            {{ getPersonName(res.personId, 'You') }}
+            ) }
           </p>
           }
         </mat-card>
-        } @if (onboardingData.hasAdditionalParticipants &&
+        }
+
+        <!-- Summary of Additional Participants -->
+        @if (onboardingData.hasAdditionalParticipants &&
         onboardingData.additionalParticipantDetails &&
         onboardingData.additionalParticipantDetails.length > 0) {
         <mat-card class="nom-card p-4 mb-4">
@@ -245,10 +259,9 @@
         </mat-card>
         }
       </div>
-      } }
+      }
     </mat-card-content>
-
-    @if (!submitMessage) {
+    } @if (!submitMessage) {
     <mat-card-actions
       class="nom-card__footer flex justify-between items-center px-6 py-4"
     >
@@ -277,7 +290,7 @@
       <button
         mat-raised-button
         color="primary"
-        (click)="nextStep()"
+        (click)="triggerChildComponentSubmission()"
         [disabled]="isSubmitting"
         class="nom-button"
       >

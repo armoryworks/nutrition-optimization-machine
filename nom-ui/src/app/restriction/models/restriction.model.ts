@@ -1,33 +1,71 @@
 import { BaseCommonModel } from '../../common/models/_base-common.model';
 
-/**
- * Model representing a Restriction entity.
- * Used for defining dietary constraints for a person or a plan.
- */
 export class RestrictionModel implements BaseCommonModel {
-  id: number; // Will be 0 for new restrictions
-  personId: number | null; // Nullable if applies to plan, otherwise ID of specific person
-  planId: number | null; // Nullable if applies to specific person, otherwise ID of specific plan
-  name: string; // The name of the restriction (e.g., "Vegan", "Gluten-Free", "Peanuts")
-  description: string | null;
-  restrictionTypeId: number; // Reference to the type of restriction (e.g., Dietary Foundation, Allergy)
+  id: number;
+  personId: number | null; // Null if applies to entire plan
+  planId: number | null; // Null if applies to specific person(s)
+  restrictionTypeId: number; // Corresponds to RestrictionTypeEnum
+  name: string;
+  description?: string;
+  appliesToEntirePlan: boolean;
+  affectedPersonIds: number[]; // List of person IDs if appliesToEntirePlan is false
 
-  // Frontend-only properties for conditional allocation (not part of backend entity)
-  appliesToEntirePlan: boolean = false;
-  affectedPersonIds: number[] = []; // List of person IDs if AppliesToEntirePlan is false
+  // Type-specific properties for Societal/Religious/Ethical Restrictions
+  societalReligiousEthicalTypeIds?: number[]; // e.g., Vegan, Kosher IDs
+  mandatoryInclusions?: string[]; // e.g., 'Fish', 'Dairy'
+  fastingSchedules?: string; // Could be a date range or specific days/times
 
-  constructor(data: any = {}) {
-    this.id = data.id || 0;
-    this.personId = data.personId || null;
-    this.planId = data.planId || null;
-    this.name = data.name || '';
-    this.description = data.description || null;
-    this.restrictionTypeId = data.restrictionTypeId || 0;
+  // Type-specific properties for Allergy/Medical Restrictions
+  allergyMedicalIngredientIds?: string[]; // e.g., 'Peanuts', 'Gluten'
+  allergyMedicalConditionIds?: number[]; // e.g., Celiac Disease ID, Diabetes Type 1 ID
+  gastrointestinalConditions?: number[]; // IDs of specific GI conditions
+  kidneyDiseaseNutrientRestrictions?: string[]; // e.g., 'Sodium', 'Potassium'
+  vitaminMineralDeficiencies?: string[]; // e.g., 'Vitamin D', 'Iron'
+  prescriptionInteractions?: string;
 
-    // Initialize frontend-only properties
-    this.appliesToEntirePlan = data.appliesToEntirePlan || false;
-    this.affectedPersonIds = data.affectedPersonIds
-      ? [...data.affectedPersonIds]
-      : [];
+  // Type-specific properties for Personal Preferences
+  personalPreferenceSpiceLevel?: string; // e.g., 'Mild', 'Spicy'
+  dislikedIngredients?: string[]; // e.g., 'Cilantro', 'Olives'
+  dislikedTextures?: string[]; // e.g., 'Mushy', 'Slimy'
+  preferredCookingMethods?: string[]; // e.g., 'Baked', 'Grilled'
+
+  // Audit fields (usually set by backend)
+  createdByPersonId?: number;
+  createdDate?: Date;
+
+  constructor(data?: Partial<RestrictionModel>) {
+    this.id = data?.id || 0;
+    this.personId = data?.personId === undefined ? null : data.personId;
+    this.planId = data?.planId === undefined ? null : data.planId;
+    this.restrictionTypeId = data?.restrictionTypeId || 0;
+    this.name = data?.name || '';
+    this.description = data?.description || '';
+    this.appliesToEntirePlan = data?.appliesToEntirePlan || false;
+    this.affectedPersonIds = data?.affectedPersonIds || [];
+
+    // Initialize type-specific arrays to empty arrays if not provided
+    this.societalReligiousEthicalTypeIds =
+      data?.societalReligiousEthicalTypeIds || [];
+    this.mandatoryInclusions = data?.mandatoryInclusions || [];
+    this.fastingSchedules = data?.fastingSchedules || '';
+
+    this.allergyMedicalIngredientIds = data?.allergyMedicalIngredientIds || [];
+    this.allergyMedicalConditionIds = data?.allergyMedicalConditionIds || [];
+    this.gastrointestinalConditions = data?.gastrointestinalConditions || []; // Added
+    this.kidneyDiseaseNutrientRestrictions =
+      data?.kidneyDiseaseNutrientRestrictions || [];
+    this.vitaminMineralDeficiencies = data?.vitaminMineralDeficiencies || [];
+    this.prescriptionInteractions = data?.prescriptionInteractions || '';
+
+    this.personalPreferenceSpiceLevel =
+      data?.personalPreferenceSpiceLevel || '';
+    this.dislikedIngredients = data?.dislikedIngredients || [];
+    this.dislikedTextures = data?.dislikedTextures || [];
+    this.preferredCookingMethods = data?.preferredCookingMethods || [];
+
+    this.createdByPersonId = data?.createdByPersonId || undefined;
+    this.createdDate = data?.createdDate
+      ? new Date(data.createdDate)
+      : undefined;
   }
 }

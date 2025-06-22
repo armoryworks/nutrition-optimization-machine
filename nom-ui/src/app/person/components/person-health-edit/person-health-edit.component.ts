@@ -39,6 +39,10 @@ import { MatSelectModule } from '@angular/material/select'; // For dropdowns if 
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonHealthEditComponent implements OnInit {
+  public readonly HEIGHT_ATTRIBUTE_ID = 2000;
+  public readonly HEIGHT_IN_FEET_NAME = 'HeightInFeet';
+  public readonly HEIGHT_IN_INCHES_NAME = 'HeightInInches';
+
   @Input() attributes: PersonAttributeModel[] = []; // Input to pre-populate
   @Input() currentPersonId: number = 0; // The ID of the person these attributes belong to
   @Output() formSubmitted = new EventEmitter<PersonAttributeModel[]>();
@@ -48,11 +52,27 @@ export class PersonHealthEditComponent implements OnInit {
 
   // Mock data for attribute types. In a real app, this would come from a service fetching Reference Data.
   attributeTypes = [
-    { id: 2000, name: 'Height', unit: 'inches', icon: 'fa-ruler-vertical' }, // Example AttributeTypeRefIds
+    {
+      id: this.HEIGHT_ATTRIBUTE_ID,
+      name: this.HEIGHT_IN_FEET_NAME,
+      label: 'Height',
+      unit: 'feet',
+      icon: 'fa-ruler-vertical',
+      class: 'half-width',
+    },
+    {
+      id: this.HEIGHT_ATTRIBUTE_ID,
+      name: this.HEIGHT_IN_INCHES_NAME,
+      label: 'Height',
+      unit: 'inches',
+      icon: 'fa-ruler-vertical',
+      class: 'half-width',
+    }, // Example AttributeTypeRefIds
     { id: 2001, name: 'Weight', unit: 'lbs', icon: 'fa-weight-hanging' },
     {
       id: 2002,
       name: 'Activity Level',
+      label: 'Activity Level',
       icon: 'fa-person-running',
       options: [
         'Sedentary',
@@ -69,14 +89,34 @@ export class PersonHealthEditComponent implements OnInit {
     const formControls: { [key: string]: FormControl } = {};
 
     this.attributeTypes.forEach((attrType) => {
-      // Use the helper method to get the control name
       const controlName = this.getFormControlName(attrType.name);
       const existingAttribute = this.attributes.find(
         (a) => a.attributeTypeRefId === attrType.id
       );
-      formControls[controlName] = this.fb.control(
-        existingAttribute?.value || ''
-      );
+
+      if (attrType.id === this.HEIGHT_ATTRIBUTE_ID) {
+        if (attrType.name === this.HEIGHT_IN_FEET_NAME) {
+          let heightInFeet = 0;
+          if (existingAttribute?.value) {
+            const totalHeightInInches = parseInt(existingAttribute.value);
+            heightInFeet = Math.floor(totalHeightInInches / 12);
+          }
+          formControls[controlName] = this.fb.control(heightInFeet);
+        } else if (attrType.name === this.HEIGHT_IN_INCHES_NAME) {
+          let heightInInches = 0;
+          if (existingAttribute?.value) {
+            const totalHeightInInches = parseInt(existingAttribute.value);
+            heightInInches = totalHeightInInches % 12;
+          }
+          formControls[controlName] = this.fb.control(heightInInches);
+        } else {
+          formControls[controlName] = this.fb.control('');
+        }
+      } else {
+        formControls[controlName] = this.fb.control(
+          existingAttribute?.value || ''
+        );
+      }
     });
 
     this.healthAttributesForm = this.fb.group(formControls);
@@ -96,23 +136,46 @@ export class PersonHealthEditComponent implements OnInit {
    * Called by the parent workflow component's "Next" button.
    */
   submitForm(): void {
-    // No specific Validators.required here as this step is optional
-    // this.healthAttributesForm.markAllAsTouched(); // Uncomment if you want immediate validation feedback on blur
-
     const submittedAttributes: PersonAttributeModel[] = [];
+    let heightProcessed = false;
+
     this.attributeTypes.forEach((attrType) => {
-      // Use the helper method to get the control name
       const controlName = this.getFormControlName(attrType.name);
-      const control = this.healthAttributesForm.get(controlName);
-      if (control?.value) {
-        // Only include if a value is provided
-        submittedAttributes.push(
-          new PersonAttributeModel({
-            personId: this.currentPersonId,
-            attributeTypeRefId: attrType.id,
-            value: control.value.toString(), // Ensure value is string
-          })
-        );
+
+      if (attrType.id === this.HEIGHT_ATTRIBUTE_ID) {
+        if (!heightProcessed) {
+          const heightInFeet =
+            this.healthAttributesForm.get(
+              this.getFormControlName(this.HEIGHT_IN_FEET_NAME)
+            )?.value || 0;
+          const heightInInches =
+            this.healthAttributesForm.get(
+              this.getFormControlName(this.HEIGHT_IN_INCHES_NAME)
+            )?.value || 0;
+          const totalHeightInInches = heightInFeet * 12 + heightInInches;
+
+          if (totalHeightInInches > 0) {
+            submittedAttributes.push(
+              new PersonAttributeModel({
+                personId: this.currentPersonId,
+                attributeTypeRefId: attrType.id,
+                value: totalHeightInInches.toString(),
+              })
+            );
+          }
+          heightProcessed = true;
+        }
+      } else {
+        const control = this.healthAttributesForm.get(controlName);
+        if (control?.value) {
+          submittedAttributes.push(
+            new PersonAttributeModel({
+              personId: this.currentPersonId,
+              attributeTypeRefId: attrType.id,
+              value: control.value.toString(),
+            })
+          );
+        }
       }
     });
     this.formSubmitted.emit(submittedAttributes);

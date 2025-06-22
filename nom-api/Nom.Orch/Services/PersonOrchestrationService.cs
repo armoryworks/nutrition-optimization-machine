@@ -9,7 +9,9 @@ using Microsoft.EntityFrameworkCore; // For ToListAsync() and FirstOrDefaultAsyn
 using Microsoft.AspNetCore.Http;
 using Nom.Data.Plan;
 using Nom.Data.Reference;
-using Nom.Orch.Models.Person;
+using Nom.Orch.Models.Person; // For OnboardingCompleteRequest and OnboardingCompleteResponse
+using System.Collections.Generic; // For List and Dictionary
+using System.Security.Claims; // For Claims
 
 namespace Nom.Orch.Services
 {
@@ -21,12 +23,11 @@ namespace Nom.Orch.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
-
         private readonly IRestrictionOrchestrationService _restrictionOrchestrationService;
 
         public PersonOrchestrationService(ApplicationDbContext dbContext,
-IRestrictionOrchestrationService restrictionOrchestrationService,
-        IHttpContextAccessor httpContextAccessor)
+            IRestrictionOrchestrationService restrictionOrchestrationService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
@@ -43,15 +44,15 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
         public async Task<PersonEntity> SetupNewRegisteredPersonAsync(string identityUserId, string personName)
         {
             // Ensure the "System" person exists
-            var systemPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.Id == 1L);
+            var systemPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.Name == "System");
             if (systemPerson == null)
             {
                 systemPerson = new PersonEntity
                 {
-                    Id = 1L,
                     Name = "System",
-                    UserId = null,
+                    UserId = null, // System person is not linked to an IdentityUser
                     InvitationCode = null
+                    // Audit fields will be set by ApplicationDbContext
                 };
                 _dbContext.Persons.Add(systemPerson);
                 await _dbContext.SaveChangesAsync();
@@ -63,8 +64,9 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
             var newPerson = new PersonEntity
             {
                 Name = personName,
-                UserId = identityUserId,
+                UserId = identityUserId, // Link to AspNetUser
                 InvitationCode = invitationCode
+                // Audit fields will be set by ApplicationDbContext
             };
 
             // Add the new person to the database
@@ -91,70 +93,134 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
                   .Select(s => s[random.Next(s.Length)]).ToArray());
 
                 // Check if the code already exists in the database
-                isUnique = !await _dbContext.Persons.AnyAsync(p => p.InvitationCode == code);
+                isUnique = !await _dbContext.Persons.AnyAsync(p => p.InvitationCode == code) &&
+                           !await _dbContext.Plans.AnyAsync(p => p.InvitationCode == code); // Check Plan invitation codes too
 
             } while (!isUnique);
 
             return code;
         }
 
-         /// <summary>
-        /// Handles the complete onboarding process, including saving person details,
-        /// attributes, and inferred restrictions.
+        /// <summary>
+        /// Handles the complete onboarding process for a user, including creating/updating their
+        /// Person details, associated attributes, and restrictions for all participants.
         /// </summary>
         /// <param name="request">Consolidated onboarding data from the frontend.</param>
-        /// <param name="principalPersonId">The ID of the primary authenticated user.</param>
-        /// <returns>True if onboarding is successfully completed, false otherwise.</returns>
-        public async Task<bool> CompleteOnboardingAsync(OnboardingCompleteRequest request)
+        /// <param name="currentIdentityUserId">The ID of the currently authenticated IdentityUser.</param>
+        /// <returns>An OnboardingCompleteResponse indicating success and the primary PersonId.</returns>
+        public async Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request, string currentIdentityUserId)
         {
-            if (request == null)
+            if (request == null || string.IsNullOrWhiteSpace(currentIdentityUserId))
             {
-                Console.WriteLine("CompleteOnboardingAsync: Request is null.");
-                return false;
+                Console.WriteLine("CompleteOnboardingAsync: Invalid request or missing IdentityUser ID.");
+                return new OnboardingCompleteResponse { Success = false, Message = "Invalid onboarding request." };
             }
 
-            if (request.PersonDetails == null)
+            if (request.PersonDetails == null || string.IsNullOrWhiteSpace(request.PersonDetails.Name))
             {
-                Console.WriteLine("CompleteOnboardingAsync: PersonDetails are required.");
-                return false;
+                Console.WriteLine("CompleteOnboardingAsync: Primary person details (Name) are required.");
+                return new OnboardingCompleteResponse { Success = false, Message = "Your name is required to complete onboarding." };
             }
-
-            request.PersonId = GetCurrentPersonId(); // Ensure we have the current PersonId from claims
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                // 1. Update/Create Primary Person Details
-                var primaryPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.Id == request.PersonId);
+                // Retrieve the PersonId for the 'System' user for auditing purposes
+                // This is needed to populate CreatedByPersonId for entities created *by* the system (e.g., initial plan)
+                var systemPerson = await _dbContext.Persons
+                                                 .Where(p => p.Name == "System")
+                                                 .FirstOrDefaultAsync();
+
+                if (systemPerson == null)
+                {
+                    // Fallback: If System person doesn't exist, create it.
+                    Console.WriteLine("PersonOrchestrationService: 'System' person not found. Creating a temporary one for auditing.");
+                    systemPerson = new PersonEntity
+                    {
+                        Name = "System",
+                        UserId = null,
+                        InvitationCode = null
+                        // Audit fields will be set by ApplicationDbContext
+                    };
+                    _dbContext.Persons.Add(systemPerson);
+                    await _dbContext.SaveChangesAsync();
+                }
+                var systemPersonId = systemPerson.Id;
+
+
+                // 1. Find or Create Primary Person Entity
+                PersonEntity primaryPerson = await _dbContext.Persons
+                                            .FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
+
                 if (primaryPerson == null)
                 {
-                    Console.WriteLine($"Primary person with ID {request.PersonId} not found. This should not happen after registration. Creating new person.");
-                    // In a production scenario, this might indicate an issue with registration flow.
-                    // For now, let's create a new one, but log the anomaly.
+                    // This is the first time onboarding for this IdentityUser, create new PersonEntity
                     primaryPerson = new PersonEntity
                     {
-                        Id = request.PersonId, // If IDs are pre-assigned or generated on create
-                        Name = request.PersonDetails.Name
-                        // Other PersonEntity properties that are not part of PersonDetailsRequest
-                        // e.g., Email, InvitationCode will be from Identity/registration
+                        Name = request.PersonDetails.Name,
+                        UserId = currentIdentityUserId,
+                        InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                        // Audit fields will be set by ApplicationDbContext
                     };
                     _dbContext.Persons.Add(primaryPerson);
-                    await _dbContext.SaveChangesAsync(); // Save to get the Id if it's generated
                 }
                 else
                 {
+                    // Existing user, update their details
                     primaryPerson.Name = request.PersonDetails.Name;
-                    // Update other properties from PersonDetailsRequest as needed
+                    // Audit fields will be set by ApplicationDbContext
                     _dbContext.Persons.Update(primaryPerson);
                 }
+                await _dbContext.SaveChangesAsync(); // Save to get the Id for new primaryPerson
 
-                // 2. Process Person Attributes for Primary Person
+                // Mapping for client-side temporary IDs to actual database IDs
+                // Key: client-side temp ID (e.g., -1, -2, -3)
+                // Value: actual DB-generated ID
+                var clientSideIdToRealIdMap = new Dictionary<long, long>();
+                clientSideIdToRealIdMap.Add(request.PersonId, primaryPerson.Id); // Map frontend's primary person temp ID to real ID
+
+                var allParticipants = new List<PersonEntity> { primaryPerson }; // Start with primary person
+
+                // 2. Process Additional Participants (FR-1.8)
+                if (request.HasAdditionalParticipants && request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
+                {
+                    foreach (var participantDetails in request.AdditionalParticipantDetails)
+                    {
+                        // Create a new PersonEntity for each additional participant
+                        var newParticipant = new PersonEntity
+                        {
+                            Name = participantDetails.Name,
+                            InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                            // Audit fields will be set by ApplicationDbContext
+                        };
+                        _dbContext.Persons.Add(newParticipant);
+                        allParticipants.Add(newParticipant); // Add to the list to retrieve generated IDs
+                        clientSideIdToRealIdMap.Add(participantDetails.Id, 0); // Placeholder, update after SaveChanges
+                    }
+                    await _dbContext.SaveChangesAsync(); // Save to get IDs for new additional participants
+
+                    // Update the map with real IDs for additional participants
+                    int additionalParticipantCount = 0;
+                    foreach (var participantDetails in request.AdditionalParticipantDetails)
+                    {
+                        // The order of entities in allParticipants (after primaryPerson) will match the order
+                        // in which they were added from request.AdditionalParticipantDetails.
+                        clientSideIdToRealIdMap[participantDetails.Id] = allParticipants[1 + additionalParticipantCount].Id;
+                        additionalParticipantCount++;
+                    }
+                }
+
+                // 3. Process Person Attributes for Primary Person
                 if (request.Attributes != null && request.Attributes.Any())
                 {
+                    // Fetch existing attributes for the primary person
+                    var existingAttrs = await _dbContext.PersonAttributes
+                        .Where(pa => pa.PersonId == primaryPerson.Id)
+                        .ToListAsync();
+
                     foreach (var attrRequest in request.Attributes)
                     {
-                        var existingAttr = await _dbContext.PersonAttributes
-                            .FirstOrDefaultAsync(pa => pa.PersonId == primaryPerson.Id && pa.AttributeTypeId == attrRequest.AttributeTypeRefId);
+                        var existingAttr = existingAttrs.FirstOrDefault(pa => pa.AttributeTypeId == attrRequest.AttributeTypeRefId);
 
                         if (existingAttr == null)
                         {
@@ -163,125 +229,100 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
                                 PersonId = primaryPerson.Id,
                                 AttributeTypeId = attrRequest.AttributeTypeRefId,
                                 Value = attrRequest.Value
+                                // Audit fields will be set by ApplicationDbContext
                             });
                         }
                         else
                         {
                             existingAttr.Value = attrRequest.Value;
+                            // Audit fields will be set by ApplicationDbContext
                             _dbContext.PersonAttributes.Update(existingAttr);
                         }
                     }
                 }
 
-                // 3. Process Additional Participants (FR-1.8)
-                var allParticipants = new List<PersonEntity> { primaryPerson };
-                if (request.HasAdditionalParticipants && request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
-                {
-                    foreach (var participantDetails in request.AdditionalParticipantDetails)
-                    {
-                        // For simplicity, we are creating new PersonEntities here.
-                        // In a real app, you might have a different flow (e.g., inviting existing users).
-                        var newParticipant = new PersonEntity
-                        {
-                            Name = participantDetails.Name
-                            // Other properties like Email, InvitationCode would be handled in a more complex invite flow
-                        };
-                        _dbContext.Persons.Add(newParticipant);
-                        allParticipants.Add(newParticipant);
-                    }
-                    await _dbContext.SaveChangesAsync(); // Save to get IDs for new participants
-                }
-
-                // 4. Process Restrictions for all involved Persons/Plan
-                // Get the ID of the "System" person for auditing purposes
-                var systemPersonId = await _dbContext.Persons
-                                                 .Where(p => p.Name == "System")
-                                                 .Select(p => p.Id)
-                                                 .FirstOrDefaultAsync();
-
-                if (systemPersonId == 0)
-                {
-                    Console.WriteLine("PersonOrchestrationService: 'System' person not found. Please ensure it's seeded.");
-                    // Fallback to principalPersonId or throw, depending on policy
-                    systemPersonId = request.PersonId;
-                }
-
+                // 4. Process Restrictions for all involved Persons/Plan (FR-1.4, FR-2.1 to FR-2.5)
                 if (request.Restrictions != null && request.Restrictions.Any())
                 {
                     foreach (var restrictionRequest in request.Restrictions)
                     {
-                        // Look up the RestrictionTypeRefId using the restriction name
-                        var restrictionTypeRefId = await _restrictionOrchestrationService.GetRestrictionTypeRefIdByNameAsync(restrictionRequest.Name);
-                        if (restrictionTypeRefId == 0)
+                        // Resolve RestrictionTypeRefId (should be from reference data)
+                        var restrictionTypeRef = await _dbContext.GroupedReferenceViews
+                            .FirstOrDefaultAsync(r => r.ReferenceName == restrictionRequest.Name && r.GroupId == (long)ReferenceDiscriminatorEnum.RestrictionType);
+
+                        if (restrictionTypeRef == null)
                         {
                             Console.WriteLine($"Warning: Restriction type '{restrictionRequest.Name}' not found in Reference data. Skipping.");
-                            continue;
+                            continue; // Skip if type not found
                         }
 
                         if (restrictionRequest.AppliesToEntirePlan)
                         {
-                            // Apply to the primary plan associated with principalPersonId (if such a plan exists/is created here)
-                            // For simplicity, let's assume one plan per person or create one for them if it doesn't exist
-                            // This part needs careful design. For now, we'll link it to the primary user's first plan or null.
+                            // Find or create the primary plan for the user
                             var primaryPlan = await _dbContext.Plans.FirstOrDefaultAsync(p => p.CreatedByPersonId == primaryPerson.Id);
                             if (primaryPlan == null)
                             {
-                                // Create a default plan if none exists for the primary user
                                 primaryPlan = new PlanEntity
                                 {
                                     Name = $"{primaryPerson.Name}'s Default Plan",
-                                    CreatedByPersonId = primaryPerson.Id,
-                                    InvitationCode = Guid.NewGuid().ToString("N").Substring(0, 8) // Generate a simple code
+                                    InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                                    // Audit fields will be set by ApplicationDbContext
                                 };
                                 _dbContext.Plans.Add(primaryPlan);
                                 await _dbContext.SaveChangesAsync(); // Save to get the PlanId
                             }
 
+                            // Check for existing plan-level restriction to prevent duplicates (Rule-2.4)
                             var existingPlanRestriction = await _dbContext.Restrictions
-                                .AnyAsync(r => r.PlanId == primaryPlan.Id && r.RestrictionTypeId == restrictionTypeRefId);
+                                .AnyAsync(r => r.PlanId == primaryPlan.Id && r.RestrictionTypeId == restrictionTypeRef.ReferenceId);
 
                             if (!existingPlanRestriction)
                             {
                                 _dbContext.Restrictions.Add(new RestrictionEntity
                                 {
-                                    PlanId = primaryPlan.Id,
+                                    PlanId = primaryPlan.Id, // Link to plan
                                     Name = restrictionRequest.Name,
                                     Description = restrictionRequest.Description,
-                                    RestrictionTypeId = restrictionTypeRefId,
-                                    CreatedDate = DateTime.UtcNow,
-                                    CreatedByPersonId = systemPersonId
+                                    RestrictionTypeId = restrictionTypeRef.ReferenceId
                                 });
                             }
                         }
-                        else // Applies to specific individuals
+                        else // Applies to specific individuals (restrictionRequest.AffectedPersonIds)
                         {
-                            if (restrictionRequest.AffectedPersonIds != null && restrictionRequest.AffectedPersonIds.Any())
+                            // If AffectedPersonIds is empty but not appliesToEntirePlan, it means it applies to current primary person
+                            var actualAffectedPersonClientIds = restrictionRequest.AffectedPersonIds != null && restrictionRequest.AffectedPersonIds.Any()
+                                ? restrictionRequest.AffectedPersonIds.ToList()
+                                : new List<long> { request.PersonId }; // Default to primary person's client-side ID
+
+                            foreach (var affectedClientSideId in actualAffectedPersonClientIds)
                             {
-                                foreach (var affectedPersonId in restrictionRequest.AffectedPersonIds)
+                                if (!clientSideIdToRealIdMap.TryGetValue(affectedClientSideId, out long realAffectedPersonId))
                                 {
-                                    // Verify affectedPersonId exists and is part of this plan's scope
-                                    var personExists = allParticipants.Any(p => p.Id == affectedPersonId);
-                                    if (!personExists)
-                                    {
-                                        Console.WriteLine($"Warning: Affected Person ID {affectedPersonId} not found in the current onboarding scope. Skipping restriction for this person.");
-                                        continue;
-                                    }
+                                    Console.WriteLine($"Warning: Could not map client-side ID {affectedClientSideId} to real Person ID. Skipping restriction.");
+                                    continue;
+                                }
 
-                                    var existingPersonRestriction = await _dbContext.Restrictions
-                                        .AnyAsync(r => r.PersonId == affectedPersonId && r.RestrictionTypeId == restrictionTypeRefId);
+                                // Verify realAffectedPersonId exists in the `allParticipants` list to ensure it's a valid participant in this context
+                                var participantInScope = allParticipants.Any(p => p.Id == realAffectedPersonId);
+                                if (!participantInScope)
+                                {
+                                    Console.WriteLine($"Warning: Real Person ID {realAffectedPersonId} not found in current onboarding participants scope. Skipping restriction.");
+                                    continue;
+                                }
 
-                                    if (!existingPersonRestriction)
+                                // Check for existing person-level restriction to prevent duplicates (Rule-2.4)
+                                var existingPersonRestriction = await _dbContext.Restrictions
+                                    .AnyAsync(r => r.PersonId == realAffectedPersonId && r.RestrictionTypeId == restrictionTypeRef.ReferenceId);
+
+                                if (!existingPersonRestriction)
+                                {
+                                    _dbContext.Restrictions.Add(new RestrictionEntity
                                     {
-                                        _dbContext.Restrictions.Add(new RestrictionEntity
-                                        {
-                                            PersonId = affectedPersonId,
-                                            Name = restrictionRequest.Name,
-                                            Description = restrictionRequest.Description,
-                                            RestrictionTypeId = restrictionTypeRefId,
-                                            CreatedDate = DateTime.UtcNow,
-                                            CreatedByPersonId = systemPersonId
-                                        });
-                                    }
+                                        PersonId = realAffectedPersonId, // Link to specific person
+                                        Name = restrictionRequest.Name,
+                                        Description = restrictionRequest.Description,
+                                        RestrictionTypeId = restrictionTypeRef.ReferenceId
+                                    });
                                 }
                             }
                         }
@@ -292,7 +333,7 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
                 if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
                 {
                     var existingPlan = await _dbContext.Plans
-                        .Include(p => p.Participants) // Include participants to check for existing links
+                        .Include(p => p.Participants)
                         .FirstOrDefaultAsync(p => p.InvitationCode == request.PlanInvitationCode);
 
                     if (existingPlan != null)
@@ -300,12 +341,10 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
                         var isAlreadyParticipant = existingPlan.Participants.Any(pp => pp.PersonId == primaryPerson.Id);
                         if (!isAlreadyParticipant)
                         {
-                            var memberRoleRefId = await _dbContext.References
-                                .Where(r => r.Name == "Plan Member" && r.Groups.Any(g => g.Id == (long)ReferenceDiscriminatorEnum.PlanInvitationRole))
-                                .Select(r => r.Id)
-                                .FirstOrDefaultAsync();
+                            var memberRoleRef = await _dbContext.GroupedReferenceViews
+                                .FirstOrDefaultAsync(r => r.ReferenceName == "Plan Member" && r.GroupId == (long)ReferenceDiscriminatorEnum.PlanInvitationRole);
 
-                            if (memberRoleRefId == 0)
+                            if (memberRoleRef == null)
                             {
                                 Console.WriteLine("Warning: 'Plan Member' role not found in Reference Data. Skipping PlanParticipant creation for invitation.");
                             }
@@ -315,15 +354,14 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
                                 {
                                     PlanId = existingPlan.Id,
                                     PersonId = primaryPerson.Id,
-                                    RoleRefId = memberRoleRefId,
-                                    CreatedDate = DateTime.UtcNow,
-                                    CreatedByPersonId = request.PersonId
+                                    RoleRefId = memberRoleRef.ReferenceId
+                                    // Audit fields will be set by ApplicationDbContext
                                 });
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"Info: Person {request.PersonId} is already a participant of plan {existingPlan.Id}. Skipping re-adding.");
+                            Console.WriteLine($"Info: Person {primaryPerson.Id} is already a participant of plan {existingPlan.Id}. Skipping re-adding.");
                         }
                     }
                     else
@@ -334,22 +372,33 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
 
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
-                Console.WriteLine($"Onboarding completed successfully for person ID: {request.PersonId}");
-                return true;
+                Console.WriteLine($"Onboarding completed successfully for primary person ID: {primaryPerson.Id}");
+
+                return new OnboardingCompleteResponse
+                {
+                    Success = true,
+                    Message = "Onboarding completed successfully!",
+                    NewPersonId = primaryPerson.Id // Return the real ID
+                };
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                Console.WriteLine($"Error completing onboarding for person ID {request.PersonId}: {ex.Message}");
-                Console.WriteLine(ex.StackTrace); // Log stack trace for detailed debugging
-                return false;
+                Console.WriteLine($"Error completing onboarding for IdentityUser ID {currentIdentityUserId}: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+                return new OnboardingCompleteResponse
+                {
+                    Success = false,
+                    Message = $"Onboarding failed: {ex.Message}"
+                };
             }
         }
 
         /// <summary>
         /// Retrieves the current PersonId from the authenticated user's claims.
+        /// This method might become less relevant if PersonId is always managed by the service.
         /// </summary>
-        /// <returns>The PersonId if available, otherwise null.</returns>
+        /// <returns>The PersonId if available, otherwise 0.</returns>
         public long GetCurrentPersonId()
         {
             var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
@@ -357,7 +406,9 @@ IRestrictionOrchestrationService restrictionOrchestrationService,
             {
                 return personId;
             }
-            throw new InvalidOperationException("PersonId claim is missing or invalid.");
+            // If the PersonId claim is not present (e.g., brand new user), return 0 or throw
+            // The CompleteOnboardingAsync is now designed to handle this by using IdentityUser ID first.
+            return 0; // Or throw InvalidOperationException("PersonId claim is missing or invalid for this operation.")
         }
     }
 }

@@ -33,15 +33,5 @@ namespace Nom.Data.Plan
 
         [Required]
         public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
-
-        // Audit fields (who created this participation record)
-        [Required]
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-
-        [Required]
-        public long CreatedByPersonId { get; set; } // The person (System or admin) who added this participant
-
-        [ForeignKey(nameof(CreatedByPersonId))]
-        public virtual PersonEntity CreatedByPerson { get; set; } = default!;
     }
 }

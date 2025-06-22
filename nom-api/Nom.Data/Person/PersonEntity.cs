@@ -35,16 +35,7 @@ namespace Nom.Data.Person
         /// </summary>
         [MaxLength(50)]
         public string? InvitationCode { get; set; } // For invited users to claim this Person record
-
-        // Navigation properties for relationships where this person is the 'CreatedByPerson'
-        public virtual ICollection<PlanEntity> PlansAdministering { get; set; } = new List<PlanEntity>();
-        public virtual ICollection<AuditLogEntryEntity> AuditLogEntriesCreated { get; set; } = new List<AuditLogEntryEntity>();
-
-        // NEW: Navigation property for participations this person is part of
         public virtual ICollection<PlanParticipantEntity> PlanParticipations { get; set; } = new List<PlanParticipantEntity>();
-
-        // NEW: Navigation property for PlanParticipant records this person created (e.g., an admin adding participants)
-        public virtual ICollection<PlanParticipantEntity> CreatedPlanParticipations { get; set; } = new List<PlanParticipantEntity>();
 
         // Other attributes can be added here or via a PersonAttributeEntity for extensibility
         public virtual ICollection<PersonAttributeEntity> Attributes { get; set; } = new List<PersonAttributeEntity>();
