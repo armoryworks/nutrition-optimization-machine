@@ -26,11 +26,11 @@ namespace Nom.Orch.Interfaces
         /// <returns>A unique invitation code string.</returns>
         Task<string> GenerateUniqueInvitationCodeAsync();
 
-        Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request, string currentIdentityUserId);
+        Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
         // Add other person-related orchestration methods here as needed
 
-     
+
         long GetCurrentPersonId();
-        
+
     }
 }

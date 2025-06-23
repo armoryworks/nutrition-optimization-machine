@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { OnboardingCompleteRequestModel } from '../../onboarding/models/onboarding-complete-request.model';
 import { ApiResponseCommonModel } from '../../common/models/api-response-common.model';
+import { PersonModel } from '../models/person.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,10 +13,9 @@ export class PersonService {
 
   constructor(private http: HttpClient) {}
 
-  createPerson(personData: { personName: string }): Observable<{ id: number }> {
+  createPerson(personData: PersonModel): Observable<{ id: number }> {
     return this.http.post<{ id: number }>(this.apiUrl, {
-      identityUserId: null, // Assuming no IdentityUserId is required for now
-      personName: personData.personName,
+      personName: personData.name,
     });
   }
 

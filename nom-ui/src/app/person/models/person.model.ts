@@ -1,20 +1,28 @@
-import { BaseCommonModel } from '../../common/models/_base-common.model';
+import { PersonAttributeModel } from '../models/person-attribute.model'; // Adjust path if necessary
 
 /**
- * Model representing a Person entity.
- * Used for collecting primary user details and additional participant details.
+ * Interface representing the structure of a person.
+ * Used on the frontend for data transfer and display.
  */
-export class PersonModel implements BaseCommonModel {
-  id: number; // Will be 0 or null for new persons, populated for existing
+export interface IPersonModel {
+  id?: number;
   name: string;
-  // Add other person-specific fields from your PersonEntity here as needed
-  // e.g., dateOfBirth: string | null;
-  // e.g., gender: string | null;
+  // Add other properties if needed (e.g., email, date of birth)
+  attributes?: PersonAttributeModel[]; // NEW: To hold health attributes for this person
+}
 
-  constructor(data: any = {}) {
-    this.id = data.id || 0; // Initialize with 0 or null for new entities
-    this.name = data.name || '';
-    // this.dateOfBirth = data.dateOfBirth || null;
-    // this.gender = data.gender || null;
+/**
+ * Model class for a person, implementing IPersonModel.
+ * Provides a constructor for easier instantiation.
+ */
+export class PersonModel implements IPersonModel {
+  id?: number;
+  name: string;
+  attributes?: PersonAttributeModel[]; // NEW: To hold health attributes for this person
+
+  constructor(data: Partial<IPersonModel> = {}) {
+    this.id = data.id || 0; // Default to 0 for new entities
+    this.name = data.name || ''; // Ensure name is always provided or defaults
+    this.attributes = data.attributes || []; // Initialize attributes as an empty array
   }
 }

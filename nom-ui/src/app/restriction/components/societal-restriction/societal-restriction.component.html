@@ -1,0 +1,69 @@
+<div class="nom-section">
+  <h4 class="nom-section__subheading">Societal/Religious/Ethical Practices</h4>
+  <p class="nom-instruction-text">
+    Select relevant practices and any mandatory inclusions.
+  </p>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Practice Types</mat-label>
+    <mat-select
+      [formControlName]="'societalReligiousEthicalTypeIds'"
+      multiple
+      (selectionChange)="
+        onMultiSelectChange('societalReligiousEthicalTypeIds', $event)
+      "
+      [value]="societalReligiousEthicalTypeIdsArray.value"
+    >
+      @for (type of societalReligiousEthicalOptions; track type.id) {
+      <mat-option [value]="type.id">{{ type.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Mandatory Inclusions</mat-label>
+    <mat-chip-grid
+      #mandatoryInclusionChipGrid
+      aria-label="Mandatory Inclusions"
+    >
+      @for (item of mandatoryInclusionsArray.controls; track item) {
+      <mat-chip-row (removed)="removeChip(item.value, 'mandatoryInclusions')">
+        {{ item.value }}
+        <button matChipRemove [attr.aria-label]="'Remove ' + item.value">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+      }
+    </mat-chip-grid>
+    <input
+      placeholder="New inclusion..."
+      [formControl]="ingredientSearchControl"
+      [matChipInputFor]="mandatoryInclusionChipGrid"
+      [matAutocomplete]="mandatoryInclusionAutocomplete"
+      (matChipInputTokenEnd)="addChip($event, 'mandatoryInclusions')"
+      class="nom-form__input"
+    />
+    <mat-autocomplete #mandatoryInclusionAutocomplete="matAutocomplete">
+      @for (ingredient of (filteredCuratedIngredients | async); track
+      ingredient) {
+      <mat-option
+        [value]="ingredient"
+        (click)="
+          addChip({ input: null, value: ingredient }, 'mandatoryInclusions')
+        "
+      >
+        {{ ingredient }}
+      </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Fasting Schedules</mat-label>
+    <textarea
+      matInput
+      [formControlName]="'fastingSchedules'"
+      placeholder="e.g., Every Friday, Lent"
+    ></textarea>
+  </mat-form-field>
+</div>

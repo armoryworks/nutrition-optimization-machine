@@ -106,13 +106,13 @@ namespace Nom.Orch.Services
         /// Person details, associated attributes, and restrictions for all participants.
         /// </summary>
         /// <param name="request">Consolidated onboarding data from the frontend.</param>
-        /// <param name="currentIdentityUserId">The ID of the currently authenticated IdentityUser.</param>
         /// <returns>An OnboardingCompleteResponse indicating success and the primary PersonId.</returns>
-        public async Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request, string currentIdentityUserId)
+        public async Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(currentIdentityUserId))
+
+            if (request == null)
             {
-                Console.WriteLine("CompleteOnboardingAsync: Invalid request or missing IdentityUser ID.");
+                Console.WriteLine("CompleteOnboardingAsync: Invalid request");
                 return new OnboardingCompleteResponse { Success = false, Message = "Invalid onboarding request." };
             }
 
@@ -121,6 +121,10 @@ namespace Nom.Orch.Services
                 Console.WriteLine("CompleteOnboardingAsync: Primary person details (Name) are required.");
                 return new OnboardingCompleteResponse { Success = false, Message = "Your name is required to complete onboarding." };
             }
+
+
+
+            var currentIdentityUserId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
@@ -147,9 +151,8 @@ namespace Nom.Orch.Services
                 }
                 var systemPersonId = systemPerson.Id;
 
-
                 // 1. Find or Create Primary Person Entity
-                PersonEntity primaryPerson = await _dbContext.Persons
+                PersonEntity? primaryPerson = await _dbContext.Persons
                                             .FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
 
                 if (primaryPerson == null)

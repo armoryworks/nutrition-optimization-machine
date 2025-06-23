@@ -1,0 +1,134 @@
+<div class="nom-section">
+  <h4 class="nom-section__subheading">Allergies & Medical Restrictions</h4>
+  <p class="nom-instruction-text">
+    Indicate any allergies or health conditions.
+  </p>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Allergies (Ingredients)</mat-label>
+    <mat-select
+      [formControlName]="'allergyMedicalIngredientIds'"
+      multiple
+      (selectionChange)="
+        onMultiSelectChange('allergyMedicalIngredientIds', $event)
+      "
+      [value]="allergyMedicalIngredientIdsArray.value"
+    >
+      @for (allergy of allergyOptions; track allergy.id) {
+      <mat-option [value]="allergy.name">{{ allergy.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <h5 class="nom-section__heading mt-4">Medical Conditions</h5>
+  <p class="nom-instruction-text">Select any relevant medical conditions.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+    @for (condition of allergyMedicalConditions; track condition.id) {
+    <mat-checkbox
+      [checked]="
+        isMultiSelectOptionSelected('allergyMedicalConditionIds', condition.id)
+      "
+      (change)="
+        onCheckboxChange(
+          'allergyMedicalConditionIds',
+          condition.id,
+          $event.checked
+        )
+      "
+      class="nom-checkbox"
+    >
+      {{ condition.name }}
+    </mat-checkbox>
+    }
+  </div>
+
+  <h5 class="nom-section__heading mt-4">Gastrointestinal Conditions</h5>
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Select GI Conditions</mat-label>
+    <mat-select
+      [formControlName]="'gastrointestinalConditions'"
+      multiple
+      (selectionChange)="
+        onMultiSelectChange('gastrointestinalConditions', $event)
+      "
+      [value]="gastrointestinalConditionsArray.value"
+    >
+      @for (condition of gastrointestinalConditionsOptions; track condition.id)
+      {
+      <mat-option [value]="condition.id">{{ condition.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <h5 class="nom-section__heading mt-4">Kidney Disease Restrictions</h5>
+  <p class="nom-instruction-text">
+    Select any nutrients restricted for kidney disease.
+  </p>
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Nutrient Restrictions</mat-label>
+    <mat-select
+      [formControlName]="'kidneyDiseaseNutrientRestrictions'"
+      multiple
+      (selectionChange)="
+        onMultiSelectChange('kidneyDiseaseNutrientRestrictions', $event)
+      "
+      [value]="kidneyDiseaseNutrientRestrictionsArray.value"
+    >
+      @for (restriction of kidneyDiseaseRestrictionsOptions; track restriction)
+      {
+      <mat-option [value]="restriction">{{ restriction }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Vitamin/Mineral Deficiencies</mat-label>
+    <mat-chip-grid
+      #micronutrientChipGrid
+      aria-label="Vitamin/Mineral Deficiencies"
+    >
+      @for (item of vitaminMineralDeficienciesArray.controls; track item) {
+      <mat-chip-row
+        (removed)="removeChip(item.value, 'vitaminMineralDeficiencies')"
+      >
+        {{ item.value }}
+        <button matChipRemove [attr.aria-label]="'Remove ' + item.value">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+      }
+    </mat-chip-grid>
+    <input
+      placeholder="Search nutrients..."
+      [formControl]="micronutrientSearchControl"
+      [matChipInputFor]="micronutrientChipGrid"
+      [matAutocomplete]="micronutrientAutocomplete"
+      (matChipInputTokenEnd)="addChip($event, 'vitaminMineralDeficiencies')"
+      class="nom-form__input"
+    />
+    <mat-autocomplete #micronutrientAutocomplete="matAutocomplete">
+      @for (nutrient of (filteredMicronutrients | async); track nutrient) {
+      <mat-option
+        [value]="nutrient"
+        (click)="
+          addChip(
+            { input: null, value: nutrient },
+            'vitaminMineralDeficiencies'
+          )
+        "
+      >
+        {{ nutrient }}
+      </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Prescription Interactions</mat-label>
+    <textarea
+      matInput
+      [formControlName]="'prescriptionInteractions'"
+      placeholder="List any medications that may interact with diet"
+    ></textarea>
+  </mat-form-field>
+</div>

@@ -45,7 +45,7 @@ export class AuthService {
       .pipe(catchError(this.handleError))
       .pipe(
         tap((response: LoginResponse) => {
-          this.authManager.refreshToken = response.refreshToken;
+          this.authManager.storedRefreshToken = response.refreshToken;
           this.authManager.token = response.accessToken;
           this.authManager.tokenExpiration =
             response.expiresIn + new Date().getTime();

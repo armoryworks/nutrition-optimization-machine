@@ -1,0 +1,79 @@
+<div class="nom-section">
+  <h4 class="nom-section__subheading">Personal Preferences</h4>
+  <p class="nom-instruction-text">Customize your plan with your preferences.</p>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Preferred Spice Level</mat-label>
+    <mat-select [formControlName]="'personalPreferenceSpiceLevel'">
+      @for (level of spiceLevelOptions; track level) {
+      <mat-option [value]="level">{{ level }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Disliked Ingredients</mat-label>
+    <mat-chip-grid
+      #dislikedIngredientsChipGrid
+      aria-label="Disliked Ingredients"
+    >
+      @for (item of dislikedIngredientsArray.controls; track item) {
+      <mat-chip-row (removed)="removeChip(item.value, 'dislikedIngredients')">
+        {{ item.value }}
+        <button matChipRemove [attr.aria-label]="'Remove ' + item.value">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+      }
+    </mat-chip-grid>
+    <input
+      placeholder="New disliked ingredient..."
+      [formControl]="ingredientSearchControl"
+      [matChipInputFor]="dislikedIngredientsChipGrid"
+      [matAutocomplete]="dislikedIngredientAutocomplete"
+      (matChipInputTokenEnd)="addChip($event, 'dislikedIngredients')"
+      class="nom-form__input"
+    />
+    <mat-autocomplete #dislikedIngredientAutocomplete="matAutocomplete">
+      @for (ingredient of (filteredCuratedIngredients | async); track
+      ingredient) {
+      <mat-option
+        [value]="ingredient"
+        (click)="
+          addChip({ input: null, value: ingredient }, 'dislikedIngredients')
+        "
+      >
+        {{ ingredient }}
+      </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Disliked Textures</mat-label>
+    <mat-select
+      [formControlName]="'dislikedTextures'"
+      multiple
+      (selectionChange)="onMultiSelectChange('dislikedTextures', $event)"
+      [value]="dislikedTexturesArray.value"
+    >
+      @for (texture of texturesDislikedOptions; track texture) {
+      <mat-option [value]="texture">{{ texture }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Preferred Cooking Methods</mat-label>
+    <mat-select
+      [formControlName]="'preferredCookingMethods'"
+      multiple
+      (selectionChange)="onMultiSelectChange('preferredCookingMethods', $event)"
+      [value]="preferredCookingMethodsArray.value"
+    >
+      @for (method of preferredCookingMethodsOptions; track method) {
+      <mat-option [value]="method">{{ method }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>

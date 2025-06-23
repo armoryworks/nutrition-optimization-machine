@@ -147,7 +147,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isUserMenuOpen = false;
     this.authService.logout().subscribe({
       next: () => {
-        this.authManagerService.clearStorageAfterLogout();
+        this.authManagerService.logout();
         this.isLoggedIn = false;
         this.notificationService.success('Logged Out Successfully');
       },

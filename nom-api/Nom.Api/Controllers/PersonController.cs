@@ -7,7 +7,6 @@ using Nom.Orch.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Nom.Orch.Models.Person;
-using System.Security.Claims;
 
 namespace Nom.Api.Controllers
 {
@@ -101,23 +100,21 @@ namespace Nom.Api.Controllers
         /// Receives consolidated person details, attributes, and restrictions.
         /// </summary>
         /// <param name="request">The comprehensive onboarding data.</param>
-         [HttpPost("onboarding-complete")]
-    [Authorize] // Ensure only authenticated users can call this
-    public async Task<IActionResult> CompleteOnboarding([FromBody] OnboardingCompleteRequest request)
-    {
-        var identityUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrWhiteSpace(identityUserId))
+        [HttpPost("onboarding-complete")]
+        public async Task<IActionResult> OnboardingComplete([FromBody] OnboardingCompleteRequest request)
         {
-            return Unauthorized("User identity not found.");
-        }
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-        var response = await _personOrchestrationService.CompleteOnboardingAsync(request, identityUserId);
+            var success = await _personOrchestrationService.CompleteOnboardingAsync(request);
 
-        if (response.Success)
-        {
-            return Ok(response);
+            if (success)
+            {
+                return Ok(new { message = "Onboarding completed successfully." });
+            }
+            return StatusCode(500, new { message = "Failed to complete onboarding due to an internal error." });
         }
-        return BadRequest(response); // Return BadRequest with the error message
-    }
     }
 }

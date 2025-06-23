@@ -1,31 +1,114 @@
-<mat-card class="nom-card__content">
-  <div class="nom-section">
-    <h3 class="nom-section__heading">Plan Details (Skeleton)</h3>
-    <p class="nom-instruction-text">
-      This component is a placeholder for future plan management. For now, it
-      only hosts restriction configuration.
-    </p>
+<mat-card class="nom-card">
+  <mat-card-header class="nom-card__header">
+    <mat-card-title class="nom-card__title">
+      {{ plan ? 'Edit Plan' : 'Create New Plan' }}
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content class="nom-card__content">
+    <form [formGroup]="planForm" class="nom-form">
+      <mat-form-field appearance="outline" class="nom-form__field">
+        <mat-label>Plan Name</mat-label>
+        <input matInput formControlName="name" placeholder="Enter plan name" />
+        @if (planForm.get('name')?.invalid && planForm.get('name')?.touched) {
+        <mat-error>Plan name is required.</mat-error>
+        }
+      </mat-form-field>
 
-    <!-- This is where you might add plan name, goals, etc. -->
-    <mat-form-field appearance="outline" class="nom-form__field">
-      <mat-label>Plan Name (Example)</mat-label>
-      <input
-        matInput
-        type="text"
-        value="My Awesome Plan"
-        disabled
-        class="nom-form__input"
-      />
-    </mat-form-field>
+      <mat-form-field appearance="outline" class="nom-form__field">
+        <mat-label>Description</mat-label>
+        <textarea
+          matInput
+          formControlName="description"
+          placeholder="Describe your plan"
+        ></textarea>
+      </mat-form-field>
 
-    <!-- Reuse RestrictionEditComponent for plan-wide restrictions -->
-    <app-restriction-edit
-      [restrictions]="existingRestrictions"
-      [currentPersonId]="0"
-      [allPersonsInPlan]="allPersonsInPlan"
-      (formSubmitted)="onRestrictionsSubmitted($event)"
-      (skipStep)="onSkip()"
-    >
-    </app-restriction-edit>
-  </div>
+      <mat-form-field appearance="outline" class="nom-form__field">
+        <mat-label>Invitation Code</mat-label>
+        <input
+          matInput
+          formControlName="invitationCode"
+          placeholder="Auto-generated or custom code"
+        />
+      </mat-form-field>
+
+      <!-- Restriction Editing Section -->
+      <div class="nom-section mt-6">
+        <h3 class="nom-section__heading">Plan Restrictions & Preferences</h3>
+        <p class="nom-instruction-text">
+          Define dietary restrictions and personal preferences for this plan.
+        </p>
+
+        @if (currentRestrictionType === null) {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="
+              selectRestrictionType(
+                RestrictionTypeEnum.SocietalReligiousEthical
+              )
+            "
+            class="nom-button"
+          >
+            Add Dietary Practices
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="selectRestrictionType(RestrictionTypeEnum.AllergyMedical)"
+            class="nom-button"
+          >
+            Add Medical Restrictions
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="
+              selectRestrictionType(RestrictionTypeEnum.PersonalPreference)
+            "
+            class="nom-button"
+          >
+            Add Personal Preferences
+          </button>
+        </div>
+        } @else {
+        <app-restriction-edit
+          [restrictionType]="currentRestrictionType"
+          [restrictions]="restrictionsForEditComponent"
+          [currentPersonId]="currentPersonId"
+          [allPersonsInPlan]="allPersonsInPlan"
+          [appliesToEntirePlan]="true"
+          [affectedPersonIds]="[]"
+          (formSubmitted)="onRestrictionsSubmitted($event)"
+          (skipStep)="currentRestrictionType = null"
+        ></app-restriction-edit>
+        }
+      </div>
+
+      <!-- Display currently added restrictions for review -->
+      @if (tempRestrictions.length > 0) {
+      <div class="nom-section mt-6">
+        <h4 class="nom-section__subheading">Current Restrictions</h4>
+        <ul class="list-disc pl-5">
+          @for (res of tempRestrictions; track res.id || res.name) {
+          <li>
+            {{ getRestrictionTypeName(res.restrictionTypeId) }}:
+            {{ res.name }} @if (res.appliesToEntirePlan) { (Applies to Plan) }
+            @else if (res.personId) { (For:
+            {{ getPersonName(res.personId, 'Unknown') }}) }
+          </li>
+          }
+        </ul>
+      </div>
+      }
+      <!-- End Restriction Display -->
+    </form>
+  </mat-card-content>
+  <mat-card-actions class="nom-card__footer">
+    <button mat-raised-button color="accent" (click)="goBack()">Back</button>
+    <button mat-raised-button color="primary" (click)="submitForm()">
+      Save Plan
+    </button>
+  </mat-card-actions>
 </mat-card>

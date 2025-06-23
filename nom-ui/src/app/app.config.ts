@@ -15,11 +15,11 @@ import {
   withInterceptorsFromDi,
 } from '@angular/common/http';
 
-import { BearerInterceptor } from './utilities/interceptors/bearer-interceptor';
-import { ApiInteractionInterceptor } from './utilities/interceptors/api-interaction-interceptor';
+import { ApiInteractionInterceptor } from './utilities/interceptors/api-interaction.interceptor';
 import { routes } from './app.routes';
 import { NomConfigService } from './utilities/services/nom-config.service';
 import { CommonModule } from '@angular/common';
+import { AuthInterceptor } from './utilities/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -33,8 +33,8 @@ export const appConfig: ApplicationConfig = {
       useClass: NomConfigService,
     },
     {
-      provide: BearerInterceptor,
-      useClass: BearerInterceptor,
+      provide: AuthInterceptor,
+      useClass: AuthInterceptor,
     },
     {
       provide: ApiInteractionInterceptor,
@@ -42,7 +42,7 @@ export const appConfig: ApplicationConfig = {
     },
     {
       provide: HTTP_INTERCEPTORS,
-      useExisting: BearerInterceptor,
+      useExisting: AuthInterceptor,
       multi: true,
     },
     {
