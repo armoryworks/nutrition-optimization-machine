@@ -1,0 +1,46 @@
+<div class="nom-section">
+  <h3 class="nom-section__heading">Join an Existing Plan (Optional)</h3>
+  <p class="nom-instruction-text">
+    Do you have an invitation code to join an existing plan?
+  </p>
+  <mat-form-field
+    appearance="outline"
+    class="nom-form__field nom-form__field--centered"
+  >
+    <mat-label>Invitation Code</mat-label>
+    <input
+      matInput
+      type="text"
+      [formControl]="invitationCodeFormControl"
+      class="nom-form__input"
+      placeholder="Enter code"
+    />
+  </mat-form-field>
+  @if (errorMessage) {
+  <p class="nom-form__error">{{ errorMessage }}</p>
+  }
+  <div class="flex justify-center mt-4">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSubmit()"
+      [disabled]="!invitationCodeFormControl.value || isLoading"
+      class="nom-button mr-2"
+    >
+      @if (isLoading) {
+      <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+      <span>Join Plan</span>
+      }
+    </button>
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="onSkip()"
+      [disabled]="isLoading"
+      class="nom-button"
+    >
+      I have no Invitation Code
+    </button>
+  </div>
+</div>

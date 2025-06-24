@@ -1,0 +1,111 @@
+<div class="nom-section">
+  @if (currentSubStep === 'hasParticipants') {
+  <h3 class="nom-section__heading">Additional Participants</h3>
+  <p class="nom-instruction-text">
+    Will anyone else be participating in this plan with you (e.g., family
+    members, roommates)?
+  </p>
+  <div class="nom-horizontal-group flex-wrap justify-center my-4">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onHasParticipantsAnswer(true)"
+      [disabled]="isLoading"
+      class="nom-button mr-2"
+    >
+      Yes
+    </button>
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="onHasParticipantsAnswer(false)"
+      [disabled]="isLoading"
+      class="nom-button"
+    >
+      No
+    </button>
+  </div>
+  } @else if (currentSubStep === 'howMany') {
+  <h3 class="nom-section__heading">How Many People?</h3>
+  <p class="nom-instruction-text">
+    How many additional people will be participating?
+  </p>
+  <mat-form-field
+    appearance="outline"
+    class="nom-form__field nom-form__field--centered"
+  >
+    <mat-label>Number of People</mat-label>
+    <input
+      matInput
+      type="number"
+      [formControl]="numberOfAdditionalParticipantsControl"
+      class="nom-form__input"
+      placeholder="Enter a number"
+      min="0"
+    />
+    @if (numberOfAdditionalParticipantsControl.invalid &&
+    numberOfAdditionalParticipantsControl.touched) {
+    <mat-error>Please enter a valid number (0 or more).</mat-error>
+    }
+  </mat-form-field>
+  <div class="flex justify-center mt-4">
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="goToPreviousSubStep()"
+      [disabled]="isLoading"
+      class="nom-button mr-2"
+    >
+      Previous
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onHowManySubmit()"
+      [disabled]="isLoading || numberOfAdditionalParticipantsControl.invalid"
+      class="nom-button"
+    >
+      Next
+    </button>
+  </div>
+  } @else if (currentSubStep === 'names') {
+  <h3 class="nom-section__heading">Participant Names</h3>
+  <p class="nom-instruction-text">
+    Enter names for the additional participants.
+  </p>
+  @for (person of internalAdditionalParticipantDetails; let i = $index; track i)
+  {
+  <mat-form-field appearance="outline" class="nom-form__field">
+    <mat-label>Person {{ i + 2 }} Name</mat-label>
+    <input
+      matInput
+      type="text"
+      [value]="person.name"
+      (input)="updateParticipantName(i, $event)"
+      class="nom-form__input"
+      required
+    />
+  </mat-form-field>
+  }
+  <div class="flex justify-center mt-4">
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="goToPreviousSubStep()"
+      [disabled]="isLoading"
+      class="nom-button mr-2"
+    >
+      Previous
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onNamesSubmit()"
+      [disabled]="isLoading || !areAllParticipantNamesValid"
+      class="nom-button"
+    >
+      Next
+    </button>
+  </div>
+  }
+</div>

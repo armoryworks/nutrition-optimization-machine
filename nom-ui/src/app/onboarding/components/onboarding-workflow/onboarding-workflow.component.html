@@ -14,7 +14,11 @@
       color="primary"
       class="nom-card__progress-bar"
     ></mat-progress-bar>
-    } @if (error && !submitMessage) {
+    }
+
+    <!-- Error and Submission Messages are still conditionally rendered. -->
+    <!-- Their parent <mat-card-content> should be consistently present. -->
+    @if (error && !submitMessage) {
     <mat-card-content class="nom-card__content">
       <div class="nom-form__error form-level-error nom-message-text mb-4">
         {{ error }}
@@ -40,49 +44,21 @@
         </button>
       </div>
     </mat-card-content>
-    } @else {
+    }
+
+    <!-- The main content area that always wraps the individual step components -->
+    <!-- This `mat-card-content` is now always present, resolving nesting issues -->
     <mat-card-content class="nom-card__content">
       <!-- Step 1: Invitation Code -->
       @if (currentStep?.id === 'invitationCode') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">Join an Existing Plan (Optional)</h3>
-        <p class="nom-instruction-text">
-          Do you have an invitation code to join an existing plan?
-        </p>
-        <mat-form-field
-          appearance="outline"
-          class="nom-form__field nom-form__field--centered"
-        >
-          <mat-label>Invitation Code</mat-label>
-          <input
-            matInput
-            type="text"
-            [formControl]="invitationCodeFormControl"
-            class="nom-form__input"
-            placeholder="Enter code"
-          />
-        </mat-form-field>
-        <div class="flex justify-center mt-4">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="onInvitationCodeSubmit()"
-            [disabled]="!invitationCodeFormControl.value || isLoading"
-            class="nom-button mr-2"
-          >
-            Join Plan
-          </button>
-          <button
-            mat-raised-button
-            color="accent"
-            (click)="onNoInvitationCode()"
-            [disabled]="isLoading"
-            class="nom-button"
-          >
-            I have no Invitation Code
-          </button>
-        </div>
-      </div>
+      <app-onboarding-invitation-code
+        [currentInvitationCode]="onboardingData.planInvitationCode"
+        [isLoading]="isLoading"
+        [errorMessage]="error"
+        (codeSubmitted)="onInvitationCodeSubmitted($event)"
+        (noCodeSelected)="onNoInvitationCodeSelected()"
+      >
+      </app-onboarding-invitation-code>
       }
       <!-- Step 2: Your Details -->
       @else if (currentStep?.id === 'personDetails') {
@@ -91,79 +67,25 @@
         (formSubmitted)="onPersonDetailsSubmitted($event)"
       ></app-person-edit>
       }
-      <!-- Step 3: Additional Participants -->
-      @else if (currentStep?.id === 'hasAdditionalParticipants') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">Additional Participants</h3>
-        <p class="nom-instruction-text">
-          Will anyone else be participating in this plan with you (e.g., family
-          members, roommates)?
-        </p>
-        <div class="nom-horizontal-group flex-wrap justify-center my-4">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="onYesNoAnswer('hasAdditionalParticipants', true)"
-            class="nom-button mr-2"
-          >
-            Yes
-          </button>
-          <button
-            mat-raised-button
-            color="accent"
-            (click)="onYesNoAnswer('hasAdditionalParticipants', false)"
-            class="nom-button"
-          >
-            No
-          </button>
-        </div>
-      </div>
-      }
-      <!-- Step 4: How Many People? -->
-      @else if (currentStep?.id === 'numberOfAdditionalParticipants') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">How Many People?</h3>
-        <p class="nom-instruction-text">
-          How many additional people will be participating?
-        </p>
-        <mat-form-field
-          appearance="outline"
-          class="nom-form__field nom-form__field--centered"
-        >
-          <mat-label>Number of People</mat-label>
-          <input
-            matInput
-            type="number"
-            [formControl]="numberOfAdditionalParticipantsControl"
-            class="nom-form__input"
-            placeholder="Enter a number"
-            min="0"
-          />
-        </mat-form-field>
-      </div>
-      }
-      <!-- Step 5: Participant Names -->
-      @else if (currentStep?.id === 'additionalParticipantNames') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">Participant Names</h3>
-        <p class="nom-instruction-text">
-          Enter names for the additional participants.
-        </p>
-        @for (person of onboardingData.additionalParticipantDetails; let i =
-        $index; track i) {
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Person {{ i + 2 }} Name</mat-label>
-          <input
-            matInput
-            type="text"
-            [value]="person.name"
-            (input)="updateAdditionalParticipantName(i, $event)"
-            class="nom-form__input"
-            placeholder="Enter name"
-          />
-        </mat-form-field>
-        }
-      </div>
+      <!-- Step 3: Additional Participants (Consolidated) -->
+      @else if (currentStep?.id === 'additionalParticipants') {
+      <app-onboarding-additional-participants
+        [hasAdditionalParticipantsInput]="
+          onboardingData.hasAdditionalParticipants
+        "
+        [numberOfAdditionalParticipantsInput]="
+          onboardingData.numberOfAdditionalParticipants
+        "
+        [additionalParticipantDetailsInput]="
+          onboardingData.additionalParticipantDetails
+        "
+        [principalPersonId]="onboardingData.personId"
+        [isLoading]="isLoading"
+        [allCurrentPersonsInPlan]="allPersonsInPlan"
+        (participantsDataSubmitted)="onAdditionalParticipantsSubmitted($event)"
+        (skipStep)="previousStep()"
+      >
+      </app-onboarding-additional-participants>
       }
       <!-- Step 6: Health Attributes (Loops per person) -->
       @else if (currentStep?.id === 'healthAttributes') {
@@ -177,53 +99,16 @@
       >
       </app-person-health-edit>
       }
-      <!-- Step 7: Restriction Scope -->
+      <!-- Step 7: Restriction Scope (Consolidated) -->
       @else if (currentStep?.id === 'restrictionScope') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">Restriction Scope</h3>
-        <p class="nom-instruction-text">
-          Will the dietary restrictions and preferences you are about to enter
-          apply to the **entire plan** (all participants), or to **specific
-          people**?
-        </p>
-        <mat-radio-group
-          aria-label="Restriction Scope"
-          [formControl]="restrictionScopeControl"
-          class="nom-radio-group"
-        >
-          <mat-radio-button value="plan" class="nom-radio-button">
-            Apply to Entire Plan
-          </mat-radio-button>
-          <mat-radio-button value="specific" class="nom-radio-button">
-            Apply to Specific People
-          </mat-radio-button>
-        </mat-radio-group>
-        @if (restrictionScopeControl.invalid && restrictionScopeControl.touched)
-        {
-        <p class="nom-form__error">Please select a restriction scope.</p>
-        }
-      </div>
-      }
-      <!-- Step 8: Select Affected People -->
-      @else if (currentStep?.id === 'selectAffectedPeople') {
-      <div class="nom-section">
-        <h3 class="nom-section__heading">Select Affected People</h3>
-        <p class="nom-instruction-text">
-          Select the people this restriction will apply to.
-        </p>
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Affected People</mat-label>
-          <mat-select [formControl]="affectedPersonIdsControl" multiple>
-            @for (person of allPersonsInPlan; track person.id) {
-            <mat-option [value]="person.id">{{ person.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        @if (affectedPersonIdsControl.invalid &&
-        affectedPersonIdsControl.touched) {
-        <p class="nom-form__error">Please select at least one person.</p>
-        }
-      </div>
+      <app-onboarding-restriction-scope
+        [restrictionScopeInput]="onboardingData.currentRestrictionScope"
+        [affectedPersonIdsInput]="onboardingData.currentAffectedPersonIds"
+        [allPersonsInPlan]="allPersonsInPlan"
+        [isLoading]="isLoading"
+        (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)"
+      >
+      </app-onboarding-restriction-scope>
       }
       <!-- Steps 9-11: Restriction Edit (Loops per person if Individual Preferences selected) -->
       @else if (currentStep?.component === 'app-restriction-edit') {
@@ -232,8 +117,10 @@
         [currentPersonId]="currentRestrictionTargetPersonId"
         [allPersonsInPlan]="allPersonsInPlan"
         [restrictionType]="currentStep.restrictionType"
-        [appliesToEntirePlan]="restrictionScopeControl.value === 'plan'"
-        [affectedPersonIds]="affectedPersonIdsControl.value || []"
+        [appliesToEntirePlan]="
+          onboardingData.currentRestrictionScope === 'plan'
+        "
+        [affectedPersonIds]="onboardingData.currentAffectedPersonIds || []"
         (formSubmitted)="onRestrictionsSubmitted($event)"
         (skipStep)="skipCurrentStep()"
       >
@@ -251,9 +138,7 @@
           <button
             mat-raised-button
             color="primary"
-            (click)="
-              onYesNoAnswer('applyIndividualPreferencesToEachPerson', true)
-            "
+            (click)="onIndividualPreferencesAnswer(true)"
             class="nom-button mr-2"
           >
             Yes
@@ -261,9 +146,7 @@
           <button
             mat-raised-button
             color="accent"
-            (click)="
-              onYesNoAnswer('applyIndividualPreferencesToEachPerson', false)
-            "
+            (click)="onIndividualPreferencesAnswer(false)"
             class="nom-button"
           >
             No
@@ -348,13 +231,14 @@
       </div>
       }
     </mat-card-content>
-    }
+    <!-- END OF main <mat-card-content> tag -->
 
-    <!-- Conditional Navigation Buttons -->
-    @if (!submitMessage && NO_FLOW_STEPS.indexOf(currentStep?.id) < 0) {
+    <!-- Conditional Navigation Buttons - hidden if current step ID is in NO_FLOW_STEPS -->
+    @if (!submitMessage && currentStep?.id) {
     <mat-card-actions
       class="nom-card__footer flex justify-between items-center px-6 py-4"
     >
+      @if(currentStepIndex > 0){
       <button
         mat-raised-button
         color="accent"
@@ -364,8 +248,7 @@
       >
         Previous
       </button>
-
-      @if (isSkippable()) {
+      } @if(NO_FLOW_STEPS.indexOf(currentStep?.id) < 0){ @if (isSkippable()) {
       <button
         mat-raised-button
         color="primary"
@@ -390,6 +273,7 @@
         <mat-spinner diameter="20" class="nom-button__spinner"></mat-spinner>
         }
       </button>
+      }
     </mat-card-actions>
     }
   </mat-card>

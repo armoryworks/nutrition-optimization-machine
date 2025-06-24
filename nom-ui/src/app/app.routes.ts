@@ -18,7 +18,12 @@ export const routes: Routes = [
   { path: 'send-confirmation', component: SendConfirmationEmailComponent },
   { path: 'update-info', component: UpdateInfoComponent },
   { path: 'update-two-factor', component: UpdateTwoFactorComponent },
-  { path: 'onboarding', component: OnboardingWorkflowComponent },
+  {
+    path: 'onboarding',
+    redirectTo: 'onboarding/invitationCode',
+    pathMatch: 'full',
+  }, // Redirect to first step
+  { path: 'onboarding/:stepId', component: OnboardingWorkflowComponent }, // New route with stepId parameter
   { path: '', redirectTo: '/home', pathMatch: 'full' }, // Default route
   { path: '**', redirectTo: '/home' }, // Wildcard route for any other invalid path
 ];

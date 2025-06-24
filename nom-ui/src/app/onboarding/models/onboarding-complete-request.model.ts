@@ -1,43 +1,72 @@
-import { PersonModel } from '../../person/models/person.model';
-import { PersonAttributeModel } from '../../person/models/person-attribute.model';
-import { RestrictionModel } from '../../restriction/models/restriction.model';
+import { PersonModel } from '../../person/models/person.model'; // Adjust path as needed
+import { PersonAttributeModel } from '../../person/models/person-attribute.model'; // Adjust path as needed
+import { RestrictionModel } from '../../restriction/models/restriction.model'; // Adjust path as needed
 
 /**
- * Consolidated model for the complete onboarding submission to the backend.
- * Contains all data collected across various onboarding steps.
+ * Interface representing the complete data collected during the onboarding process.
+ * This is the DTO sent to the backend to finalize onboarding.
  */
-export class OnboardingCompleteRequestModel {
-  personId: number; // The ID of the primary user completing onboarding (from auth)
-  personDetails: PersonModel; // Core details of the primary user
-  attributes: PersonAttributeModel[]; // Health attributes for the primary user
-  restrictions: RestrictionModel[]; // All restrictions (primary user, additional persons, or plan-wide)
-  planInvitationCode: string | null; // Optional invitation code
+export interface IOnboardingCompleteRequestModel {
+  personId: number | null; // The real ID of the primary person (will be assigned by backend for new users)
+  personDetails: PersonModel; // Details of the primary person (name, etc.)
+  attributes: PersonAttributeModel[]; // Health attributes for the primary person (legacy, now nested in PersonModel)
+  restrictions: RestrictionModel[]; // All collected restrictions (plan-wide or person-specific)
+  planInvitationCode: string | null; // Optional: Code to join an existing plan
 
-  hasAdditionalParticipants: boolean; // From UI-only step 5
-  numberOfAdditionalParticipants: number; // From UI-only step 6
-  additionalParticipantDetails: PersonModel[]; // Names from UI-only step 7 (blank slots)
-  applyIndividualPreferencesToEachPerson: boolean; // From UI-only step 8
+  // --- NEW PARTICIPANT-RELATED PROPERTIES ---
+  hasAdditionalParticipants: boolean; // Whether the plan includes other people
+  numberOfAdditionalParticipants: number; // How many additional people
+  additionalParticipantDetails: PersonModel[]; // Details of additional participants
 
-  constructor(data: any = {}) {
-    this.personId = data.personId || 0;
+  applyIndividualPreferencesToEachPerson: boolean; // Whether to collect individual preferences for each person
+
+  // --- NEW RESTRICTION SCOPE PROPERTIES (for frontend state management) ---
+  // These are client-side state, not necessarily sent directly to backend as separate DTO fields,
+  // but influence how `restrictions` array is constructed.
+  currentRestrictionScope: 'plan' | 'specific' | null; // Tracks the selected scope during workflow
+  currentAffectedPersonIds: number[]; // Tracks selected person IDs for 'specific' scope
+}
+
+/**
+ * Model class for the OnboardingCompleteRequest.
+ * Provides a constructor for easier instantiation and default values.
+ */
+export class OnboardingCompleteRequestModel
+  implements IOnboardingCompleteRequestModel
+{
+  personId: number | null;
+  personDetails: PersonModel;
+  attributes: PersonAttributeModel[]; // Note: This will eventually be deprecated in favor of PersonModel.attributes
+  restrictions: RestrictionModel[];
+  planInvitationCode: string | null;
+  hasAdditionalParticipants: boolean;
+  numberOfAdditionalParticipants: number;
+  additionalParticipantDetails: PersonModel[];
+  applyIndividualPreferencesToEachPerson: boolean;
+
+  currentRestrictionScope: 'plan' | 'specific' | null;
+  currentAffectedPersonIds: number[];
+
+  constructor(data: Partial<IOnboardingCompleteRequestModel> = {}) {
+    this.personId = data.personId ?? null;
     this.personDetails = data.personDetails
       ? new PersonModel(data.personDetails)
-      : new PersonModel();
-    this.attributes = data.attributes
-      ? data.attributes.map((attr: any) => new PersonAttributeModel(attr))
-      : [];
-    this.restrictions = data.restrictions
-      ? data.restrictions.map((res: any) => new RestrictionModel(res))
-      : [];
-    this.planInvitationCode = data.planInvitationCode || null;
+      : new PersonModel({ id: -1, name: '' }); // Default primary person
+    this.attributes = data.attributes || [];
+    this.restrictions = data.restrictions || [];
+    this.planInvitationCode = data.planInvitationCode ?? null;
 
-    this.hasAdditionalParticipants = data.hasAdditionalParticipants || false;
+    this.hasAdditionalParticipants = data.hasAdditionalParticipants ?? false;
     this.numberOfAdditionalParticipants =
-      data.numberOfAdditionalParticipants || 0;
+      data.numberOfAdditionalParticipants ?? 0;
     this.additionalParticipantDetails = data.additionalParticipantDetails
-      ? data.additionalParticipantDetails.map((p: any) => new PersonModel(p))
+      ? data.additionalParticipantDetails.map((p) => new PersonModel(p))
       : [];
+
     this.applyIndividualPreferencesToEachPerson =
-      data.applyIndividualPreferencesToEachPerson || false;
+      data.applyIndividualPreferencesToEachPerson ?? false;
+
+    this.currentRestrictionScope = data.currentRestrictionScope ?? 'specific'; // Default to specific
+    this.currentAffectedPersonIds = data.currentAffectedPersonIds ?? []; // Default to empty
   }
 }
