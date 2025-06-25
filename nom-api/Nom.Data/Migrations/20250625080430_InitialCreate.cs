@@ -642,8 +642,12 @@ namespace Nom.Data.Migrations
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
                     Instructions = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Quantity = table.Column<decimal>(type: "numeric", nullable: true),
-                    QuantityMeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    PrepTimeMinutes = table.Column<int>(type: "integer", nullable: true),
+                    CookTimeMinutes = table.Column<int>(type: "integer", nullable: true),
+                    Servings = table.Column<int>(type: "integer", nullable: true),
+                    ServingQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    ServingQuantityMeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    RawIngredientsString = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     CreatedById = table.Column<long>(type: "bigint", nullable: false),
                     IsCurated = table.Column<bool>(type: "boolean", nullable: false),
                     CuratedById = table.Column<long>(type: "bigint", nullable: true),
@@ -670,8 +674,8 @@ namespace Nom.Data.Migrations
                         principalTable: "Person",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Recipe_Reference_QuantityMeasurementTypeId",
-                        column: x => x.QuantityMeasurementTypeId,
+                        name: "FK_Recipe_Reference_ServingQuantityMeasurementTypeId",
+                        column: x => x.ServingQuantityMeasurementTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id");
@@ -1319,10 +1323,10 @@ namespace Nom.Data.Migrations
                 column: "CuratedById");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Recipe_QuantityMeasurementTypeId",
+                name: "IX_Recipe_ServingQuantityMeasurementTypeId",
                 schema: "recipe",
                 table: "Recipe",
-                column: "QuantityMeasurementTypeId");
+                column: "ServingQuantityMeasurementTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_recipe_type_index_RecipeTypeId",

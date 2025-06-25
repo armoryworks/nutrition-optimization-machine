@@ -1,5 +1,5 @@
 // Nom.Api/Models/Person/PersonCreateResponseModel.cs
-namespace Nom.Api.Models.Person
+namespace Nom.Orch.Models.Person
 {
     /// <summary>
     /// Represents the data of a Person profile returned by the API after a creation operation.

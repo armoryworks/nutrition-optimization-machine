@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250622083928_InitialCreate")]
+    [Migration("20250625080430_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -883,6 +883,9 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("CookTimeMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<long>("CreatedById")
                         .HasColumnType("bigint");
 
@@ -920,11 +923,21 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<decimal?>("Quantity")
-                        .HasColumnType("numeric");
+                    b.Property<int?>("PrepTimeMinutes")
+                        .HasColumnType("integer");
 
-                    b.Property<long?>("QuantityMeasurementTypeId")
+                    b.Property<string>("RawIngredientsString")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<decimal?>("ServingQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("ServingQuantityMeasurementTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<int?>("Servings")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -932,7 +945,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("CuratedById");
 
-                    b.HasIndex("QuantityMeasurementTypeId");
+                    b.HasIndex("ServingQuantityMeasurementTypeId");
 
                     b.ToTable("Recipe", "recipe");
                 });
@@ -1700,15 +1713,15 @@ namespace Nom.Data.Migrations
                         .WithMany()
                         .HasForeignKey("CuratedById");
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "QuantityMeasurementType")
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "ServingQuantityMeasurementType")
                         .WithMany()
-                        .HasForeignKey("QuantityMeasurementTypeId");
+                        .HasForeignKey("ServingQuantityMeasurementTypeId");
 
                     b.Navigation("Creator");
 
                     b.Navigation("Curator");
 
-                    b.Navigation("QuantityMeasurementType");
+                    b.Navigation("ServingQuantityMeasurementType");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>

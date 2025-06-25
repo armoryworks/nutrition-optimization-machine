@@ -25,5 +25,8 @@ namespace Nom.Data.Recipe
         [Required]
         [Column(TypeName = "decimal(18,2)")] // Ensure proper decimal mapping
         public decimal Measurement { get; set; }
+
+        [Column(TypeName = "varchar(4000)")]
+        public string? OriginalText { get; set; } // Optional field for original text from recipe source
     }
 }

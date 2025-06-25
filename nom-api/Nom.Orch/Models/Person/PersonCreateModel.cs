@@ -1,7 +1,7 @@
 // Nom.Api/Models/Person/PersonCreateModel.cs
 using System.ComponentModel.DataAnnotations;
 
-namespace Nom.Api.Models.Person // UPDATED NAMESPACE
+namespace Nom.Orch.Models.Person // UPDATED NAMESPACE
 {
     /// <summary>
     /// Represents the data required to create a new Person profile.

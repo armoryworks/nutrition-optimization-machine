@@ -2,11 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
-using Nom.Api.Models.Person;
+using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
-using Nom.Orch.Models.Person;
 
 namespace Nom.Api.Controllers
 {
@@ -110,7 +109,7 @@ namespace Nom.Api.Controllers
 
             var success = await _personOrchestrationService.CompleteOnboardingAsync(request);
 
-            if (success)
+            if (success.Success)
             {
                 return Ok(new { message = "Onboarding completed successfully." });
             }
