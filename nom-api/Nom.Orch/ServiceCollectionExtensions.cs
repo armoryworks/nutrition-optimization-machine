@@ -1,51 +1,53 @@
+// Nom.Orch/ServiceCollectionExtensions.cs
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
-using System.Reflection; // Required for Assembly and Type methods
+using System.Reflection;
 
 namespace Nom.Orch
 {
     /// <summary>
     /// Provides extension methods for IServiceCollection to automate
-    /// Dependency Injection registration for Nom.Orch services.
+    /// Dependency Injection registration for Nom.Orch services,
+    /// including core orchestration and utility services.
     /// </summary>
     public static class ServiceCollectionExtensions
     {
         /// <summary>
         /// Registers all orchestration services and their interfaces within the Nom.Orch assembly.
         /// It follows a convention: I[ServiceName]Service interfaces are mapped to [ServiceName]Service implementations.
+        /// This now includes services from Nom.Orch.Interfaces (core) and Nom.Orch.UtilityInterfaces (utility).
         /// Services are registered as Scoped.
         /// </summary>
         /// <param name="services">The IServiceCollection to register services with.</param>
         /// <returns>The IServiceCollection for chaining.</returns>
         public static IServiceCollection AddOrchestrationServices(this IServiceCollection services)
         {
-            // Get the assembly where Nom.Orch services and interfaces reside
-            var assembly = Assembly.GetAssembly(typeof(ServiceCollectionExtensions)); // Gets the Nom.Orch assembly
+            var assembly = Assembly.GetAssembly(typeof(ServiceCollectionExtensions));
 
             if (assembly == null)
             {
-                // Log an error or throw an exception if the assembly cannot be found
-                // For simplicity here, we'll just return, but in production, you'd want robust error handling.
+                // In a production scenario, you'd want more robust error handling/logging here.
                 return services;
             }
 
-            // Find all public interfaces in the "Nom.Orch.Interfaces" namespace
-            // and their corresponding concrete classes in "Nom.Orch.Services".
-            var serviceRegistrations = assembly.GetExportedTypes() // Get all public types
-                .Where(type => type.IsInterface && type.Namespace == "Nom.Orch.Interfaces" && type.Name.EndsWith("Service")) // Filter for interfaces in the correct namespace and naming convention
+            // Define namespaces to scan for interfaces and implementations
+            var interfaceNamespaces = new[] { "Nom.Orch.Interfaces", "Nom.Orch.UtilityInterfaces" };
+            var implementationNamespaces = new[] { "Nom.Orch.Services", "Nom.Orch.UtilityServices" };
+
+            var serviceRegistrations = assembly.GetExportedTypes()
+                .Where(type => type.IsInterface && interfaceNamespaces.Contains(type.Namespace) && type.Name.EndsWith("Service"))
                 .Select(interfaceType => new
                 {
                     Interface = interfaceType,
-                    Implementation = assembly.GetExportedTypes() // Find the matching implementation
+                    Implementation = assembly.GetExportedTypes()
                                     .FirstOrDefault(implType => !implType.IsAbstract && !implType.IsInterface &&
-                                                               implType.Namespace == "Nom.Orch.Services" &&
+                                                               implementationNamespaces.Contains(implType.Namespace) &&
                                                                implType.Name == interfaceType.Name.Substring(1)) // Remove 'I' prefix to match implementation name
                 })
-                .Where(x => x.Implementation != null); // Ensure an implementation was found
+                .Where(x => x.Implementation != null);
 
             foreach (var registration in serviceRegistrations)
             {
-                // Register the service pair as Scoped (typical for web requests)
                 services.AddScoped(registration.Interface, registration.Implementation!);
             }
 

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250625080430_InitialCreate")]
+    [Migration("20250626082329_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -283,6 +283,75 @@ namespace Nom.Data.Migrations
                     b.ToTable("AuditLogEntry", "audit");
                 });
 
+            modelBuilder.Entity("Nom.Data.Audit.ImportJobEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ErrorCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ImportedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<Guid>("ProcessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SkippedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourcePath")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TotalRecords")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessId")
+                        .IsUnique();
+
+                    b.ToTable("ImportJob", "audit");
+                });
+
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientComponentEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -332,6 +401,9 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long?>("DefaultMeasurementTypeId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -348,6 +420,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DefaultMeasurementTypeId");
 
                     b.ToTable("Nutrient", "nutrient");
                 });
@@ -886,9 +960,6 @@ namespace Nom.Data.Migrations
                     b.Property<int?>("CookTimeMinutes")
                         .HasColumnType("integer");
 
-                    b.Property<long>("CreatedById")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
@@ -941,8 +1012,6 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedById");
-
                     b.HasIndex("CuratedById");
 
                     b.HasIndex("ServingQuantityMeasurementTypeId");
@@ -978,6 +1047,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("MeasurementTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalText")
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
@@ -1496,6 +1568,15 @@ namespace Nom.Data.Migrations
                     b.Navigation("MicroNutrient");
                 });
 
+            modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "DefaultMeasurementType")
+                        .WithMany()
+                        .HasForeignKey("DefaultMeasurementTypeId");
+
+                    b.Navigation("DefaultMeasurementType");
+                });
+
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientGuidelineEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "GuidelineBasisType")
@@ -1703,12 +1784,6 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Person.PersonEntity", "Creator")
-                        .WithMany()
-                        .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Nom.Data.Person.PersonEntity", "Curator")
                         .WithMany()
                         .HasForeignKey("CuratedById");
@@ -1716,8 +1791,6 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "ServingQuantityMeasurementType")
                         .WithMany()
                         .HasForeignKey("ServingQuantityMeasurementTypeId");
-
-                    b.Navigation("Creator");
 
                     b.Navigation("Curator");
 

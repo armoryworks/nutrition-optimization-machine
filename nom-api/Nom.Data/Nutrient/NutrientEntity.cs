@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Nom.Data.Reference;
 
 namespace Nom.Data.Nutrient
 {
@@ -17,6 +18,10 @@ namespace Nom.Data.Nutrient
 
         [MaxLength(2047)]
         public string? Description { get; set; }
+
+        public long? DefaultMeasurementTypeId { get; set; } // Nullable if not all nutrients have a default
+        [ForeignKey(nameof(DefaultMeasurementTypeId))]
+        public virtual ReferenceEntity? DefaultMeasurementType { get; set; } // Navigation property to ReferenceEntity
 
         // Reverse navigation properties for NutrientComponentEntity
         // These collections represent the "many" side of the one-to-many relationships

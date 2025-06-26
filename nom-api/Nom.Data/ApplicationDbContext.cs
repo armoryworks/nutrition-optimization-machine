@@ -1,3 +1,4 @@
+// Nom.Data/ApplicationDbContext.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
@@ -8,19 +9,31 @@ using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
 using Nom.Data.Shopping;
 using Nom.Data.Person;
-using Nom.Data.Audit;
+using Nom.Data.Audit; // NEW: Added for ImportJobEntity
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using System; // For ArgumentNullException, DateTime
+using System.Linq; // For FirstOrDefault
 
 namespace Nom.Data
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
         private IHttpContextAccessor _httpContextAccessor;
+        // This constructor is used by the application at runtime, with DI providing IHttpContextAccessor.
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
-            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        // This constructor is specifically for design-time tools (like migrations).
+        // It does not require IHttpContextAccessor because it's not available or needed then.
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+            // For design-time, we don't have access to IHttpContextAccessor, so we can set it to null.
+            _httpContextAccessor = null!;
         }
 
         #region Identity DbSets
@@ -70,6 +83,9 @@ namespace Nom.Data
 
         // Audit Log DbSet
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
+        // NEW: DbSet for ImportJobEntity
+        public DbSet<ImportJobEntity> ImportJobs { get; set; } = default!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -105,7 +121,17 @@ namespace Nom.Data
                 .WithMany()
                 .HasForeignKey(ale => ale.ChangedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
-            #endregion
+
+            // NEW: Configure ImportJobEntity
+            modelBuilder.Entity<ImportJobEntity>()
+                .ToTable("ImportJob", schema: "audit"); // Place in audit schema
+
+            // Add a unique index on ProcessId for quick lookup
+            modelBuilder.Entity<ImportJobEntity>()
+                .HasIndex(ij => ij.ProcessId)
+                .IsUnique();
+
+            #endregion // End of Audit Namespace Fluent API Configurations
 
             #region Reference Namespace Fluent API Configurations
             modelBuilder.Entity<GroupEntity>()
@@ -131,7 +157,6 @@ namespace Nom.Data
                     });
 
             // CONFIGURE TPH FOR GroupedReferenceViewEntity (MAPPED TO VIEW)
-            // REMOVED: ReferenceDiscriminatorEnum.QuestionCategory and .AnswerType values as their entities are removed
             modelBuilder.Entity<GroupedReferenceViewEntity>()
                 .ToView("ReferenceGroupView", "reference")
                 .HasNoKey()

@@ -155,25 +155,41 @@ check_status "dotnet build"
 
 # 5. Run dotnet ef migrations add InitialCreate
 echo "Generating new InitialCreate migration..."
+# Ensure the --startup-project points to the project containing appsettings.json and Program.cs
+# And --project points to the project containing ApplicationDbContext and Migrations folder
 dotnet ef migrations add InitialCreate --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project .
 check_status "Generating migration"
 echo "Migration generated successfully."
 
 # 6. Modify the InitialCreate.cs
 echo "Modifying InitialCreate.cs to add custom operations..."
-MIGRATION_FILE=$(ls -t "${MIGRATIONS_DIR}"/*_InitialCreate.cs | head -n 1)
+# Get the latest migration file, which should be the newly created InitialCreate
+# Using find with maxdepth and sorting by modification time to be robust
+MIGRATION_FILE=$(find "${MIGRATIONS_DIR}" -maxdepth 1 -name "*_InitialCreate.cs" -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -f2- -d' ')
 
 if [ -z "$MIGRATION_FILE" ]; then
-    echo "Error: Could not find the generated InitialCreate migration file." >&2
+    echo "Error: Could not find the generated InitialCreate migration file in ${MIGRATIONS_DIR}." >&2
     exit 1
 fi
 echo "Found migration file: $MIGRATION_FILE"
 
+# Add 'using Nom.Data;' at the top of the file
 sed -i '1s/^/using Nom.Data;\n/' "$MIGRATION_FILE"
 check_status "Adding using Nom.Data;"
-sed -i '/^        }/i \            migrationBuilder.ApplyCustomUpOperations();' "$MIGRATION_FILE"
+
+# Insert ApplyCustomUpOperations() before the closing brace of the Up method
+# This assumes the Up method ends with a standalone '}' character on a line, potentially indented.
+# The 'i' command in sed inserts *before* the matched line.
+# A more precise way is to match the 'protected override void Up(MigrationBuilder migrationBuilder)'
+# and then find the corresponding closing bracket. This is tricky with basic sed.
+# The previous method was reasonable for simple cases. Let's try to refine based on typical structure.
+# Insert before the last '}' in the Up method.
+sed -i '/protected override void Up(MigrationBuilder migrationBuilder)/,/^        }/ s/^        }/            migrationBuilder.ApplyCustomUpOperations();\n        }/' "$MIGRATION_FILE"
 check_status "Adding ApplyCustomUpOperations()"
-sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{N;s/\(.*{\)/\1\n            migrationBuilder.ApplyCustomDownOperations();/}' "$MIGRATION_FILE"
+
+# Insert ApplyCustomDownOperations() at the beginning of the Down method's body
+# This pattern looks for the Down method signature, then inserts the line after the opening brace '{'.
+sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{n;s/{/{ \n            migrationBuilder.ApplyCustomDownOperations();/}' "$MIGRATION_FILE"
 check_status "Adding ApplyCustomDownOperations()"
 
 
