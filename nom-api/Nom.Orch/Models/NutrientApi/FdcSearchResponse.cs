@@ -10,7 +10,7 @@ namespace Nom.Orch.Models.NutrientApi
     internal class FdcSearchResponse
     {
         [JsonPropertyName("foods")]
-        public FoodSearchResult[]? Foods { get; set; }
+        public List<FoodSearchResult>? Foods { get; set; }
         // FDC search response also has other properties like 'totalHits', 'currentPage', 'totalPages', etc.
         // We only need the 'foods' array for now.
     }

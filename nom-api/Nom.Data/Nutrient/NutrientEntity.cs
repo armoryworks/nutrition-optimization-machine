@@ -1,46 +1,69 @@
+// Nom.Data/Nutrient/NutrientEntity.cs
+using Nom.Data.Reference; // For MeasurementTypeViewEntity
+using Nom.Data.Recipe; // For IngredientNutrientEntity
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Reference;
+using System.ComponentModel.DataAnnotations.Schema; // For ForeignKey, InverseProperty
 
 namespace Nom.Data.Nutrient
 {
     /// <summary>
-    /// Represents a specific nutrient (e.g., "Calories", "Protein", "Vitamin C").
-    /// Maps to the 'Nutrient.nutrient' table.
+    /// Represents a single nutrient (e.g., Protein, Vitamin C, Sodium).
     /// </summary>
-    [Table("Nutrient", Schema = "nutrient")] // Adjusted: Table name capitalized, schema lowercase
-    public class NutrientEntity : BaseEntity
+    [Table("Nutrient", Schema = "nutrient")]
+    public class NutrientEntity : BaseEntity, IAuditableEntity // Assuming BaseEntity provides Id, CreatedDate, CreatedByPersonId, LastModifiedDate, LastModifiedByPersonId
     {
-        [Required]
-        [MaxLength(255)]
+        /// <summary>
+        /// The common name of the nutrient (e.g., "Protein", "Vitamin C", "Total Carbohydrates").
+        /// </summary>
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(2047)]
+        /// <summary>
+        /// A brief description of the nutrient's role or characteristics.
+        /// </summary>
         public string? Description { get; set; }
 
-        public long? DefaultMeasurementTypeId { get; set; } // Nullable if not all nutrients have a default
+        /// <summary>
+        /// The default unit of measurement for this nutrient (e.g., grams, milligrams, micrograms).
+        /// This links to a ReferenceEntity within the MeasurementType group.
+        /// </summary>
+        public long DefaultMeasurementTypeId { get; set; }
+
+        /// <summary>
+        /// Navigation property for the default measurement type.
+        /// </summary>
         [ForeignKey(nameof(DefaultMeasurementTypeId))]
-        public virtual ReferenceEntity? DefaultMeasurementType { get; set; } // Navigation property to ReferenceEntity
-
-        // Reverse navigation properties for NutrientComponentEntity
-        // These collections represent the "many" side of the one-to-many relationships
-        // defined by MacroNutrient and MicroNutrient in NutrientComponentEntity.
+        public ReferenceEntity? DefaultMeasurementType { get; set; } // ReferenceEntity is in Nom.Data.Reference
 
         /// <summary>
-        /// Collection of NutrientComponentEntity where this Nutrient is the MacroNutrient.
+        /// Navigation property for ingredients that contain this nutrient.
         /// </summary>
-        public virtual ICollection<NutrientComponentEntity>? MacroComponents { get; set; }
+        public ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();
 
         /// <summary>
-        /// Collection of NutrientComponentEntity where this Nutrient is the MicroNutrient.
+        /// Navigation property for nutrient guidelines associated with this nutrient.
         /// </summary>
-        public virtual ICollection<NutrientComponentEntity>? MicroComponents { get; set; }
+        public ICollection<NutrientGuidelineEntity> NutrientGuidelines { get; set; } = new List<NutrientGuidelineEntity>();
 
 
-        // Other navigation properties (e.g., to NutrientGuideline, IngredientNutrient)
-        public virtual ICollection<NutrientGuidelineEntity>? Guidelines { get; set; }
+        // --- Self-referencing properties for Nutrient Components ---
+        /// <summary>
+        /// Foreign key to the parent nutrient if this nutrient is a component of another.
+        /// E.g., Saturated Fat's ParentNutrientId would point to Total Fat.
+        /// </summary>
+        public long? ParentNutrientId { get; set; }
 
-        public virtual ICollection<Recipe.IngredientNutrientEntity>? IngredientNutrients { get; set; }
+        /// <summary>
+        /// Navigation property to the parent nutrient if this nutrient is a component of another.
+        /// </summary>
+        [ForeignKey(nameof(ParentNutrientId))]
+        [InverseProperty(nameof(ChildNutrients))] // Point back to the collection of children on the parent
+        public NutrientEntity? ParentNutrient { get; set; }
+
+        /// <summary>
+        /// Collection of child nutrients that are components of this nutrient.
+        /// E.g., Total Fat would have Saturated Fat, Monounsaturated Fat, etc., in this collection.
+        /// </summary>
+        [InverseProperty(nameof(ParentNutrient))] // Point to the ParentNutrient property on the child
+        public ICollection<NutrientEntity> ChildNutrients { get; set; } = new List<NutrientEntity>();
     }
 }

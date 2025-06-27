@@ -9,11 +9,12 @@ using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
 using Nom.Data.Shopping;
 using Nom.Data.Person;
-using Nom.Data.Audit; // NEW: Added for ImportJobEntity
+using Nom.Data.Audit;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
-using System; // For ArgumentNullException, DateTime
-using System.Linq; // For FirstOrDefault
+using System;
+using System.Linq;
+using System.Threading; // For CancellationToken
 
 namespace Nom.Data
 {
@@ -32,7 +33,6 @@ namespace Nom.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-            // For design-time, we don't have access to IHttpContextAccessor, so we can set it to null.
             _httpContextAccessor = null!;
         }
 
@@ -66,7 +66,7 @@ namespace Nom.Data
 
         #region Nutrient DbSets
         public DbSet<NutrientEntity> Nutrients { get; set; } = default!;
-        public DbSet<NutrientComponentEntity> NutrientComponents { get; set; } = default!;
+        // REMOVED: public DbSet<NutrientComponentEntity> NutrientComponents { get; set; } = default!;
         public DbSet<NutrientGuidelineEntity> NutrientGuidelines { get; set; } = default!;
         #endregion
 
@@ -76,14 +76,8 @@ namespace Nom.Data
         public DbSet<PantryItemEntity> PantryItems { get; set; } = default!;
         #endregion
 
-        #region Question DbSets
-        // REMOVED: public DbSet<QuestionEntity> Questions { get; set; } = default!;
-        // REMOVED: public DbSet<AnswerEntity> Answers { get; set; } = default!;
-        #endregion
-
         // Audit Log DbSet
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
-        // NEW: DbSet for ImportJobEntity
         public DbSet<ImportJobEntity> ImportJobs { get; set; } = default!;
 
 
@@ -122,7 +116,7 @@ namespace Nom.Data
                 .HasForeignKey(ale => ale.ChangedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // NEW: Configure ImportJobEntity
+            // Configure ImportJobEntity
             modelBuilder.Entity<ImportJobEntity>()
                 .ToTable("ImportJob", schema: "audit"); // Place in audit schema
 
@@ -288,7 +282,13 @@ namespace Nom.Data
             #endregion // End of Recipe Namespace Fluent API Configurations
 
             #region Nutrient Namespace Fluent API Configurations
-            // Relationships handled by [InverseProperty] attributes in the entity classes.
+            // Configure self-referential relationship for NutrientEntity (Parent/Child nutrients)
+            modelBuilder.Entity<NutrientEntity>()
+                .HasOne(n => n.ParentNutrient)
+                .WithMany(n => n.ChildNutrients)
+                .HasForeignKey(n => n.ParentNutrientId)
+                .IsRequired(false) // ParentNutrientId is nullable
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascading delete of parent if child exists
             #endregion // End of Nutrient Namespace Fluent API Configurations
 
             #region Shopping Namespace Fluent API Configurations

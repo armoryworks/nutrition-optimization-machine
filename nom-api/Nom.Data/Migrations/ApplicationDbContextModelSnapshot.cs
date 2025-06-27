@@ -349,41 +349,6 @@ namespace Nom.Data.Migrations
                     b.ToTable("ImportJob", "audit");
                 });
 
-            modelBuilder.Entity("Nom.Data.Nutrient.NutrientComponentEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("CreatedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("LastModifiedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("LastModifiedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("MacroNutrientId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("MicroNutrientId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MacroNutrientId");
-
-                    b.HasIndex("MicroNutrientId");
-
-                    b.ToTable("NutrientComponent", "nutrient");
-                });
-
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -398,12 +363,11 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long?>("DefaultMeasurementTypeId")
+                    b.Property<long>("DefaultMeasurementTypeId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2047)
-                        .HasColumnType("character varying(2047)");
+                        .HasColumnType("text");
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -413,12 +377,16 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("text");
+
+                    b.Property<long?>("ParentNutrientId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DefaultMeasurementTypeId");
+
+                    b.HasIndex("ParentNutrientId");
 
                     b.ToTable("Nutrient", "nutrient");
                 });
@@ -437,7 +405,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("GuidelineBasisTypeId")
+                    b.Property<long>("GoalTypeId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("LastModifiedByPersonId")
@@ -446,25 +414,32 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("MaximumMeasurement")
+                    b.Property<decimal?>("MaxAmount")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<long>("MeasurementTypeId")
                         .HasColumnType("bigint");
 
-                    b.Property<decimal>("MinimumMeasurement")
+                    b.Property<decimal?>("MinAmount")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<long?>("NutrientEntityId")
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("NutrientId")
                         .HasColumnType("bigint");
+
+                    b.Property<decimal?>("RecommendedAmount")
+                        .HasColumnType("decimal(18,4)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GuidelineBasisTypeId");
+                    b.HasIndex("GoalTypeId");
 
                     b.HasIndex("MeasurementTypeId");
 
-                    b.HasIndex("NutrientEntityId");
+                    b.HasIndex("NutrientId");
 
                     b.ToTable("NutrientGuideline", "nutrient");
                 });
@@ -1039,14 +1014,16 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("Measurement")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<long>("MeasurementTypeId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("OriginalText")
-                        .HasColumnType("varchar(4000)");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("RawLine")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
@@ -1546,39 +1523,29 @@ namespace Nom.Data.Migrations
                     b.Navigation("ChangedByPerson");
                 });
 
-            modelBuilder.Entity("Nom.Data.Nutrient.NutrientComponentEntity", b =>
-                {
-                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "MacroNutrient")
-                        .WithMany("MacroComponents")
-                        .HasForeignKey("MacroNutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "MicroNutrient")
-                        .WithMany("MicroComponents")
-                        .HasForeignKey("MicroNutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MacroNutrient");
-
-                    b.Navigation("MicroNutrient");
-                });
-
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "DefaultMeasurementType")
                         .WithMany()
-                        .HasForeignKey("DefaultMeasurementTypeId");
+                        .HasForeignKey("DefaultMeasurementTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "ParentNutrient")
+                        .WithMany("ChildNutrients")
+                        .HasForeignKey("ParentNutrientId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DefaultMeasurementType");
+
+                    b.Navigation("ParentNutrient");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientGuidelineEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "GuidelineBasisType")
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "GoalType")
                         .WithMany()
-                        .HasForeignKey("GuidelineBasisTypeId")
+                        .HasForeignKey("GoalTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1588,13 +1555,17 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", null)
-                        .WithMany("Guidelines")
-                        .HasForeignKey("NutrientEntityId");
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
+                        .WithMany("NutrientGuidelines")
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("GuidelineBasisType");
+                    b.Navigation("GoalType");
 
                     b.Navigation("MeasurementType");
+
+                    b.Navigation("Nutrient");
                 });
 
             modelBuilder.Entity("Nom.Data.Person.PersonAttributeEntity", b =>
@@ -1960,13 +1931,11 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
-                    b.Navigation("Guidelines");
+                    b.Navigation("ChildNutrients");
 
                     b.Navigation("IngredientNutrients");
 
-                    b.Navigation("MacroComponents");
-
-                    b.Navigation("MicroComponents");
+                    b.Navigation("NutrientGuidelines");
                 });
 
             modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>

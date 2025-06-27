@@ -8,7 +8,7 @@ import { RestrictionModel } from '../models/restriction.model'; // Assuming you 
   providedIn: 'root',
 })
 export class RestrictionService {
-  private apiUrl = '/api/Restriction'; // ADJUST THIS TO YOUR ACTUAL BACKEND URL
+  private apiUrl = '/api/Restriction';
 
   constructor(private http: HttpClient) {}
 
@@ -21,7 +21,6 @@ export class RestrictionService {
     return this.http
       .get<string[]>(`${this.apiUrl}/curated-ingredients`)
       .pipe(tap((data) => console.log('Fetched curated ingredients:', data)));
-
   }
 
   /**

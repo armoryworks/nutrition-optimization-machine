@@ -169,12 +169,10 @@ namespace Nom.Orch.UtilityServices
 
                             var rawRecipeData = new KaggleRawRecipeDataModel
                             {
-                                Title = csv.GetField<string>("Title"),
-                                Ingredients = csv.GetField<string>("Ingredients"),
-                                Instructions = csv.GetField<string>("Instructions"),
-                                CookTimeSeconds = csv.TryGetField<int?>("Cooking Time in Seconds", out var cookTimeVal) ? cookTimeVal : null,
-                                PrepTimeSeconds = csv.TryGetField<int?>("Preparation Time in Minutes", out var prepTimeVal) ? prepTimeVal : null,
-                                ServingsCount = csv.TryGetField<int?>("Servings", out var servingsVal) ? servingsVal : null
+                                Title = csv.GetField<string>("name"),
+                                Ingredients = csv.GetField<string>("ingredients"),
+                                Instructions = csv.GetField<string>("steps"),
+                                PrepTimeSeconds = csv.TryGetField<int?>("minutes", out var prepTimeVal) ? prepTimeVal : null
                             };
                             try
                             {

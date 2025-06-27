@@ -455,9 +455,10 @@ namespace Nom.Data.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    DefaultMeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    DefaultMeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    ParentNutrientId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -467,11 +468,19 @@ namespace Nom.Data.Migrations
                 {
                     table.PrimaryKey("PK_Nutrient", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_Nutrient_Nutrient_ParentNutrientId",
+                        column: x => x.ParentNutrientId,
+                        principalSchema: "nutrient",
+                        principalTable: "Nutrient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_Nutrient_Reference_DefaultMeasurementTypeId",
                         column: x => x.DefaultMeasurementTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -755,50 +764,19 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "NutrientComponent",
-                schema: "nutrient",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    MacroNutrientId = table.Column<long>(type: "bigint", nullable: false),
-                    MicroNutrientId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_NutrientComponent", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_NutrientComponent_Nutrient_MacroNutrientId",
-                        column: x => x.MacroNutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_NutrientComponent_Nutrient_MicroNutrientId",
-                        column: x => x.MicroNutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "NutrientGuideline",
                 schema: "nutrient",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    GuidelineBasisTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: false),
+                    GoalTypeId = table.Column<long>(type: "bigint", nullable: false),
                     MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    MinimumMeasurement = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    MaximumMeasurement = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    NutrientEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    MinAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    MaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    RecommendedAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -808,14 +786,15 @@ namespace Nom.Data.Migrations
                 {
                     table.PrimaryKey("PK_NutrientGuideline", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NutrientGuideline_Nutrient_NutrientEntityId",
-                        column: x => x.NutrientEntityId,
+                        name: "FK_NutrientGuideline_Nutrient_NutrientId",
+                        column: x => x.NutrientId,
                         principalSchema: "nutrient",
                         principalTable: "Nutrient",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_NutrientGuideline_Reference_GuidelineBasisTypeId",
-                        column: x => x.GuidelineBasisTypeId,
+                        name: "FK_NutrientGuideline_Reference_GoalTypeId",
+                        column: x => x.GoalTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
@@ -954,9 +933,9 @@ namespace Nom.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RecipeId = table.Column<long>(type: "bigint", nullable: false),
                     IngredientId = table.Column<long>(type: "bigint", nullable: false),
+                    Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    Measurement = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    OriginalText = table.Column<string>(type: "varchar(4000)", nullable: true),
+                    RawLine = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -1253,22 +1232,16 @@ namespace Nom.Data.Migrations
                 column: "DefaultMeasurementTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NutrientComponent_MacroNutrientId",
+                name: "IX_Nutrient_ParentNutrientId",
                 schema: "nutrient",
-                table: "NutrientComponent",
-                column: "MacroNutrientId");
+                table: "Nutrient",
+                column: "ParentNutrientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NutrientComponent_MicroNutrientId",
-                schema: "nutrient",
-                table: "NutrientComponent",
-                column: "MicroNutrientId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NutrientGuideline_GuidelineBasisTypeId",
+                name: "IX_NutrientGuideline_GoalTypeId",
                 schema: "nutrient",
                 table: "NutrientGuideline",
-                column: "GuidelineBasisTypeId");
+                column: "GoalTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_NutrientGuideline_MeasurementTypeId",
@@ -1277,10 +1250,10 @@ namespace Nom.Data.Migrations
                 column: "MeasurementTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NutrientGuideline_NutrientEntityId",
+                name: "IX_NutrientGuideline_NutrientId",
                 schema: "nutrient",
                 table: "NutrientGuideline",
-                column: "NutrientEntityId");
+                column: "NutrientId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PantryItem_IngredientId",
@@ -1505,10 +1478,6 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "MealEntityRecipeEntity",
                 schema: "auth");
-
-            migrationBuilder.DropTable(
-                name: "NutrientComponent",
-                schema: "nutrient");
 
             migrationBuilder.DropTable(
                 name: "NutrientGuideline",

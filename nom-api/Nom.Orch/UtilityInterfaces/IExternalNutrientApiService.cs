@@ -17,8 +17,9 @@ namespace Nom.Orch.UtilityInterfaces
         /// </summary>
         /// <param name="query">The search term (e.g., "chicken breast", "all-purpose flour").</param>
         /// <param name="limit">Maximum number of results to return.</param>
+        /// <param name="dataTypes">Optional. A list of FDC data types to filter results (e.g., "Branded", "SR Legacy").</param>
         /// <returns>A list of matching <see cref="FoodSearchResult"/> objects.</returns>
-        Task<List<FoodSearchResult>> SearchFoodsAsync(string query, int limit = 5);
+        Task<List<FoodSearchResult>> SearchFoodsAsync(string query, int limit = 5, List<string>? dataTypes = null);
 
         /// <summary>
         /// Retrieves detailed nutrient information for a specific food item

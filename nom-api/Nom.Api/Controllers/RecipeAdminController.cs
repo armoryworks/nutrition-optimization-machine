@@ -1,97 +1,160 @@
 // Nom.Api/Controllers/RecipeAdminController.cs
-using Nom.Orch.Models.Recipe; // For RecipeImportRequest, RecipeImportResponse
-using Nom.Orch.Models.Audit; // For ImportJobStatusResponse
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Nom.Orch.UtilityInterfaces; // For IKaggleRecipeIngestionService
-using System; // For Guid
+using Nom.Orch.Models.Recipe; // For RecipeImportRequest, RecipeImportResponse, RecipeImportFromFileRequestModel
+using Nom.Orch.Models.Audit; // For ImportJobStatusResponse
+using System;
+using System.IO; // Required for Path.Combine, FileMode, FileStream
+using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
 {
+    /// <summary>
+    /// API controller for administrative tasks related to recipe management,
+    /// specifically for initiating and monitoring recipe data imports.
+    /// </summary>
     [ApiController]
-    [Route("api/Admin/[controller]")]
-    // [Authorize(Roles = "Admin")] // Uncomment this line once authentication and authorization are set up
-    public class RecipesController : ControllerBase
+    [Route("api/[controller]")] // Base route: /api/RecipeAdmin
+    // [Authorize(Roles = "Admin")] // Uncomment and implement role-based authorization when ready
+    public class RecipeAdminController : ControllerBase
     {
+        private readonly ILogger<RecipeAdminController> _logger;
         private readonly IKaggleRecipeIngestionService _kaggleRecipeIngestionService;
-        private readonly ILogger<RecipesController> _logger;
 
-        public RecipesController(IKaggleRecipeIngestionService kaggleRecipeIngestionService, ILogger<RecipesController> logger)
+        public RecipeAdminController(ILogger<RecipeAdminController> logger,
+                                     IKaggleRecipeIngestionService kaggleRecipeIngestionService)
         {
-            _kaggleRecipeIngestionService = kaggleRecipeIngestionService;
             _logger = logger;
+            _kaggleRecipeIngestionService = kaggleRecipeIngestionService;
         }
 
         /// <summary>
-        /// Triggers an asynchronous import of recipes from a specified Kaggle CSV file.
-        /// This is the public API endpoint for starting the import process.
-        /// Requires Admin role.
+        /// Initiates a recipe import job from a specified CSV file path (server-side path).
+        /// This operation is asynchronous and returns a job ID immediately.
         /// </summary>
-        /// <param name="request">The request containing the source file path.</param>
-        /// <returns>An API response indicating the initiation status.</returns>
-        [HttpPost("import")] // POST /api/Admin/Recipes/import
-        [ProducesResponseType(typeof(RecipeImportResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        /// <param name="request">The <see cref="RecipeImportRequest"/> containing the source file path.</param>
+        /// <returns>A <see cref="RecipeImportResponse"/> with the job's process ID.</returns>
+        [HttpPost("Recipes/import")] // Endpoint: /api/RecipeAdmin/Recipes/import
+        [ProducesResponseType(typeof(RecipeImportResponse), 200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> ImportRecipes([FromBody] RecipeImportRequest request)
         {
-            _logger.LogInformation("Admin user requested Kaggle recipe import from: {FilePath}", request.SourceFilePath);
-
+            // Validate the incoming request model based on its data annotations (e.g., [Required])
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for Kaggle recipe import request.");
+                _logger.LogWarning("Invalid model state for recipe import request.");
                 return BadRequest(ModelState);
             }
 
-            // Delegate the import initiation directly to the KaggleRecipeIngestionService
+            _logger.LogInformation("Received request to import recipes from: {FilePath}", request.SourceFilePath);
+
+            // Delegate the initiation of the import process to the orchestration service.
+            // This method is designed to return quickly, launching the long-running process in the background.
             var response = await _kaggleRecipeIngestionService.StartRecipeImportAsync(request);
 
-            if (response.Success)
+            // Check if the initiation itself was successful (e.g., file existence check in service)
+            if (!response.Success)
             {
+                _logger.LogError("Failed to initiate recipe import for '{FilePath}': {Message}", request.SourceFilePath, response.Message);
+                return BadRequest(response); // Return error message if initiation failed
+            }
+
+            // Return a 200 OK with the ProcessId for the client to track the job status.
+            _logger.LogInformation("Recipe import job successfully initiated. Process ID: {ProcessId}", response.ProcessId);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Initiates a recipe import job by receiving a file upload from the client.
+        /// The file is saved temporarily, and then the import process is started using its path.
+        /// </summary>
+        /// <param name="request">The <see cref="RecipeImportFromFileRequestModel"/> containing the uploaded file and job name.</param>
+        /// <returns>A <see cref="RecipeImportResponse"/> with the job's process ID.</returns>
+        [HttpPost("Recipes/import-from-file")] // Endpoint: /api/RecipeAdmin/Recipes/import-from-file
+        [Consumes("multipart/form-data")] // Explicitly state the content type for Swagger
+        [ProducesResponseType(typeof(RecipeImportResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        [RequestSizeLimit(524288000)] // Increased: Allows up to 500 MB (500 * 1024 * 1024 bytes)
+        public async Task<ActionResult<RecipeImportResponse>> ImportRecipesFromFile([FromForm] RecipeImportFromFileRequestModel request)
+        {
+            // ModelState.IsValid will now check if File and JobName are provided
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for recipe import from file request.");
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Received file '{FileName}' for import with job name: '{JobName}'", request.File.FileName, request.JobName);
+
+            // Generate a unique file path for temporary storage
+            var tempFileName = $"{Guid.NewGuid()}_{request.File.FileName}";
+            var filePath = Path.Combine(Path.GetTempPath(), tempFileName);
+
+            try
+            {
+                // Save the uploaded file temporarily
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await request.File.CopyToAsync(stream);
+                }
+                _logger.LogInformation("File saved temporarily to: {FilePath}", filePath);
+
+                // Now initiate your ingestion service using the saved file path and the provided jobName
+                var importRequest = new RecipeImportRequest
+                {
+                    SourceFilePath = filePath,
+                    JobName = request.JobName // Pass the job name to the service
+                };
+
+                // Delegate the initiation of the import process to the orchestration service.
+                var response = await _kaggleRecipeIngestionService.StartRecipeImportAsync(importRequest);
+
+                // Check if the initiation itself was successful
+                if (!response.Success)
+                {
+                    _logger.LogError("Failed to initiate recipe import for uploaded file '{FileName}': {Message}", request.File.FileName, response.Message);
+                    // Optionally clean up the temp file if initiation failed
+                    System.IO.File.Delete(filePath);
+                    return BadRequest(response);
+                }
+
+                _logger.LogInformation("Recipe import job for file '{FileName}' successfully initiated. Process ID: {ProcessId}", request.File.FileName, response.ProcessId);
                 return Ok(response);
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest(response);
+                _logger.LogError(ex, "Error processing uploaded file '{FileName}' for import.", request.File.FileName);
+                return StatusCode(500, new RecipeImportResponse { Success = false, Message = $"An error occurred during file processing: {ex.Message}" });
             }
         }
 
         /// <summary>
-        /// Retrieves the current status of a specific asynchronous recipe import job.
-        /// Requires Admin role.
+        /// Retrieves the current status of a specific recipe import job.
         /// </summary>
-        /// <param name="processId">The unique identifier (GUID) of the import job to query.</param>
-        /// <returns>An API response containing the job's status and metrics, or NotFound if the job does not exist.</returns>
-        [HttpGet("import/{processId}/status")] // GET /api/Admin/Recipes/import/{processId}/status
-        [ProducesResponseType(typeof(ImportJobStatusResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        /// <param name="processId">The unique GUID of the import job to query.</param>
+        /// <returns>The <see cref="ImportJobStatusResponse"/> of the job, or 404 if not found.</returns>
+        [HttpGet("Recipes/import/{processId}/status")] // Endpoint: /api/RecipeAdmin/Recipes/import/{processId}/status
+        [ProducesResponseType(typeof(ImportJobStatusResponse), 200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetImportStatus([FromRoute] Guid processId)
         {
-            _logger.LogInformation("Admin user requested status for import job: {ProcessId}", processId);
+            _logger.LogInformation("Received request for import job status for Process ID: {ProcessId}", processId);
 
-            if (processId == Guid.Empty)
+            // Delegate the status retrieval to the orchestration service.
+            var status = await _kaggleRecipeIngestionService.GetImportStatusAsync(processId);
+
+            // If the job with the given ProcessId is not found, return 404 Not Found.
+            if (status == null)
             {
-                _logger.LogWarning("Attempted to query import status with empty ProcessId.");
-                return BadRequest("Process ID cannot be empty.");
+                _logger.LogWarning("Import job with Process ID '{ProcessId}' not found.", processId);
+                return NotFound($"Import job with Process ID '{processId}' not found.");
             }
 
-            var statusResponse = await _kaggleRecipeIngestionService.GetImportStatusAsync(processId);
-
-            if (statusResponse == null)
-            {
-                _logger.LogInformation("Import job with ProcessId {ProcessId} not found.", processId);
-                return NotFound($"Import job with ID '{processId}' not found.");
-            }
-
-            return Ok(statusResponse);
+            // Return a 200 OK with the detailed status of the import job.
+            _logger.LogInformation("Returned status for import job {ProcessId}. Current Status: {Status}", processId, status.Status);
+            return Ok(status);
         }
     }
 }

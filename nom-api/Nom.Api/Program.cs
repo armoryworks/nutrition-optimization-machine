@@ -7,7 +7,8 @@ using Nom.Orch;
 using Nom.Orch.UtilityInterfaces; // For IExternalNutrientApiService, IReferenceDataSeederService
 using System; // For Uri
 using Microsoft.Extensions.DependencyInjection;
-using Nom.Orch.UtilityServices; // For CreateScope and GetRequiredService
+using Nom.Orch.UtilityServices;
+using Microsoft.AspNetCore.Http.Features; // For CreateScope and GetRequiredService
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,23 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure Kestrel to increase the maximum request body size
+// This addresses the "Multipart body length limit exceeded" error.
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Set max request body size to 500 MB (500 * 1024 * 1024 bytes)
+    // This value should match or exceed the [RequestSizeLimit] attribute on your controller.
+    serverOptions.Limits.MaxRequestBodySize = 524288000; // 500 MB
+
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    // Set MultipartBodyLengthLimit to 500 MB (500 * 1024 * 1024 bytes)
+    // This overrides the default 128 MB limit for multipart forms.
+    options.MultipartBodyLengthLimit = 524288000; // 500 MB
+});
+
 
 // Configure ApplicationDbContext to use PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -56,14 +74,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    // --- Development-only: Seed Reference Data ---
-    // Create a scope to resolve the seeder service
-    using (var scope = app.Services.CreateScope())
-    {
-        var seeder = scope.ServiceProvider.GetRequiredService<IReferenceDataSeederService>();
-        await seeder.SeedReferenceDataAsync();
-    }
 }
 
 app.MapGroup("api/auth")

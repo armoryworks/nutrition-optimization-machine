@@ -17,6 +17,8 @@ namespace Nom.Orch
         /// It follows a convention: I[ServiceName]Service interfaces are mapped to [ServiceName]Service implementations.
         /// This now includes services from Nom.Orch.Interfaces (core) and Nom.Orch.UtilityInterfaces (utility).
         /// Services are registered as Scoped.
+        ///
+        /// Special handling for Singleton services like IKaggleRecipeIngestionService.
         /// </summary>
         /// <param name="services">The IServiceCollection to register services with.</param>
         /// <returns>The IServiceCollection for chaining.</returns>
@@ -48,7 +50,16 @@ namespace Nom.Orch
 
             foreach (var registration in serviceRegistrations)
             {
-                services.AddScoped(registration.Interface, registration.Implementation!);
+                // Special case for services that need to be singletons (e.g., managing static state like rate limiters or background tasks)
+                // IKaggleRecipeIngestionService manages a ConcurrentDictionary for import jobs.
+                if (registration.Interface.Name == "IKaggleRecipeIngestionService") // Using Name for simplicity, could use typeof(IKaggleRecipeIngestionService).Name
+                {
+                    services.AddSingleton(registration.Interface, registration.Implementation!);
+                }
+                else
+                {
+                    services.AddScoped(registration.Interface, registration.Implementation!);
+                }
             }
 
             return services;

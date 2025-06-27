@@ -317,7 +317,7 @@ namespace Nom.Orch.UtilityServices
                         IngredientId = ingredient.Id,
                         NutrientId = nutrient.Id, // Corrected typo here
                         Measurement = 0, // Default to 0 if not from API
-                        MeasurementTypeId = nutrient.DefaultMeasurementTypeId ?? _unknownMeasurementTypeView!.ReferenceId, // Use default or unknown
+                        MeasurementTypeId = nutrient.DefaultMeasurementTypeId, // Use default or unknown
                         // CreatedByPersonId will be set by ApplyAuditInformation.
                     });
                 }
