@@ -1,9 +1,10 @@
 #!/bin/bash
 
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
 # --- Configuration ---
 # Determine the directory where the script is located.
-# This makes the script portable regardless of its absolute path on the system.
-# It resolves symlinks and ensures we get the true directory of the script.
 SOLUTION_ROOT=$(dirname "$(readlink -f "$0")")
 
 NOM_API_PROJECT="Nom.Api" # Name of your API project (startup project for ef commands)
@@ -59,22 +60,15 @@ check_status() {
 # --- Main Script Execution ---
 
 echo "Starting database and migration reset process..."
-echo "Determined SOLUTION_ROOT: $SOLUTION_ROOT"
 
-# --- CRITICAL DEBUGGING STEP: Verify the APPSETTINGS_FILE path ---
-echo "Verifying appsettings.Development.json path:"
-echo "Path the script is looking for: $APPSETTINGS_FILE"
-if [ -f "$APPSETTINGS_FILE" ]; then
-    echo "File found. Showing first few lines of $APPSETTINGS_FILE for verification:"
-    head -n 10 "$APPSETTINGS_FILE"
-else
+# --- Verify the APPSETTINGS_FILE path ---
+echo "Verifying appsettings.Development.json path: $APPSETTINGS_FILE"
+if [ ! -f "$APPSETTINGS_FILE" ]; then
     echo "ERROR: File NOT FOUND at path: $APPSETTINGS_FILE" >&2
     echo "Please ensure the script is located correctly relative to your project structure," >&2
     echo "or adjust SOLUTION_ROOT, NOM_API_PROJECT, NOM_DATA_PROJECT variables." >&2
     exit 1
 fi
-echo "--- End appsettings.Development.json verification ---"
-echo ""
 
 # 1. Extract the full connection string value (for DB name only, dotnet ef uses its own config)
 CONNECTION_STRING_VALUE=$(get_connection_string_value)
@@ -82,8 +76,6 @@ if [ $? -ne 0 ]; then
     echo "Connection string extraction failed. Exiting." >&2
     exit 1
 fi
-# REMOVED: Debug output for CONNECTION_STRING_VALUE
-# echo "DEBUG: Extracted CONNECTION_STRING_VALUE (for DB name only): '$CONNECTION_STRING_VALUE'"
 
 # 2. Extract database name from the connection string value
 DB_NAME=$(get_db_name_from_string "$CONNECTION_STRING_VALUE")
@@ -95,23 +87,26 @@ echo "Identified database name from '$CONNECTION_STRING_NAME': $DB_NAME"
 
 # 3. Drop the database
 echo "Attempting to drop database '$DB_NAME'..."
-psql -U postgres -d postgres <<EOF
+# Capture all output for conditional display
+DB_DROP_OUTPUT=$(psql -U postgres -d postgres 2>&1 <<EOF
 SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '$DB_NAME' AND pid <> pg_backend_pid();
 DROP DATABASE IF EXISTS "$DB_NAME";
 EOF
-check_status "Database termination and drop"
-echo "Database '$DB_NAME' dropped (if it existed and was terminated)."
+)
+DB_DROP_EXIT_CODE=$?
+
+if [ $DB_DROP_EXIT_CODE -ne 0 ] || echo "$DB_DROP_OUTPUT" | grep -qE "ERROR:|FATAL:|permission denied"; then
+    echo "CRITICAL ERROR: Database termination and drop failed!" >&2
+    echo "Full Output:" >&2
+    echo "$DB_DROP_OUTPUT" >&2
+    echo "ACTION REQUIRED: Ensure user 'postgres' is a SUPERUSER and has correct password/access." >&2
+    exit 1
+else
+    echo "Database '$DB_NAME' dropped (if it existed and was terminated)."
+fi
 
 
 # 4. Delete the migrations folder
-echo "DEBUG: Checking migrations directory before deletion: $MIGRATIONS_DIR"
-if [ -d "$MIGRATIONS_DIR" ]; then
-    echo "DEBUG: Migrations directory exists. Listing contents:"
-    ls -l "$MIGRATIONS_DIR"
-else
-    echo "DEBUG: Migrations directory does not exist or is already deleted."
-fi
-
 echo "Deleting migrations folder: $MIGRATIONS_DIR"
 rm -rf "$MIGRATIONS_DIR"
 check_status "Deleting migrations folder"
@@ -127,24 +122,21 @@ mkdir -p "$MIGRATIONS_DIR"
 check_status "Recreating migrations folder"
 echo "Migrations folder recreated."
 
-echo "DEBUG: Verifying Migrations folder is truly empty before 'add InitialCreate'..."
-if ls -A "$MIGRATIONS_DIR"/*_InitialCreate.cs &>/dev/null; then
-    echo "ERROR: Found existing *_InitialCreate.cs files in $MIGRATIONS_DIR AFTER deletion and recreation." >&2
-    echo "This indicates a serious problem with file deletion. Please check permissions." >&2
-    ls -l "$MIGRATIONS_DIR" >&2
-    exit 1
-else
-    echo "DEBUG: Migrations folder confirmed empty of *_InitialCreate.cs files."
-fi
+# Removed verbose check here, relying on dotnet ef to fail if folder isn't clean.
+# if ls -A "$MIGRATIONS_DIR"/*_InitialCreate.cs &>/dev/null; then
+#     echo "ERROR: Found existing *_InitialCreate.cs files in $MIGRATIONS_DIR AFTER deletion and recreation." >&2
+#     echo "This indicates a serious problem with file deletion. Please check permissions." >&2
+#     ls -l "$MIGRATIONS_DIR" >&2
+#     exit 1
+# else
+#     echo "DEBUG: Migrations folder confirmed empty of *_InitialCreate.cs files."
+# fi
 
 
 # Navigate to the API project directory for dotnet ef commands
 echo "Navigating to API project directory: $NOM_API_DIR"
 cd "$NOM_API_DIR"
 check_status "Change directory to NOM_API_DIR"
-
-# Explicitly set ASPNETCORE_ENVIRONMENT to Development
-export ASPNETCORE_ENVIRONMENT=Development
 
 echo "Running dotnet restore..."
 dotnet restore
@@ -155,16 +147,23 @@ check_status "dotnet build"
 
 # 5. Run dotnet ef migrations add InitialCreate
 echo "Generating new InitialCreate migration..."
-# Ensure the --startup-project points to the project containing appsettings.json and Program.cs
-# And --project points to the project containing ApplicationDbContext and Migrations folder
-dotnet ef migrations add InitialCreate --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project .
-check_status "Generating migration"
-echo "Migration generated successfully."
+# Capture output for conditional display
+MIGRATION_ADD_OUTPUT=$(dotnet ef migrations add InitialCreate --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project . 2>&1)
+MIGRATION_ADD_EXIT_CODE=$?
+
+if [ $MIGRATION_ADD_EXIT_CODE -ne 0 ]; then
+    echo "CRITICAL ERROR: Generating migration failed!" >&2
+    echo "Full Output:" >&2
+    echo "$MIGRATION_ADD_OUTPUT" >&2
+    exit 1
+else
+    echo "Migration generated successfully."
+fi
+
 
 # 6. Modify the InitialCreate.cs
 echo "Modifying InitialCreate.cs to add custom operations..."
 # Get the latest migration file, which should be the newly created InitialCreate
-# Using find with maxdepth and sorting by modification time to be robust
 MIGRATION_FILE=$(find "${MIGRATIONS_DIR}" -maxdepth 1 -name "*_InitialCreate.cs" -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -f2- -d' ')
 
 if [ -z "$MIGRATION_FILE" ]; then
@@ -178,25 +177,28 @@ sed -i '1s/^/using Nom.Data;\n/' "$MIGRATION_FILE"
 check_status "Adding using Nom.Data;"
 
 # Insert ApplyCustomUpOperations() before the closing brace of the Up method
-# This assumes the Up method ends with a standalone '}' character on a line, potentially indented.
-# The 'i' command in sed inserts *before* the matched line.
-# A more precise way is to match the 'protected override void Up(MigrationBuilder migrationBuilder)'
-# and then find the corresponding closing bracket. This is tricky with basic sed.
-# The previous method was reasonable for simple cases. Let's try to refine based on typical structure.
-# Insert before the last '}' in the Up method.
 sed -i '/protected override void Up(MigrationBuilder migrationBuilder)/,/^        }/ s/^        }/            migrationBuilder.ApplyCustomUpOperations();\n        }/' "$MIGRATION_FILE"
 check_status "Adding ApplyCustomUpOperations()"
 
 # Insert ApplyCustomDownOperations() at the beginning of the Down method's body
-# This pattern looks for the Down method signature, then inserts the line after the opening brace '{'.
 sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{n;s/{/{ \n            migrationBuilder.ApplyCustomDownOperations();/}' "$MIGRATION_FILE"
 check_status "Adding ApplyCustomDownOperations()"
 
 
 # 7. Run dotnet ef database update
 echo "Applying database migration..."
-dotnet ef database update --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project .
-check_status "Database update"
+# Capture output for conditional display
+DB_UPDATE_OUTPUT=$(dotnet ef database update --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project . 2>&1)
+DB_UPDATE_EXIT_CODE=$?
+
+if [ $DB_UPDATE_EXIT_CODE -ne 0 ]; then
+    echo "CRITICAL ERROR: Applying database migration failed!" >&2
+    echo "Full Output:" >&2
+    echo "$DB_UPDATE_OUTPUT" >&2
+    exit 1
+else
+    echo "Database migration applied successfully."
+fi
 
 echo "Database and migration reset complete!"
 echo "You can now run your API project."

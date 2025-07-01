@@ -11,10 +11,11 @@ using Nom.Data.Shopping;
 using Nom.Data.Person;
 using Nom.Data.Audit;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
 using System.Threading; // For CancellationToken
+using System.Threading.Tasks; // For SaveChangesAsync
+using Microsoft.AspNetCore.Http; // For IHttpContextAccessor
 
 namespace Nom.Data
 {
@@ -61,12 +62,12 @@ namespace Nom.Data
         public DbSet<IngredientEntity> Ingredients { get; set; } = default!;
         public DbSet<RecipeIngredientEntity> RecipeIngredients { get; set; } = default!;
         public DbSet<RecipeStepEntity> RecipeSteps { get; set; } = default!;
-        public DbSet<IngredientNutrientEntity> IngredientNutrients { get; set; } = default!;
+        public DbSet<IngredientAliasEntity> IngredientAliases { get; set; } = default!; // NEW: DbSet for IngredientAliasEntity
         #endregion
 
         #region Nutrient DbSets
         public DbSet<NutrientEntity> Nutrients { get; set; } = default!;
-        // REMOVED: public DbSet<NutrientComponentEntity> NutrientComponents { get; set; } = default!;
+        public DbSet<IngredientNutrientEntity> IngredientNutrients { get; set; } = default!;
         public DbSet<NutrientGuidelineEntity> NutrientGuidelines { get; set; } = default!;
         #endregion
 
@@ -279,6 +280,26 @@ namespace Nom.Data
                         j.HasKey("RecipeId", "RecipeTypeId");
                     });
 
+            // Add unique index for IngredientEntity.Name
+            modelBuilder.Entity<IngredientEntity>(entity =>
+            {
+                entity.ToTable("Ingredient", schema: "recipe"); // Ensure table mapping
+                entity.HasIndex(e => e.Name).IsUnique();
+                entity.HasIndex(e => e.FdcId).IsUnique(); // Assuming FdcId should also be unique
+            });
+
+            // Configure IngredientAliasEntity
+            modelBuilder.Entity<IngredientAliasEntity>(entity =>
+            {
+                entity.ToTable("IngredientAlias", schema: "recipe"); // Table mapping
+                entity.HasKey(e => new { e.IngredientId, e.AliasName }); // Composite primary key for ON CONFLICT
+                entity.HasOne(e => e.Ingredient)
+                      .WithMany() // Assuming IngredientEntity doesn't have a collection for aliases
+                      .HasForeignKey(e => e.IngredientId)
+                      .OnDelete(DeleteBehavior.Cascade); // If ingredient is deleted, its aliases should be too
+            });
+
+
             #endregion // End of Recipe Namespace Fluent API Configurations
 
             #region Nutrient Namespace Fluent API Configurations
@@ -289,6 +310,22 @@ namespace Nom.Data
                 .HasForeignKey(n => n.ParentNutrientId)
                 .IsRequired(false) // ParentNutrientId is nullable
                 .OnDelete(DeleteBehavior.Restrict); // Prevent cascading delete of parent if child exists
+
+            modelBuilder.Entity<NutrientEntity>(entity =>
+            {
+                entity.ToTable("Nutrient", schema: "nutrient"); // Ensure table mapping
+                entity.HasIndex(e => e.Name).IsUnique();
+                entity.HasIndex(e => e.FdcId).IsUnique();
+            });
+
+            // Add composite unique index for IngredientNutrientEntity
+            modelBuilder.Entity<IngredientNutrientEntity>(entity =>
+            {
+                entity.ToTable("IngredientNutrient", schema: "nutrient"); // Ensure table mapping
+                entity.HasIndex(e => new { e.IngredientId, e.NutrientId }).IsUnique();
+            });
+
+
             #endregion // End of Nutrient Namespace Fluent API Configurations
 
             #region Shopping Namespace Fluent API Configurations

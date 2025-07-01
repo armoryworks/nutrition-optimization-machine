@@ -6,6 +6,7 @@ using System.Collections.Generic; // Required for List
 
 namespace Nom.Data
 {
+#pragma warning disable CS8625 // Disable warnings for nullable reference type assignments
     public static class CustomMigration
     {
         // --- System Person ID ---
@@ -21,7 +22,7 @@ namespace Nom.Data
         private const long MeasurementTypeKcalId = 4006L; // kcal
         // Additional common cooking units
         private const long MeasurementTypeKilogramId = 4007L; // kg
-        private const long MeasurementTypeLiterId = 4008L; // l
+        private const long MeasurementTypeLiterId = 4008L; // lprivate const long MeasurementTypeMilliliterId = 4009L; // ml
         private const long MeasurementTypeMilliliterId = 4009L; // ml
         private const long MeasurementTypeTeaspoonId = 4010L; // tsp
         private const long MeasurementTypeTablespoonId = 4011L; // tbsp
@@ -144,7 +145,7 @@ namespace Nom.Data
 
         public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
         {
-#pragma warning disable CS8625 // Disable warnings for nullable reference type assignments
+
             migrationBuilder.InsertData(
                 schema: "person",
                 table: "Person",
@@ -153,7 +154,7 @@ namespace Nom.Data
                 {
                     { SystemPersonId, "System", null, null, DateTime.UtcNow, SystemPersonId }
                 });
-#pragma warning restore CS8625
+
         }
 
         public static void RemoveInitialSystemPerson(MigrationBuilder migrationBuilder)
@@ -775,4 +776,5 @@ namespace Nom.Data
             migrationBuilder.Sql(@"DROP VIEW IF EXISTS reference.""ReferenceGroupView"";");
         }
     }
+#pragma warning restore CS8625
 }

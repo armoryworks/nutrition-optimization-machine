@@ -349,6 +349,54 @@ namespace Nom.Data.Migrations
                     b.ToTable("ImportJob", "audit");
                 });
 
+            modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FdcId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("MeasurementTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("NutrientId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeasurementTypeId");
+
+                    b.HasIndex("NutrientId");
+
+                    b.HasIndex("IngredientId", "NutrientId")
+                        .IsUnique();
+
+                    b.ToTable("IngredientNutrient", "nutrient");
+                });
+
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -367,7 +415,12 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .HasMaxLength(1023)
+                        .HasColumnType("character varying(1023)");
+
+                    b.Property<string>("FdcId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -377,7 +430,8 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<long?>("ParentNutrientId")
                         .HasColumnType("bigint");
@@ -385,6 +439,12 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DefaultMeasurementTypeId");
+
+                    b.HasIndex("FdcId")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.HasIndex("ParentNutrientId");
 
@@ -844,6 +904,47 @@ namespace Nom.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Nom.Data.Recipe.IngredientAliasEntity", b =>
+                {
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("AliasName")
+                        .HasMaxLength(511)
+                        .HasColumnType("character varying(511)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("IngredientEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceContext")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.HasKey("IngredientId", "AliasName");
+
+                    b.HasIndex("IngredientEntityId");
+
+                    b.ToTable("IngredientAlias", "recipe");
+                });
+
             modelBuilder.Entity("Nom.Data.Recipe.IngredientEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -862,6 +963,10 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
+                    b.Property<string>("FdcId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -870,55 +975,18 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasMaxLength(1023)
+                        .HasColumnType("character varying(1023)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FdcId")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Ingredient", "recipe");
-                });
-
-            modelBuilder.Entity("Nom.Data.Recipe.IngredientNutrientEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("CreatedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("IngredientId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("LastModifiedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("LastModifiedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("Measurement")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long>("MeasurementTypeId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("NutrientId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IngredientId");
-
-                    b.HasIndex("MeasurementTypeId");
-
-                    b.HasIndex("NutrientId");
-
-                    b.ToTable("IngredientNutrient", "recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
@@ -1523,6 +1591,33 @@ namespace Nom.Data.Migrations
                     b.Navigation("ChangedByPerson");
                 });
 
+            modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany("IngredientNutrients")
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                        .WithMany()
+                        .HasForeignKey("MeasurementTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
+                        .WithMany("IngredientNutrients")
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("MeasurementType");
+
+                    b.Navigation("Nutrient");
+                });
+
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "DefaultMeasurementType")
@@ -1556,7 +1651,7 @@ namespace Nom.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
-                        .WithMany("NutrientGuidelines")
+                        .WithMany("Guidelines")
                         .HasForeignKey("NutrientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1723,31 +1818,19 @@ namespace Nom.Data.Migrations
                     b.Navigation("RestrictionType");
                 });
 
-            modelBuilder.Entity("Nom.Data.Recipe.IngredientNutrientEntity", b =>
+            modelBuilder.Entity("Nom.Data.Recipe.IngredientAliasEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("IngredientEntityId");
+
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
-                        .WithMany("Nutrients")
+                        .WithMany()
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
-                        .WithMany()
-                        .HasForeignKey("MeasurementTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
-                        .WithMany("IngredientNutrients")
-                        .HasForeignKey("NutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Ingredient");
-
-                    b.Navigation("MeasurementType");
-
-                    b.Navigation("Nutrient");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
@@ -1768,7 +1851,7 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
                 {
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
-                        .WithMany("UsedInRecipes")
+                        .WithMany("RecipeIngredients")
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1933,9 +2016,9 @@ namespace Nom.Data.Migrations
                 {
                     b.Navigation("ChildNutrients");
 
-                    b.Navigation("IngredientNutrients");
+                    b.Navigation("Guidelines");
 
-                    b.Navigation("NutrientGuidelines");
+                    b.Navigation("IngredientNutrients");
                 });
 
             modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
@@ -1963,9 +2046,11 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.IngredientEntity", b =>
                 {
-                    b.Navigation("Nutrients");
+                    b.Navigation("Aliases");
 
-                    b.Navigation("UsedInRecipes");
+                    b.Navigation("IngredientNutrients");
+
+                    b.Navigation("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>

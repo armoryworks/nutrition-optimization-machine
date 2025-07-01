@@ -4,11 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Nom.Data;
 using Nom.Orch;
-using Nom.Orch.UtilityInterfaces; // For IExternalNutrientApiService, IReferenceDataSeederService
-using System; // For Uri
-using Microsoft.Extensions.DependencyInjection;
-using Nom.Orch.UtilityServices;
-using Microsoft.AspNetCore.Http.Features; // For CreateScope and GetRequiredService
+using Microsoft.AspNetCore.Http.Features; // Required for FormOptions
+using Microsoft.Extensions.Caching.Memory; // Required for AddMemoryCache
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,20 +18,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure Kestrel to increase the maximum request body size
-// This addresses the "Multipart body length limit exceeded" error.
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    // Set max request body size to 500 MB (500 * 1024 * 1024 bytes)
-    // This value should match or exceed the [RequestSizeLimit] attribute on your controller.
     serverOptions.Limits.MaxRequestBodySize = 524288000; // 500 MB
-
 });
+
+// Configure the form options to increase the multipart body length limit.
 builder.Services.Configure<FormOptions>(options =>
 {
-    // Set MultipartBodyLengthLimit to 500 MB (500 * 1024 * 1024 bytes)
-    // This overrides the default 128 MB limit for multipart forms.
     options.MultipartBodyLengthLimit = 524288000; // 500 MB
 });
+
+// Add Memory Cache service
+builder.Services.AddMemoryCache();
 
 
 // Configure ApplicationDbContext to use PostgreSQL
@@ -56,13 +52,6 @@ if (string.IsNullOrEmpty(fdcApiBaseUrl))
     throw new InvalidOperationException("FoodDataCentralApi:BaseUrl configuration is missing or empty.");
 }
 
-builder.Services.AddHttpClient<IExternalNutrientApiService, ExternalNutrientApiService>(client =>
-{
-    client.BaseAddress = new Uri(fdcApiBaseUrl);
-});
-
-// REMOVED: No need to explicitly register IServiceScopeFactory; it's provided by the framework.
-// builder.Services.AddSingleton<IServiceScopeFactory, ServiceScopeFactory>();
 
 // Register all orchestration and utility services using the extension method
 builder.Services.AddOrchestrationServices();

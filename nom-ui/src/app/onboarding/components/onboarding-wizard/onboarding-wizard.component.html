@@ -1,0 +1,192 @@
+<div class="nom-page-container">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header nom-section">
+      @if (currentQuestion?.hint) {
+      <p class="nom-instruction-text mb-4">{{ currentQuestion?.hint }}</p>
+      }
+      <mat-card-title class="nom-card__title">
+        {{ currentQuestion?.text }}
+      </mat-card-title>
+    </mat-card-header>
+
+    @if (isLoading) {
+    <mat-progress-bar
+      mode="indeterminate"
+      color="primary"
+      class="nom-card__progress-bar"
+    ></mat-progress-bar>
+    }
+
+    <mat-card-content class="nom-card__content">
+      @if (!isLoading && error && !submitMessage) {
+      <div class="nom-form__error form-level-error nom-message-text mb-4">
+        {{ error }}
+      </div>
+      } @else if (!isLoading && questions.length === 0 && !error) {
+      <div class="text-center py-8">
+        <p class="nom-message-text">No onboarding questions available.</p>
+      </div>
+      } @else if (!isLoading && questions.length > 0 && !submitMessage &&
+      currentQuestion) {
+      <form [formGroup]="currentAnswerForm" class="nom-form">
+        <div class="nom-section mb-8">
+          <!-- Dynamic input rendering based on answerType -->
+          @switch (currentQuestion.answerType) { @case ('TextInput') {
+          <mat-form-field appearance="outline" class="nom-form__field">
+            <mat-label>Your Answer</mat-label>
+            <input
+              matInput
+              type="text"
+              formControlName="answer"
+              class="nom-form__input"
+              [placeholder]="currentQuestion.hint || 'Type your answer here...'"
+              (ngModelChange)="onAnswerChange($event)"
+            />
+            <!-- Using ngModelChange on Reactive Form -->
+            @if (currentAnswerForm.get('answer')?.hasError('required') &&
+            currentAnswerForm.get('answer')?.touched) {
+            <mat-error class="nom-form__error">
+              This field is required.
+            </mat-error>
+            } @if (currentAnswerForm.get('answer')?.hasError('pattern') &&
+            currentAnswerForm.get('answer')?.touched) {
+            <mat-error class="nom-form__error"> Invalid format. </mat-error>
+            }
+          </mat-form-field>
+          } @case ('YesNo') {
+          <mat-radio-group
+            aria-label="Select an option"
+            formControlName="answer"
+            class="nom-horizontal-group flex-wrap justify-center my-4"
+            (change)="onAnswerChange($event.value)"
+          >
+            <mat-radio-button
+              [value]="'true'"
+              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+              >Yes</mat-radio-button
+            >
+            <mat-radio-button
+              [value]="'false'"
+              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+              >No</mat-radio-button
+            >
+          </mat-radio-group>
+          @if (currentAnswerForm.get('answer')?.hasError('required') &&
+          currentAnswerForm.get('answer')?.touched) {
+          <mat-error class="nom-form__error text-center">
+            This field is required.
+          </mat-error>
+          } } @case ('MultiSelect') {
+          <div class="my-4 grid grid-cols-2 gap-4">
+            @if (currentQuestion.options; as options) { @for (option of options;
+            track option) {
+            <div
+              class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+            >
+              <mat-checkbox
+                [checked]="
+                  (
+                    currentAnswerForm.get('answer')?.value | jsonParseCommon
+                  )?.includes(option)
+                "
+                (change)="onAnswerChange(option)"
+              >
+                {{ option }}
+              </mat-checkbox>
+            </div>
+            } } @else {
+            <p class="nom-message-text text-red-500">
+              No options available for this multi-select question.
+            </p>
+            }
+          </div>
+          @if (currentAnswerForm.get('answer')?.hasError('required') &&
+          currentAnswerForm.get('answer')?.touched) {
+          <mat-error class="nom-form__error text-center">
+            Please select at least one option.
+          </mat-error>
+          } } @case ('SingleSelect') {
+          <mat-radio-group
+            aria-label="Select an option"
+            formControlName="answer"
+            class="nom-horizontal-group flex-wrap justify-center my-4"
+            (change)="onAnswerChange($event.value)"
+          >
+            @if (currentQuestion.options; as options) { @for (option of options;
+            track option) {
+            <mat-radio-button
+              [value]="option"
+              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
+            >
+              {{ option }}
+            </mat-radio-button>
+            } } @else {
+            <p class="nom-message-text text-red-500">
+              No options available for this single-select question.
+            </p>
+            }
+          </mat-radio-group>
+          @if (currentAnswerForm.get('answer')?.hasError('required') &&
+          currentAnswerForm.get('answer')?.touched) {
+          <mat-error class="nom-form__error text-center">
+            Please select an option.
+          </mat-error>
+          } } @default {
+          <p class="nom-message-text text-red-500">
+            Unsupported answer type: {{ currentQuestion.answerType }}
+          </p>
+          } }
+        </div>
+
+        <div class="flex justify-between items-center mt-6">
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="goToPreviousQuestion()"
+            [disabled]="currentQuestionIndex === 0 || isSubmitting"
+            class="nom-button"
+          >
+            Previous
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="goToNextQuestion()"
+            [disabled]="isSubmitting"
+            class="nom-button"
+          >
+            @if (!isSubmitting) {
+            <span>{{
+              currentQuestionIndex === questions.length - 1 ? 'Submit' : 'Next'
+            }}</span>
+            } @else {
+            <mat-spinner
+              [diameter]="20"
+              class="nom-button__spinner"
+            ></mat-spinner>
+            }
+          </button>
+        </div>
+      </form>
+      } @else if (!isLoading && submitMessage) {
+      <div
+        class="text-center p-4 rounded-md"
+        [ngClass]="{
+          'bg-green-100 text-green-700': submitMessage.includes('successfully'),
+          'bg-red-100 text-red-700': !submitMessage.includes('successfully')
+        }"
+      >
+        <p class="nom-message-text font-semibold">{{ submitMessage }}</p>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="goToDashboard()"
+          class="nom-button mt-4"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
