@@ -4,22 +4,23 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Reference;
-using Nom.Data.Person; // Assuming PersonEntity is in Nom.Data.Person namespace
-using Nom.Data.Plan;   // Assuming MealEntity is in Nom.Data.Plan namespace
+using Nom.Data.Person;
+using Nom.Data.Plan;
+using Nom.Data.Audit; // Assuming BaseEntity is in Nom.Data.Audit namespace
 
 namespace Nom.Data.Recipe
 {
     [Table("Recipe", Schema = "recipe")]
-    public class RecipeEntity : BaseEntity // Assuming BaseEntity is provided elsewhere
+    public class RecipeEntity : BaseEntity
     {
         [Required]
-        [MaxLength(255)]
+        [MaxLength(511)] // Retaining 511 from previous fix for longer names
         public string Name { get; set; } = string.Empty;
 
         [MaxLength(2047)]
         public string? Description { get; set; }
 
-        [MaxLength(2047)]
+        [Column(TypeName = "text")] // Explicitly map to TEXT for potentially very long JSON strings
         public string? Instructions { get; set; }
 
         // Fields for preparation and cooking times (in minutes)
@@ -39,9 +40,8 @@ namespace Nom.Data.Recipe
         [ForeignKey(nameof(ServingQuantityMeasurementTypeId))]
         public virtual ReferenceEntity? ServingQuantityMeasurementType { get; set; }
 
-        // This field will store the raw, unparsed ingredient string directly from the Kaggle dataset.
-        // It allows for retaining the original data and potential re-parsing if needed.
-        [MaxLength(4000)] // A generous length for a raw ingredient string
+        // This field will store the raw, unparsed ingredient string (JSON array from CSV).
+        [Column(TypeName = "text")] // Explicitly map to TEXT for potentially very long JSON strings
         public string? RawIngredientsString { get; set; }
 
         [Required]
@@ -54,9 +54,15 @@ namespace Nom.Data.Recipe
         [Column(TypeName = "date")]
         public DateOnly? CuratedDate { get; set; }
 
-        // Navigation properties for related entities
-        public virtual ICollection<RecipeIngredientEntity>? Ingredients { get; set; }
-        public virtual ICollection<RecipeStepEntity>? Steps { get; set; }
+        [MaxLength(2047)] // URL from the source (e.g., cookbooks.com link)
+        public string? SourceUrl { get; set; }
+
+        [MaxLength(255)] // Name of the source site (e.g., "cookbooks.com", "Gathered")
+        public string? SourceSite { get; set; }
+
+        // Navigation properties for related entities (keeping these for granular data)
+        public virtual ICollection<RecipeIngredientEntity>? RecipeIngredients { get; set; } // Renamed from Ingredients to match existing pattern
+        public virtual ICollection<RecipeStepEntity>? RecipeSteps { get; set; } // Renamed from Steps to match existing pattern
         public virtual ICollection<ReferenceEntity>? RecipeTypes { get; set; }
         public virtual ICollection<MealEntity>? Meals { get; set; }
     }

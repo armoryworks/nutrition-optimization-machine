@@ -233,7 +233,6 @@ namespace Nom.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
 
-            // Configure PlanParticipantEntity
             modelBuilder.Entity<PlanParticipantEntity>()
                 .ToTable("PlanParticipant", schema: "plan");
 
@@ -262,6 +261,44 @@ namespace Nom.Data
 
             #region Recipe Namespace Fluent API Configurations
             modelBuilder.Entity<Recipe.RecipeEntity>()
+                .ToTable("Recipe", schema: "recipe"); // Explicitly set table name and schema
+
+            // Configure relationships for new fields in RecipeEntity
+            modelBuilder.Entity<RecipeEntity>()
+                .HasOne(r => r.ServingQuantityMeasurementType)
+                .WithMany()
+                .HasForeignKey(r => r.ServingQuantityMeasurementTypeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<RecipeEntity>()
+                .HasOne(r => r.Curator)
+                .WithMany() // Assuming PersonEntity doesn't have a collection for CuratedRecipes
+                .HasForeignKey(r => r.CuratedById)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting person if they curated recipes
+
+            modelBuilder.Entity<RecipeEntity>()
+                .HasMany(r => r.Meals)
+                .WithMany(m => m.Recipes)
+                .UsingEntity<Dictionary<string, object>>(
+                    "MealRecipeIndex",
+                    j => j.HasOne<MealEntity>()
+                            .WithMany()
+                            .HasForeignKey("MealId")
+                            .HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId"),
+                    j => j.HasOne<RecipeEntity>()
+                            .WithMany()
+                            .HasForeignKey("RecipeId")
+                            .HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId"),
+                    j =>
+                    {
+                        j.ToTable("meal_recipe_index", "plan"); // Assuming 'plan' schema for meal-recipe links
+                        j.HasKey("MealId", "RecipeId");
+                    });
+
+
+            modelBuilder.Entity<Recipe.RecipeEntity>()
                 .HasMany(r => r.RecipeTypes)
                 .WithMany()
                 .UsingEntity<Dictionary<string, object>>(
@@ -285,7 +322,8 @@ namespace Nom.Data
             {
                 entity.ToTable("Ingredient", schema: "recipe"); // Ensure table mapping
                 entity.HasIndex(e => e.Name).IsUnique();
-                entity.HasIndex(e => e.FdcId).IsUnique(); // Assuming FdcId should also be unique
+                entity.HasIndex(e => e.FdcId).IsUnique()
+                      .HasFilter("\"FdcId\" IS NOT NULL"); // Only enforce uniqueness if FdcId is not null
             });
 
             // Configure IngredientAliasEntity
@@ -299,10 +337,42 @@ namespace Nom.Data
                       .OnDelete(DeleteBehavior.Cascade); // If ingredient is deleted, its aliases should be too
             });
 
+            // Configure RecipeIngredientEntity
+            modelBuilder.Entity<RecipeIngredientEntity>(entity =>
+            {
+                entity.ToTable("RecipeIngredient", schema: "recipe");
+                entity.HasKey(e => new { e.RecipeId, e.IngredientId }); // Composite primary key
+                entity.HasOne(e => e.Recipe)
+                      .WithMany(r => r.RecipeIngredients)
+                      .HasForeignKey(e => e.RecipeId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Ingredient)
+                      .WithMany()
+                      .HasForeignKey(e => e.IngredientId)
+                      .OnDelete(DeleteBehavior.Restrict); // Don't delete ingredient if recipe ingredient exists
+                entity.HasOne(e => e.MeasurementType)
+                      .WithMany()
+                      .HasForeignKey(e => e.MeasurementTypeId)
+                      .OnDelete(DeleteBehavior.Restrict); // Don't delete measurement type if in use
+            });
+
+            // Configure RecipeStepEntity
+            modelBuilder.Entity<RecipeStepEntity>(entity =>
+            {
+                entity.ToTable("RecipeStep", schema: "recipe");
+                entity.HasKey(e => new { e.RecipeId, e.StepNumber }); // Composite primary key
+                entity.HasOne(e => e.Recipe)
+                      .WithMany(r => r.RecipeSteps)
+                      .HasForeignKey(e => e.RecipeId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             #endregion // End of Recipe Namespace Fluent API Configurations
 
             #region Nutrient Namespace Fluent API Configurations
+            modelBuilder.Entity<NutrientEntity>()
+                .ToTable("Nutrient", schema: "nutrient"); // Ensure table mapping
+
             // Configure self-referential relationship for NutrientEntity (Parent/Child nutrients)
             modelBuilder.Entity<NutrientEntity>()
                 .HasOne(n => n.ParentNutrient)
@@ -313,7 +383,6 @@ namespace Nom.Data
 
             modelBuilder.Entity<NutrientEntity>(entity =>
             {
-                entity.ToTable("Nutrient", schema: "nutrient"); // Ensure table mapping
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.FdcId).IsUnique();
             });

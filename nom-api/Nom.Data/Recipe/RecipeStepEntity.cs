@@ -1,3 +1,5 @@
+// Nom.Data/Recipe/RecipeStepEntity.cs
+using Nom.Data.Audit; // Assuming BaseEntity is in Nom.Data.Audit namespace
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Reference; // For StepType
@@ -24,7 +26,7 @@ namespace Nom.Data.Recipe
         public byte StepNumber { get; set; } // TINYINT in SQL maps to byte in C#
 
         [Required]
-        [MaxLength(2047)]
+        [MaxLength(2047)] // Adjusted length
         public string Description { get; set; } = string.Empty;
     }
 }

@@ -23,19 +23,19 @@ namespace Nom.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("MealEntityRecipeEntity", b =>
+            modelBuilder.Entity("MealRecipeIndex", b =>
                 {
-                    b.Property<long>("MealsId")
+                    b.Property<long>("MealId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("RecipesId")
+                    b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("MealsId", "RecipesId");
+                    b.HasKey("MealId", "RecipeId");
 
-                    b.HasIndex("RecipesId");
+                    b.HasIndex("RecipeId");
 
-                    b.ToTable("MealEntityRecipeEntity", "auth");
+                    b.ToTable("meal_recipe_index", "plan");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -981,7 +981,8 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FdcId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1017,8 +1018,7 @@ namespace Nom.Data.Migrations
                         .HasColumnType("character varying(2047)");
 
                     b.Property<string>("Instructions")
-                        .HasMaxLength(2047)
-                        .HasColumnType("character varying(2047)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsCurated")
                         .HasColumnType("boolean");
@@ -1031,15 +1031,14 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasMaxLength(511)
+                        .HasColumnType("character varying(511)");
 
                     b.Property<int?>("PrepTimeMinutes")
                         .HasColumnType("integer");
 
                     b.Property<string>("RawIngredientsString")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<decimal?>("ServingQuantity")
                         .HasColumnType("decimal(18,2)");
@@ -1049,6 +1048,14 @@ namespace Nom.Data.Migrations
 
                     b.Property<int?>("Servings")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SourceSite")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
 
                     b.HasKey("Id");
 
@@ -1061,11 +1068,11 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
@@ -1073,7 +1080,13 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("IngredientId")
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("IngredientEntityId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("LastModifiedByPersonId")
@@ -1093,27 +1106,24 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<long>("RecipeId")
-                        .HasColumnType("bigint");
+                    b.HasKey("RecipeId", "IngredientId");
 
-                    b.HasKey("Id");
+                    b.HasIndex("IngredientEntityId");
 
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("MeasurementTypeId");
-
-                    b.HasIndex("RecipeId");
 
                     b.ToTable("RecipeIngredient", "recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeStepEntity", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<long>("RecipeId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<byte>("StepNumber")
+                        .HasColumnType("smallint");
 
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
@@ -1126,17 +1136,17 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("RecipeId")
-                        .HasColumnType("bigint");
-
-                    b.Property<byte>("StepNumber")
-                        .HasColumnType("smallint");
 
                     b.Property<long?>("StepTypeId")
                         .HasColumnType("bigint");
@@ -1146,9 +1156,7 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipeId");
+                    b.HasKey("RecipeId", "StepNumber");
 
                     b.HasIndex("StepTypeId");
 
@@ -1514,19 +1522,21 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(4L);
                 });
 
-            modelBuilder.Entity("MealEntityRecipeEntity", b =>
+            modelBuilder.Entity("MealRecipeIndex", b =>
                 {
                     b.HasOne("Nom.Data.Plan.MealEntity", null)
                         .WithMany()
-                        .HasForeignKey("MealsId")
+                        .HasForeignKey("MealId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId");
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", null)
                         .WithMany()
-                        .HasForeignKey("RecipesId")
+                        .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1837,11 +1847,13 @@ namespace Nom.Data.Migrations
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "Curator")
                         .WithMany()
-                        .HasForeignKey("CuratedById");
+                        .HasForeignKey("CuratedById")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "ServingQuantityMeasurementType")
                         .WithMany()
-                        .HasForeignKey("ServingQuantityMeasurementTypeId");
+                        .HasForeignKey("ServingQuantityMeasurementTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Curator");
 
@@ -1850,20 +1862,24 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
                         .WithMany("RecipeIngredients")
+                        .HasForeignKey("IngredientEntityId");
+
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
                         .WithMany()
                         .HasForeignKey("MeasurementTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
-                        .WithMany("Ingredients")
+                        .WithMany("RecipeIngredients")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1878,7 +1894,7 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Recipe.RecipeStepEntity", b =>
                 {
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
-                        .WithMany("Steps")
+                        .WithMany("RecipeSteps")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2055,9 +2071,9 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
                 {
-                    b.Navigation("Ingredients");
+                    b.Navigation("RecipeIngredients");
 
-                    b.Navigation("Steps");
+                    b.Navigation("RecipeSteps");
                 });
 #pragma warning restore 612, 618
         }
