@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250702070156_InitialCreate")]
+    [Migration("20250705084939_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -444,10 +444,12 @@ namespace Nom.Data.Migrations
                     b.HasIndex("DefaultMeasurementTypeId");
 
                     b.HasIndex("FdcId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("ParentNutrientId");
 
@@ -963,8 +965,7 @@ namespace Nom.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2047)
-                        .HasColumnType("character varying(2047)");
+                        .HasColumnType("text");
 
                     b.Property<string>("FdcId")
                         .HasMaxLength(50)
@@ -988,7 +989,8 @@ namespace Nom.Data.Migrations
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.ToTable("Ingredient", "recipe");
                 });

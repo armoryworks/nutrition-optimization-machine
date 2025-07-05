@@ -27,7 +27,7 @@ namespace Nom.Data.Recipe
         /// A brief description of the ingredient.
         /// Corresponds to VARCHAR(1023) NULLABLE.
         /// </summary>
-        [MaxLength(2047)]
+        [Column(TypeName = "text")]
         public string? Description { get; set; }
 
         /// <summary>

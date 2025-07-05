@@ -35,6 +35,23 @@ namespace Nom.Data
         // Specific from PDFs if needed - often just "mcg"
         private const long MeasurementTypeMcgId = 4018L; // mcg (as seen in PDFs for Vitamin A, D, etc.)
 
+        // NEW Measurement Type IDs (continuing from 4018L)
+        private const long MeasurementTypeFluidOunceId = 4031L; // fl oz (explicitly separate from weight oz)
+        private const long MeasurementTypeCloveId = 4032L; // clove (e.g., of garlic)
+        private const long MeasurementTypeSprigId = 4033L; // sprig
+        private const long MeasurementTypeSliceId = 4034L; // slice
+        private const long MeasurementTypeCanId = 4035L; // can
+        private const long MeasurementTypePackageId = 4036L; // package
+        private const long MeasurementTypeBottleId = 4037L; // bottle
+        private const long MeasurementTypeHeadId = 4038L; // head (e.g., of lettuce)
+        private const long MeasurementTypePieceId = 4039L; // piece
+        private const long MeasurementTypeLeafId = 4040L; // leaf
+        private const long MeasurementTypeStalkId = 4041L; // stalk
+        private const long MeasurementTypePinchId = 4042L; // pinch
+        private const long MeasurementTypeDashId = 4043L; // dash
+        private const long MeasurementTypeSplashId = 4044L; // splash
+
+
         // --- Nutrient IDs (Derived from DRVs and RDIs) ---
         // DRV Nutrients
         private const long NutrientFatId = 5000L;
@@ -349,19 +366,21 @@ namespace Nom.Data
                     { MeasurementTypePintId, "pint", "Pint", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeQuartId, "quart", "Quart", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeGallonId, "gallon", "Gallon", DateTime.UtcNow, SystemPersonId },
-                    { 4019L, "slice", "Slice", DateTime.UtcNow, SystemPersonId },
-                    { 4020L, "piece", "Piece", DateTime.UtcNow, SystemPersonId },
-                    { 4021L, "can", "Can", DateTime.UtcNow, SystemPersonId },
-                    { 4022L, "bottle", "Bottle", DateTime.UtcNow, SystemPersonId },
-                    { 4023L, "package", "Package", DateTime.UtcNow, SystemPersonId },
-                    { 4024L, "clove", "Clove (e.g., garlic)", DateTime.UtcNow, SystemPersonId },
-                    { 4025L, "sprig", "Sprig (e.g., herb)", DateTime.UtcNow, SystemPersonId },
-                    { 4026L, "leaf", "Leaf (e.g., lettuce)", DateTime.UtcNow, SystemPersonId },
-                    { 4027L, "stalk", "Stalk (e.g., celery)", DateTime.UtcNow, SystemPersonId },
-                    { 4028L, "pinch", "Pinch", DateTime.UtcNow, SystemPersonId },
-                    { 4029L, "dash", "Dash", DateTime.UtcNow, SystemPersonId },
-                    { 4030L, "splash", "Splash", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeKcalId, "kcal", "Kilocalorie (energy unit)", DateTime.UtcNow, SystemPersonId }
+                    { MeasurementTypeKcalId, "kcal", "Kilocalorie (energy unit)", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeFluidOunceId, "fl oz", "Fluid Ounce", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeCloveId, "clove", "Unit for garlic cloves, etc.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeSprigId, "sprig", "Unit for herbs like rosemary, thyme.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeSliceId, "slice", "Unit for sliced items like bread, cheese.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeCanId, "can", "Unit for canned goods.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypePackageId, "package", "Unit for packaged goods.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeBottleId, "bottle", "Unit for bottled liquids.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeHeadId, "head", "Unit for items like lettuce, cabbage.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypePieceId, "piece", "Generic unit for a piece of something.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeLeafId, "leaf", "Unit for leafy items like lettuce, spinach.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeStalkId, "stalk", "Unit for items like celery, rhubarb.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypePinchId, "pinch", "A very small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeDashId, "dash", "A small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeSplashId, "splash", "A small, unmeasured amount of liquid.", DateTime.UtcNow, SystemPersonId }
                 });
 
             long[] measurementTypeIds = new long[] {
@@ -371,8 +390,13 @@ namespace Nom.Data
                 MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
                 MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
                 MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, 4019L, 4020L, 4021L, 4022L,
-                4023L, 4024L, 4025L, 4026L, 4027L, 4028L, 4029L, 4030L, MeasurementTypeKcalId
+                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId, // Kcal was missing from this array
+                // NEW Measurement Type IDs
+                MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
+                MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
+                MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
+                MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
+                MeasurementTypeDashId, MeasurementTypeSplashId
             };
 
             foreach (long id in measurementTypeIds)
@@ -396,8 +420,13 @@ namespace Nom.Data
                 MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
                 MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
                 MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, 4019L, 4020L, 4021L, 4022L,
-                4023L, 4024L, 4025L, 4026L, 4027L, 4028L, 4029L, 4030L, MeasurementTypeKcalId
+                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId, // Kcal was missing from this array
+                // NEW Measurement Type IDs
+                MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
+                MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
+                MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
+                MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
+                MeasurementTypeDashId, MeasurementTypeSplashId
             };
 
             foreach (long id in measurementTypeIds)

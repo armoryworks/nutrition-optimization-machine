@@ -134,7 +134,7 @@ namespace Nom.Data.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(1023)", maxLength: 1023, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
                     FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
@@ -1250,7 +1250,8 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "Ingredient",
                 column: "Name",
-                unique: true);
+                unique: true,
+                filter: "\"FdcId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientAlias_IngredientEntityId",
@@ -1306,14 +1307,16 @@ namespace Nom.Data.Migrations
                 schema: "nutrient",
                 table: "Nutrient",
                 column: "FdcId",
-                unique: true);
+                unique: true,
+                filter: "\"FdcId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Nutrient_Name",
                 schema: "nutrient",
                 table: "Nutrient",
                 column: "Name",
-                unique: true);
+                unique: true,
+                filter: "\"FdcId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Nutrient_ParentNutrientId",

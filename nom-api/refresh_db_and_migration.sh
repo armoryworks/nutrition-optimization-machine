@@ -50,9 +50,54 @@ get_db_name_from_string() {
     echo "$DB_NAME"
 }
 
+get_db_user_from_string() {
+    local connection_string="$1"
+    local DB_USER=$(echo "$connection_string" | grep -oP "UserID=\K[^;]+" | head -n 1) # Corrected: Use "UserID" as pattern
+    if [ -z "$DB_USER" ]; then
+        echo "Error: Could not extract database user (UserID) from connection string: '$connection_string'." >&2
+        echo "Please ensure the connection string includes 'UserID=your_user;'." >&2
+        return 1
+    fi
+    echo "$DB_USER"
+}
+
+get_db_password_from_string() {
+    local connection_string="$1"
+    local DB_PASSWORD=$(echo "$connection_string" | grep -oP "Password=\K[^;]+" | head -n 1)
+    if [ -z "$DB_PASSWORD" ]; then
+        echo "Error: Could not extract database password from connection string: '$connection_string'." >&2
+        echo "Please ensure the connection string includes 'Password=your_password;'." >&2
+        return 1
+    fi
+    echo "$DB_PASSWORD"
+}
+
+get_db_host_from_string() {
+    local connection_string="$1"
+    local DB_HOST=$(echo "$connection_string" | grep -oP "Host=\K[^;]+" | head -n 1)
+    if [ -z "$DB_HOST" ]; then
+        echo "localhost" # Default to localhost if not specified
+    else
+        echo "$DB_HOST"
+    fi
+}
+
+get_db_port_from_string() {
+    local connection_string="$1"
+    local DB_PORT=$(echo "$connection_string" | grep -oP "Port=\K[^;]+" | head -n 1)
+    if [ -z "$DB_PORT" ]; then
+        echo "5432" # Default to 5432 if not specified
+    else
+        echo "$DB_PORT"
+    fi
+}
+
+
 check_status() {
-    if [ $? -ne 0 ]; then
-        echo "Error: $1 failed." >&2
+    local last_status=$?
+    local message="$1"
+    if [ $last_status -ne 0 ]; then
+        echo "Error: $message failed (exit code: $last_status)." >&2
         exit 1
     fi
 }
@@ -72,41 +117,89 @@ fi
 
 # 1. Extract the full connection string value (for DB name only, dotnet ef uses its own config)
 CONNECTION_STRING_VALUE=$(get_connection_string_value)
-if [ $? -ne 0 ]; then
-    echo "Connection string extraction failed. Exiting." >&2
-    exit 1
-fi
+check_status "Connection string extraction"
 
-# 2. Extract database name from the connection string value
+# 2. Extract database name, user, and password from the connection string value
 DB_NAME=$(get_db_name_from_string "$CONNECTION_STRING_VALUE")
-if [ $? -ne 0 ]; then
-    echo "Database name extraction failed. Exiting." >&2
-    exit 1
-fi
+check_status "Database name extraction"
 echo "Identified database name from '$CONNECTION_STRING_NAME': $DB_NAME"
+
+DB_USER=$(get_db_user_from_string "$CONNECTION_STRING_VALUE")
+check_status "Database user extraction"
+
+DB_PASSWORD=$(get_db_password_from_string "$CONNECTION_STRING_VALUE")
+check_status "Database password extraction"
+
+DB_HOST=$(get_db_host_from_string "$CONNECTION_STRING_VALUE")
+check_status "Database host extraction"
+
+DB_PORT=$(get_db_port_from_string "$CONNECTION_STRING_VALUE")
+check_status "Database port extraction"
+
+
+# IMPORTANT: PGPASSWORD for the 'postgres' superuser is now managed via ~/.pgpass.
+# Ensure ~/.pgpass exists and has 0600 permissions, with an entry like:
+# localhost:5432:postgres:postgres:your_postgres_superuser_password
+echo "DEBUG: Relying on ~/.pgpass for postgres user password."
+
 
 # 3. Drop the database
 echo "Attempting to drop database '$DB_NAME'..."
-# Capture all output for conditional display
-DB_DROP_OUTPUT=$(psql -U postgres -d postgres 2>&1 <<EOF
+
+# Temporarily enable shell debugging to see the psql command execution
+set -x
+# psql will automatically use ~/.pgpass if permissions are correct
+psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 <<EOF
 SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '$DB_NAME' AND pid <> pg_backend_pid();
 DROP DATABASE IF EXISTS "$DB_NAME";
 EOF
-)
-DB_DROP_EXIT_CODE=$?
+set +x # Disable shell debugging
 
-if [ $DB_DROP_EXIT_CODE -ne 0 ] || echo "$DB_DROP_OUTPUT" | grep -qE "ERROR:|FATAL:|permission denied"; then
+DB_DROP_EXIT_CODE=$? # Capture exit code of the direct psql command
+
+if [ $DB_DROP_EXIT_CODE -ne 0 ]; then
     echo "CRITICAL ERROR: Database termination and drop failed!" >&2
-    echo "Full Output:" >&2
-    echo "$DB_DROP_OUTPUT" >&2
     echo "ACTION REQUIRED: Ensure user 'postgres' is a SUPERUSER and has correct password/access." >&2
+    echo "Verify ~/.pgpass exists with 0600 permissions and contains the correct entry for 'postgres' user." >&2
+    echo "If using peer authentication, you might need to run 'sudo -u postgres psql' or adjust pg_hba.conf." >&2
     exit 1
 else
     echo "Database '$DB_NAME' dropped (if it existed and was terminated)."
 fi
 
+# 4. Create/Ensure Application User and Grant Privileges
+echo "Ensuring application user '$DB_USER' exists and has privileges on '$DB_NAME'..."
+set -x
+psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 <<EOF
+DO
+\$do\$
+BEGIN
+   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$DB_USER') THEN
+      CREATE ROLE "$DB_USER" WITH LOGIN PASSWORD '$DB_PASSWORD';
+   ELSE
+      ALTER ROLE "$DB_USER" WITH PASSWORD '$DB_PASSWORD';
+   END IF;
+END
+\$do\$;
+CREATE DATABASE "$DB_NAME" OWNER "$DB_USER";
+GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
+\q
+EOF
+set +x
 
-# 4. Delete the migrations folder
+DB_USER_SETUP_EXIT_CODE=$?
+if [ $DB_USER_SETUP_EXIT_CODE -ne 0 ]; then
+    echo "CRITICAL ERROR: Database user setup or database creation/privilege grant failed!" >&2
+    echo "ACTION REQUIRED: Ensure user 'postgres' has CREATE ROLE and CREATE DATABASE privileges." >&2
+    echo "Also, verify the application user's password in appsettings.Development.json is correct." >&2
+    exit 1
+else
+    echo "Application user '$DB_USER' ensured and database '$DB_NAME' created with owner '$DB_USER'."
+    echo "Privileges granted to '$DB_USER' on '$DB_NAME'."
+fi
+
+
+# 5. Delete the migrations folder
 echo "Deleting migrations folder: $MIGRATIONS_DIR"
 rm -rf "$MIGRATIONS_DIR"
 check_status "Deleting migrations folder"
@@ -122,16 +215,6 @@ mkdir -p "$MIGRATIONS_DIR"
 check_status "Recreating migrations folder"
 echo "Migrations folder recreated."
 
-# Removed verbose check here, relying on dotnet ef to fail if folder isn't clean.
-# if ls -A "$MIGRATIONS_DIR"/*_InitialCreate.cs &>/dev/null; then
-#     echo "ERROR: Found existing *_InitialCreate.cs files in $MIGRATIONS_DIR AFTER deletion and recreation." >&2
-#     echo "This indicates a serious problem with file deletion. Please check permissions." >&2
-#     ls -l "$MIGRATIONS_DIR" >&2
-#     exit 1
-# else
-#     echo "DEBUG: Migrations folder confirmed empty of *_InitialCreate.cs files."
-# fi
-
 
 # Navigate to the API project directory for dotnet ef commands
 echo "Navigating to API project directory: $NOM_API_DIR"
@@ -145,7 +228,7 @@ echo "Running dotnet build..."
 dotnet build
 check_status "dotnet build"
 
-# 5. Run dotnet ef migrations add InitialCreate
+# 6. Run dotnet ef migrations add InitialCreate
 echo "Generating new InitialCreate migration..."
 # Capture output for conditional display
 MIGRATION_ADD_OUTPUT=$(dotnet ef migrations add InitialCreate --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project . 2>&1)
@@ -161,7 +244,7 @@ else
 fi
 
 
-# 6. Modify the InitialCreate.cs
+# 7. Modify the InitialCreate.cs
 echo "Modifying InitialCreate.cs to add custom operations..."
 # Get the latest migration file, which should be the newly created InitialCreate
 MIGRATION_FILE=$(find "${MIGRATIONS_DIR}" -maxdepth 1 -name "*_InitialCreate.cs" -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -f2- -d' ')
@@ -185,16 +268,27 @@ sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{n;s/{/
 check_status "Adding ApplyCustomDownOperations()"
 
 
-# 7. Run dotnet ef database update
+# 8. Run dotnet ef database update
 echo "Applying database migration..."
-# Capture output for conditional display
-DB_UPDATE_OUTPUT=$(dotnet ef database update --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project . 2>&1)
-DB_UPDATE_EXIT_CODE=$?
+# Set PGPASSWORD for the application user for dotnet ef commands
+# This password comes from appsettings.Development.json and is extracted by the script.
+export PGPASSWORD="$DB_PASSWORD"
+
+# Execute dotnet ef database update directly to stream output
+# This will show all verbose output from EF Core directly to the console.
+dotnet ef database update --context ApplicationDbContext --project "../${NOM_DATA_PROJECT}" --startup-project . --verbose
+
+DB_UPDATE_EXIT_CODE=$? # Capture exit code of the direct ef command
+
+# Unset PGPASSWORD immediately after use for security
+unset PGPASSWORD
 
 if [ $DB_UPDATE_EXIT_CODE -ne 0 ]; then
     echo "CRITICAL ERROR: Applying database migration failed!" >&2
-    echo "Full Output:" >&2
-    echo "$DB_UPDATE_OUTPUT" >&2
+    # The full output from dotnet ef should already be streamed above.
+    echo "ACTION REQUIRED: Review the detailed output above for EF Core errors." >&2
+    echo "Verify the connection string in appsettings.Development.json for user '$DB_USER' and database '$DB_NAME'." >&2
+    echo "Ensure the database user '$DB_USER' has correct permissions on '$DB_NAME'." >&2
     exit 1
 else
     echo "Database migration applied successfully."

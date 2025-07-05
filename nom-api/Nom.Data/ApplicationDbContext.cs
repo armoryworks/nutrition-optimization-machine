@@ -321,7 +321,8 @@ namespace Nom.Data
             modelBuilder.Entity<IngredientEntity>(entity =>
             {
                 entity.ToTable("Ingredient", schema: "recipe"); // Ensure table mapping
-                entity.HasIndex(e => e.Name).IsUnique();
+                entity.HasIndex(e => e.Name).IsUnique()
+                      .HasFilter("\"FdcId\" IS NOT NULL");
                 entity.HasIndex(e => e.FdcId).IsUnique()
                       .HasFilter("\"FdcId\" IS NOT NULL"); // Only enforce uniqueness if FdcId is not null
             });
@@ -383,8 +384,8 @@ namespace Nom.Data
 
             modelBuilder.Entity<NutrientEntity>(entity =>
             {
-                entity.HasIndex(e => e.Name).IsUnique();
-                entity.HasIndex(e => e.FdcId).IsUnique();
+                entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"FdcId\" IS NOT NULL"); ;
+                entity.HasIndex(e => e.FdcId).IsUnique().HasFilter("\"FdcId\" IS NOT NULL"); ;
             });
 
             // Add composite unique index for IngredientNutrientEntity

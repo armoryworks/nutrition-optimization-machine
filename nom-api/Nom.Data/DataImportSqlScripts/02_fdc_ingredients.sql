@@ -35,32 +35,39 @@ BEGIN
     ) f
     WHERE f.rn > 1;
 
-    -- 3. Insert or update recipe.Ingredient table
-    -- Use FDC's 'description' as the main ingredient name. Deduplicate by 'Name'.
-    -- Use FDC 'fdc_id' as 'FdcId'.
-    -- Added DISTINCT ON to handle potential duplicate descriptions within the food.csv itself.
-    INSERT INTO recipe."Ingredient" ("Name", "Description", "FdcId", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId")
-    SELECT DISTINCT ON (TRIM(f.description)) -- Ensure only one row per unique description
-        TRIM(f.description),
-        NULL, -- 'scientific_name' is not in your food.csv, so it will be NULL
-        TRIM(f.fdc_id),
-        NOW() AT TIME ZONE 'UTC',
-        system_person_id,
-        NOW() AT TIME ZONE 'UTC',
-        system_person_id
-    FROM fdc_food_staging f
-    WHERE TRIM(f.description) IS NOT NULL AND TRIM(f.description) != ''
-    ORDER BY TRIM(f.description), f.fdc_id -- Order to ensure consistent selection for DISTINCT ON
-    ON CONFLICT ("Name") DO UPDATE SET -- Update if name conflicts
-        "Description" = COALESCE(EXCLUDED."Description", recipe."Ingredient"."Description"),
-        "FdcId" = COALESCE(EXCLUDED."FdcId", recipe."Ingredient"."FdcId"),
-        "LastModifiedDate" = NOW() AT TIME ZONE 'UTC',
-        "LastModifiedByPersonId" = system_person_id
-    WHERE
-        -- Only update if the existing FdcId is null or description is less complete
-        recipe."Ingredient"."FdcId" IS NULL OR recipe."Ingredient"."Description" IS NULL;
+    -- MERGE recipe.Ingredient table
+    -- This uses the FDC food.csv data to insert new ingredients or update existing ones.
+    -- The MERGE statement handles deduplication from the source (DISTINCT ON)
+    -- and applies the specific update conditions (FdcId IS NULL OR Description IS NULL).
+    MERGE INTO recipe."Ingredient" AS target
+    USING (
+        SELECT DISTINCT ON (TRIM(f.description)) -- Ensure only one row per unique description from source
+            TRIM(f.description) AS description_trimmed,
+            TRIM(f.fdc_id) AS fdc_id_source
+        FROM fdc_food_staging f
+        WHERE TRIM(f.description) IS NOT NULL AND TRIM(f.description) != ''
+        ORDER BY TRIM(f.description), f.fdc_id -- Order to ensure consistent selection for DISTINCT ON
+    ) AS source
+    ON LOWER(target."Name") = LOWER(source.description_trimmed) -- Match on lower-cased name
+    WHEN MATCHED AND (target."FdcId" IS NULL OR target."Description" IS NULL) THEN -- Only update if existing is less complete
+        UPDATE SET
+            "Description" = COALESCE(target."Description", NULL), -- No scientific_name from current CSV
+            "FdcId" = COALESCE(target."FdcId", source.fdc_id_source), -- Fill FdcId if currently NULL
+            "LastModifiedDate" = NOW() AT TIME ZONE 'UTC',
+            "LastModifiedByPersonId" = system_person_id
+    WHEN NOT MATCHED THEN
+        INSERT ("Name", "Description", "FdcId", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId")
+        VALUES (
+            source.description_trimmed,
+            NULL, -- No scientific_name from current CSV
+            source.fdc_id_source,
+            NOW() AT TIME ZONE 'UTC',
+            system_person_id,
+            NOW() AT TIME ZONE 'UTC',
+            system_person_id
+        );
 
-    RAISE NOTICE 'Processed ingredients into recipe.Ingredient table.';
+    RAISE NOTICE 'Processed ingredients into recipe.Ingredient table using MERGE.';
 
     -- 4. Populate recipe.IngredientAlias table
     -- NOTE: Your food.csv does not contain 'branded_food_category' or 'scientific_name'.

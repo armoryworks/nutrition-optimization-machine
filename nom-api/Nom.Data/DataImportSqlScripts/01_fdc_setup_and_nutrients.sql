@@ -47,37 +47,47 @@ BEGIN
     ) n
     WHERE n.rn > 1;
 
-    -- 3. Insert or update nutrient.Nutrient table
-    -- Deduplicate by 'Name'. Use FDC's 'id' as 'FdcId'.
-    -- Use DISTINCT ON to handle duplicate names in the source CSV, picking one arbitrarily (e.g., min(id))
-    INSERT INTO nutrient."Nutrient" ("Name", "Description", "DefaultMeasurementTypeId", "FdcId", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId")
-    SELECT DISTINCT ON (TRIM(n.name)) -- Ensure only one row per unique name
-        TRIM(n.name),
-        NULL, -- 'footnote' is not in your nutrient.csv, so it will be NULL
-        CASE
-            WHEN LOWER(TRIM(n.unit_name)) = 'g' THEN measurement_type_g_id
-            WHEN LOWER(TRIM(n.unit_name)) = 'mg' THEN measurement_type_mg_id
-            WHEN LOWER(TRIM(n.unit_name)) = 'µg' THEN measurement_type_mcg_id
-            WHEN LOWER(TRIM(n.unit_name)) = 'mcg' THEN measurement_type_mcg_id
-            WHEN LOWER(TRIM(n.unit_name)) = 'kcal' THEN measurement_type_kcal_id
-            ELSE measurement_type_unknown_id -- Default to unknown if not mapped
-        END,
-        TRIM(n.id), -- Using 'id' from nutrient.csv as FdcId
-        NOW() AT TIME ZONE 'UTC',
-        system_person_id,
-        NOW() AT TIME ZONE 'UTC',
-        system_person_id
-    FROM fdc_nutrient_staging n
-    ORDER BY TRIM(n.name), n.id -- Order to ensure consistent selection for DISTINCT ON
-    ON CONFLICT ("Name") DO UPDATE SET -- Update if name conflicts (case-insensitive due to EF Core query)
-        "Description" = COALESCE(EXCLUDED."Description", nutrient."Nutrient"."Description"),
-        "FdcId" = COALESCE(EXCLUDED."FdcId", nutrient."Nutrient"."FdcId"),
-        "LastModifiedDate" = NOW() AT TIME ZONE 'UTC',
-        "LastModifiedByPersonId" = system_person_id
-    WHERE
-        nutrient."Nutrient"."FdcId" IS NULL OR nutrient."Nutrient"."Description" IS NULL; -- Only update if existing is less complete
+    -- MERGE nutrient.Nutrient table
+    -- This uses the FDC nutrient.csv data to insert new nutrients or update existing ones.
+    -- The MERGE statement now handles the deduplication from the source (DISTINCT ON)
+    -- and applies the specific update conditions (FdcId IS NULL OR Description IS NULL).
+    MERGE INTO nutrient."Nutrient" AS target
+    USING (
+        SELECT DISTINCT ON (TRIM(n.name)) -- Ensure only one row per unique name from source
+            TRIM(n.name) AS name_trimmed,
+            TRIM(n.id) AS fdc_id_source,
+            CASE
+                WHEN LOWER(TRIM(n.unit_name)) = 'g' THEN measurement_type_g_id
+                WHEN LOWER(TRIM(n.unit_name)) = 'mg' THEN measurement_type_mg_id
+                WHEN LOWER(TRIM(n.unit_name)) = 'µg' THEN measurement_type_mcg_id
+                WHEN LOWER(TRIM(n.unit_name)) = 'mcg' THEN measurement_type_mcg_id
+                WHEN LOWER(TRIM(n.unit_name)) = 'kcal' THEN measurement_type_kcal_id
+                ELSE measurement_type_unknown_id -- Default to unknown if not mapped
+            END AS default_measurement_type_id_source
+        FROM fdc_nutrient_staging n
+        ORDER BY TRIM(n.name), n.id -- Order to ensure consistent selection for DISTINCT ON
+    ) AS source
+    ON LOWER(target."Name") = LOWER(source.name_trimmed) -- Match on lower-cased name
+    WHEN MATCHED AND (target."FdcId" IS NULL OR target."Description" IS NULL) THEN -- Only update if existing is less complete
+        UPDATE SET
+            "Description" = COALESCE(target."Description", NULL), -- No description from current CSV
+            "FdcId" = COALESCE(target."FdcId", source.fdc_id_source), -- Fill FdcId if currently NULL
+            "LastModifiedDate" = NOW() AT TIME ZONE 'UTC',
+            "LastModifiedByPersonId" = system_person_id
+    WHEN NOT MATCHED THEN
+        INSERT ("Name", "Description", "DefaultMeasurementTypeId", "FdcId", "CreatedDate", "CreatedByPersonId", "LastModifiedDate", "LastModifiedByPersonId")
+        VALUES (
+            source.name_trimmed,
+            NULL, -- No description from current CSV
+            source.default_measurement_type_id_source,
+            source.fdc_id_source,
+            NOW() AT TIME ZONE 'UTC',
+            system_person_id,
+            NOW() AT TIME ZONE 'UTC',
+            system_person_id
+        );
 
-    RAISE NOTICE 'Processed nutrients into nutrient.Nutrient table.';
+    RAISE NOTICE 'Processed nutrients into nutrient.Nutrient table using MERGE.';
 
 EXCEPTION
     WHEN OTHERS THEN
