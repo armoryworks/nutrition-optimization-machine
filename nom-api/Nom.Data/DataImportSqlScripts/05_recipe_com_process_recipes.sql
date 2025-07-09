@@ -1,7 +1,7 @@
 -- 05_recipe_com_process_recipes.sql
--- This script processes a single batch of recipe main data from recipe.recipe_com_recipe_staging
--- and inserts it into the recipe."Recipe" table.
--- It expects _offset and _limit variables to be passed by the calling script (e.g., import_recipes.sh).
+-- This script processes a single batch of raw recipe data from
+-- recipe.recipe_com_recipe_staging and inserts it into recipe."Recipe".
+-- It expects _offset and _limit variables to be passed by the calling script.
 -- This script runs as a single, atomic transaction, with PL/pgSQL logic inside a DO block.
 
 -- Set client_min_messages to WARNING to avoid excessive output from notices if not needed
@@ -27,67 +27,75 @@ DECLARE
 BEGIN
     RAISE NOTICE '--- Starting 05_recipe_com_process_recipes.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 
-    -- Acquire an advisory lock for this process to prevent concurrency issues
-    PERFORM pg_advisory_xact_lock(123456789::BIGINT);
+    -- Acquire a session-level advisory lock for this process to prevent concurrency issues.
+    -- Using a distinct lock ID for recipes (123456789)
+    PERFORM pg_advisory_lock(123456789::BIGINT);
 
-    -- Select a batch of recipe links that have not yet been processed
-    -- The OFFSET and LIMIT are applied here
-    WITH unprocessed_recipes AS (
+    -- Select a batch of raw recipes that have not yet been processed (i.e., not in recipe."Recipe")
+    -- The _offset and _limit are applied here.
+    -- Ordering by link ensures consistent pagination across runs.
+    WITH unprocessed_recipes_batch AS (
         SELECT
             s.link,
-            s.title AS recipe_name,
-            s.source AS source_site
+            s.title,
+            s.source,
+            s.ingredients, -- raw ingredients string
+            s.directions   -- raw directions string
         FROM recipe.recipe_com_recipe_staging s
         WHERE NOT EXISTS (
             SELECT 1
             FROM recipe."Recipe" r
-            WHERE r."SourceUrl" = s.link
+            WHERE r."SourceUrl" = s.link -- Reverted to case-sensitive match
         )
-        ORDER BY s.link -- Ensure consistent ordering for pagination
+        ORDER BY s.link -- Crucial for consistent OFFSET/LIMIT
         OFFSET current_offset
         LIMIT current_limit
     )
-    INSERT INTO recipe."Recipe" (
-        "Name",
-        "Description",
-        "SourceUrl",
-        "SourceSite",
-        "IsCurated",
-        "CuratedById",
-        "CuratedDate",
-        "CreatedByPersonId",
-        "CreatedDate",
-        "LastModifiedByPersonId",
-        "LastModifiedDate"
-    )
-    SELECT
-        ur.recipe_name,
-        ur.recipe_name, -- Placeholder, can be refined from NER or summary later
-        ur.link,
-        ur.source_site,
-        TRUE,
-        system_person_id,
-        NOW(),
-        system_person_id,
-        NOW(),
-        system_person_id,
-        NOW()
-    FROM unprocessed_recipes ur;
+    -- Use MERGE for upserting into recipe."Recipe" based on "SourceUrl"
+    MERGE INTO recipe."Recipe" AS target
+    USING unprocessed_recipes_batch AS source
+    ON target."SourceUrl" = source.link -- Reverted to case-sensitive match
+    WHEN NOT MATCHED THEN
+        INSERT (
+            "Name",
+            "Description",
+            "Instructions",
+            "RawIngredientsString",
+            "SourceUrl",
+            "SourceSite",
+            "IsCurated",
+            "CreatedByPersonId",
+            "CreatedDate",
+            "LastModifiedByPersonId",
+            "LastModifiedDate"
+        )
+        VALUES (
+            source.title,
+            source.title,
+            source.directions,
+            source.ingredients,
+            source.link,
+            source.source,
+            FALSE, -- Default to not curated
+            system_person_id,
+            NOW(),
+            system_person_id,
+            NOW()
+        );
 
     GET DIAGNOSTICS processed_count = ROW_COUNT;
 
     RAISE NOTICE 'Processed % recipe records in this batch.', processed_count;
 
-    -- Release the advisory lock
+    -- Explicitly release the session-level advisory lock.
     PERFORM pg_advisory_unlock(123456789::BIGINT);
 
     RAISE NOTICE '--- 05_recipe_com_process_recipes.sql (Batch Offset: %) completed successfully ---', current_offset;
 
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE NOTICE 'ERROR in 05_recipe_com_process_recipes.sql (Batch Offset: %): %', current_offset, SQLERRM;
-        RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-        -- Re-raise the error to cause the outer transaction (managed by BEGIN/COMMIT) to rollback
+        RAISE EXCEPTION 'ERROR in 05_recipe_com_process_recipes.sql (Batch Offset: %): %', current_offset, SQLERRM;
+        PERFORM pg_advisory_unlock(123456789::BIGINT); -- Attempt unlock even on error
         RAISE;
 END $$; -- The PL/pgSQL anonymous code block ends here
 

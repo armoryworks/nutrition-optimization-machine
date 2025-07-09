@@ -133,7 +133,7 @@ namespace Nom.Data.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(1023)", maxLength: 1023, nullable: false),
+                    Name = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -817,7 +817,7 @@ namespace Nom.Data.Migrations
                     MinAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     MaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     RecommendedAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -974,8 +974,7 @@ namespace Nom.Data.Migrations
                     IngredientId = table.Column<long>(type: "bigint", nullable: false),
                     Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    RawLine = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    IngredientEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    RawLine = table.Column<string>(type: "Text", nullable: false),
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -986,12 +985,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RecipeIngredient", x => new { x.RecipeId, x.IngredientId });
-                    table.ForeignKey(
-                        name: "FK_RecipeIngredient_Ingredient_IngredientEntityId",
-                        column: x => x.IngredientEntityId,
-                        principalSchema: "recipe",
-                        principalTable: "Ingredient",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_RecipeIngredient_Ingredient_IngredientId",
                         column: x => x.IngredientId,
@@ -1429,12 +1422,6 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "recipe_type_index",
                 column: "RecipeTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_RecipeIngredient_IngredientEntityId",
-                schema: "recipe",
-                table: "RecipeIngredient",
-                column: "IngredientEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RecipeIngredient_IngredientId",

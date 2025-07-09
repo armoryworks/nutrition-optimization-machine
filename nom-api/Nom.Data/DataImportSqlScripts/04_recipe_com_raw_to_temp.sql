@@ -1,145 +1,122 @@
 -- 04_recipe_com_raw_to_temp.sql
--- This script handles the initial explosion of raw recipe data into temporary staging tables.
--- It performs the following steps:
--- 1. Checks for and creates necessary temporary staging tables.
--- 2. Populates recipe.recipe_com_recipe_staging with basic recipe metadata.
--- 3. Explodes raw ingredient JSON into recipe_com_raw_ingredients_exploded_staging (no parsing yet).
--- 4. Explodes raw directions JSON into recipe_com_raw_instructions_exploded_staging (no parsing yet).
--- Each step is wrapped in a transaction and includes checks for resumability.
+-- This script processes data from recipe.recipe_com_raw_staging.
+-- It performs the following actions:
+-- 1. Populates recipe.recipe_com_recipe_staging with recipe metadata (title, link, source).
+-- 2. Explodes the 'ingredients' JSON text into individual lines and inserts them into recipe.recipe_com_raw_ingredients_exploded_staging.
+-- 3. Explodes the 'directions' JSON text into individual steps and inserts them into recipe.recipe_com_raw_instructions_exploded_staging.
+-- This script is designed to be idempotent and handles batches.
+
+SET client_min_messages TO NOTICE;
+SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
+
+-- Set custom session variables using psql's -v variables.
+SET nom.current_offset = :_offset;
+SET nom.current_limit = :_limit;
+
+BEGIN;
 
 DO $$
 DECLARE
-    -- Placeholder for system_person_id (assuming it's seeded as 1L)
     system_person_id BIGINT := 1;
+    processed_recipes_count INT := 0;
+    processed_ingredients_count INT := 0;
+    processed_instructions_count INT := 0;
+    current_offset INT := current_setting('nom.current_offset')::INT;
+    current_limit INT := current_setting('nom.current_limit')::INT;
 BEGIN
-    RAISE NOTICE '--- Starting 04_recipe_com_raw_to_temp.sql ---';
+    RAISE NOTICE '--- Starting 04_recipe_com_raw_to_temp.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 
-    -- Step 1: Create Temporary Staging Tables if they do not exist
-    -- This ensures the script is resumable and idempotent for table creation.
-    BEGIN
-        RAISE NOTICE 'Step 1: Checking and creating temporary staging tables...';
-        CREATE TABLE IF NOT EXISTS recipe.recipe_com_recipe_staging (
-            link TEXT PRIMARY KEY,
-            title TEXT,
-            directions TEXT,
-            ingredients TEXT,
-            source TEXT,
-            "CreatedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "CreatedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            "LastModifiedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "LastModifiedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-        );
+    -- Acquire a session-level advisory lock for this process
+    PERFORM pg_advisory_lock(530919875::BIGINT); -- Distinct lock ID for this script
 
-        CREATE TABLE IF NOT EXISTS recipe.recipe_com_raw_ingredients_exploded_staging (
-            source_link TEXT NOT NULL,
-            line_order INT NOT NULL,
-            raw_ingredient_text TEXT,
-            "CreatedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "CreatedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            "LastModifiedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "LastModifiedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (source_link, line_order)
-        );
+    -- Step 1: Populate recipe.recipe_com_recipe_staging with recipe metadata
+    RAISE NOTICE 'Step 1: Populating recipe.recipe_com_recipe_staging...';
+    WITH raw_batch AS (
+        SELECT
+            id,
+            title,
+            link,
+            source
+        FROM recipe.recipe_com_raw_staging
+        ORDER BY id -- Ensure consistent batching
+        OFFSET current_offset
+        LIMIT current_limit
+        FOR UPDATE SKIP LOCKED -- Use SKIP LOCKED to allow concurrent runs if needed
+    )
+    INSERT INTO recipe.recipe_com_recipe_staging (title, link, source)
+    SELECT
+        TRIM(rb.title),
+        TRIM(rb.link),
+        TRIM(rb.source)
+    FROM raw_batch rb
+    WHERE TRIM(rb.link) IS NOT NULL AND TRIM(rb.link) != ''
+    ON CONFLICT (link) DO NOTHING; -- Avoid inserting duplicates based on unique link
+    GET DIAGNOSTICS processed_recipes_count = ROW_COUNT;
+    RAISE NOTICE 'Inserted/skipped % recipe records into recipe.recipe_com_recipe_staging.', processed_recipes_count;
 
-        CREATE TABLE IF NOT EXISTS recipe.recipe_com_raw_instructions_exploded_staging (
-            source_link TEXT NOT NULL,
-            instruction_step_number INT NOT NULL,
-            raw_instruction_text TEXT,
-            "CreatedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "CreatedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            "LastModifiedByPersonId" BIGINT NOT NULL DEFAULT 1,
-            "LastModifiedDateTime" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (source_link, instruction_step_number)
-        );
-        RAISE NOTICE 'Temporary staging tables checked/created.';
-    END;
+    -- Step 2: Explode 'ingredients' JSON into recipe.recipe_com_raw_ingredients_exploded_staging
+    RAISE NOTICE 'Step 2: Exploding ingredients JSON into recipe.recipe_com_raw_ingredients_exploded_staging...';
+    WITH raw_batch AS (
+        SELECT
+            id,
+            ingredients,
+            link AS source_link
+        FROM recipe.recipe_com_raw_staging
+        WHERE ingredients IS NOT NULL AND TRIM(ingredients) != ''
+        ORDER BY id
+        OFFSET current_offset
+        LIMIT current_limit
+        FOR UPDATE SKIP LOCKED
+    )
+    INSERT INTO recipe.recipe_com_raw_ingredients_exploded_staging (source_link, line_order, ingredient_line)
+    SELECT
+        rb.source_link,
+        (idx - 1) AS line_order, -- Array index is 1-based, convert to 0-based
+        TRIM(ingredient_text.value)
+    FROM raw_batch rb,
+        -- Sanitize null characters before casting to jsonb
+        jsonb_array_elements_text(REPLACE(rb.ingredients, '\u0000', '')::jsonb) WITH ORDINALITY AS ingredient_text(value, idx)
+    WHERE TRIM(ingredient_text.value) IS NOT NULL AND TRIM(ingredient_text.value) != '' -- Exclude empty lines
+    ON CONFLICT (source_link, line_order) DO NOTHING; -- Avoid inserting duplicates (requires unique constraint on source_link, line_order)
+    GET DIAGNOSTICS processed_ingredients_count = ROW_COUNT;
+    RAISE NOTICE 'Inserted/skipped % ingredient lines into recipe.recipe_com_raw_ingredients_exploded_staging.', processed_ingredients_count;
 
-    -- Step 2: Populate recipe.recipe_com_recipe_staging (Basic Recipe Details)
-    -- This step inserts main recipe metadata from the raw source table.
-    -- It is resumable by checking if the target table is already populated.
-    BEGIN
-        RAISE NOTICE 'Step 2: Populating recipe.recipe_com_recipe_staging...';
-        IF (SELECT COUNT(*) FROM recipe.recipe_com_recipe_staging) = 0 THEN
-            INSERT INTO recipe.recipe_com_recipe_staging (title, directions, ingredients, link, source)
-            SELECT
-                TRIM(title),
-                TRIM(directions),
-                TRIM(ingredients),
-                TRIM(link),
-                TRIM(source)
-            FROM recipe.recipe_com_raw_staging
-            WHERE TRIM(link) IS NOT NULL AND TRIM(link) != ''
-            ON CONFLICT (link) DO NOTHING;
-            RAISE NOTICE 'Populated recipe.recipe_com_recipe_staging.';
-        ELSE
-            RAISE NOTICE 'recipe.recipe_com_recipe_staging already populated. Skipping.';
-        END IF;
-    EXCEPTION
-        WHEN OTHERS THEN
-            RAISE NOTICE 'ERROR in Step 2 (Populating recipe.recipe_com_recipe_staging): %', SQLERRM;
-            RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-            RAISE; -- Re-raise the error
-    END;
+    -- Step 3: Explode 'directions' JSON into recipe.recipe_com_raw_instructions_exploded_staging
+    RAISE NOTICE 'Step 3: Exploding directions JSON into recipe.recipe_com_raw_instructions_exploded_staging...';
+    WITH raw_batch AS (
+        SELECT
+            id,
+            directions,
+            link AS source_link
+        FROM recipe.recipe_com_raw_staging
+        WHERE directions IS NOT NULL AND TRIM(directions) != ''
+        ORDER BY id
+        OFFSET current_offset
+        LIMIT current_limit
+        FOR UPDATE SKIP LOCKED
+    )
+    INSERT INTO recipe.recipe_com_raw_instructions_exploded_staging (source_link, instruction_step_number, instruction_text)
+    SELECT
+        rb.source_link,
+        (idx - 1) AS instruction_step_number, -- Array index is 1-based, convert to 0-based
+        TRIM(instruction_text.value)
+    FROM raw_batch rb,
+        -- Sanitize null characters before casting to jsonb
+        jsonb_array_elements_text(REPLACE(rb.directions, '\u0000', '')::jsonb) WITH ORDINALITY AS instruction_text(value, idx)
+    WHERE TRIM(instruction_text.value) IS NOT NULL AND TRIM(instruction_text.value) != '' -- Exclude empty lines
+    ON CONFLICT (source_link, instruction_step_number) DO NOTHING; -- Avoid inserting duplicates (requires unique constraint on source_link, instruction_step_number)
+    GET DIAGNOSTICS processed_instructions_count = ROW_COUNT;
+    RAISE NOTICE 'Inserted/skipped % instruction steps into recipe.recipe_com_raw_instructions_exploded_staging.', processed_instructions_count;
 
-    -- Step 3: Explode Raw Ingredient JSON into recipe_com_raw_ingredients_exploded_staging
-    -- This step breaks down the ingredients JSON array into individual rows.
-    -- No parsing of individual ingredient text occurs here.
-    BEGIN
-        RAISE NOTICE 'Step 3: Exploding raw ingredient JSON into recipe_com_raw_ingredients_exploded_staging...';
-        -- Check if the table is already populated for all source links present in raw_staging
-        IF NOT EXISTS (SELECT 1 FROM recipe.recipe_com_raw_ingredients_exploded_staging WHERE source_link IN (SELECT link FROM recipe.recipe_com_raw_staging)) THEN
-            INSERT INTO recipe.recipe_com_raw_ingredients_exploded_staging (source_link, line_order, raw_ingredient_text)
-            SELECT
-                r.link,
-                (idx - 1) AS line_order, -- Array index is 1-based, convert to 0-based
-                TRIM(ingredient_text.value)
-            FROM recipe.recipe_com_raw_staging r,
-                jsonb_array_elements_text(REPLACE(r.ingredients, '\u0000', '')::jsonb) WITH ORDINALITY AS ingredient_text(value, idx) -- Sanitize null chars
-            WHERE TRIM(ingredient_text.value) IS NOT NULL AND TRIM(ingredient_text.value) != ''
-            ON CONFLICT (source_link, line_order) DO NOTHING; -- Ensure idempotency for individual ingredient lines
-            RAISE NOTICE 'Exploded raw ingredients into recipe_com_raw_ingredients_exploded_staging.';
-        ELSE
-            RAISE NOTICE 'recipe_com_raw_ingredients_exploded_staging already populated for existing links. Skipping.';
-        END IF;
-    EXCEPTION
-        WHEN OTHERS THEN
-            RAISE NOTICE 'ERROR in Step 3 (Exploding raw ingredients): %', SQLERRM;
-            RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-            RAISE; -- Re-raise the error
-    END;
+    PERFORM pg_advisory_unlock(530919875::BIGINT);
 
-    -- Step 4: Explode Raw Directions JSON into recipe_com_raw_instructions_exploded_staging
-    -- This step breaks down the directions JSON array into individual rows.
-    -- No parsing of individual instruction text occurs here.
-    BEGIN
-        RAISE NOTICE 'Step 4: Exploding raw directions JSON into recipe_com_raw_instructions_exploded_staging...';
-        -- Check if the table is already populated for all source links present in raw_staging
-        IF NOT EXISTS (SELECT 1 FROM recipe.recipe_com_raw_instructions_exploded_staging WHERE source_link IN (SELECT link FROM recipe.recipe_com_raw_staging)) THEN
-            INSERT INTO recipe.recipe_com_raw_instructions_exploded_staging (source_link, instruction_step_number, raw_instruction_text)
-            SELECT
-                r.link,
-                (idx - 1) AS instruction_step_number, -- Array index is 1-based, convert to 0-based
-                TRIM(instruction_text.value)
-            FROM recipe.recipe_com_raw_staging r,
-                jsonb_array_elements_text(REPLACE(r.directions, '\u0000', '')::jsonb) WITH ORDINALITY AS instruction_text(value, idx) -- Sanitize null chars
-            WHERE TRIM(instruction_text.value) IS NOT NULL AND TRIM(instruction_text.value) != ''
-            ON CONFLICT (source_link, instruction_step_number) DO NOTHING; -- Ensure idempotency for individual instruction lines
-            RAISE NOTICE 'Exploded raw instructions into recipe_com_raw_instructions_exploded_staging.';
-        ELSE
-            RAISE NOTICE 'recipe_com_raw_instructions_exploded_staging already populated for existing links. Skipping.';
-        END IF;
-    EXCEPTION
-        WHEN OTHERS THEN
-            RAISE NOTICE 'ERROR in Step 4 (Exploding raw instructions): %', SQLERRM;
-            RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-            RAISE; -- Re-raise the error
-    END;
-
-    RAISE NOTICE '--- 04_recipe_com_raw_to_temp.sql completed successfully ---';
+    RAISE NOTICE '--- 04_recipe_com_raw_to_temp.sql (Batch Offset: %) completed successfully ---', current_offset;
 
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE NOTICE 'CRITICAL ERROR in 04_recipe_com_raw_to_temp.sql: %', SQLERRM;
-        RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-        RAISE; -- Re-raise the original error, causing rollback of the entire DO block
+        RAISE EXCEPTION 'ERROR in 04_recipe_com_raw_to_temp.sql (Batch Offset: %): %', current_offset, SQLERRM;
+        PERFORM pg_advisory_unlock(530919875::BIGINT);
+        RAISE;
 END $$;
+
+COMMIT;

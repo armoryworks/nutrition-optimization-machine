@@ -486,8 +486,7 @@ namespace Nom.Data.Migrations
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<long>("NutrientId")
                         .HasColumnType("bigint");
@@ -976,8 +975,8 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(1023)
-                        .HasColumnType("character varying(1023)");
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
 
                     b.HasKey("Id");
 
@@ -1088,9 +1087,6 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("IngredientEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1105,12 +1101,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("RawLine")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("Text");
 
                     b.HasKey("RecipeId", "IngredientId");
-
-                    b.HasIndex("IngredientEntityId");
 
                     b.HasIndex("IngredientId");
 
@@ -1864,10 +1857,6 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
-                        .WithMany("RecipeIngredients")
-                        .HasForeignKey("IngredientEntityId");
-
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
@@ -2067,8 +2056,6 @@ namespace Nom.Data.Migrations
                     b.Navigation("Aliases");
 
                     b.Navigation("IngredientNutrients");
-
-                    b.Navigation("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>

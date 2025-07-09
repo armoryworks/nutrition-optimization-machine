@@ -63,8 +63,7 @@ namespace Nom.Data.Recipe
         /// The original raw text line of the ingredient as it appeared in the source recipe (e.g., "1 1/2 cups all-purpose flour").
         /// Useful for debugging, display, or if parsing is incomplete.
         /// </summary>
-        [Required]
-        [MaxLength(500)] // Adjust max length as needed
+        [Column(TypeName = "Text")] // Adjust max length as needed
         public string RawLine { get; set; } = string.Empty;
     }
 }

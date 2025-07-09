@@ -80,7 +80,7 @@ namespace Nom.Data.Nutrient
         /// A descriptive message providing more context about the guideline,
         /// such as its basis (RDA, AI, UL, AMDR) or specific footnotes from the source document.
         /// </summary>
-        [MaxLength(500)]
+        [Column(TypeName = "text")]
         public string? Notes { get; set; }
     }
 }

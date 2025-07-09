@@ -29,7 +29,7 @@ BEGIN
     RAISE NOTICE '--- Starting 07_recipe_com_process_instructions.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 
     -- Acquire a session-level advisory lock for this process to prevent concurrency issues.
-    -- This lock will persist until explicitly unlocked or the session ends.
+    -- Using a distinct lock ID for instructions (246813579)
     PERFORM pg_advisory_lock(246813579::BIGINT);
 
     -- Select a batch of instruction lines that have not yet been processed
@@ -47,7 +47,7 @@ BEGIN
         WHERE NOT EXISTS (
             SELECT 1
             FROM recipe."RecipeStep" rs
-            WHERE rs."RecipeId" = r."Id" AND rs."StepNumber" = rie.instruction_step_number -- Corrected: Use StepNumber
+            WHERE rs."RecipeId" = r."Id" AND rs."StepNumber" = rie.instruction_step_number
         )
         ORDER BY rie.source_link, rie.instruction_step_number -- Crucial for consistent OFFSET/LIMIT
         OFFSET current_offset
@@ -56,8 +56,8 @@ BEGIN
     INSERT INTO recipe."RecipeStep" (
         "RecipeId",
         "StepNumber",
-        "Summary", -- This is for a short summary, if needed.
-        "Description", -- Corrected: inserting full text into "Description"
+        "Summary",
+        "Description",
         "CreatedByPersonId",
         "CreatedDate",
         "LastModifiedByPersonId",
@@ -66,8 +66,8 @@ BEGIN
     SELECT
         uil.recipe_id,
         uil.instruction_step_number,
-        LEFT(uil.raw_instruction_text, 255), -- Short summary
-        uil.raw_instruction_text, -- Insert raw_instruction_text directly into "Description"
+        LEFT(uil.raw_instruction_text, 255),
+        uil.raw_instruction_text,
         system_person_id,
         NOW(),
         system_person_id,
@@ -85,14 +85,9 @@ BEGIN
 
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE NOTICE 'ERROR in 07_recipe_com_process_instructions.sql (Batch Offset: %): %', current_offset, SQLERRM;
-        RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
-        -- Attempt to release the lock even on error, important for session-level locks.
-        PERFORM pg_advisory_unlock(246813579::BIGINT);
-        -- Re-raise the error to cause the outer transaction (managed by BEGIN/COMMIT) to rollback
+        RAISE EXCEPTION 'ERROR in 07_recipe_com_process_instructions.sql (Batch Offset: %): %', current_offset, SQLERRM;
+        PERFORM pg_advisory_unlock(246813579::BIGINT); -- Attempt unlock even on error
         RAISE;
-END $$; -- The PL/pgSQL anonymous code block ends here
+END $$;
 
--- Commit the transaction for this batch.
--- If an error occurred in the PL/pgSQL block and was re-raised, the transaction will be aborted.
 COMMIT;

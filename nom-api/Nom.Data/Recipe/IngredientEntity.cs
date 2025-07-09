@@ -20,7 +20,7 @@ namespace Nom.Data.Recipe
         /// Corresponds to VARCHAR(255) NOT NULL.
         /// </summary>
         [Required]
-        [MaxLength(1023)]
+        [MaxLength(2047)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
@@ -39,7 +39,6 @@ namespace Nom.Data.Recipe
         public string? FdcId { get; set; }
 
         // Navigation properties
-        public virtual ICollection<RecipeIngredientEntity> RecipeIngredients { get; set; } = new List<RecipeIngredientEntity>();
         public virtual ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();
         public virtual ICollection<IngredientAliasEntity> Aliases { get; set; } = new List<IngredientAliasEntity>(); // New collection for aliases
     }
