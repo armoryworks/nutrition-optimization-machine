@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "coreclr",
+      "request": "launch",
+      "name": "Launch Nom.Api",
+      "program": "${workspaceFolder}/nom-api/Nom.Api/bin/Debug/net9.0/${input:executableName}",
+      "args": [],
+      "cwd": "${workspaceFolder}/nom-api/Nom.Api",
+      "preLaunchTask": "build-nom-api"
+    },
+    {
+      "type": "coreclr",
+      "request": "launch",
+      "name": "Launch Nom.Import",
+      "program": "${workspaceFolder}/nom-api/Nom.Import/bin/Debug/net9.0/${input:importExecutableName}",
+      "args": [],
+      "cwd": "${workspaceFolder}/nom-api/Nom.Import",
+      "preLaunchTask": "build-nom-import"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "executableName",
+      "type": "promptString",
+      "description": "Enter the Nom.Api executable name (e.g., Nom.Api.dll)"
+    },
+    {
+      "id": "importExecutableName",
+      "type": "promptString",
+      "description": "Enter the Nom.Import executable name (e.g., Nom.Import.dll)"
+    }
+  ]
+}

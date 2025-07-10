@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Nom.Import": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "hotReloadEnabled": false,
+      "launchBrowser": false
+    }
+  }
+}
