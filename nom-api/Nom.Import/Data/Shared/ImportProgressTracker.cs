@@ -1,144 +1,80 @@
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Nom.Import.Models;
 
 namespace Nom.Import.Data.Shared
 {
     /// <summary>
-    /// Tracks import progress by storing stage offsets in a file in the /tmp directory.
+    /// Tracks the progress of various import stages and reports statistics to the ImportReportGenerator.
+    /// This class is thread-safe.
     /// </summary>
     public class ImportProgressTracker
     {
+        private readonly ConcurrentDictionary<string, long> _processedCounts = new ConcurrentDictionary<string, long>();
+        private readonly ConcurrentDictionary<string, long> _totalCounts = new ConcurrentDictionary<string, long>();
         private readonly ILogger<ImportProgressTracker> _logger;
-        private readonly string _progressFilePath;
-        private Dictionary<string, long> _progressCache = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        private readonly ImportReportGenerator _reportGenerator; // Inject the report generator
 
-        public ImportProgressTracker(ILogger<ImportProgressTracker> logger)
+        public ImportProgressTracker(ILogger<ImportProgressTracker> logger, ImportReportGenerator reportGenerator)
         {
             _logger = logger;
-            // Define the path for the progress file in /tmp
-            _progressFilePath = Path.Combine(Path.GetTempPath(), "nom_import_progress.log");
-            LoadProgressFromFile();
+            _reportGenerator = reportGenerator; // Assign the injected generator
         }
 
         /// <summary>
-        /// Loads all stage progress from the progress file into memory.
-        /// </summary>
-        private void LoadProgressFromFile()
-        {
-            _progressCache.Clear();
-            if (File.Exists(_progressFilePath))
-            {
-                try
-                {
-                    var lines = File.ReadAllLines(_progressFilePath);
-                    foreach (var line in lines)
-                    {
-                        var parts = line.Split(':');
-                        if (parts.Length == 2 && long.TryParse(parts[1].Trim(), out long offset))
-                        {
-                            _progressCache[parts[0].Trim()] = offset;
-                        }
-                    }
-                    _logger.LogInformation("Loaded import progress from {FilePath}.", _progressFilePath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error loading import progress from {FilePath}. Starting fresh.", _progressFilePath);
-                    // If there's an error, treat it as if no progress was found
-                    _progressCache.Clear();
-                }
-            }
-            else
-            {
-                _logger.LogInformation("No existing import progress file found at {FilePath}.", _progressFilePath);
-            }
-        }
-
-        /// <summary>
-        /// Gets the last processed offset for a specific import stage.
+        /// Gets the last recorded processed offset for a given stage.
         /// </summary>
         /// <param name="stageName">The name of the import stage.</param>
-        /// <returns>The last processed offset, or 0 if no progress is recorded for this stage.</returns>
+        /// <returns>The last processed record count for the stage.</returns>
         public long GetLastProcessedOffset(string stageName)
         {
-            if (_progressCache.TryGetValue(stageName, out long offset))
-            {
-                _logger.LogDebug("Retrieved last processed offset for stage '{StageName}': {Offset}", stageName, offset);
-                return offset;
-            }
-            _logger.LogDebug("No previous offset found for stage '{StageName}'. Starting from 0.", stageName);
-            return 0;
+            return _processedCounts.GetOrAdd(stageName, 0);
         }
 
         /// <summary>
-        /// Updates the progress for a specific import stage and saves it to the file.
+        /// Sets the total number of records expected for a stage and records it as 'discovered'.
         /// </summary>
         /// <param name="stageName">The name of the import stage.</param>
-        /// <param name="offset">The current processed offset for the stage.</param>
-        public async Task UpdateProgressAsync(string stageName, long offset)
+        /// <param name="total">The total number of records to be processed.</param>
+        public void SetTotalRecords(string stageName, long total)
         {
-            _progressCache[stageName] = offset;
-            await SaveProgressToFileAsync();
-            _logger.LogDebug("Updated progress for stage '{StageName}': {Offset}", stageName, offset);
+            _totalCounts.AddOrUpdate(stageName, total, (key, oldValue) => total);
+            _reportGenerator.RecordDiscovered(stageName, total); // Report total discovered to the generator
+            _logger.LogInformation("Total records for stage '{StageName}': {Total}", stageName, total);
         }
 
         /// <summary>
-        /// Saves the current in-memory progress cache to the progress file.
+        /// Records the number of records successfully imported for a specific import type.
         /// </summary>
-        private async Task SaveProgressToFileAsync()
+        /// <param name="stageName">The name of the import stage.</param>
+        /// <param name="count">The number of records imported in this increment.</param>
+        public void RecordImported(string stageName, long count) // Changed from async Task to void
         {
-            try
-            {
-                var lines = _progressCache.Select(kvp => $"{kvp.Key}:{kvp.Value}");
-                await File.WriteAllLinesAsync(_progressFilePath, lines);
-                _logger.LogDebug("Saved all import progress to {FilePath}.", _progressFilePath);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving import progress to {FilePath}.", _progressFilePath);
-            }
+            _processedCounts.AddOrUpdate(stageName, count, (key, oldValue) => oldValue + count);
+            _reportGenerator.RecordImported(stageName, count); // Report imported count to the generator
         }
 
         /// <summary>
-        /// Clears the progress for a specific stage from the tracker and file.
+        /// Records a skipped record with a specific reason to the report generator.
         /// </summary>
-        /// <param name="stageName">The name of the stage to clear.</param>
-        public async Task ClearStageProgressAsync(string stageName)
+        /// <param name="stageName">The name of the import stage.</param>
+        /// <param name="reason">The reason for skipping the record.</param>
+        public void RecordSkipped(string stageName, string reason)
         {
-            if (_progressCache.Remove(stageName))
-            {
-                _logger.LogInformation("Cleared progress for stage '{StageName}'.", stageName);
-                await SaveProgressToFileAsync();
-            }
+            _reportGenerator.RecordSkipped(stageName, reason);
         }
 
         /// <summary>
-        /// Clears all import progress from the tracker and deletes the progress file.
+        /// Updates the final processed count for a stage.
         /// </summary>
-        public async Task ClearAllProgressAsync()
+        /// <param name="stageName">The name of the import stage.</param>
+        /// <param name="finalCount">The final total number of processed records.</param>
+        public async Task UpdateProgressAsync(string stageName, long finalCount)
         {
-            _progressCache.Clear();
-            if (File.Exists(_progressFilePath))
-            {
-                try
-                {
-                    File.Delete(_progressFilePath);
-                    _logger.LogInformation("Cleared all import progress and deleted file {FilePath}.", _progressFilePath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error deleting progress file {FilePath}.", _progressFilePath);
-                }
-            }
-            else
-            {
-                _logger.LogInformation("No progress file to delete at {FilePath}.", _progressFilePath);
-            }
-            await Task.CompletedTask; // For async consistency
+            _processedCounts.AddOrUpdate(stageName, finalCount, (key, oldValue) => finalCount);
+            _logger.LogInformation("Final processed count for stage '{StageName}': {ProcessedCount}", stageName, finalCount);
+            await Task.CompletedTask;
         }
     }
 }

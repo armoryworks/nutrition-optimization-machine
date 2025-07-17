@@ -46,6 +46,7 @@ namespace Nom.Data
         public DbSet<ReferenceEntity> References { get; set; } = default!;
         public DbSet<GroupEntity> Groups { get; set; } = default!;
         public DbSet<GroupedReferenceViewEntity> GroupedReferenceViews { get; set; } = default!;
+        public DbSet<MeasurementTypeViewEntity> MeasurementTypes { get; set; } = default!;
         #endregion
 
         #region Plan DbSets
@@ -321,8 +322,7 @@ namespace Nom.Data
             modelBuilder.Entity<IngredientEntity>(entity =>
             {
                 entity.ToTable("Ingredient", schema: "recipe"); // Ensure table mapping
-                entity.HasIndex(e => e.Name).IsUnique()
-                      .HasFilter("\"FdcId\" IS NOT NULL");
+                entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.FdcId).IsUnique()
                       .HasFilter("\"FdcId\" IS NOT NULL"); // Only enforce uniqueness if FdcId is not null
             });

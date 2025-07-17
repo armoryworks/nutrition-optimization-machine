@@ -5,16 +5,30 @@
 # into the PostgreSQL database, reading connection details from appsettings.Development.json.
 # It now utilizes modular, transactional, and resumable SQL scripts for robustness.
 # This version adds interactive stage selection with a countdown and an optional global debug limit.
+#
+# Version 41: Fixed syntax error in check_write_permissions function (misplaced '}' instead of 'fi').
+
+# --- Configuration for Log Files (MUST be at the very top) ---
+LOG_FILE="/tmp/recipe_import_log.log"
+ERROR_LOG_FILE="/tmp/recipe_import_error.log"
+MALFORMED_INGREDIENTS_FILE="/tmp/malformed_ingredients.log"
+
+# Ensure log files exist and are empty at the very start of a run
+# (If you're resuming, you might want to comment these out or handle them differently)
+> "$LOG_FILE"
+> "$ERROR_LOG_FILE"
+> "$MALFORMED_INGREDIENTS_FILE"
 
 # Exit immediately if a command exits with a non-zero status.
 set -e
+# set -x # Removed verbose debugging output as requested
 
 # --- Debugging: Print SCRIPT_DIR at the very beginning ---
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-echo "DEBUG: SCRIPT_DIR is: ${SCRIPT_DIR}"
+echo "DEBUG: SCRIPT_DIR is: ${SCRIPT_DIR}" | tee -a "$LOG_FILE" # Log this initial debug message
 # --- End Debugging ---
 
-# --- Configuration ---
+# --- Remaining Configuration ---
 NOM_API_PROJECT="Nom.Api"
 APPSETTINGS_FILE="${SCRIPT_DIR}/../../${NOM_API_PROJECT}/appsettings.Development.json"
 SQL_SCRIPTS_DIR="${SCRIPT_DIR}" # CORRECTED PATH: Assumes script is run from SQL scripts directory
@@ -34,13 +48,20 @@ DEBUG_LIMIT_ENABLED=false # Default to false
 
 # --- Define Stages and their mapping ---
 # Stage definitions: (name, script_file, total_records_query_stage, [optional] psql_extra_args)
-# Note: The order here defines the processing order.
+# _NONE_ for total_records_query_stage indicates a non-batch setup stage.
 stages_array=(
     "raw_explosion 04_recipe_com_raw_to_temp.sql raw_staging"
+    # New modular function creation stages - order is crucial for dependencies
+    # 04_6_recipe_com_parsing_functions.sql now only contains DROP FUNCTION statements
+    "drop_parsing_functions 04_6_recipe_com_parsing_functions.sql _NONE_ -v client_min_messages=NOTICE"
+    "create_escape_regex_chars 04_06_1_escape_regex_chars.sql _NONE_ -v client_min_messages=NOTICE"
+    "create_regexp_escape 04_06_2_regexp_escape.sql _NONE_ -v client_min_messages=NOTICE"
+    "create_parse_ingredient_line_comprehensive_v2 04_06_3_parse_ingredient_line_comprehensive_v2.sql _NONE_ -v client_min_messages=NOTICE"
+    # End new modular function creation stages
     "recipes 05_recipe_com_process_recipes.sql recipes"
     "parse_ingredient_details 05_5_recipe_com_parse_ingredient_details.sql parse_ingredient_details -v client_min_messages=NOTICE"
     "split_ingredients 05_6_recipe_com_split_ingredients.sql split_ingredients"
-    "ingredients 06_recipe_com_process_ingredients_fuzzy.sql ingredients"
+    "ingredients 06_recipe_com_process_ingredients.sql ingredients"
     "instructions 07_recipe_com_process_instructions.sql instructions"
 )
 
@@ -53,12 +74,23 @@ done
 
 # --- Functions ---
 
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to log errors
+log_error() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $1" | tee -a "$LOG_FILE" >&2 # Log to file AND stderr
+    echo "$1" >> "$ERROR_LOG_FILE"
+}
+
 # Function to get a connection string value from appsettings.Development.json using jq
 get_connection_string_value() {
     local CONNECTION_STRING_NAME="NomConnection" # Hardcoded as per previous user script
     if ! command -v jq &> /dev/null
     then
-        echo "Error: 'jq' is not installed. Please install it (e.g., 'sudo dnf install jq' on Fedora, 'brew install jq' on macOS, 'sudo apt-get install jq' on Debian/Ubuntu)." >&2
+        log_error "Error: 'jq' is not installed. Please install it (e.g., 'sudo dnf install jq' on Fedora, 'brew install jq' on macOS, 'sudo apt-get install jq' on Debian/Ubuntu)."
         return 1
     fi
 
@@ -66,8 +98,7 @@ get_connection_string_value() {
     CONNECTION_STRING_VALUE=$(jq -r ".ConnectionStrings[\"$CONNECTION_STRING_NAME\"]" "$APPSETTINGS_FILE" 2>/dev/null)
 
     if [ -z "$CONNECTION_STRING_VALUE" ] || [ "$CONNECTION_STRING_VALUE" == "null" ]; then
-        echo "Error: Could not extract connection string for '$CONNECTION_STRING_NAME' from $APPSETTINGS_FILE using jq." >&2
-        echo "Please ensure the connection string is correctly defined in 'ConnectionStrings'." >&2
+        log_error "Error: Could not extract connection string for '$CONNECTION_STRING_NAME' from $APPSETTINGS_FILE using jq. Please ensure the connection string is correctly defined in 'ConnectionStrings'."
         return 1
     fi
     echo "$CONNECTION_STRING_VALUE"
@@ -87,7 +118,7 @@ check_status() {
     local last_status=$?
     local message="$1"
     if [ $last_status -ne 0 ]; then
-        echo "ERROR: $message failed (exit code: $last_status)." >&2
+        log_error "$message failed (exit code: $last_status)."
         exit 1
     fi
 }
@@ -109,23 +140,23 @@ find_csv_directory() {
             echo "${current_path}"
             return 0
         else
-            echo -e "\n--- CSV File Search ---" >&2
-            echo "Could not find all required CSV files in: ${current_path}" >&2
-            echo "Missing files: ${missing_files[*]}" >&2
+            log_message "\n--- CSV File Search ---"
+            log_error "Could not find all required CSV files in: ${current_path}"
+            log_error "Missing files: ${missing_files[*]}"
             read -r -p "Please enter the correct directory path where the CSV files are located (or 'q' to quit): " user_input
 
             if [[ "$user_input" == "q" || "$user_input" == "Q" ]]; then
-                echo "Operation cancelled by user." >&2
+                log_message "Operation cancelled by user."
                 exit 1
             fi
             
             if [ ! -d "$user_input" ]; then
-                echo "Invalid path: The entered path is not a directory. Please try again." >&2
+                log_error "Invalid path: The entered path is not a directory. Please try again."
                 current_path="${HOME}" # Reset to HOME or a known safe path
             else
                 current_path="$user_input"
             fi
-            echo "Attempting to check: ${current_path}" >&2
+            log_message "Attempting to check: ${current_path}"
         fi
     done
 }
@@ -134,10 +165,9 @@ find_csv_directory() {
 check_write_permissions() {
     local dir="$1"
     if [ ! -w "$dir" ]; then
-        echo "WARNING: Directory '$dir' is not writable by the current user." >&2
-        echo "Duplicate reports will not be exported to this directory. Please adjust permissions if needed." >&2
+        log_error "WARNING: Directory '$dir' is not writable by the current user. Duplicate reports will not be exported to this directory. Please adjust permissions if needed."
         return 1
-    fi
+    fi # Corrected: Changed '}' to 'fi'
     return 0
 }
 
@@ -147,22 +177,23 @@ execute_sql_script_with_path_sub() {
     local description="$2"
     local csv_path_for_substitution="$3"
 
-    echo "Executing $description ($script_name)..."
+    log_message "Executing $description ($script_name)..."
     local temp_sql_file=$(mktemp /tmp/temp_sql_script_XXXXXX.sql)
 
-    sed "s|${FDC_CSV_DIR_PLACEHOLDER}|${csv_path_for_substitution}|g" "${SQL_SCRIPTS_DIR}/${script_name}" > "$temp_sql_file"
+    sed "s|${FDC_CSV_DIR_PLACEHOLDER}|${csv_path_for_substitution}|g" "$SQL_SCRIPTS_DIR/${script_name}" > "$temp_sql_file"
 
-    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -f "$temp_sql_file"; then
-        echo "Successfully executed $script_name."
+    # Direct psql's stderr to both ERROR_LOG_FILE and terminal stderr
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -f "$temp_sql_file" >> "$LOG_FILE" 2> >(tee -a "$ERROR_LOG_FILE" >&2); then
+        log_message "Successfully executed $script_name."
     else
-        echo "ERROR: Failed to execute $script_name. Check the output above for details."
+        log_error "Failed to execute $script_name. Check ${ERROR_LOG_FILE} for details."
         rm "$temp_sql_file"
         exit 1
     fi
     rm "$temp_sql_file"
 }
 
-# Function to execute basic SQL scripts (now with offset/limit variables)
+# Function to execute SQL scripts, now with dynamic handling for placeholder injection
 execute_sql_script() {
     local script_name="$1"
     local description="$2"
@@ -170,22 +201,61 @@ execute_sql_script() {
     local limit_val=${4:-0}  # Default to 0 if not provided (0 means no limit for psql -v)
     local psql_extra_args="${5:-}" # Optional: extra psql arguments
 
-    echo "Executing $description ($script_name) with offset $offset_val and limit $limit_val..."
+    log_message "Executing $description ($script_name) with offset $offset_val and limit $limit_val..."
 
-    # --- DIAGNOSTIC STEP: Print the content of the SQL file before execution ---
-    echo "--- Content of ${SQL_SCRIPTS_DIR}/${script_name} ---"
-    cat "${SQL_SCRIPTS_DIR}/${script_name}"
-    echo "--- End Content of ${SQL_SCRIPTS_DIR}/${script_name} ---"
-    # --- END DIAGNOSTIC STEP ---
+    local script_full_path="${SQL_SCRIPTS_DIR}/${script_name}"
+    
+    # Removed DIAGNOSTIC STEP: No longer printing the content of the SQL file
 
-    # Add -v client_min_messages=NOTICE to psql command by default, or use provided extra args
-    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v _offset="$offset_val" -v _limit="$limit_val" -v client_min_messages=NOTICE ${psql_extra_args} -f "${SQL_SCRIPTS_DIR}/${script_name}"; then
-        echo "Successfully executed $script_name."
+    # Build the psql command and arguments
+    local psql_command=(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1)
+    
+    # Add client_min_messages=NOTICE if ENABLE_SQL_DEBUG_MESSAGES is true
+    if [ "$ENABLE_SQL_DEBUG_MESSAGES" = true ]; then
+        psql_command+=("-v" "client_min_messages=NOTICE")
     else
-        echo "ERROR: Failed to execute $script_name. Check the output above for details."
+        psql_command+=("-v" "client_min_messages=WARNING") # Default to WARNING for less verbosity
+    fi
+
+    # Add any extra psql arguments for this stage
+    if [ -n "${psql_extra_args}" ]; then
+        # Use a temporary array to correctly expand psql_extra_args into individual elements
+        local extra_args_array=(${psql_extra_args})
+        psql_command+=("${extra_args_array[@]}")
+    fi
+
+    local psql_status=0
+
+    # Check if the script requires placeholder substitution
+    # NOTE: The parsing functions (04_06_1_*, 04_06_2_*, 04_06_3_*) do NOT use placeholders
+    # and should be executed directly via -f. Only the batch processing scripts need substitution.
+    if [[ "$script_name" == "04_recipe_com_raw_to_temp.sql" || \
+          "$script_name" == "05_recipe_com_process_recipes.sql" || \
+          "$script_name" == "05_5_recipe_com_parse_ingredient_details.sql" || \
+          "$script_name" == "05_6_recipe_com_split_ingredients.sql" || \
+          "$script_name" == "06_recipe_com_process_ingredients.sql" || \
+          "$script_name" == "07_recipe_com_process_instructions.sql" ]]; then
+        log_message "INFO: Performing placeholder substitution for ${script_name}."
+        # Read script, substitute placeholders, and pipe to psql
+        PGPASSWORD="$DB_PASSWORD" cat "$script_full_path" | \
+            sed "s/__OFFSET_PLACEHOLDER__/${offset_val}/g" | \
+            sed "s/__LIMIT_PLACEHOLDER__/${limit_val}/g" | \
+            "${psql_command[@]}" >> "$LOG_FILE" 2> >(tee -a "$ERROR_LOG_FILE" >&2)
+        psql_status=${PIPESTATUS[2]} # Get the exit status of the last command in the pipe (psql)
+    else
+        # For other scripts (including the new modular function definitions), use the traditional -f flag
+        PGPASSWORD="$DB_PASSWORD" "${psql_command[@]}" -f "$script_full_path" >> "$LOG_FILE" 2> >(tee -a "$ERROR_LOG_FILE" >&2)
+        psql_status=$?
+    fi
+
+    if [ "$psql_status" -ne 0 ]; then
+        log_error "Failed to execute ${script_name}. Check ${ERROR_LOG_FILE} for details."
         exit 1
     fi
+
+    log_message "Successfully executed $script_name."
 }
+
 
 # Function to get counts for different stages
 get_count() {
@@ -226,22 +296,23 @@ get_count() {
             count_query="SELECT COUNT(*) FROM recipe.recipe_com_raw_instructions_exploded_staging rie JOIN recipe.\"Recipe\" r ON rie.source_link = r.\"SourceUrl\" WHERE NOT EXISTS (SELECT 1 FROM recipe.\"RecipeStep\" rs WHERE rs.\"RecipeId\" = r.\"Id\" AND rs.\"StepNumber\" = rie.instruction_step_number);"
             ;;
         *)
-            echo "Error: Unknown stage '$stage_name' for total records count." >&2
+            log_error "Unknown stage '$stage_name' for total records count."
             return 1
             ;;
     esac
 
-    psql_result=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "$count_query" 2> /tmp/psql_error.log | tr -d '\n' | xargs)
-    local psql_status=$?
+    # Direct psql's stderr to both /tmp/psql_error.log and terminal stderr
+    psql_result=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "$count_query" 2> >(tee -a "/tmp/psql_error.log" >&2) | tr -d '\n' | xargs)
+    local psql_status=${PIPESTATUS[0]} # Get the exit status of the first command in the pipe (psql)
 
     if [ "$psql_status" -ne 0 ]; then
-        echo "WARNING: psql command failed for count type '$stage_name'. Check /tmp/psql_error.log for details. Returning 0." >&2
+        log_error "WARNING: psql command failed for count type '$stage_name'. Check /tmp/psql_error.log for details. Returning 0."
         echo "0"
         return 0
     fi
 
     if [[ -z "$psql_result" || ! "$psql_result" =~ ^[0-9]+$ ]]; then
-        echo "WARNING: Unexpected psql output for count type '$stage_name': '$psql_result'. Returning 0." >&2
+        log_error "WARNING: Unexpected psql output for count type '$stage_name': '$psql_result'. Returning 0."
         echo "0"
     else
         echo "$psql_result"
@@ -277,7 +348,7 @@ write_progress() {
 # Function to check if a stop flag exists
 check_stop_flag() {
     if [ -f "$STOP_FILE" ]; then
-        echo "INFO: Stop flag '$STOP_FILE' detected. Stopping import process gracefully."
+        log_message "INFO: Stop flag '$STOP_FILE' detected. Stopping import process gracefully."
         exit 0
     fi
 }
@@ -290,23 +361,32 @@ process_stage() {
     local total_records_query_stage="$3" # The stage name to pass to get_count for total records
     local psql_extra_args="${4:-}" # Optional: extra psql arguments for this stage
 
+    log_message "\n--- Starting $stage_name processing (Script: $sql_script_name) ---"
+
+    if [ "$total_records_query_stage" == "_NONE_" ]; then
+        log_message "INFO: This stage does not require batch processing or record counting."
+        execute_sql_script "$sql_script_name" "setup for $stage_name" "" "" "${psql_extra_args}" # No offset/limit
+        check_status "Setup for $stage_name"
+        log_message "--- $stage_name setup completed. ---"
+        return 0
+    fi
+
     local current_offset=$(read_progress "$stage_name")
     local total_records_to_process # This will be the fixed total for recipes, dynamic for others
 
     # Get the total number of records for this stage
     total_records_to_process=$(get_count "$total_records_query_stage")
     if [ $? -ne 0 ]; then
-        echo "ERROR: Could not get total records for stage '$stage_name'. Aborting." >&2
+        log_error "Could not get total records for stage '$stage_name'. Aborting."
         exit 1
     fi
 
-    echo -e "\n--- Starting $stage_name processing (Script: $sql_script_name) ---"
-    echo "Total records to process for $stage_name: $total_records_to_process"
-    echo "Starting from offset: $current_offset"
+    log_message "Total records to process for $stage_name: $total_records_to_process"
+    log_message "Starting from offset: $current_offset"
 
     # If the total records to process is 0, skip the stage
     if [ "$total_records_to_process" -eq 0 ]; then
-        echo "No $stage_name records to process. Skipping stage."
+        log_message "No $stage_name records to process. Skipping stage."
         return 0
     fi
 
@@ -315,19 +395,19 @@ process_stage() {
     # Reset offset to 0 and re-process from start for this stage.
     # This ensures we don't miss anything.
     if [ "$current_offset" -ge "$total_records_to_process" ]; then
-        echo "INFO: Current offset ($current_offset) is greater than or equal to total records to process ($total_records_to_process)."
-        echo "INFO: This stage appears to be complete or overshot. Resetting offset to 0 and re-evaluating."
+        log_message "INFO: Current offset ($current_offset) is greater than or equal to total records to process ($total_records_to_process)."
+        log_message "INFO: This stage appears to be complete or overshot. Resetting offset to 0 and re-evaluating."
         current_offset=0
         write_progress "$stage_name" "$current_offset" # Update progress file immediately
         # Re-evaluate total_records_to_process if needed, though for 'raw_staging' it's fixed
         if [ "$total_records_query_stage" != "raw_staging" ]; then
             total_records_to_process=$(get_count "$total_records_query_stage")
             if [ "$total_records_to_process" -eq 0 ]; then
-                echo "No $stage_name records to process after reset. Skipping stage."
+                log_message "No $stage_name records to process after reset. Skipping stage."
                 return 0
             fi
         fi
-        echo "Re-evaluated total records for $stage_name: $total_records_to_process"
+        log_message "Re-evaluated total records for $stage_name: $total_records_to_process"
     fi
 
     # Determine the effective total limit for this stage based on GLOBAL_DEBUG_RECORD_LIMIT
@@ -343,7 +423,7 @@ process_stage() {
             effective_total_limit=$total_records_to_process
         fi
     fi
-    echo "Effective total limit for $stage_name: $effective_total_limit"
+    log_message "Effective total limit for $stage_name: $effective_total_limit"
 
 
     while true; do
@@ -354,14 +434,14 @@ process_stage() {
 
         # Debugging for recipes stage (or any stage where issues occur)
         if [ "$stage_name" == "recipes" ]; then
-            echo "DEBUG: Inside recipes loop - Iteration Start:"
-            echo "DEBUG:   current_offset=$current_offset"
-            echo "DEBUG:   effective_total_limit=$effective_total_limit"
-            echo "DEBUG:   remaining_in_this_run=$remaining_in_this_run"
+            log_message "DEBUG: Inside recipes loop - Iteration Start:"
+            log_message "DEBUG:   current_offset=$current_offset"
+            log_message "DEBUG:   effective_total_limit=$effective_total_limit"
+            log_message "DEBUG:   remaining_in_this_run=$remaining_in_this_run"
         fi
 
         if [ "$remaining_in_this_run" -le 0 ]; then
-            echo "All $stage_name records processed up to effective limit."
+            log_message "All $stage_name records processed up to effective limit."
             break
         fi
 
@@ -377,17 +457,17 @@ process_stage() {
 
         # Debugging for recipes stage
         if [ "$stage_name" == "recipes" ]; then
-            echo "DEBUG:   batch_limit=$batch_limit"
-            echo "DEBUG: Inside recipes loop - Executing SQL with Offset $current_offset, Limit $batch_limit"
+            log_message "DEBUG:   batch_limit=$batch_limit"
+            log_message "DEBUG: Inside recipes loop - Executing SQL with Offset $current_offset, Limit $batch_limit"
         fi
 
         # If batch_limit becomes 0 or negative due to limit calculations, break
         if (( batch_limit <= 0 )); then
-            echo "Calculated batch_limit is zero or negative ($batch_limit). Breaking loop for $stage_name."
+            log_message "Calculated batch_limit is zero or negative ($batch_limit). Breaking loop for $stage_name."
             break
         fi
 
-        echo "Processing $stage_name batch: Offset $current_offset, Limit $batch_limit"
+        log_message "Processing $stage_name batch: Offset $current_offset, Limit $batch_limit"
         # Pass extra psql arguments if provided
         execute_sql_script "$sql_script_name" "processing $stage_name" "$current_offset" "$batch_limit" "${psql_extra_args}"
         check_status "Batch processing for $stage_name (Offset: $current_offset)"
@@ -397,7 +477,7 @@ process_stage() {
 
         # Write progress after each successful batch
         write_progress "$stage_name" "$current_offset"
-        echo "Progress for $stage_name saved: $current_offset"
+        log_message "Progress for $stage_name saved: $current_offset"
 
         # For stages that process dynamically decreasing counts (ingredients, instructions, parse_ingredient_details, split_ingredients)
         # This includes 'raw_explosion' which processes raw_staging records into other tables.
@@ -405,7 +485,7 @@ process_stage() {
         # We need to re-fetch 'total_records_to_process' to ensure 'effective_total_limit' is re-evaluated correctly.
         local old_total_records_to_process=$total_records_to_process
         total_records_to_process=$(get_count "$total_records_query_stage")
-        echo "DEBUG: New actual total_records_to_process for $stage_name (re-fetched): $total_records_to_process"
+        log_message "DEBUG: New actual total_records_to_process for $stage_name (re-fetched): $total_records_to_process"
 
         # Re-evaluate effective_total_limit after re-fetching actual total
         effective_total_limit=$total_records_to_process
@@ -417,24 +497,24 @@ process_stage() {
                 effective_total_limit=$total_records_to_process
             fi
         fi
-        echo "DEBUG: New effective total limit for $stage_name: $effective_total_limit"
+        log_message "DEBUG: New effective total limit for $stage_name: $effective_total_limit"
 
         # The loop termination condition should be based on current_offset reaching effective_total_limit
         # or total_records_to_process becoming 0 (if no more records are left to process at all).
         if [ "$current_offset" -ge "$effective_total_limit" ] || [ "$total_records_to_process" -eq 0 ]; then
-             echo "Finished processing all $stage_name records up to effective limit."
+             log_message "Finished processing all $stage_name records up to effective limit."
              break
         fi
     done
-    echo "--- $stage_name processing completed or halted. ---"
+    log_message "--- $stage_name processing completed or halted. ---"
 }
 
 
 # --- Main Process ---
-echo "Starting Recipe Data Import ---"
+log_message "Starting Recipe Data Import ---"
 
 # Prompt for debug limit
-echo -e "\n--- Debug Limit Option ---"
+log_message "\n--- Debug Limit Option ---"
 read -r -p "Enable global debug record limit (e.g., process only first 10000 source recipes)? (y/N): " enable_debug_limit_choice
 if [[ "$enable_debug_limit_choice" =~ ^[Yy]$ ]]; then
     DEBUG_LIMIT_ENABLED=true
@@ -444,18 +524,20 @@ if [[ "$enable_debug_limit_choice" =~ ^[Yy]$ ]]; then
     else
         GLOBAL_DEBUG_RECORD_LIMIT=$GLOBAL_DEBUG_RECORD_LIMIT_DEFAULT
     fi
-    echo "Global debug limit enabled: Processing first ${GLOBAL_DEBUG_RECORD_LIMIT} source records."
+    log_message "Global debug limit enabled: Processing first ${GLOBAL_DEBUG_RECORD_LIMIT} source records."
 else
-    echo "Global debug limit disabled: Processing all records."
+    log_message "Global debug limit disabled: Processing all records."
 fi
 
 
-# Explicitly set ASPNETCORE_ENVIRONMENT to Development
+# Explicitly set ASPNETCORE_ENVIRONMENT=Development
 export ASPNETCORE_ENVIRONMENT=Development
 
 # 1. Extract connection string parameters
+log_message "Attempting to extract database connection parameters..."
 CONNECTION_STRING_VALUE=$(get_connection_string_value)
 check_status "Connection string extraction"
+log_message "Connection string extracted successfully."
 
 DB_NAME=$(parse_connection_string_part "$CONNECTION_STRING_VALUE" "Database")
 check_status "Database name extraction"
@@ -469,145 +551,138 @@ if [ -z "$DB_PORT" ]; then DB_PORT="5432"; fi
 # Use "UserId" as the pattern for extracting the database user
 DB_USER=$(parse_connection_string_part "$CONNECTION_STRING_VALUE" "UserId")
 if [ -z "$DB_USER" ]; then
-    echo "Error: Database application user (UserId) could not be extracted from the connection string." >&2
-    echo "Please ensure your connection string includes 'UserId=your_user'." >&2
+    log_error "Error: Database application user (UserId) could not be extracted from the connection string. Please ensure your connection string includes 'UserId=your_user'."
     exit 1
 fi
 
 DB_PASSWORD=$(parse_connection_string_part "$CONNECTION_STRING_VALUE" "Password")
 if [ -z "$DB_PASSWORD" ]; then
-    echo "Error: Database password could not be extracted from the connection string." >&2
+    log_error "Error: Database password could not be extracted from the connection string."
     exit 1
 fi
 
 # Set PGPASSWORD for the application user
 export PGPASSWORD="$DB_PASSWORD"
 
-echo "Identified database name: $DB_NAME"
-echo "Identified database host: $DB_HOST"
-echo "Identified database port: $DB_PORT"
-echo "Identified database user: $DB_USER"
+log_message "Identified database name: $DB_NAME"
+log_message "Identified database host: $DB_HOST"
+log_message "Identified database port: $DB_PORT"
+log_message "Identified database user: $DB_USER"
 
 # 2. Find Recipe CSV directory
-echo -e "\n--- Locating Recipe CSV files ---"
+log_message "\n--- Locating Recipe CSV files ---"
 ACTUAL_RECIPE_CSV_BASE_PATH=$(find_csv_directory "$RECIPE_CSV_BASE_PATH" "$RECIPE_CSV_FILENAME")
 check_status "Recipe CSV directory location"
 
 # Ensure path ends with a single slash
 ACTUAL_RECIPE_CSV_BASE_PATH="${ACTUAL_RECIPE_CSV_BASE_PATH%/}/"
 
-echo "Using Recipe CSVs from: ${ACTUAL_RECIPE_CSV_BASE_PATH}"
+log_message "Using Recipe CSVs from: ${ACTUAL_RECIPE_CSV_BASE_PATH}"
 
 # 3. Check write permissions for output reports (using the determined CSV base path)
-echo -e "\n--- Checking Write Permissions for Output Reports ---"
+log_message "\n--- Checking Write Permissions for Output Reports ---"
 check_write_permissions "$ACTUAL_RECIPE_CSV_BASE_PATH" || true # Continue even if check fails, but log error
 
 # 4. Clear the malformed lines log from previous runs
-echo -e "\n--- Clearing old malformed_recipe_lines.log ---"
+log_message "\n--- Clearing old malformed_recipe_lines.log ---"
 > "/tmp/malformed_recipe_lines.log" # Truncate the file to zero length
-echo "Cleared /tmp/malformed_recipe_lines.log"
+log_message "Cleared /tmp/malformed_recipe_lines.log"
 
 # 5. Ensure Schemas Exist (run only once)
-echo -e "\n--- Ensuring Schemas Exist ---"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=0 -c "CREATE SCHEMA IF NOT EXISTS recipe; CREATE SCHEMA IF NOT EXISTS nutrient; CREATE SCHEMA IF NOT EXISTS reference; CREATE SCHEMA IF NOT EXISTS audit; CREATE SCHEMA IF NOT EXISTS plan; CREATE SCHEMA IF NOT EXISTS shopping; CREATE SCHEMA IF NOT EXISTS person; CREATE SCHEMA IF NOT EXISTS auth;" 2>&1 | tee -a "/tmp/malformed_recipe_lines.log"
+log_message "\n--- Ensuring Schemas Exist ---"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=0 -c "CREATE SCHEMA IF NOT EXISTS recipe; CREATE SCHEMA IF NOT EXISTS nutrient; CREATE SCHEMA IF NOT EXISTS reference; CREATE SCHEMA IF NOT EXISTS audit; CREATE SCHEMA IF NOT EXISTS plan; CREATE SCHEMA IF NOT EXISTS shopping; CREATE SCHEMA IF NOT EXISTS person; CREATE SCHEMA IF NOT EXISTS auth;" 2> >(tee -a "/tmp/malformed_recipe_lines.log" >&2) >> "$LOG_FILE"
 check_status "Schema creation"
 
 # 6. Create Recipe Staging Tables (specifically recipe.recipe_com_raw_staging and others)
-echo -e "\n--- Creating Recipe Raw Staging Table (__staging_tables_recipe.sql) ---"
+log_message "\n--- Creating Recipe Raw Staging Table (__staging_tables_recipe.sql) ---"
 execute_sql_script "__staging_tables_recipe.sql" "creating raw recipe staging table"
 check_status "creating raw recipe staging table"
 
 # 7. Load Raw Recipe CSV Data into recipe.recipe_com_raw_staging (run only once)
-echo -e "\n--- Loading Raw Recipe CSV Data ---"
+log_message "\n--- Loading Raw Recipe CSV Data ---"
 RAW_CSV_FULL_PATH="${ACTUAL_RECIPE_CSV_BASE_PATH}${RECIPE_CSV_FILENAME}"
-echo "Verifying CSV file existence and permissions:"
-ls -l "$RAW_CSV_FULL_PATH"
+log_message "Verifying CSV file existence and permissions:"
+ls -l "$RAW_CSV_FULL_PATH" >> "$LOG_FILE" 2>> "$ERROR_LOG_FILE" # Log ls output
 if [ ! -f "$RAW_CSV_FULL_PATH" ]; then
-    echo "ERROR: Raw Recipe CSV file not found at: $RAW_CSV_FULL_PATH. Exiting." >&2
+    log_error "ERROR: Raw Recipe CSV file not found at: $RAW_CSV_FULL_PATH. Exiting."
     exit 1
 fi
 
 # Check if recipe.recipe_com_raw_staging is empty before copying
-if [ "$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "SELECT COUNT(*) FROM recipe.recipe_com_raw_staging;" 2>/dev/null | xargs)" -eq 0 ]; then
-    echo "recipe.recipe_com_raw_staging is empty. Populating from $RAW_CSV_FULL_PATH..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "\\copy recipe.recipe_com_raw_staging (blank_col, title, ingredients, directions, link, source, ner) FROM '${RAW_CSV_FULL_PATH}' WITH (FORMAT CSV, HEADER TRUE, ENCODING 'UTF8');" 2>&1 | tee -a "/tmp/malformed_recipe_lines.log"
+if [ "$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "SELECT COUNT(*) FROM recipe.recipe_com_raw_staging;" 2>/dev/null | xargs)" -eq 0 ]; then
+    log_message "recipe.recipe_com_raw_staging is empty. Populating from $RAW_CSV_FULL_PATH..."
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "\\copy recipe.recipe_com_raw_staging (blank_col, title, ingredients, directions, link, source, ner) FROM '${RAW_CSV_FULL_PATH}' WITH (FORMAT CSV, HEADER TRUE, ENCODING 'UTF8');" 2> >(tee -a "/tmp/malformed_recipe_lines.log" >&2) >> "$LOG_FILE"
     check_status "Raw CSV data load"
-    echo "Raw CSV data load command executed. Check output above for details."
+    log_message "Raw CSV data load command executed. Check output above for details."
 else
-    echo "recipe.recipe_com_raw_staging already populated. Skipping raw data load."
+    log_message "recipe.recipe_com_raw_staging already populated. Skipping raw data load."
 fi
 
 # 8. Add is_processed columns to exploded staging tables (idempotent)
-echo "--- Checking and adding 'is_processed' columns to exploded staging tables... ---"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "ALTER TABLE recipe.recipe_com_raw_ingredients_exploded_staging ADD COLUMN IF NOT EXISTS is_processed BOOLEAN DEFAULT FALSE;" 2>&1 | tee -a "/tmp/malformed_recipe_lines.log"
+log_message "--- Checking and adding 'is_processed' columns to exploded staging tables... ---"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "ALTER TABLE recipe.recipe_com_raw_ingredients_exploded_staging ADD COLUMN IF NOT EXISTS is_processed BOOLEAN DEFAULT FALSE;" 2> >(tee -a "/tmp/malformed_recipe_lines.log" >&2) >> "$LOG_FILE"
 check_status "adding is_processed to raw_ingredients_exploded_staging"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "ALTER TABLE recipe.recipe_com_raw_instructions_exploded_staging ADD COLUMN IF NOT EXISTS is_processed BOOLEAN DEFAULT FALSE;" 2>&1 | tee -a "/tmp/malformed_recipe_lines.log"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "ALTER TABLE recipe.recipe_com_raw_instructions_exploded_staging ADD COLUMN IF NOT EXISTS is_processed BOOLEAN DEFAULT FALSE;" 2> >(tee -a "/tmp/malformed_recipe_lines.log" >&2) >> "$LOG_FILE"
 check_status "adding is_processed to raw_instructions_exploded_staging"
-echo "--- 'is_processed' column checks complete. ---"
+log_message "--- 'is_processed' column checks complete. ---"
 
 # 9. Add parsing columns to raw_ingredients_exploded_staging (before any parsing or counting)
-echo -e "\n--- Ensuring Parsing Columns Exist (04_5_recipe_com_add_parsing_columns.sql) ---"
+log_message "\n--- Ensuring Parsing Columns Exist (04_5_recipe_com_add_parsing_columns.sql) ---"
 execute_sql_script "04_5_recipe_com_add_parsing_columns.sql" "adding parsing columns"
 check_status "adding parsing columns"
-echo "Parsing columns check and addition completed."
+log_message "Parsing columns check and addition completed."
 
 # --- DIAGNOSTIC STEP: Check for existence of 'regexp_quote_literal' function in the database ---
-echo -e "\n--- Checking for existence of 'regexp_quote_literal' function in the database ---"
-if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "SELECT proname FROM pg_proc WHERE proname = 'regexp_quote_literal';" | grep -q "regexp_quote_literal"; then
-    echo "WARNING: Function 'regexp_quote_literal' *still exists* in the database. This is unexpected."
+log_message "\n--- Checking for existence of 'regexp_quote_literal' function in the database ---"
+if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "SELECT proname FROM pg_proc WHERE proname = 'regexp_quote_literal';" 2> >(tee -a "/tmp/psql_error.log" >&2) | grep -q "regexp_quote_literal"; then
+    log_message "WARNING: Function 'regexp_quote_literal' *still exists* in the database. This is unexpected."
 else
-    echo "INFO: Function 'regexp_quote_literal' does NOT exist in the database. This is expected."
+    log_message "INFO: Function 'regexp_quote_literal' does NOT exist in the database. This is expected."
 fi
 # --- END DIAGNOSTIC STEP ---
 
 
-# 10. Define comprehensive parsing functions (run only once)
-echo -e "\n--- Defining Comprehensive Parsing Functions (04_6_recipe_com_parsing_functions.sql) ---"
-execute_sql_script "04_6_recipe_com_parsing_functions.sql" "defining parsing functions"
-check_status "defining parsing functions"
-echo "Comprehensive parsing functions defined."
-
 # 11. NEW STEP: Reset cleaned_ingredient_name in raw_ingredients_exploded_staging to force re-parsing by 05_5
-echo -e "\n--- Resetting cleaned_ingredient_name in raw_ingredients_exploded_staging to force re-parsing ---"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "UPDATE recipe.recipe_com_raw_ingredients_exploded_staging SET cleaned_ingredient_name = NULL, quantity = NULL, measurement_type_name = NULL, is_processed = FALSE, \"LastModifiedDateTime\" = NOW();"
+log_message "\n--- Resetting cleaned_ingredient_name in raw_ingredients_exploded_staging to force re-parsing ---"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "UPDATE recipe.recipe_com_raw_ingredients_exploded_staging SET cleaned_ingredient_name = NULL, quantity = NULL, measurement_type_name = NULL, is_processed = FALSE, \"LastModifiedDateTime\" = NOW();" 2> >(tee -a "$ERROR_LOG_FILE" >&2) >> "$LOG_FILE"
 check_status "resetting raw_ingredients_exploded_staging parsing columns"
-echo "Reset complete. All ingredient lines will be re-parsed by 05_5."
+log_message "Reset complete. All ingredient lines will be re-parsed by 05_5."
 
 # 12. NEW STEP: Reset is_processed in recipe.recipe_com_final_ingredients_staging to force re-processing by 06_recipe_com_process_ingredients_fuzzy
-echo -e "\n--- Resetting is_processed in recipe_com_final_ingredients_staging to force re-processing ---"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "UPDATE recipe.recipe_com_final_ingredients_staging SET is_processed = FALSE, \"LastModifiedDateTime\" = NOW();"
+log_message "\n--- Resetting is_processed in recipe_com_final_ingredients_staging to force re-processing ---"
+PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -v client_min_messages=NOTICE -c "UPDATE recipe.recipe_com_final_ingredients_staging SET is_processed = FALSE, \"LastModifiedDateTime\" = NOW();" 2> >(tee -a "$ERROR_LOG_FILE" >&2) >> "$LOG_FILE"
 check_status "resetting final_ingredients_staging is_processed column"
-echo "Reset complete. All final ingredient lines will be re-processed by the fuzzy matching stage."
+log_message "Reset complete. All final ingredient lines will be re-processed by the fuzzy matching stage."
 
 
 # --- Interactive Stage Selection ---
-echo -e "\n--- Select Starting Stage ---"
-echo "Enter the number or name of the stage to start from, or press Enter for default (Start from beginning)."
-echo "Default will start from 'raw_explosion'."
-echo ""
-echo "Available Stages:"
+log_message "\n--- Select Starting Stage ---"
+log_message "Enter the number or name of the stage to start from, or press Enter for default (Start from beginning)."
+log_message "Default will start from 'raw_explosion'."
+log_message ""
+log_message "Available Stages:"
 for i in "${!stages_array[@]}"; do
     stage_name=$(echo "${stages_array[$i]}" | awk '{print $1}')
-    echo "  $((i+1)). $stage_name"
+    log_message "  $((i+1)). $stage_name"
 done
-echo ""
+log_message ""
 
 START_STAGE_INDEX=0 # Default to the first stage (raw_explosion)
 read -t 10 -p "Starting in 10 seconds... Enter your choice: " user_choice || true # `|| true` prevents `set -e` from exiting on timeout
 
 if [ -z "$user_choice" ]; then
-    echo -e "\nNo input. Starting from default stage: raw_explosion"
+    log_message "\nNo input. Starting from default stage: raw_explosion"
 else
     # Try to match by number
     if [[ "$user_choice" =~ ^[0-9]+$ ]] && (( user_choice >= 1 && user_choice <= ${#stages_array[@]} )); then
         START_STAGE_INDEX=$((user_choice - 1))
-        echo "Starting from stage $((START_STAGE_INDEX+1)): $(echo "${stages_array[$START_STAGE_INDEX]}" | awk '{print $1}')"
+        log_message "Starting from stage $((START_STAGE_INDEX+1)): $(echo "${stages_array[$START_STAGE_INDEX]}" | awk '{print $1}')"
     # Try to match by name
     elif [[ -n "${STAGE_INDEX_MAP[$user_choice]}" ]]; then
         START_STAGE_INDEX="${STAGE_INDEX_MAP[$user_choice]}"
-        echo "Starting from stage $((START_STAGE_INDEX+1)): $user_choice"
+        log_message "Starting from stage $((START_STAGE_INDEX+1)): $user_choice"
     else
-        echo "Invalid input '$user_choice'. Starting from default stage: raw_explosion"
+        log_message "Invalid input '$user_choice'. Starting from default stage: raw_explosion"
         START_STAGE_INDEX=0
     fi
 fi
@@ -620,7 +695,7 @@ for (( i=START_STAGE_INDEX; i<${#stages_array[@]}; i++ )); do
     process_stage "$stage_name" "$script_file" "$total_records_query_stage" "$psql_extra_args"
 done
 
-echo -e "\n--- Recipe Data Import Process Completed Successfully! ---"
+log_message "\n--- Recipe Data Import Process Completed Successfully! ---"
 
 # Unset PGPASSWORD for security
 unset PGPASSWORD

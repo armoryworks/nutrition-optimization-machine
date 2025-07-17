@@ -1243,8 +1243,7 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "Ingredient",
                 column: "Name",
-                unique: true,
-                filter: "\"FdcId\" IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientAlias_IngredientEntityId",

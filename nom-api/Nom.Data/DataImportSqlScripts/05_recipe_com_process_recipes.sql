@@ -1,17 +1,12 @@
 -- 05_recipe_com_process_recipes.sql
 -- This script processes a single batch of raw recipe data from
 -- recipe.recipe_com_recipe_staging and inserts it into recipe."Recipe".
--- It expects _offset and _limit variables to be passed by the calling script.
+-- It expects _offset and _limit variables to be passed by the calling script via string injection.
 -- This script runs as a single, atomic transaction, with PL/pgSQL logic inside a DO block.
 
 -- Set client_min_messages to WARNING to avoid excessive output from notices if not needed
 SET client_min_messages TO WARNING;
 SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
-
--- Set custom session variables using psql's -v variables.
--- These are substituted by psql before the script is sent to the server.
-SET nom.current_offset = :_offset;
-SET nom.current_limit = :_limit;
 
 -- Start a transaction for this single batch. This BEGIN/COMMIT wraps the entire script execution.
 BEGIN;
@@ -21,9 +16,9 @@ DO $$
 DECLARE
     system_person_id BIGINT := 1;
     processed_count INT := 0;
-    -- Retrieve values from custom session variables within PL/pgSQL
-    current_offset INT := current_setting('nom.current_offset')::INT;
-    current_limit INT := current_setting('nom.current_limit')::INT;
+    -- These placeholders will be replaced by the shell script before execution
+    current_offset INT := __OFFSET_PLACEHOLDER__;
+    current_limit INT := __LIMIT_PLACEHOLDER__;
 BEGIN
     RAISE NOTICE '--- Starting 05_recipe_com_process_recipes.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 

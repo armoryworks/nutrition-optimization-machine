@@ -7,10 +7,6 @@
 SET client_min_messages TO WARNING;
 SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
 
--- Set custom session variables using psql's -v variables.
-SET nom.current_offset = :_offset;
-SET nom.current_limit = :_limit;
-
 -- Start a transaction for this single batch.
 BEGIN;
 
@@ -18,8 +14,9 @@ DO $$
 DECLARE
     system_person_id BIGINT := 1;
     processed_count INT := 0;
-    current_offset INT := current_setting('nom.current_offset')::INT;
-    current_limit INT := current_setting('nom.current_limit')::INT;
+    -- These placeholders will be replaced by the shell script before execution
+    current_offset INT := __OFFSET_PLACEHOLDER__;
+    current_limit INT := __LIMIT_PLACEHOLDER__;
 BEGIN
     RAISE NOTICE '--- Starting 06_recipe_com_process_ingredients_fuzzy.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 

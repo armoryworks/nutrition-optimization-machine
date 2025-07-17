@@ -39,7 +39,7 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("CreatePerson: Invalid ModelState for request.");
+                //_logger.LogWarning("CreatePerson: Invalid ModelState for request.");
                 return BadRequest(ModelState);
             }
 
@@ -49,7 +49,7 @@ namespace Nom.Api.Controllers
                 var identityUserId = User?.Identity?.Name; // Assuming Name contains the IdentityUserId
                 if (string.IsNullOrEmpty(identityUserId))
                 {
-                    _logger.LogWarning("CreatePerson: Unable to infer IdentityUserId from the context user.");
+                    //_logger.LogWarning("CreatePerson: Unable to infer IdentityUserId from the context user.");
                     return Unauthorized(new { Message = "User identity could not be determined." });
                 }
 

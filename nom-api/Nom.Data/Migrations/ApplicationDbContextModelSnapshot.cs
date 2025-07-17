@@ -985,8 +985,7 @@ namespace Nom.Data.Migrations
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("\"FdcId\" IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("Ingredient", "recipe");
                 });

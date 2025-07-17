@@ -21,6 +21,7 @@ namespace Nom.Data.Recipe
         /// </summary>
         [Required]
         [MaxLength(2047)]
+        
         public string Name { get; set; } = string.Empty;
 
         /// <summary>

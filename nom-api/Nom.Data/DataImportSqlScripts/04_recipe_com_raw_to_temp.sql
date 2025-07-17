@@ -9,10 +9,6 @@
 SET client_min_messages TO NOTICE;
 SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
 
--- Set custom session variables using psql's -v variables.
-SET nom.current_offset = :_offset;
-SET nom.current_limit = :_limit;
-
 BEGIN;
 
 DO $$
@@ -21,8 +17,9 @@ DECLARE
     processed_recipes_count INT := 0;
     processed_ingredients_count INT := 0;
     processed_instructions_count INT := 0;
-    current_offset INT := current_setting('nom.current_offset')::INT;
-    current_limit INT := current_setting('nom.current_limit')::INT;
+    -- These placeholders will be replaced by the shell script before execution
+    current_offset INT := __OFFSET_PLACEHOLDER__;
+    current_limit INT := __LIMIT_PLACEHOLDER__;
 BEGIN
     RAISE NOTICE '--- Starting 04_recipe_com_raw_to_temp.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 

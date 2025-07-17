@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250706191049_InitialCreate")]
+    [Migration("20250711071024_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -988,8 +988,7 @@ namespace Nom.Data.Migrations
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
                     b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("\"FdcId\" IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("Ingredient", "recipe");
                 });

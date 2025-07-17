@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using Nom.Data; // For ApplicationDbContext
 using Nom.Data.Nutrient; // For NutrientEntity
 using Nom.Data.Reference; // For ReferenceEntity, ReferenceDiscriminatorEnum, MeasurementTypeViewEntity
-using Nom.Import.Data.Fdc.CsvModels;
+using Nom.Import.Data.Fdc.CsvModels; // For FdcNutrientCsv
 using Nom.Import.Data.Shared;
 using Nom.Import.Models;
 using System;
@@ -14,6 +14,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EFCore.BulkExtensions; // Required for BulkInsertOrUpdateAsync
+using Microsoft.Extensions.DependencyInjection; // Required for IServiceScopeFactory
+using System.Globalization; // For CultureInfo.InvariantCulture
 
 namespace Nom.Import.Data.Fdc.Importers
 {
@@ -23,46 +26,50 @@ namespace Nom.Import.Data.Fdc.Importers
     /// </summary>
     public class FdcNutrientImporter
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<FdcNutrientImporter> _logger;
-        private readonly CsvDataLoader<FdcNutrientCsv> _csvDataLoader;
+        private readonly CsvDataLoader<FdcNutrientCsv> _csvDataLoader; // Correctly uses FdcNutrientCsv
         private readonly ImportProgressTracker _progressTracker;
         private readonly ImportConfig _importConfig;
+        private readonly ImportReportGenerator _reportGenerator;
 
-        // Cached MeasurementType IDs for efficient lookups
+        // Cached MeasurementType IDs for efficient lookups (this is correct for this importer)
         private Dictionary<string, long> _measurementTypeIds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
         public FdcNutrientImporter(
-            ApplicationDbContext dbContext,
+            IServiceScopeFactory scopeFactory,
             ILogger<FdcNutrientImporter> logger,
             CsvDataLoader<FdcNutrientCsv> csvDataLoader,
             ImportProgressTracker progressTracker,
-            IOptions<ImportConfig> importConfig)
+            IOptions<ImportConfig> importConfig,
+            ImportReportGenerator reportGenerator)
         {
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
             _logger = logger;
             _csvDataLoader = csvDataLoader;
             _progressTracker = progressTracker;
             _importConfig = importConfig.Value;
+            _reportGenerator = reportGenerator;
         }
 
         /// <summary>
         /// Initializes necessary reference data (MeasurementType IDs) from the database.
+        /// This is needed to map FDC unit names to internal MeasurementType IDs.
         /// </summary>
-        private async Task InitializeReferenceDataAsync()
+        private async Task InitializeReferenceDataAsync(ApplicationDbContext dbContext, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Initializing MeasurementType reference data...");
+            _logger.LogInformation("Initializing MeasurementType reference data for nutrients...");
 
-            // Query the MeasurementTypeViewEntity directly, filtering by the MeasurementType GroupId.
-            // This is the correct and translatable way to get references belonging to a specific group.
-            var measurementTypes = await _dbContext.MeasurementTypes
+            var measurementTypes = await dbContext.MeasurementTypes
                 .AsNoTracking()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (!measurementTypes.Any())
             {
-                _logger.LogError("No MeasurementType reference data found in the database for GroupId {GroupId}. Please ensure initial reference data is seeded and the ReferenceGroupView is correctly defined and accessible.", (long)ReferenceDiscriminatorEnum.MeasurementType);
-                throw new InvalidOperationException("MeasurementType reference data not found.");
+                string errorMessage = "No MeasurementType reference data found in the database. Please ensure initial reference data is seeded and the ReferenceGroupView is correctly defined and accessible for MeasurementTypeViewEntity.";
+                _logger.LogError(errorMessage);
+                _reportGenerator.RecordFatalError(errorMessage);
+                throw new InvalidOperationException(errorMessage);
             }
 
             foreach (var mtv in measurementTypes)
@@ -70,25 +77,23 @@ namespace Nom.Import.Data.Fdc.Importers
                 _measurementTypeIds[mtv.ReferenceName] = mtv.ReferenceId;
             }
 
-            // Add common variations/aliases if not already present
-            // Ensure 'unknown' is handled as it's a critical fallback
+            // Ensure 'unknown' is mapped, crucial for fallback.
             if (!_measurementTypeIds.ContainsKey("unknown"))
             {
-                // Attempt to find 'unknown' by name if not mapped by ID 0
-                var unknownRef = await _dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("unknown", StringComparison.OrdinalIgnoreCase));
+                var unknownRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("unknown", StringComparison.OrdinalIgnoreCase), cancellationToken);
                 if (unknownRef != null)
                 {
                     _measurementTypeIds["unknown"] = unknownRef.Id;
                 }
                 else
                 {
-                    //_logger.LogWarning("MeasurementType 'unknown' not found in reference data. This may lead to errors if CSV contains unmappable units and 'unknown' is required.");
-                    // As a last resort, if 'unknown' is not seeded, we might need a hardcoded fallback or throw.
-                    // For now, if it's not found, the GetMeasurementTypeId will throw.
+                    string warningMessage = "MeasurementType 'unknown' not found in reference data. This may lead to errors if CSV contains unmappable units and 'unknown' is required.";
+                    _logger.LogWarning(warningMessage);
+                    _reportGenerator.RecordWarning(warningMessage);
                 }
             }
 
-
+            // Add common variations/aliases if not already present
             if (!_measurementTypeIds.ContainsKey("µg") && _measurementTypeIds.ContainsKey("mcg")) _measurementTypeIds["µg"] = _measurementTypeIds["mcg"];
             if (!_measurementTypeIds.ContainsKey("l") && _measurementTypeIds.ContainsKey("liter")) _measurementTypeIds["l"] = _measurementTypeIds["liter"];
             if (!_measurementTypeIds.ContainsKey("g") && _measurementTypeIds.ContainsKey("gram")) _measurementTypeIds["g"] = _measurementTypeIds["gram"];
@@ -100,30 +105,172 @@ namespace Nom.Import.Data.Fdc.Importers
             if (!_measurementTypeIds.ContainsKey("oz") && _measurementTypeIds.ContainsKey("ounce")) _measurementTypeIds["oz"] = _measurementTypeIds["ounce"];
             if (!_measurementTypeIds.ContainsKey("lb") && _measurementTypeIds.ContainsKey("pound")) _measurementTypeIds["lb"] = _measurementTypeIds["pound"];
 
+            // NEW INFERENCES/MAPPINGS (consistent with FdcFoodNutrientImporter)
+            // Map 'UG' to 'mcg' (microgram)
+            if (_measurementTypeIds.ContainsKey("mcg") && !_measurementTypeIds.ContainsKey("UG")) _measurementTypeIds["UG"] = _measurementTypeIds["mcg"];
+
+            // Add 'IU' if it exists in your reference data, or map to 'unknown' if not.
+            if (!_measurementTypeIds.ContainsKey("IU"))
+            {
+                var iuRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("IU", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (iuRef != null)
+                {
+                    _measurementTypeIds["IU"] = iuRef.Id;
+                }
+                else
+                {
+                    string warningMessage = "MeasurementType 'IU' not found in reference data. Mapping 'IU' to 'unknown'. Please consider adding 'IU' as a specific measurement type.";
+                    _logger.LogWarning(warningMessage);
+                    _reportGenerator.RecordWarning(warningMessage);
+                    if (_measurementTypeIds.ContainsKey("unknown")) _measurementTypeIds["IU"] = _measurementTypeIds["unknown"];
+                }
+            }
+
+            // Add 'kJ' if it exists, otherwise map to 'kcal' and convert amount.
+            if (!_measurementTypeIds.ContainsKey("kJ"))
+            {
+                var kJRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("kJ", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (kJRef != null)
+                {
+                    _measurementTypeIds["kJ"] = kJRef.Id;
+                }
+                else
+                {
+                    string warningMessage = "MeasurementType 'kJ' not found in reference data. Will attempt to map to 'kcal' or 'unknown'. Please consider adding 'kJ' as a specific measurement type.";
+                    _logger.LogWarning(warningMessage);
+                    _reportGenerator.RecordWarning(warningMessage);
+                }
+            }
+
+            // Add specific derived units if they exist in your reference data
+            if (!_measurementTypeIds.ContainsKey("mcg_RE"))
+            {
+                var mcgReRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("mcg_RE", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (mcgReRef != null) _measurementTypeIds["mcg_RE"] = mcgReRef.Id;
+            }
+            if (!_measurementTypeIds.ContainsKey("MG_ATE"))
+            {
+                var mgAteRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("mg_ATE", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (mgAteRef != null) _measurementTypeIds["MG_ATE"] = mgAteRef.Id;
+            }
+            if (!_measurementTypeIds.ContainsKey("UMOL_TE"))
+            {
+                var umolTeRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("umol_TE", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (umolTeRef != null) _measurementTypeIds["UMOL_TE"] = umolTeRef.Id;
+            }
+
+            // Add pH and SP_GR if they exist in your reference data
+            if (!_measurementTypeIds.ContainsKey("pH"))
+            {
+                var pHRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("pH", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (pHRef != null) _measurementTypeIds["pH"] = pHRef.Id;
+            }
+            if (!_measurementTypeIds.ContainsKey("SP_GR"))
+            {
+                var spGrRef = await dbContext.References.AsNoTracking().FirstOrDefaultAsync(r => r.Name.Equals("SP_GR", StringComparison.OrdinalIgnoreCase), cancellationToken);
+                if (spGrRef != null) _measurementTypeIds["SP_GR"] = spGrRef.Id;
+            }
 
             _logger.LogInformation("MeasurementType reference data initialized. Found {Count} types.", _measurementTypeIds.Count);
         }
 
         /// <summary>
         /// Gets the MeasurementType ID for a given unit name.
+        /// Handles specific unit conversions (e.g., kJ to kcal) and mappings.
+        /// For NutrientEntity, the originalAmount is not directly used for the nutrient itself,
+        /// but this method is kept consistent with FdcFoodNutrientImporter for unit mapping logic.
         /// </summary>
         /// <param name="unitName">The name of the unit (e.g., "g", "mg", "mcg").</param>
-        /// <returns>The ID of the MeasurementType, or the 'unknown' ID if not found.</returns>
-        private long GetMeasurementTypeId(string unitName)
+        /// <param name="originalAmount">The original amount (not directly used for the Nutrient entity itself).</param>
+        /// <returns>A tuple containing the MeasurementType ID and the potentially converted amount (original amount passed through).</returns>
+        private (long MeasurementTypeId, decimal ConvertedAmount) GetMeasurementTypeIdAndAmount(string unitName, decimal originalAmount)
         {
+            // Handle kJ to kcal conversion
+            if (unitName.Equals("kJ", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("kcal", out long kcalId))
+                {
+                    // For NutrientEntity, we just map the unit, not convert the amount.
+                    // The conversion logic is more relevant for IngredientNutrientEntity.
+                    return (kcalId, originalAmount); // Pass originalAmount through for consistency in signature
+                }
+            }
+
+            // Handle UG to mcg mapping
+            if (unitName.Equals("UG", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("mcg", out long mcgId))
+                {
+                    return (mcgId, originalAmount);
+                }
+            }
+
+            // Handle IU mapping.
+            if (unitName.Equals("IU", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("IU", out long iuId))
+                {
+                    return (iuId, originalAmount);
+                }
+            }
+
+            // Handle derived units like MCG_RE, MG_ATE, UMOL_TE
+            if (unitName.Equals("MCG_RE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("mcg_RE", out long mcgReId))
+                {
+                    return (mcgReId, originalAmount);
+                }
+            }
+            if (unitName.Equals("MG_ATE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("MG_ATE", out long mgAteId))
+                {
+                    return (mgAteId, originalAmount);
+                }
+            }
+            if (unitName.Equals("UMOL_TE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("UMOL_TE", out long umolTeId))
+                {
+                    return (umolTeId, originalAmount);
+                }
+            }
+            // Handle pH
+            if (unitName.Equals("PH", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("pH", out long phId))
+                {
+                    return (phId, originalAmount);
+                }
+            }
+            // Handle SP_GR
+            if (unitName.Equals("SP_GR", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_measurementTypeIds.TryGetValue("SP_GR", out long spGrId))
+                {
+                    return (spGrId, originalAmount);
+                }
+            }
+
+            // For all other units, perform a direct case-insensitive lookup
             if (_measurementTypeIds.TryGetValue(unitName, out long id))
             {
-                return id;
+                return (id, originalAmount);
             }
-            // Fallback to 'unknown' MeasurementType
-            if (_measurementTypeIds.TryGetValue("unknown", out long unknownId))
+
+            // Fallback to 'unknown' MeasurementType if specific unit not found
+            string unitWarningMessage = $"Measurement unit '{unitName}' not found. Using 'unknown' MeasurementType (ID: {_measurementTypeIds["unknown"]}).";
+            _logger.LogWarning(unitWarningMessage);
+            _reportGenerator.RecordWarning(unitWarningMessage);
+            if (_measurementTypeIds.TryGetValue("unknown", out long fallbackUnknownId))
             {
-                //_logger.LogWarning("Measurement unit '{UnitName}' not found. Using 'unknown' MeasurementType (ID: {UnknownId}).", unitName, unknownId);
-                return unknownId;
+                return (fallbackUnknownId, originalAmount);
             }
             // This should ideally not happen if 'unknown' is seeded correctly
             throw new InvalidOperationException("MeasurementType 'unknown' not found in reference data. Please seed it with ID 0 or ensure it's loaded correctly.");
         }
+
 
         /// <summary>
         /// Imports FDC nutrient data from the specified CSV file.
@@ -135,141 +282,150 @@ namespace Nom.Import.Data.Fdc.Importers
         {
             _logger.LogInformation("Starting FDC Nutrient import from: {FilePath}", filePath);
 
-            await InitializeReferenceDataAsync();
-
             string stageName = "FDC_Nutrients_Import";
-            long processedCount = _progressTracker.GetLastProcessedOffset(stageName); // Resume from last processed count
-            long duplicateCount = 0;
+            _progressTracker.SetTotalRecords(stageName, totalRecords); // Report total discovered
+            long duplicateNameCount = 0; // Track duplicates by Name within batches
+
+            // Create a CancellationTokenSource linked to the main cancellationToken
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = _importConfig.MaxParallelism, CancellationToken = linkedCts.Token };
 
             try
             {
-                // Retrieve existing nutrients for efficient upsert logic
-                // Using a dictionary for quick lookups by FdcId and Name
-                // Load all existing nutrients once to reduce DB calls
-                var existingNutrients = await _dbContext.Nutrients
-                    .AsNoTracking() // Use AsNoTracking for initial load to avoid tracking overhead
-                    .ToListAsync(cancellationToken);
-
-                var existingNutrientsByFdcId = existingNutrients
-                    .Where(n => n.FdcId != null)
-                    .ToDictionary(n => n.FdcId!, n => n, StringComparer.OrdinalIgnoreCase);
-
-                var existingNutrientsByName = existingNutrients
-                    .ToDictionary(n => n.Name, n => n, StringComparer.OrdinalIgnoreCase);
+                // Initialize reference data once per import run (not per batch)
+                // Use a temporary scope for initialization if it needs DbContext
+                using var initScope = _scopeFactory.CreateScope();
+                var initDbContext = initScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await InitializeReferenceDataAsync(initDbContext, linkedCts.Token);
 
 
-                long recordsInCsv = 0;
-                await foreach (var batch in _csvDataLoader.LoadCsvInBatchesAsync(filePath, _importConfig.BatchSize, cancellationToken))
+                await Parallel.ForEachAsync(_csvDataLoader.LoadCsvInBatchesAsync(filePath, _importConfig.BatchSize, linkedCts.Token), parallelOptions, async (batch, innerCancellationToken) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    // Check for cancellation at the start of each batch processing task
+                    innerCancellationToken.ThrowIfCancellationRequested();
 
-                    recordsInCsv += batch.Count;
-                    // Skip batches already processed if resuming
-                    if (recordsInCsv <= processedCount)
-                    {
-                        _logger.LogInformation("Skipping batch as it was already processed. Current records in CSV: {RecordsInCsv}, Processed Count: {ProcessedCount}", recordsInCsv, processedCount);
-                        continue;
-                    }
+                    // Create a new scope and DbContext for each parallel task
+                    using var scope = _scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<FdcNutrientImporter>>(); // Get logger for this scope
 
                     var nutrientsToUpsert = new List<NutrientEntity>();
-                    var currentBatchDuplicates = new List<FdcNutrientCsv>();
+                    // Use a HashSet to track unique nutrient names within the current batch
+                    var uniqueBatchNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     foreach (var csvRecord in batch)
                     {
-                        // Basic validation: skip if ID or Name is empty
+                        // Check for cancellation within the inner loop
+                        innerCancellationToken.ThrowIfCancellationRequested();
+
+                        // Basic validation: skip if Id or Name is empty (using Id and Name from FdcNutrientCsv)
                         if (string.IsNullOrWhiteSpace(csvRecord.Id) || string.IsNullOrWhiteSpace(csvRecord.Name))
                         {
-                            //_logger.LogWarning("Skipping FDC nutrient record due to empty ID or Name: {Record}", csvRecord);
+                            string reason = "Empty Id or Name";
+                            _progressTracker.RecordSkipped(stageName, reason); // Report skipped
+                            logger.LogWarning("Skipping FDC nutrient record due to {Reason}. Record: {RecordId}, {RecordName}", reason, csvRecord.Id, csvRecord.Name);
                             continue;
                         }
 
-                        // Check for duplicates within the current batch (based on name for now, as per SQL script's DISTINCT ON)
-                        if (nutrientsToUpsert.Any(n => n.Name.Equals(csvRecord.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        var trimmedName = csvRecord.Name.Trim();
+                        var trimmedId = csvRecord.Id.Trim(); // This is the FDC ID for the nutrient
+
+                        // Deduplicate within the current batch by Name (case-insensitive)
+                        if (!uniqueBatchNames.Add(trimmedName))
                         {
-                            //_logger.LogWarning("Duplicate nutrient name '{NutrientName}' found in current batch. Skipping: {FdcId}", csvRecord.Name, csvRecord.Id);
-                            currentBatchDuplicates.Add(csvRecord);
-                            duplicateCount++;
+                            string reason = $"Duplicate nutrient name '{trimmedName}' in batch";
+                            _progressTracker.RecordSkipped(stageName, reason); // Report skipped
+                            duplicateNameCount++; // Increment local duplicate counter
                             continue;
                         }
 
-                        // Try to find existing nutrient by FdcId or Name
-                        NutrientEntity? existingNutrient = null;
-                        if (existingNutrientsByFdcId.TryGetValue(csvRecord.Id.Trim(), out var fdcIdMatch))
-                        {
-                            existingNutrient = fdcIdMatch;
-                        }
-                        else if (existingNutrientsByName.TryGetValue(csvRecord.Name.Trim(), out var nameMatch))
-                        {
-                            existingNutrient = nameMatch;
-                        }
+                        // Get MeasurementType ID for the nutrient's default unit
+                        // Pass 0 for originalAmount as it's not relevant for the nutrient definition itself
+                        var (measurementTypeId, _) = GetMeasurementTypeIdAndAmount(csvRecord.UnitName.Trim(), 0);
 
-                        if (existingNutrient != null)
+                        // Create new NutrientEntity (it will be updated if a match is found by BulkExtensions)
+                        var newNutrient = new NutrientEntity
                         {
-                            // Update existing nutrient if FdcId is null or Description is null (as per SQL logic)
-                            // Note: Your SQL script sets Description to NULL, so this update condition might always be true for Description.
-                            // If FdcId is null in existing record, update it.
-                            if (string.IsNullOrWhiteSpace(existingNutrient.FdcId))
-                            {
-                                existingNutrient.FdcId = csvRecord.Id.Trim();
-                                existingNutrient.LastModifiedDate = DateTime.UtcNow;
-                                existingNutrient.LastModifiedByPersonId = _importConfig.SystemPersonId;
-                                _dbContext.Entry(existingNutrient).State = EntityState.Modified; // Mark as modified
-                                _logger.LogDebug("Updating existing nutrient FdcId: {Name} (ID: {Id})", existingNutrient.Name, existingNutrient.Id);
-                            }
-                            // No description update from this CSV, as it's NULL in SQL.
-                            // If you later get a source with descriptions, this logic would need to be revisited.
-                        }
-                        else
-                        {
-                            // Create new NutrientEntity
-                            var newNutrient = new NutrientEntity
-                            {
-                                Name = csvRecord.Name.Trim(),
-                                Description = null, // No description in nutrient.csv
-                                DefaultMeasurementTypeId = GetMeasurementTypeId(csvRecord.UnitName.Trim()),
-                                FdcId = csvRecord.Id.Trim(),
-                                CreatedDate = DateTime.UtcNow,
-                                CreatedByPersonId = _importConfig.SystemPersonId,
-                                LastModifiedDate = DateTime.UtcNow,
-                                LastModifiedByPersonId = _importConfig.SystemPersonId
-                            };
-                            nutrientsToUpsert.Add(newNutrient);
-                            _logger.LogDebug("Adding new nutrient: {Name} (FdcId: {FdcId})", newNutrient.Name, newNutrient.FdcId);
-                        }
+                            Name = trimmedName,
+                            Description = null, // No description in nutrient.csv for the nutrient itself
+                            DefaultMeasurementTypeId = measurementTypeId, // Use the resolved ID
+                            FdcId = trimmedId, // This is the FDC ID for the nutrient
+                            CreatedDate = DateTime.UtcNow, // These will be overwritten by EF Core's audit if entity is new
+                            CreatedByPersonId = _importConfig.SystemPersonId,
+                            LastModifiedDate = DateTime.UtcNow,
+                            LastModifiedByPersonId = _importConfig.SystemPersonId
+                        };
+                        nutrientsToUpsert.Add(newNutrient);
                     }
 
-                    // Only add new entities. EF Core will track changes for existing ones if they were attached/modified.
-                    _dbContext.Nutrients.AddRange(nutrientsToUpsert);
-
-                    // Save changes for the batch
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-
-                    // After successful save, update the in-memory dictionaries for subsequent batches
-                    foreach (var newNutrient in nutrientsToUpsert)
+                    // Configure BulkConfig to use Name as the unique key for upsert.
+                    // This aligns with the "IX_Nutrient_Name" constraint.
+                    var bulkConfig = new BulkConfig
                     {
-                        existingNutrientsByFdcId[newNutrient.FdcId!] = newNutrient;
-                        existingNutrientsByName[newNutrient.Name] = newNutrient;
+                        UpdateByProperties = new List<string> { nameof(NutrientEntity.Name) },
+                        PropertiesToExcludeOnUpdate = new List<string> {
+                            nameof(NutrientEntity.Id), // Primary key, never update via upsert
+                            nameof(NutrientEntity.CreatedDate),
+                            nameof(NutrientEntity.CreatedByPersonId)
+                        }
+                        // Removed DisableTemporaryTable = true
+                    };
+
+                    if (nutrientsToUpsert.Any())
+                    {
+                        try
+                        {
+                            // Perform bulk upsert for the batch
+                            await dbContext.BulkInsertOrUpdateAsync(nutrientsToUpsert, bulkConfig, cancellationToken: innerCancellationToken);
+                            _progressTracker.RecordImported(stageName, nutrientsToUpsert.Count); // Report imported count
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Re-throw if cancellation was requested
+                            throw;
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log the error and signal cancellation for other tasks
+                            string errorMessage = $"FDC Nutrient import failed unexpectedly in batch. Exception details: {ex.Message}. Inner Exception: {ex.InnerException?.Message}";
+                            logger.LogError(ex, errorMessage);
+                            _reportGenerator.RecordError(errorMessage); // Record the error
+                            if (ex.InnerException != null)
+                            {
+                                logger.LogError(ex.InnerException, "Inner Exception Stack Trace:");
+                            }
+                            linkedCts.Cancel(); // Signal cancellation to other tasks
+                            throw; // Re-throw to propagate the exception out of Parallel.ForEachAsync
+                        }
                     }
-                    // For updated items, ensure they are also in the cache if they weren't already (unlikely if retrieved from DB, but good for consistency)
-                    // The current approach of loading all and then using Entry(entity).State = Modified is fine.
+                    else
+                    {
+                        logger.LogInformation("No FDC nutrient records to process for this batch.");
+                        _progressTracker.RecordImported(stageName, 0); // No records imported, but batch processed
+                    }
 
-                    processedCount += batch.Count; // Count all records in the batch as "processed" for progress tracking
-                    await _progressTracker.UpdateProgressAsync(stageName, processedCount);
-                    _logger.LogInformation("Processed {Count} FDC nutrient records. Total processed: {ProcessedCount}/{TotalRecords}. Duplicates in batch: {DuplicateCount}",
-                        batch.Count, processedCount, totalRecords, currentBatchDuplicates.Count);
-                }
+                    logger.LogInformation("Processed {Count} FDC nutrient records in a parallel task. Total processed (approx): {ProcessedCount}/{TotalRecords}. Duplicates by Name in batch: {BatchDuplicates}",
+                        batch.Count, _progressTracker.GetLastProcessedOffset(stageName), totalRecords, uniqueBatchNames.Count - nutrientsToUpsert.Count);
+                });
 
-                await _progressTracker.UpdateProgressAsync(stageName, totalRecords); // Mark stage as fully processed
-                _logger.LogInformation("FDC Nutrient import completed successfully. Total processed: {ProcessedCount}. Total duplicates found: {DuplicateCount}", processedCount, duplicateCount);
+                await _progressTracker.UpdateProgressAsync(stageName, totalRecords); // Final update to ensure total is correct
+                _logger.LogInformation("FDC Nutrient import completed successfully. Total processed: {ProcessedCount}. Total duplicates by Name found (in batches): {DuplicateNameCount}", _progressTracker.GetLastProcessedOffset(stageName), duplicateNameCount);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                //_logger.LogWarning("FDC Nutrient import was cancelled.");
-                // Progress is already saved by batch
+                string errorMessage = $"FDC Nutrient import was cancelled. Exception: {ex.Message}";
+                _logger.LogWarning(ex, errorMessage);
+                _reportGenerator.RecordFatalError(errorMessage); // Record as fatal if cancelled due to an upstream error
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "FDC Nutrient import failed unexpectedly.");
+                string errorMessage = $"FDC Nutrient import failed unexpectedly during overall process. Exception details: {ex.Message}. Inner Exception: {ex.InnerException?.Message}";
+                _logger.LogError(ex, errorMessage);
+                _reportGenerator.RecordFatalError(errorMessage); // Record as fatal
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError(ex.InnerException, "Inner Exception Stack Trace:");
+                }
                 throw; // Re-throw to indicate failure to the calling process
             }
         }

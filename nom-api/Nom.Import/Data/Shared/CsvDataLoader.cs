@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices; // Required for EnumeratorCancellation
 
 namespace Nom.Import.Data.Shared
 {
@@ -33,7 +34,7 @@ namespace Nom.Import.Data.Shared
         public async IAsyncEnumerable<List<TCsvModel>> LoadCsvInBatchesAsync(
             string filePath,
             int batchSize,
-            CancellationToken cancellationToken = default)
+            [EnumeratorCancellation] CancellationToken cancellationToken = default) // ADDED [EnumeratorCancellation]
         {
             _logger.LogInformation("Starting to load CSV from {FilePath} in batches of {BatchSize}.", filePath, batchSize);
 

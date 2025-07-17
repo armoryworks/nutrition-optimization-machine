@@ -9,22 +9,16 @@
 SET client_min_messages TO WARNING;
 SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
 
--- Set custom session variables using psql's -v variables.
--- These are substituted by psql before the script is sent to the server.
-SET nom.current_offset = :_offset;
-SET nom.current_limit = :_limit;
-
 -- Start a transaction for this single batch. This BEGIN/COMMIT wraps the entire script execution.
 BEGIN;
 
--- The PL/pgSQL anonymous code block starts here
 DO $$
 DECLARE
     system_person_id BIGINT := 1;
     processed_count INT := 0;
-    -- Retrieve values from custom session variables within PL/pgSQL
-    current_offset INT := current_setting('nom.current_offset')::INT;
-    current_limit INT := current_setting('nom.current_limit')::INT;
+    -- These placeholders will be replaced by the shell script before execution
+    current_offset INT := __OFFSET_PLACEHOLDER__;
+    current_limit INT := __LIMIT_PLACEHOLDER__;
 BEGIN
     RAISE NOTICE '--- Starting 07_recipe_com_process_instructions.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
 
@@ -40,7 +34,7 @@ BEGIN
         SELECT
             rie.source_link,
             rie.instruction_step_number,
-            rie.raw_instruction_text,
+            rie.instruction_text AS raw_instruction_text, -- Renamed for clarity with the INSERT
             r."Id" AS recipe_id -- Get recipe_id here for direct use
         FROM recipe.recipe_com_raw_instructions_exploded_staging rie
         JOIN recipe."Recipe" r ON rie.source_link = r."SourceUrl"

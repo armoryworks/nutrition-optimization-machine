@@ -2,6 +2,7 @@
   "profiles": {
     "Nom.Import": {
       "commandName": "Project",
+      "commandLineArgs": "--import-data",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

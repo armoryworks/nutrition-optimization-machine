@@ -13,6 +13,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EFCore.BulkExtensions; // Required for BulkInsertOrUpdateAsync
+using Microsoft.Extensions.DependencyInjection; // Required for IServiceScopeFactory
 
 namespace Nom.Import.Data.Fdc.Importers
 {
@@ -22,24 +24,27 @@ namespace Nom.Import.Data.Fdc.Importers
     /// </summary>
     public class FdcFoodImporter
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<FdcFoodImporter> _logger;
         private readonly CsvDataLoader<FdcFoodCsv> _csvDataLoader;
         private readonly ImportProgressTracker _progressTracker;
         private readonly ImportConfig _importConfig;
+        private readonly ImportReportGenerator _reportGenerator;
 
         public FdcFoodImporter(
-            ApplicationDbContext dbContext,
+            IServiceScopeFactory scopeFactory,
             ILogger<FdcFoodImporter> logger,
             CsvDataLoader<FdcFoodCsv> csvDataLoader,
             ImportProgressTracker progressTracker,
-            IOptions<ImportConfig> importConfig)
+            IOptions<ImportConfig> importConfig,
+            ImportReportGenerator reportGenerator)
         {
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
             _logger = logger;
             _csvDataLoader = csvDataLoader;
             _progressTracker = progressTracker;
             _importConfig = importConfig.Value;
+            _reportGenerator = reportGenerator;
         }
 
         /// <summary>
@@ -53,174 +58,137 @@ namespace Nom.Import.Data.Fdc.Importers
             _logger.LogInformation("Starting FDC Food (Ingredient) import from: {FilePath}", filePath);
 
             string stageName = "FDC_Foods_Import";
-            long processedCount = _progressTracker.GetLastProcessedOffset(stageName); // Resume from last processed count
-            long duplicateCount = 0;
+            _progressTracker.SetTotalRecords(stageName, totalRecords); // Report total discovered
+            long duplicateNameCount = 0; // This will now track in-batch duplicates, not total DB duplicates
+
+            // Create a CancellationTokenSource linked to the main cancellationToken
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = _importConfig.MaxParallelism, CancellationToken = linkedCts.Token };
 
             try
             {
-                // Retrieve all existing ingredients for efficient upsert logic
-                var existingIngredients = await _dbContext.Ingredients
-                    .AsNoTracking() // Use AsNoTracking for initial load to avoid tracking overhead
-                    .ToListAsync(cancellationToken);
-
-                // Create dictionaries for quick lookups.
-                // Handle potential duplicate names by taking the first encountered.
-                var existingIngredientsByFdcId = existingIngredients
-                    .Where(i => i.FdcId != null)
-                    .ToDictionary(i => i.FdcId!, i => i, StringComparer.OrdinalIgnoreCase);
-
-                // FIX: Handle duplicate keys in existingIngredientsByName
-                var existingIngredientsByName = existingIngredients
-                    .GroupBy(i => i.Name.ToLowerInvariant()) // Group by lowercased name
-                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase); // Take the first for each unique name
-
-                long recordsInCsv = 0;
-                await foreach (var batch in _csvDataLoader.LoadCsvInBatchesAsync(filePath, _importConfig.BatchSize, cancellationToken))
+                await Parallel.ForEachAsync(_csvDataLoader.LoadCsvInBatchesAsync(filePath, _importConfig.BatchSize, linkedCts.Token), parallelOptions, async (batch, innerCancellationToken) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    // Check for cancellation at the start of each batch processing task
+                    innerCancellationToken.ThrowIfCancellationRequested();
 
-                    recordsInCsv += batch.Count;
-                    // Skip batches already processed if resuming
-                    if (recordsInCsv <= processedCount)
-                    {
-                        _logger.LogInformation("Skipping batch as it was already processed. Current records in CSV: {RecordsInCsv}, Processed Count: {ProcessedCount}", recordsInCsv, processedCount);
-                        continue;
-                    }
+                    // Create a new scope and DbContext for each parallel task
+                    using var scope = _scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<FdcFoodImporter>>(); // Get logger for this scope
 
-                    var ingredientsToAdd = new List<IngredientEntity>();
-                    var ingredientsToUpdate = new List<IngredientEntity>();
-                    var currentBatchDuplicates = new List<FdcFoodCsv>();
+                    var ingredientsToUpsert = new List<IngredientEntity>();
+                    // Use a HashSet to track unique ingredient names within the current batch
+                    var uniqueBatchNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     foreach (var csvRecord in batch)
                     {
+                        // Check for cancellation within the inner loop
+                        innerCancellationToken.ThrowIfCancellationRequested();
+
                         // Basic validation: skip if FdcId or Description is empty
                         if (string.IsNullOrWhiteSpace(csvRecord.FdcId) || string.IsNullOrWhiteSpace(csvRecord.Description))
                         {
-                            //_logger.LogWarning("Skipping FDC food record due to empty FdcId or Description: {Record}", csvRecord);
+                            string reason = "Empty FdcId or Description";
+                            _progressTracker.RecordSkipped(stageName, reason); // Report skipped
+                            logger.LogWarning("Skipping FDC food record due to {Reason}. Record FdcId: {FdcId}, Description: {Description}",
+                                reason, csvRecord.FdcId, csvRecord.Description);
                             continue;
                         }
 
                         var trimmedDescription = csvRecord.Description.Trim();
                         var trimmedFdcId = csvRecord.FdcId.Trim();
 
-                        // Check for duplicates within the current batch (based on description, similar to SQL script's DISTINCT ON)
-                        if (ingredientsToAdd.Any(i => i.Name.Equals(trimmedDescription, StringComparison.OrdinalIgnoreCase)))
+                        // Deduplicate within the current batch by Name (case-insensitive)
+                        if (!uniqueBatchNames.Add(trimmedDescription))
                         {
-                            //_logger.LogWarning("Duplicate ingredient description '{Description}' found in current batch. Skipping: {FdcId}", trimmedDescription, trimmedFdcId);
-                            currentBatchDuplicates.Add(csvRecord);
-                            duplicateCount++;
+                            string reason = $"Duplicate ingredient description '{trimmedDescription}' in batch";
+                            _progressTracker.RecordSkipped(stageName, reason); // Report skipped
+                            duplicateNameCount++; // Increment local duplicate counter
                             continue;
                         }
 
-                        IngredientEntity? existingIngredient = null;
-                        if (existingIngredientsByFdcId.TryGetValue(trimmedFdcId, out var fdcIdMatch))
+                        // Create new IngredientEntity (it will be updated if a match is found by BulkExtensions)
+                        var newIngredient = new IngredientEntity
                         {
-                            existingIngredient = fdcIdMatch;
-                        }
-                        else if (existingIngredientsByName.TryGetValue(trimmedDescription, out var nameMatch))
-                        {
-                            existingIngredient = nameMatch;
-                        }
-
-                        if (existingIngredient != null)
-                        {
-                            // Update existing ingredient if FdcId is null or Description is null (as per SQL logic)
-                            bool needsUpdate = false;
-                            if (string.IsNullOrWhiteSpace(existingIngredient.FdcId))
-                            {
-                                existingIngredient.FdcId = trimmedFdcId;
-                                needsUpdate = true;
-                            }
-                            // The SQL script's MERGE for Ingredient doesn't update description if it's already there
-                            // and the source description is NULL. Here, we assume the CSV description is the primary.
-                            // If existing description is null, or if the CSV description is richer, update it.
-                            if (string.IsNullOrWhiteSpace(existingIngredient.Description)) // Assuming CSV description is the primary source
-                            {
-                                existingIngredient.Description = trimmedDescription;
-                                needsUpdate = true;
-                            }
-
-                            if (needsUpdate)
-                            {
-                                existingIngredient.LastModifiedDate = DateTime.UtcNow;
-                                existingIngredient.LastModifiedByPersonId = _importConfig.SystemPersonId;
-                                _dbContext.Ingredients.Attach(existingIngredient); // Attach if not already tracked
-                                _dbContext.Entry(existingIngredient).State = EntityState.Modified; // Mark as modified
-                                _logger.LogDebug("Updating existing ingredient: {Name} (ID: {Id})", existingIngredient.Name, existingIngredient.Id);
-                            }
-                            else
-                            {
-                                _logger.LogDebug("Ingredient '{Name}' (FdcId: {FdcId}) already exists and is up-to-date. Skipping.", trimmedDescription, trimmedFdcId);
-                            }
-                        }
-                        else
-                        {
-                            // Create new IngredientEntity
-                            var newIngredient = new IngredientEntity
-                            {
-                                Name = trimmedDescription,
-                                Description = trimmedDescription, // Use description as both name and description for FDC food
-                                FdcId = trimmedFdcId,
-                                CreatedDate = DateTime.UtcNow,
-                                CreatedByPersonId = _importConfig.SystemPersonId,
-                                LastModifiedDate = DateTime.UtcNow,
-                                LastModifiedByPersonId = _importConfig.SystemPersonId
-                            };
-                            ingredientsToAdd.Add(newIngredient);
-                            _logger.LogDebug("Adding new ingredient: {Name} (FdcId: {FdcId})", newIngredient.Name, newIngredient.FdcId);
-                        }
+                            Name = trimmedDescription,
+                            Description = trimmedDescription, // Use description as both name and description for FDC food
+                            FdcId = trimmedFdcId,
+                            CreatedDate = DateTime.UtcNow, // These will be overwritten by EF Core's audit if entity is new
+                            CreatedByPersonId = _importConfig.SystemPersonId,
+                            LastModifiedDate = DateTime.UtcNow,
+                            LastModifiedByPersonId = _importConfig.SystemPersonId
+                        };
+                        ingredientsToUpsert.Add(newIngredient);
                     }
 
-                    // Add new entities to context
-                    _dbContext.Ingredients.AddRange(ingredientsToAdd);
-                    // For entities that were already tracked (e.g., if retrieved earlier in a larger context),
-                    // EF Core will automatically detect changes. For those that were loaded AsNoTracking,
-                    // and then modified, we need to explicitly attach and mark as modified if not already done.
-                    // The .UpdateRange call is generally safer if you're not sure about tracking state.
-                    // However, if you load all existing with AsNoTracking, then modify them, and then AddRange new ones,
-                    // you typically need to Attach and then mark as Modified, or use a library like EFCore.BulkExtensions.
-                    // For now, relying on EF's change tracking for entities already in context.
-                    // If existingIngredient was found via AsNoTracking, it's not tracked. So we need to attach it.
-                    // The 'ingredientsToUpdate' list is no longer strictly needed if we attach and modify directly.
-                    // However, for clarity, if you had a separate list, you'd iterate it here.
-                    // The current logic where `_dbContext.Entry(existingIngredient).State = EntityState.Modified;` is applied
-                    // to `existingIngredient` directly after it's found (if it needs update) is correct,
-                    // provided `existingIngredient` was attached or is already tracked.
-                    // If existingIngredient was obtained via AsNoTracking, it's not tracked. So we need to attach it first.
-                    // The logic above: `_dbContext.Ingredients.Attach(existingIngredient);` handles this.
-
-                    // Save changes for the batch
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-
-                    // After successful save, update the in-memory dictionaries for subsequent batches
-                    // This is crucial for correctness in subsequent batches of the same import run.
-                    foreach (var newIngredient in ingredientsToAdd)
+                    // Configure BulkConfig to use Name as the unique key for upsert.
+                    var bulkConfig = new BulkConfig
                     {
-                        existingIngredientsByFdcId[newIngredient.FdcId!] = newIngredient;
-                        existingIngredientsByName[newIngredient.Name] = newIngredient;
+                        UpdateByProperties = new List<string> { nameof(IngredientEntity.Name) },
+                        PropertiesToExcludeOnUpdate = new List<string> {
+                            nameof(IngredientEntity.Id), // Primary key, never update via upsert
+                            nameof(IngredientEntity.CreatedDate),
+                            nameof(IngredientEntity.CreatedByPersonId),
+                            nameof(IngredientEntity.Name) // Exclude Name from being updated when conflict on Name occurs
+                        }
+                        // Removed DisableTemporaryTable = true
+                    };
+
+                    if (ingredientsToUpsert.Any())
+                    {
+                        try
+                        {
+                            // Perform bulk upsert for the batch
+                            await dbContext.BulkInsertOrUpdateAsync(ingredientsToUpsert, bulkConfig, cancellationToken: innerCancellationToken);
+                            _progressTracker.RecordImported(stageName, ingredientsToUpsert.Count); // Report imported count
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch (Exception ex)
+                        {
+                            string errorMessage = $"FDC Food (Ingredient) import failed unexpectedly in batch. Exception details: {ex.Message}. Inner Exception: {ex.InnerException?.Message}";
+                            logger.LogError(ex, errorMessage);
+                            _reportGenerator.RecordError(errorMessage); // Record the error
+                            if (ex.InnerException != null)
+                            {
+                                logger.LogError(ex.InnerException, "Inner Exception Stack Trace:");
+                            }
+                            linkedCts.Cancel(); // Signal cancellation to other tasks
+                            throw;
+                        }
                     }
-                    // For updated items, ensure they are also in the cache if they weren't already (unlikely if retrieved from DB, but good for consistency)
-                    // The existingIngredient variable already points to the object that was potentially attached and modified.
-                    // No need to iterate a separate list here.
+                    else
+                    {
+                        logger.LogInformation("No FDC food records to process for this batch.");
+                        _progressTracker.RecordImported(stageName, 0); // No records imported, but batch processed
+                    }
 
-                    processedCount += batch.Count; // Count all records in the batch as "processed" for progress tracking
-                    await _progressTracker.UpdateProgressAsync(stageName, processedCount);
-                    _logger.LogInformation("Processed {Count} FDC food records. Total processed: {ProcessedCount}/{TotalRecords}. Duplicates in batch: {DuplicateCount}",
-                        batch.Count, processedCount, totalRecords, currentBatchDuplicates.Count);
-                }
+                    logger.LogInformation("Processed {Count} FDC food records in a parallel task. Total processed (approx): {ProcessedCount}/{TotalRecords}. Duplicates by Name in batch: {BatchDuplicates}",
+                        batch.Count, _progressTracker.GetLastProcessedOffset(stageName), totalRecords, uniqueBatchNames.Count - ingredientsToUpsert.Count);
+                });
 
-                await _progressTracker.UpdateProgressAsync(stageName, totalRecords); // Mark stage as fully processed
-                _logger.LogInformation("FDC Food (Ingredient) import completed successfully. Total processed: {ProcessedCount}. Total duplicates found: {DuplicateCount}", processedCount, duplicateCount);
+                await _progressTracker.UpdateProgressAsync(stageName, totalRecords); // Final update to ensure total is correct
+                _logger.LogInformation("FDC Food (Ingredient) import completed successfully. Total processed: {ProcessedCount}. Total duplicates by Name found (in batches): {DuplicateNameCount}", _progressTracker.GetLastProcessedOffset(stageName), duplicateNameCount);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                //_logger.LogWarning("FDC Food (Ingredient) import was cancelled.");
-                // Progress is already saved by batch
+                string errorMessage = $"FDC Food (Ingredient) import was cancelled. Exception: {ex.Message}";
+                _logger.LogWarning(ex, errorMessage);
+                _reportGenerator.RecordFatalError(errorMessage); // Record as fatal if cancelled due to an upstream error
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "FDC Food (Ingredient) import failed unexpectedly.");
-                throw; // Re-throw to indicate failure to the calling process
+                string errorMessage = $"FDC Food (Ingredient) import failed unexpectedly during overall process. Exception details: {ex.Message}. Inner Exception: {ex.InnerException?.Message}";
+                _logger.LogError(ex, errorMessage);
+                _reportGenerator.RecordFatalError(errorMessage); // Record as fatal
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError(ex.InnerException, "Inner Exception Stack Trace:");
+                }
+                throw;
             }
         }
     }

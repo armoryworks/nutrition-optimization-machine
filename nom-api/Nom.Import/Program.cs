@@ -1,250 +1,415 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Nom.Data; // For ApplicationDbContext
-using Nom.Import.Data.Fdc.Importers;
-using Nom.Import.Data.Shared;
-using Nom.Import.Extensions; // For AddImportServices extension method
-using Nom.Import.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore; // ADDED THIS USING DIRECTIVE
+using Microsoft.Extensions.Configuration;
+using Npgsql; // For PostgreSQL interaction
+using CsvHelper; // For reading CSV files
+using CsvHelper.Configuration; // For CSV configuration
+using System.Globalization;
+using System.Collections.Concurrent; // For ConcurrentBag
+using System.Text.RegularExpressions; // For SanitizeTableName
 
-namespace Nom.Import
+
+
+public class Program
 {
-    public class Program
+    // Define the directory where your CSV files are located
+    private const string BaseDataPath = "/home/dhokanson/Dev/ImportSource/";
+    // Number of rows to sample from each CSV to infer column types
+    private const int TypeInferenceSampleRows = 100;
+
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
+        Console.WriteLine("Starting generic CSV import application...");
+
+        // Build configuration from appsettings.Development.json
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.Development.json", optional: false, reloadOnChange: true);
+        IConfiguration config = builder.Build();
+
+        string connectionString = config.GetConnectionString("TmpConnection");
+        if (string.IsNullOrEmpty(connectionString))
         {
-            // Build the host
-            var host = CreateHostBuilder(args).Build();
+            Console.WriteLine("Error: 'TmpConnection' connection string not found in appsettings.Development.json.");
+            Console.WriteLine("Please ensure the file exists and contains the connection string.");
+            return;
+        }
 
-            // Get services from the host
-            using (var scope = host.Services.CreateScope())
+        // Extract database name from the connection string
+        var connStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        string targetDatabaseName = connStringBuilder.Database;
+        // Temporarily connect to 'postgres' database to create the target database if it doesn't exist
+        connStringBuilder.Database = "postgres";
+        string masterConnectionString = connStringBuilder.ToString();
+
+        try
+        {
+            await EnsureDatabaseExistsAsync(masterConnectionString, targetDatabaseName);
+            Console.WriteLine($"Database '{targetDatabaseName}' is ready.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fatal error ensuring database exists: {ex.Message}");
+            return;
+        }
+
+        Console.WriteLine($"Scanning for CSV files in: {BaseDataPath}");
+
+        if (!Directory.Exists(BaseDataPath))
+        {
+            Console.WriteLine($"Error: Directory not found at {BaseDataPath}. Please ensure the path is correct.");
+            return;
+        }
+
+        var csvFiles = Directory.GetFiles(BaseDataPath, "*.csv", SearchOption.TopDirectoryOnly).ToList();
+
+        if (!csvFiles.Any())
+        {
+            Console.WriteLine("No CSV files found in the specified directory. Exiting.");
+            return;
+        }
+
+        Console.WriteLine($"Found {csvFiles.Count} CSV files. Starting parallel processing...");
+
+        // Use Parallel.ForEachAsync to process each CSV file concurrently
+        // MaxDegreeOfParallelism is set to the number of CPU cores for optimal utilization
+        await Parallel.ForEachAsync(csvFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (filePath, token) =>
+        {
+            await ProcessCsvFileAsync(filePath, connectionString);
+        });
+
+        Console.WriteLine("\nAll CSV files processed. Import complete.");
+    }
+
+    /// <summary>
+    /// Ensures the target PostgreSQL database exists. If not, it creates it.
+    /// </summary>
+    /// <param name="masterConnectionString">Connection string to a master database (e.g., 'postgres').</param>
+    /// <param name="databaseName">The name of the database to ensure exists.</param>
+    private static async Task EnsureDatabaseExistsAsync(string masterConnectionString, string databaseName)
+    {
+        await using var conn = new NpgsqlConnection(masterConnectionString);
+        await conn.OpenAsync();
+
+        // Check if the database exists
+        await using (var cmd = new NpgsqlCommand($"SELECT 1 FROM pg_database WHERE datname = @dbName", conn))
+        {
+            cmd.Parameters.AddWithValue("dbName", databaseName);
+            var result = await cmd.ExecuteScalarAsync();
+            if (result != null && result.Equals(1))
             {
-                var services = scope.ServiceProvider;
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                var configuration = services.GetRequiredService<IConfiguration>();
-                var importConfig = configuration.GetSection("ImportSettings").Get<ImportConfig>();
-                var progressTracker = services.GetRequiredService<ImportProgressTracker>(); // Get the progress tracker
+                Console.WriteLine($"Database '{databaseName}' already exists.");
+                return;
+            }
+        }
 
-                // --- DIAGNOSTIC LOGGING START ---
-                logger.LogInformation("--- Configuration Diagnostics ---");
-                logger.LogInformation("Environment variable ASPNETCORE_ENVIRONMENT (from Environment.GetEnvironmentVariable): {EnvVar}", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
-                logger.LogInformation("Hosting Environment Name (from IHostEnvironment): {HostEnvName}", host.Services.GetRequiredService<IHostEnvironment>().EnvironmentName);
+        // Create the database if it does not exist
+        Console.WriteLine($"Database '{databaseName}' does not exist. Creating...");
+        // IMPORTANT: Cannot use parameters with CREATE DATABASE. Sanitize name carefully.
+        string safeDbName = Regex.Replace(databaseName, "[^a-zA-Z0-9_]", "", RegexOptions.Compiled);
+        if (string.IsNullOrWhiteSpace(safeDbName))
+        {
+            throw new ArgumentException("Database name cannot be empty or contain only invalid characters after sanitization.");
+        }
+        await using (var cmd = new NpgsqlCommand($"CREATE DATABASE \"{safeDbName}\"", conn))
+        {
+            await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"Database '{databaseName}' created successfully.");
+        }
+    }
 
-                logger.LogInformation("Loaded Configuration Sources:");
-                foreach (var source in ((IConfigurationRoot)configuration).Providers)
+    /// <summary>
+    /// Processes a single CSV file: infers schema, creates table, and bulk inserts data.
+    /// </summary>
+    /// <param name="filePath">The full path to the CSV file.</param>
+    /// <param name="connectionString">The PostgreSQL connection string.</param>
+    private static async Task ProcessCsvFileAsync(string filePath, string connectionString)
+    {
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string tableName = SanitizeTableName(fileName);
+
+        Console.WriteLine($"Processing file: {fileName}.csv -> Table: \"{tableName}\"");
+
+        try
+        {
+            // Infer column names and types
+            var columnDefinitions = InferColumnTypes(filePath);
+            if (!columnDefinitions.Any())
+            {
+                Console.WriteLine($"Warning: No columns inferred for {fileName}.csv. Skipping table creation and import.");
+                return;
+            }
+
+            // Create table
+            await CreateTableAsync(connectionString, tableName, columnDefinitions);
+
+            // Bulk insert data
+            await BulkInsertDataAsync(connectionString, filePath, tableName, columnDefinitions);
+
+            Console.WriteLine($"Successfully imported {fileName}.csv into table \"{tableName}\".");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing {fileName}.csv: {ex.Message}");
+            // Log the full exception details if needed for debugging
+            // Console.WriteLine(ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Infers column names and their PostgreSQL data types by sampling the CSV file.
+    /// </summary>
+    /// <param name="filePath">The path to the CSV file.</param>
+    /// <returns>A list of tuples containing sanitized column name and inferred SQL type.</returns>
+    private static List<(string ColumnName, string SqlType)> InferColumnTypes(string filePath)
+    {
+        var columnTypes = new Dictionary<string, Type>(); // Tracks the "strongest" type found for each column
+        var columnNames = new List<string>();
+
+        var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            PrepareHeaderForMatch = args => SanitizeColumnName(args.Header), // Sanitize headers for internal use
+            MissingFieldFound = null, // Do not throw if a field is missing
+            BadDataFound = null // Do not throw on bad data
+        };
+
+        using (var reader = new StreamReader(filePath))
+        using (var csv = new CsvReader(reader, csvConfig))
+        {
+            csv.Read();
+            csv.ReadHeader();
+            foreach (var header in csv.HeaderRecord)
+            {
+                string sanitizedHeader = SanitizeColumnName(header);
+                columnNames.Add(sanitizedHeader);
+                columnTypes[sanitizedHeader] = typeof(string); // Default to string (TEXT in SQL)
+            }
+
+            int rowsRead = 0;
+            while (csv.Read() && rowsRead < TypeInferenceSampleRows)
+            {
+                for (int i = 0; i < columnNames.Count; i++)
                 {
-                    logger.LogInformation("  - {Provider}", source.GetType().Name);
+                    string columnName = columnNames[i];
+                    string rawValue = csv.GetField(i);
+
+                    Type currentInferredType = GetPostgreSqlType(rawValue);
+                    Type existingType = columnTypes[columnName];
+
+                    // Promote type if new type is "stronger" (e.g., int -> double -> string)
+                    columnTypes[columnName] = PromoteType(existingType, currentInferredType);
                 }
-                logger.LogInformation("---------------------------------");
-                // --- DIAGNOSTIC LOGGING END ---
+                rowsRead++;
+            }
+        }
 
+        // Convert inferred C# types to PostgreSQL SQL types
+        var sqlColumnDefinitions = new List<(string ColumnName, string SqlType)>();
+        foreach (var name in columnNames)
+        {
+            string sqlTypeName = "TEXT"; // Default fallback
+            Type inferredType = columnTypes[name];
 
-                if (importConfig == null)
+            if (inferredType == typeof(int)) sqlTypeName = "INTEGER";
+            else if (inferredType == typeof(double)) sqlTypeName = "DOUBLE PRECISION";
+            else if (inferredType == typeof(bool)) sqlTypeName = "BOOLEAN";
+            else if (inferredType == typeof(DateTime)) sqlTypeName = "TIMESTAMP WITHOUT TIME ZONE";
+            // else remains TEXT
+
+            sqlColumnDefinitions.Add((name, sqlTypeName));
+        }
+
+        return sqlColumnDefinitions;
+    }
+
+    /// <summary>
+    /// Determines the "strongest" type between two given types for schema inference.
+    /// </summary>
+    private static Type PromoteType(Type existingType, Type newType)
+    {
+        if (existingType == typeof(string)) return typeof(string); // String is the broadest
+        if (newType == typeof(string)) return typeof(string);
+
+        if (existingType == typeof(double)) return typeof(double); // Double is broader than int
+        if (newType == typeof(double)) return typeof(double);
+
+        if (existingType == typeof(DateTime)) return typeof(DateTime); // DateTime is specific
+        if (newType == typeof(DateTime)) return typeof(DateTime);
+
+        if (existingType == typeof(int) && newType == typeof(int)) return typeof(int);
+        if (existingType == typeof(bool) && newType == typeof(bool)) return typeof(bool);
+
+        // If types are incompatible (e.g., int and bool), promote to string
+        if (existingType != newType) return typeof(string);
+
+        return existingType; // Should be the same type now
+    }
+
+    /// <summary>
+    /// Infers the PostgreSQL data type for a single string value.
+    /// </summary>
+    private static Type GetPostgreSqlType(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return typeof(string); // Treat empty/whitespace as string for now
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)) return typeof(int);
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) return typeof(double);
+        if (bool.TryParse(value, out _)) return typeof(bool);
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out _)) return typeof(DateTime);
+
+        return typeof(string); // Default to string if no specific type matches
+    }
+
+    /// <summary>
+    /// Creates a table in the PostgreSQL database based on inferred column definitions.
+    /// </summary>
+    private static async Task CreateTableAsync(string connectionString, string tableName, List<(string ColumnName, string SqlType)> columnDefinitions)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        var columnsSql = string.Join(", ", columnDefinitions.Select(col => $"\"{col.Item1}\" {col.Item2}"));
+        var createTableSql = $"CREATE TABLE IF NOT EXISTS \"{tableName}\" ({columnsSql})";
+
+        Console.WriteLine($"Attempting to create table: {tableName}");
+        // Console.WriteLine($"SQL: {createTableSql}"); // Uncomment for debugging SQL
+
+        await using var cmd = new NpgsqlCommand(createTableSql, conn);
+        await cmd.ExecuteNonQueryAsync();
+        Console.WriteLine($"Table \"{tableName}\" ensured to exist.");
+    }
+
+    /// <summary>
+    /// Bulk inserts data from a CSV file into the specified PostgreSQL table.
+    /// Uses Npgsql's binary import for maximum efficiency.
+    /// </summary>
+    private static async Task BulkInsertDataAsync(string connectionString, string filePath, string tableName, List<(string ColumnName, string SqlType)> columnDefinitions)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        var columnNames = columnDefinitions.Select(c => $"\"{c.ColumnName}\"").ToList();
+        // Corrected: Use FORMAT BINARY for BeginBinaryImport
+        var copyCommand = $"COPY \"{tableName}\" ({string.Join(", ", columnNames)}) FROM STDIN (FORMAT BINARY)";
+
+        var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            PrepareHeaderForMatch = args => SanitizeColumnName(args.Header),
+            MissingFieldFound = null,
+            BadDataFound = null
+        };
+
+        Console.WriteLine($"Starting bulk import for table \"{tableName}\" using binary format...");
+
+        using (var reader = new StreamReader(filePath))
+        using (var csv = new CsvReader(reader, csvConfig))
+        using (var importer = conn.BeginBinaryImport(copyCommand))
+        {
+            csv.Read(); // Read header row
+            csv.ReadHeader(); // Process header
+
+            int rowsImported = 0;
+            while (csv.Read())
+            {
+                importer.StartRow();
+                for (int i = 0; i < columnDefinitions.Count; i++)
                 {
-                    logger.LogCritical("ImportSettings section not found or could not be bound to ImportConfig. Exiting.");
-                    return;
-                }
+                    var (colName, sqlType) = columnDefinitions[i];
+                    string rawValue = csv.GetField(i);
 
-                logger.LogInformation("Nom.Import application started.");
-                logger.LogInformation("FDC CSV Base Path: {FdcCsvBasePath}", importConfig.FdcCsvBasePath);
-                logger.LogInformation("Batch Size: {BatchSize}", importConfig.BatchSize);
-                logger.LogInformation("Default Debug Limit: {DefaultDebugLimit}", importConfig.DefaultDebugLimit);
-                logger.LogInformation("System Person ID: {SystemPersonId}", importConfig.SystemPersonId);
-
-                // Initialize DbContext to ensure migrations are applied if needed
-                try
-                {
-                    var dbContext = services.GetRequiredService<ApplicationDbContext>();
-                    // Check if the database exists and if migrations are pending
-                    if (!await dbContext.Database.CanConnectAsync())
+                    // Write DBNull.Value for empty strings for nullable types
+                    if (string.IsNullOrEmpty(rawValue))
                     {
-                        logger.LogCritical("Cannot connect to the database. Please ensure PostgreSQL is running and connection string is correct.");
-                        return;
-                    }
-
-                    var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-                    if (pendingMigrations.Any())
-                    {
-                        logger.LogInformation("Applying pending database migrations: {Migrations}", string.Join(", ", pendingMigrations));
-                        await dbContext.Database.MigrateAsync();
-                        logger.LogInformation("Database migrations applied successfully.");
+                        importer.Write(DBNull.Value);
                     }
                     else
                     {
-                        logger.LogInformation("No pending database migrations found. Database is up-to-date.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogCritical(ex, "Failed to apply database migrations or connect to database. Exiting.");
-                    return;
-                }
-
-                // --- User Interaction for Import Settings ---
-                Console.WriteLine("\n--- FDC Import Configuration ---");
-                string fdcCsvBasePath = ConsoleUtility.PromptForString("Enter FDC CSV files directory", importConfig.FdcCsvBasePath);
-                importConfig.FdcCsvBasePath = fdcCsvBasePath; // Update config for importers
-
-                int batchSize = ConsoleUtility.PromptForInteger("Enter batch size for imports", importConfig.BatchSize);
-                importConfig.BatchSize = batchSize; // Update config for importers
-
-                bool enableDebugLimit = ConsoleUtility.PromptWithCountdown("Enable global debug record limit? (y/N)", 5).Equals("y", StringComparison.OrdinalIgnoreCase);
-                long debugLimit = 0; // Changed to long
-                if (enableDebugLimit)
-                {
-                    debugLimit = ConsoleUtility.PromptForInteger($"Enter total number of records to process (default: {importConfig.DefaultDebugLimit})", importConfig.DefaultDebugLimit);
-                }
-                logger.LogInformation("Global debug limit enabled: {Enabled}, Limit: {Limit}", enableDebugLimit, debugLimit);
-
-                // Option to clear previous progress
-                string clearProgressChoice = ConsoleUtility.PromptWithCountdown("Clear all previous import progress? (y/N)", 5);
-                if (clearProgressChoice.Equals("y", StringComparison.OrdinalIgnoreCase))
-                {
-                    await progressTracker.ClearAllProgressAsync();
-                    logger.LogInformation("All previous import progress cleared.");
-                }
-
-                // --- Define FDC Import Stages ---
-                var fdcStages = new (string Name, Func<FdcNutrientImporter, FdcFoodImporter, FdcFoodNutrientImporter, string, long, CancellationToken, Task> ImportAction, string CsvFileName)[]
-                {
-                    ("FDC Nutrients", async (ni, fi, fni, path, total, ct) => await ni.ImportAsync(Path.Combine(path, "nutrient.csv"), total, ct), "nutrient.csv"),
-                    ("FDC Foods", async (ni, fi, fni, path, total, ct) => await fi.ImportAsync(Path.Combine(path, "food.csv"), total, ct), "food.csv"),
-                    ("FDC Food Nutrients", async (ni, fi, fni, path, total, ct) => await fni.ImportAsync(Path.Combine(path, "food_nutrient.csv"), total, ct), "food_nutrient.csv")
-                };
-
-                // --- Interactive Stage Selection (Optional) ---
-                var stageNames = fdcStages.Select(s => s.Name).ToArray();
-                int startIndex = ConsoleUtility.SelectOption(stageNames, "\n--- Select FDC Import Starting Stage ---", 0);
-
-                // Handle debug mode selection from ConsoleUtility.SelectOption
-                if (startIndex == -1) // -1 indicates "debug" was chosen
-                {
-                    enableDebugLimit = true;
-                    debugLimit = ConsoleUtility.PromptForInteger($"Enter total number of records to process (default: {importConfig.DefaultDebugLimit})", importConfig.DefaultDebugLimit);
-                    logger.LogInformation("Debug mode activated via stage selection. Limit: {Limit}", debugLimit);
-                    startIndex = 0; // Start from the first stage in debug mode
-                }
-
-
-                // --- Import Orchestration ---
-                var nutrientImporter = services.GetRequiredService<FdcNutrientImporter>();
-                var foodImporter = services.GetRequiredService<FdcFoodImporter>();
-                var foodNutrientImporter = services.GetRequiredService<FdcFoodNutrientImporter>();
-
-                var cts = new CancellationTokenSource();
-                Console.CancelKeyPress += (sender, e) =>
-                {
-                    e.Cancel = true; // Prevent the process from terminating immediately
-                    logger.LogWarning("Cancellation requested. Attempting to gracefully stop import...");
-                    cts.Cancel();
-                };
-
-                for (int i = startIndex; i < fdcStages.Length; i++)
-                {
-                    var stage = fdcStages[i];
-                    try
-                    {
-                        string csvFilePath = Path.Combine(importConfig.FdcCsvBasePath, stage.CsvFileName);
-                        long totalRecords = GetCsvRecordCount(csvFilePath, logger); // Estimate total records
-
-                        // Apply debug limit if enabled
-                        if (enableDebugLimit)
+                        // Write based on inferred type. Npgsql handles the binary serialization.
+                        if (sqlType == "INTEGER")
                         {
-                            totalRecords = Math.Min(totalRecords, debugLimit);
-                            logger.LogInformation("Applying debug limit of {Limit} to {StageName} stage. Effective total: {Total}", debugLimit, stage.Name, totalRecords);
+                            importer.Write(int.Parse(rawValue, CultureInfo.InvariantCulture));
                         }
-
-                        logger.LogInformation("Starting FDC Import Stage: {StageName} from {CsvFile}", stage.Name, stage.CsvFileName);
-                        await stage.ImportAction(nutrientImporter, foodImporter, foodNutrientImporter, importConfig.FdcCsvBasePath, totalRecords, cts.Token);
-                        logger.LogInformation("Completed FDC Import Stage: {StageName}", stage.Name);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        logger.LogInformation("FDC Import process cancelled at stage: {StageName}", stage.Name);
-                        break; // Exit the loop on cancellation
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "An error occurred during FDC import stage '{StageName}'.", stage.Name);
-                        // Decide whether to continue or exit on error
-                        Console.WriteLine($"\nError in stage '{stage.Name}': {ex.Message}");
-                        Console.Write("Continue to next stage? (y/N): ");
-                        if (!Console.ReadLine()?.Equals("y", StringComparison.OrdinalIgnoreCase) ?? true)
+                        else if (sqlType == "DOUBLE PRECISION")
                         {
-                            logger.LogInformation("User chose to stop after error in stage: {StageName}", stage.Name);
-                            break;
+                            importer.Write(double.Parse(rawValue, CultureInfo.InvariantCulture));
+                        }
+                        else if (sqlType == "BOOLEAN")
+                        {
+                            importer.Write(bool.Parse(rawValue));
+                        }
+                        else if (sqlType == "TIMESTAMP WITHOUT TIME ZONE")
+                        {
+                            importer.Write(DateTime.Parse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.None));
+                        }
+                        else // TEXT or any other unhandled type
+                        {
+                            importer.Write(rawValue);
                         }
                     }
                 }
-
-                logger.LogInformation("Nom.Import application finished.");
+                rowsImported++;
             }
 
-            await host.RunAsync(); // Run the host to keep background services alive if any (though not strictly needed for this console app)
+            await importer.CompleteAsync();
+            Console.WriteLine($"Bulk imported {rowsImported} rows into \"{tableName}\".");
         }
+    }
 
-        /// <summary>
-        /// Configures the host for the console application.
-        /// </summary>
-        /// <param name="args">Command line arguments.</param>
-        /// <returns>An IHostBuilder instance.</returns>
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .UseEnvironment("Development") // <--- ADDED THIS LINE TO FORCE DEVELOPMENT ENVIRONMENT
-                .ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    config.AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                    config.AddEnvironmentVariables(); // Allow environment variables to override settings
-                    if (args != null)
-                    {
-                        config.AddCommandLine(args); // Allow command line arguments to override settings
-                    }
-                })
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddImportServices(hostContext.Configuration);
-                })
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders(); // Clear default providers
-                    logging.AddConsole();     // Add console logger
-                    logging.AddDebug();       // Add debug logger
-                    logging.SetMinimumLevel(LogLevel.Information); // Default log level
-                });
-
-        /// <summary>
-        /// Estimates the total number of records in a CSV file by counting lines,
-        /// subtracting one for the header.
-        /// </summary>
-        /// <param name="filePath">The path to the CSV file.</param>
-        /// <param name="logger">The logger instance.</param>
-        /// <returns>The estimated number of data records.</returns>
-        private static long GetCsvRecordCount(string filePath, ILogger logger)
+    /// <summary>
+    /// Sanitizes a string to be a valid PostgreSQL table name.
+    /// Replaces invalid characters with underscores and ensures it starts with a letter or underscore.
+    /// </summary>
+    private static string SanitizeTableName(string name)
+    {
+        // Replace non-alphanumeric characters (except underscore) with underscore
+        string sanitized = Regex.Replace(name, @"[^a-zA-Z0-9_]+", "_");
+        // Ensure it doesn't start with a number (PostgreSQL identifiers can't)
+        if (char.IsDigit(sanitized.FirstOrDefault()))
         {
-            if (!File.Exists(filePath))
-            {
-                logger.LogWarning("CSV file not found for counting records: {FilePath}", filePath);
-                return 0;
-            }
-            try
-            {
-                // Count lines, subtract 1 for header. Handle potential empty file.
-                long lineCount = File.ReadLines(filePath).LongCount();
-                return Math.Max(0, lineCount - 1);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error counting records in CSV file: {FilePath}", filePath);
-                return 0;
-            }
+            sanitized = "_" + sanitized;
         }
+        // Trim underscores from ends
+        sanitized = sanitized.Trim('_');
+        // Ensure it's not empty
+        if (string.IsNullOrEmpty(sanitized))
+        {
+            sanitized = "unnamed_table"; // Fallback name
+        }
+        // Limit length if necessary (PostgreSQL default is 63 characters)
+        if (sanitized.Length > 63)
+        {
+            sanitized = sanitized.Substring(0, 63);
+        }
+        return sanitized.ToLowerInvariant(); // PostgreSQL usually prefers lowercase identifiers
+    }
+
+    /// <summary>
+    /// Sanitizes a string to be a valid PostgreSQL column name.
+    /// Similar to table name sanitization.
+    /// </summary>
+    private static string SanitizeColumnName(string name)
+    {
+        // Replace non-alphanumeric characters (except underscore) with underscore
+        string sanitized = Regex.Replace(name, @"[^a-zA-Z0-9_]+", "_");
+        // Ensure it doesn't start with a number
+        if (char.IsDigit(sanitized.FirstOrDefault()))
+        {
+            sanitized = "_" + sanitized;
+        }
+        sanitized = sanitized.Trim('_');
+        if (string.IsNullOrEmpty(sanitized))
+        {
+            sanitized = "column"; // Fallback name
+        }
+        if (sanitized.Length > 63) // PostgreSQL identifier limit
+        {
+            sanitized = sanitized.Substring(0, 63);
+        }
+        return sanitized.ToLowerInvariant();
     }
 }

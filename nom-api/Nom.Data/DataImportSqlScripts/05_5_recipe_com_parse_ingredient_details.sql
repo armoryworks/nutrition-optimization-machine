@@ -1,17 +1,13 @@
 -- 05_5_recipe_com_parse_ingredient_details.sql
 -- This script parses quantity, measurement type, and cleaned ingredient name from raw_text
 -- in recipe.recipe_com_raw_ingredients_exploded_staging using a comprehensive parsing function.
--- It expects _offset and _limit variables to be passed by the calling script.
+-- It expects _offset and _limit variables to be passed by the calling script via string injection.
 -- This script runs as a single, atomic transaction, with PL/pgSQL logic inside a DO block.
 
 -- Set client_min_messages to WARNING to suppress verbose DEBUG notices during normal operation.
 -- Only WARNINGs and higher will be displayed.
 SET client_min_messages TO WARNING;
 SET search_path TO public, recipe, reference, nutrient, audit, plan, shopping, person, auth;
-
--- Set custom session variables using psql's -v variables.
-SET nom.current_offset = :_offset;
-SET nom.current_limit = :_limit;
 
 -- Start a transaction for this single batch.
 BEGIN;
@@ -21,8 +17,9 @@ DECLARE
     system_person_id BIGINT := 1;
     processed_count INT := 0;
     error_count INT := 0;
-    current_offset INT := current_setting('nom.current_offset')::INT;
-    current_limit INT := current_setting('nom.current_limit')::INT;
+    -- These placeholders will be replaced by the shell script before execution
+    current_offset INT := __OFFSET_PLACEHOLDER__;
+    current_limit INT := __LIMIT_PLACEHOLDER__;
     -- Variables to hold data for the current row being processed
     v_source_link TEXT;
     v_line_order INT;
@@ -34,7 +31,6 @@ DECLARE
     error_message TEXT;
     error_context TEXT;
 BEGIN
-    -- These notices will still show due to client_min_messages being WARNING, as they are general info messages.
     RAISE NOTICE '--- Starting 05_5_recipe_com_parse_ingredient_details.sql (Processing Batch Offset: %, Limit: %) ---', current_offset, current_limit;
     RAISE NOTICE 'DEBUG: Current client_min_messages setting: %', current_setting('client_min_messages');
 
@@ -56,7 +52,7 @@ BEGIN
         ORDER BY source_link, line_order
         OFFSET current_offset
         LIMIT CASE WHEN current_limit > 0 THEN current_limit ELSE NULL END -- Apply limit only if > 0
-        FOR UPDATE SKIP LOCKED -- Use SKIP LOCKED to allow concurrent runs if needed
+        FOR UPDATE SKIP LOCKED
     LOOP
         BEGIN
             -- This specific DEBUG notice is now suppressed by SET client_min_messages TO WARNING;

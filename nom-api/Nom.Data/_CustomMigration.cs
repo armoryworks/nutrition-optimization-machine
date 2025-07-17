@@ -35,7 +35,17 @@ namespace Nom.Data
         // Specific from PDFs if needed - often just "mcg"
         private const long MeasurementTypeMcgId = 4018L; // mcg (as seen in PDFs for Vitamin A, D, etc.)
 
-        // NEW Measurement Type IDs (continuing from 4018L)
+        // NEW Measurement Type IDs (continuing from 4018L, ensuring no overlap with 4031-4044 from previous update)
+        // Starting from 4045L to be safe and avoid conflicts with existing custom units
+        private const long MeasurementTypeIUId = 4045L; // International Unit
+        private const long MeasurementTypeKjId = 4046L; // Kilojoule
+        private const long MeasurementTypeMcgReId = 4047L; // Microgram Retinol Equivalent (for Vitamin A)
+        private const long MeasurementTypeMgAteId = 4048L; // Milligram Alpha-Tocopherol Equivalent (for Vitamin E)
+        private const long MeasurementTypeUmolTeId = 4049L; // Micromole Tocopherol Equivalent (for Vitamin E)
+        private const long MeasurementTypePhId = 4050L; // pH
+        private const long MeasurementTypeSpGrId = 4051L; // Specific Gravity
+
+
         private const long MeasurementTypeFluidOunceId = 4031L; // fl oz (explicitly separate from weight oz)
         private const long MeasurementTypeCloveId = 4032L; // clove (e.g., of garlic)
         private const long MeasurementTypeSprigId = 4033L; // sprig
@@ -380,7 +390,15 @@ namespace Nom.Data
                     { MeasurementTypeStalkId, "stalk", "Unit for items like celery, rhubarb.", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypePinchId, "pinch", "A very small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeDashId, "dash", "A small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeSplashId, "splash", "A small, unmeasured amount of liquid.", DateTime.UtcNow, SystemPersonId }
+                    { MeasurementTypeSplashId, "splash", "A small, unmeasured amount of liquid.", DateTime.UtcNow, SystemPersonId },
+                    // NEW Measurement Types
+                    { MeasurementTypeIUId, "IU", "International Unit (biological activity).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeKjId, "kJ", "Kilojoule (energy unit, scientific).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeMcgReId, "mcg_RE", "Microgram Retinol Equivalent (Vitamin A).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeMgAteId, "mg_ATE", "Milligram Alpha-Tocopherol Equivalent (Vitamin E).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeUmolTeId, "umol_TE", "Micromole Tocopherol Equivalent (Vitamin E).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypePhId, "pH", "pH scale (acidity/alkalinity).", DateTime.UtcNow, SystemPersonId },
+                    { MeasurementTypeSpGrId, "SP_GR", "Specific Gravity (ratio).", DateTime.UtcNow, SystemPersonId }
                 });
 
             long[] measurementTypeIds = new long[] {
@@ -390,13 +408,16 @@ namespace Nom.Data
                 MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
                 MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
                 MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId, // Kcal was missing from this array
-                // NEW Measurement Type IDs
+                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId,
                 MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
                 MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
                 MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
                 MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
-                MeasurementTypeDashId, MeasurementTypeSplashId
+                MeasurementTypeDashId, MeasurementTypeSplashId,
+                // NEW Measurement Type IDs
+                MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
+                MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
+                MeasurementTypeSpGrId
             };
 
             foreach (long id in measurementTypeIds)
@@ -420,13 +441,16 @@ namespace Nom.Data
                 MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
                 MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
                 MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId, // Kcal was missing from this array
-                // NEW Measurement Type IDs
+                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId,
                 MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
                 MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
                 MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
                 MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
-                MeasurementTypeDashId, MeasurementTypeSplashId
+                MeasurementTypeDashId, MeasurementTypeSplashId,
+                // NEW Measurement Type IDs
+                MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
+                MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
+                MeasurementTypeSpGrId
             };
 
             foreach (long id in measurementTypeIds)
