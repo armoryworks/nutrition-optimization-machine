@@ -1,0 +1,1818 @@
+= Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
+:doctype: book
+:toc: left
+:toclevels: 4
+:sectanchors:
+:sectlinks:
+:sectnums:
+:source-highlighter: rouge
+:icons: font
+:version: 1.4
+:revdate: July 17, 2025
+:author: NOM Development Team
+:description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
+
+[abstract]
+== Abstract
+
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture.
+
+The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
+
+== Introduction
+
+=== Project Vision
+
+The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).
+
+== Executive Summary
+
+The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.
+
+.Current Development Status
+[NOTE]
+====
+* **Core User Onboarding**: The core user onboarding workflow (steps for personal details, health attributes, and restrictions for the primary user) is largely implemented on the frontend and integrated with the backend Person and Restriction services.
+* **Data Models**: The foundational data models and database migrations are in place.
+* **Multi-Participant Flow**: Work is actively progressing on iterating through additional participants for their individual restriction collection.
+* **Reference Data**: Initial reference data (measurement types, core nutrients) seeding is also implemented.
+* **Privacy & Compliance**: The system has been assessed for data privacy compliance requirements. While NOM currently avoids HIPAA requirements as a direct-to-consumer application, GDPR compliance is mandatory for EU users and represents a critical implementation priority.
+====
+
+== User Roles & Personas
+
+The following primary user roles and system actors have been identified and considered in the developed functionalities:
+
+[cols="1,3"]
+|===
+|Role |Description
+
+|**New User / Prospect**
+|An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.
+
+|**Authenticated User**
+|A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
+
+|**Plan Administrator**
+|An authenticated user who creates and manages nutritional plans, and can invite others to join.
+
+|**Plan Member**
+|An authenticated user who participates in an existing nutritional plan.
+
+|**System**
+|An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
+
+|**Privacy Officer**
+|A designated role responsible for overseeing data protection compliance, handling user privacy rights requests, and maintaining compliance documentation.
+|===
+
+== Functional Requirements
+
+=== User Onboarding & Profile Completion [[onboarding-requirements]]
+
+.Objective
+To efficiently collect essential user data and personal preferences immediately following account registration, establishing a foundational user profile.
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-1.1**
+|**Multi-Step Onboarding Workflow**: The system shall present a guided, multi-step onboarding process, composed of reusable domain-specific edit components.
+
+|**FR-1.2**
+|**Core Profile Data Collection**: The initial step shall collect essential personal profile details for the newly registered user.
+
+|**FR-1.3**
+|**Health Attributes Collection**: The workflow shall include an optional step for collecting health-related attributes.
+
+|**FR-1.4**
+|**Iterative Restriction Collection**: The workflow shall guide the user through defining dietary restrictions. This step will repeat for each major 'Restriction Type' (societal/religious/ethical, allergies/medical, personal preferences).
+
+|**FR-1.4.1**
+|**Restriction Scope Selection**: For each identified restriction, the user shall be prompted to specify if it applies to everyone on the plan or to specific individuals.
+
+|**FR-1.4.2**
+|**Individual Restriction Assignment**: If a restriction applies to specific individuals, the user shall be provided with a selection list to designate which person(s) (including themselves) are affected.
+
+|**FR-1.5**
+|**Workflow Control Navigation**: Each step in the onboarding process shall be wrapped with a user interface providing "Next", "Back", "Skip" (where optional), "Yes", "No", and "Submit" (where applicable) buttons to control navigation and data submission.
+
+|**FR-1.6**
+|**UI-Only Workflow Steps**: Certain steps may be purely for workflow control, collecting user decisions without immediate API interaction, influencing subsequent steps.
+
+|**FR-1.7**
+|**Final Onboarding Data Submission**: Upon completing all required onboarding steps, a summary shall be presented, allowing the user to review and submit all collected PersonEntity, PersonAttributeEntity, and RestrictionEntity data in a single operation.
+
+|**FR-1.8**
+|**Multi-Participant Onboarding (Conditional)**: Support for adding multiple participants to a plan with individual preference collection.
+|===
+
+==== Multi-Participant Onboarding Details
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-1.8.1**
+|**Participation Inquiry**: An optional UI-only step shall ask if additional people will participate in the plan.
+
+|**FR-1.8.2**
+|**Participant Count**: If affirmative, a subsequent UI-only step shall ask how many additional people will participate.
+
+|**FR-1.8.3**
+|**Blank Name Slots**: The system shall present blank name slots for the specified number of additional participants.
+
+|**FR-1.8.4**
+|**Individual Preference Application**: An optional UI-only step shall ask if individual preferences should apply to each person on the plan.
+
+|**FR-1.8.5**
+|**Iterative Participant Onboarding**: Step 1.4 (Iterative Restriction Collection) shall be reused and repeated for each additional person added to the plan, allowing the user to skip at any point during these repetitions.
+|===
+
+=== Dietary Restriction Management & Inference [[restriction-requirements]]
+
+.Objective
+To automatically identify and record dietary restrictions based on user responses during onboarding, streamlining the personalization of nutritional plans.
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-2.1**
+|**Restriction Data Capture**: The system shall capture detailed dietary restrictions, including categorization into "societal, religious, or ethical practices", "allergies and medical restrictions", and "personal preferences".
+
+|**FR-2.2**
+|**Specific Restriction Details**: Capture detailed restriction information across multiple categories.
+
+|**FR-2.3**
+|**Person- or Plan-Level Association**: Restrictions collected during onboarding must be associable with either specific individuals (PersonEntity) or the entire PlanEntity, as determined by FR-1.4.1.
+
+|**FR-2.4**
+|**Prevention of Duplicates**: The system shall prevent the creation of duplicate Restriction records for the same Person (or Plan, if applicable) and the same Restriction Type.
+
+|**FR-2.5**
+|**Auditability**: All created Restriction records shall include audit information, indicating their creation time and the creating Person (or System).
+|===
+
+==== Specific Restriction Details
+
+**Societal/Religious/Ethical**::
+Capture selections from predefined lists (e.g., Kosher, Vegan), fasting schedules, and mandatory inclusions (searchable list of curated ingredients).
+
+**Allergies/Medical**::
+Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn's, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.
+
+**Personal Preferences**::
+Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
+
+=== Plan Invitation & Participation [[plan-requirements]]
+
+.Objective
+To enable users to join existing nutritional plans through a secure invitation mechanism.
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-3.1**
+|**Invitation Code Input**: The onboarding process shall include an optional step for users to input a unique invitation code.
+
+|**FR-3.2**
+|**Plan Linking**: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user's Person record to the corresponding Plan using a PlanParticipant entity.
+
+|**FR-3.3**
+|**Role Assignment**: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
+|===
+
+=== Authentication & Authorization [[auth-requirements]]
+
+.Objective
+To secure system access and protect sensitive user data and functionalities.
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-4.1**
+|**Authenticated Access**: Most API endpoints shall require a valid authentication token (e.g., JWT) for access, ensuring only authenticated users can perform actions or retrieve sensitive data.
+
+|**FR-4.2**
+|**Anonymous Access for Onboarding**: Specific public endpoints (e.g., initial user registration) shall be accessible without prior authentication to facilitate the initial user journey.
+
+|**FR-4.3**
+|**User Registration**: The system shall support user registration, creating new user accounts and associated Person records.
+
+|**FR-4.4**
+|**User Login**: The system shall support user login, issuing authentication tokens upon successful credential verification.
+|===
+
+=== Data Privacy & Compliance [[privacy-requirements]]
+
+.Objective
+To ensure compliance with applicable data privacy regulations and provide users with control over their personal data.
+
+[IMPORTANT]
+====
+Privacy compliance is **mandatory** for EU users under GDPR and represents a critical competitive advantage for building user trust in the health application market.
+====
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**FR-4.5.1**
+|**Privacy Consent Management**: The system shall implement granular consent collection during user registration and onboarding, allowing users to consent to specific data processing activities (analytics, marketing, etc.).
+
+|**FR-4.5.2**
+|**Consent Withdrawal**: Users shall be able to withdraw previously granted consents at any time through their account settings.
+
+|**FR-4.5.3**
+|**Data Subject Rights (GDPR)**: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20).
+
+|**FR-4.5.4**
+|**Privacy Dashboard**: The system shall provide a dedicated user interface for managing privacy settings, viewing consent status, and exercising data subject rights.
+
+|**FR-4.5.5**
+|**Data Processing Logging**: All access to and modifications of personal data shall be logged for audit purposes, including timestamp, actor, and action details.
+
+|**FR-4.5.6**
+|**Privacy Policy Integration**: The system shall prominently display privacy policy information during onboarding and provide easy access throughout the application.
+
+|**FR-4.5.7**
+|**Data Retention Management**: The system shall implement automated data retention policies that align with stated privacy policies and legal requirements.
+|===
+
+== Domain Areas and Business Rules
+
+This section describes the core business domains within the NOM program and the key rules that govern their behavior and data integrity.
+
+=== User/Person Management Domain [[user-domain]]
+
+.Purpose
+Manages individual user accounts and associated personal profiles within the system.
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.1.1**
+|**Unique Identification**: Each Person record shall have a unique identifier.
+
+|**Rule-5.1.2**
+|**Account Creation**: Users must register with a unique email address and a password meeting minimum complexity requirements.
+
+|**Rule-5.1.3**
+|**Email Confirmation**: User email addresses should be confirmable to ensure validity and security.
+
+|**Rule-5.1.4**
+|**Password Security**: Users must be able to securely reset forgotten passwords and update existing passwords, requiring validation of their current identity.
+
+|**Rule-5.1.5**
+|**Two-Factor Authentication (2FA)**: Users can opt to enable 2FA for enhanced login security, which requires a one-time code from an authenticator app in addition to their password. The system must support the generation of shared keys and recovery codes.
+
+|**Rule-5.1.6**
+|**Invitation Code Uniqueness**: InvitationCodes associated with Person records (for inviting others to join a person-specific context, if applicable) must be unique.
+|===
+
+=== Questionnaire/Onboarding Domain [[onboarding-domain]]
+
+.Purpose
+Guides new users through initial data collection to personalize their experience and gather foundational information.
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.2.1**
+|**Workflow Sequencing**: The onboarding process follows a predefined sequence of steps, leveraging reusable edit components.
+
+|**Rule-5.2.2**
+|**Data Aggregation**: All data collected across multiple steps and components during onboarding shall be aggregated into a single, comprehensive payload for final submission.
+
+|**Rule-5.2.3**
+|**Conditional Step Execution**: The execution of certain onboarding steps (e.g., additional participant details, individual restriction assignments) is conditional based on prior user input.
+
+|**Rule-5.2.4**
+|**Data Integrity on Navigation**: User inputs must be preserved when navigating back and forth through the onboarding wizard.
+|===
+
+=== Plan Management Domain [[plan-domain]]
+
+.Purpose
+Facilitates the creation, management, and participation in shared nutritional plans.
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.3.1**
+|**Plan Uniqueness**: Each Plan shall have a unique identifier and a unique InvitationCode (if applicable) for joining.
+
+|**Rule-5.3.2**
+|**Plan Administrator**: Every Plan must be associated with a Person designated as its CreatedByPersonId.
+
+|**Rule-5.3.3**
+|**Participant Association**: PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
+
+|**Rule-5.3.4**
+|**Participant Roles**: Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
+|===
+
+=== Reference Data Management Domain [[reference-domain]]
+
+.Purpose
+Provides a centralized, extensible system for managing predefined, static lists and types used across various domains.
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.4.1**
+|**Categorization**: Reference items are organized into Groups (e.g., "Measurement Type", "Nutrient Type", "Meal Type") to provide context.
+
+|**Rule-5.4.2**
+|**Many-to-Many Association**: A Reference item can belong to multiple Groups, and a Group can contain multiple Reference items. This relationship is managed implicitly by the system.
+
+|**Rule-5.4.3**
+|**View Entity Discriminators**: Specialized "view" entities (GroupedReferenceViewEntity and its derived types) are used to allow frontend systems to easily filter and categorize reference data by their associated Groups.
+|===
+
+=== Dietary Restriction Management Domain [[restriction-domain]]
+
+.Purpose
+Records and applies dietary constraints for individuals or entire plans to tailor nutritional recommendations.
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.5.1**
+|**Association Constraint**: Every Restriction must be explicitly linked to either a Person OR a Plan (or both), but not neither.
+
+|**Rule-5.5.2**
+|**Type Definition**: Each Restriction must be categorized by a RestrictionType defined in the Reference Data domain.
+
+|**Rule-5.5.3**
+|**Uniqueness per Context**: A specific RestrictionType can only be applied once per Person or once per Plan to avoid redundant entries.
+
+|**Rule-5.5.4**
+|**Audit Trail**: Every Restriction record must capture who CreatedByPersonId it and CreatedDate.
+|===
+
+=== Data Privacy & Compliance Domain [[privacy-domain]]
+
+.Purpose
+Ensures compliance with applicable data privacy regulations and provides users with control over their personal data.
+
+[WARNING]
+====
+**GDPR Compliance is Mandatory** for EU users. Non-compliance can result in fines up to €20 million or 4% of global revenue, whichever is higher.
+====
+
+[cols="1,4"]
+|===
+|Rule ID |Description
+
+|**Rule-5.6.1**
+|**Lawful Basis**: All personal data processing must have a valid lawful basis under applicable privacy laws (consent, legitimate interest, etc.).
+
+|**Rule-5.6.2**
+|**Consent Documentation**: All user consents must be documented with timestamp, version, and specific scope of consent granted.
+
+|**Rule-5.6.3**
+|**Data Minimization**: Only personal data necessary for the specified purpose may be collected and processed.
+
+|**Rule-5.6.4**
+|**Purpose Limitation**: Personal data may only be used for the purposes explicitly communicated to the user at the time of collection.
+
+|**Rule-5.6.5**
+|**Retention Limitation**: Personal data must be deleted or anonymized when no longer necessary for the original purpose, subject to legal retention requirements.
+
+|**Rule-5.6.6**
+|**Security by Design**: Appropriate technical and organizational measures must be implemented to protect personal data against unauthorized access, modification, or disclosure.
+
+|**Rule-5.6.7**
+|**Breach Notification**: Data breaches affecting personal data must be documented and, where required by law, reported to supervisory authorities and affected individuals within specified timeframes.
+
+|**Rule-5.6.8**
+|**Cross-Border Transfers**: Transfer of personal data outside the user's jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).
+|===
+
+== Non-Functional Requirements
+
+=== Performance [[performance-nfr]]
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**NFR-6.1.1**
+|**Responsive UI**: The user interface for the questionnaire should load quickly and respond smoothly to user interactions, minimizing perceived delays.
+
+|**NFR-6.1.2**
+|**Efficient API Calls**: Backend API endpoints for fetching questions and submitting answers should respond within acceptable timeframes to ensure a fluid user experience.
+|===
+
+=== Security [[security-nfr]]
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**NFR-6.2.1**
+|**Data Protection**: All sensitive user data (e.g., passwords, personal information, dietary restrictions) shall be transmitted and stored securely.
+
+|**NFR-6.2.2**
+|**Input Sanitization**: User inputs shall be properly sanitized and validated to prevent common web vulnerabilities (e.g., XSS, SQL injection).
+
+|**NFR-6.2.3**
+|**Access Control**: The system shall enforce proper authorization checks to ensure users can only access data and perform actions they are permitted to.
+
+|**NFR-6.2.4**
+|**Encryption**: Personal data shall be encrypted both in transit (TLS) and at rest (database encryption).
+
+|**NFR-6.2.5**
+|**Authentication Security**: The system shall implement secure authentication mechanisms including password complexity requirements, account lockout policies, and optional two-factor authentication.
+|===
+
+=== Privacy & Compliance [[privacy-nfr]]
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**NFR-6.3.1**
+|**GDPR Compliance**: The system shall comply with GDPR requirements for EU users, including data subject rights, lawful basis documentation, and privacy by design principles.
+
+|**NFR-6.3.2**
+|**Consent Management**: User consents shall be granular, documented, and easily withdrawable.
+
+|**NFR-6.3.3**
+|**Data Portability**: Users shall be able to export their data in a standard, machine-readable format.
+
+|**NFR-6.3.4**
+|**Right to Erasure**: The system shall support secure deletion of personal data upon user request, subject to legal retention requirements.
+
+|**NFR-6.3.5**
+|**Audit Logging**: All access to and modification of personal data shall be logged for compliance auditing purposes.
+
+|**NFR-6.3.6**
+|**Privacy by Design**: Privacy considerations shall be integrated into the system architecture and development process from the outset.
+|===
+
+=== Maintainability & Scalability [[maintainability-nfr]]
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**NFR-6.4.1**
+|**Modular Architecture**: The application shall be built with a modular, domain-driven architecture (both frontend and backend) to facilitate independent development, testing, and deployment of features.
+
+|**NFR-6.4.2**
+|**Consistent Conventions**: Strict adherence to naming conventions, coding standards (e.g., BEM for CSS, explicit property assignment in TS constructors), and design patterns to ensure code readability and ease of maintenance.
+
+|**NFR-6.4.3**
+|**Separation of Concerns**: Clear boundaries shall be maintained between UI components, business logic (orchestration services), data access layers, and API endpoints.
+
+|**NFR-6.4.4**
+|**Extensibility**: The system should be designed to allow for the easy addition of new restriction types and participant management scenarios in the future without significant code refactoring.
+|===
+
+=== Usability [[usability-nfr]]
+
+[cols="1,4"]
+|===
+|ID |Requirement
+
+|**NFR-6.5.1**
+|**Intuitive Workflow**: The onboarding process should be easy to understand and navigate for all users.
+
+|**NFR-6.5.2**
+|**Clear Feedback**: Users shall receive immediate and clear feedback on their actions, including loading states, validation errors, and submission success/failure messages.
+
+|**NFR-6.5.3**
+|**Responsive Design**: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
+
+|**NFR-6.5.4**
+|**Privacy Transparency**: Privacy policies and data processing information shall be presented in clear, understandable language.
+|===
+
+== High-Level System Architecture
+
+=== Frontend Architecture (nom-ui - Angular) [[frontend-arch]]
+
+**Framework**:: Angular (Standalone Components)
+**UI Library**:: Angular Material
+**Styling**:: SCSS with BEM methodology, leveraging global styles.scss for theming and core components
+**Form Management**:: Reactive Forms for robust validation and state management
+**Structure**:: Domain-driven directory organization (src/app/<domain>/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/
+**Privacy Components**:: Dedicated privacy management components including consent collection, privacy dashboard, and data export functionality
+
+==== Frontend Naming Conventions
+
+**Model Naming**:: FooModel for core domain entities, SubmitFooRequestModel for outbound API payloads, _BaseCommonModel for base interfaces/classes
+**Service Naming**:: FooService for domain-specific API interaction, <functional-description>-common.service.ts for shared services
+**Pipe Naming**:: <functional-description>-common.pipe.ts for shared pipes
+**Component Naming**:: Standard Angular component naming, nested within feature folders
+**Model Instantiation**:: Explicit property-by-property assignment in constructors
+
+=== Backend Architecture (nom-api - ASP.NET Core Web API) [[backend-arch]]
+
+**Framework**:: .NET Core
+**Data Access**:: Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL
+**Business Logic**:: Orchestration Services encapsulate complex business rules and coordinate data access (e.g., PersonOrchestrationService for onboarding submission). Privacy Services handle data subject rights and compliance requirements.
+**API Design**:: RESTful endpoints adhering to standard HTTP methods and status codes
+**Security**:: ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; [Authorize] and [AllowAnonymous] attributes for endpoint-level authorization
+**Privacy & Compliance**:: Dedicated services for consent management, data export, anonymization, and audit logging
+
+=== Database Architecture (PostgreSQL) [[database-arch]]
+
+**Database Type**:: Relational database storing all application data
+**Schema Structure**:: Includes tables for users, questions, answers, plans, participants, reference data, and privacy/consent management
+**Privacy Enhancements**:: Enhanced with audit logging tables and privacy-related entities for GDPR compliance
+**Security**:: Data encryption at rest for sensitive personal information
+
+=== Privacy & Compliance Architecture [[privacy-arch]]
+
+**Consent Management System**::
+- Granular consent collection and storage
+- Consent versioning and audit trail
+- Easy consent withdrawal mechanisms
+
+**Data Subject Rights Engine**::
+- Automated data export functionality
+- Secure data deletion processes
+- Data rectification workflows
+
+**Audit & Logging Framework**::
+- Comprehensive access logging
+- Data processing activity records
+- Compliance reporting capabilities
+
+**Privacy Dashboard**::
+- User-friendly privacy controls
+- Consent status visibility
+- Data download and deletion options
+
+== Technical Naming Conventions & Standards [[naming-standards]]
+
+[IMPORTANT]
+====
+**CRITICAL NAMING RULE**: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto". **DTO IS STRICTLY FORBIDDEN!**
+
+**Acceptable Model/Data Transport Suffixes:**
+
+* `Model` - For core domain entities and data structures
+* `Request` - For inbound API payloads and request objects  
+* `Response` - For outbound API responses and result objects
+====
+
+=== Frontend Naming Conventions (TypeScript/Angular) [[frontend-naming]]
+
+==== File Naming
+* **Components**: `kebab-case.component.ts` (e.g., `person-edit.component.ts`)
+* **Services**: `kebab-case.service.ts` (e.g., `privacy-orchestration.service.ts`)
+* **Models**: `kebab-case.model.ts` (e.g., `onboarding-complete-request.model.ts`)
+* **Pipes**: `kebab-case.pipe.ts` (e.g., `json-parse-common.pipe.ts`)
+* **Interfaces**: `kebab-case.interface.ts` (e.g., `user-consent.interface.ts`)
+
+==== Class/Interface Naming
+* **Components**: `PascalCaseComponent` (e.g., `PersonEditComponent`)
+* **Services**: `PascalCaseService` (e.g., `PrivacyOrchestrationService`)
+* **Models**: `PascalCaseModel/Request/Response` (e.g., `OnboardingCompleteRequestModel`)
+* **Interfaces**: `IPascalCase` or `PascalCaseInterface` (e.g., `IUserConsent`)
+* **Enums**: `PascalCase` (e.g., `ConsentType`)
+
+==== Variable/Method Naming
+* **Variables**: `camelCase` (e.g., `currentStepIndex`, `userConsents`)
+* **Methods**: `camelCase` (e.g., `submitOnboarding()`, `withdrawConsent()`)
+* **Constants**: `SCREAMING_SNAKE_CASE` (e.g., `API_BASE_URL`, `MAX_RETRY_ATTEMPTS`)
+* **Properties**: `camelCase` (e.g., `isConsented`, `consentTimestamp`)
+
+=== Backend Naming Conventions (C#/.NET) [[backend-naming]]
+
+==== File Naming
+* **Controllers**: `PascalCaseController.cs` (e.g., `PrivacyController.cs`)
+* **Services**: `PascalCaseService.cs` (e.g., `ConsentManagementService.cs`)
+* **Entities**: `PascalCaseEntity.cs` (e.g., `UserConsentEntity.cs`)
+* **Models**: `PascalCaseModel/Request/Response.cs` (e.g., `DataExportRequest.cs`)
+* **Interfaces**: `IPascalCase.cs` (e.g., `IPrivacyOrchestrationService.cs`)
+
+==== Class/Interface Naming
+* **Controllers**: `PascalCaseController` (e.g., `PrivacyController`)
+* **Services**: `PascalCaseService` (e.g., `DataAnonymizationService`)
+* **Entities**: `PascalCaseEntity` (e.g., `DataProcessingLogEntity`)
+* **Models**: `PascalCaseModel/Request/Response` (e.g., `ConsentUpdateRequest`)
+* **Interfaces**: `IPascalCase` (e.g., `IConsentManagementService`)
+
+==== Method/Property Naming
+* **Methods**: `PascalCase` (e.g., `ProcessDataExportRequestAsync()`)
+* **Properties**: `PascalCase` (e.g., `ConsentTimestamp`, `IsConsented`)
+* **Fields**: `camelCase` or `_camelCase` for private (e.g., `_context`, `_logger`)
+* **Constants**: `PascalCase` (e.g., `DefaultRetentionPeriod`)
+
+=== Database Naming Conventions [[database-naming]]
+
+==== Table Naming
+* **Tables**: `PascalCase` matching entity names (e.g., `UserConsent`, `DataProcessingLog`)
+* **Junction tables**: `Entity1Entity2` (e.g., `PersonPlan`, `ReferenceGroup`)
+
+==== Column Naming
+* **Columns**: `PascalCase` matching property names (e.g., `ConsentTimestamp`, `PersonId`)
+* **Foreign keys**: `ReferencedEntityId` (e.g., `PersonId`, `PlanId`)
+* **Primary keys**: `Id` (simple and consistent)
+
+=== CSS/SCSS Naming Conventions [[css-naming]]
+
+==== BEM Methodology
+* **Block**: `nom-component-name` (e.g., `.nom-privacy-dashboard`)
+* **Element**: `nom-component-name__element` (e.g., `.nom-privacy-dashboard__consent-item`)
+* **Modifier**: `nom-component-name--modifier` (e.g., `.nom-button--primary`)
+
+==== Global Classes
+* **Utility**: `nom-utility-name` (e.g., `.nom-text-center`, `.nom-margin-large`)
+* **Layout**: `nom-layout-name` (e.g., `.nom-page-container`, `.nom-grid`)
+
+=== API Endpoint Naming [[api-naming]]
+
+==== REST Conventions
+* **Resources**: `kebab-case` (e.g., `/api/privacy/data-export`)
+* **Actions**: `camelCase` for query parameters (e.g., `?includeArchived=true`)
+* **Versions**: `v1`, `v2` prefix when needed (e.g., `/api/v1/privacy/consents`)
+
+=== Forbidden Patterns [[forbidden-patterns]]
+
+[cols="1,3"]
+|===
+|❌ **NEVER USE** |✅ **ALWAYS USE**
+
+|`DTO`, `Dto`, `dto` suffixes
+|`Model`, `Request`, `Response` suffixes
+
+|Hungarian notation (`strUserName`, `intCount`)
+|Descriptive, full words (`ConsentManagementService`)
+
+|Abbreviations in public APIs (`usr` instead of `user`)
+|Consistent suffix patterns
+
+|Inconsistent casing within same codebase
+|Clear semantic naming (`withdrawConsent()` not `removeConsent()`)
+|===
+
+== Technical Component Mapping
+
+This section provides a detailed mapping between the high-level functional requirements and domain rules, and the specific technical components responsible for their implementation.
+
+=== Frontend Components & UI Interaction Flow [[frontend-components]]
+
+==== OnboardingWorkflowComponent [[onboarding-workflow-component]]
+
+.File Locations
+* TypeScript: `src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts`
+* HTML: `src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html`
+* SCSS: `src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss`
+
+.Role
+This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.1>> (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.
+* <<onboarding-requirements,FR-1.5>> (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic.
+* <<onboarding-requirements,FR-1.6>> (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps without immediate API calls.
+* <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.
+* <<onboarding-requirements,FR-1.8>> (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants.
+
+.Domain Rules Mapping
+* <<onboarding-domain,Rule-5.2.1>> (Workflow Sequencing): Directly manages the sequence of steps.
+* <<onboarding-domain,Rule-5.2.2>> (Data Aggregation): Maintains a central onboardingData object.
+* <<onboarding-domain,Rule-5.2.3>> (Conditional Step Execution): Logic within nextStep() and skipStep() evaluates user choices.
+* <<onboarding-domain,Rule-5.2.4>> (Data Integrity on Navigation): Passes collected data to child components for pre-population.
+
+==== PersonEditComponent [[person-edit-component]]
+
+.File Locations
+* TypeScript: `src/app/person/components/person-edit/person-edit.component.ts`
+* HTML: `src/app/person/components/person-edit/person-edit.component.html`
+* SCSS: `src/app/person/components/person-edit/person-edit.component.scss`
+
+.Role
+Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.2>> (Core Profile Data Collection): Direct implementation of core profile data collection.
+
+.Domain Rules Mapping
+* <<user-domain,Rule-5.1.1>> (Unique Identification): Ensures data collected adheres to unique identification requirements.
+
+==== PersonHealthEditComponent [[person-health-edit-component]]
+
+.File Locations
+* TypeScript: `src/app/person/components/person-health-edit/person-health-edit.component.ts`
+* HTML: `src/app/person/components/person-health-edit/person-health-edit.component.html`
+* SCSS: `src/app/person/components/person-health-edit/person-health-edit.component.scss`
+
+.Role
+Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.3>> (Health Attributes Collection): Direct implementation of health attributes collection.
+
+==== RestrictionEditComponent [[restriction-edit-component]]
+
+.File Locations
+* TypeScript: `src/app/restriction/components/restriction-edit/restriction-edit.component.ts`
+* HTML: `src/app/restriction/components/restriction-edit/restriction-edit.component.html`
+* SCSS: `src/app/restriction/components/restriction-edit/restriction-edit.component.scss`
+
+.Role
+A reusable component to allow users to define RestrictionEntity data. It dynamically renders complex sub-questions and selection lists based on the Restriction Type being configured.
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.4>> (Iterative Restriction Collection): Direct implementation of restriction collection workflow.
+* <<restriction-requirements,FR-2.1>> (Restriction Data Capture): Captures detailed dietary restrictions.
+* <<restriction-requirements,FR-2.2>> (Specific Restriction Details): Manages complex restriction detail collection.
+
+.Domain Rules Mapping
+* <<restriction-domain,Rule-5.5.1>> (Association Constraint): Ensures restrictions are properly linked to Person or Plan.
+* <<restriction-domain,Rule-5.5.2>> (Type Definition): Handles restriction type categorization.
+
+==== PrivacyDashboardComponent [[privacy-dashboard-component]] (NEW)
+
+.File Locations
+* TypeScript: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.ts`
+* HTML: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.html`
+* SCSS: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.scss`
+
+.Role
+Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.4>> (Privacy Dashboard): Direct implementation of privacy management interface.
+* <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Supports consent withdrawal functionality.
+* <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Facilitates exercise of GDPR rights.
+
+.Domain Rules Mapping
+* <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Displays consent documentation and status.
+* <<privacy-domain,Rule-5.6.5>> (Retention Limitation): Provides interface for data retention management.
+
+==== ConsentCollectionComponent [[consent-collection-component]] (NEW)
+
+.File Locations
+* TypeScript: `src/app/privacy/components/consent-collection/consent-collection.component.ts`
+* HTML: `src/app/privacy/components/consent-collection/consent-collection.component.html`
+* SCSS: `src/app/privacy/components/consent-collection/consent-collection.component.scss`
+
+.Role
+Collects granular user consents during onboarding and account management.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Direct implementation of consent collection.
+
+.Domain Rules Mapping
+* <<privacy-domain,Rule-5.6.1>> (Lawful Basis): Ensures lawful basis for data processing.
+* <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Documents consent collection.
+
+==== Authentication Components [[auth-components]]
+
+===== RegistrationComponent
+
+.File Locations
+* TypeScript: `src/app/components/auth/registration/registration.component.ts`
+* HTML: `src/app/components/auth/registration/registration.component.html`
+
+.Functional Requirements Mapping
+* <<auth-requirements,FR-4.3>> (User Registration): Handles new user account creation.
+
+.Domain Rules Mapping
+* <<user-domain,Rule-5.1.2>> (Account Creation): Implements email and password validation.
+
+===== LoginComponent
+
+.File Locations
+* TypeScript: `src/app/components/auth/login/login.component.ts`
+* HTML: `src/app/components/auth/login/login.component.html`
+
+.Functional Requirements Mapping
+* <<auth-requirements,FR-4.4>> (User Login): Handles user authentication.
+
+===== Other Authentication Components
+
+* **ForgotPasswordComponent**: Password reset initiation
+* **ResetPasswordComponent**: Password reset completion
+* **SendConfirmationEmailComponent**: Email confirmation resend
+* **ConfirmEmailComponent**: Email confirmation processing
+* **UpdateInfoComponent**: User profile and password updates
+* **UpdateTwoFactorComponent**: 2FA management with QR code generation
+
+=== Frontend Services & Data Flow [[frontend-services]]
+
+==== PersonService [[person-service]]
+
+.File Location
+`src/app/person/services/person.service.ts`
+
+.Role
+Handles all API interactions related to the Person domain, including the composite onboarding submission.
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Contains submitOnboardingComplete() method for API interaction.
+
+.Data Structures Used
+PersonModel, PersonAttributeModel, RestrictionModel, OnboardingCompleteRequestModel
+
+==== RestrictionService [[restriction-service]]
+
+.File Location
+`src/app/restriction/services/restriction.service.ts`
+
+.Role
+Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.
+
+.Functional Requirements Mapping
+* <<restriction-requirements,FR-2.2>> (Specific Restriction Details): Provides methods to fetch curated ingredients and micronutrients.
+
+==== PrivacyService [[privacy-service]] (NEW)
+
+.File Location
+`src/app/privacy/services/privacy.service.ts`
+
+.Role
+Handles all privacy-related API interactions including consent management, data subject rights, and privacy dashboard functionality.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Manages consent collection and updates.
+* <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Handles consent withdrawal requests.
+* <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Facilitates data access, rectification, erasure, and portability.
+* <<privacy-requirements,FR-4.5.5>> (Data Processing Logging): Retrieves audit logs for user review.
+
+.Key Methods
+`updateConsent()`, `withdrawConsent()`, `requestDataExport()`, `requestDataDeletion()`, `getConsentStatus()`, `getAuditLog()`
+
+==== AuthService [[auth-service]]
+
+.File Location
+`src/app/components/auth/auth.service.ts`
+
+.Functional Requirements Mapping
+* <<auth-requirements,FR-4.1>> (Authenticated Access): Primary interface for authenticated API calls.
+* <<auth-requirements,FR-4.3>> (User Registration): Handles new user creation.
+* <<auth-requirements,FR-4.4>> (User Login): Manages user authentication and JWT handling.
+
+.Additional Features
+* Email confirmation and password reset functionality
+* Two-factor authentication support
+* Centralized error handling with user-friendly message extraction
+
+==== AuthManagerService [[auth-manager-service]]
+
+.File Location
+`src/app/utilities/services/auth-manager.service.ts`
+
+.Role
+Manages client-side authentication state, including JWT tokens, token expiration, and storage preferences.
+
+.Key Properties
+`token`, `refreshToken`, `tokenExpiration`, `rememberMe`, `userLogin` (BehaviorSubject)
+
+.Key Methods
+`checkUserLoggedInStatus()`, `clearStorageAfterLogout()`
+
+==== NotificationService [[notification-service]]
+
+.File Location
+`src/app/utilities/services/notification.service.ts`
+
+.Role
+Provides consistent user feedback notifications across the application.
+
+.Methods
+`success()`, `info()`, `warning()`, `error()`
+
+=== Frontend Models & Data Structures [[frontend-models]]
+
+[IMPORTANT]
+====
+All models follow the strict naming convention: **NO DTO SUFFIXES ALLOWED**. Use `Model`, `Request`, or `Response` only.
+====
+
+==== Core Models
+
+[cols="2,3,3"]
+|===
+|Model |File Location |Purpose
+
+|`_BaseCommonModel`
+|`src/app/common/models/_base-common.model.ts`
+|Base interface for common properties like `id`
+
+|`ApiResponseCommonModel`
+|`src/app/common/models/api-response-common.model.ts`
+|Common structure for API responses
+
+|`PersonModel`
+|`src/app/person/models/person.model.ts`
+|Core person entity data structure
+
+|`PersonAttributeModel`
+|`src/app/person/models/person-attribute.model.ts`
+|Health attributes data structure
+
+|`RestrictionModel`
+|`src/app/restriction/models/restriction.model.ts`
+|Dietary restriction data structure
+
+|`OnboardingCompleteRequestModel`
+|`src/app/onboarding/models/onboarding-complete-request.model.ts`
+|Consolidated onboarding submission payload
+|===
+
+==== Privacy Models (NEW)
+
+[cols="2,3,3"]
+|===
+|Model |File Location |Purpose
+
+|`ConsentModel`
+|`src/app/privacy/models/consent.model.ts`
+|Consent record data structure
+
+|`DataExportModel`
+|`src/app/privacy/models/data-export.model.ts`
+|Data export request and status
+
+|`PrivacyRequestModel`
+|`src/app/privacy/models/privacy-request.model.ts`
+|General privacy rights requests
+|===
+
+==== Authentication Models
+
+* `RegisterUser`, `LoginUser`, `LoginResponse`
+* `ForgotPassword`, `ResetPassword`
+* `ConfirmEmail`, `SendConfirmationEmail`
+* `UpdateInfo`, `CurrentInfo`
+* `UpdateTwoFactor`, `UpdateTwoFactorResponse`
+
+=== Backend Services & Business Logic [[backend-services]]
+
+==== PersonOrchestrationService [[person-orchestration-service]] (UPDATED)
+
+.File Location
+`Nom.Orch/Services/PersonOrchestrationService.cs`
+
+.Role
+Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and ConsentEntity records.
+
+.Functional Requirements Mapping
+* <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Backend processing of onboarding completion.
+* <<restriction-requirements,FR-2.1>> through <<restriction-requirements,FR-2.5>>: Restriction data capture and management.
+* <<plan-requirements,FR-3.2>>, <<plan-requirements,FR-3.3>>: Plan linking and role assignment.
+* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Consent record creation.
+
+.Domain Rules Mapping
+* <<user-domain,Rule-5.1.1>> (Unique Person): Enforces person uniqueness.
+* <<onboarding-domain,Rule-5.2.2>> (Data Aggregation): Handles aggregated onboarding data.
+* <<restriction-domain,Rule-5.5.1>> through <<restriction-domain,Rule-5.5.4>>: Restriction management rules.
+* <<privacy-domain,Rule-5.6.1>>, <<privacy-domain,Rule-5.6.2>>: Lawful basis and consent documentation.
+
+.Key Methods
+`CompleteOnboardingAsync(OnboardingCompleteRequest request, long userId)`
+
+==== PrivacyOrchestrationService [[privacy-orchestration-service]] (NEW)
+
+.File Location
+`Nom.Orch/Services/PrivacyOrchestrationService.cs`
+
+.Role
+Handles complex business logic related to privacy compliance, data subject rights, and consent management.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Processes consent withdrawal requests.
+* <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Handles GDPR rights requests.
+* <<privacy-requirements,FR-4.5.5>> (Data Processing Logging): Manages audit log access.
+* <<privacy-requirements,FR-4.5.7>> (Data Retention Management): Implements retention policies.
+
+.Domain Rules Mapping
+* <<privacy-domain,Rule-5.6.1>> through <<privacy-domain,Rule-5.6.8>>: All privacy and compliance rules.
+
+.Key Methods
+`ProcessDataExportRequestAsync()`, `ProcessDataDeletionRequestAsync()`, `UpdateConsentAsync()`, `GetAuditLogAsync()`, `AnonymizeUserDataAsync()`
+
+==== ConsentManagementService [[consent-management-service]] (NEW)
+
+.File Location
+`Nom.Orch/Services/ConsentManagementService.cs`
+
+.Role
+Specialized service for managing user consents including collection, withdrawal, and versioning.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Direct implementation of consent management.
+* <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Handles consent withdrawal.
+
+.Domain Rules Mapping
+* <<privacy-domain,Rule-5.6.1>> (Lawful Basis): Ensures lawful basis for processing.
+* <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Documents all consent interactions.
+
+.Key Methods
+`CollectConsentAsync()`, `WithdrawConsentAsync()`, `GetConsentStatusAsync()`, `VersionConsentAsync()`
+
+==== DataAnonymizationService [[data-anonymization-service]] (NEW)
+
+.File Location
+`Nom.Orch/Services/DataAnonymizationService.cs`
+
+.Role
+Handles secure deletion and anonymization of user data for GDPR compliance.
+
+.Functional Requirements Mapping
+* <<privacy-requirements,FR-4.5.3>> (Right to Erasure): Supports data deletion requests.
+
+.Domain Rules Mapping
+* <<privacy-domain,Rule-5.6.5>> (Retention Limitation): Implements retention policies.
+
+.Key Methods
+`AnonymizePersonDataAsync()`, `SecureDeleteAsync()`, `ValidateRetentionPolicyAsync()`
+
+==== API Controllers
+
+===== PersonController (UPDATED)
+
+.File Location
+`Nom.Api/Controllers/PersonController.cs`
+
+.Role
+Exposes API endpoints for person-related functionality including onboarding completion.
+
+.Key Endpoints
+* `[HttpPost("onboarding-complete")]`: Processes complete onboarding submission
+
+===== PrivacyController (NEW)
+
+.File Location
+`Nom.Api/Controllers/PrivacyController.cs`
+
+.Role
+Exposes API endpoints for privacy-related functionality.
+
+.Key Endpoints
+* `[HttpGet("data-export")]`: Generate data export for user
+* `[HttpPost("consent")]`: Update user consent preferences
+* `[HttpDelete("account")]`: Process account deletion request
+* `[HttpPut("data-correction")]`: Handle data rectification requests
+* `[HttpGet("audit-log")]`: Retrieve user's data processing audit log
+
+.Security
+All endpoints require `[Authorize]` to ensure only authenticated users can access their privacy data.
+
+=== Backend Entities & Database Mapping [[backend-entities]]
+
+==== Core Entities
+
+[cols="2,3,3"]
+|===
+|Entity |File Location |Purpose
+
+|`PersonEntity`
+|`Nom.Data/Person/PersonEntity.cs`
+|Core user profile data storage
+
+|`PersonAttributeEntity`
+|`Nom.Data/Person/PersonAttributeEntity.cs`
+|Health attributes storage
+
+|`RestrictionEntity`
+|`Nom.Data/Plan/RestrictionEntity.cs`
+|Dietary restrictions storage
+
+|`PlanEntity`
+|`Nom.Data/Plan/PlanEntity.cs`
+|Nutritional plan definitions
+
+|`PlanParticipantEntity`
+|`Nom.Data/Plan/PlanParticipantEntity.cs`
+|Person-to-plan relationships
+|===
+
+==== Privacy Entities (NEW)
+
+[cols="2,3,3"]
+|===
+|Entity |File Location |Purpose
+
+|`UserConsentEntity`
+|`Nom.Data/Privacy/UserConsentEntity.cs`
+|User consent records storage
+
+|`DataProcessingLogEntity`
+|`Nom.Data/Privacy/DataProcessingLogEntity.cs`
+|Audit trail for data access/modifications
+
+|`PrivacyRequestEntity`
+|`Nom.Data/Privacy/PrivacyRequestEntity.cs`
+|Data subject rights request tracking
+|===
+
+.UserConsentEntity Key Properties
+* `Id`, `PersonId`, `ConsentType`, `IsConsented`, `ConsentTimestamp`, `ConsentVersion`, `LegalBasis`
+
+.DataProcessingLogEntity Key Properties
+* `Id`, `PersonId`, `ActionType`, `ActorId`, `Timestamp`, `Details`, `IpAddress`, `UserAgent`
+
+.PrivacyRequestEntity Key Properties
+* `Id`, `PersonId`, `RequestType`, `Status`, `RequestTimestamp`, `CompletionTimestamp`, `RequestDetails`
+
+==== Reference Data Entities
+
+[cols="2,3,3"]
+|===
+|Entity |File Location |Purpose
+
+|`ReferenceEntity`
+|`Nom.Data/Reference/ReferenceEntity.cs`
+|Core reference data storage
+
+|`GroupEntity`
+|`Nom.Data/Reference/GroupEntity.cs`
+|Reference data categorization
+
+|`GroupedReferenceViewEntity`
+|`Nom.Data/Reference/GroupedReferenceViewEntity.cs`
+|Structured reference data views
+|===
+
+== Development Context and Workflow [[development-context]]
+
+=== Current Project Status [[project-status]]
+
+==== Completed Components
+
+**Onboarding Workflow (Core)**::
+* **Frontend**: OnboardingWorkflowComponent orchestrator implemented
+* **Components**: PersonEditComponent and PersonHealthEditComponent functional
+* **Restrictions**: RestrictionEditComponent handles various restriction types and conditional allocation logic
+* **Backend**: Basic CRUD for Person and Restriction entities supported
+* **API Integration**: PersonOrchestrationService handles consolidated OnboardingCompleteRequest submission
+* **Authentication**: User registration, login, and JWT-based authentication functional with interceptors
+
+**Authentication System**::
+* Registration, login, password reset, email confirmation
+* Two-factor authentication support
+* JWT token management with refresh capabilities
+
+**Reference Data**::
+* Core reference data seeding (measurement types, nutrients)
+* Extensible reference data management system
+
+==== Privacy & Compliance Status
+
+.Assessment Complete
+* Privacy compliance framework designed
+* GDPR applicability confirmed for EU users
+* HIPAA exemption validated for direct-to-consumer model
+
+.Implementation Required
+* Consent management system
+* Privacy dashboard interface
+* Data subject rights endpoints
+* Audit logging framework
+
+==== Immediate Next Focus
+
+**Frontend Priority**::
+1. Complete iterative flow for additional participants in OnboardingWorkflowComponent
+2. Implement individual restriction collection when `applyIndividualPreferencesToEachPerson` is true
+3. Develop privacy components (consent collection, privacy dashboard)
+4. Manage `currentAdditionalParticipantIndex` and RestrictionEditComponent re-rendering
+
+**Backend Priority**::
+1. Implement privacy-related services and endpoints
+2. Create consent management infrastructure
+3. Develop data subject rights processing
+4. Establish audit logging system
+
+=== Technology Stack Rationale [[tech-stack]]
+
+==== Frontend Technologies
+
+**Angular (Standalone Components)**::
+* Robust framework with opinionated structure
+* Excellent tooling (Angular CLI)
+* Strong support for large-scale enterprise applications
+* Better modularity and tree-shaking with standalone components
+
+**Angular Material**::
+* Pre-built, accessible, themable UI components
+* Accelerates development
+* Ensures consistent user experience
+
+**SCSS with BEM**::
+* BEM methodology for maintainable CSS
+* SCSS for advanced styling features
+* Global theming capabilities
+
+**RxJS**::
+* Reactive programming for asynchronous operations
+* Declarative and composable codebase
+* Excellent for HTTP calls and event handling
+
+==== Backend Technologies
+
+**.NET Core**::
+* High performance and cross-platform compatibility
+* Extensive libraries and strong developer ecosystem
+* Suitable for scalable API development
+
+**Entity Framework Core**::
+* Simplified database interactions
+* Object-relational mapping reduces boilerplate SQL
+* Strong support for migrations and database evolution
+
+**PostgreSQL**::
+* Powerful, open-source relational database
+* Known for reliability and feature richness
+* Excellent support for GDPR compliance requirements
+* Strong JSON support for flexible data structures
+
+=== Privacy & Compliance Implementation Priority [[privacy-implementation]]
+
+==== Phase 1 - Critical (Next 30 Days)
+
+1. **Privacy Policy Development**
+   * GDPR-compliant privacy notice
+   * Clear explanation of data processing
+   * User rights and contact information
+
+2. **Basic Consent Collection**
+   * Implement granular consent during onboarding
+   * Ensure consent is explicit and documented
+   * Add consent withdrawal mechanisms
+
+3. **Data Security Validation**
+   * Review encryption implementation (at rest and in transit)
+   * Audit user access controls
+   * Implement basic logging for data access
+
+==== Phase 2 - Essential (Next 60 Days)
+
+1. **Privacy Dashboard Implementation**
+   * User interface for privacy settings management
+   * Consent status visibility
+   * Data download and deletion options
+
+2. **Data Subject Rights Endpoints**
+   * Data access requests (GDPR Article 15)
+   * Data deletion/erasure (GDPR Article 17)
+   * Data portability (GDPR Article 20)
+   * Data rectification (GDPR Article 16)
+
+3. **Technical Safeguards**
+   * Enhanced database encryption at rest
+   * API security hardening
+   * Automated data retention policies
+
+4. **Documentation**
+   * Record of Processing Activities (ROPA)
+   * Data Protection Impact Assessment (DPIA)
+   * Breach response procedures
+
+==== Phase 3 - Advanced (Next 90 Days)
+
+1. **Advanced Privacy Features**
+   * Privacy by design integration
+   * Regular privacy reviews for new features
+   * Staff training on privacy requirements
+
+2. **Monitoring & Auditing**
+   * Regular compliance audits
+   * User consent monitoring
+   * Data breach detection systems
+
+3. **Advanced Consent Management**
+   * Consent versioning system
+   * Granular consent withdrawal
+   * Consent analytics and reporting
+
+=== Key Development Learnings [[dev-learnings]]
+
+==== Angular Development
+
+**AOT Compilation**::
+Angular's AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).
+
+**Standalone Component Imports**::
+Every standalone component must explicitly import all modules it directly uses in its `@Component({ imports: [...] })` array. Missing imports cause runtime errors.
+
+**Data Flow Patterns**::
+Be mindful of Angular's unidirectional data flow. Use `@Input` for data down, `@Output` for events up. Avoid direct child manipulation.
+
+**Template Logic**::
+Use getters in TypeScript for complex template logic (e.g., `filteredRestrictionsForCurrentPerson`). This resolved "Parser Error: Bindings cannot contain assignments" issues.
+
+==== Backend Development
+
+**API URL Management**::
+Always double-check `apiUrl` constants in frontend services. These frequently need adjustment between local development and deployment environments.
+
+**Interceptor Order**::
+The order of `HTTP_INTERCEPTORS` in `app.config.ts` matters. Ensure `BearerInterceptor` runs before `ApiInteractionInterceptor`.
+
+**Privacy Compliance**::
+Always consider data minimization when adding new data collection points. Document the lawful basis for any new personal data processing.
+
+==== Debugging Tips
+
+**Browser Caching**::
+During frontend development, browser caching can cause issues. Clear browser cache or use "Incognito/Private" mode. `ng serve` usually handles this well.
+
+**Clean Builds**::
+For persistent issues, perform clean builds: `npm install`, delete `.angular` and `dist` directories, then rebuild.
+
+**Service Scope Issues**::
+Resolved `ServiceScopeFactory` reference errors in `Program.cs` by ensuring proper dependency injection configuration.
+
+=== Required Dependencies [[dependencies]]
+
+==== Frontend Dependencies (nom-ui)
+
+[source,json]
+----
+{
+  "dependencies": {
+    "@angular/material": "^17.x",
+    "@angular/forms": "^17.x",
+    "rxjs": "^7.x"
+  }
+}
+----
+
+==== Backend Dependencies (C# Projects)
+
+[source,xml]
+----
+<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+<PackageReference Include="Microsoft.Extensions.Http" />
+<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+----
+
+=== Development Workflow & Best Practices [[workflow]]
+
+==== Version Control
+
+**Feature Branches**:: All new development occurs on dedicated feature branches, branched off `main`.
+
+**Pull Requests**:: All code changes submitted via PRs, requiring at least one reviewer.
+
+**Code Reviews**:: Focus on consistency, privacy considerations, architectural patterns, testability, and clarity.
+
+==== Quality Assurance
+
+**Privacy Reviews**:: All new features involving personal data must undergo privacy impact assessment.
+
+**Unit Testing**:: Implement unit tests for services (using mocks) and isolated component logic.
+
+**End-to-End Testing**:: Critical user flows covered by E2E tests, especially privacy-related workflows.
+
+**Linting**:: Pre-commit hooks enforce linting rules (ESLint for TypeScript, Stylelint for SCSS).
+
+==== Documentation Standards
+
+**Code Documentation**:: Inline comments for complex privacy-related logic.
+
+**API Documentation**:: All privacy endpoints documented with OpenAPI/Swagger.
+
+**Privacy Documentation**:: GDPR compliance documentation maintained alongside code changes.
+
+== Future Considerations & Scope [[future-scope]]
+
+=== Out of Scope (Current Project Phase)
+
+The following features are explicitly excluded from the current development phase but may be considered for future enhancements:
+
+**Recipe Management**::
+* Detailed plan creation and modification (beyond basic invitation linking)
+* Comprehensive recipe management and meal scheduling
+* USDA FoodData Central integration (moved to future enhancements)
+* Advanced recipe data ingestion from external sources
+
+**Advanced Features**::
+* Advanced user profile management beyond initial onboarding data
+* Detailed analytics and reporting
+* Real-time communication features
+* Payment processing or subscription management
+
+**Integration Features**::
+* Third-party nutrition database integrations
+* Wearable device data synchronization
+* Healthcare provider integrations (which would trigger HIPAA requirements)
+
+=== Future Enhancements [[future-enhancements]]
+
+==== Planned Enhancements
+
+**USDA FoodData Central Integration**::
+When implemented in a future phase, this will include:
+* External nutrient API service integration
+* Ingredient nutrient data association
+* Recipe parsing and enrichment
+* Automated nutritional analysis
+
+**Advanced Meal Planning**::
+* AI-powered meal recommendations
+* Automated grocery list generation
+* Nutritional goal tracking and optimization
+* Seasonal ingredient suggestions
+
+**Social Features**::
+* Plan sharing and collaboration tools
+* Community recipe sharing
+* Nutritionist consultation integration
+* Family meal planning coordination
+
+==== Technical Evolution
+
+**Architecture Scalability**::
+* Microservices architecture consideration
+* Event-driven data processing
+* Advanced caching strategies
+* Performance optimization for large user bases
+
+**Privacy Enhancements**::
+* Zero-knowledge architecture exploration
+* Advanced anonymization techniques
+* Differential privacy implementation
+* Blockchain-based consent management
+
+== Source Control and File Organization [[source-control]]
+
+=== GitHub Repository Structure
+
+.Repository Base URL
+https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
+
+=== Backend Files (C# - .NET Solution) [[backend-files]]
+
+==== Project: Nom.Data
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`ApplicationDbContext.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/ApplicationDbContext.cs
+
+|`Person/PersonEntity.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Person/PersonEntity.cs
+
+|`Person/PersonAttributeEntity.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Person/PersonAttributeEntity.cs
+
+|`Plan/RestrictionEntity.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Plan/RestrictionEntity.cs
+
+|`Privacy/UserConsentEntity.cs` *(NEW)*
+|[To Be Created]
+
+|`Privacy/DataProcessingLogEntity.cs` *(NEW)*
+|[To Be Created]
+
+|`Privacy/PrivacyRequestEntity.cs` *(NEW)*
+|[To Be Created]
+|===
+
+==== Project: Nom.Orch
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`Interfaces/IPersonOrchestrationService.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IPersonOrchestrationService.cs
+
+|`Services/PersonOrchestrationService.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PersonOrchestrationService.cs
+
+|`Models/Person/PersonDetailsRequest.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonDetailsRequest.cs
+
+|`Models/Person/PersonAttributeRequest.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonAttributeRequest.cs
+
+|`Models/Person/RestrictionRequest.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/RestrictionRequest.cs
+
+|`Models/Person/OnboardingCompleteRequest.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/OnboardingCompleteRequest.cs
+
+|`Interfaces/IRestrictionOrchestrationService.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs
+
+|`Services/RestrictionOrchestrationService.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/RestrictionOrchestrationService.cs
+
+|`Interfaces/IPrivacyOrchestrationService.cs` *(NEW)*
+|[To Be Created]
+
+|`Services/PrivacyOrchestrationService.cs` *(NEW)*
+|[To Be Created]
+
+|`Interfaces/IConsentManagementService.cs` *(NEW)*
+|[To Be Created]
+
+|`Services/ConsentManagementService.cs` *(NEW)*
+|[To Be Created]
+
+|`Interfaces/IDataAnonymizationService.cs` *(NEW)*
+|[To Be Created]
+
+|`Services/DataAnonymizationService.cs` *(NEW)*
+|[To Be Created]
+
+|`Models/Privacy/ConsentRequest.cs` *(NEW)*
+|[To Be Created]
+
+|`Models/Privacy/DataExportRequest.cs` *(NEW)*
+|[To Be Created]
+
+|`Models/Privacy/DataDeletionRequest.cs` *(NEW)*
+|[To Be Created]
+
+|`ServiceCollectionExtensions.cs` *(UPDATED)*
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/ServiceCollectionExtensions.cs
+|===
+
+==== Project: Nom.Api
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`Controllers/PersonController.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/PersonController.cs
+
+|`Controllers/RestrictionController.cs`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/RestrictionController.cs
+
+|`Controllers/PrivacyController.cs` *(NEW)*
+|[To Be Created]
+
+|`Program.cs` *(For DI registration and configuration)*
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Program.cs
+|===
+
+=== Frontend Files (Angular - nom-ui) [[frontend-files]]
+
+==== Root Configuration
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/main.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/main.ts
+
+|`src/app/app.config.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.config.ts
+
+|`src/app/app.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.component.ts
+
+|`src/app/app.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/app.component.scss
+
+|`src/styles.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/styles.scss
+|===
+
+==== Common Utilities
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/common/models/_base-common.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/models/_base-common.model.ts
+
+|`src/app/common/models/api-response-common.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/models/api-response-common.model.ts
+
+|`src/app/common/pipes/json-parse-common.pipe.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/pipes/json-parse-common.pipe.ts
+|===
+
+==== Person Domain
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/person/models/person.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/models/person.model.ts
+
+|`src/app/person/models/person-attribute.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/models/person-attribute.model.ts
+
+|`src/app/person/services/person.service.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/services/person.service.ts
+
+|`src/app/person/components/person-edit/person-edit.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.ts
+
+|`src/app/person/components/person-edit/person-edit.component.html`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.html
+
+|`src/app/person/components/person-edit/person-edit.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-edit/person-edit.component.scss
+
+|`src/app/person/components/person-health-edit/person-health-edit.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.ts
+
+|`src/app/person/components/person-health-edit/person-health-edit.component.html`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.html
+
+|`src/app/person/components/person-health-edit/person-health-edit.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/person/components/person-health-edit/person-health-edit.component.scss
+|===
+
+==== Restriction Domain
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/restriction/models/restriction.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/models/restriction.model.ts
+
+|`src/app/restriction/services/restriction.service.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/services/restriction.service.ts
+
+|`src/app/restriction/components/restriction-edit/restriction-edit.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.ts
+
+|`src/app/restriction/components/restriction-edit/restriction-edit.component.html`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.html
+
+|`src/app/restriction/components/restriction-edit/restriction-edit.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/restriction/components/restriction-edit/restriction-edit.component.scss
+|===
+
+==== Privacy Domain (NEW)
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/privacy/models/consent.model.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/models/data-export.model.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/models/privacy-request.model.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/services/privacy.service.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.html` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.scss` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/consent-collection/consent-collection.component.ts` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/consent-collection/consent-collection.component.html` *(NEW)*
+|[To Be Created]
+
+|`src/app/privacy/components/consent-collection/consent-collection.component.scss` *(NEW)*
+|[To Be Created]
+|===
+
+==== Plan Domain (Skeleton)
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/plan/components/plan-edit/plan-edit.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.ts
+
+|`src/app/plan/components/plan-edit/plan-edit.component.html`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.html
+
+|`src/app/plan/components/plan-edit/plan-edit.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/plan/components/plan-edit/plan-edit.component.scss
+|===
+
+==== Onboarding Feature
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/onboarding/models/onboarding-complete-request.model.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/models/onboarding-complete-request.model.ts
+
+|`src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
+
+|`src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html
+
+|`src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.scss
+|===
+
+==== Authentication Components
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/components/auth/registration/registration.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/registration/registration.component.ts
+
+|`src/app/components/auth/login/login.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/login/login.component.ts
+
+|`src/app/components/auth/forgot-password/forgot-password.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/forgot-password/forgot-password.component.ts
+
+|`src/app/components/auth/reset-password/reset-password.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/reset-password/reset-password.component.ts
+
+|`src/app/components/auth/update-two-factor/update-two-factor.component.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/update-two-factor/update-two-factor.component.ts
+|===
+
+==== Authentication Services & Models
+
+[cols="2,4"]
+|===
+|File |GitHub URL
+
+|`src/app/components/auth/auth.service.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/components/auth/auth.service.ts
+
+|`src/app/utilities/services/auth-manager.service.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/utilities/services/auth-manager.service.ts
+
+|`src/app/utilities/services/notification.service.ts`
+|https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/utilities/services/notification.service.ts
+
+|Various auth models (RegisterUser, LoginUser, etc.)
+|Multiple files in `src/app/components/auth/models/`
+|===
+
+== Conclusion [[conclusion]]
+
+This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. The document serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.
+
+=== Key Achievements
+
+**Comprehensive Architecture**:: The specification defines a complete, scalable architecture that separates concerns appropriately while maintaining clear data flow and integration points.
+
+**Privacy by Design**:: GDPR compliance requirements are integrated throughout the system design, from data collection to storage and user rights management.
+
+**Clear Development Path**:: The phased implementation approach provides concrete milestones and deliverables, allowing for iterative development and validation.
+
+**Strict Standards**:: Naming conventions and coding standards ensure consistency and maintainability across the entire codebase.
+
+=== Strategic Value
+
+**Regulatory Compliance**:: The privacy-first approach positions NOM for successful operation in global markets, particularly the EU where GDPR compliance is mandatory.
+
+**User Trust**:: Transparent data handling and robust privacy controls build user confidence, critical for health applications handling sensitive personal information.
+
+**Scalable Foundation**:: The modular, domain-driven architecture supports future growth and feature expansion without architectural debt.
+
+**Competitive Advantage**:: Privacy compliance as a core feature differentiates NOM in a market where user trust is paramount.
+
+=== Next Steps
+
+1. **Review and Approval**: Stakeholder review of this specification
+2. **Team Onboarding**: Ensure all developers understand the privacy requirements and naming conventions
+3. **Environment Setup**: Configure development environments with privacy considerations
+4. **Phase 1 Implementation**: Begin with critical privacy infrastructure
+5. **Iterative Development**: Follow the phased approach with regular privacy compliance reviews
+
+The NOM platform is positioned to become a leader in privacy-conscious nutritional planning, setting new standards for how health applications can protect user data while delivering exceptional personalized experiences.
+
+---
+
+.Document Information
+[cols="1,3"]
+|===
+|Version |1.4
+|Date |July 17, 2025
+|Status |Active Development Specification
+|Next Review |30 days post-implementation start
+|===
