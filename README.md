@@ -13,7 +13,7 @@ NOM goes beyond generic diet advice by deeply understanding individual dietary n
 
 ## Key Features
 
-### Current Features (v1.4)
+### Current Features (pre-alpha)
 
 - **Comprehensive Onboarding**: Multi-step workflow collecting personal health data, dietary restrictions, and preferences
 - **Multi-Participant Support**: Manage nutritional plans for families or groups with individual preference tracking
