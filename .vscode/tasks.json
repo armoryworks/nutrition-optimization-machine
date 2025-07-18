@@ -5,20 +5,14 @@
       "label": "build-nom-api",
       "command": "dotnet",
       "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/nom-api/Nom.Api/Nom.Api.csproj"
-      ],
+      "args": ["build", "${workspaceFolder}/nom-api/Nom.Api/Nom.Api.csproj"],
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "build-nom-import",
+      "label": "build-nom-api",
       "command": "dotnet",
       "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/nom-api/Nom.Import/Nom.Import.csproj"
-      ],
+      "args": ["build", "${workspaceFolder}/nom-api/Nom.Api/Nom.Api.csproj"],
       "problemMatcher": "$msCompile"
     }
   ]

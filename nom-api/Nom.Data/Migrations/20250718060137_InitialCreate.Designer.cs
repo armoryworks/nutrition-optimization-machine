@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250711071024_InitialCreate")]
+    [Migration("20250718060137_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -839,6 +839,154 @@ namespace Nom.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Nom.Data.Privacy.DataProcessingLogEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("DataProcessingLog", "privacy");
+                });
+
+            modelBuilder.Entity("Nom.Data.Privacy.PrivacyRequestEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletionTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RequestDetails")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("RequestTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("PrivacyRequest", "privacy");
+                });
+
+            modelBuilder.Entity("Nom.Data.Privacy.UserConsentEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("ConsentTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConsentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConsentVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsConsented")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LegalBasis")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("UserConsent", "privacy");
+                });
+
             modelBuilder.Entity("Nom.Data.Recipe.IngredientAliasEntity", b =>
                 {
                     b.Property<long>("IngredientId")
@@ -1429,6 +1577,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(4000L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.PrivacyConsentTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(5000L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.RecipeTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -1754,6 +1909,39 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
 
                     b.Navigation("RestrictionType");
+                });
+
+            modelBuilder.Entity("Nom.Data.Privacy.DataProcessingLogEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("Nom.Data.Privacy.PrivacyRequestEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("Nom.Data.Privacy.UserConsentEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.IngredientAliasEntity", b =>

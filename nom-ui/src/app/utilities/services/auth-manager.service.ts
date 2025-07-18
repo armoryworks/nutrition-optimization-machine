@@ -46,7 +46,7 @@ export class AuthManagerService {
   public openUserMenuSignal: Subject<void> = new Subject<void>();
 
   // Backend API URL for authentication endpoints
-  private apiUrl = 'YOUR_BACKEND_AUTH_API_URL'; // TODO: IMPORTANT: Replace with your actual backend authentication API URL (e.g., 'https://localhost:5001/api/auth')
+  private apiUrl = 'api/Auth'; // TODO: IMPORTANT: Replace with your actual backend authentication API URL (e.g., 'https://localhost:5001/api/auth')
 
   // Internal flags for token refreshing
   private isRefreshing = false; // Flag to prevent multiple refresh calls simultaneously
@@ -338,7 +338,7 @@ export class AuthManagerService {
     // TODO: Update with your actual refresh token endpoint
     // The backend should receive the refresh token and return a new access token & refresh token
     return this.http
-      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, {
+      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, {
         refreshToken, // Pass the stored refresh token to the backend
       })
       .pipe(

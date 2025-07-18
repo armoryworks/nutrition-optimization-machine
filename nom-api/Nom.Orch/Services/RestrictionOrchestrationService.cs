@@ -28,9 +28,9 @@ namespace Nom.Orch.Services
         /// <returns>The ID of the matching ReferenceEntity, or 0 if not found.</returns>
         public async Task<long> GetRestrictionTypeRefIdByNameAsync(string restrictionTypeName)
         {
-            var restrictionTypeId = await _dbContext.References
-                .Where(r => r.Name == restrictionTypeName && r.Groups.Any(g => g.Id == (long)ReferenceDiscriminatorEnum.RestrictionType))
-                .Select(r => r.Id)
+            var restrictionTypeId = await _dbContext.RestrictionTypes
+                .Where(r => r.ReferenceName == restrictionTypeName)
+                .Select(r => r.ReferenceId)
                 .FirstOrDefaultAsync();
             return restrictionTypeId;
         }

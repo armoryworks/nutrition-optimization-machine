@@ -30,6 +30,8 @@ namespace Nom.Data.Reference
         CuisineType = 3001,      // e.g., Italian, Mexican, Asian
 
         // Plan Management & User Roles (4000-4999)
-        PlanInvitationRole = 4000 // NEW: e.g., Plan Admin, Plan Member
+        PlanInvitationRole = 4000, // NEW: e.g., Plan Admin, Plan Member
+        // Privacy & Compliance (5000-5999)
+        PrivacyConsentType = 5000
     }
 }

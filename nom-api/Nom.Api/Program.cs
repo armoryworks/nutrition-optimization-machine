@@ -1,19 +1,21 @@
-// Nom.Api/Program.cs
+// File: Nom.Api/Program.cs
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Nom.Api.Authentication; // For CustomClaimsPrincipalFactory and NoOpEmailSender
 using Nom.Data;
 using Nom.Orch;
-using Microsoft.AspNetCore.Http.Features; // Required for FormOptions
-using Microsoft.Extensions.Caching.Memory; // Required for AddMemoryCache
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -32,26 +34,31 @@ builder.Services.Configure<FormOptions>(options =>
 // Add Memory Cache service
 builder.Services.AddMemoryCache();
 
-
 // Configure ApplicationDbContext to use PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
                         b => b.MigrationsAssembly("Nom.Data")));
 
+// --- UPDATED IDENTITY AND AUTHENTICATION CONFIGURATION ---
 builder.Services.AddAuthorization();
 
-// Add Identity API Endpoints for authentication and user management
-builder.Services.AddIdentityApiEndpoints<IdentityUser>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+// Add a no-op IEmailSender for development to satisfy Identity's requirements
+builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 
-// --- Configure HttpClient for ExternalNutrientApiService ---
-// Retrieve FDC API settings from configuration
-var fdcApiBaseUrl = builder.Configuration["FoodDataCentralApi:BaseUrl"];
-if (string.IsNullOrEmpty(fdcApiBaseUrl))
+// Use AddIdentity for more control, allowing for custom claims factory registration
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders()
+    .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
+
+// Configure Bearer token authentication and set it as the default scheme
+builder.Services.AddAuthentication(options =>
 {
-    throw new InvalidOperationException("FoodDataCentralApi:BaseUrl configuration is missing or empty.");
-}
-
+    options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
+    options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
+    options.DefaultScheme = IdentityConstants.BearerScheme;
+}).AddBearerToken(IdentityConstants.BearerScheme);
+// --- END OF UPDATED CONFIGURATION ---
 
 // Register all orchestration and utility services using the extension method
 builder.Services.AddOrchestrationServices();
@@ -65,21 +72,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Map the Identity API endpoints to the "/api/auth" route group
 app.MapGroup("api/auth")
     .MapIdentityApi<IdentityUser>();
 
-// setup custom logout functionality
+// Setup custom logout functionality to match frontend expectations
 app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager) =>
-        {
-            await signInManager.SignOutAsync();
-            return Results.Ok("User logged out successfully");
-        });
+{
+    await signInManager.SignOutAsync();
+    return Results.Ok("User logged out successfully");
+});
 
 app.UseHttpsRedirection();
 
 // Configure CORS policy to allow any origin for development purposes
 app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 
+// IMPORTANT: Ensure UseAuthentication and UseAuthorization are called
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

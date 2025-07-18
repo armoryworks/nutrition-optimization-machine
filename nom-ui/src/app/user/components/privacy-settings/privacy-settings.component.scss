@@ -1,0 +1,31 @@
+// File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.scss
+
+.privacy-settings {
+  &__consent-item {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+    &:last-of-type {
+      border-bottom: none;
+      margin-bottom: 10px;
+    }
+
+    .nom-label-large {
+      font: var(--mat-sys-label-large);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .nom-small-text {
+      margin-top: 8px;
+      margin-left: 55px; // Align with the text of the slide toggle
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+
+  .nom-button[color='warn'] {
+    // Ensure the warn button uses the correct theme colors
+    background-color: var(--mat-sys-error) !important;
+    color: var(--mat-sys-on-error) !important;
+  }
+}

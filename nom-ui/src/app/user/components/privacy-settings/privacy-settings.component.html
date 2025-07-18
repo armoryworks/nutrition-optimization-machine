@@ -1,0 +1,95 @@
+<!-- File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.html -->
+<div class="nom-page-container privacy-settings">
+  <mat-card class="nom-card">
+    <mat-card-header class="nom-card__header">
+      <mat-card-title class="nom-card__title">Privacy Settings</mat-card-title>
+      <mat-card-subtitle class="nom-card__subtitle">
+        Manage your consent preferences and personal data.
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-progress-bar
+      *ngIf="isLoading"
+      mode="indeterminate"
+      color="primary"
+      class="nom-card__progress-bar"
+    ></mat-progress-bar>
+
+    <mat-card-content class="nom-card__content">
+      <!-- Consent Management Section -->
+      <section class="nom-section">
+        <h2 class="nom-section__heading">Consent Management</h2>
+        <p class="nom-instruction-text">
+          We value your privacy. Use the toggles below to control how we use
+          your data. Your choices will not affect core application
+          functionality.
+        </p>
+        <form
+          [formGroup]="consentForm"
+          (ngSubmit)="onConsentSubmit()"
+          class="nom-form"
+        >
+          <div
+            *ngFor="let consent of availableConsents"
+            class="privacy-settings__consent-item"
+          >
+            <mat-slide-toggle [formControlName]="consent.name!" color="primary">
+              <span class="nom-label-large">{{ consent.name }}</span>
+            </mat-slide-toggle>
+            <p class="nom-small-text">{{ consent.description }}</p>
+          </div>
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isLoading"
+            class="nom-button"
+          >
+            Save Consent Settings
+          </button>
+        </form>
+      </section>
+
+      <mat-divider class="nom-divider"></mat-divider>
+
+      <!-- Data Management Section -->
+      <section class="nom-section">
+        <h2 class="nom-section__heading">Data Management</h2>
+        <p class="nom-instruction-text">
+          You have the right to access your personal data. You can request a
+          copy of your data, which will be sent to your registered email
+          address.
+        </p>
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="onExportData()"
+          [disabled]="isLoading"
+          class="nom-button"
+        >
+          Export My Data
+        </button>
+      </section>
+
+      <mat-divider class="nom-divider"></mat-divider>
+
+      <!-- Account Deletion Section -->
+      <section class="nom-section">
+        <h2 class="nom-section__heading">Account Deletion</h2>
+        <p class="nom-instruction-text">
+          You can request the permanent deletion of your account and all
+          associated personal data. This action is irreversible.
+        </p>
+        <button
+          mat-raised-button
+          color="warn"
+          (click)="onDeleteAccount()"
+          [disabled]="isLoading"
+          class="nom-button"
+        >
+          Delete My Account
+        </button>
+      </section>
+    </mat-card-content>
+  </mat-card>
+</div>

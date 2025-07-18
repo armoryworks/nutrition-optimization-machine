@@ -20,9 +20,8 @@ namespace Nom.Data
         private const long MeasurementTypeMilligramId = 4004L; // mg
         private const long MeasurementTypeMicrogramId = 4005L; // µg
         private const long MeasurementTypeKcalId = 4006L; // kcal
-        // Additional common cooking units
         private const long MeasurementTypeKilogramId = 4007L; // kg
-        private const long MeasurementTypeLiterId = 4008L; // lprivate const long MeasurementTypeMilliliterId = 4009L; // ml
+        private const long MeasurementTypeLiterId = 4008L; // l
         private const long MeasurementTypeMilliliterId = 4009L; // ml
         private const long MeasurementTypeTeaspoonId = 4010L; // tsp
         private const long MeasurementTypeTablespoonId = 4011L; // tbsp
@@ -32,20 +31,7 @@ namespace Nom.Data
         private const long MeasurementTypePintId = 4015L; // pint
         private const long MeasurementTypeQuartId = 4016L; // quart
         private const long MeasurementTypeGallonId = 4017L; // gallon
-        // Specific from PDFs if needed - often just "mcg"
         private const long MeasurementTypeMcgId = 4018L; // mcg (as seen in PDFs for Vitamin A, D, etc.)
-
-        // NEW Measurement Type IDs (continuing from 4018L, ensuring no overlap with 4031-4044 from previous update)
-        // Starting from 4045L to be safe and avoid conflicts with existing custom units
-        private const long MeasurementTypeIUId = 4045L; // International Unit
-        private const long MeasurementTypeKjId = 4046L; // Kilojoule
-        private const long MeasurementTypeMcgReId = 4047L; // Microgram Retinol Equivalent (for Vitamin A)
-        private const long MeasurementTypeMgAteId = 4048L; // Milligram Alpha-Tocopherol Equivalent (for Vitamin E)
-        private const long MeasurementTypeUmolTeId = 4049L; // Micromole Tocopherol Equivalent (for Vitamin E)
-        private const long MeasurementTypePhId = 4050L; // pH
-        private const long MeasurementTypeSpGrId = 4051L; // Specific Gravity
-
-
         private const long MeasurementTypeFluidOunceId = 4031L; // fl oz (explicitly separate from weight oz)
         private const long MeasurementTypeCloveId = 4032L; // clove (e.g., of garlic)
         private const long MeasurementTypeSprigId = 4033L; // sprig
@@ -60,10 +46,15 @@ namespace Nom.Data
         private const long MeasurementTypePinchId = 4042L; // pinch
         private const long MeasurementTypeDashId = 4043L; // dash
         private const long MeasurementTypeSplashId = 4044L; // splash
-
+        private const long MeasurementTypeIUId = 4045L; // International Unit
+        private const long MeasurementTypeKjId = 4046L; // Kilojoule
+        private const long MeasurementTypeMcgReId = 4047L; // Microgram Retinol Equivalent (for Vitamin A)
+        private const long MeasurementTypeMgAteId = 4048L; // Milligram Alpha-Tocopherol Equivalent (for Vitamin E)
+        private const long MeasurementTypeUmolTeId = 4049L; // Micromole Tocopherol Equivalent (for Vitamin E)
+        private const long MeasurementTypePhId = 4050L; // pH
+        private const long MeasurementTypeSpGrId = 4051L; // Specific Gravity
 
         // --- Nutrient IDs (Derived from DRVs and RDIs) ---
-        // DRV Nutrients
         private const long NutrientFatId = 5000L;
         private const long NutrientSaturatedFatId = 5001L;
         private const long NutrientCholesterolId = 5002L;
@@ -72,7 +63,6 @@ namespace Nom.Data
         private const long NutrientDietaryFiberId = 5005L;
         private const long NutrientProteinId = 5006L;
         private const long NutrientAddedSugarsId = 5007L;
-        // RDI Nutrients (Vitamins)
         private const long NutrientVitaminAId = 5008L;
         private const long NutrientVitaminCId = 5009L;
         private const long NutrientVitaminDId = 5010L;
@@ -87,7 +77,6 @@ namespace Nom.Data
         private const long NutrientBiotinId = 5019L;
         private const long NutrientPantothenicAcidId = 5020L;
         private const long NutrientCholineId = 5021L;
-        // RDI Nutrients (Minerals)
         private const long NutrientCalciumId = 5022L;
         private const long NutrientIronId = 5023L;
         private const long NutrientPhosphorusId = 5024L;
@@ -101,15 +90,19 @@ namespace Nom.Data
         private const long NutrientMolybdenumId = 5032L;
         private const long NutrientChlorideId = 5033L;
         private const long NutrientPotassiumId = 5034L;
-        // Special case for Calories (Energy)
-        private const long NutrientCaloriesFDCId = 5035L; // Different ID if "Energy" from FDC comes in. Using 5000L for general.
+        private const long NutrientCaloriesFDCId = 5035L;
 
         // --- Reference Data IDs (Goal Types - for Nutrient Guidelines, matching PDF demographics) ---
-        private const long GoalTypeAdultsAndChildren4PlusId = 6000L; // Adults and Children >= 4 years
-        private const long GoalTypeInfantsThrough12MonthsId = 6001L; // Infants through 12 months
-        private const long GoalTypeChildren1Through3YearsId = 6002L; // Children 1 through 3 years
-        private const long GoalTypePregnantAndLactatingWomenId = 6003L; // Pregnant women and lactating women
-        private const long GoalTypeGeneralAdultId = 6004L; // Broader "General Adult" if needed for non-label specific goals
+        private const long GoalTypeAdultsAndChildren4PlusId = 6000L;
+        private const long GoalTypeInfantsThrough12MonthsId = 6001L;
+        private const long GoalTypeChildren1Through3YearsId = 6002L;
+        private const long GoalTypePregnantAndLactatingWomenId = 6003L;
+        private const long GoalTypeGeneralAdultId = 6004L;
+
+        // --- NEW: Privacy Consent Type IDs (8xxxL series) ---
+        private const long PrivacyConsentTypeAnalyticsId = 8000L;
+        private const long PrivacyConsentTypeMarketingId = 8001L;
+        private const long PrivacyConsentTypePersonalizationId = 8002L;
 
         // --- Nutrient Guideline IDs (7xxxL series) ---
         private static long nextGuidelineId = 7000L;
@@ -124,6 +117,7 @@ namespace Nom.Data
             migrationBuilder.EnsureSchema(name: "nutrient");
             migrationBuilder.EnsureSchema(name: "shopping");
             migrationBuilder.EnsureSchema(name: "reference");
+            migrationBuilder.EnsureSchema(name: "privacy"); // Ensure the privacy schema exists
 
             SeedInitialSystemPerson(migrationBuilder);
 
@@ -133,6 +127,7 @@ namespace Nom.Data
             AddPlanInvitationRoles(migrationBuilder);
             AddMeasurementTypes(migrationBuilder);
             AddGoalTypes(migrationBuilder);
+            AddPrivacyConsentTypes(migrationBuilder); // Add new privacy consent types
 
             // Add Nutrients including parent-child relationships
             AddNutrientTypes(migrationBuilder);
@@ -147,20 +142,18 @@ namespace Nom.Data
         {
             DropReferenceGroupView(migrationBuilder);
 
-            // Remove guidelines first (they depend on nutrients)
+            // Removal order is important
             RemoveNutrientGuidelines(migrationBuilder);
-
-            // Remove nutrient types (which now includes setting ParentNutrientId to null)
             RemoveNutrientTypes(migrationBuilder);
-
+            RemovePrivacyConsentTypes(migrationBuilder); // Remove new privacy consent types
             RemoveGoalTypes(migrationBuilder);
             RemoveMeasurementTypes(migrationBuilder);
             RemovePlanInvitationRoles(migrationBuilder);
             RemoveRestrictionTypes(migrationBuilder);
             RemoveReferenceGroups(migrationBuilder);
-
             RemoveInitialSystemPerson(migrationBuilder);
 
+            migrationBuilder.DropSchema(name: "privacy");
             migrationBuilder.DropSchema(name: "person");
             migrationBuilder.DropSchema(name: "audit");
             migrationBuilder.DropSchema(name: "plan");
@@ -172,7 +165,6 @@ namespace Nom.Data
 
         public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
         {
-
             migrationBuilder.InsertData(
                 schema: "person",
                 table: "Person",
@@ -181,7 +173,6 @@ namespace Nom.Data
                 {
                     { SystemPersonId, "System", null, null, DateTime.UtcNow, SystemPersonId }
                 });
-
         }
 
         public static void RemoveInitialSystemPerson(MigrationBuilder migrationBuilder)
@@ -210,7 +201,8 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.GoalType, "Goal Types", "Nutritional goals or demographic categories for guidelines (e.g., 'Adults 4+ years').", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.NutrientType, "Nutrient Types", "Categories of nutrients (e.g., macronutrients, vitamins, minerals).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.PlanInvitationRole, "Plan Invitation Roles", "Roles for invited participants in a plan (e.g., Admin, Member)", DateTime.UtcNow, SystemPersonId }
+                    { (long)ReferenceDiscriminatorEnum.PlanInvitationRole, "Plan Invitation Roles", "Roles for invited participants in a plan (e.g., Admin, Member)", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PrivacyConsentType, "Privacy Consent Types", "Types of user consent for data processing under GDPR.", DateTime.UtcNow, SystemPersonId }
                 });
         }
 
@@ -231,7 +223,8 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.GoalType,
                     (long)ReferenceDiscriminatorEnum.NutrientType,
                     (long)ReferenceDiscriminatorEnum.CuisineType,
-                    (long)ReferenceDiscriminatorEnum.PlanInvitationRole
+                    (long)ReferenceDiscriminatorEnum.PlanInvitationRole,
+                    (long)ReferenceDiscriminatorEnum.PrivacyConsentType
                 });
         }
 
@@ -347,7 +340,6 @@ namespace Nom.Data
                 });
         }
 
-        // Add Measurement Types from PDFs and common sense
         public static void AddMeasurementTypes(MigrationBuilder migrationBuilder)
         {
             long measurementGroupId = (long)ReferenceDiscriminatorEnum.MeasurementType;
@@ -391,7 +383,6 @@ namespace Nom.Data
                     { MeasurementTypePinchId, "pinch", "A very small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeDashId, "dash", "A small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeSplashId, "splash", "A small, unmeasured amount of liquid.", DateTime.UtcNow, SystemPersonId },
-                    // NEW Measurement Types
                     { MeasurementTypeIUId, "IU", "International Unit (biological activity).", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeKjId, "kJ", "Kilojoule (energy unit, scientific).", DateTime.UtcNow, SystemPersonId },
                     { MeasurementTypeMcgReId, "mcg_RE", "Microgram Retinol Equivalent (Vitamin A).", DateTime.UtcNow, SystemPersonId },
@@ -414,7 +405,6 @@ namespace Nom.Data
                 MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
                 MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
                 MeasurementTypeDashId, MeasurementTypeSplashId,
-                // NEW Measurement Type IDs
                 MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
                 MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
                 MeasurementTypeSpGrId
@@ -447,7 +437,6 @@ namespace Nom.Data
                 MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
                 MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
                 MeasurementTypeDashId, MeasurementTypeSplashId,
-                // NEW Measurement Type IDs
                 MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
                 MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
                 MeasurementTypeSpGrId
@@ -469,7 +458,6 @@ namespace Nom.Data
                 keyValues: measurementTypeIds.Cast<object>().ToArray());
         }
 
-        // Add Goal Types (matching FDA demographic categories)
         public static void AddGoalTypes(MigrationBuilder migrationBuilder)
         {
             long goalGroupId = (long)ReferenceDiscriminatorEnum.GoalType;
@@ -527,7 +515,59 @@ namespace Nom.Data
                 keyValues: goalTypeIds.Cast<object>().ToArray());
         }
 
-        // Add all Nutrients from DRVs and RDIs, including ParentNutrientId for components
+        public static void AddPrivacyConsentTypes(MigrationBuilder migrationBuilder)
+        {
+            long privacyConsentGroupId = (long)ReferenceDiscriminatorEnum.PrivacyConsentType;
+
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { PrivacyConsentTypeAnalyticsId, "Analytics", "Consent to use data for internal analytics to improve the service.", DateTime.UtcNow, SystemPersonId },
+                    { PrivacyConsentTypeMarketingId, "Marketing", "Consent to receive marketing communications and offers.", DateTime.UtcNow, SystemPersonId },
+                    { PrivacyConsentTypePersonalizationId, "Personalization", "Consent to use data to personalize content and recommendations.", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] privacyConsentTypeIds = new long[] {
+                PrivacyConsentTypeAnalyticsId, PrivacyConsentTypeMarketingId, PrivacyConsentTypePersonalizationId
+            };
+
+            foreach (long id in privacyConsentTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, privacyConsentGroupId });
+            }
+        }
+
+        public static void RemovePrivacyConsentTypes(MigrationBuilder migrationBuilder)
+        {
+            long privacyConsentGroupId = (long)ReferenceDiscriminatorEnum.PrivacyConsentType;
+
+            long[] privacyConsentTypeIds = new long[] {
+                PrivacyConsentTypeAnalyticsId, PrivacyConsentTypeMarketingId, PrivacyConsentTypePersonalizationId
+            };
+
+            foreach (long id in privacyConsentTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, privacyConsentGroupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: privacyConsentTypeIds.Cast<object>().ToArray());
+        }
+
         public static void AddNutrientTypes(MigrationBuilder migrationBuilder)
         {
             // First, insert all parent nutrients
@@ -545,7 +585,7 @@ namespace Nom.Data
                     { NutrientSodiumId, "Sodium", "Sodium content.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientCaloriesFDCId, "Calories", "Energy content of food. Often referred to as 'Energy' in FDC API.", MeasurementTypeKcalId, DateTime.UtcNow, SystemPersonId, null },
 
-                    // RDIs (Vitamins) - No explicit parents in the provided context
+                    // RDIs (Vitamins)
                     { NutrientVitaminAId, "Vitamin A", "Vitamin A, Retinol Activity Equivalents (RAE).", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientVitaminCId, "Vitamin C", "Ascorbic acid.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientVitaminDId, "Vitamin D", "Vitamin D.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
@@ -561,7 +601,7 @@ namespace Nom.Data
                     { NutrientPantothenicAcidId, "Pantothenic Acid", "Vitamin B5.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientCholineId, "Choline", "Choline.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
 
-                    // RDIs (Minerals) - No explicit parents in the provided context
+                    // RDIs (Minerals)
                     { NutrientCalciumId, "Calcium", "Calcium.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientIronId, "Iron", "Iron.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientPhosphorusId, "Phosphorus", "Phosphorus.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
@@ -586,7 +626,6 @@ namespace Nom.Data
                 {
                     // Components of Fat
                     { NutrientSaturatedFatId, "Saturated Fat", "Saturated fatty acids.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientFatId },
-                    // If you add Monounsaturated Fat or Polyunsaturated Fat later, they would also link to NutrientFatId
 
                     // Components of Total Carbohydrates
                     { NutrientDietaryFiberId, "Dietary Fiber", "Dietary fiber content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId },
@@ -607,12 +646,6 @@ namespace Nom.Data
                 NutrientMolybdenumId, NutrientChlorideId, NutrientPotassiumId
             };
 
-            // Order of deletion matters for self-referencing FK: delete children before parents
-            // Or set parent IDs to null first. Simplest is to delete all by ID.
-            // EF Core's DeleteData handles this if you delete the children first.
-            // Here, we just delete all by ID, assuming the database will handle FK constraints
-            // (e.g., if ON DELETE CASCADE is configured, or if FK is nullable and children are deleted first).
-            // Since ParentNutrientId is nullable, this is fine.
             migrationBuilder.DeleteData(
                 schema: "nutrient",
                 table: "Nutrient",
@@ -620,16 +653,10 @@ namespace Nom.Data
                 keyValues: nutrientIds.Cast<object>().ToArray());
         }
 
-        // Removed AddNutrientComponents and RemoveNutrientComponents methods
-
-        // Add Nutrient Guidelines based on FDA DRVs and RDIs from PDFs
         public static void AddNutrientGuidelines(MigrationBuilder migrationBuilder)
         {
-            // Helper to generate a new unique ID for guidelines
             long GetNextGuidelineId() => nextGuidelineId++;
 
-            // Data from "Daily-Reference-Values-(DRVs)-under-the-New-NFL.pdf" (Page 2)
-            // "Adults and Children >= 4 years"
             migrationBuilder.InsertData(
                 schema: "nutrient",
                 table: "NutrientGuideline",
@@ -669,7 +696,6 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
 
-                    // Data from "Reference-Daily-Intakes-(RDIs)-in-the-New-Nutrition-Facts-Label.pdf" (Page 2 & 3)
                     // RDIs - Adults and Children >= 4 years
                     { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 900.0m, "RDI for Vitamin A (RAE).", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 90.0m, "RDI for Vitamin C.", DateTime.UtcNow, SystemPersonId },

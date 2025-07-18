@@ -1,5 +1,5 @@
 using Nom.Data;
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -18,6 +18,9 @@ namespace Nom.Data.Migrations
 
             migrationBuilder.EnsureSchema(
                 name: "audit");
+
+            migrationBuilder.EnsureSchema(
+                name: "privacy");
 
             migrationBuilder.EnsureSchema(
                 name: "plan");
@@ -358,6 +361,67 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DataProcessingLog",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ActionType = table.Column<string>(type: "text", nullable: false),
+                    ActorId = table.Column<long>(type: "bigint", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false),
+                    IpAddress = table.Column<string>(type: "text", nullable: false),
+                    UserAgent = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DataProcessingLog", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DataProcessingLog_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PrivacyRequest",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RequestType = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    RequestTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CompletionTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RequestDetails = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrivacyRequest", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PrivacyRequest_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ShoppingPreference",
                 schema: "shopping",
                 columns: table => new
@@ -377,6 +441,36 @@ namespace Nom.Data.Migrations
                     table.PrimaryKey("PK_ShoppingPreference", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ShoppingPreference_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserConsent",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConsentType = table.Column<string>(type: "text", nullable: false),
+                    IsConsented = table.Column<bool>(type: "boolean", nullable: false),
+                    ConsentTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ConsentVersion = table.Column<string>(type: "text", nullable: false),
+                    LegalBasis = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserConsent", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserConsent_Person_PersonId",
                         column: x => x.PersonId,
                         principalSchema: "person",
                         principalTable: "Person",
@@ -1153,6 +1247,12 @@ namespace Nom.Data.Migrations
                 column: "ChangedByPersonId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DataProcessingLog_PersonId",
+                schema: "privacy",
+                table: "DataProcessingLog",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Goal_GoalTypeId",
                 schema: "plan",
                 table: "Goal",
@@ -1369,6 +1469,12 @@ namespace Nom.Data.Migrations
                 column: "RoleRefId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PrivacyRequest_PersonId",
+                schema: "privacy",
+                table: "PrivacyRequest",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Recipe_CuratedById",
                 schema: "recipe",
                 table: "Recipe",
@@ -1463,12 +1569,18 @@ namespace Nom.Data.Migrations
                 schema: "shopping",
                 table: "ShoppingTrip",
                 column: "StatusId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserConsent_PersonId",
+                schema: "privacy",
+                table: "UserConsent",
+                column: "PersonId");
             migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        { 
             migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
@@ -1493,6 +1605,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "AuditLogEntry",
                 schema: "audit");
+
+            migrationBuilder.DropTable(
+                name: "DataProcessingLog",
+                schema: "privacy");
 
             migrationBuilder.DropTable(
                 name: "GoalItem",
@@ -1527,6 +1643,10 @@ namespace Nom.Data.Migrations
                 schema: "plan");
 
             migrationBuilder.DropTable(
+                name: "PrivacyRequest",
+                schema: "privacy");
+
+            migrationBuilder.DropTable(
                 name: "recipe_type_index",
                 schema: "recipe");
 
@@ -1553,6 +1673,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "ShoppingPreference",
                 schema: "shopping");
+
+            migrationBuilder.DropTable(
+                name: "UserConsent",
+                schema: "privacy");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles",
