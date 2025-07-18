@@ -80,7 +80,6 @@ namespace Nom.Data
 
         // Audit Log DbSet
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
-        public DbSet<ImportJobEntity> ImportJobs { get; set; } = default!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -117,15 +116,6 @@ namespace Nom.Data
                 .WithMany()
                 .HasForeignKey(ale => ale.ChangedByPersonId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure ImportJobEntity
-            modelBuilder.Entity<ImportJobEntity>()
-                .ToTable("ImportJob", schema: "audit"); // Place in audit schema
-
-            // Add a unique index on ProcessId for quick lookup
-            modelBuilder.Entity<ImportJobEntity>()
-                .HasIndex(ij => ij.ProcessId)
-                .IsUnique();
 
             #endregion // End of Audit Namespace Fluent API Configurations
 
@@ -439,13 +429,13 @@ namespace Nom.Data
 
 
             var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is IAuditableEntity && (
+                .Where(e => e.Entity is BaseEntity && (
                     e.State == EntityState.Added ||
                     e.State == EntityState.Modified));
 
             foreach (var entry in entries)
             {
-                var auditableEntity = (IAuditableEntity)entry.Entity;
+                var auditableEntity = (BaseEntity)entry.Entity;
 
                 if (entry.State == EntityState.Added)
                 {

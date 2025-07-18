@@ -5,7 +5,7 @@ using Nom.Data.Person; // IMPORTANT: Need this using statement for PersonEntity
 
 namespace Nom.Data
 {
-    public abstract class BaseEntity : IAuditableEntity
+    public abstract class BaseEntity
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

@@ -1,11 +1,9 @@
 // Nom.Orch/Services/RecipeOrchestrationService.cs
-using Nom.Orch.Models.Recipe; // Reference KaggleRawRecipeDataModel, RecipeImportRequest/Response
 using Nom.Data; // For ApplicationDbContext
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Threading.Tasks;
 using System;
-using Nom.Data.Audit; // For ImportJobEntity, ImportStatusEnum
 using Nom.Orch.Interfaces; // For IRecipeOrchestrationService
 using Microsoft.Extensions.DependencyInjection; // For IServiceScopeFactory
 using Microsoft.EntityFrameworkCore; // For FirstOrDefaultAsync

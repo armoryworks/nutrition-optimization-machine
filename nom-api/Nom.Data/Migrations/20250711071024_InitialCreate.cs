@@ -1,5 +1,5 @@
 using Nom.Data;
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -95,35 +95,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Group", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ImportJob",
-                schema: "audit",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProcessId = table.Column<Guid>(type: "uuid", nullable: false),
-                    JobName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Source = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    SourcePath = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    TotalRecords = table.Column<int>(type: "integer", nullable: true),
-                    ImportedCount = table.Column<int>(type: "integer", nullable: false),
-                    SkippedCount = table.Column<int>(type: "integer", nullable: false),
-                    ErrorCount = table.Column<int>(type: "integer", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Message = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ImportJob", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -1224,13 +1195,6 @@ namespace Nom.Data.Migrations
                 column: "TimeframeTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ImportJob_ProcessId",
-                schema: "audit",
-                table: "ImportJob",
-                column: "ProcessId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Ingredient_FdcId",
                 schema: "recipe",
                 table: "Ingredient",
@@ -1504,7 +1468,7 @@ namespace Nom.Data.Migrations
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        { 
+        {
             migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
@@ -1533,10 +1497,6 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "GoalItem",
                 schema: "plan");
-
-            migrationBuilder.DropTable(
-                name: "ImportJob",
-                schema: "audit");
 
             migrationBuilder.DropTable(
                 name: "IngredientAlias",
