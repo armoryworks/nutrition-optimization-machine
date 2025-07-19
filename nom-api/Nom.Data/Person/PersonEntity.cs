@@ -39,5 +39,6 @@ namespace Nom.Data.Person
 
         // Other attributes can be added here or via a PersonAttributeEntity for extensibility
         public virtual ICollection<PersonAttributeEntity> Attributes { get; set; } = new List<PersonAttributeEntity>();
+        public virtual ICollection<RestrictionEntity> Restrictions { get; set; } = new List<RestrictionEntity>();
     }
 }

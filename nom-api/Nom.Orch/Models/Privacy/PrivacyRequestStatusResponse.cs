@@ -12,7 +12,7 @@ namespace Nom.Orch.Models.Privacy
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
-        public Guid RequestId { get; set; }
+        public long RequestId { get; set; } // CORRECTED: Changed from Guid to long
         public string Status { get; set; } = string.Empty;
     }
 }

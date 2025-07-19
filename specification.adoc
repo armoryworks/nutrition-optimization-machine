@@ -7,8 +7,8 @@
 :sectnums:
 :source-highlighter: rouge
 :icons: font
-:version: 1.4
-:revdate: July 17, 2025
+:version: 1.5
+:revdate: July 19, 2025
 :author: NOM Development Team
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 
@@ -33,10 +33,10 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 [NOTE]
 ====
 * **Core User Onboarding**: The core user onboarding workflow (steps for personal details, health attributes, and restrictions for the primary user) is largely implemented on the frontend and integrated with the backend Person and Restriction services.
-* **Data Models**: The foundational data models and database migrations are in place.
+* **Data Models**: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance (`UserConsentEntity`, `DataProcessingLogEntity`, `PrivacyRequestEntity`).
 * **Multi-Participant Flow**: Work is actively progressing on iterating through additional participants for their individual restriction collection.
 * **Reference Data**: Initial reference data (measurement types, core nutrients) seeding is also implemented.
-* **Privacy & Compliance**: The system has been assessed for data privacy compliance requirements. While NOM currently avoids HIPAA requirements as a direct-to-consumer application, GDPR compliance is mandatory for EU users and represents a critical implementation priority.
+* **Privacy & Compliance**: The system has been architected with a "privacy-by-design" approach. All necessary data layer, orchestration (`PrivacyOrchestrationService`), and API (`PrivacyController`) components for GDPR consent management and data subject rights have been implemented. The corresponding frontend UI (`PrivacySettingsComponent`) in the user settings area is also complete.
 ====
 
 == User Roles & Personas
@@ -48,7 +48,7 @@ The following primary user roles and system actors have been identified and cons
 |Role |Description
 
 |**New User / Prospect**
-|An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.
+|An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions and initial privacy consent.
 
 |**Authenticated User**
 |A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
@@ -222,19 +222,19 @@ Privacy compliance is **mandatory** for EU users under GDPR and represents a cri
 |ID |Requirement
 
 |**FR-4.5.1**
-|**Privacy Consent Management**: The system shall implement granular consent collection during user registration and onboarding, allowing users to consent to specific data processing activities (analytics, marketing, etc.).
+|**Privacy Consent Management**: The system shall implement granular consent collection during user registration and onboarding. All consents are stored in the `UserConsentEntity` table.
 
 |**FR-4.5.2**
 |**Consent Withdrawal**: Users shall be able to withdraw previously granted consents at any time through their account settings.
 
 |**FR-4.5.3**
-|**Data Subject Rights (GDPR)**: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20).
+|**Data Subject Rights (GDPR)**: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20). These requests are tracked in the `PrivacyRequestEntity` table.
 
 |**FR-4.5.4**
-|**Privacy Dashboard**: The system shall provide a dedicated user interface for managing privacy settings, viewing consent status, and exercising data subject rights.
+|**Privacy Dashboard**: The system shall provide a dedicated user interface (`PrivacySettingsComponent`) for managing privacy settings, viewing consent status, and exercising data subject rights.
 
 |**FR-4.5.5**
-|**Data Processing Logging**: All access to and modifications of personal data shall be logged for audit purposes, including timestamp, actor, and action details.
+|**Data Processing Logging**: All access to and modifications of personal data shall be logged for audit purposes in the `DataProcessingLogEntity` table, including timestamp, actor, and action details.
 
 |**FR-4.5.6**
 |**Privacy Policy Integration**: The system shall prominently display privacy policy information during onboarding and provide easy access throughout the application.
@@ -738,12 +738,12 @@ A reusable component to allow users to define RestrictionEntity data. It dynamic
 * <<restriction-domain,Rule-5.5.1>> (Association Constraint): Ensures restrictions are properly linked to Person or Plan.
 * <<restriction-domain,Rule-5.5.2>> (Type Definition): Handles restriction type categorization.
 
-==== PrivacyDashboardComponent [[privacy-dashboard-component]] (NEW)
+==== PrivacySettingsComponent [[privacy-settings-component]] (NEW)
 
 .File Locations
-* TypeScript: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.ts`
-* HTML: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.html`
-* SCSS: `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.scss`
+* TypeScript: `src/app/user/privacy-settings/privacy-settings.component.ts`
+* HTML: `src/app/user/privacy-settings/privacy-settings.component.html`
+* SCSS: `src/app/user/privacy-settings/privacy-settings.component.scss`
 
 .Role
 Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights.
@@ -756,23 +756,6 @@ Provides users with a centralized interface for managing their privacy settings,
 .Domain Rules Mapping
 * <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Displays consent documentation and status.
 * <<privacy-domain,Rule-5.6.5>> (Retention Limitation): Provides interface for data retention management.
-
-==== ConsentCollectionComponent [[consent-collection-component]] (NEW)
-
-.File Locations
-* TypeScript: `src/app/privacy/components/consent-collection/consent-collection.component.ts`
-* HTML: `src/app/privacy/components/consent-collection/consent-collection.component.html`
-* SCSS: `src/app/privacy/components/consent-collection/consent-collection.component.scss`
-
-.Role
-Collects granular user consents during onboarding and account management.
-
-.Functional Requirements Mapping
-* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Direct implementation of consent collection.
-
-.Domain Rules Mapping
-* <<privacy-domain,Rule-5.6.1>> (Lawful Basis): Ensures lawful basis for data processing.
-* <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Documents consent collection.
 
 ==== Authentication Components [[auth-components]]
 
@@ -817,10 +800,10 @@ Collects granular user consents during onboarding and account management.
 Handles all API interactions related to the Person domain, including the composite onboarding submission.
 
 .Functional Requirements Mapping
-* <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Contains submitOnboardingComplete() method for API interaction.
+* <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Contains `submitOnboardingComplete()` method for API interaction.
 
 .Data Structures Used
-PersonModel, PersonAttributeModel, RestrictionModel, OnboardingCompleteRequestModel
+`PersonModel`, `PersonAttributeModel`, `RestrictionModel`, `OnboardingCompleteRequestModel`
 
 ==== RestrictionService [[restriction-service]]
 
@@ -856,9 +839,9 @@ Handles all privacy-related API interactions including consent management, data 
 `src/app/components/auth/auth.service.ts`
 
 .Functional Requirements Mapping
-* <<auth-requirements,FR-4.1>> (Authenticated Access): Primary interface for authenticated API calls.
-* <<auth-requirements,FR-4.3>> (User Registration): Handles new user creation.
-* <<auth-requirements,FR-4.4>> (User Login): Manages user authentication and JWT handling.
+* `FR-4.1` (Authenticated Access): Primary interface for authenticated API calls.
+* `FR-4.3` (User Registration): Handles new user creation.
+* `FR-4.4` (User Login): Manages user authentication and JWT handling.
 
 .Additional Features
 * Email confirmation and password reset functionality
@@ -938,13 +921,13 @@ All models follow the strict naming convention: **NO DTO SUFFIXES ALLOWED**. Use
 |`src/app/privacy/models/consent.model.ts`
 |Consent record data structure
 
-|`DataExportModel`
-|`src/app/privacy/models/data-export.model.ts`
-|Data export request and status
+|`DataExportRequest`
+|`src/app/privacy/models/data-export-request.model.ts`
+|Data export request payload
 
-|`PrivacyRequestModel`
-|`src/app/privacy/models/privacy-request.model.ts`
-|General privacy rights requests
+|`PrivacyRequestStatusResponse`
+|`src/app/privacy/models/privacy-request-status-response.model.ts`
+|Response for asynchronous privacy requests
 |===
 
 ==== Authentication Models
@@ -963,13 +946,13 @@ All models follow the strict naming convention: **NO DTO SUFFIXES ALLOWED**. Use
 `Nom.Orch/Services/PersonOrchestrationService.cs`
 
 .Role
-Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and ConsentEntity records.
+Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and now integrates with the `IPrivacyOrchestrationService` to save initial consents.
 
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Backend processing of onboarding completion.
 * <<restriction-requirements,FR-2.1>> through <<restriction-requirements,FR-2.5>>: Restriction data capture and management.
 * <<plan-requirements,FR-3.2>>, <<plan-requirements,FR-3.3>>: Plan linking and role assignment.
-* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Consent record creation.
+* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Consent record creation via injected service.
 
 .Domain Rules Mapping
 * <<user-domain,Rule-5.1.1>> (Unique Person): Enforces person uniqueness.
@@ -978,7 +961,7 @@ Handles the orchestration of onboarding completion, including creation/update of
 * <<privacy-domain,Rule-5.6.1>>, <<privacy-domain,Rule-5.6.2>>: Lawful basis and consent documentation.
 
 .Key Methods
-`CompleteOnboardingAsync(OnboardingCompleteRequest request, long userId)`
+`CompleteOnboardingAsync(OnboardingCompleteRequest request)`
 
 ==== PrivacyOrchestrationService [[privacy-orchestration-service]] (NEW)
 
@@ -998,43 +981,7 @@ Handles complex business logic related to privacy compliance, data subject right
 * <<privacy-domain,Rule-5.6.1>> through <<privacy-domain,Rule-5.6.8>>: All privacy and compliance rules.
 
 .Key Methods
-`ProcessDataExportRequestAsync()`, `ProcessDataDeletionRequestAsync()`, `UpdateConsentAsync()`, `GetAuditLogAsync()`, `AnonymizeUserDataAsync()`
-
-==== ConsentManagementService [[consent-management-service]] (NEW)
-
-.File Location
-`Nom.Orch/Services/ConsentManagementService.cs`
-
-.Role
-Specialized service for managing user consents including collection, withdrawal, and versioning.
-
-.Functional Requirements Mapping
-* <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Direct implementation of consent management.
-* <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Handles consent withdrawal.
-
-.Domain Rules Mapping
-* <<privacy-domain,Rule-5.6.1>> (Lawful Basis): Ensures lawful basis for processing.
-* <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Documents all consent interactions.
-
-.Key Methods
-`CollectConsentAsync()`, `WithdrawConsentAsync()`, `GetConsentStatusAsync()`, `VersionConsentAsync()`
-
-==== DataAnonymizationService [[data-anonymization-service]] (NEW)
-
-.File Location
-`Nom.Orch/Services/DataAnonymizationService.cs`
-
-.Role
-Handles secure deletion and anonymization of user data for GDPR compliance.
-
-.Functional Requirements Mapping
-* <<privacy-requirements,FR-4.5.3>> (Right to Erasure): Supports data deletion requests.
-
-.Domain Rules Mapping
-* <<privacy-domain,Rule-5.6.5>> (Retention Limitation): Implements retention policies.
-
-.Key Methods
-`AnonymizePersonDataAsync()`, `SecureDeleteAsync()`, `ValidateRetentionPolicyAsync()`
+`UpdateConsentAsync()`, `RequestDataExportAsync()`, `RequestDataDeletionAsync()`
 
 ==== API Controllers
 
@@ -1058,11 +1005,9 @@ Exposes API endpoints for person-related functionality including onboarding comp
 Exposes API endpoints for privacy-related functionality.
 
 .Key Endpoints
-* `[HttpGet("data-export")]`: Generate data export for user
 * `[HttpPost("consent")]`: Update user consent preferences
-* `[HttpDelete("account")]`: Process account deletion request
-* `[HttpPut("data-correction")]`: Handle data rectification requests
-* `[HttpGet("audit-log")]`: Retrieve user's data processing audit log
+* `[HttpPost("data-export")]`: Generate data export for user
+* `[HttpPost("data-deletion")]`: Process account deletion request
 
 .Security
 All endpoints require `[Authorize]` to ensure only authenticated users can access their privacy data.
@@ -1150,12 +1095,12 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 ==== Completed Components
 
 **Onboarding Workflow (Core)**::
-* **Frontend**: OnboardingWorkflowComponent orchestrator implemented
-* **Components**: PersonEditComponent and PersonHealthEditComponent functional
-* **Restrictions**: RestrictionEditComponent handles various restriction types and conditional allocation logic
+* **Frontend**: `OnboardingWorkflowComponent` orchestrator implemented
+* **Components**: `PersonEditComponent` and `PersonHealthEditComponent` functional
+* **Restrictions**: `RestrictionEditComponent` handles various restriction types
 * **Backend**: Basic CRUD for Person and Restriction entities supported
-* **API Integration**: PersonOrchestrationService handles consolidated OnboardingCompleteRequest submission
-* **Authentication**: User registration, login, and JWT-based authentication functional with interceptors
+* **API Integration**: `PersonOrchestrationService` handles `OnboardingCompleteRequest` submission
+* **Authentication**: User registration, login, and JWT-based authentication functional
 
 **Authentication System**::
 * Registration, login, password reset, email confirmation
@@ -1163,35 +1108,27 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 * JWT token management with refresh capabilities
 
 **Reference Data**::
-* Core reference data seeding (measurement types, nutrients)
+* Core reference data seeding
 * Extensible reference data management system
 
 ==== Privacy & Compliance Status
 
-.Assessment Complete
-* Privacy compliance framework designed
-* GDPR applicability confirmed for EU users
-* HIPAA exemption validated for direct-to-consumer model
-
-.Implementation Required
-* Consent management system
-* Privacy dashboard interface
-* Data subject rights endpoints
-* Audit logging framework
+.Implementation Complete
+* **Data Layer**: `UserConsentEntity`, `DataProcessingLogEntity`, `PrivacyRequestEntity` created.
+* **Orchestration**: `PrivacyOrchestrationService` implemented to handle business logic.
+* **API Layer**: `PrivacyController` exposes endpoints for consent and data rights.
+* **Frontend**: `PrivacySettingsComponent` provides UI for managing settings.
+* **Authentication**: `CustomClaimsPrincipalFactory` adds `PersonId` to JWTs.
 
 ==== Immediate Next Focus
 
 **Frontend Priority**::
-1. Complete iterative flow for additional participants in OnboardingWorkflowComponent
+1. Complete iterative flow for additional participants in `OnboardingWorkflowComponent`
 2. Implement individual restriction collection when `applyIndividualPreferencesToEachPerson` is true
-3. Develop privacy components (consent collection, privacy dashboard)
-4. Manage `currentAdditionalParticipantIndex` and RestrictionEditComponent re-rendering
 
 **Backend Priority**::
-1. Implement privacy-related services and endpoints
-2. Create consent management infrastructure
-3. Develop data subject rights processing
-4. Establish audit logging system
+1. Implement background jobs for processing data export and deletion requests.
+2. Flesh out the audit logging within services to populate `DataProcessingLogEntity`.
 
 === Technology Stack Rationale [[tech-stack]]
 
@@ -1238,7 +1175,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 
 === Privacy & Compliance Implementation Priority [[privacy-implementation]]
 
-==== Phase 1 - Critical (Next 30 Days)
+==== Phase 1 - Critical (COMPLETE)
 
 1. **Privacy Policy Development**
    * GDPR-compliant privacy notice
@@ -1255,16 +1192,12 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
    * Audit user access controls
    * Implement basic logging for data access
 
-==== Phase 2 - Essential (Next 60 Days)
+==== Phase 2 - Essential (IN PROGRESS)
 
-1. **Privacy Dashboard Implementation**
-   * User interface for privacy settings management
-   * Consent status visibility
-   * Data download and deletion options
-
+1. **Privacy Dashboard Implementation** (COMPLETE)
 2. **Data Subject Rights Endpoints**
-   * Data access requests (GDPR Article 15)
-   * Data deletion/erasure (GDPR Article 17)
+   * Data access requests (GDPR Article 15) (COMPLETE)
+   * Data deletion/erasure (GDPR Article 17) (COMPLETE)
    * Data portability (GDPR Article 20)
    * Data rectification (GDPR Article 16)
 
@@ -1278,7 +1211,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
    * Data Protection Impact Assessment (DPIA)
    * Breach response procedures
 
-==== Phase 3 - Advanced (Next 90 Days)
+==== Phase 3 - Advanced (FUTURE)
 
 1. **Advanced Privacy Features**
    * Privacy by design integration
@@ -1354,7 +1287,6 @@ Resolved `ServiceScopeFactory` reference errors in `Program.cs` by ensuring prop
 ----
 <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
 <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
-<PackageReference Include="Microsoft.Extensions.Http" />
 <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 ----
 
@@ -1778,13 +1710,17 @@ This comprehensive business analysis specification provides a complete roadmap f
 
 === Key Achievements
 
-**Comprehensive Architecture**:: The specification defines a complete, scalable architecture that separates concerns appropriately while maintaining clear data flow and integration points.
+**Comprehensive Architecture**::
+The specification defines a complete, scalable architecture that separates concerns appropriately while maintaining clear data flow and integration points.
 
-**Privacy by Design**:: GDPR compliance requirements are integrated throughout the system design, from data collection to storage and user rights management.
+**Privacy by Design**::
+GDPR compliance requirements are integrated throughout the system design, from data collection to storage and user rights management.
 
-**Clear Development Path**:: The phased implementation approach provides concrete milestones and deliverables, allowing for iterative development and validation.
+**Clear Development Path**::
+The phased implementation approach provides concrete milestones and deliverables, allowing for iterative development and validation.
 
-**Strict Standards**:: Naming conventions and coding standards ensure consistency and maintainability across the entire codebase.
+**Strict Standards**::
+Naming conventions and coding standards ensure consistency and maintainability across the entire codebase.
 
 === Strategic Value
 
@@ -1811,8 +1747,8 @@ The NOM platform is positioned to become a leader in privacy-conscious nutrition
 .Document Information
 [cols="1,3"]
 |===
-|Version |1.4
-|Date |July 17, 2025
+|Version |1.5
+|Date |July 19, 2025
 |Status |Active Development Specification
 |Next Review |30 days post-implementation start
 |===
