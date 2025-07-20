@@ -434,7 +434,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 #footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
 @media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
 pre.rouge table td { padding: 5px; }
 pre.rouge table pre { margin: 0; }
@@ -554,119 +553,119 @@ pre.rouge .gs {
 }
 </style>
 </head>
-<body class="book toc2 toc-left">
+<body class="article toc2 toc-left">
 <div id="header">
 <h1>Nutritional Optimization Machine (NOM) Program: Business Analysis Specification</h1>
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
-<span id="revdate">July 17, 2025</span>
+<span id="revnumber">version 1.6,</span>
+<span id="revdate">July 19, 2025</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_abstract">1. Abstract</a></li>
-<li><a href="#_introduction">2. Introduction</a>
+<li><a href="#_abstract">Abstract</a></li>
+<li><a href="#_introduction">Introduction</a>
 <ul class="sectlevel2">
-<li><a href="#_project_vision">2.1. Project Vision</a></li>
+<li><a href="#_project_vision">Project Vision</a></li>
 </ul>
 </li>
-<li><a href="#_executive_summary">3. Executive Summary</a></li>
-<li><a href="#_user_roles_personas">4. User Roles &amp; Personas</a></li>
-<li><a href="#_functional_requirements">5. Functional Requirements</a>
+<li><a href="#_executive_summary">Executive Summary</a></li>
+<li><a href="#_user_roles_personas">User Roles &amp; Personas</a></li>
+<li><a href="#_functional_requirements">Functional Requirements</a>
 <ul class="sectlevel2">
-<li><a href="#onboarding-requirements">5.1. User Onboarding &amp; Profile Completion</a>
+<li><a href="#onboarding-requirements">User Onboarding &amp; Profile Completion</a>
 <ul class="sectlevel3">
-<li><a href="#_multi_participant_onboarding_details">5.1.1. Multi-Participant Onboarding Details</a></li>
+<li><a href="#_multi_participant_onboarding_details">Multi-Participant Onboarding Details</a></li>
 </ul>
 </li>
-<li><a href="#restriction-requirements">5.2. Dietary Restriction Management &amp; Inference</a>
+<li><a href="#restriction-requirements">Dietary Restriction Management &amp; Inference</a>
 <ul class="sectlevel3">
-<li><a href="#_specific_restriction_details">5.2.1. Specific Restriction Details</a></li>
+<li><a href="#_specific_restriction_details">Specific Restriction Details</a></li>
 </ul>
 </li>
-<li><a href="#plan-requirements">5.3. Plan Invitation &amp; Participation</a></li>
-<li><a href="#auth-requirements">5.4. Authentication &amp; Authorization</a></li>
-<li><a href="#privacy-requirements">5.5. Data Privacy &amp; Compliance</a></li>
+<li><a href="#plan-requirements">Plan Invitation &amp; Participation</a></li>
+<li><a href="#auth-requirements">Authentication &amp; Authorization</a></li>
+<li><a href="#privacy-requirements">Data Privacy &amp; Compliance</a></li>
 </ul>
 </li>
-<li><a href="#_domain_areas_and_business_rules">6. Domain Areas and Business Rules</a>
+<li><a href="#_domain_areas_and_business_rules">Domain Areas and Business Rules</a>
 <ul class="sectlevel2">
-<li><a href="#user-domain">6.1. User/Person Management Domain</a></li>
-<li><a href="#onboarding-domain">6.2. Questionnaire/Onboarding Domain</a></li>
-<li><a href="#plan-domain">6.3. Plan Management Domain</a></li>
-<li><a href="#reference-domain">6.4. Reference Data Management Domain</a></li>
-<li><a href="#restriction-domain">6.5. Dietary Restriction Management Domain</a></li>
-<li><a href="#privacy-domain">6.6. Data Privacy &amp; Compliance Domain</a></li>
+<li><a href="#user-domain">User/Person Management Domain</a></li>
+<li><a href="#onboarding-domain">Questionnaire/Onboarding Domain</a></li>
+<li><a href="#plan-domain">Plan Management Domain</a></li>
+<li><a href="#reference-domain">Reference Data Management Domain</a></li>
+<li><a href="#restriction-domain">Dietary Restriction Management Domain</a></li>
+<li><a href="#privacy-domain">Data Privacy &amp; Compliance Domain</a></li>
 </ul>
 </li>
-<li><a href="#_non_functional_requirements">7. Non-Functional Requirements</a>
+<li><a href="#_non_functional_requirements">Non-Functional Requirements</a>
 <ul class="sectlevel2">
-<li><a href="#performance-nfr">7.1. Performance</a></li>
-<li><a href="#security-nfr">7.2. Security</a></li>
-<li><a href="#privacy-nfr">7.3. Privacy &amp; Compliance</a></li>
-<li><a href="#maintainability-nfr">7.4. Maintainability &amp; Scalability</a></li>
-<li><a href="#usability-nfr">7.5. Usability</a></li>
+<li><a href="#performance-nfr">Performance</a></li>
+<li><a href="#security-nfr">Security</a></li>
+<li><a href="#privacy-nfr">Privacy &amp; Compliance</a></li>
+<li><a href="#maintainability-nfr">Maintainability &amp; Scalability</a></li>
+<li><a href="#usability-nfr">Usability</a></li>
 </ul>
 </li>
-<li><a href="#_high_level_system_architecture">8. High-Level System Architecture</a>
+<li><a href="#_high_level_system_architecture">High-Level System Architecture</a>
 <ul class="sectlevel2">
-<li><a href="#frontend-arch">8.1. Frontend Architecture (nom-ui - Angular)</a>
+<li><a href="#frontend-arch">Frontend Architecture (nom-ui - Angular)</a>
 <ul class="sectlevel3">
-<li><a href="#_frontend_naming_conventions">8.1.1. Frontend Naming Conventions</a></li>
+<li><a href="#_frontend_naming_conventions">Frontend Naming Conventions</a></li>
 </ul>
 </li>
-<li><a href="#backend-arch">8.2. Backend Architecture (nom-api - ASP.NET Core Web API)</a></li>
-<li><a href="#database-arch">8.3. Database Architecture (PostgreSQL)</a></li>
-<li><a href="#privacy-arch">8.4. Privacy &amp; Compliance Architecture</a></li>
+<li><a href="#backend-arch">Backend Architecture (nom-api - ASP.NET Core Web API)</a></li>
+<li><a href="#database-arch">Database Architecture (PostgreSQL)</a></li>
+<li><a href="#privacy-arch">Privacy &amp; Compliance Architecture</a></li>
 </ul>
 </li>
-<li><a href="#naming-standards">9. Technical Naming Conventions &amp; Standards</a>
+<li><a href="#naming-standards">Technical Naming Conventions &amp; Standards</a>
 <ul class="sectlevel2">
-<li><a href="#frontend-naming">9.1. Frontend Naming Conventions (TypeScript/Angular)</a>
+<li><a href="#frontend-naming">Frontend Naming Conventions (TypeScript/Angular)</a>
 <ul class="sectlevel3">
-<li><a href="#_file_naming">9.1.1. File Naming</a></li>
-<li><a href="#_classinterface_naming">9.1.2. Class/Interface Naming</a></li>
-<li><a href="#_variablemethod_naming">9.1.3. Variable/Method Naming</a></li>
+<li><a href="#_file_naming">File Naming</a></li>
+<li><a href="#_classinterface_naming">Class/Interface Naming</a></li>
+<li><a href="#_variablemethod_naming">Variable/Method Naming</a></li>
 </ul>
 </li>
-<li><a href="#backend-naming">9.2. Backend Naming Conventions (C#/.NET)</a>
+<li><a href="#backend-naming">Backend Naming Conventions (C#/.NET)</a>
 <ul class="sectlevel3">
-<li><a href="#_file_naming_2">9.2.1. File Naming</a></li>
-<li><a href="#_classinterface_naming_2">9.2.2. Class/Interface Naming</a></li>
-<li><a href="#_methodproperty_naming">9.2.3. Method/Property Naming</a></li>
+<li><a href="#_file_naming_2">File Naming</a></li>
+<li><a href="#_classinterface_naming_2">Class/Interface Naming</a></li>
+<li><a href="#_methodproperty_naming">Method/Property Naming</a></li>
 </ul>
 </li>
-<li><a href="#database-naming">9.3. Database Naming Conventions</a>
+<li><a href="#database-naming">Database Naming Conventions</a>
 <ul class="sectlevel3">
-<li><a href="#_table_naming">9.3.1. Table Naming</a></li>
-<li><a href="#_column_naming">9.3.2. Column Naming</a></li>
+<li><a href="#_table_naming">Table Naming</a></li>
+<li><a href="#_column_naming">Column Naming</a></li>
 </ul>
 </li>
-<li><a href="#css-naming">9.4. CSS/SCSS Naming Conventions</a>
+<li><a href="#css-naming">CSS/SCSS Naming Conventions</a>
 <ul class="sectlevel3">
-<li><a href="#_bem_methodology">9.4.1. BEM Methodology</a></li>
-<li><a href="#_global_classes">9.4.2. Global Classes</a></li>
+<li><a href="#_bem_methodology">BEM Methodology</a></li>
+<li><a href="#_global_classes">Global Classes</a></li>
 </ul>
 </li>
-<li><a href="#api-naming">9.5. API Endpoint Naming</a>
+<li><a href="#api-naming">API Endpoint Naming</a>
 <ul class="sectlevel3">
-<li><a href="#_rest_conventions">9.5.1. REST Conventions</a></li>
+<li><a href="#_rest_conventions">REST Conventions</a></li>
 </ul>
 </li>
-<li><a href="#forbidden-patterns">9.6. Forbidden Patterns</a></li>
+<li><a href="#forbidden-patterns">Forbidden Patterns</a></li>
 </ul>
 </li>
-<li><a href="#_technical_component_mapping">10. Technical Component Mapping</a>
+<li><a href="#_technical_component_mapping">Technical Component Mapping</a>
 <ul class="sectlevel2">
-<li><a href="#frontend-components">10.1. Frontend Components &amp; UI Interaction Flow</a>
+<li><a href="#frontend-components">Frontend Components &amp; UI Interaction Flow</a>
 <ul class="sectlevel3">
-<li><a href="#onboarding-workflow-component">10.1.1. OnboardingWorkflowComponent</a></li>
-<li><a href="#person-edit-component">10.1.2. PersonEditComponent</a></li>
-<li><a href="#person-health-edit-component">10.1.3. PersonHealthEditComponent</a></li>
-<li><a href="#restriction-edit-component">10.1.4. RestrictionEditComponent</a></li>
-<li><a href="#_privacydashboardcomponent_new">10.1.5. PrivacyDashboardComponent  (NEW)</a></li>
-<li><a href="#_consentcollectioncomponent_new">10.1.6. ConsentCollectionComponent  (NEW)</a></li>
-<li><a href="#auth-components">10.1.7. Authentication Components</a>
+<li><a href="#onboarding-workflow-component">OnboardingWorkflowComponent</a></li>
+<li><a href="#person-edit-component">PersonEditComponent</a></li>
+<li><a href="#person-health-edit-component">PersonHealthEditComponent</a></li>
+<li><a href="#restriction-edit-component">RestrictionEditComponent</a></li>
+<li><a href="#_privacysettingscomponent_new">PrivacySettingsComponent  (NEW)</a></li>
+<li><a href="#auth-components">Authentication Components</a>
 <ul class="sectlevel4">
 <li><a href="#_registrationcomponent">RegistrationComponent</a></li>
 <li><a href="#_logincomponent">LoginComponent</a></li>
@@ -675,30 +674,28 @@ pre.rouge .gs {
 </li>
 </ul>
 </li>
-<li><a href="#frontend-services">10.2. Frontend Services &amp; Data Flow</a>
+<li><a href="#frontend-services">Frontend Services &amp; Data Flow</a>
 <ul class="sectlevel3">
-<li><a href="#person-service">10.2.1. PersonService</a></li>
-<li><a href="#restriction-service">10.2.2. RestrictionService</a></li>
-<li><a href="#_privacyservice_new">10.2.3. PrivacyService  (NEW)</a></li>
-<li><a href="#auth-service">10.2.4. AuthService</a></li>
-<li><a href="#auth-manager-service">10.2.5. AuthManagerService</a></li>
-<li><a href="#notification-service">10.2.6. NotificationService</a></li>
+<li><a href="#person-service">PersonService</a></li>
+<li><a href="#restriction-service">RestrictionService</a></li>
+<li><a href="#_privacyservice_new">PrivacyService  (NEW)</a></li>
+<li><a href="#auth-service">AuthService</a></li>
+<li><a href="#auth-manager-service">AuthManagerService</a></li>
+<li><a href="#notification-service">NotificationService</a></li>
 </ul>
 </li>
-<li><a href="#frontend-models">10.3. Frontend Models &amp; Data Structures</a>
+<li><a href="#frontend-models">Frontend Models &amp; Data Structures</a>
 <ul class="sectlevel3">
-<li><a href="#_core_models">10.3.1. Core Models</a></li>
-<li><a href="#_privacy_models_new">10.3.2. Privacy Models (NEW)</a></li>
-<li><a href="#_authentication_models">10.3.3. Authentication Models</a></li>
+<li><a href="#_core_models">Core Models</a></li>
+<li><a href="#_privacy_models_new">Privacy Models (NEW)</a></li>
+<li><a href="#_authentication_models">Authentication Models</a></li>
 </ul>
 </li>
-<li><a href="#backend-services">10.4. Backend Services &amp; Business Logic</a>
+<li><a href="#backend-services">Backend Services &amp; Business Logic</a>
 <ul class="sectlevel3">
-<li><a href="#_personorchestrationservice_updated">10.4.1. PersonOrchestrationService  (UPDATED)</a></li>
-<li><a href="#_privacyorchestrationservice_new">10.4.2. PrivacyOrchestrationService  (NEW)</a></li>
-<li><a href="#_consentmanagementservice_new">10.4.3. ConsentManagementService  (NEW)</a></li>
-<li><a href="#_dataanonymizationservice_new">10.4.4. DataAnonymizationService  (NEW)</a></li>
-<li><a href="#_api_controllers">10.4.5. API Controllers</a>
+<li><a href="#_personorchestrationservice_updated">PersonOrchestrationService  (UPDATED)</a></li>
+<li><a href="#_privacyorchestrationservice_new">PrivacyOrchestrationService  (NEW)</a></li>
+<li><a href="#_api_controllers">API Controllers</a>
 <ul class="sectlevel4">
 <li><a href="#_personcontroller_updated">PersonController (UPDATED)</a></li>
 <li><a href="#_privacycontroller_new">PrivacyController (NEW)</a></li>
@@ -706,100 +703,100 @@ pre.rouge .gs {
 </li>
 </ul>
 </li>
-<li><a href="#backend-entities">10.5. Backend Entities &amp; Database Mapping</a>
+<li><a href="#backend-entities">Backend Entities &amp; Database Mapping</a>
 <ul class="sectlevel3">
-<li><a href="#_core_entities">10.5.1. Core Entities</a></li>
-<li><a href="#_privacy_entities_new">10.5.2. Privacy Entities (NEW)</a></li>
-<li><a href="#_reference_data_entities">10.5.3. Reference Data Entities</a></li>
+<li><a href="#_core_entities">Core Entities</a></li>
+<li><a href="#_privacy_entities_new">Privacy Entities (NEW)</a></li>
+<li><a href="#_reference_data_entities">Reference Data Entities</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#development-context">11. Development Context and Workflow</a>
+<li><a href="#development-context">Development Context and Workflow</a>
 <ul class="sectlevel2">
-<li><a href="#project-status">11.1. Current Project Status</a>
+<li><a href="#project-status">Current Project Status</a>
 <ul class="sectlevel3">
-<li><a href="#_completed_components">11.1.1. Completed Components</a></li>
-<li><a href="#_privacy_compliance_status">11.1.2. Privacy &amp; Compliance Status</a></li>
-<li><a href="#_immediate_next_focus">11.1.3. Immediate Next Focus</a></li>
+<li><a href="#_completed_components">Completed Components</a></li>
+<li><a href="#_privacy_compliance_status">Privacy &amp; Compliance Status</a></li>
+<li><a href="#_immediate_next_focus">Immediate Next Focus</a></li>
 </ul>
 </li>
-<li><a href="#tech-stack">11.2. Technology Stack Rationale</a>
+<li><a href="#tech-stack">Technology Stack Rationale</a>
 <ul class="sectlevel3">
-<li><a href="#_frontend_technologies">11.2.1. Frontend Technologies</a></li>
-<li><a href="#_backend_technologies">11.2.2. Backend Technologies</a></li>
+<li><a href="#_frontend_technologies">Frontend Technologies</a></li>
+<li><a href="#_backend_technologies">Backend Technologies</a></li>
 </ul>
 </li>
-<li><a href="#privacy-implementation">11.3. Privacy &amp; Compliance Implementation Priority</a>
+<li><a href="#privacy-implementation">Privacy &amp; Compliance Implementation Priority</a>
 <ul class="sectlevel3">
-<li><a href="#_phase_1_critical_next_30_days">11.3.1. Phase 1 - Critical (Next 30 Days)</a></li>
-<li><a href="#_phase_2_essential_next_60_days">11.3.2. Phase 2 - Essential (Next 60 Days)</a></li>
-<li><a href="#_phase_3_advanced_next_90_days">11.3.3. Phase 3 - Advanced (Next 90 Days)</a></li>
+<li><a href="#_phase_1_critical_complete">Phase 1 - Critical (COMPLETE)</a></li>
+<li><a href="#_phase_2_essential_in_progress">Phase 2 - Essential (IN PROGRESS)</a></li>
+<li><a href="#_phase_3_advanced_future">Phase 3 - Advanced (FUTURE)</a></li>
 </ul>
 </li>
-<li><a href="#dev-learnings">11.4. Key Development Learnings</a>
+<li><a href="#dev-learnings">Key Development Learnings</a>
 <ul class="sectlevel3">
-<li><a href="#_angular_development">11.4.1. Angular Development</a></li>
-<li><a href="#_backend_development">11.4.2. Backend Development</a></li>
-<li><a href="#_debugging_tips">11.4.3. Debugging Tips</a></li>
+<li><a href="#_angular_development">Angular Development</a></li>
+<li><a href="#_backend_development">Backend Development</a></li>
+<li><a href="#_debugging_tips">Debugging Tips</a></li>
 </ul>
 </li>
-<li><a href="#dependencies">11.5. Required Dependencies</a>
+<li><a href="#dependencies">Required Dependencies</a>
 <ul class="sectlevel3">
-<li><a href="#_frontend_dependencies_nom_ui">11.5.1. Frontend Dependencies (nom-ui)</a></li>
-<li><a href="#_backend_dependencies_c_projects">11.5.2. Backend Dependencies (C# Projects)</a></li>
+<li><a href="#_frontend_dependencies_nom_ui">Frontend Dependencies (nom-ui)</a></li>
+<li><a href="#_backend_dependencies_c_projects">Backend Dependencies (C# Projects)</a></li>
 </ul>
 </li>
-<li><a href="#workflow">11.6. Development Workflow &amp; Best Practices</a>
+<li><a href="#workflow">Development Workflow &amp; Best Practices</a>
 <ul class="sectlevel3">
-<li><a href="#_version_control">11.6.1. Version Control</a></li>
-<li><a href="#_quality_assurance">11.6.2. Quality Assurance</a></li>
-<li><a href="#_documentation_standards">11.6.3. Documentation Standards</a></li>
+<li><a href="#_version_control">Version Control</a></li>
+<li><a href="#_quality_assurance">Quality Assurance</a></li>
+<li><a href="#_documentation_standards">Documentation Standards</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#future-scope">12. Future Considerations &amp; Scope</a>
+<li><a href="#future-scope">Future Considerations &amp; Scope</a>
 <ul class="sectlevel2">
-<li><a href="#_out_of_scope_current_project_phase">12.1. Out of Scope (Current Project Phase)</a></li>
-<li><a href="#future-enhancements">12.2. Future Enhancements</a>
+<li><a href="#_out_of_scope_current_project_phase">Out of Scope (Current Project Phase)</a></li>
+<li><a href="#future-enhancements">Future Enhancements</a>
 <ul class="sectlevel3">
-<li><a href="#_planned_enhancements">12.2.1. Planned Enhancements</a></li>
-<li><a href="#_technical_evolution">12.2.2. Technical Evolution</a></li>
+<li><a href="#_planned_enhancements">Planned Enhancements</a></li>
+<li><a href="#_technical_evolution">Technical Evolution</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#source-control">13. Source Control and File Organization</a>
+<li><a href="#source-control">Source Control and File Organization</a>
 <ul class="sectlevel2">
-<li><a href="#_github_repository_structure">13.1. GitHub Repository Structure</a></li>
-<li><a href="#backend-files">13.2. Backend Files (C# - .NET Solution)</a>
+<li><a href="#_github_repository_structure">GitHub Repository Structure</a></li>
+<li><a href="#backend-files">Backend Files (C# - .NET Solution)</a>
 <ul class="sectlevel3">
-<li><a href="#_project_nom_data">13.2.1. Project: Nom.Data</a></li>
-<li><a href="#_project_nom_orch">13.2.2. Project: Nom.Orch</a></li>
-<li><a href="#_project_nom_api">13.2.3. Project: Nom.Api</a></li>
+<li><a href="#_project_nom_data">Project: Nom.Data</a></li>
+<li><a href="#_project_nom_orch">Project: Nom.Orch</a></li>
+<li><a href="#_project_nom_api">Project: Nom.Api</a></li>
 </ul>
 </li>
-<li><a href="#frontend-files">13.3. Frontend Files (Angular - nom-ui)</a>
+<li><a href="#frontend-files">Frontend Files (Angular - nom-ui)</a>
 <ul class="sectlevel3">
-<li><a href="#_root_configuration">13.3.1. Root Configuration</a></li>
-<li><a href="#_common_utilities">13.3.2. Common Utilities</a></li>
-<li><a href="#_person_domain">13.3.3. Person Domain</a></li>
-<li><a href="#_restriction_domain">13.3.4. Restriction Domain</a></li>
-<li><a href="#_privacy_domain_new">13.3.5. Privacy Domain (NEW)</a></li>
-<li><a href="#_plan_domain_skeleton">13.3.6. Plan Domain (Skeleton)</a></li>
-<li><a href="#_onboarding_feature">13.3.7. Onboarding Feature</a></li>
-<li><a href="#_authentication_components">13.3.8. Authentication Components</a></li>
-<li><a href="#_authentication_services_models">13.3.9. Authentication Services &amp; Models</a></li>
+<li><a href="#_root_configuration">Root Configuration</a></li>
+<li><a href="#_common_utilities">Common Utilities</a></li>
+<li><a href="#_person_domain">Person Domain</a></li>
+<li><a href="#_restriction_domain">Restriction Domain</a></li>
+<li><a href="#_privacy_domain_new">Privacy Domain (NEW)</a></li>
+<li><a href="#_plan_domain_skeleton">Plan Domain (Skeleton)</a></li>
+<li><a href="#_onboarding_feature">Onboarding Feature</a></li>
+<li><a href="#_authentication_components">Authentication Components</a></li>
+<li><a href="#_authentication_services_models">Authentication Services &amp; Models</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#conclusion">14. Conclusion</a>
+<li><a href="#conclusion">Conclusion</a>
 <ul class="sectlevel2">
-<li><a href="#_key_achievements">14.1. Key Achievements</a></li>
-<li><a href="#_strategic_value">14.2. Strategic Value</a></li>
-<li><a href="#_next_steps">14.3. Next Steps</a></li>
+<li><a href="#_key_achievements">Key Achievements</a></li>
+<li><a href="#_strategic_value">Strategic Value</a></li>
+<li><a href="#_next_steps">Next Steps</a></li>
 </ul>
 </li>
 </ul>
@@ -807,21 +804,21 @@ pre.rouge .gs {
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_abstract"><a class="anchor" href="#_abstract"></a><a class="link" href="#_abstract">1. Abstract</a></h2>
+<h2 id="_abstract"><a class="link" href="#_abstract">Abstract</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture.</p>
 </div>
 <div class="paragraph">
-<p>The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system&#8217;s current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
+<p>The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_introduction"><a class="anchor" href="#_introduction"></a><a class="link" href="#_introduction">2. Introduction</a></h2>
+<h2 id="_introduction"><a class="link" href="#_introduction">Introduction</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_project_vision"><a class="anchor" href="#_project_vision"></a><a class="link" href="#_project_vision">2.1. Project Vision</a></h3>
+<h3 id="_project_vision"><a class="link" href="#_project_vision">Project Vision</a></h3>
 <div class="paragraph">
 <p>The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).</p>
 </div>
@@ -829,7 +826,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_executive_summary"><a class="anchor" href="#_executive_summary"></a><a class="link" href="#_executive_summary">3. Executive Summary</a></h2>
+<h2 id="_executive_summary"><a class="link" href="#_executive_summary">Executive Summary</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.</p>
@@ -838,26 +835,23 @@ pre.rouge .gs {
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-note" title="Note"></i>
+<div class="title">Note</div>
 </td>
 <td class="content">
-<div class="title">Current Development Status</div>
 <div class="ulist">
+<div class="title">Current Development Status</div>
 <ul>
 <li>
-<p><strong>Core User Onboarding</strong>: The core user onboarding workflow (steps for personal details, health attributes, and restrictions for the primary user) is largely implemented on the frontend and integrated with the backend Person and Restriction services.</p>
+<p><strong>Core User Onboarding</strong>: The core user onboarding workflow is largely implemented on the frontend and integrated with the backend Person and Restriction services.</p>
 </li>
 <li>
-<p><strong>Data Models</strong>: The foundational data models and database migrations are in place.</p>
+<p><strong>Data Models</strong>: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance.</p>
 </li>
 <li>
-<p><strong>Multi-Participant Flow</strong>: Work is actively progressing on iterating through additional participants for their individual restriction collection.</p>
+<p><strong>Privacy &amp; Compliance Backend (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented on the backend. [cite: PrivacyController.cs, PrivacyOrchestrationService.cs] This includes the <code>PrivacyController</code> to handle API requests and the orchestration services for consent management, data export, and data deletion. [cite: PrivacyController.cs, PrivacyOrchestrationService.cs] Asynchronous background task processing for data export and deletion is now operational. [cite: BackgroundTaskQueueOrchestrationService.cs, DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]</p>
 </li>
 <li>
-<p><strong>Reference Data</strong>: Initial reference data (measurement types, core nutrients) seeding is also implemented.</p>
-</li>
-<li>
-<p><strong>Privacy &amp; Compliance</strong>: The system has been assessed for data privacy compliance requirements. While NOM currently avoids HIPAA requirements as a direct-to-consumer application, GDPR compliance is mandatory for EU users and represents a critical implementation priority.</p>
+<p><strong>Frontend Next Steps</strong>: Work is actively progressing on the frontend to support multi-participant onboarding and individual restriction collection.</p>
 </li>
 </ul>
 </div>
@@ -868,7 +862,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_user_roles_personas"><a class="anchor" href="#_user_roles_personas"></a><a class="link" href="#_user_roles_personas">4. User Roles &amp; Personas</a></h2>
+<h2 id="_user_roles_personas"><a class="link" href="#_user_roles_personas">User Roles &amp; Personas</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The following primary user roles and system actors have been identified and considered in the developed functionalities:</p>
@@ -887,7 +881,7 @@ pre.rouge .gs {
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>New User / Prospect</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions and initial privacy consent.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Authenticated User</strong></p></td>
@@ -914,10 +908,10 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_functional_requirements"><a class="anchor" href="#_functional_requirements"></a><a class="link" href="#_functional_requirements">5. Functional Requirements</a></h2>
+<h2 id="_functional_requirements"><a class="link" href="#_functional_requirements">Functional Requirements</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="onboarding-requirements"><a class="anchor" href="#onboarding-requirements"></a><a class="link" href="#onboarding-requirements">5.1. User Onboarding &amp; Profile Completion</a></h3>
+<h3 id="onboarding-requirements"><a class="link" href="#onboarding-requirements">User Onboarding &amp; Profile Completion</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To efficiently collect essential user data and personal preferences immediately following account registration, establishing a foundational user profile.</p>
@@ -977,7 +971,7 @@ pre.rouge .gs {
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_multi_participant_onboarding_details"><a class="anchor" href="#_multi_participant_onboarding_details"></a><a class="link" href="#_multi_participant_onboarding_details">5.1.1. Multi-Participant Onboarding Details</a></h4>
+<h4 id="_multi_participant_onboarding_details"><a class="link" href="#_multi_participant_onboarding_details">Multi-Participant Onboarding Details</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1015,7 +1009,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="restriction-requirements"><a class="anchor" href="#restriction-requirements"></a><a class="link" href="#restriction-requirements">5.2. Dietary Restriction Management &amp; Inference</a></h3>
+<h3 id="restriction-requirements"><a class="link" href="#restriction-requirements">Dietary Restriction Management &amp; Inference</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To automatically identify and record dietary restrictions based on user responses during onboarding, streamlining the personalization of nutritional plans.</p>
@@ -1055,18 +1049,18 @@ pre.rouge .gs {
 </tbody>
 </table>
 <div class="sect3">
-<h4 id="_specific_restriction_details"><a class="anchor" href="#_specific_restriction_details"></a><a class="link" href="#_specific_restriction_details">5.2.1. Specific Restriction Details</a></h4>
-<div class="dlist">
+<h4 id="_specific_restriction_details"><a class="link" href="#_specific_restriction_details">Specific Restriction Details</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Societal/Religious/Ethical</strong></dt>
+<dt><strong>Societal/Religious/Ethical</strong></dt>
 <dd>
 <p>Capture selections from predefined lists (e.g., Kosher, Vegan), fasting schedules, and mandatory inclusions (searchable list of curated ingredients).</p>
 </dd>
-<dt class="hdlist1"><strong>Allergies/Medical</strong></dt>
+<dt><strong>Allergies/Medical</strong></dt>
 <dd>
-<p>Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn&#8217;s, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.</p>
+<p>Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn’s, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.</p>
 </dd>
-<dt class="hdlist1"><strong>Personal Preferences</strong></dt>
+<dt><strong>Personal Preferences</strong></dt>
 <dd>
 <p>Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.</p>
 </dd>
@@ -1075,7 +1069,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="plan-requirements"><a class="anchor" href="#plan-requirements"></a><a class="link" href="#plan-requirements">5.3. Plan Invitation &amp; Participation</a></h3>
+<h3 id="plan-requirements"><a class="link" href="#plan-requirements">Plan Invitation &amp; Participation</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To enable users to join existing nutritional plans through a secure invitation mechanism.</p>
@@ -1098,7 +1092,7 @@ pre.rouge .gs {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-3.2</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Plan Linking</strong>: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user&#8217;s Person record to the corresponding Plan using a PlanParticipant entity.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Plan Linking</strong>: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user’s Person record to the corresponding Plan using a PlanParticipant entity.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-3.3</strong></p></td>
@@ -1108,7 +1102,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="auth-requirements"><a class="anchor" href="#auth-requirements"></a><a class="link" href="#auth-requirements">5.4. Authentication &amp; Authorization</a></h3>
+<h3 id="auth-requirements"><a class="link" href="#auth-requirements">Authentication &amp; Authorization</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To secure system access and protect sensitive user data and functionalities.</p>
@@ -1145,7 +1139,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="privacy-requirements"><a class="anchor" href="#privacy-requirements"></a><a class="link" href="#privacy-requirements">5.5. Data Privacy &amp; Compliance</a></h3>
+<h3 id="privacy-requirements"><a class="link" href="#privacy-requirements">Data Privacy &amp; Compliance</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To ensure compliance with applicable data privacy regulations and provide users with control over their personal data.</p>
@@ -1154,7 +1148,7 @@ pre.rouge .gs {
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-important" title="Important"></i>
+<div class="title">Important</div>
 </td>
 <td class="content">
 <div class="paragraph">
@@ -1178,7 +1172,7 @@ pre.rouge .gs {
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.1</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Privacy Consent Management</strong>: The system shall implement granular consent collection during user registration and onboarding, allowing users to consent to specific data processing activities (analytics, marketing, etc.).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Privacy Consent Management</strong>: The system shall implement granular consent collection during user registration and onboarding. All consents are stored in the <code>UserConsentEntity</code> table.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.2</strong></p></td>
@@ -1186,15 +1180,15 @@ pre.rouge .gs {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.3</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Data Subject Rights (GDPR)</strong>: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Data Subject Rights (GDPR)</strong>: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20). These requests are tracked in the <code>PrivacyRequestEntity</code> table.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.4</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Privacy Dashboard</strong>: The system shall provide a dedicated user interface for managing privacy settings, viewing consent status, and exercising data subject rights.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Privacy Dashboard</strong>: The system shall provide a dedicated user interface (<code>PrivacySettingsComponent</code>) for managing privacy settings, viewing consent status, and exercising data subject rights.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.5</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Data Processing Logging</strong>: All access to and modifications of personal data shall be logged for audit purposes, including timestamp, actor, and action details.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Data Processing Logging</strong>: All access to and modifications of personal data shall be logged for audit purposes in the <code>DataProcessingLogEntity</code> table, including timestamp, actor, and action details.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5.6</strong></p></td>
@@ -1210,13 +1204,13 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_domain_areas_and_business_rules"><a class="anchor" href="#_domain_areas_and_business_rules"></a><a class="link" href="#_domain_areas_and_business_rules">6. Domain Areas and Business Rules</a></h2>
+<h2 id="_domain_areas_and_business_rules"><a class="link" href="#_domain_areas_and_business_rules">Domain Areas and Business Rules</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This section describes the core business domains within the NOM program and the key rules that govern their behavior and data integrity.</p>
 </div>
 <div class="sect2">
-<h3 id="user-domain"><a class="anchor" href="#user-domain"></a><a class="link" href="#user-domain">6.1. User/Person Management Domain</a></h3>
+<h3 id="user-domain"><a class="link" href="#user-domain">User/Person Management Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Manages individual user accounts and associated personal profiles within the system.</p>
@@ -1261,7 +1255,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="onboarding-domain"><a class="anchor" href="#onboarding-domain"></a><a class="link" href="#onboarding-domain">6.2. Questionnaire/Onboarding Domain</a></h3>
+<h3 id="onboarding-domain"><a class="link" href="#onboarding-domain">Questionnaire/Onboarding Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Guides new users through initial data collection to personalize their experience and gather foundational information.</p>
@@ -1298,7 +1292,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="plan-domain"><a class="anchor" href="#plan-domain"></a><a class="link" href="#plan-domain">6.3. Plan Management Domain</a></h3>
+<h3 id="plan-domain"><a class="link" href="#plan-domain">Plan Management Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Facilitates the creation, management, and participation in shared nutritional plans.</p>
@@ -1335,7 +1329,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="reference-domain"><a class="anchor" href="#reference-domain"></a><a class="link" href="#reference-domain">6.4. Reference Data Management Domain</a></h3>
+<h3 id="reference-domain"><a class="link" href="#reference-domain">Reference Data Management Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Provides a centralized, extensible system for managing predefined, static lists and types used across various domains.</p>
@@ -1368,7 +1362,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="restriction-domain"><a class="anchor" href="#restriction-domain"></a><a class="link" href="#restriction-domain">6.5. Dietary Restriction Management Domain</a></h3>
+<h3 id="restriction-domain"><a class="link" href="#restriction-domain">Dietary Restriction Management Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Records and applies dietary constraints for individuals or entire plans to tailor nutritional recommendations.</p>
@@ -1405,7 +1399,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="privacy-domain"><a class="anchor" href="#privacy-domain"></a><a class="link" href="#privacy-domain">6.6. Data Privacy &amp; Compliance Domain</a></h3>
+<h3 id="privacy-domain"><a class="link" href="#privacy-domain">Data Privacy &amp; Compliance Domain</a></h3>
 <div class="paragraph">
 <div class="title">Purpose</div>
 <p>Ensures compliance with applicable data privacy regulations and provides users with control over their personal data.</p>
@@ -1414,7 +1408,7 @@ pre.rouge .gs {
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-warning" title="Warning"></i>
+<div class="title">Warning</div>
 </td>
 <td class="content">
 <div class="paragraph">
@@ -1466,7 +1460,7 @@ pre.rouge .gs {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.6.8</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cross-Border Transfers</strong>: Transfer of personal data outside the user&#8217;s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cross-Border Transfers</strong>: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).</p></td>
 </tr>
 </tbody>
 </table>
@@ -1474,10 +1468,10 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_non_functional_requirements"><a class="anchor" href="#_non_functional_requirements"></a><a class="link" href="#_non_functional_requirements">7. Non-Functional Requirements</a></h2>
+<h2 id="_non_functional_requirements"><a class="link" href="#_non_functional_requirements">Non-Functional Requirements</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="performance-nfr"><a class="anchor" href="#performance-nfr"></a><a class="link" href="#performance-nfr">7.1. Performance</a></h3>
+<h3 id="performance-nfr"><a class="link" href="#performance-nfr">Performance</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1502,7 +1496,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="security-nfr"><a class="anchor" href="#security-nfr"></a><a class="link" href="#security-nfr">7.2. Security</a></h3>
+<h3 id="security-nfr"><a class="link" href="#security-nfr">Security</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1539,7 +1533,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="privacy-nfr"><a class="anchor" href="#privacy-nfr"></a><a class="link" href="#privacy-nfr">7.3. Privacy &amp; Compliance</a></h3>
+<h3 id="privacy-nfr"><a class="link" href="#privacy-nfr">Privacy &amp; Compliance</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1580,7 +1574,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="maintainability-nfr"><a class="anchor" href="#maintainability-nfr"></a><a class="link" href="#maintainability-nfr">7.4. Maintainability &amp; Scalability</a></h3>
+<h3 id="maintainability-nfr"><a class="link" href="#maintainability-nfr">Maintainability &amp; Scalability</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1613,7 +1607,7 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect2">
-<h3 id="usability-nfr"><a class="anchor" href="#usability-nfr"></a><a class="link" href="#usability-nfr">7.5. Usability</a></h3>
+<h3 id="usability-nfr"><a class="link" href="#usability-nfr">Usability</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 20%;">
@@ -1648,59 +1642,59 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_high_level_system_architecture"><a class="anchor" href="#_high_level_system_architecture"></a><a class="link" href="#_high_level_system_architecture">8. High-Level System Architecture</a></h2>
+<h2 id="_high_level_system_architecture"><a class="link" href="#_high_level_system_architecture">High-Level System Architecture</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="frontend-arch"><a class="anchor" href="#frontend-arch"></a><a class="link" href="#frontend-arch">8.1. Frontend Architecture (nom-ui - Angular)</a></h3>
-<div class="dlist">
+<h3 id="frontend-arch"><a class="link" href="#frontend-arch">Frontend Architecture (nom-ui - Angular)</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Framework</strong></dt>
+<dt><strong>Framework</strong></dt>
 <dd>
 <p>Angular (Standalone Components)</p>
 </dd>
-<dt class="hdlist1"><strong>UI Library</strong></dt>
+<dt><strong>UI Library</strong></dt>
 <dd>
 <p>Angular Material</p>
 </dd>
-<dt class="hdlist1"><strong>Styling</strong></dt>
+<dt><strong>Styling</strong></dt>
 <dd>
 <p>SCSS with BEM methodology, leveraging global styles.scss for theming and core components</p>
 </dd>
-<dt class="hdlist1"><strong>Form Management</strong></dt>
+<dt><strong>Form Management</strong></dt>
 <dd>
 <p>Reactive Forms for robust validation and state management</p>
 </dd>
-<dt class="hdlist1"><strong>Structure</strong></dt>
+<dt><strong>Structure</strong></dt>
 <dd>
 <p>Domain-driven directory organization (src/app/&lt;domain&gt;/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy Components</strong></dt>
+<dt><strong>Privacy Components</strong></dt>
 <dd>
 <p>Dedicated privacy management components including consent collection, privacy dashboard, and data export functionality</p>
 </dd>
 </dl>
 </div>
 <div class="sect3">
-<h4 id="_frontend_naming_conventions"><a class="anchor" href="#_frontend_naming_conventions"></a><a class="link" href="#_frontend_naming_conventions">8.1.1. Frontend Naming Conventions</a></h4>
-<div class="dlist">
+<h4 id="_frontend_naming_conventions"><a class="link" href="#_frontend_naming_conventions">Frontend Naming Conventions</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Model Naming</strong></dt>
+<dt><strong>Model Naming</strong></dt>
 <dd>
-<p>FooModel for core domain entities, SubmitFooRequestModel for outbound API payloads, _BaseCommonModel for base interfaces/classes</p>
+<p><code>FooModel</code> for core domain entities, <code>SubmitFooRequestModel</code> for outbound API payloads, <code>_BaseCommonModel</code> for base interfaces/classes</p>
 </dd>
-<dt class="hdlist1"><strong>Service Naming</strong></dt>
+<dt><strong>Service Naming</strong></dt>
 <dd>
-<p>FooService for domain-specific API interaction, &lt;functional-description&gt;-common.service.ts for shared services</p>
+<p><code>FooService</code> for domain-specific API interaction, <code>&lt;functional-description&gt;-common.service.ts</code> for shared services</p>
 </dd>
-<dt class="hdlist1"><strong>Pipe Naming</strong></dt>
+<dt><strong>Pipe Naming</strong></dt>
 <dd>
-<p>&lt;functional-description&gt;-common.pipe.ts for shared pipes</p>
+<p><code>&lt;functional-description&gt;-common.pipe.ts</code> for shared pipes</p>
 </dd>
-<dt class="hdlist1"><strong>Component Naming</strong></dt>
+<dt><strong>Component Naming</strong></dt>
 <dd>
 <p>Standard Angular component naming, nested within feature folders</p>
 </dd>
-<dt class="hdlist1"><strong>Model Instantiation</strong></dt>
+<dt><strong>Model Instantiation</strong></dt>
 <dd>
 <p>Explicit property-by-property assignment in constructors</p>
 </dd>
@@ -1709,30 +1703,30 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="backend-arch"><a class="anchor" href="#backend-arch"></a><a class="link" href="#backend-arch">8.2. Backend Architecture (nom-api - ASP.NET Core Web API)</a></h3>
-<div class="dlist">
+<h3 id="backend-arch"><a class="link" href="#backend-arch">Backend Architecture (nom-api - ASP.NET Core Web API)</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Framework</strong></dt>
+<dt><strong>Framework</strong></dt>
 <dd>
 <p>.NET Core</p>
 </dd>
-<dt class="hdlist1"><strong>Data Access</strong></dt>
+<dt><strong>Data Access</strong></dt>
 <dd>
 <p>Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL</p>
 </dd>
-<dt class="hdlist1"><strong>Business Logic</strong></dt>
+<dt><strong>Business Logic</strong></dt>
 <dd>
 <p>Orchestration Services encapsulate complex business rules and coordinate data access (e.g., PersonOrchestrationService for onboarding submission). Privacy Services handle data subject rights and compliance requirements.</p>
 </dd>
-<dt class="hdlist1"><strong>API Design</strong></dt>
+<dt><strong>API Design</strong></dt>
 <dd>
 <p>RESTful endpoints adhering to standard HTTP methods and status codes</p>
 </dd>
-<dt class="hdlist1"><strong>Security</strong></dt>
+<dt><strong>Security</strong></dt>
 <dd>
-<p>ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; [Authorize] and [AllowAnonymous] attributes for endpoint-level authorization</p>
+<p>ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; <code>[Authorize]</code> and <code>[AllowAnonymous]</code> attributes for endpoint-level authorization</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy &amp; Compliance</strong></dt>
+<dt><strong>Privacy &amp; Compliance</strong></dt>
 <dd>
 <p>Dedicated services for consent management, data export, anonymization, and audit logging</p>
 </dd>
@@ -1740,22 +1734,22 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="database-arch"><a class="anchor" href="#database-arch"></a><a class="link" href="#database-arch">8.3. Database Architecture (PostgreSQL)</a></h3>
-<div class="dlist">
+<h3 id="database-arch"><a class="link" href="#database-arch">Database Architecture (PostgreSQL)</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Database Type</strong></dt>
+<dt><strong>Database Type</strong></dt>
 <dd>
 <p>Relational database storing all application data</p>
 </dd>
-<dt class="hdlist1"><strong>Schema Structure</strong></dt>
+<dt><strong>Schema Structure</strong></dt>
 <dd>
 <p>Includes tables for users, questions, answers, plans, participants, reference data, and privacy/consent management</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy Enhancements</strong></dt>
+<dt><strong>Privacy Enhancements</strong></dt>
 <dd>
 <p>Enhanced with audit logging tables and privacy-related entities for GDPR compliance</p>
 </dd>
-<dt class="hdlist1"><strong>Security</strong></dt>
+<dt><strong>Security</strong></dt>
 <dd>
 <p>Data encryption at rest for sensitive personal information</p>
 </dd>
@@ -1763,10 +1757,10 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="privacy-arch"><a class="anchor" href="#privacy-arch"></a><a class="link" href="#privacy-arch">8.4. Privacy &amp; Compliance Architecture</a></h3>
-<div class="dlist">
+<h3 id="privacy-arch"><a class="link" href="#privacy-arch">Privacy &amp; Compliance Architecture</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Consent Management System</strong></dt>
+<dt><strong>Consent Management System</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -1782,7 +1776,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Data Subject Rights Engine</strong></dt>
+<dt><strong>Data Subject Rights Engine</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -1798,7 +1792,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Audit &amp; Logging Framework</strong></dt>
+<dt><strong>Audit &amp; Logging Framework</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -1814,7 +1808,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Privacy Dashboard</strong></dt>
+<dt><strong>Privacy Dashboard</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -1836,42 +1830,32 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="naming-standards"><a class="anchor" href="#naming-standards"></a><a class="link" href="#naming-standards">9. Technical Naming Conventions &amp; Standards</a></h2>
+<h2 id="naming-standards"><a class="link" href="#naming-standards">Technical Naming Conventions &amp; Standards</a></h2>
 <div class="sectionbody">
 <div class="admonitionblock important">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-important" title="Important"></i>
+<div class="title">Important</div>
 </td>
 <td class="content">
 <div class="paragraph">
 <p><strong>CRITICAL NAMING RULE</strong>: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto". <strong>DTO IS STRICTLY FORBIDDEN!</strong></p>
 </div>
 <div class="paragraph">
-<p><strong>Acceptable Model/Data Transport Suffixes:</strong></p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Model</code> - For core domain entities and data structures</p>
-</li>
-<li>
-<p><code>Request</code> - For inbound API payloads and request objects</p>
-</li>
-<li>
-<p><code>Response</code> - For outbound API responses and result objects</p>
-</li>
-</ul>
+<p><strong>Acceptable Model/Data Transport Suffixes:</strong>
+* <code>Model</code> - For core domain entities and data structures
+* <code>Request</code> - For inbound API payloads and request objects
+* <code>Response</code> - For outbound API responses and result objects</p>
 </div>
 </td>
 </tr>
 </table>
 </div>
 <div class="sect2">
-<h3 id="frontend-naming"><a class="anchor" href="#frontend-naming"></a><a class="link" href="#frontend-naming">9.1. Frontend Naming Conventions (TypeScript/Angular)</a></h3>
+<h3 id="frontend-naming"><a class="link" href="#frontend-naming">Frontend Naming Conventions (TypeScript/Angular)</a></h3>
 <div class="sect3">
-<h4 id="_file_naming"><a class="anchor" href="#_file_naming"></a><a class="link" href="#_file_naming">9.1.1. File Naming</a></h4>
+<h4 id="_file_naming"><a class="link" href="#_file_naming">File Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -1893,7 +1877,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_classinterface_naming"><a class="anchor" href="#_classinterface_naming"></a><a class="link" href="#_classinterface_naming">9.1.2. Class/Interface Naming</a></h4>
+<h4 id="_classinterface_naming"><a class="link" href="#_classinterface_naming">Class/Interface Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -1915,7 +1899,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_variablemethod_naming"><a class="anchor" href="#_variablemethod_naming"></a><a class="link" href="#_variablemethod_naming">9.1.3. Variable/Method Naming</a></h4>
+<h4 id="_variablemethod_naming"><a class="link" href="#_variablemethod_naming">Variable/Method Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -1935,9 +1919,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="backend-naming"><a class="anchor" href="#backend-naming"></a><a class="link" href="#backend-naming">9.2. Backend Naming Conventions (C#/.NET)</a></h3>
+<h3 id="backend-naming"><a class="link" href="#backend-naming">Backend Naming Conventions (C#/.NET)</a></h3>
 <div class="sect3">
-<h4 id="_file_naming_2"><a class="anchor" href="#_file_naming_2"></a><a class="link" href="#_file_naming_2">9.2.1. File Naming</a></h4>
+<h4 id="_file_naming_2"><a class="link" href="#_file_naming_2">File Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -1959,7 +1943,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_classinterface_naming_2"><a class="anchor" href="#_classinterface_naming_2"></a><a class="link" href="#_classinterface_naming_2">9.2.2. Class/Interface Naming</a></h4>
+<h4 id="_classinterface_naming_2"><a class="link" href="#_classinterface_naming_2">Class/Interface Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -1981,7 +1965,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_methodproperty_naming"><a class="anchor" href="#_methodproperty_naming"></a><a class="link" href="#_methodproperty_naming">9.2.3. Method/Property Naming</a></h4>
+<h4 id="_methodproperty_naming"><a class="link" href="#_methodproperty_naming">Method/Property Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2001,9 +1985,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="database-naming"><a class="anchor" href="#database-naming"></a><a class="link" href="#database-naming">9.3. Database Naming Conventions</a></h3>
+<h3 id="database-naming"><a class="link" href="#database-naming">Database Naming Conventions</a></h3>
 <div class="sect3">
-<h4 id="_table_naming"><a class="anchor" href="#_table_naming"></a><a class="link" href="#_table_naming">9.3.1. Table Naming</a></h4>
+<h4 id="_table_naming"><a class="link" href="#_table_naming">Table Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2016,7 +2000,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_column_naming"><a class="anchor" href="#_column_naming"></a><a class="link" href="#_column_naming">9.3.2. Column Naming</a></h4>
+<h4 id="_column_naming"><a class="link" href="#_column_naming">Column Naming</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2033,9 +2017,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="css-naming"><a class="anchor" href="#css-naming"></a><a class="link" href="#css-naming">9.4. CSS/SCSS Naming Conventions</a></h3>
+<h3 id="css-naming"><a class="link" href="#css-naming">CSS/SCSS Naming Conventions</a></h3>
 <div class="sect3">
-<h4 id="_bem_methodology"><a class="anchor" href="#_bem_methodology"></a><a class="link" href="#_bem_methodology">9.4.1. BEM Methodology</a></h4>
+<h4 id="_bem_methodology"><a class="link" href="#_bem_methodology">BEM Methodology</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2051,7 +2035,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_global_classes"><a class="anchor" href="#_global_classes"></a><a class="link" href="#_global_classes">9.4.2. Global Classes</a></h4>
+<h4 id="_global_classes"><a class="link" href="#_global_classes">Global Classes</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2065,9 +2049,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="api-naming"><a class="anchor" href="#api-naming"></a><a class="link" href="#api-naming">9.5. API Endpoint Naming</a></h3>
+<h3 id="api-naming"><a class="link" href="#api-naming">API Endpoint Naming</a></h3>
 <div class="sect3">
-<h4 id="_rest_conventions"><a class="anchor" href="#_rest_conventions"></a><a class="link" href="#_rest_conventions">9.5.1. REST Conventions</a></h4>
+<h4 id="_rest_conventions"><a class="link" href="#_rest_conventions">REST Conventions</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2084,7 +2068,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="forbidden-patterns"><a class="anchor" href="#forbidden-patterns"></a><a class="link" href="#forbidden-patterns">9.6. Forbidden Patterns</a></h3>
+<h3 id="forbidden-patterns"><a class="link" href="#forbidden-patterns">Forbidden Patterns</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 25%;">
@@ -2092,8 +2076,8 @@ pre.rouge .gs {
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">❌ <strong>NEVER USE</strong></th>
-<th class="tableblock halign-left valign-top">✅ <strong>ALWAYS USE</strong></th>
+<th class="tableblock halign-left valign-top">:x: <strong>NEVER USE</strong></th>
+<th class="tableblock halign-left valign-top">:white_check_mark: <strong>ALWAYS USE</strong></th>
 </tr>
 </thead>
 <tbody>
@@ -2119,15 +2103,15 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="_technical_component_mapping"><a class="anchor" href="#_technical_component_mapping"></a><a class="link" href="#_technical_component_mapping">10. Technical Component Mapping</a></h2>
+<h2 id="_technical_component_mapping"><a class="link" href="#_technical_component_mapping">Technical Component Mapping</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This section provides a detailed mapping between the high-level functional requirements and domain rules, and the specific technical components responsible for their implementation.</p>
 </div>
 <div class="sect2">
-<h3 id="frontend-components"><a class="anchor" href="#frontend-components"></a><a class="link" href="#frontend-components">10.1. Frontend Components &amp; UI Interaction Flow</a></h3>
+<h3 id="frontend-components"><a class="link" href="#frontend-components">Frontend Components &amp; UI Interaction Flow</a></h3>
 <div class="sect3">
-<h4 id="onboarding-workflow-component"><a class="anchor" href="#onboarding-workflow-component"></a><a class="link" href="#onboarding-workflow-component">10.1.1. OnboardingWorkflowComponent</a></h4>
+<h4 id="onboarding-workflow-component"><a class="link" href="#onboarding-workflow-component">OnboardingWorkflowComponent</a></h4>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2185,7 +2169,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="person-edit-component"><a class="anchor" href="#person-edit-component"></a><a class="link" href="#person-edit-component">10.1.2. PersonEditComponent</a></h4>
+<h4 id="person-edit-component"><a class="link" href="#person-edit-component">PersonEditComponent</a></h4>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2222,7 +2206,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="person-health-edit-component"><a class="anchor" href="#person-health-edit-component"></a><a class="link" href="#person-health-edit-component">10.1.3. PersonHealthEditComponent</a></h4>
+<h4 id="person-health-edit-component"><a class="link" href="#person-health-edit-component">PersonHealthEditComponent</a></h4>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2251,7 +2235,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="restriction-edit-component"><a class="anchor" href="#restriction-edit-component"></a><a class="link" href="#restriction-edit-component">10.1.4. RestrictionEditComponent</a></h4>
+<h4 id="restriction-edit-component"><a class="link" href="#restriction-edit-component">RestrictionEditComponent</a></h4>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2297,18 +2281,18 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_privacydashboardcomponent_new"><a class="anchor" href="#_privacydashboardcomponent_new"></a><a class="link" href="#_privacydashboardcomponent_new">10.1.5. PrivacyDashboardComponent <a id="privacy-dashboard-component"></a> (NEW)</a></h4>
+<h4 id="_privacysettingscomponent_new"><a class="link" href="#_privacysettingscomponent_new">PrivacySettingsComponent <a id="privacy-settings-component"></a> (NEW)</a></h4>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
 <li>
-<p>TypeScript: <code>src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.ts</code></p>
+<p>TypeScript: <code>src/app/user/privacy-settings/privacy-settings.component.ts</code></p>
 </li>
 <li>
-<p>HTML: <code>src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.html</code></p>
+<p>HTML: <code>src/app/user/privacy-settings/privacy-settings.component.html</code></p>
 </li>
 <li>
-<p>SCSS: <code>src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.scss</code></p>
+<p>SCSS: <code>src/app/user/privacy-settings/privacy-settings.component.scss</code></p>
 </li>
 </ul>
 </div>
@@ -2343,49 +2327,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_consentcollectioncomponent_new"><a class="anchor" href="#_consentcollectioncomponent_new"></a><a class="link" href="#_consentcollectioncomponent_new">10.1.6. ConsentCollectionComponent <a id="consent-collection-component"></a> (NEW)</a></h4>
-<div class="ulist">
-<div class="title">File Locations</div>
-<ul>
-<li>
-<p>TypeScript: <code>src/app/privacy/components/consent-collection/consent-collection.component.ts</code></p>
-</li>
-<li>
-<p>HTML: <code>src/app/privacy/components/consent-collection/consent-collection.component.html</code></p>
-</li>
-<li>
-<p>SCSS: <code>src/app/privacy/components/consent-collection/consent-collection.component.scss</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Role</div>
-<p>Collects granular user consents during onboarding and account management.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Direct implementation of consent collection.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.1</a> (Lawful Basis): Ensures lawful basis for data processing.</p>
-</li>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.2</a> (Consent Documentation): Documents consent collection.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="auth-components"><a class="anchor" href="#auth-components"></a><a class="link" href="#auth-components">10.1.7. Authentication Components</a></h4>
+<h4 id="auth-components"><a class="link" href="#auth-components">Authentication Components</a></h4>
 <div class="sect4">
-<h5 id="_registrationcomponent"><a class="anchor" href="#_registrationcomponent"></a><a class="link" href="#_registrationcomponent">RegistrationComponent</a></h5>
+<h5 id="_registrationcomponent"><a class="link" href="#_registrationcomponent">RegistrationComponent</a></h5>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2415,7 +2359,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect4">
-<h5 id="_logincomponent"><a class="anchor" href="#_logincomponent"></a><a class="link" href="#_logincomponent">LoginComponent</a></h5>
+<h5 id="_logincomponent"><a class="link" href="#_logincomponent">LoginComponent</a></h5>
 <div class="ulist">
 <div class="title">File Locations</div>
 <ul>
@@ -2437,7 +2381,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect4">
-<h5 id="_other_authentication_components"><a class="anchor" href="#_other_authentication_components"></a><a class="link" href="#_other_authentication_components">Other Authentication Components</a></h5>
+<h5 id="_other_authentication_components"><a class="link" href="#_other_authentication_components">Other Authentication Components</a></h5>
 <div class="ulist">
 <ul>
 <li>
@@ -2464,9 +2408,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="frontend-services"><a class="anchor" href="#frontend-services"></a><a class="link" href="#frontend-services">10.2. Frontend Services &amp; Data Flow</a></h3>
+<h3 id="frontend-services"><a class="link" href="#frontend-services">Frontend Services &amp; Data Flow</a></h3>
 <div class="sect3">
-<h4 id="person-service"><a class="anchor" href="#person-service"></a><a class="link" href="#person-service">10.2.1. PersonService</a></h4>
+<h4 id="person-service"><a class="link" href="#person-service">PersonService</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/person/services/person.service.ts</code></p>
@@ -2479,17 +2423,17 @@ pre.rouge .gs {
 <div class="title">Functional Requirements Mapping</div>
 <ul>
 <li>
-<p><a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Contains submitOnboardingComplete() method for API interaction.</p>
+<p><a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Contains <code>submitOnboardingComplete()</code> method for API interaction.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <div class="title">Data Structures Used</div>
-<p>PersonModel, PersonAttributeModel, RestrictionModel, OnboardingCompleteRequestModel</p>
+<p><code>PersonModel</code>, <code>PersonAttributeModel</code>, <code>RestrictionModel</code>, <code>OnboardingCompleteRequestModel</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="restriction-service"><a class="anchor" href="#restriction-service"></a><a class="link" href="#restriction-service">10.2.2. RestrictionService</a></h4>
+<h4 id="restriction-service"><a class="link" href="#restriction-service">RestrictionService</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/restriction/services/restriction.service.ts</code></p>
@@ -2508,7 +2452,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_privacyservice_new"><a class="anchor" href="#_privacyservice_new"></a><a class="link" href="#_privacyservice_new">10.2.3. PrivacyService <a id="privacy-service"></a> (NEW)</a></h4>
+<h4 id="_privacyservice_new"><a class="link" href="#_privacyservice_new">PrivacyService <a id="privacy-service"></a> (NEW)</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/privacy/services/privacy.service.ts</code></p>
@@ -2540,7 +2484,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="auth-service"><a class="anchor" href="#auth-service"></a><a class="link" href="#auth-service">10.2.4. AuthService</a></h4>
+<h4 id="auth-service"><a class="link" href="#auth-service">AuthService</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/components/auth/auth.service.ts</code></p>
@@ -2549,13 +2493,13 @@ pre.rouge .gs {
 <div class="title">Functional Requirements Mapping</div>
 <ul>
 <li>
-<p><a href="#auth-requirements">FR-4.1</a> (Authenticated Access): Primary interface for authenticated API calls.</p>
+<p><code>FR-4.1</code> (Authenticated Access): Primary interface for authenticated API calls.</p>
 </li>
 <li>
-<p><a href="#auth-requirements">FR-4.3</a> (User Registration): Handles new user creation.</p>
+<p><code>FR-4.3</code> (User Registration): Handles new user creation.</p>
 </li>
 <li>
-<p><a href="#auth-requirements">FR-4.4</a> (User Login): Manages user authentication and JWT handling.</p>
+<p><code>FR-4.4</code> (User Login): Manages user authentication and JWT handling.</p>
 </li>
 </ul>
 </div>
@@ -2575,7 +2519,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="auth-manager-service"><a class="anchor" href="#auth-manager-service"></a><a class="link" href="#auth-manager-service">10.2.5. AuthManagerService</a></h4>
+<h4 id="auth-manager-service"><a class="link" href="#auth-manager-service">AuthManagerService</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/utilities/services/auth-manager.service.ts</code></p>
@@ -2594,7 +2538,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="notification-service"><a class="anchor" href="#notification-service"></a><a class="link" href="#notification-service">10.2.6. NotificationService</a></h4>
+<h4 id="notification-service"><a class="link" href="#notification-service">NotificationService</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>src/app/utilities/services/notification.service.ts</code></p>
@@ -2610,12 +2554,12 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="frontend-models"><a class="anchor" href="#frontend-models"></a><a class="link" href="#frontend-models">10.3. Frontend Models &amp; Data Structures</a></h3>
+<h3 id="frontend-models"><a class="link" href="#frontend-models">Frontend Models &amp; Data Structures</a></h3>
 <div class="admonitionblock important">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-important" title="Important"></i>
+<div class="title">Important</div>
 </td>
 <td class="content">
 <div class="paragraph">
@@ -2626,90 +2570,130 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_core_models"><a class="anchor" href="#_core_models"></a><a class="link" href="#_core_models">10.3.1. Core Models</a></h4>
+<h4 id="_core_models"><a class="link" href="#_core_models">Core Models</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
+<col style="width: 100%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Model</th>
-<th class="tableblock halign-left valign-top">File Location</th>
-<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>_BaseCommonModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/common/models/_base-common.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Base interface for common properties like <code>id</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ApiResponseCommonModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/common/models/api-response-common.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Common structure for API responses</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/person/models/person.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core person entity data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonAttributeModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/person/models/person-attribute.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Health attributes data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RestrictionModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/restriction/models/restriction.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Dietary restriction data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>OnboardingCompleteRequestModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/onboarding/models/onboarding-complete-request.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consolidated onboarding submission payload</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_privacy_models_new"><a class="anchor" href="#_privacy_models_new"></a><a class="link" href="#_privacy_models_new">10.3.2. Privacy Models (NEW)</a></h4>
+<h4 id="_privacy_models_new"><a class="link" href="#_privacy_models_new">Privacy Models (NEW)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
+<col style="width: 100%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Model</th>
-<th class="tableblock halign-left valign-top">File Location</th>
-<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ConsentModel</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/consent.model.ts</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consent record data structure</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DataExportModel</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/data-export.model.ts</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Data export request and status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>DataExportRequest</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrivacyRequestModel</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/privacy-request.model.ts</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">General privacy rights requests</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/data-export-request.model.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Data export request payload</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrivacyRequestStatusResponse</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/privacy-request-status-response.model.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response for asynchronous privacy requests</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_authentication_models"><a class="anchor" href="#_authentication_models"></a><a class="link" href="#_authentication_models">10.3.3. Authentication Models</a></h4>
+<h4 id="_authentication_models"><a class="link" href="#_authentication_models">Authentication Models</a></h4>
 <div class="ulist">
 <ul>
 <li>
@@ -2732,16 +2716,16 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="backend-services"><a class="anchor" href="#backend-services"></a><a class="link" href="#backend-services">10.4. Backend Services &amp; Business Logic</a></h3>
+<h3 id="backend-services"><a class="link" href="#backend-services">Backend Services &amp; Business Logic</a></h3>
 <div class="sect3">
-<h4 id="_personorchestrationservice_updated"><a class="anchor" href="#_personorchestrationservice_updated"></a><a class="link" href="#_personorchestrationservice_updated">10.4.1. PersonOrchestrationService <a id="person-orchestration-service"></a> (UPDATED)</a></h4>
+<h4 id="_personorchestrationservice_updated"><a class="link" href="#_personorchestrationservice_updated">PersonOrchestrationService <a id="person-orchestration-service"></a> (UPDATED)</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>Nom.Orch/Services/PersonOrchestrationService.cs</code></p>
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and ConsentEntity records.</p>
+<p>Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and now integrates with the <code>IPrivacyOrchestrationService</code> to save initial consents.</p>
 </div>
 <div class="ulist">
 <div class="title">Functional Requirements Mapping</div>
@@ -2756,7 +2740,7 @@ pre.rouge .gs {
 <p><a href="#plan-requirements">FR-3.2</a>, <a href="#plan-requirements">FR-3.3</a>: Plan linking and role assignment.</p>
 </li>
 <li>
-<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Consent record creation.</p>
+<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Consent record creation via injected service.</p>
 </li>
 </ul>
 </div>
@@ -2779,11 +2763,11 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Key Methods</div>
-<p><code>CompleteOnboardingAsync(OnboardingCompleteRequest request, long userId)</code></p>
+<p><code>CompleteOnboardingAsync(OnboardingCompleteRequest request)</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_privacyorchestrationservice_new"><a class="anchor" href="#_privacyorchestrationservice_new"></a><a class="link" href="#_privacyorchestrationservice_new">10.4.2. PrivacyOrchestrationService <a id="privacy-orchestration-service"></a> (NEW)</a></h4>
+<h4 id="_privacyorchestrationservice_new"><a class="link" href="#_privacyorchestrationservice_new">PrivacyOrchestrationService <a id="privacy-orchestration-service"></a> (NEW)</a></h4>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>Nom.Orch/Services/PrivacyOrchestrationService.cs</code></p>
@@ -2819,81 +2803,13 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Key Methods</div>
-<p><code>ProcessDataExportRequestAsync()</code>, <code>ProcessDataDeletionRequestAsync()</code>, <code>UpdateConsentAsync()</code>, <code>GetAuditLogAsync()</code>, <code>AnonymizeUserDataAsync()</code></p>
+<p><code>UpdateConsentAsync()</code>, <code>RequestDataExportAsync()</code>, <code>RequestDataDeletionAsync()</code></p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_consentmanagementservice_new"><a class="anchor" href="#_consentmanagementservice_new"></a><a class="link" href="#_consentmanagementservice_new">10.4.3. ConsentManagementService <a id="consent-management-service"></a> (NEW)</a></h4>
-<div class="paragraph">
-<div class="title">File Location</div>
-<p><code>Nom.Orch/Services/ConsentManagementService.cs</code></p>
-</div>
-<div class="paragraph">
-<div class="title">Role</div>
-<p>Specialized service for managing user consents including collection, withdrawal, and versioning.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Direct implementation of consent management.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Handles consent withdrawal.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.1</a> (Lawful Basis): Ensures lawful basis for processing.</p>
-</li>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.2</a> (Consent Documentation): Documents all consent interactions.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Key Methods</div>
-<p><code>CollectConsentAsync()</code>, <code>WithdrawConsentAsync()</code>, <code>GetConsentStatusAsync()</code>, <code>VersionConsentAsync()</code></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_dataanonymizationservice_new"><a class="anchor" href="#_dataanonymizationservice_new"></a><a class="link" href="#_dataanonymizationservice_new">10.4.4. DataAnonymizationService <a id="data-anonymization-service"></a> (NEW)</a></h4>
-<div class="paragraph">
-<div class="title">File Location</div>
-<p><code>Nom.Orch/Services/DataAnonymizationService.cs</code></p>
-</div>
-<div class="paragraph">
-<div class="title">Role</div>
-<p>Handles secure deletion and anonymization of user data for GDPR compliance.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.3</a> (Right to Erasure): Supports data deletion requests.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.5</a> (Retention Limitation): Implements retention policies.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Key Methods</div>
-<p><code>AnonymizePersonDataAsync()</code>, <code>SecureDeleteAsync()</code>, <code>ValidateRetentionPolicyAsync()</code></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_api_controllers"><a class="anchor" href="#_api_controllers"></a><a class="link" href="#_api_controllers">10.4.5. API Controllers</a></h4>
+<h4 id="_api_controllers"><a class="link" href="#_api_controllers">API Controllers</a></h4>
 <div class="sect4">
-<h5 id="_personcontroller_updated"><a class="anchor" href="#_personcontroller_updated"></a><a class="link" href="#_personcontroller_updated">PersonController (UPDATED)</a></h5>
+<h5 id="_personcontroller_updated"><a class="link" href="#_personcontroller_updated">PersonController (UPDATED)</a></h5>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>Nom.Api/Controllers/PersonController.cs</code></p>
@@ -2912,7 +2828,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect4">
-<h5 id="_privacycontroller_new"><a class="anchor" href="#_privacycontroller_new"></a><a class="link" href="#_privacycontroller_new">PrivacyController (NEW)</a></h5>
+<h5 id="_privacycontroller_new"><a class="link" href="#_privacycontroller_new">PrivacyController (NEW)</a></h5>
 <div class="paragraph">
 <div class="title">File Location</div>
 <p><code>Nom.Api/Controllers/PrivacyController.cs</code></p>
@@ -2925,19 +2841,13 @@ pre.rouge .gs {
 <div class="title">Key Endpoints</div>
 <ul>
 <li>
-<p><code>[HttpGet("data-export")]</code>: Generate data export for user</p>
-</li>
-<li>
 <p><code>[HttpPost("consent")]</code>: Update user consent preferences</p>
 </li>
 <li>
-<p><code>[HttpDelete("account")]</code>: Process account deletion request</p>
+<p><code>[HttpPost("data-export")]</code>: Generate data export for user</p>
 </li>
 <li>
-<p><code>[HttpPut("data-correction")]</code>: Handle data rectification requests</p>
-</li>
-<li>
-<p><code>[HttpGet("audit-log")]</code>: Retrieve user&#8217;s data processing audit log</p>
+<p><code>[HttpPost("data-deletion")]</code>: Process account deletion request</p>
 </li>
 </ul>
 </div>
@@ -2949,80 +2859,116 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="backend-entities"><a class="anchor" href="#backend-entities"></a><a class="link" href="#backend-entities">10.5. Backend Entities &amp; Database Mapping</a></h3>
+<h3 id="backend-entities"><a class="link" href="#backend-entities">Backend Entities &amp; Database Mapping</a></h3>
 <div class="sect3">
-<h4 id="_core_entities"><a class="anchor" href="#_core_entities"></a><a class="link" href="#_core_entities">10.5.1. Core Entities</a></h4>
+<h4 id="_core_entities"><a class="link" href="#_core_entities">Core Entities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
+<col style="width: 100%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
-<th class="tableblock halign-left valign-top">File Location</th>
-<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Person/PersonEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core user profile data storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonAttributeEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Person/PersonAttributeEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Health attributes storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RestrictionEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/RestrictionEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Dietary restrictions storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PlanEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/PlanEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Nutritional plan definitions</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PlanParticipantEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/PlanParticipantEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Person-to-plan relationships</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_privacy_entities_new"><a class="anchor" href="#_privacy_entities_new"></a><a class="link" href="#_privacy_entities_new">10.5.2. Privacy Entities (NEW)</a></h4>
+<h4 id="_privacy_entities_new"><a class="link" href="#_privacy_entities_new">Privacy Entities (NEW)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
+<col style="width: 100%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
-<th class="tableblock halign-left valign-top">File Location</th>
-<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UserConsentEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/UserConsentEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">User consent records storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>DataProcessingLogEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/DataProcessingLogEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Audit trail for data access/modifications</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrivacyRequestEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/PrivacyRequestEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Data subject rights request tracking</p></td>
 </tr>
 </tbody>
@@ -3053,34 +2999,48 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_reference_data_entities"><a class="anchor" href="#_reference_data_entities"></a><a class="link" href="#_reference_data_entities">10.5.3. Reference Data Entities</a></h4>
+<h4 id="_reference_data_entities"><a class="link" href="#_reference_data_entities">Reference Data Entities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
+<col style="width: 100%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
-<th class="tableblock halign-left valign-top">File Location</th>
-<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ReferenceEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/ReferenceEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core reference data storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>GroupEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/GroupEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Reference data categorization</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>GroupedReferenceViewEntity</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/GroupedReferenceViewEntity.cs</code></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Structured reference data views</p></td>
 </tr>
 </tbody>
@@ -3090,40 +3050,40 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="development-context"><a class="anchor" href="#development-context"></a><a class="link" href="#development-context">11. Development Context and Workflow</a></h2>
+<h2 id="development-context"><a class="link" href="#development-context">Development Context and Workflow</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="project-status"><a class="anchor" href="#project-status"></a><a class="link" href="#project-status">11.1. Current Project Status</a></h3>
+<h3 id="project-status"><a class="link" href="#project-status">Current Project Status</a></h3>
 <div class="sect3">
-<h4 id="_completed_components"><a class="anchor" href="#_completed_components"></a><a class="link" href="#_completed_components">11.1.1. Completed Components</a></h4>
-<div class="dlist">
+<h4 id="_completed_components"><a class="link" href="#_completed_components">Completed Components</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Onboarding Workflow (Core)</strong></dt>
+<dt><strong>Onboarding Workflow (Core)</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Frontend</strong>: OnboardingWorkflowComponent orchestrator implemented</p>
+<p><strong>Frontend</strong>: <code>OnboardingWorkflowComponent</code> orchestrator implemented</p>
 </li>
 <li>
-<p><strong>Components</strong>: PersonEditComponent and PersonHealthEditComponent functional</p>
+<p><strong>Components</strong>: <code>PersonEditComponent</code> and <code>PersonHealthEditComponent</code> functional</p>
 </li>
 <li>
-<p><strong>Restrictions</strong>: RestrictionEditComponent handles various restriction types and conditional allocation logic</p>
+<p><strong>Restrictions</strong>: <code>RestrictionEditComponent</code> handles various restriction types</p>
 </li>
 <li>
 <p><strong>Backend</strong>: Basic CRUD for Person and Restriction entities supported</p>
 </li>
 <li>
-<p><strong>API Integration</strong>: PersonOrchestrationService handles consolidated OnboardingCompleteRequest submission</p>
+<p><strong>API Integration</strong>: <code>PersonOrchestrationService</code> handles <code>OnboardingCompleteRequest</code> submission</p>
 </li>
 <li>
-<p><strong>Authentication</strong>: User registration, login, and JWT-based authentication functional with interceptors</p>
+<p><strong>Authentication</strong>: User registration, login, and JWT-based authentication functional</p>
 </li>
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Authentication System</strong></dt>
+<dt><strong>Authentication System</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3139,12 +3099,12 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Reference Data</strong></dt>
+<dt><strong>Reference Data</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
-<p>Core reference data seeding (measurement types, nutrients)</p>
+<p>Core reference data seeding</p>
 </li>
 <li>
 <p>Extensible reference data management system</p>
@@ -3156,77 +3116,44 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_privacy_compliance_status"><a class="anchor" href="#_privacy_compliance_status"></a><a class="link" href="#_privacy_compliance_status">11.1.2. Privacy &amp; Compliance Status</a></h4>
+<h4 id="_privacy_compliance_status"><a class="link" href="#_privacy_compliance_status">Privacy &amp; Compliance Status</a></h4>
 <div class="ulist">
-<div class="title">Assessment Complete</div>
+<div class="title">Implementation Complete</div>
 <ul>
 <li>
-<p>Privacy compliance framework designed</p>
+<p><strong>Data Layer</strong>: <code>UserConsentEntity</code>, <code>DataProcessingLogEntity</code>, and <code>PrivacyRequestEntity</code> are created and in use. [cite: PrivacyOrchestrationService.cs]</p>
 </li>
 <li>
-<p>GDPR applicability confirmed for EU users</p>
+<p><strong>Orchestration &amp; Background Processing</strong>: <code>PrivacyOrchestrationService</code> handles all business logic, successfully queueing tasks to the <code>BackgroundTaskQueueOrchestrationService</code>. [cite: PrivacyOrchestrationService.cs] The <code>DataExportOrchestrationService</code> and <code>DataAnonymizationOrchestrationService</code> correctly execute these background jobs. [cite: DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]</p>
 </li>
 <li>
-<p>HIPAA exemption validated for direct-to-consumer model</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Implementation Required</div>
-<ul>
-<li>
-<p>Consent management system</p>
+<p><strong>API Layer</strong>: <code>PrivacyController</code> is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization. [cite: PrivacyController.cs]</p>
 </li>
 <li>
-<p>Privacy dashboard interface</p>
-</li>
-<li>
-<p>Data subject rights endpoints</p>
-</li>
-<li>
-<p>Audit logging framework</p>
+<p><strong>Auditing</strong>: The <code>AuditOrchestrationService</code> is available for logging all data processing activities. [cite: AuditOrchestrationService.cs]</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_immediate_next_focus"><a class="anchor" href="#_immediate_next_focus"></a><a class="link" href="#_immediate_next_focus">11.1.3. Immediate Next Focus</a></h4>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><strong>Frontend Priority</strong></dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Complete iterative flow for additional participants in OnboardingWorkflowComponent</p>
-</li>
-<li>
-<p>Implement individual restriction collection when <code>applyIndividualPreferencesToEachPerson</code> is true</p>
-</li>
-<li>
-<p>Develop privacy components (consent collection, privacy dashboard)</p>
-</li>
-<li>
-<p>Manage <code>currentAdditionalParticipantIndex</code> and RestrictionEditComponent re-rendering</p>
-</li>
-</ol>
+<h4 id="_immediate_next_focus"><a class="link" href="#_immediate_next_focus">Immediate Next Focus</a></h4>
+<div class="paragraph">
+<p>With the backend privacy work complete, the immediate focus shifts entirely to the frontend.</p>
 </div>
-</dd>
-<dt class="hdlist1"><strong>Backend Priority</strong></dt>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Frontend Priority</strong></dt>
 <dd>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Implement privacy-related services and endpoints</p>
+<p>Complete iterative flow for additional participants in <code>OnboardingWorkflowComponent</code>.</p>
 </li>
 <li>
-<p>Create consent management infrastructure</p>
+<p>Implement individual restriction collection when <code>applyIndividualPreferencesToEachPerson</code> is true.</p>
 </li>
 <li>
-<p>Develop data subject rights processing</p>
-</li>
-<li>
-<p>Establish audit logging system</p>
+<p>Integrate the new <code>/api/privacy</code> endpoints into the <code>PrivacySettingsComponent</code> to allow users to exercise their data rights.</p>
 </li>
 </ol>
 </div>
@@ -3236,12 +3163,12 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="tech-stack"><a class="anchor" href="#tech-stack"></a><a class="link" href="#tech-stack">11.2. Technology Stack Rationale</a></h3>
+<h3 id="tech-stack"><a class="link" href="#tech-stack">Technology Stack Rationale</a></h3>
 <div class="sect3">
-<h4 id="_frontend_technologies"><a class="anchor" href="#_frontend_technologies"></a><a class="link" href="#_frontend_technologies">11.2.1. Frontend Technologies</a></h4>
-<div class="dlist">
+<h4 id="_frontend_technologies"><a class="link" href="#_frontend_technologies">Frontend Technologies</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Angular (Standalone Components)</strong></dt>
+<dt><strong>Angular (Standalone Components)</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3260,7 +3187,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Angular Material</strong></dt>
+<dt><strong>Angular Material</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3276,7 +3203,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>SCSS with BEM</strong></dt>
+<dt><strong>SCSS with BEM</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3292,7 +3219,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>RxJS</strong></dt>
+<dt><strong>RxJS</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3312,10 +3239,10 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_backend_technologies"><a class="anchor" href="#_backend_technologies"></a><a class="link" href="#_backend_technologies">11.2.2. Backend Technologies</a></h4>
-<div class="dlist">
+<h4 id="_backend_technologies"><a class="link" href="#_backend_technologies">Backend Technologies</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>.NET Core</strong></dt>
+<dt><strong>.NET Core</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3331,7 +3258,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Entity Framework Core</strong></dt>
+<dt><strong>Entity Framework Core</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3347,7 +3274,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>PostgreSQL</strong></dt>
+<dt><strong>PostgreSQL</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3371,15 +3298,15 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="privacy-implementation"><a class="anchor" href="#privacy-implementation"></a><a class="link" href="#privacy-implementation">11.3. Privacy &amp; Compliance Implementation Priority</a></h3>
+<h3 id="privacy-implementation"><a class="link" href="#privacy-implementation">Privacy &amp; Compliance Implementation Priority</a></h3>
 <div class="sect3">
-<h4 id="_phase_1_critical_next_30_days"><a class="anchor" href="#_phase_1_critical_next_30_days"></a><a class="link" href="#_phase_1_critical_next_30_days">11.3.1. Phase 1 - Critical (Next 30 Days)</a></h4>
+<h4 id="_phase_1_critical_complete"><a class="link" href="#_phase_1_critical_complete">Phase 1 - Critical (COMPLETE)</a></h4>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
 <p><strong>Privacy Policy Development</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>GDPR-compliant privacy notice</p>
 </li>
@@ -3389,13 +3316,13 @@ pre.rouge .gs {
 <li>
 <p>User rights and contact information</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Basic Consent Collection</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Implement granular consent during onboarding</p>
 </li>
@@ -3405,13 +3332,13 @@ pre.rouge .gs {
 <li>
 <p>Add consent withdrawal mechanisms</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Data Security Validation</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Review encryption implementation (at rest and in transit)</p>
 </li>
@@ -3421,41 +3348,28 @@ pre.rouge .gs {
 <li>
 <p>Implement basic logging for data access</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 </ol>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_phase_2_essential_next_60_days"><a class="anchor" href="#_phase_2_essential_next_60_days"></a><a class="link" href="#_phase_2_essential_next_60_days">11.3.2. Phase 2 - Essential (Next 60 Days)</a></h4>
+<h4 id="_phase_2_essential_in_progress"><a class="link" href="#_phase_2_essential_in_progress">Phase 2 - Essential (IN PROGRESS)</a></h4>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><strong>Privacy Dashboard Implementation</strong></p>
-<div class="ulist">
-<ul>
-<li>
-<p>User interface for privacy settings management</p>
-</li>
-<li>
-<p>Consent status visibility</p>
-</li>
-<li>
-<p>Data download and deletion options</p>
-</li>
-</ul>
-</div>
+<p><strong>Privacy Dashboard Implementation</strong> (COMPLETE)</p>
 </li>
 <li>
 <p><strong>Data Subject Rights Endpoints</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
-<p>Data access requests (GDPR Article 15)</p>
+<p>Data access requests (GDPR Article 15) (COMPLETE)</p>
 </li>
 <li>
-<p>Data deletion/erasure (GDPR Article 17)</p>
+<p>Data deletion/erasure (GDPR Article 17) (COMPLETE)</p>
 </li>
 <li>
 <p>Data portability (GDPR Article 20)</p>
@@ -3463,13 +3377,13 @@ pre.rouge .gs {
 <li>
 <p>Data rectification (GDPR Article 16)</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Technical Safeguards</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Enhanced database encryption at rest</p>
 </li>
@@ -3479,13 +3393,13 @@ pre.rouge .gs {
 <li>
 <p>Automated data retention policies</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Documentation</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Record of Processing Activities (ROPA)</p>
 </li>
@@ -3495,20 +3409,20 @@ pre.rouge .gs {
 <li>
 <p>Breach response procedures</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 </ol>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_phase_3_advanced_next_90_days"><a class="anchor" href="#_phase_3_advanced_next_90_days"></a><a class="link" href="#_phase_3_advanced_next_90_days">11.3.3. Phase 3 - Advanced (Next 90 Days)</a></h4>
+<h4 id="_phase_3_advanced_future"><a class="link" href="#_phase_3_advanced_future">Phase 3 - Advanced (FUTURE)</a></h4>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
 <p><strong>Advanced Privacy Features</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Privacy by design integration</p>
 </li>
@@ -3518,13 +3432,13 @@ pre.rouge .gs {
 <li>
 <p>Staff training on privacy requirements</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Monitoring &amp; Auditing</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Regular compliance audits</p>
 </li>
@@ -3534,13 +3448,13 @@ pre.rouge .gs {
 <li>
 <p>Data breach detection systems</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 <li>
 <p><strong>Advanced Consent Management</strong></p>
-<div class="ulist">
-<ul>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
 <p>Consent versioning system</p>
 </li>
@@ -3550,7 +3464,7 @@ pre.rouge .gs {
 <li>
 <p>Consent analytics and reporting</p>
 </li>
-</ul>
+</ol>
 </div>
 </li>
 </ol>
@@ -3558,24 +3472,24 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="dev-learnings"><a class="anchor" href="#dev-learnings"></a><a class="link" href="#dev-learnings">11.4. Key Development Learnings</a></h3>
+<h3 id="dev-learnings"><a class="link" href="#dev-learnings">Key Development Learnings</a></h3>
 <div class="sect3">
-<h4 id="_angular_development"><a class="anchor" href="#_angular_development"></a><a class="link" href="#_angular_development">11.4.1. Angular Development</a></h4>
-<div class="dlist">
+<h4 id="_angular_development"><a class="link" href="#_angular_development">Angular Development</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>AOT Compilation</strong></dt>
+<dt><strong>AOT Compilation</strong></dt>
 <dd>
-<p>Angular&#8217;s AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).</p>
+<p>Angular’s AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).</p>
 </dd>
-<dt class="hdlist1"><strong>Standalone Component Imports</strong></dt>
+<dt><strong>Standalone Component Imports</strong></dt>
 <dd>
 <p>Every standalone component must explicitly import all modules it directly uses in its <code>@Component({ imports: [&#8230;&#8203;] })</code> array. Missing imports cause runtime errors.</p>
 </dd>
-<dt class="hdlist1"><strong>Data Flow Patterns</strong></dt>
+<dt><strong>Data Flow Patterns</strong></dt>
 <dd>
-<p>Be mindful of Angular&#8217;s unidirectional data flow. Use <code>@Input</code> for data down, <code>@Output</code> for events up. Avoid direct child manipulation.</p>
+<p>Be mindful of Angular’s unidirectional data flow. Use <code>@Input</code> for data down, <code>@Output</code> for events up. Avoid direct child manipulation.</p>
 </dd>
-<dt class="hdlist1"><strong>Template Logic</strong></dt>
+<dt><strong>Template Logic</strong></dt>
 <dd>
 <p>Use getters in TypeScript for complex template logic (e.g., <code>filteredRestrictionsForCurrentPerson</code>). This resolved "Parser Error: Bindings cannot contain assignments" issues.</p>
 </dd>
@@ -3583,18 +3497,18 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_backend_development"><a class="anchor" href="#_backend_development"></a><a class="link" href="#_backend_development">11.4.2. Backend Development</a></h4>
-<div class="dlist">
+<h4 id="_backend_development"><a class="link" href="#_backend_development">Backend Development</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>API URL Management</strong></dt>
+<dt><strong>API URL Management</strong></dt>
 <dd>
 <p>Always double-check <code>apiUrl</code> constants in frontend services. These frequently need adjustment between local development and deployment environments.</p>
 </dd>
-<dt class="hdlist1"><strong>Interceptor Order</strong></dt>
+<dt><strong>Interceptor Order</strong></dt>
 <dd>
 <p>The order of <code>HTTP_INTERCEPTORS</code> in <code>app.config.ts</code> matters. Ensure <code>BearerInterceptor</code> runs before <code>ApiInteractionInterceptor</code>.</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy Compliance</strong></dt>
+<dt><strong>Privacy Compliance</strong></dt>
 <dd>
 <p>Always consider data minimization when adding new data collection points. Document the lawful basis for any new personal data processing.</p>
 </dd>
@@ -3602,18 +3516,18 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_debugging_tips"><a class="anchor" href="#_debugging_tips"></a><a class="link" href="#_debugging_tips">11.4.3. Debugging Tips</a></h4>
-<div class="dlist">
+<h4 id="_debugging_tips"><a class="link" href="#_debugging_tips">Debugging Tips</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Browser Caching</strong></dt>
+<dt><strong>Browser Caching</strong></dt>
 <dd>
 <p>During frontend development, browser caching can cause issues. Clear browser cache or use "Incognito/Private" mode. <code>ng serve</code> usually handles this well.</p>
 </dd>
-<dt class="hdlist1"><strong>Clean Builds</strong></dt>
+<dt><strong>Clean Builds</strong></dt>
 <dd>
 <p>For persistent issues, perform clean builds: <code>npm install</code>, delete <code>.angular</code> and <code>dist</code> directories, then rebuild.</p>
 </dd>
-<dt class="hdlist1"><strong>Service Scope Issues</strong></dt>
+<dt><strong>Service Scope Issues</strong></dt>
 <dd>
 <p>Resolved <code>ServiceScopeFactory</code> reference errors in <code>Program.cs</code> by ensuring proper dependency injection configuration.</p>
 </dd>
@@ -3622,9 +3536,9 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="dependencies"><a class="anchor" href="#dependencies"></a><a class="link" href="#dependencies">11.5. Required Dependencies</a></h3>
+<h3 id="dependencies"><a class="link" href="#dependencies">Required Dependencies</a></h3>
 <div class="sect3">
-<h4 id="_frontend_dependencies_nom_ui"><a class="anchor" href="#_frontend_dependencies_nom_ui"></a><a class="link" href="#_frontend_dependencies_nom_ui">11.5.1. Frontend Dependencies (nom-ui)</a></h4>
+<h4 id="_frontend_dependencies_nom_ui"><a class="link" href="#_frontend_dependencies_nom_ui">Frontend Dependencies (nom-ui)</a></h4>
 <div class="listingblock">
 <div class="content">
 <pre class="rouge highlight"><code data-lang="json"><span class="p">{</span><span class="w">
@@ -3638,32 +3552,31 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_backend_dependencies_c_projects"><a class="anchor" href="#_backend_dependencies_c_projects"></a><a class="link" href="#_backend_dependencies_c_projects">11.5.2. Backend Dependencies (C# Projects)</a></h4>
+<h4 id="_backend_dependencies_c_projects"><a class="link" href="#_backend_dependencies_c_projects">Backend Dependencies (C# Projects)</a></h4>
 <div class="listingblock">
 <div class="content">
 <pre class="rouge highlight"><code data-lang="xml"><span class="nt">&lt;PackageReference</span> <span class="na">Include=</span><span class="s">"Microsoft.AspNetCore.Authentication.JwtBearer"</span> <span class="nt">/&gt;</span>
 <span class="nt">&lt;PackageReference</span> <span class="na">Include=</span><span class="s">"Microsoft.EntityFrameworkCore.Design"</span> <span class="nt">/&gt;</span>
-<span class="nt">&lt;PackageReference</span> <span class="na">Include=</span><span class="s">"Microsoft.Extensions.Http"</span> <span class="nt">/&gt;</span>
 <span class="nt">&lt;PackageReference</span> <span class="na">Include=</span><span class="s">"Npgsql.EntityFrameworkCore.PostgreSQL"</span> <span class="nt">/&gt;</span></code></pre>
 </div>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="workflow"><a class="anchor" href="#workflow"></a><a class="link" href="#workflow">11.6. Development Workflow &amp; Best Practices</a></h3>
+<h3 id="workflow"><a class="link" href="#workflow">Development Workflow &amp; Best Practices</a></h3>
 <div class="sect3">
-<h4 id="_version_control"><a class="anchor" href="#_version_control"></a><a class="link" href="#_version_control">11.6.1. Version Control</a></h4>
-<div class="dlist">
+<h4 id="_version_control"><a class="link" href="#_version_control">Version Control</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Feature Branches</strong></dt>
+<dt><strong>Feature Branches</strong></dt>
 <dd>
 <p>All new development occurs on dedicated feature branches, branched off <code>main</code>.</p>
 </dd>
-<dt class="hdlist1"><strong>Pull Requests</strong></dt>
+<dt><strong>Pull Requests</strong></dt>
 <dd>
 <p>All code changes submitted via PRs, requiring at least one reviewer.</p>
 </dd>
-<dt class="hdlist1"><strong>Code Reviews</strong></dt>
+<dt><strong>Code Reviews</strong></dt>
 <dd>
 <p>Focus on consistency, privacy considerations, architectural patterns, testability, and clarity.</p>
 </dd>
@@ -3671,22 +3584,22 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_quality_assurance"><a class="anchor" href="#_quality_assurance"></a><a class="link" href="#_quality_assurance">11.6.2. Quality Assurance</a></h4>
-<div class="dlist">
+<h4 id="_quality_assurance"><a class="link" href="#_quality_assurance">Quality Assurance</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Privacy Reviews</strong></dt>
+<dt><strong>Privacy Reviews</strong></dt>
 <dd>
 <p>All new features involving personal data must undergo privacy impact assessment.</p>
 </dd>
-<dt class="hdlist1"><strong>Unit Testing</strong></dt>
+<dt><strong>Unit Testing</strong></dt>
 <dd>
 <p>Implement unit tests for services (using mocks) and isolated component logic.</p>
 </dd>
-<dt class="hdlist1"><strong>End-to-End Testing</strong></dt>
+<dt><strong>End-to-End Testing</strong></dt>
 <dd>
 <p>Critical user flows covered by E2E tests, especially privacy-related workflows.</p>
 </dd>
-<dt class="hdlist1"><strong>Linting</strong></dt>
+<dt><strong>Linting</strong></dt>
 <dd>
 <p>Pre-commit hooks enforce linting rules (ESLint for TypeScript, Stylelint for SCSS).</p>
 </dd>
@@ -3694,18 +3607,18 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_documentation_standards"><a class="anchor" href="#_documentation_standards"></a><a class="link" href="#_documentation_standards">11.6.3. Documentation Standards</a></h4>
-<div class="dlist">
+<h4 id="_documentation_standards"><a class="link" href="#_documentation_standards">Documentation Standards</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Code Documentation</strong></dt>
+<dt><strong>Code Documentation</strong></dt>
 <dd>
 <p>Inline comments for complex privacy-related logic.</p>
 </dd>
-<dt class="hdlist1"><strong>API Documentation</strong></dt>
+<dt><strong>API Documentation</strong></dt>
 <dd>
 <p>All privacy endpoints documented with OpenAPI/Swagger.</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy Documentation</strong></dt>
+<dt><strong>Privacy Documentation</strong></dt>
 <dd>
 <p>GDPR compliance documentation maintained alongside code changes.</p>
 </dd>
@@ -3716,16 +3629,16 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="future-scope"><a class="anchor" href="#future-scope"></a><a class="link" href="#future-scope">12. Future Considerations &amp; Scope</a></h2>
+<h2 id="future-scope"><a class="link" href="#future-scope">Future Considerations &amp; Scope</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_out_of_scope_current_project_phase"><a class="anchor" href="#_out_of_scope_current_project_phase"></a><a class="link" href="#_out_of_scope_current_project_phase">12.1. Out of Scope (Current Project Phase)</a></h3>
+<h3 id="_out_of_scope_current_project_phase"><a class="link" href="#_out_of_scope_current_project_phase">Out of Scope (Current Project Phase)</a></h3>
 <div class="paragraph">
 <p>The following features are explicitly excluded from the current development phase but may be considered for future enhancements:</p>
 </div>
-<div class="dlist">
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Recipe Management</strong></dt>
+<dt><strong>Recipe Management</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3744,7 +3657,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Advanced Features</strong></dt>
+<dt><strong>Advanced Features</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3763,7 +3676,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Integration Features</strong></dt>
+<dt><strong>Integration Features</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3783,12 +3696,12 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="future-enhancements"><a class="anchor" href="#future-enhancements"></a><a class="link" href="#future-enhancements">12.2. Future Enhancements</a></h3>
+<h3 id="future-enhancements"><a class="link" href="#future-enhancements">Future Enhancements</a></h3>
 <div class="sect3">
-<h4 id="_planned_enhancements"><a class="anchor" href="#_planned_enhancements"></a><a class="link" href="#_planned_enhancements">12.2.1. Planned Enhancements</a></h4>
-<div class="dlist">
+<h4 id="_planned_enhancements"><a class="link" href="#_planned_enhancements">Planned Enhancements</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>USDA FoodData Central Integration</strong></dt>
+<dt><strong>USDA FoodData Central Integration</strong></dt>
 <dd>
 <p>When implemented in a future phase, this will include:</p>
 <div class="ulist">
@@ -3808,7 +3721,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Advanced Meal Planning</strong></dt>
+<dt><strong>Advanced Meal Planning</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3827,7 +3740,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Social Features</strong></dt>
+<dt><strong>Social Features</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3850,10 +3763,10 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect3">
-<h4 id="_technical_evolution"><a class="anchor" href="#_technical_evolution"></a><a class="link" href="#_technical_evolution">12.2.2. Technical Evolution</a></h4>
-<div class="dlist">
+<h4 id="_technical_evolution"><a class="link" href="#_technical_evolution">Technical Evolution</a></h4>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Architecture Scalability</strong></dt>
+<dt><strong>Architecture Scalability</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3872,7 +3785,7 @@ pre.rouge .gs {
 </ul>
 </div>
 </dd>
-<dt class="hdlist1"><strong>Privacy Enhancements</strong></dt>
+<dt><strong>Privacy Enhancements</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3898,23 +3811,23 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="source-control"><a class="anchor" href="#source-control"></a><a class="link" href="#source-control">13. Source Control and File Organization</a></h2>
+<h2 id="source-control"><a class="link" href="#source-control">Source Control and File Organization</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_github_repository_structure"><a class="anchor" href="#_github_repository_structure"></a><a class="link" href="#_github_repository_structure">13.1. GitHub Repository Structure</a></h3>
+<h3 id="_github_repository_structure"><a class="link" href="#_github_repository_structure">GitHub Repository Structure</a></h3>
 <div class="paragraph">
 <div class="title">Repository Base URL</div>
 <p><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/</a></p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="backend-files"><a class="anchor" href="#backend-files"></a><a class="link" href="#backend-files">13.2. Backend Files (C# - .NET Solution)</a></h3>
+<h3 id="backend-files"><a class="link" href="#backend-files">Backend Files (C# - .NET Solution)</a></h3>
 <div class="sect3">
-<h4 id="_project_nom_data"><a class="anchor" href="#_project_nom_data"></a><a class="link" href="#_project_nom_data">13.2.1. Project: Nom.Data</a></h4>
+<h4 id="_project_nom_data"><a class="link" href="#_project_nom_data">Project: Nom.Data</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -3955,11 +3868,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_project_nom_orch"><a class="anchor" href="#_project_nom_orch"></a><a class="link" href="#_project_nom_orch">13.2.2. Project: Nom.Orch</a></h4>
+<h4 id="_project_nom_orch"><a class="link" href="#_project_nom_orch">Project: Nom.Orch</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -3977,22 +3890,6 @@ pre.rouge .gs {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PersonOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PersonOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Person/PersonDetailsRequest.cs</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonDetailsRequest.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonDetailsRequest.cs</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Person/PersonAttributeRequest.cs</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonAttributeRequest.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/PersonAttributeRequest.cs</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Person/RestrictionRequest.cs</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/RestrictionRequest.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/RestrictionRequest.cs</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Person/OnboardingCompleteRequest.cs</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/OnboardingCompleteRequest.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Models/Person/OnboardingCompleteRequest.cs</a></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IRestrictionOrchestrationService.cs</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IRestrictionOrchestrationService.cs</a></p></td>
 </tr>
@@ -4001,54 +3898,54 @@ pre.rouge .gs {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/RestrictionOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/RestrictionOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IPrivacyOrchestrationService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IPrivacyOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IPrivacyOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IPrivacyOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/PrivacyOrchestrationService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/PrivacyOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PrivacyOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/PrivacyOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IConsentManagementService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IAuditOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IAuditOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IAuditOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/ConsentManagementService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/AuditOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/AuditOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/AuditOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IDataAnonymizationService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IBackgroundTaskQueueOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IBackgroundTaskQueueOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IBackgroundTaskQueueOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/DataAnonymizationService.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/BackgroundTaskQueueOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/BackgroundTaskQueueOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/BackgroundTaskQueueOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Privacy/ConsentRequest.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IDataAnonymizationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IDataAnonymizationOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IDataAnonymizationOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Privacy/DataExportRequest.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/DataAnonymizationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/DataAnonymizationOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/DataAnonymizationOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Models/Privacy/DataDeletionRequest.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Interfaces/IDataExportOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IDataExportOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Interfaces/IDataExportOrchestrationService.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ServiceCollectionExtensions.cs</code> <strong>(UPDATED)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/ServiceCollectionExtensions.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/ServiceCollectionExtensions.cs</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Services/DataExportOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/DataExportOrchestrationService.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Orch/Services/DataExportOrchestrationService.cs</a></p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect3">
-<h4 id="_project_nom_api"><a class="anchor" href="#_project_nom_api"></a><a class="link" href="#_project_nom_api">13.2.3. Project: Nom.Api</a></h4>
+<h4 id="_project_nom_api"><a class="link" href="#_project_nom_api">Project: Nom.Api</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4066,8 +3963,8 @@ pre.rouge .gs {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/RestrictionController.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/RestrictionController.cs</a></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Controllers/PrivacyController.cs</code> <strong>(NEW)</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">[To Be Created]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Controllers/PrivacyController.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/PrivacyController.cs" class="bare">https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Api/Controllers/PrivacyController.cs</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Program.cs</code> <strong>(For DI registration and configuration)</strong></p></td>
@@ -4078,13 +3975,13 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="frontend-files"><a class="anchor" href="#frontend-files"></a><a class="link" href="#frontend-files">13.3. Frontend Files (Angular - nom-ui)</a></h3>
+<h3 id="frontend-files"><a class="link" href="#frontend-files">Frontend Files (Angular - nom-ui)</a></h3>
 <div class="sect3">
-<h4 id="_root_configuration"><a class="anchor" href="#_root_configuration"></a><a class="link" href="#_root_configuration">13.3.1. Root Configuration</a></h4>
+<h4 id="_root_configuration"><a class="link" href="#_root_configuration">Root Configuration</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4117,11 +4014,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_common_utilities"><a class="anchor" href="#_common_utilities"></a><a class="link" href="#_common_utilities">13.3.2. Common Utilities</a></h4>
+<h4 id="_common_utilities"><a class="link" href="#_common_utilities">Common Utilities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4146,11 +4043,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_person_domain"><a class="anchor" href="#_person_domain"></a><a class="link" href="#_person_domain">13.3.3. Person Domain</a></h4>
+<h4 id="_person_domain"><a class="link" href="#_person_domain">Person Domain</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4199,11 +4096,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_restriction_domain"><a class="anchor" href="#_restriction_domain"></a><a class="link" href="#_restriction_domain">13.3.4. Restriction Domain</a></h4>
+<h4 id="_restriction_domain"><a class="link" href="#_restriction_domain">Restriction Domain</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4236,11 +4133,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_privacy_domain_new"><a class="anchor" href="#_privacy_domain_new"></a><a class="link" href="#_privacy_domain_new">13.3.5. Privacy Domain (NEW)</a></h4>
+<h4 id="_privacy_domain_new"><a class="link" href="#_privacy_domain_new">Privacy Domain (NEW)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4293,11 +4190,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_plan_domain_skeleton"><a class="anchor" href="#_plan_domain_skeleton"></a><a class="link" href="#_plan_domain_skeleton">13.3.6. Plan Domain (Skeleton)</a></h4>
+<h4 id="_plan_domain_skeleton"><a class="link" href="#_plan_domain_skeleton">Plan Domain (Skeleton)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4322,11 +4219,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_onboarding_feature"><a class="anchor" href="#_onboarding_feature"></a><a class="link" href="#_onboarding_feature">13.3.7. Onboarding Feature</a></h4>
+<h4 id="_onboarding_feature"><a class="link" href="#_onboarding_feature">Onboarding Feature</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4355,11 +4252,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_authentication_components"><a class="anchor" href="#_authentication_components"></a><a class="link" href="#_authentication_components">13.3.8. Authentication Components</a></h4>
+<h4 id="_authentication_components"><a class="link" href="#_authentication_components">Authentication Components</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4392,11 +4289,11 @@ pre.rouge .gs {
 </table>
 </div>
 <div class="sect3">
-<h4 id="_authentication_services_models"><a class="anchor" href="#_authentication_services_models"></a><a class="link" href="#_authentication_services_models">13.3.9. Authentication Services &amp; Models</a></h4>
+<h4 id="_authentication_services_models"><a class="link" href="#_authentication_services_models">Authentication Services &amp; Models</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
+<col style="width: 33%;">
+<col style="width: 67%;">
 </colgroup>
 <thead>
 <tr>
@@ -4428,28 +4325,28 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect1">
-<h2 id="conclusion"><a class="anchor" href="#conclusion"></a><a class="link" href="#conclusion">14. Conclusion</a></h2>
+<h2 id="conclusion"><a class="link" href="#conclusion">Conclusion</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. The document serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.</p>
 </div>
 <div class="sect2">
-<h3 id="_key_achievements"><a class="anchor" href="#_key_achievements"></a><a class="link" href="#_key_achievements">14.1. Key Achievements</a></h3>
-<div class="dlist">
+<h3 id="_key_achievements"><a class="link" href="#_key_achievements">Key Achievements</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Comprehensive Architecture</strong></dt>
+<dt><strong>Comprehensive Architecture</strong></dt>
 <dd>
 <p>The specification defines a complete, scalable architecture that separates concerns appropriately while maintaining clear data flow and integration points.</p>
 </dd>
-<dt class="hdlist1"><strong>Privacy by Design</strong></dt>
+<dt><strong>Privacy by Design</strong></dt>
 <dd>
 <p>GDPR compliance requirements are integrated throughout the system design, from data collection to storage and user rights management.</p>
 </dd>
-<dt class="hdlist1"><strong>Clear Development Path</strong></dt>
+<dt><strong>Clear Development Path</strong></dt>
 <dd>
 <p>The phased implementation approach provides concrete milestones and deliverables, allowing for iterative development and validation.</p>
 </dd>
-<dt class="hdlist1"><strong>Strict Standards</strong></dt>
+<dt><strong>Strict Standards</strong></dt>
 <dd>
 <p>Naming conventions and coding standards ensure consistency and maintainability across the entire codebase.</p>
 </dd>
@@ -4457,22 +4354,22 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_strategic_value"><a class="anchor" href="#_strategic_value"></a><a class="link" href="#_strategic_value">14.2. Strategic Value</a></h3>
-<div class="dlist">
+<h3 id="_strategic_value"><a class="link" href="#_strategic_value">Strategic Value</a></h3>
+<div class="dlist dlist">
 <dl>
-<dt class="hdlist1"><strong>Regulatory Compliance</strong></dt>
+<dt><strong>Regulatory Compliance</strong></dt>
 <dd>
 <p>The privacy-first approach positions NOM for successful operation in global markets, particularly the EU where GDPR compliance is mandatory.</p>
 </dd>
-<dt class="hdlist1"><strong>User Trust</strong></dt>
+<dt><strong>User Trust</strong></dt>
 <dd>
 <p>Transparent data handling and robust privacy controls build user confidence, critical for health applications handling sensitive personal information.</p>
 </dd>
-<dt class="hdlist1"><strong>Scalable Foundation</strong></dt>
+<dt><strong>Scalable Foundation</strong></dt>
 <dd>
 <p>The modular, domain-driven architecture supports future growth and feature expansion without architectural debt.</p>
 </dd>
-<dt class="hdlist1"><strong>Competitive Advantage</strong></dt>
+<dt><strong>Competitive Advantage</strong></dt>
 <dd>
 <p>Privacy compliance as a core feature differentiates NOM in a market where user trust is paramount.</p>
 </dd>
@@ -4480,7 +4377,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_next_steps"><a class="anchor" href="#_next_steps"></a><a class="link" href="#_next_steps">14.3. Next Steps</a></h3>
+<h3 id="_next_steps"><a class="link" href="#_next_steps">Next Steps</a></h3>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -4505,19 +4402,24 @@ pre.rouge .gs {
 </div>
 <hr>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. Document Information</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
 </colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Document Information</th>
+<th class="tableblock halign-left valign-top"></th>
+</tr>
+</thead>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Version</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">1.4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.6</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Date</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">July 17, 2025</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">July 19, 2025</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Status</p></td>
@@ -4535,7 +4437,8 @@ pre.rouge .gs {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-07-17 01:11:32 -0600
+Version 1.6<br>
+Last updated 2025-07-19 23:32:52 -0600
 </div>
 </div>
 </body>
