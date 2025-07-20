@@ -9,10 +9,13 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "build-nom-api",
+      "label": "build-nom-import",
       "command": "dotnet",
       "type": "process",
-      "args": ["build", "${workspaceFolder}/nom-api/Nom.Api/Nom.Api.csproj"],
+      "args": [
+        "build",
+        "${workspaceFolder}/nom-api/Nom.Import/Nom.Import.csproj"
+      ],
       "problemMatcher": "$msCompile"
     }
   ]

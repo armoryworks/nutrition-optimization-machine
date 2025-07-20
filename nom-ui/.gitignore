@@ -2,4 +2,4 @@
 /.angular
 *.development.json
 
-**/DataImportSqlScripts/Source
+**/DataImportScripts/Source

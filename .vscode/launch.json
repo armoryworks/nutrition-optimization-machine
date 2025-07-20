@@ -2,20 +2,43 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": ".NET Core Launch (Nom.Api)",
       "type": "coreclr",
       "request": "launch",
-      "name": "Launch Nom.Api",
-      "program": "${workspaceFolder}/nom-api/Nom.Api/bin/Debug/net9.0/${input:executableName}",
+      "preLaunchTask": "build-nom-api",
+      "program": "${workspaceFolder}/nom-api/Nom.Api/bin/Debug/net9.0/Nom.Api.dll",
       "args": [],
       "cwd": "${workspaceFolder}/nom-api/Nom.Api",
-      "preLaunchTask": "build-nom-api"
-    }
-  ],
-  "inputs": [
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/Views"
+      }
+    },
     {
-      "id": "executableName",
-      "type": "promptString",
-      "description": "Enter the Nom.Api executable name (e.g., Nom.Api.dll)"
+      "name": ".NET Core Launch (Nom.Import Console)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-nom-import",
+      "program": "${workspaceFolder}/nom-api/Nom.Import/bin/Debug/net9.0/Nom.Import.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/nom-api/Nom.Import",
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": ".NET Core Attach",
+      "type": "coreclr",
+      "request": "attach"
     }
   ]
 }

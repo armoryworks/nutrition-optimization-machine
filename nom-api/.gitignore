@@ -412,4 +412,4 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-**/DataImportSqlScripts/Source
+**/DataImportScripts/Source
