@@ -1,8 +1,8 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 19, 2025
-:revnumber: 1.7
+:revdate: July 20, 2025
+:revnumber: 1.8
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -31,10 +31,10 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 [NOTE]
 ====
 .Current Development Status
-* *Core User Onboarding*: The core user onboarding workflow is largely implemented on the frontend and integrated with the backend Person and Restriction services.
+* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records. [cite: OnboardingWorkflowComponent, PersonOrchestrationService]
 * *Data Models*: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance.
-* *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (`PrivacySettingsComponent`) allowing users to manage their data rights, including a robust confirmation dialog for critical actions. [cite: PrivacyController.cs, PrivacySettingsComponent]
-* *Immediate Next Focus*: Work is now focused on completing the multi-participant onboarding flow on the frontend.
+* *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (`PrivacySettingsComponent`) allowing users to manage their data rights.
+* *Immediate Next Focus*: Development will now shift to the integration with the USDA FoodData Central API to build the foundational dataset for nutritional analysis.
 ====
 
 [#_user_roles_personas]
@@ -1840,3 +1840,4 @@ The NOM platform is positioned to become a leader in privacy-conscious nutrition
 | Next Review
 | 30 days post-implementation start
 |===
+

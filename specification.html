@@ -558,8 +558,8 @@ pre.rouge .gs {
 <h1>Nutritional Optimization Machine (NOM) Program: Business Analysis Specification</h1>
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
-<span id="revnumber">version 1.7,</span>
-<span id="revdate">July 19, 2025</span>
+<span id="revnumber">version 1.8,</span>
+<span id="revdate">July 20, 2025</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -842,16 +842,16 @@ pre.rouge .gs {
 <div class="title">Current Development Status</div>
 <ul>
 <li>
-<p><strong>Core User Onboarding</strong>: The core user onboarding workflow is largely implemented on the frontend and integrated with the backend Person and Restriction services.</p>
+<p><strong>User Onboarding (COMPLETE)</strong>: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records. [cite: OnboardingWorkflowComponent, PersonOrchestrationService]</p>
 </li>
 <li>
 <p><strong>Data Models</strong>: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance.</p>
 </li>
 <li>
-<p><strong>Privacy &amp; Compliance Feature (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (<code>PrivacySettingsComponent</code>) allowing users to manage their data rights, including a robust confirmation dialog for critical actions. [cite: PrivacyController.cs, PrivacySettingsComponent]</p>
+<p><strong>Privacy &amp; Compliance Feature (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (<code>PrivacySettingsComponent</code>) allowing users to manage their data rights.</p>
 </li>
 <li>
-<p><strong>Immediate Next Focus</strong>: Work is now focused on completing the multi-participant onboarding flow on the frontend.</p>
+<p><strong>Immediate Next Focus</strong>: Development will now shift to the integration with the USDA FoodData Central API to build the foundational dataset for nutritional analysis.</p>
 </li>
 </ul>
 </div>
@@ -4433,8 +4433,8 @@ pre.rouge .gs {
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 1.7<br>
-Last updated 2025-07-19 23:46:10 -0600
+Version 1.8<br>
+Last updated 2025-07-20 01:00:13 -0600
 </div>
 </div>
 </body>

@@ -1,3 +1,4 @@
+<!-- File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html -->
 <div class="nom-page-container">
   <mat-card class="nom-card">
     <mat-card-header class="nom-card__header">
@@ -14,11 +15,7 @@
       color="primary"
       class="nom-card__progress-bar"
     ></mat-progress-bar>
-    }
-
-    <!-- Error and Submission Messages are still conditionally rendered. -->
-    <!-- Their parent <mat-card-content> should be consistently present. -->
-    @if (error && !submitMessage) {
+    } @if (error && !submitMessage) {
     <mat-card-content class="nom-card__content">
       <div class="nom-form__error form-level-error nom-message-text mb-4">
         {{ error }}
@@ -46,8 +43,6 @@
     </mat-card-content>
     }
 
-    <!-- The main content area that always wraps the individual step components -->
-    <!-- This `mat-card-content` is now always present, resolving nesting issues -->
     <mat-card-content class="nom-card__content">
       <!-- Step 1: Invitation Code -->
       @if (currentStep?.id === 'invitationCode') {
@@ -231,16 +226,14 @@
       </div>
       }
     </mat-card-content>
-    <!-- END OF main <mat-card-content> tag -->
 
-    <!-- Conditional Navigation Buttons - hidden if current step ID is in NO_FLOW_STEPS -->
     @if (!submitMessage && currentStep?.id) {
     <mat-card-actions
       class="nom-card__footer flex justify-between items-center px-6 py-4"
     >
       @if(currentStepIndex > 0){
       <button
-        mat-raised-button
+        mat-button
         color="accent"
         (click)="previousStep()"
         [disabled]="currentStepIndex === 0 || isLoading || isSubmitting"
@@ -250,8 +243,7 @@
       </button>
       } @if(NO_FLOW_STEPS.indexOf(currentStep?.id) < 0){ @if (isSkippable()) {
       <button
-        mat-raised-button
-        color="primary"
+        mat-stroked-button
         (click)="skipCurrentStep()"
         [disabled]="isLoading || isSubmitting"
         class="nom-button"

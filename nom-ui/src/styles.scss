@@ -93,6 +93,10 @@ html {
   &__footer {
     padding-top: 15px;
     text-align: center;
+    .mat-spinner {
+      display: inline-block;
+      vertical-align: middle;
+    }
   }
 }
 

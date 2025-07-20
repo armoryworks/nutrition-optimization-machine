@@ -41,6 +41,47 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
+        /// Creates a new person if one does not already exist for the current user,
+        /// otherwise updates the existing person's name.
+        /// </summary>
+        public async Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel request)
+        {
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User is not authenticated.");
+            }
+
+            var existingPerson = await _dbContext.Persons
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (existingPerson != null)
+            {
+                // Person exists, update their name
+                existingPerson.Name = request.PersonName;
+                _dbContext.Persons.Update(existingPerson);
+                await _dbContext.SaveChangesAsync();
+
+                return new PersonCreateResponseModel { Id = existingPerson.Id, Name = existingPerson.Name, UserId = existingPerson.UserId };
+            }
+            else
+            {
+                // Person does not exist, create a new one
+                var newPerson = new PersonEntity
+                {
+                    Name = request.PersonName,
+                    UserId = userId,
+                    InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                };
+
+                _dbContext.Persons.Add(newPerson);
+                await _dbContext.SaveChangesAsync();
+
+                return new PersonCreateResponseModel { Id = newPerson.Id, Name = newPerson.Name, UserId = newPerson.UserId };
+            }
+        }
+
+        /// <summary>
         /// Sets up a new Person entity after successful user registration.
         /// Creates a Person record, generates an invitation code, and saves to the database.
         /// </summary>

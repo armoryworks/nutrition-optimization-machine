@@ -20,6 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PersonService } from '../../services/person.service';
+import { PersonCreateResponseModel } from '../../models/person-create-response.model';
 
 @Component({
   selector: 'app-person-creation',
@@ -38,7 +39,7 @@ import { PersonService } from '../../services/person.service';
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonCreationComponent implements OnInit {
-  @Output() personCreated = new EventEmitter<number>();
+  @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
 
   personForm!: FormGroup;
   isSubmitting: boolean = false;
@@ -71,11 +72,11 @@ export class PersonCreationComponent implements OnInit {
     const personName = this.personForm.get('name')?.value;
 
     this.personService
-      .createPerson({ personName })
+      .upsertPerson({ personName }) // Updated to call the new method
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe({
         next: (response) => {
-          this.personCreated.emit(response.id);
+          this.personSubmitted.emit(response);
         },
         error: (err) => {
           console.error('Error creating person:', err);

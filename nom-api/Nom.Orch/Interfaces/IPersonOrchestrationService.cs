@@ -1,7 +1,6 @@
-// Nom.Orch/Interfaces/IPersonOrchestrationService.cs
+// File: Nom.Orch/Interfaces/IPersonOrchestrationService.cs
 using System.Threading.Tasks;
-using Nom.Data.Person;
-using Nom.Orch.Models.Person; // Assuming PersonEntity is needed here
+using Nom.Orch.Models.Person;
 
 namespace Nom.Orch.Interfaces
 {
@@ -12,13 +11,12 @@ namespace Nom.Orch.Interfaces
     public interface IPersonOrchestrationService
     {
         /// <summary>
-        /// Handles the creation and initial setup of a Person entity
-        /// after a new user has successfully registered in the authentication system.
+        /// Creates a new person if one does not already exist for the current user,
+        /// otherwise updates the existing person's name. This prevents duplicate entries.
         /// </summary>
-        /// <param name="identityUserId">The ID of the newly created IdentityUser.</param>
-        /// <param name="personName">The initial name for the person.</param>
-        /// <returns>The created PersonEntity.</returns>
-        Task<PersonEntity> SetupNewRegisteredPersonAsync(string identityUserId, string personName);
+        /// <param name="request">The person data to create or update.</param>
+        /// <returns>A response containing the ID of the created or updated person.</returns>
+        Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel request);
 
         /// <summary>
         /// Generates a unique invitation code for a person.
@@ -27,10 +25,7 @@ namespace Nom.Orch.Interfaces
         Task<string> GenerateUniqueInvitationCodeAsync();
 
         Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
-        // Add other person-related orchestration methods here as needed
-
 
         long GetCurrentPersonId();
-
     }
 }

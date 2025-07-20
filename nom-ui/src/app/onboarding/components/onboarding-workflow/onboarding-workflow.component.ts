@@ -1,3 +1,5 @@
+// File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
+
 import {
   Component,
   OnInit,
@@ -330,10 +332,9 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
 
   onPersonDetailsSubmitted(person: PersonModel): void {
     this.isLoading = true;
-    // Assuming personService.createPerson expects a PersonModel object now, not just a name string.
-    // If it expects `person.name`, change `person` to `person.name` here.
+    // *** FIX: Create the correct payload for the service call ***
     this.personService
-      .createPerson(person)
+      .upsertPerson({ personName: person.name })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {

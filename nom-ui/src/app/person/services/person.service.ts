@@ -3,8 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { OnboardingCompleteRequestModel } from '../../onboarding/models/onboarding-complete-request.model';
 import { ApiResponseCommonModel } from '../../common/models/api-response-common.model';
-import { PersonModel } from '../models/person.model'; // Ensure this import is correct
-
+import { PersonCreateModel } from '../models/person-create.model';
+import { PersonCreateResponseModel } from '../models/person-create-response.model';
 @Injectable({
   providedIn: 'root',
 })
@@ -14,19 +14,15 @@ export class PersonService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Creates a new person record.
-   * Accepts a PersonModel and sends its name to the backend.
-   * Additional properties can be expanded here as needed by the backend for person creation.
+   * Creates a new person record or updates an existing one for the authenticated user.
+   * This prevents duplicate records.
+   * @param model The person data containing the name.
    */
-  createPerson(personData: PersonModel): Observable<{ id: number }> {
-    // Backend API for creating a person might only need the name initially.
-    // Adjust payload here based on your actual backend /api/Person POST endpoint.
-    return this.http.post<{ id: number }>(this.apiUrl, {
-      personName: personData.name,
-      // If backend expects other initial person data, add them here:
-      // gender: personData.gender,
-      // birthDate: personData.birthDate,
-    });
+  upsertPerson(
+    model: PersonCreateModel
+  ): Observable<PersonCreateResponseModel> {
+    // This POST request points to the `UpsertPerson` endpoint on the PersonController.
+    return this.http.post<PersonCreateResponseModel>(this.apiUrl, model);
   }
 
   /**

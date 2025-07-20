@@ -27,7 +27,6 @@ import { ConfirmationDialogComponent } from '../../../common/components/confirma
     MatDividerModule,
     MatProgressBarModule,
     MatDialogModule, // Add MatDialogModule to imports
-    ConfirmationDialogComponent, // Add the dialog component to imports
   ],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
