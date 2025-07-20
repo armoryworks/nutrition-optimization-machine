@@ -2,7 +2,7 @@
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
 :revdate: July 19, 2025
-:revnumber: 1.6
+:revnumber: 1.7
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -33,8 +33,8 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 .Current Development Status
 * *Core User Onboarding*: The core user onboarding workflow is largely implemented on the frontend and integrated with the backend Person and Restriction services.
 * *Data Models*: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance.
-* *Privacy & Compliance Backend (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented on the backend. [cite: PrivacyController.cs, PrivacyOrchestrationService.cs] This includes the `PrivacyController` to handle API requests and the orchestration services for consent management, data export, and data deletion. [cite: PrivacyController.cs, PrivacyOrchestrationService.cs] Asynchronous background task processing for data export and deletion is now operational. [cite: BackgroundTaskQueueOrchestrationService.cs, DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]
-* *Frontend Next Steps*: Work is actively progressing on the frontend to support multi-participant onboarding and individual restriction collection.
+* *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (`PrivacySettingsComponent`) allowing users to manage their data rights, including a robust confirmation dialog for critical actions. [cite: PrivacyController.cs, PrivacySettingsComponent]
+* *Immediate Next Focus*: Work is now focused on completing the multi-participant onboarding flow on the frontend.
 ====
 
 [#_user_roles_personas]
@@ -800,7 +800,7 @@ A reusable component to allow users to define RestrictionEntity data. It dynamic
 * <<restriction-domain,Rule-5.5.2>> (Type Definition): Handles restriction type categorization.
 
 [#_privacysettingscomponent_new]
-==== PrivacySettingsComponent [[privacy-settings-component]] (NEW)
+==== PrivacySettingsComponent [[privacy-settings-component]] (COMPLETE)
 
 .File Locations
 * TypeScript: `src/app/user/privacy-settings/privacy-settings.component.ts`
@@ -808,7 +808,7 @@ A reusable component to allow users to define RestrictionEntity data. It dynamic
 * SCSS: `src/app/user/privacy-settings/privacy-settings.component.scss`
 
 .Role
-Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights.
+Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights. It uses a custom `ConfirmationDialogComponent` for critical actions like account deletion to ensure a robust and user-friendly experience.
 
 .Functional Requirements Mapping
 * <<privacy-requirements,FR-4.5.4>> (Privacy Dashboard): Direct implementation of privacy management interface.
@@ -886,7 +886,7 @@ Handles API interactions related to the Restriction domain, including fetching d
 * <<restriction-requirements,FR-2.2>> (Specific Restriction Details): Provides methods to fetch curated ingredients and micronutrients.
 
 [#_privacyservice_new]
-==== PrivacyService [[privacy-service]] (NEW)
+==== PrivacyService [[privacy-service]] (COMPLETE)
 
 .File Location
 `src/app/privacy/services/privacy.service.ts`
@@ -901,7 +901,7 @@ Handles all privacy-related API interactions including consent management, data 
 * <<privacy-requirements,FR-4.5.5>> (Data Processing Logging): Retrieves audit logs for user review.
 
 .Key Methods
-`updateConsent()`, `withdrawConsent()`, `requestDataExport()`, `requestDataDeletion()`, `getConsentStatus()`, `getAuditLog()`
+`updateConsent()`, `requestDataExport()`, `requestDataDeletion()`, `getConsentStatus()`, `getAuditLog()`
 
 [#auth-service]
 ==== AuthService
@@ -987,7 +987,7 @@ All models follow the strict naming convention: *NO DTO SUFFIXES ALLOWED*. Use `
 |===
 
 [#_privacy_models_new]
-==== Privacy Models (NEW)
+==== Privacy Models (COMPLETE)
 
 [cols="25%,37.5%,37.5%",options="header"]
 |===
@@ -1043,7 +1043,7 @@ Handles the orchestration of onboarding completion, including creation/update of
 `CompleteOnboardingAsync(OnboardingCompleteRequest request)`
 
 [#_privacyorchestrationservice_new]
-==== PrivacyOrchestrationService [[privacy-orchestration-service]] (NEW)
+==== PrivacyOrchestrationService [[privacy-orchestration-service]] (COMPLETE)
 
 .File Location
 `Nom.Orch/Services/PrivacyOrchestrationService.cs`
@@ -1079,7 +1079,7 @@ Exposes API endpoints for person-related functionality including onboarding comp
 * `[HttpPost("onboarding-complete")]`: Processes complete onboarding submission
 
 [#_privacycontroller_new]
-===== PrivacyController (NEW)
+===== PrivacyController (COMPLETE)
 
 .File Location
 `Nom.Api/Controllers/PrivacyController.cs`
@@ -1208,17 +1208,17 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 * *Orchestration & Background Processing*: `PrivacyOrchestrationService` handles all business logic, successfully queueing tasks to the `BackgroundTaskQueueOrchestrationService`. [cite: PrivacyOrchestrationService.cs] The `DataExportOrchestrationService` and `DataAnonymizationOrchestrationService` correctly execute these background jobs. [cite: DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]
 * *API Layer*: `PrivacyController` is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization. [cite: PrivacyController.cs]
 * *Auditing*: The `AuditOrchestrationService` is available for logging all data processing activities. [cite: AuditOrchestrationService.cs]
+* *Frontend UI*: The `PrivacySettingsComponent` is fully functional, allowing users to manage their data rights via the `PrivacyService` and using a robust `ConfirmationDialogComponent` for critical actions.
 
 [#_immediate_next_focus]
 ==== Immediate Next Focus
 
-With the backend privacy work complete, the immediate focus shifts entirely to the frontend.
+With the privacy feature set now complete, the sole focus is on the remaining onboarding functionality.
 
 [dlist]
 *Frontend Priority*::
 . Complete iterative flow for additional participants in `OnboardingWorkflowComponent`.
 . Implement individual restriction collection when `applyIndividualPreferencesToEachPerson` is true.
-. Integrate the new `/api/privacy` endpoints into the `PrivacySettingsComponent` to allow users to exercise their data rights.
 
 [#tech-stack]
 === Technology Stack Rationale
@@ -1493,14 +1493,14 @@ https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
 | `Plan/RestrictionEntity.cs`
 | https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Plan/RestrictionEntity.cs
 
-| `Privacy/UserConsentEntity.cs` *(NEW)*
-| [To Be Created]
+| `Privacy/UserConsentEntity.cs`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Privacy/UserConsentEntity.cs
 
-| `Privacy/DataProcessingLogEntity.cs` *(NEW)*
-| [To Be Created]
+| `Privacy/DataProcessingLogEntity.cs`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Privacy/DataProcessingLogEntity.cs
 
-| `Privacy/PrivacyRequestEntity.cs` *(NEW)*
-| [To Be Created]
+| `Privacy/PrivacyRequestEntity.cs`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/Nom.Data/Privacy/PrivacyRequestEntity.cs
 |===
 
 [#_project_nom_orch]
@@ -1614,6 +1614,12 @@ https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
 
 | `src/app/common/pipes/json-parse-common.pipe.ts`
 | https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/pipes/json-parse-common.pipe.ts
+
+| `src/app/common/components/confirmation-dialog/confirmation-dialog.component.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/components/confirmation-dialog/confirmation-dialog.component.ts
+
+| `src/app/common/components/confirmation-dialog/confirmation-dialog.component.html`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/common/components/confirmation-dialog/confirmation-dialog.component.html
 |===
 
 [#_person_domain]
@@ -1675,41 +1681,32 @@ https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
 |===
 
 [#_privacy_domain_new]
-==== Privacy Domain (NEW)
+==== Privacy Domain (COMPLETE)
 
 [cols="33%,67%",options="header"]
 |===
 | File | GitHub URL
 
-| `src/app/privacy/models/consent.model.ts` *(NEW)*
-| [To Be Created]
+| `src/app/privacy/models/consent.model.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/privacy/models/consent.model.ts
 
-| `src/app/privacy/models/data-export.model.ts` *(NEW)*
-| [To Be Created]
+| `src/app/privacy/models/data-export.model.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/privacy/models/data-export.model.ts
 
-| `src/app/privacy/models/privacy-request.model.ts` *(NEW)*
-| [To Be Created]
+| `src/app/privacy/models/privacy-request.model.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/privacy/models/privacy-request.model.ts
 
-| `src/app/privacy/services/privacy.service.ts` *(NEW)*
-| [To Be Created]
+| `src/app/privacy/services/privacy.service.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/privacy/services/privacy.service.ts
 
-| `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.ts` *(NEW)*
-| [To Be Created]
+| `src/app/user/privacy-settings/privacy-settings.component.ts`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/user/privacy-settings/privacy-settings.component.ts
 
-| `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.html` *(NEW)*
-| [To Be Created]
+| `src/app/user/privacy-settings/privacy-settings.component.html`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/user/privacy-settings/privacy-settings.component.html
 
-| `src/app/privacy/components/privacy-dashboard/privacy-dashboard.component.scss` *(NEW)*
-| [To Be Created]
-
-| `src/app/privacy/components/consent-collection/consent-collection.component.ts` *(NEW)*
-| [To Be Created]
-
-| `src/app/privacy/components/consent-collection/consent-collection.component.html` *(NEW)*
-| [To Be Created]
-
-| `src/app/privacy/components/consent-collection/consent-collection.component.scss` *(NEW)*
-| [To Be Created]
+| `src/app/user/privacy-settings/privacy-settings.component.scss`
+| https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/nom-ui/src/app/user/privacy-settings/privacy-settings.component.scss
 |===
 
 [#_plan_domain_skeleton]
@@ -1832,7 +1829,7 @@ The NOM platform is positioned to become a leader in privacy-conscious nutrition
 | Document Information |
 
 | Version
-| 1.6
+| 1.7
 
 | Date
 | July 19, 2025

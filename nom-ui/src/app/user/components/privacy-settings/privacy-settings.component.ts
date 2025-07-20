@@ -8,10 +8,12 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog'; // Import MatDialog and MatDialogModule
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { UpdateConsentRequest } from '../../../privacy/models/update-consent.request';
+import { ConfirmationDialogComponent } from '../../../common/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-privacy-settings',
@@ -24,6 +26,8 @@ import { UpdateConsentRequest } from '../../../privacy/models/update-consent.req
     MatButtonModule,
     MatDividerModule,
     MatProgressBarModule,
+    MatDialogModule, // Add MatDialogModule to imports
+    ConfirmationDialogComponent, // Add the dialog component to imports
   ],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
@@ -61,7 +65,8 @@ export class PrivacySettingsComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private privacyService: PrivacyService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private dialog: MatDialog // Inject MatDialog
   ) {
     this.consentForm = this.fb.group({});
   }
@@ -128,28 +133,36 @@ export class PrivacySettingsComponent implements OnInit {
   }
 
   onDeleteAccount(): void {
-    // In a real app, you would show a confirmation dialog first.
-    const confirmed = confirm(
-      'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.'
-    );
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Confirm Account Deletion',
+        message:
+          'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.',
+        confirmButtonText: 'Delete My Account',
+      },
+    });
 
-    if (confirmed) {
-      this.isLoading = true;
-      this.privacyService.requestDataDeletion({ confirm: true }).subscribe({
-        next: (res) => {
-          this.isLoading = false;
-          this.notificationService.warning(
-            `Account deletion process initiated. You will be logged out shortly. Request ID: ${res.requestId}`
-          );
-          // Here you would typically log the user out.
-        },
-        error: (err) => {
-          this.isLoading = false;
-          this.notificationService.error(
-            err.message || 'Failed to initiate account deletion.'
-          );
-        },
-      });
-    }
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // User confirmed the action
+        this.isLoading = true;
+        this.privacyService.requestDataDeletion({ confirm: true }).subscribe({
+          next: (res) => {
+            this.isLoading = false;
+            this.notificationService.warning(
+              `Account deletion process initiated. You will be logged out shortly. Request ID: ${res.requestId}`
+            );
+            // Here you would typically log the user out.
+          },
+          error: (err) => {
+            this.isLoading = false;
+            this.notificationService.error(
+              err.message || 'Failed to initiate account deletion.'
+            );
+          },
+        });
+      }
+    });
   }
 }
