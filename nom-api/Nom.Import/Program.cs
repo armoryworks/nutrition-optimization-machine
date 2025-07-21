@@ -47,7 +47,12 @@ public class Program
                 // Configure the DbContext using the "NomConnection" connection string
                 var connectionString = hostContext.Configuration.GetConnectionString("NomConnection");
                 services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseNpgsql(connectionString));
+                    options.UseNpgsql(connectionString, o =>
+                    {
+                        // CORRECTED: Increase the command timeout to 5 minutes (300 seconds)
+                        // to accommodate the long-running import script.
+                        o.CommandTimeout(300);
+                    }));
 
                 // Add the FdcFoodImporterService as a hosted service.
                 services.AddHostedService<FdcFoodImporterService>();

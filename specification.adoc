@@ -1,8 +1,8 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 20, 2025
-:revnumber: 1.8
+:revdate: July 21, 2025
+:revnumber: 1.9
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -31,10 +31,10 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 [NOTE]
 ====
 .Current Development Status
-* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records. [cite: OnboardingWorkflowComponent, PersonOrchestrationService]
-* *Data Models*: The foundational data models and database migrations are in place, including a full suite of entities for GDPR compliance.
-* *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented. This includes a secure backend API with background processing for data requests and a complete frontend UI (`PrivacySettingsComponent`) allowing users to manage their data rights.
-* *Immediate Next Focus*: Development will now shift to the integration with the USDA FoodData Central API to build the foundational dataset for nutritional analysis.
+* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records.
+* *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
+* *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created to handle the ETL (Extract, Transform, Load) process for the USDA FDC dataset. The application successfully populates the database with foundational ingredient and nutrient data.
+* *Immediate Next Focus*: Development will now focus on creating the backend API layer (`RecipeOrchestrationService` and `RecipeController`) to expose the imported food data to the frontend.
 ====
 
 [#_user_roles_personas]

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250718060137_InitialCreate")]
+    [Migration("20250721053824_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -378,11 +378,11 @@ namespace Nom.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("ParentNutrientId");
+
+                    b.HasIndex("Name", "DefaultMeasurementTypeId")
                         .IsUnique()
                         .HasFilter("\"FdcId\" IS NOT NULL");
-
-                    b.HasIndex("ParentNutrientId");
 
                     b.ToTable("Nutrient", "nutrient");
                 });
@@ -812,6 +812,9 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("NutrientId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("PersonEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("PersonId")
                         .HasColumnType("bigint");
 
@@ -826,6 +829,8 @@ namespace Nom.Data.Migrations
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("NutrientId");
+
+                    b.HasIndex("PersonEntityId");
 
                     b.HasIndex("PersonId");
 
@@ -1885,6 +1890,10 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("NutrientId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Nom.Data.Person.PersonEntity", null)
+                        .WithMany("Restrictions")
+                        .HasForeignKey("PersonEntityId");
+
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
                         .WithMany()
                         .HasForeignKey("PersonId")
@@ -2154,6 +2163,8 @@ namespace Nom.Data.Migrations
                     b.Navigation("Attributes");
 
                     b.Navigation("PlanParticipations");
+
+                    b.Navigation("Restrictions");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>

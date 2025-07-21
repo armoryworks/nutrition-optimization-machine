@@ -323,7 +323,7 @@ namespace Nom.Data
 
             modelBuilder.Entity<NutrientEntity>(entity =>
             {
-                entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
+                entity.HasIndex(e => new { e.Name, e.DefaultMeasurementTypeId }).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
                 entity.HasIndex(e => e.FdcId).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
             });
 

@@ -1,4 +1,4 @@
--- File: nom-api/Nom.Import/DataImportScripts/01_create_staging_tables.sql
+-- File: nom-api/Nom.Import/DataImportSqlScripts/01_create_staging_tables.sql
 -- Description: Creates temporary staging tables to hold the raw data from the USDA FDC CSV files.
 -- This provides a buffer to clean and transform data before it enters the final application tables.
 
@@ -12,7 +12,7 @@ CREATE TABLE "Staging_Food" (
     fdc_id INT PRIMARY KEY,
     data_type TEXT NOT NULL,
     description TEXT NOT NULL,
-    food_category_id INT,
+    food_category_description TEXT, 
     publication_date TEXT
 );
 
@@ -21,8 +21,8 @@ CREATE TABLE "Staging_Nutrient" (
     id INT PRIMARY KEY,
     name TEXT NOT NULL,
     unit_name VARCHAR(10) NOT NULL,
-    nutrient_nbr NUMERIC,
-    rank INT
+    nutrient_nbr TEXT,
+    rank TEXT 
 );
 
 -- Staging table for food_nutrient.csv
@@ -30,14 +30,15 @@ CREATE TABLE "Staging_Food_Nutrient" (
     id INT PRIMARY KEY,
     fdc_id INT NOT NULL,
     nutrient_id INT NOT NULL,
-    amount NUMERIC(18, 8),
-    data_points INT,
-    derivation_id INT,
-    min NUMERIC,
-    max NUMERIC,
-    median NUMERIC,
-    loq NUMERIC,
+    -- CORRECTED: Changed all nullable numeric/integer columns to TEXT to handle empty strings from the CSV.
+    amount TEXT,
+    data_points TEXT,
+    derivation_id TEXT,
+    min TEXT,
+    max TEXT,
+    median TEXT,
+    loq TEXT,
     footnote TEXT,
-    min_year_acqured TEXT
+    min_year_acqured TEXT,
+    extra_column TEXT
 );
-

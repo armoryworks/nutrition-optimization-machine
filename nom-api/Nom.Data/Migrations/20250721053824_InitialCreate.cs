@@ -930,6 +930,7 @@ namespace Nom.Data.Migrations
                     NutrientId = table.Column<long>(type: "bigint", nullable: true),
                     BeginDate = table.Column<DateOnly>(type: "date", nullable: true),
                     EndDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    PersonEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -953,6 +954,12 @@ namespace Nom.Data.Migrations
                         principalTable: "Nutrient",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Restriction_Person_PersonEntityId",
+                        column: x => x.PersonEntityId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Restriction_Person_PersonId",
                         column: x => x.PersonId,
@@ -1367,10 +1374,10 @@ namespace Nom.Data.Migrations
                 filter: "\"FdcId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Nutrient_Name",
+                name: "IX_Nutrient_Name_DefaultMeasurementTypeId",
                 schema: "nutrient",
                 table: "Nutrient",
-                column: "Name",
+                columns: new[] { "Name", "DefaultMeasurementTypeId" },
                 unique: true,
                 filter: "\"FdcId\" IS NOT NULL");
 
@@ -1527,6 +1534,12 @@ namespace Nom.Data.Migrations
                 schema: "plan",
                 table: "Restriction",
                 column: "NutrientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Restriction_PersonEntityId",
+                schema: "plan",
+                table: "Restriction",
+                column: "PersonEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Restriction_PersonId",

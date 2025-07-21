@@ -83,12 +83,8 @@ namespace Nom.Import.Services
 
         private async Task ImportDataAsync(ApplicationDbContext context, string sqlScriptDirectory, CancellationToken cancellationToken)
         {
-            // Execute setup and transformation scripts
             await ExecuteSqlScripts(context, sqlScriptDirectory, "01_create_staging_tables.sql", cancellationToken);
-
-            // Perform client-side bulk copy
             await BulkCopyToStaging(cancellationToken);
-
             await ExecuteSqlScripts(context, sqlScriptDirectory, "03_transform_from_staging.sql", cancellationToken);
         }
 
@@ -117,7 +113,6 @@ namespace Nom.Import.Services
 
             _logger.LogInformation("Copying data from {FileName} to {TableName}...", fileName, tableName);
 
-            // FIX 1: Changed 'await using' to 'using' for StreamReader
             using (var reader = File.OpenText(filePath))
             {
                 // Skip the header row
@@ -125,9 +120,12 @@ namespace Nom.Import.Services
 
                 await using (var writer = await connection.BeginTextImportAsync($"COPY \"{tableName}\" FROM STDIN (FORMAT CSV)", cancellationToken))
                 {
-                    // FIX 2: Converted the string from ReadToEndAsync() to ReadOnlyMemory<char>
-                    var content = await reader.ReadToEndAsync(cancellationToken);
-                    await writer.WriteAsync(content.AsMemory(), cancellationToken);
+                    // *** FIX: Read and write line-by-line to avoid OutOfMemoryException ***
+                    string? line;
+                    while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
+                    {
+                        await writer.WriteLineAsync(line.AsMemory(), cancellationToken);
+                    }
                     await writer.FlushAsync(cancellationToken);
                 }
             }
