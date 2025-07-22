@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using System;
 using Nom.Orch.Interfaces; // For IRecipeOrchestrationService
 using Microsoft.Extensions.DependencyInjection; // For IServiceScopeFactory
-using Microsoft.EntityFrameworkCore; // For FirstOrDefaultAsync
+using Microsoft.EntityFrameworkCore;
+using Nom.Orch.Models.Recipe; // For FirstOrDefaultAsync
 
 namespace Nom.Orch.Services
 {
@@ -17,15 +18,60 @@ namespace Nom.Orch.Services
     /// </summary>
     public class RecipeOrchestrationService : IRecipeOrchestrationService
     {
-        private readonly IServiceScopeFactory _serviceScopeFactory; // Needed to create scopes for background tasks
-        private readonly ILogger<RecipeOrchestrationService> _logger;
+        private readonly ApplicationDbContext _dbContext;
 
-        public RecipeOrchestrationService(IServiceScopeFactory serviceScopeFactory, ILogger<RecipeOrchestrationService> logger)
+        public RecipeOrchestrationService(ApplicationDbContext dbContext)
         {
-            _serviceScopeFactory = serviceScopeFactory;
-            _logger = logger;
+            _dbContext = dbContext;
         }
 
+        public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return new List<IngredientSearchResponseModel>();
+            }
+
+            var ingredients = await _dbContext.Ingredients
+                .Where(i => EF.Functions.ILike(i.Name, $"%{searchTerm}%"))
+                .Select(i => new IngredientSearchResponseModel
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    FdcId = i.FdcId
+                })
+                .Take(25) // Limit the number of results for performance
+                .ToListAsync();
+
+            return ingredients;
+        }
+
+        public async Task<IngredientModel> GetIngredientDetailsAsync(long ingredientId)
+        {
+            var ingredient = await _dbContext.Ingredients
+                .AsNoTracking()
+                .Where(i => i.Id == ingredientId)
+                .Select(i => new IngredientModel
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    FdcId = i.FdcId,
+                    Description = i.Description,
+                    Nutrients = _dbContext.IngredientNutrients
+                        .Where(inu => inu.IngredientId == i.Id)
+                        .Select(inu => new NutrientValueModel
+                        {
+                            NutrientId = inu.NutrientId,
+                            NutrientName = inu.Nutrient.Name,
+                            Amount = inu.Amount,
+                            UnitName = inu.MeasurementType.Name
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return ingredient;
+        }
 
     }
 }

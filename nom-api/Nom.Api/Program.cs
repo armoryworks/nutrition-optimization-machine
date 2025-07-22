@@ -10,10 +10,35 @@ using Microsoft.Extensions.Hosting;
 using Nom.Api.Authentication; // For CustomClaimsPrincipalFactory and NoOpEmailSender
 using Nom.Data;
 using Nom.Orch;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// --- Add services to the container. ---
+
+// 1. Configure CORS from appsettings.json
+const string corsPolicyName = "AllowWebApp";
+var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins");
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: corsPolicyName,
+        policy =>
+        {
+            if (allowedOrigins != null)
+            {
+                var origins = allowedOrigins.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
+                if (origins.Any())
+                {
+                    policy.WithOrigins(origins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                }
+            }
+        });
+});
+
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -65,12 +90,28 @@ builder.Services.AddOrchestrationServices();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- Configure the HTTP request pipeline. ---
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseHttpsRedirection();
+
+// CORRECTED MIDDLEWARE ORDER:
+// This is a standard and robust pipeline configuration.
+// 1. UseRouting to determine the endpoint.
+app.UseRouting();
+
+// 2. UseCors to apply the CORS policy to the matched endpoint.
+app.UseCors(corsPolicyName);
+
+// 3. UseAuthentication and UseAuthorization after CORS.
+app.UseAuthentication();
+app.UseAuthorization();
+
 
 // Map the Identity API endpoints to the "/api/auth" route group
 app.MapGroup("api/auth")
@@ -82,15 +123,6 @@ app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager)
     await signInManager.SignOutAsync();
     return Results.Ok("User logged out successfully");
 });
-
-app.UseHttpsRedirection();
-
-// Configure CORS policy to allow any origin for development purposes
-app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
-
-// IMPORTANT: Ensure UseAuthentication and UseAuthorization are called
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

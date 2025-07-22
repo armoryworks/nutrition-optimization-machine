@@ -1,0 +1,15 @@
+// File: nom-ui/src/app/recipe/components/ingredient-details/ingredient-details.component.scss
+
+.ingredient-details {
+    margin-top: 2rem;
+
+    .nom-instruction-text {
+        padding: 0 16px;
+        font-style: italic;
+        color: var(--mat-sys-on-surface-variant);
+    }
+
+    .mat-mdc-list-item-line {
+        color: var(--mat-sys-on-surface-variant);
+    }
+}

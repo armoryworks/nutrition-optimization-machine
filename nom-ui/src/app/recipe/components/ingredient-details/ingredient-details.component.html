@@ -1,0 +1,33 @@
+<!-- File: nom-ui/src/app/recipe/components/ingredient-details/ingredient-details.component.html -->
+
+@if (ingredient) {
+<mat-card class="nom-card ingredient-details">
+    <mat-card-header class="nom-card__header">
+        <mat-card-title class="nom-card__title">{{
+            ingredient.name
+            }}</mat-card-title>
+        <mat-card-subtitle class="nom-card__subtitle">FDC ID: {{ ingredient.fdcId }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="nom-card__content">
+        <p class="nom-instruction-text">
+            <strong>Note:</strong> All nutrient values are based on a 100g serving
+            size.
+        </p>
+        <mat-divider class="nom-divider"></mat-divider>
+        <mat-list>
+            @for (nutrient of ingredient.nutrients; track nutrient.nutrientId) {
+            <mat-list-item>
+                <span matListItemTitle>{{ nutrient.nutrientName }}</span>
+                <span matListItemLine>{{ nutrient.amount | number : '1.0-2' }}
+                    {{ nutrient.unitName }}</span>
+            </mat-list-item>
+            } @empty {
+            <mat-list-item>
+                <span matListItemTitle>No nutrient data available.</span>
+            </mat-list-item>
+            }
+        </mat-list>
+    </mat-card-content>
+</mat-card>
+}
+    

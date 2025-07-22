@@ -9,6 +9,7 @@ import { UpdateTwoFactorComponent } from './auth/update-two-factor/update-two-fa
 import { HomeComponent } from './home/home.component';
 import { OnboardingWorkflowComponent } from './onboarding/components/onboarding-workflow/onboarding-workflow.component';
 import { PrivacySettingsComponent } from './user/components/privacy-settings/privacy-settings.component';
+import { IngredientSearchComponent } from './recipe/components/ingredient-search/ingredient-search.component'; // Import the new component
 
 export const routes: Routes = [
   { path: 'home', component: HomeComponent },
@@ -26,6 +27,7 @@ export const routes: Routes = [
   }, // Redirect to first step
   { path: 'onboarding/:stepId', component: OnboardingWorkflowComponent }, // New route with stepId parameter
   { path: 'privacy-settings', component: PrivacySettingsComponent },
+  { path: 'ingredient-search', component: IngredientSearchComponent }, // Add the new route
   { path: '', redirectTo: '/home', pathMatch: 'full' }, // Default route
   { path: '**', redirectTo: '/home' }, // Wildcard route for any other invalid path
 ];

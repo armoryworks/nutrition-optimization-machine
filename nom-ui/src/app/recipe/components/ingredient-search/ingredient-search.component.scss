@@ -1,0 +1,23 @@
+// File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.scss
+
+.ingredient-search {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+
+    &__wrapper {
+        width: 100%;
+        max-width: 600px;
+    }
+
+    &__form-field {
+        width: 100%;
+    }
+}
+
+.mat-option.is-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 48px;
+}

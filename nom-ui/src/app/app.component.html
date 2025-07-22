@@ -3,26 +3,16 @@
     <!--logo goes here-->
   </div>
   <div class="app-header__right">
-    <button
-      mat-icon-button
-      (click)="toggleTheme()"
-      class="app-header__theme-toggle"
-    >
+    <button mat-icon-button (click)="toggleTheme()" class="app-header__theme-toggle">
       <mat-icon>{{ isDarkTheme ? 'dark_mode' : 'light_mode' }}</mat-icon>
     </button>
 
     <div class="app-user-menu" (click)="toggleUserMenu()">
       <div class="app-user-menu__icon-container">
         <!-- User icon placeholder image -->
-        <img
-          src="https://placehold.co/24x24/0000FF/FFFFFF?text=U"
-          alt="User"
-          class="app-user-menu__user-icon"
-        />
-        <span
-          class="app-user-menu__status-indicator"
-          [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"
-        ></span>
+        <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="app-user-menu__user-icon" />
+        <span class="app-user-menu__status-indicator"
+          [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"></span>
       </div>
     </div>
   </div>
@@ -30,49 +20,28 @@
 <main class="app-content">
   <!-- User Popover/Dropdown Menu -->
   @if (isLoggedIn) {
-  <div
-    class="app-user-menu__dropdown"
-    [class.app-user-menu__dropdown--open]="isUserMenuOpen"
-  >
+  <div class="app-user-menu__dropdown" [class.app-user-menu__dropdown--open]="isUserMenuOpen">
     <ul class="app-user-menu__logged-in-list">
       <li>
-        <a
-          routerLink="/update-info"
-          (click)="toggleUserMenu()"
-          class="app-user-menu__link"
-          >Update Profile</a
-        >
+        <a routerLink="/ingredient-search" (click)="toggleUserMenu()" class="app-user-menu__link">Ingredient Search</a>
       </li>
       <li>
-        <a
-          routerLink="/update-two-factor"
-          (click)="toggleUserMenu()"
-          class="app-user-menu__link"
-          >2FA Settings</a
-        >
+        <a routerLink="/update-info" (click)="toggleUserMenu()" class="app-user-menu__link">Update Profile</a>
       </li>
       <li>
-        <a
-          routerLink="/privacy-settings"
-          (click)="toggleUserMenu()"
-          class="app-user-menu__link"
-          >Privacy Settings</a
-        >
+        <a routerLink="/update-two-factor" (click)="toggleUserMenu()" class="app-user-menu__link">2FA Settings</a>
       </li>
       <li>
-        <a
-          (click)="logout()"
-          class="app-user-menu__link app-user-menu__link--logout"
-          >Logout</a
-        >
+        <a routerLink="/privacy-settings" (click)="toggleUserMenu()" class="app-user-menu__link">Privacy Settings</a>
+      </li>
+      <li>
+        <a (click)="logout()" class="app-user-menu__link app-user-menu__link--logout">Logout</a>
       </li>
     </ul>
   </div>
   } @else {
-  <app-login
-    [class.app-user-menu__dropdown--open]="isUserMenuOpen"
-    class="app-user-menu__dropdown app-user-menu__logged-out-content app-user-menu__login-component"
-  ></app-login>
+  <app-login [class.app-user-menu__dropdown--open]="isUserMenuOpen"
+    class="app-user-menu__dropdown app-user-menu__logged-out-content app-user-menu__login-component"></app-login>
 
   }
   <router-outlet></router-outlet>
