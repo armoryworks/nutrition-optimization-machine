@@ -1,7 +1,7 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 21, 2025
+:revdate: July 22, 2025
 :revnumber: 1.9
 :toc: left
 :toclevels: 4
@@ -31,10 +31,11 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 [NOTE]
 ====
 .Current Development Status
-* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records.
+* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend.
 * *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
-* *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created to handle the ETL (Extract, Transform, Load) process for the USDA FDC dataset. The application successfully populates the database with foundational ingredient and nutrient data.
-* *Immediate Next Focus*: Development will now focus on creating the backend API layer (`RecipeOrchestrationService` and `RecipeController`) to expose the imported food data to the frontend.
+* *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created and successfully used to populate the database with foundational ingredient and nutrient data.
+* *Ingredient Search (V1 COMPLETE)*: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.
+* *Immediate Next Focus*: Development will now focus on refining the ingredient search logic to improve the relevance and ordering of search results.
 ====
 
 [#_user_roles_personas]
@@ -385,7 +386,7 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 [cols="20%,80%",options="header"]
 |===
-| Rule ID | Description
+| ID | Requirement
 
 | *Rule-5.6.1*
 | *Lawful Basis*: All personal data processing must have a valid lawful basis under applicable privacy laws (consent, legitimate interest, etc.).

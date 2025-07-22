@@ -559,7 +559,7 @@ pre.rouge .gs {
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
 <span id="revnumber">version 1.9,</span>
-<span id="revdate">July 21, 2025</span>
+<span id="revdate">July 22, 2025</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -842,16 +842,19 @@ pre.rouge .gs {
 <div class="title">Current Development Status</div>
 <ul>
 <li>
-<p><strong>User Onboarding (COMPLETE)</strong>: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend. The system correctly prevents duplicate person records.</p>
+<p><strong>User Onboarding (COMPLETE)</strong>: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend.</p>
 </li>
 <li>
 <p><strong>Privacy &amp; Compliance Feature (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.</p>
 </li>
 <li>
-<p><strong>USDA FoodData Central Integration (COMPLETE)</strong>: A dedicated console application, <code>Nom.Import</code>, has been created to handle the ETL (Extract, Transform, Load) process for the USDA FDC dataset. The application successfully populates the database with foundational ingredient and nutrient data.</p>
+<p><strong>USDA FoodData Central Integration (COMPLETE)</strong>: A dedicated console application, <code>Nom.Import</code>, has been created and successfully used to populate the database with foundational ingredient and nutrient data.</p>
 </li>
 <li>
-<p><strong>Immediate Next Focus</strong>: Development will now focus on creating the backend API layer (<code>RecipeOrchestrationService</code> and <code>RecipeController</code>) to expose the imported food data to the frontend.</p>
+<p><strong>Ingredient Search (V1 COMPLETE)</strong>: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.</p>
+</li>
+<li>
+<p><strong>Immediate Next Focus</strong>: Development will now focus on refining the ingredient search logic to improve the relevance and ordering of search results.</p>
 </li>
 </ul>
 </div>
@@ -1425,8 +1428,8 @@ pre.rouge .gs {
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Rule ID</th>
-<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">ID</th>
+<th class="tableblock halign-left valign-top">Requirement</th>
 </tr>
 </thead>
 <tbody>
@@ -4434,7 +4437,7 @@ pre.rouge .gs {
 <div id="footer">
 <div id="footer-text">
 Version 1.9<br>
-Last updated 2025-07-21 00:28:36 -0600
+Last updated 2025-07-22 02:39:21 -0600
 </div>
 </div>
 </body>
