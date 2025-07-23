@@ -1,0 +1,45 @@
+@if (data) {
+<div class="nutrition-label">
+    <header class="nutrition-label__header">
+        <h1 class="nutrition-label__title">Nutrition Facts</h1>
+        <div class="nutrition-label__servings">
+            <span>{{ data.servingsPerContainer }}</span>
+            <div class="nutrition-label__serving-size">
+                <span>Serving size</span>
+                <span>{{ data.servingSizeHousehold }}</span>
+                <span>({{ data.servingSizeGrams }}g)</span>
+            </div>
+        </div>
+    </header>
+    <hr class="nutrition-label__divider--thick" />
+    <div class="nutrition-label__calories">
+        <span>Amount per serving</span>
+        <span class="nutrition-label__calories--value">{{ data.calories }}</span>
+        <span>Calories</span>
+    </div>
+    <hr class="nutrition-label__divider--medium" />
+    <div class="nutrition-label__daily-value-header">
+        <span></span>
+        <span>% Daily Value*</span>
+    </div>
+
+    <div class="nutrition-label__nutrients">
+        @for (nutrient of data.nutrients; track nutrient.name) {
+        <div class="nutrition-label__nutrient-row"
+            [class.nutrition-label__nutrient-row--indented]="nutrient.isIndented">
+            <span [class.nutrition-label__nutrient-row--bold]="nutrient.isBold">
+                {{ nutrient.name }}
+                {{ nutrient.amount | formatMass:nutrient.unit }}
+            </span>
+            <span [class.nutrition-label__nutrient-row--bold]="nutrient.isBold">{{ nutrient.dailyValue }}%</span>
+        </div>
+        <hr class="nutrition-label__divider--thin" />
+        }
+    </div>
+    <hr class="nutrition-label__divider--thick" />
+    <p class="nutrition-label__footnote">
+        * The % Daily Value (DV) tells you how much a nutrient in a serving of food
+        contributes to a daily diet. 2,000 calories a day is used for general
+        nutrition advice.
+    </p>
+</div>   }

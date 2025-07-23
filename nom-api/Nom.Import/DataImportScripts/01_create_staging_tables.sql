@@ -1,36 +1,32 @@
--- File: nom-api/Nom.Import/DataImportSqlScripts/01_create_staging_tables.sql
--- Description: Creates temporary staging tables to hold the raw data from the USDA FDC CSV files.
--- This provides a buffer to clean and transform data before it enters the final application tables.
-
--- Drop tables if they exist to ensure a clean run
+-- Drop existing staging tables if they exist
 DROP TABLE IF EXISTS "Staging_Food";
 DROP TABLE IF EXISTS "Staging_Nutrient";
 DROP TABLE IF EXISTS "Staging_Food_Nutrient";
+DROP TABLE IF EXISTS "Staging_Guideline"; -- Added for guidelines
 
--- Staging table for food.csv
+-- Create staging table for food data
 CREATE TABLE "Staging_Food" (
-    fdc_id INT PRIMARY KEY,
-    data_type TEXT NOT NULL,
-    description TEXT NOT NULL,
-    food_category_description TEXT, 
+    fdc_id TEXT,
+    data_type TEXT,
+    description TEXT,
+    food_category_id TEXT,
     publication_date TEXT
 );
 
--- Staging table for nutrient.csv
+-- Create staging table for nutrient data
 CREATE TABLE "Staging_Nutrient" (
-    id INT PRIMARY KEY,
-    name TEXT NOT NULL,
-    unit_name VARCHAR(10) NOT NULL,
+    id TEXT,
+    name TEXT,
+    unit_name TEXT,
     nutrient_nbr TEXT,
-    rank TEXT 
+    rank TEXT
 );
 
--- Staging table for food_nutrient.csv
+-- Create staging table for the food-nutrient link
 CREATE TABLE "Staging_Food_Nutrient" (
-    id INT PRIMARY KEY,
-    fdc_id INT NOT NULL,
-    nutrient_id INT NOT NULL,
-    -- CORRECTED: Changed all nullable numeric/integer columns to TEXT to handle empty strings from the CSV.
+    id TEXT,
+    fdc_id TEXT,
+    nutrient_id BIGINT,
     amount TEXT,
     data_points TEXT,
     derivation_id TEXT,
@@ -39,6 +35,15 @@ CREATE TABLE "Staging_Food_Nutrient" (
     median TEXT,
     loq TEXT,
     footnote TEXT,
-    min_year_acqured TEXT,
-    extra_column TEXT
+    min_year_acquired TEXT,
+    "percent_daily_value" TEXT
+);
+
+-- *** ADDED: Create staging table for guideline data ***
+CREATE TABLE "Staging_Guideline" (
+    "NutrientName" TEXT,
+    "GoalTypeName" TEXT,
+    "RecommendedAmount" TEXT,
+    "MaxAmount" TEXT,
+    "UnitName" TEXT
 );

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250721053824_InitialCreate")]
+    [Migration("20250723071237_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -369,6 +369,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("ParentNutrientId")
                         .HasColumnType("bigint");
+
+                    b.Property<decimal?>("Rank")
+                        .HasColumnType("decimal(18,4)");
 
                     b.HasKey("Id");
 
@@ -1050,6 +1053,11 @@ namespace Nom.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("FdcDataType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("FdcId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -1287,6 +1295,9 @@ namespace Nom.Data.Migrations
                     b.Property<string>("GroupName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ReferenceDescription")
                         .HasColumnType("text");

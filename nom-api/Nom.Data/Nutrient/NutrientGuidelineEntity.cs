@@ -1,4 +1,3 @@
-// Nom.Data/Nutrient/NutrientGuidelineEntity.cs
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Reference; // Required for MeasurementType navigation property
@@ -16,7 +15,6 @@ namespace Nom.Data.Nutrient
     {
         /// <summary>
         /// Foreign key to the Nutrient.Nutrient table, identifying the nutrient this guideline is for.
-        /// Corresponds to BIGINT NOT NULL.
         /// </summary>
         public long NutrientId { get; set; }
 
@@ -24,25 +22,24 @@ namespace Nom.Data.Nutrient
         /// Navigation property to the associated NutrientEntity.
         /// </summary>
         [ForeignKey(nameof(NutrientId))]
-        public virtual NutrientEntity Nutrient { get; set; } = default!; // Required navigation property
+        public virtual NutrientEntity Nutrient { get; set; } = default!;
 
         /// <summary>
         /// Foreign key to the Reference.Reference table (with GoalType discriminator),
-        /// indicating the demographic group or goal type this guideline applies to (e.g., "Adults >= 4 years", "Pregnant Women").
-        /// Corresponds to BIGINT NOT NULL.
+        /// This will contain any number of goals. For imported data from fdc, the goal type will be "FDC Guideline Compliance"
         /// </summary>
+        [Required]
         public long GoalTypeId { get; set; }
 
         /// <summary>
         /// Navigation property to the associated ReferenceEntity representing the goal/demographic type.
         /// </summary>
         [ForeignKey(nameof(GoalTypeId))]
-        public virtual ReferenceEntity GoalType { get; set; } = default!; // Required navigation property
+        public virtual ReferenceEntity GoalType { get; set; } = default!;
 
         /// <summary>
         /// Foreign key to the Reference.Reference table (with MeasurementType discriminator),
         /// indicating the unit of measurement for the guideline amounts (e.g., "mg", "g", "mcg", "kcal").
-        /// Corresponds to BIGINT NOT NULL.
         /// </summary>
         public long MeasurementTypeId { get; set; }
 
@@ -50,28 +47,22 @@ namespace Nom.Data.Nutrient
         /// Navigation property to the associated ReferenceEntity representing the measurement type.
         /// </summary>
         [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity MeasurementType { get; set; } = default!; // Required navigation property
+        public virtual ReferenceEntity MeasurementType { get; set; } = default!;
 
         /// <summary>
         /// The minimum recommended or allowed amount for the nutrient (e.g., EAR, or lower bound of AMDR).
-        /// Can be null if not applicable for this guideline.
-        /// Corresponds to DECIMAL(18,4) NULLABLE.
         /// </summary>
-        [Column(TypeName = "decimal(18,4)")] // Using a common decimal precision/scale, adjust if needed
+        [Column(TypeName = "decimal(18,4)")]
         public decimal? MinAmount { get; set; }
 
         /// <summary>
         /// The maximum recommended or allowed amount for the nutrient (e.g., UL - Tolerable Upper Intake Level, or upper bound of AMDR).
-        /// Can be null if not applicable for this guideline.
-        /// Corresponds to DECIMAL(18,4) NULLABLE.
         /// </summary>
-        [Column(TypeName = "decimal(18,4)")] // Using a common decimal precision/scale, adjust if needed
+        [Column(TypeName = "decimal(18,4)")]
         public decimal? MaxAmount { get; set; }
 
         /// <summary>
         /// The primary recommended daily intake amount (e.g., RDA or AI).
-        /// Can be null if the guideline is solely a min/max range (like some AMDRs) or an UL.
-        /// Corresponds to DECIMAL(18,4) NULLABLE.
         /// </summary>
         [Column(TypeName = "decimal(18,4)")]
         public decimal? RecommendedAmount { get; set; }

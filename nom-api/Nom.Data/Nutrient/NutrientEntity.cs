@@ -28,6 +28,9 @@ namespace Nom.Data.Nutrient
         [MaxLength(1023)]
         public string? Description { get; set; }
 
+        [Column(TypeName = "decimal(18,4)")]
+        public decimal? Rank { get; set; }
+
         /// <summary>
         /// Foreign key to the Reference.Reference table, indicating the default measurement unit for this nutrient (e.g., "g", "mg", "mcg").
         /// This is the unit in which the nutrient amount is typically expressed.

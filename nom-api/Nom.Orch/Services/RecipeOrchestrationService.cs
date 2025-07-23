@@ -32,19 +32,34 @@ namespace Nom.Orch.Services
                 return new List<IngredientSearchResponseModel>();
             }
 
+            var lowerSearchTerm = searchTerm.ToLower();
+
             var ingredients = await _dbContext.Ingredients
                 .Where(i => EF.Functions.ILike(i.Name, $"%{searchTerm}%"))
+                // New OrderBy logic using the DataType field
+                .OrderBy(i =>
+                    // Primary Sort: Data Type Ranking
+                    i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food" ? 0 : // Highest priority
+                    i.FdcDataType == "branded_food" ? 2 :                                     // Lowest priority
+                    1)                                                                     // Everything else in the middle
+                .ThenBy(i =>
+                    // Secondary Sort: Name Match Ranking
+                    i.Name.ToLower() == lowerSearchTerm ? 0 :
+                    i.Name.ToLower().StartsWith(lowerSearchTerm) ? 1 :
+                    2)
+                .ThenBy(i => i.Name) // Final alphabetical tie-breaker
                 .Select(i => new IngredientSearchResponseModel
                 {
                     Id = i.Id,
                     Name = i.Name,
                     FdcId = i.FdcId
                 })
-                .Take(25) // Limit the number of results for performance
+                .Take(25)
                 .ToListAsync();
 
             return ingredients;
         }
+
 
         public async Task<IngredientModel> GetIngredientDetailsAsync(long ingredientId)
         {

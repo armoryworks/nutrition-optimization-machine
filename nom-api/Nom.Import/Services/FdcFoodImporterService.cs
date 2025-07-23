@@ -98,6 +98,7 @@ namespace Nom.Import.Services
             await PerformCopy(conn, "Staging_Food", "food.csv", cancellationToken);
             await PerformCopy(conn, "Staging_Nutrient", "nutrient.csv", cancellationToken);
             await PerformCopy(conn, "Staging_Food_Nutrient", "food_nutrient.csv", cancellationToken);
+            await PerformCopy(conn, "Staging_Guideline", "guidelines.csv", cancellationToken);
 
             _logger.LogInformation("Client-side bulk copy completed.");
         }

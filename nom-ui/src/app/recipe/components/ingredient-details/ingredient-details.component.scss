@@ -9,7 +9,29 @@
         color: var(--mat-sys-on-surface-variant);
     }
 
-    .mat-mdc-list-item-line {
-        color: var(--mat-sys-on-surface-variant);
+    &__nutrients {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 24px;
+        padding: 8px 16px;
+
+        &--item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; // Changed from 'center' to 'flex-start'
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        &--name {
+            font-weight: 500;
+            padding-right: 8px;
+        }
+
+        &--amount {
+            color: var(--mat-sys-on-surface-variant);
+            white-space: nowrap;
+            text-align: right;
+        }   
     }
 }

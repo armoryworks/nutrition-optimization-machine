@@ -21,7 +21,7 @@ namespace Nom.Data.Recipe
         /// </summary>
         [Required]
         [MaxLength(2047)]
-        
+
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
@@ -38,6 +38,9 @@ namespace Nom.Data.Recipe
         /// </summary>
         [MaxLength(50)] // FDC IDs are typically strings like "170110", "170557"
         public string? FdcId { get; set; }
+
+        [MaxLength(255)]
+        public string FdcDataType { get; set; } = string.Empty;
 
         // Navigation properties
         public virtual ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();

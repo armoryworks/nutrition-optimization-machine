@@ -8,6 +8,10 @@ namespace Nom.Data.Reference
     /// </summary>
     public abstract class GroupedReferenceViewEntity
     {
+        /// <summary>
+        /// Id is NOT to be used
+        /// </summary>
+        public Guid Id { get; set; } = Guid.NewGuid();
         // Properties to match the columns selected in the SQL View (reference.ReferenceGroupView)
 
         // From ReferenceEntity (these are properties from the base view class)

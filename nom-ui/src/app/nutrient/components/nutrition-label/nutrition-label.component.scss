@@ -1,0 +1,84 @@
+:host {
+    display: block;
+    max-width: 320px; // Typical width for a nutrition label
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.nutrition-label {
+    border: 2px solid black;
+    padding: 8px;
+    color: black;
+
+    &__title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    &__servings,
+    &__serving-size,
+    &__calories,
+    &__daily-value-header,
+    &__nutrient-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+
+    &__serving-size {
+        font-weight: 800;
+        span {
+            margin-right: 5px;
+        }
+    }
+
+    &__calories {
+        align-items: center;
+
+        &--value {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+    }
+
+    &__daily-value-header {
+        font-weight: 800;
+        text-align: right;
+        border-top: 1px solid black;
+        padding-top: 2px;
+    }
+
+    &__nutrient-row {
+        padding: 2px 0;
+
+        &--indented {
+            margin-left: 20px;
+        }
+
+        &--bold {
+            font-weight: 800;
+        }
+    }
+
+    &__divider--thick {
+        border: none;
+        border-top: 10px solid black;
+        margin: 4px 0;
+    }
+
+    &__divider--medium {
+        border: none;
+        border-top: 5px solid black;
+        margin: 4px 0;
+    }
+
+    &__divider--thin {
+        border: none;
+        border-top: 1px solid black;
+        margin: 2px 0;
+    }
+
+    &__footnote {
+        font-size: 0.8rem;
+        margin-top: 8px;
+    } }

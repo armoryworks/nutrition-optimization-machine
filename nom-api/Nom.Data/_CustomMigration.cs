@@ -472,7 +472,7 @@ namespace Nom.Data
                     { GoalTypeInfantsThrough12MonthsId, "Infants through 12 months", "Dietary guidelines for infants.", DateTime.UtcNow, SystemPersonId },
                     { GoalTypeChildren1Through3YearsId, "Children 1 through 3 years", "Dietary guidelines for young children.", DateTime.UtcNow, SystemPersonId },
                     { GoalTypePregnantAndLactatingWomenId, "Pregnant and Lactating Women", "Dietary guidelines for pregnant and lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GoalTypeGeneralAdultId, "General Adult", "Broader dietary guidelines for typical healthy adults (non-FDA specific).", DateTime.UtcNow, SystemPersonId }
+                    { GoalTypeGeneralAdultId, "General Adult", "Broader dietary guidelines for typical healthy adults (Dietary Reference Intakes)).", DateTime.UtcNow, SystemPersonId }
                 });
 
             long[] goalTypeIds = new long[] {
