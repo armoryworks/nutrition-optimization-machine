@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Angular](https://img.shields.io/badge/Angular-19-red.svg)](https://angular.io/)
-[![.NET Core](https://img.shields.io/badge/.NET%20Core-8.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET Core](https://img.shields.io/badge/.NET%20Core-9.0-purple.svg)](https://dotnet.microsoft.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 
 ## Vision
@@ -37,7 +37,7 @@ NOM goes beyond generic diet advice by deeply understanding individual dietary n
 Ensure you have the following installed:
 
 - Node.js (LTS version)
-- .NET SDK 8.0
+- .NET SDK 9.0
 - PostgreSQL 17
 - Git
 
