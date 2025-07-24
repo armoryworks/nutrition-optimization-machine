@@ -558,7 +558,7 @@ pre.rouge .gs {
 <h1>Nutritional Optimization Machine (NOM) Program: Business Analysis Specification</h1>
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
-<span id="revnumber">version 2.0,</span>
+<span id="revnumber">version 2.1,</span>
 <span id="revdate">July 24, 2025</span>
 </div>
 <div id="toc" class="toc2">
@@ -584,6 +584,10 @@ pre.rouge .gs {
 <li><a href="#_specific_restriction_details">Specific Restriction Details</a></li>
 </ul>
 </li>
+<li><a href="#recipe-management-requirements">Recipe &amp; Ingredient Management (NOT STARTED)</a></li>
+<li><a href="#curation-requirements">Content Curation Workflow (NOT STARTED)</a></li>
+<li><a href="#communication-requirements">User Communication System (NOT STARTED)</a></li>
+<li><a href="#admin-requirements">Administrative Functions (NOT STARTED)</a></li>
 <li><a href="#plan-requirements">Plan Invitation &amp; Participation</a></li>
 <li><a href="#auth-requirements">Authentication &amp; Authorization</a></li>
 <li><a href="#privacy-requirements">Data Privacy &amp; Compliance</a></li>
@@ -597,6 +601,9 @@ pre.rouge .gs {
 <li><a href="#reference-domain">Reference Data Management Domain</a></li>
 <li><a href="#restriction-domain">Dietary Restriction Management Domain</a></li>
 <li><a href="#privacy-domain">Data Privacy &amp; Compliance Domain</a></li>
+<li><a href="#recipe-domain">Recipe &amp; Ingredient Domain (NEW)</a></li>
+<li><a href="#curation-domain">Curation Domain (NEW)</a></li>
+<li><a href="#communication-domain">Communication Domain (NEW)</a></li>
 </ul>
 </li>
 <li><a href="#_non_functional_requirements">Non-Functional Requirements</a>
@@ -674,6 +681,19 @@ pre.rouge .gs {
 </li>
 </ul>
 </li>
+<li><a href="#recipe-management-components">Recipe &amp; Curation Components (NOT STARTED)</a>
+<ul class="sectlevel3">
+<li><a href="#recipe-author-dashboard-component">RecipeAuthorDashboardComponent</a></li>
+<li><a href="#recipe-edit-component">RecipeEditComponent</a></li>
+<li><a href="#curation-queue-component">CurationQueueComponent</a></li>
+</ul>
+</li>
+<li><a href="#communication-admin-components">Communication &amp; Admin Components (NOT STARTED)</a>
+<ul class="sectlevel3">
+<li><a href="#messaging-inbox-component">MessagingInboxComponent</a></li>
+<li><a href="#user-management-component">UserManagementComponent</a></li>
+</ul>
+</li>
 <li><a href="#frontend-services">Frontend Services &amp; Data Flow</a>
 <ul class="sectlevel3">
 <li><a href="#person-service">PersonService</a></li>
@@ -695,6 +715,13 @@ pre.rouge .gs {
 <ul class="sectlevel3">
 <li><a href="#_personorchestrationservice_updated">PersonOrchestrationService  (UPDATED)</a></li>
 <li><a href="#_privacyorchestrationservice_new">PrivacyOrchestrationService  (COMPLETE)</a></li>
+</ul>
+</li>
+<li><a href="#new-backend-services">Backend Services (NOT STARTED)</a>
+<ul class="sectlevel3">
+<li><a href="#recipe-orchestration-service">RecipeOrchestrationService</a></li>
+<li><a href="#curation-orchestration-service">CurationOrchestrationService</a></li>
+<li><a href="#communication-orchestration-service">CommunicationOrchestrationService</a></li>
 <li><a href="#_api_controllers">API Controllers</a>
 <ul class="sectlevel4">
 <li><a href="#_personcontroller_updated">PersonController (UPDATED)</a></li>
@@ -703,10 +730,22 @@ pre.rouge .gs {
 </li>
 </ul>
 </li>
+<li><a href="#new-api-controllers">API Controllers (NOT STARTED)</a>
+<ul class="sectlevel3">
+<li><a href="#recipes-controller">RecipesController</a></li>
+<li><a href="#curation-controller">CurationController</a></li>
+<li><a href="#messaging-controller">MessagingController</a></li>
+<li><a href="#user-management-controller">UserManagementController</a></li>
+</ul>
+</li>
 <li><a href="#backend-entities">Backend Entities &amp; Database Mapping</a>
 <ul class="sectlevel3">
 <li><a href="#_core_entities">Core Entities</a></li>
 <li><a href="#_privacy_entities_new">Privacy Entities (NEW)</a></li>
+</ul>
+</li>
+<li><a href="#new-backend-entities">Backend Entities (NEW)</a>
+<ul class="sectlevel3">
 <li><a href="#_reference_data_entities">Reference Data Entities</a></li>
 </ul>
 </li>
@@ -790,6 +829,12 @@ pre.rouge .gs {
 <li><a href="#_authentication_services_models">Authentication Services &amp; Models</a></li>
 </ul>
 </li>
+<li><a href="#proposed-new-files">Proposed New Files (NOT STARTED)</a>
+<ul class="sectlevel3">
+<li><a href="#new-backend-files">Backend Files (C# - .NET Solution) - NEW</a></li>
+<li><a href="#new-frontend-files">Frontend Files (Angular - nom-ui) - NEW</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#conclusion">Conclusion</a>
@@ -807,10 +852,7 @@ pre.rouge .gs {
 <h2 id="_abstract"><a class="link" href="#_abstract">Abstract</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture.</p>
-</div>
-<div class="paragraph">
-<p>The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
+<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.1) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
 </div>
 </div>
 </div>
@@ -820,7 +862,7 @@ pre.rouge .gs {
 <div class="sect2">
 <h3 id="_project_vision"><a class="link" href="#_project_vision">Project Vision</a></h3>
 <div class="paragraph">
-<p>The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).</p>
+<p>The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. This vision is supported by a robust, community-driven content ecosystem where users can create, share, and refine recipes and ingredients under the guidance of a structured curation process, fostering a collaborative and trustworthy nutritional environment. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).</p>
 </div>
 </div>
 </div>
@@ -830,6 +872,9 @@ pre.rouge .gs {
 <div class="sectionbody">
 <div class="paragraph">
 <p>The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.</p>
+</div>
+<div class="paragraph">
+<p>This specification introduces the next major phase of development, focusing on user-generated content and administrative oversight. This includes a full lifecycle for recipe and ingredient management, from author creation to a formal curation process managed by site-wide administrators. A versioning system will ensure that curated content remains stable and public while authors iterate on new versions. This phase also introduces a direct user-to-user and admin-to-user communication system to support the curation feedback loop and general community interaction.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -854,7 +899,13 @@ pre.rouge .gs {
 <p><strong>Ingredient Search (V1 COMPLETE)</strong>: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.</p>
 </li>
 <li>
-<p><strong>Immediate Next Focus</strong>: Development will now focus on completing the remaining multi-participant onboarding functionality.</p>
+<p><strong><strong>Recipe &amp; Curation System (NOT STARTED)</strong></strong>: Scoping and specification complete. Implementation is the next priority.</p>
+</li>
+<li>
+<p><strong><strong>User Communication System (NOT STARTED)</strong></strong>: Scoping and specification complete.</p>
+</li>
+<li>
+<p><strong>Immediate Next Focus</strong>: Development will now focus on implementing the Recipe, Curation, and Communication features, followed by the completion of the multi-participant onboarding functionality.</p>
 </li>
 </ul>
 </div>
@@ -897,6 +948,18 @@ pre.rouge .gs {
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Plan Member</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">An authenticated user who participates in an existing nutritional plan.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><strong>Recipe Author</strong></strong> (NEW)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An authenticated user who can create, edit, and manage their own recipes and custom ingredients, and submit them for curation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><strong>Site-Wide Admin</strong></strong> (NEW)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An authenticated user with the <code>CanManageCuration</code> claim. This role is responsible for reviewing, approving, rejecting, and providing feedback on user-submitted recipes and ingredients. They can communicate with any user.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><strong>User Role Manager</strong></strong> (NEW)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An authenticated user with the <code>CanManageUserRoles</code> claim. This role can grant or revoke the <code>CanManageCuration</code> and <code>CanManageUserRoles</code> claims for any user in the system.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>System</strong></p></td>
@@ -1070,6 +1133,194 @@ pre.rouge .gs {
 </dl>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="recipe-management-requirements"><a class="link" href="#recipe-management-requirements">Recipe &amp; Ingredient Management (NOT STARTED)</a></h3>
+<div class="paragraph">
+<div class="title">Objective</div>
+<p>To empower Recipe Authors to create, manage, and version their own recipes and custom ingredients.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ID</th>
+<th class="tableblock halign-left valign-top">Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Recipe Creation</strong>: An author shall be able to create a new recipe, providing a name, description, and instructions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Ingredient Association</strong>: While creating a recipe, an author shall be able to associate ingredients with it, specifying quantity and measurement units.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Custom Ingredient Creation</strong>: An author shall be able to create a new ingredient that is not in the system. This ingredient will have a default <code>CurationStatus</code> of <code>NonCurated</code> and will be linked to the author.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.4</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Recipe &amp; Ingredient Dashboard</strong>: An author shall have a dedicated dashboard to view all their created recipes and ingredients, filterable by their <code>CurationStatus</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Recipe Modification &amp; Deletion</strong>: An author shall be able to modify or delete their <code>NonCurated</code> or <code>Rejected</code> recipes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.6</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Recipe Versioning</strong>: If an author edits a <code>Curated</code> recipe, the system shall create a new version of that recipe with a <code>CurationStatus</code> of <code>NonCurated</code>. The original <code>Curated</code> version remains unchanged and publicly visible.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.7</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Version Pre-population</strong>: When creating a new version of an existing recipe, the creation form shall be pre-populated with all the data from the previous version.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="curation-requirements"><a class="link" href="#curation-requirements">Content Curation Workflow (NOT STARTED)</a></h3>
+<div class="paragraph">
+<div class="title">Objective</div>
+<p>To provide a robust system for Site-Wide Admins to review and manage user-submitted content, ensuring quality and consistency.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ID</th>
+<th class="tableblock halign-left valign-top">Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Submission for Curation</strong>: A Recipe Author shall be able to submit their <code>NonCurated</code> recipes and ingredients for curation, which changes their status to <code>PendingCuration</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curation Queue</strong>: Site-Wide Admins shall have access to a Curation Queue screen, displaying all content with a <code>PendingCuration</code> status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Queue Filtering &amp; Sorting</strong>: The Curation Queue shall be sortable by submission date and filterable by author and resubmission status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.4</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curation Approval</strong>: An admin shall be able to approve a submission, changing its status to <code>Curated</code>. This action allows for optional private notes (author-only) and public notes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curation Rejection</strong>: An admin shall be able to reject a submission, changing its status to <code>Rejected</code>. This action requires the admin to provide explanatory notes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.6</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Request for Revision</strong>: An admin shall be able to request revisions from the author, changing the status to <code>RequiresRevision</code>. This action requires feedback notes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CU-2.7</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curation Dependency Validation</strong>: The system shall prevent a recipe from being approved (<code>Curated</code>) if it contains any ingredients that are not also <code>Curated</code>. The UI must inform the admin of this dependency.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="communication-requirements"><a class="link" href="#communication-requirements">User Communication System (NOT STARTED)</a></h3>
+<div class="paragraph">
+<div class="title">Objective</div>
+<p>To facilitate communication between users and admins, supporting both contextual feedback and general interaction.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ID</th>
+<th class="tableblock halign-left valign-top">Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Email Notifications</strong>: The system shall send automated email notifications to users for key events, such as receiving new messages or updates on their curation submissions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Internal Messaging</strong>: The system shall provide an internal messaging feature allowing for user-to-user communication.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Contextual Messaging</strong>: Messaging can be initiated from a specific context (e.g., a recipe curation page), which links the resulting conversation to that item.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.4</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Arbitrary Messaging</strong>: Users shall be able to initiate conversations with other users outside of a specific context.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>User Discovery for Messaging</strong>:</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Admins</strong> shall be able to search for and message any user in the system.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Regular users</strong> shall be able to search for and message any user who is a member of any of their shared plans.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.6</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Inbox</strong>: The UI shall provide a centralized "Inbox" to view and manage all message threads.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-CO-3.7</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reply-Only Threads</strong>: For curation feedback, the initial message is sent by the admin. The author can reply to this thread but cannot initiate a curation-specific conversation.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="admin-requirements"><a class="link" href="#admin-requirements">Administrative Functions (NOT STARTED)</a></h3>
+<div class="paragraph">
+<div class="title">Objective</div>
+<p>To provide authorized users with the tools to manage system roles and permissions.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">ID</th>
+<th class="tableblock halign-left valign-top">Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-AD-4.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>User Role Management</strong>: A User Role Manager shall have access to an interface to grant or revoke the <code>CanManageCuration</code> and <code>CanManageUserRoles</code> claims for any user.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-AD-4.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>User List</strong>: The user management interface shall provide a searchable list of all users in the system.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-AD-4.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Initial Admin Setup</strong>: The initial "super admin" user (with both claims) shall be created via a documented SQL script run during system setup.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect2">
 <h3 id="plan-requirements"><a class="link" href="#plan-requirements">Plan Invitation &amp; Participation</a></h3>
@@ -1464,6 +1715,109 @@ pre.rouge .gs {
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.6.8</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cross-Border Transfers</strong>: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="recipe-domain"><a class="link" href="#recipe-domain">Recipe &amp; Ingredient Domain (NEW)</a></h3>
+<div class="paragraph">
+<div class="title">Purpose</div>
+<p>Manages the creation, versioning, and ownership of recipes and custom ingredients.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Rule ID</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.7.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Author Ownership</strong>: Every <code>RecipeEntity</code> and author-created <code>IngredientEntity</code> must be associated with an <code>AuthorId</code> (a <code>PersonEntity</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.7.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Default Status</strong>: All new recipes and ingredients shall have a default <code>CurationStatus</code> of <code>NonCurated</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.7.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Version Integrity</strong>: When a new version of a recipe is created, its <code>Version</code> number must be incremented, and it must be linked to its <code>ParentRecipeId</code>. The original curated version cannot be modified.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.7.4</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Immutable Curation</strong>: Once a recipe or ingredient is <code>Curated</code>, its core data (name, instructions, ingredients) cannot be directly edited. Any modification must result in a new version.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="curation-domain"><a class="link" href="#curation-domain">Curation Domain (NEW)</a></h3>
+<div class="paragraph">
+<div class="title">Purpose</div>
+<p>Governs the process of reviewing and validating user-submitted content.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Rule ID</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.8.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>State Transitions</strong>: The <code>CurationStatus</code> can only transition through a defined lifecycle (e.g., <code>NonCurated</code> &#8594; <code>PendingCuration</code>, <code>PendingCuration</code> &#8594; <code>Curated</code>/<code>Rejected</code>/<code>RequiresRevision</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.8.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Required Feedback</strong>: A status change to <code>Rejected</code> or <code>RequiresRevision</code> requires the admin to provide feedback notes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.8.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curation Dependency</strong>: The system must prevent a recipe&#8217;s status from changing to <code>Curated</code> if any of its associated ingredients are not also <code>Curated</code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="communication-domain"><a class="link" href="#communication-domain">Communication Domain (NEW)</a></h3>
+<div class="paragraph">
+<div class="title">Purpose</div>
+<p>Manages user-to-user and admin-to-user messaging.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Rule ID</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.9.1</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Thread Context</strong>: A <code>MessageThreadEntity</code> can be linked to a specific system entity (recipe, plan) or exist as a context-free conversation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.9.2</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Participant Permissions</strong>: Users can only initiate arbitrary conversations with other users they are permitted to see (members of shared plans, or any user if the initiator is an admin).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.9.3</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Initiation Control</strong>: Curation-related message threads cannot be initiated by the author; they can only reply to threads started by an admin.</p></td>
 </tr>
 </tbody>
 </table>
@@ -2328,6 +2682,112 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
+<h3 id="recipe-management-components"><a class="link" href="#recipe-management-components">Recipe &amp; Curation Components (NOT STARTED)</a></h3>
+<div class="sect3">
+<h4 id="recipe-author-dashboard-component"><a class="link" href="#recipe-author-dashboard-component">RecipeAuthorDashboardComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.html</code>
+.Role
+Top-level component for authors to view and manage their created recipes and ingredients, categorized by <code>CurationStatus</code>.
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#recipe-management-requirements">FR-RM-1.4</a>, <a href="#recipe-management-requirements">FR-RM-1.5</a>, <a href="#curation-requirements">FR-CU-2.1</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="recipe-edit-component"><a class="link" href="#recipe-edit-component">RecipeEditComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/recipe/components/recipe-edit/recipe-edit.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/recipe/components/recipe-edit/recipe-edit.component.html</code>
+.Role
+A form for creating and editing recipes, including associating existing ingredients or creating new ones.
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#recipe-management-requirements">FR-RM-1.1</a>, <a href="#recipe-management-requirements">FR-RM-1.2</a>, <a href="#recipe-management-requirements">FR-RM-1.3</a>, <a href="#recipe-management-requirements">FR-RM-1.6</a>, <a href="#recipe-management-requirements">FR-RM-1.7</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="curation-queue-component"><a class="link" href="#curation-queue-component">CurationQueueComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/curation/components/curation-queue/curation-queue.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/curation/components/curation-queue/curation-queue.component.html</code>
+.Role
+Admin-only interface for viewing and actioning items in the curation queue.
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#curation-requirements">FR-CU-2.2</a>, <a href="#curation-requirements">FR-CU-2.3</a>, <a href="#curation-requirements">FR-CU-2.4</a>, <a href="#curation-requirements">FR-CU-2.5</a>, <a href="#curation-requirements">FR-CU-2.6</a>, <a href="#curation-requirements">FR-CU-2.7</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="communication-admin-components"><a class="link" href="#communication-admin-components">Communication &amp; Admin Components (NOT STARTED)</a></h3>
+<div class="sect3">
+<h4 id="messaging-inbox-component"><a class="link" href="#messaging-inbox-component">MessagingInboxComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/communication/components/messaging-inbox/messaging-inbox.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/communication/components/messaging-inbox/messaging-inbox.component.html</code>
+.Role
+Centralized UI for viewing message threads and composing messages.
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#communication-requirements">FR-CO-3.2</a>, <a href="#communication-requirements">FR-CO-3.6</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="user-management-component"><a class="link" href="#user-management-component">UserManagementComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/admin/components/user-management/user-management.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/admin/components/user-management/user-management.component.html</code>
+.Role
+Interface for User Role Managers to assign/revoke admin claims.
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#admin-requirements">FR-AD-4.1</a>, <a href="#admin-requirements">FR-AD-4.2</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
 <h3 id="frontend-services"><a class="link" href="#frontend-services">Frontend Services &amp; Data Flow</a></h3>
 <div class="sect3">
 <h4 id="person-service"><a class="link" href="#person-service">PersonService</a></h4>
@@ -2659,6 +3119,21 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <code>UpdateConsentAsync()</code>, <code>RequestDataExportAsync()</code>, <code>RequestDataDeletionAsync()</code></p>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="new-backend-services"><a class="link" href="#new-backend-services">Backend Services (NOT STARTED)</a></h3>
+<div class="sect3">
+<h4 id="recipe-orchestration-service"><a class="link" href="#recipe-orchestration-service">RecipeOrchestrationService</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="curation-orchestration-service"><a class="link" href="#curation-orchestration-service">CurationOrchestrationService</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="communication-orchestration-service"><a class="link" href="#communication-orchestration-service">CommunicationOrchestrationService</a></h4>
+
+</div>
 <div class="sect3">
 <h4 id="_api_controllers"><a class="link" href="#_api_controllers">API Controllers</a></h4>
 <div class="sect4">
@@ -2696,10 +3171,30 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </div>
 </div>
 <div class="sect2">
+<h3 id="new-api-controllers"><a class="link" href="#new-api-controllers">API Controllers (NOT STARTED)</a></h3>
+<div class="sect3">
+<h4 id="recipes-controller"><a class="link" href="#recipes-controller">RecipesController</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="curation-controller"><a class="link" href="#curation-controller">CurationController</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="messaging-controller"><a class="link" href="#messaging-controller">MessagingController</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="user-management-controller"><a class="link" href="#user-management-controller">UserManagementController</a></h4>
+
+</div>
+</div>
+<div class="sect2">
 <h3 id="backend-entities"><a class="link" href="#backend-entities">Backend Entities &amp; Database Mapping</a></h3>
 <div class="sect3">
 <h4 id="_core_entities"><a class="link" href="#_core_entities">Core Entities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Role: Exposes endpoints for managing user claims. Secured by <code>CanManageUserRoles</code> claim.</caption>
 <colgroup>
 <col style="width: 100%;">
 </colgroup>
@@ -2835,6 +3330,90 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </ul>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="new-backend-entities"><a class="link" href="#new-backend-entities">Backend Entities (NEW)</a></h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 100%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Entity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>RecipeEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Will be modified to include <code>Version</code> and <code>ParentRecipeId</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>RecipeIngredientEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeIngredientEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Junction table linking recipes to ingredients.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>IngredientEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Ingredient/IngredientEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Will be modified to include <code>AuthorId</code> and <code>CurationStatus</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CurationFeedbackEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Curation/CurationFeedbackEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores admin feedback for recipes and ingredients.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageThreadEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Represents a conversation thread.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageThreadParticipantEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadParticipantEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Junction table linking users to message threads.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageEntity</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Represents a single message within a thread.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="sect3">
 <h4 id="_reference_data_entities"><a class="link" href="#_reference_data_entities">Reference Data Entities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
@@ -2978,40 +3557,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <div class="sect3">
 <h4 id="_immediate_next_focus"><a class="link" href="#_immediate_next_focus">Immediate Next Focus</a></h4>
 <div class="paragraph">
-<p>With the privacy feature set now complete, the primary focus is on completing the remaining onboarding functionality.</p>
-</div>
-<div class="dlist dlist">
-<dl>
-<dt><strong>Frontend Priority</strong></dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Finalize the iterative flow for additional participants in <code>OnboardingWorkflowComponent</code>.</p>
-</li>
-<li>
-<p>Ensure robust state management for individual restriction collection when <code>applyIndividualPreferencesToEachPerson</code> is true.</p>
-</li>
-<li>
-<p>Conduct end-to-end testing of the complete multi-participant workflow.</p>
-</li>
-</ol>
-</div>
-</dd>
-<dt><strong>Backend Priority</strong></dt>
-<dd>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Add final validation and error handling to the <code>PersonOrchestrationService</code> for the multi-participant submission payload.</p>
-</li>
-<li>
-<p>Perform integration testing with the frontend.</p>
-</li>
-</ol>
-</div>
-</dd>
-</dl>
+<p>With the privacy feature set now complete, the primary focus is on implementing the new Recipe, Curation, and Communication features, followed by completing the remaining multi-participant onboarding functionality.</p>
 </div>
 </div>
 </div>
@@ -3491,7 +4037,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </div>
 <div class="dlist dlist">
 <dl>
-<dt><strong>Recipe Management</strong></dt>
+<dt><strong>Advanced Recipe Management</strong></dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3500,9 +4046,6 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </li>
 <li>
 <p>Comprehensive recipe management and meal scheduling</p>
-</li>
-<li>
-<p>USDA FoodData Central integration (moved to future enhancements)</p>
 </li>
 <li>
 <p>Advanced recipe data ingestion from external sources</p>
@@ -4171,13 +4714,161 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </table>
 </div>
 </div>
+<div class="sect2">
+<h3 id="proposed-new-files"><a class="link" href="#proposed-new-files">Proposed New Files (NOT STARTED)</a></h3>
+<div class="paragraph">
+<p>This section outlines the proposed new files to be added to the repository for the implementation of the new features.</p>
+</div>
+<div class="sect3">
+<h4 id="new-backend-files"><a class="link" href="#new-backend-files">Backend Files (C# - .NET Solution) - NEW</a></h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33%;">
+<col style="width: 67%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">File</th>
+<th class="tableblock halign-left valign-top">GitHub URL Suffix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Recipe/RecipeEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeIngredientEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Recipe/RecipeIngredientEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Curation/CurationFeedbackEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Curation/CurationFeedbackEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Communication/MessageThreadEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadParticipantEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Communication/MessageThreadParticipantEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Data/Communication/MessageEntity.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Interfaces/IRecipeOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Interfaces/IRecipeOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Services/RecipeOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Services/RecipeOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Interfaces/ICurationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Interfaces/ICurationOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Services/CurationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Services/CurationOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Orch/Services/CommunicationOrchestrationService.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Orch/Services/CommunicationOrchestrationService.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Api/Controllers/RecipesController.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Api/Controllers/RecipesController.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Api/Controllers/CurationController.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Api/Controllers/CurationController.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Api/Controllers/MessagingController.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Api/Controllers/MessagingController.cs</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Api/Controllers/UserManagementController.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/Nom.Api/Controllers/UserManagementController.cs</code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="new-frontend-files"><a class="link" href="#new-frontend-files">Frontend Files (Angular - nom-ui) - NEW</a></h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33%;">
+<col style="width: 67%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">File</th>
+<th class="tableblock halign-left valign-top">GitHub URL Suffix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/recipe/models/recipe.model.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/recipe/models/recipe.model.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/recipe/services/recipe.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/recipe/services/recipe.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/recipe/components/recipe-author-dashboard/&#8230;&#8203;</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/recipe/components/recipe-author-dashboard/&#8230;&#8203;</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/recipe/components/recipe-edit/&#8230;&#8203;</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/recipe/components/recipe-edit/&#8230;&#8203;</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/curation/services/curation.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/curation/services/curation.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/curation/components/curation-queue/&#8230;&#8203;</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/curation/components/curation-queue/&#8230;&#8203;</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/communication/models/message.model.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/communication/models/message.model.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/communication/services/communication.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/communication/services/communication.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/communication/components/messaging-inbox/&#8230;&#8203;</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/communication/components/messaging-inbox/&#8230;&#8203;</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/admin/services/user-management.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/admin/services/user-management.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/admin/components/user-management/&#8230;&#8203;</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/admin/components/user-management/&#8230;&#8203;</code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="conclusion"><a class="link" href="#conclusion">Conclusion</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.</p>
+<p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development, now including a full suite of content management and communication tools. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up. The successful implementation of these new features will significantly enhance the platform&#8217;s value by fostering a rich, trustworthy, and collaborative community ecosystem.</p>
 </div>
 <div class="sect2">
 <h3 id="_key_achievements"><a class="link" href="#_key_achievements">Key Achievements</a></h3>
@@ -4247,9 +4938,9 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </ol>
 </div>
 <div class="paragraph">
-<p>The NOM platform is positioned to become a leader in privacy-conscious nutritional planning, setting new standards for how health applications can protect user data while delivering exceptional personalized experiences.</p>
+<p>The NOM platform is positioned to become a leader in privacy-conscious nutritional planning, setting new standards for how health applications can protect user data while delivering exceptional personalized experiences.
+---</p>
 </div>
-<hr>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 25%;">
@@ -4264,11 +4955,11 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Version</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">1.7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.1</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Date</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">July 19, 2025</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">July 24, 2025</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Status</p></td>
@@ -4286,8 +4977,8 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 2.0<br>
-Last updated 2025-07-24 00:09:32 -0600
+Version 2.1<br>
+Last updated 2025-07-24 02:02:57 -0600
 </div>
 </div>
 </body>

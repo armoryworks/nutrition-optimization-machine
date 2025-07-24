@@ -2,7 +2,7 @@
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
 :revdate: July 24, 2025
-:revnumber: 2.0
+:revnumber: 2.1
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -11,21 +11,22 @@
 [#_abstract]
 == Abstract
 
-This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture.
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.1) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
 
-The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
 [#_introduction]
 == Introduction
 
 [#_project_vision]
 === Project Vision
 
-The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).
+The overarching vision for the Nutritional Optimization Machine (NOM) program is to empower individuals and families to achieve their health and wellness goals through highly personalized, intelligent nutritional planning. We aim to move beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions, and then leveraging this data to optimize meal plans. This vision is supported by a robust, community-driven content ecosystem where users can create, share, and refine recipes and ingredients under the guidance of a structured curation process, fostering a collaborative and trustworthy nutritional environment. Ultimately, NOM seeks to simplify healthy eating, make it more accessible, and foster collaborative dietary management within groups (families, teams, etc.).
 
 [#_executive_summary]
 == Executive Summary
 
 The NOM program aims to provide users with tools for personalized nutritional planning. The initial focus has been on establishing a robust user onboarding process that not only collects essential user information but also intelligently infers and manages dietary restrictions. A flexible questionnaire system, backed by a structured data model and secure API, forms the core of this initial user interaction. Furthermore, the system is designed to support the future integration of users into existing nutritional plans via invitation, laying the groundwork for collaborative features.
+
+This specification introduces the next major phase of development, focusing on user-generated content and administrative oversight. This includes a full lifecycle for recipe and ingredient management, from author creation to a formal curation process managed by site-wide administrators. A versioning system will ensure that curated content remains stable and public while authors iterate on new versions. This phase also introduces a direct user-to-user and admin-to-user communication system to support the curation feedback loop and general community interaction.
 
 [NOTE]
 ====
@@ -34,7 +35,9 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 * *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
 * *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created and successfully used to populate the database with foundational ingredient and nutrient data.
 * *Ingredient Search (V1 COMPLETE)*: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.
-* *Immediate Next Focus*: Development will now focus on completing the remaining multi-participant onboarding functionality.
+* ***Recipe & Curation System (NOT STARTED)***: Scoping and specification complete. Implementation is the next priority.
+* ***User Communication System (NOT STARTED)***: Scoping and specification complete.
+* *Immediate Next Focus*: Development will now focus on implementing the Recipe, Curation, and Communication features, followed by the completion of the multi-participant onboarding functionality.
 ====
 
 [#_user_roles_personas]
@@ -52,10 +55,14 @@ The following primary user roles and system actors have been identified and cons
 | A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
 | *Plan Administrator*
 | An authenticated user who creates and manages nutritional plans, and can invite others to join.
-
 | *Plan Member*
 | An authenticated user who participates in an existing nutritional plan.
-
+| ***Recipe Author*** (NEW)
+| An authenticated user who can create, edit, and manage their own recipes and custom ingredients, and submit them for curation.
+| ***Site-Wide Admin*** (NEW)
+| An authenticated user with the `CanManageCuration` claim. This role is responsible for reviewing, approving, rejecting, and providing feedback on user-submitted recipes and ingredients. They can communicate with any user.
+| ***User Role Manager*** (NEW)
+| An authenticated user with the `CanManageUserRoles` claim. This role can grant or revoke the `CanManageCuration` and `CanManageUserRoles` claims for any user in the system.
 | *System*
 | An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
 | *Privacy Officer*
@@ -152,6 +159,104 @@ Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No 
 *Personal Preferences*::
 Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
 
+[#recipe-management-requirements]
+=== Recipe & Ingredient Management (NOT STARTED)
+
+.Objective
+To empower Recipe Authors to create, manage, and version their own recipes and custom ingredients.
+
+[cols="20%,80%",options="header"]
+|===
+| ID | Requirement
+
+| *FR-RM-1.1*
+| *Recipe Creation*: An author shall be able to create a new recipe, providing a name, description, and instructions.
+| *FR-RM-1.2*
+| *Ingredient Association*: While creating a recipe, an author shall be able to associate ingredients with it, specifying quantity and measurement units.
+| *FR-RM-1.3*
+| *Custom Ingredient Creation*: An author shall be able to create a new ingredient that is not in the system. This ingredient will have a default `CurationStatus` of `NonCurated` and will be linked to the author.
+| *FR-RM-1.4*
+| *Recipe & Ingredient Dashboard*: An author shall have a dedicated dashboard to view all their created recipes and ingredients, filterable by their `CurationStatus`.
+| *FR-RM-1.5*
+| *Recipe Modification & Deletion*: An author shall be able to modify or delete their `NonCurated` or `Rejected` recipes.
+| *FR-RM-1.6*
+| *Recipe Versioning*: If an author edits a `Curated` recipe, the system shall create a new version of that recipe with a `CurationStatus` of `NonCurated`. The original `Curated` version remains unchanged and publicly visible.
+| *FR-RM-1.7*
+| *Version Pre-population*: When creating a new version of an existing recipe, the creation form shall be pre-populated with all the data from the previous version.
+|===
+
+[#curation-requirements]
+=== Content Curation Workflow (NOT STARTED)
+
+.Objective
+To provide a robust system for Site-Wide Admins to review and manage user-submitted content, ensuring quality and consistency.
+
+[cols="20%,80%",options="header"]
+|===
+| ID | Requirement
+
+| *FR-CU-2.1*
+| *Submission for Curation*: A Recipe Author shall be able to submit their `NonCurated` recipes and ingredients for curation, which changes their status to `PendingCuration`.
+| *FR-CU-2.2*
+| *Curation Queue*: Site-Wide Admins shall have access to a Curation Queue screen, displaying all content with a `PendingCuration` status.
+| *FR-CU-2.3*
+| *Queue Filtering & Sorting*: The Curation Queue shall be sortable by submission date and filterable by author and resubmission status.
+| *FR-CU-2.4*
+| *Curation Approval*: An admin shall be able to approve a submission, changing its status to `Curated`. This action allows for optional private notes (author-only) and public notes.
+| *FR-CU-2.5*
+| *Curation Rejection*: An admin shall be able to reject a submission, changing its status to `Rejected`. This action requires the admin to provide explanatory notes.
+| *FR-CU-2.6*
+| *Request for Revision*: An admin shall be able to request revisions from the author, changing the status to `RequiresRevision`. This action requires feedback notes.
+| *FR-CU-2.7*
+| *Curation Dependency Validation*: The system shall prevent a recipe from being approved (`Curated`) if it contains any ingredients that are not also `Curated`. The UI must inform the admin of this dependency.
+|===
+
+[#communication-requirements]
+=== User Communication System (NOT STARTED)
+
+.Objective
+To facilitate communication between users and admins, supporting both contextual feedback and general interaction.
+
+[cols="20%,80%",options="header"]
+|===
+| ID | Requirement
+
+| *FR-CO-3.1*
+| *Email Notifications*: The system shall send automated email notifications to users for key events, such as receiving new messages or updates on their curation submissions.
+| *FR-CO-3.2*
+| *Internal Messaging*: The system shall provide an internal messaging feature allowing for user-to-user communication.
+| *FR-CO-3.3*
+| *Contextual Messaging*: Messaging can be initiated from a specific context (e.g., a recipe curation page), which links the resulting conversation to that item.
+| *FR-CO-3.4*
+| *Arbitrary Messaging*: Users shall be able to initiate conversations with other users outside of a specific context.
+| *FR-CO-3.5*
+| *User Discovery for Messaging*:
+| | *Admins* shall be able to search for and message any user in the system.
+| | *Regular users* shall be able to search for and message any user who is a member of any of their shared plans.
+| *FR-CO-3.6*
+| *Inbox*: The UI shall provide a centralized "Inbox" to view and manage all message threads.
+| *FR-CO-3.7*
+| *Reply-Only Threads*: For curation feedback, the initial message is sent by the admin. The author can reply to this thread but cannot initiate a curation-specific conversation.
+|===
+
+[#admin-requirements]
+=== Administrative Functions (NOT STARTED)
+
+.Objective
+To provide authorized users with the tools to manage system roles and permissions.
+
+[cols="20%,80%",options="header"]
+|===
+| ID | Requirement
+
+| *FR-AD-4.1*
+| *User Role Management*: A User Role Manager shall have access to an interface to grant or revoke the `CanManageCuration` and `CanManageUserRoles` claims for any user.
+| *FR-AD-4.2*
+| *User List*: The user management interface shall provide a searchable list of all users in the system.
+| *FR-AD-4.3*
+| *Initial Admin Setup*: The initial "super admin" user (with both claims) shall be created via a documented SQL script run during system setup.
+|===
+
 [#plan-requirements]
 === Plan Invitation & Participation
 
@@ -228,7 +333,6 @@ Privacy compliance is *mandatory* for EU users under GDPR and represents a criti
 == Domain Areas and Business Rules
 
 This section describes the core business domains within the NOM program and the key rules that govern their behavior and data integrity.
-
 [#user-domain]
 === User/Person Management Domain
 
@@ -304,7 +408,6 @@ Facilitates the creation, management, and participation in shared nutritional pl
 
 .Purpose
 Provides a centralized, extensible system for managing predefined, static lists and types used across various domains.
-
 [cols="20%,80%",options="header"]
 |===
 | Rule ID | Description
@@ -371,6 +474,62 @@ Ensures compliance with applicable data privacy regulations and provides users w
 | *Breach Notification*: Data breaches affecting personal data must be documented and, where required by law, reported to supervisory authorities and affected individuals within specified timeframes.
 | *Rule-5.6.8*
 | *Cross-Border Transfers*: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).
+|===
+
+[#recipe-domain]
+=== Recipe & Ingredient Domain (NEW)
+
+.Purpose
+Manages the creation, versioning, and ownership of recipes and custom ingredients.
+
+[cols="20%,80%",options="header"]
+|===
+| Rule ID | Description
+
+| *Rule-5.7.1*
+| *Author Ownership*: Every `RecipeEntity` and author-created `IngredientEntity` must be associated with an `AuthorId` (a `PersonEntity`).
+| *Rule-5.7.2*
+| *Default Status*: All new recipes and ingredients shall have a default `CurationStatus` of `NonCurated`.
+| *Rule-5.7.3*
+| *Version Integrity*: When a new version of a recipe is created, its `Version` number must be incremented, and it must be linked to its `ParentRecipeId`. The original curated version cannot be modified.
+| *Rule-5.7.4*
+| *Immutable Curation*: Once a recipe or ingredient is `Curated`, its core data (name, instructions, ingredients) cannot be directly edited. Any modification must result in a new version.
+|===
+
+[#curation-domain]
+=== Curation Domain (NEW)
+
+.Purpose
+Governs the process of reviewing and validating user-submitted content.
+
+[cols="20%,80%",options="header"]
+|===
+| Rule ID | Description
+
+| *Rule-5.8.1*
+| *State Transitions*: The `CurationStatus` can only transition through a defined lifecycle (e.g., `NonCurated` -> `PendingCuration`, `PendingCuration` -> `Curated`/`Rejected`/`RequiresRevision`).
+| *Rule-5.8.2*
+| *Required Feedback*: A status change to `Rejected` or `RequiresRevision` requires the admin to provide feedback notes.
+| *Rule-5.8.3*
+| *Curation Dependency*: The system must prevent a recipe's status from changing to `Curated` if any of its associated ingredients are not also `Curated`.
+|===
+
+[#communication-domain]
+=== Communication Domain (NEW)
+
+.Purpose
+Manages user-to-user and admin-to-user messaging.
+
+[cols="20%,80%",options="header"]
+|===
+| Rule ID | Description
+
+| *Rule-5.9.1*
+| *Thread Context*: A `MessageThreadEntity` can be linked to a specific system entity (recipe, plan) or exist as a context-free conversation.
+| *Rule-5.9.2*
+| *Participant Permissions*: Users can only initiate arbitrary conversations with other users they are permitted to see (members of shared plans, or any user if the initiator is an admin).
+| *Rule-5.9.3*
+| *Initiation Control*: Curation-related message threads cannot be initiated by the author; they can only reply to threads started by an admin.
 |===
 
 [#_non_functional_requirements]
@@ -670,7 +829,6 @@ Ensures compliance with applicable data privacy regulations and provides users w
 == Technical Component Mapping
 
 This section provides a detailed mapping between the high-level functional requirements and domain rules, and the specific technical components responsible for their implementation.
-
 [#frontend-components]
 === Frontend Components & UI Interaction Flow
 
@@ -794,6 +952,67 @@ Provides users with a centralized interface for managing their privacy settings,
 * *ConfirmEmailComponent*: Email confirmation processing
 * *UpdateInfoComponent*: User profile and password updates
 * *UpdateTwoFactorComponent*: 2FA management with QR code generation
+
+[#recipe-management-components]
+=== Recipe & Curation Components (NOT STARTED)
+
+[#recipe-author-dashboard-component]
+==== RecipeAuthorDashboardComponent
+
+.File Locations
+* TypeScript: `src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.ts`
+* HTML: `src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.html`
+.Role
+Top-level component for authors to view and manage their created recipes and ingredients, categorized by `CurationStatus`.
+.Functional Requirements Mapping
+* <<recipe-management-requirements,FR-RM-1.4>>, <<recipe-management-requirements,FR-RM-1.5>>, <<curation-requirements,FR-CU-2.1>>
+
+[#recipe-edit-component]
+==== RecipeEditComponent
+
+.File Locations
+* TypeScript: `src/app/recipe/components/recipe-edit/recipe-edit.component.ts`
+* HTML: `src/app/recipe/components/recipe-edit/recipe-edit.component.html`
+.Role
+A form for creating and editing recipes, including associating existing ingredients or creating new ones.
+.Functional Requirements Mapping
+* <<recipe-management-requirements,FR-RM-1.1>>, <<recipe-management-requirements,FR-RM-1.2>>, <<recipe-management-requirements,FR-RM-1.3>>, <<recipe-management-requirements,FR-RM-1.6>>, <<recipe-management-requirements,FR-RM-1.7>>
+
+[#curation-queue-component]
+==== CurationQueueComponent
+
+.File Locations
+* TypeScript: `src/app/curation/components/curation-queue/curation-queue.component.ts`
+* HTML: `src/app/curation/components/curation-queue/curation-queue.component.html`
+.Role
+Admin-only interface for viewing and actioning items in the curation queue.
+.Functional Requirements Mapping
+* <<curation-requirements,FR-CU-2.2>>, <<curation-requirements,FR-CU-2.3>>, <<curation-requirements,FR-CU-2.4>>, <<curation-requirements,FR-CU-2.5>>, <<curation-requirements,FR-CU-2.6>>, <<curation-requirements,FR-CU-2.7>>
+
+[#communication-admin-components]
+=== Communication & Admin Components (NOT STARTED)
+
+[#messaging-inbox-component]
+==== MessagingInboxComponent
+
+.File Locations
+* TypeScript: `src/app/communication/components/messaging-inbox/messaging-inbox.component.ts`
+* HTML: `src/app/communication/components/messaging-inbox/messaging-inbox.component.html`
+.Role
+Centralized UI for viewing message threads and composing messages.
+.Functional Requirements Mapping
+* <<communication-requirements,FR-CO-3.2>>, <<communication-requirements,FR-CO-3.6>>
+
+[#user-management-component]
+==== UserManagementComponent
+
+.File Locations
+* TypeScript: `src/app/admin/components/user-management/user-management.component.ts`
+* HTML: `src/app/admin/components/user-management/user-management.component.html`
+.Role
+Interface for User Role Managers to assign/revoke admin claims.
+.Functional Requirements Mapping
+* <<admin-requirements,FR-AD-4.1>>, <<admin-requirements,FR-AD-4.2>>
 
 [#frontend-services]
 === Frontend Services & Data Flow
@@ -992,6 +1211,24 @@ Handles complex business logic related to privacy compliance, data subject right
 .Key Methods
 `UpdateConsentAsync()`, `RequestDataExportAsync()`, `RequestDataDeletionAsync()`
 
+[#new-backend-services]
+=== Backend Services (NOT STARTED)
+
+[#recipe-orchestration-service]
+==== RecipeOrchestrationService
+.File Location: `Nom.Orch/Services/RecipeOrchestrationService.cs`
+.Role: Handles business logic for creating, updating, and versioning recipes and ingredients.
+
+[#curation-orchestration-service]
+==== CurationOrchestrationService
+.File Location: `Nom.Orch/Services/CurationOrchestrationService.cs`
+.Role: Manages state transitions and business rules for the curation workflow.
+
+[#communication-orchestration-service]
+==== CommunicationOrchestrationService
+.File Location: `Nom.Orch/Services/CommunicationOrchestrationService.cs`
+.Role: Manages business logic for creating message threads, adding participants, and sending messages.
+
 [#_api_controllers]
 ==== API Controllers
 
@@ -1021,6 +1258,29 @@ Exposes API endpoints for privacy-related functionality.
 
 .Security
 All endpoints require `[Authorize]` to ensure only authenticated users can access their privacy data.
+
+[#new-api-controllers]
+=== API Controllers (NOT STARTED)
+
+[#recipes-controller]
+==== RecipesController
+.File Location: `Nom.Api/Controllers/RecipesController.cs`
+.Role: Exposes endpoints for author-specific recipe and ingredient management.
+
+[#curation-controller]
+==== CurationController
+.File Location: `Nom.Api/Controllers/CurationController.cs`
+.Role: Exposes endpoints for admins to manage the curation queue. Secured by `CanManageCuration` claim.
+
+[#messaging-controller]
+==== MessagingController
+.File Location: `Nom.Api/Controllers/MessagingController.cs`
+.Role: Exposes endpoints for all user communication features.
+
+[#user-management-controller]
+==== UserManagementController
+.File Location: `Nom.Api/Controllers/UserManagementController.cs`
+.Role: Exposes endpoints for managing user claims. Secured by `CanManageUserRoles` claim.
 
 [#backend-entities]
 === Backend Entities & Database Mapping
@@ -1082,6 +1342,36 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 .PrivacyRequestEntity Key Properties
 * `Id`, `PersonId`, `RequestType`, `Status`, `RequestTimestamp`, `CompletionTimestamp`, `RequestDetails`
 
+[#new-backend-entities]
+=== Backend Entities (NEW)
+
+[cols="25%,37.5%,37.5%",options="header"]
+|===
+| Entity | File Location | Purpose
+
+| `RecipeEntity`
+| `Nom.Data/Recipe/RecipeEntity.cs`
+| **UPDATED:** Will be modified to include `Version` and `ParentRecipeId`.
+| `RecipeIngredientEntity`
+| `Nom.Data/Recipe/RecipeIngredientEntity.cs`
+| Junction table linking recipes to ingredients.
+| `IngredientEntity`
+| `Nom.Data/Ingredient/IngredientEntity.cs`
+| **UPDATED:** Will be modified to include `AuthorId` and `CurationStatus`.
+| `CurationFeedbackEntity`
+| `Nom.Data/Curation/CurationFeedbackEntity.cs`
+| Stores admin feedback for recipes and ingredients.
+| `MessageThreadEntity`
+| `Nom.Data/Communication/MessageThreadEntity.cs`
+| Represents a conversation thread.
+| `MessageThreadParticipantEntity`
+| `Nom.Data/Communication/MessageThreadParticipantEntity.cs`
+| Junction table linking users to message threads.
+| `MessageEntity`
+| `Nom.Data/Communication/MessageEntity.cs`
+| Represents a single message within a thread.
+|===
+
 [#_reference_data_entities]
 ==== Reference Data Entities
 
@@ -1140,16 +1430,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 [#_immediate_next_focus]
 ==== Immediate Next Focus
 
-With the privacy feature set now complete, the primary focus is on completing the remaining onboarding functionality.
-
-[dlist]
-*Frontend Priority*::
-. Finalize the iterative flow for additional participants in `OnboardingWorkflowComponent`.
-. Ensure robust state management for individual restriction collection when `applyIndividualPreferencesToEachPerson` is true.
-. Conduct end-to-end testing of the complete multi-participant workflow.
-*Backend Priority*::
-. Add final validation and error handling to the `PersonOrchestrationService` for the multi-participant submission payload.
-. Perform integration testing with the frontend.
+With the privacy feature set now complete, the primary focus is on implementing the new Recipe, Curation, and Communication features, followed by completing the remaining multi-participant onboarding functionality.
 
 [#tech-stack]
 === Technology Stack Rationale
@@ -1339,10 +1620,9 @@ With the privacy feature set now complete, the primary focus is on completing th
 The following features are explicitly excluded from the current development phase but may be considered for future enhancements:
 
 [dlist]
-*Recipe Management*::
+*Advanced Recipe Management*::
 - Detailed plan creation and modification (beyond basic invitation linking)
 - Comprehensive recipe management and meal scheduling
-- USDA FoodData Central integration (moved to future enhancements)
 - Advanced recipe data ingestion from external sources
 *Advanced Features*::
 - Advanced user profile management beyond initial onboarding data
@@ -1720,10 +2000,60 @@ https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
 | Multiple files in `src/app/components/auth/models/`
 |===
 
+[#proposed-new-files]
+=== Proposed New Files (NOT STARTED)
+
+This section outlines the proposed new files to be added to the repository for the implementation of the new features.
+
+[#new-backend-files]
+==== Backend Files (C# - .NET Solution) - NEW
+
+[cols="33%,67%"]
+|===
+| File | GitHub URL Suffix
+
+| `Nom.Data/Recipe/RecipeEntity.cs` | `/Nom.Data/Recipe/RecipeEntity.cs`
+| `Nom.Data/Recipe/RecipeIngredientEntity.cs` | `/Nom.Data/Recipe/RecipeIngredientEntity.cs`
+| `Nom.Data/Curation/CurationFeedbackEntity.cs` | `/Nom.Data/Curation/CurationFeedbackEntity.cs`
+| `Nom.Data/Communication/MessageThreadEntity.cs` | `/Nom.Data/Communication/MessageThreadEntity.cs`
+| `Nom.Data/Communication/MessageThreadParticipantEntity.cs` | `/Nom.Data/Communication/MessageThreadParticipantEntity.cs`
+| `Nom.Data/Communication/MessageEntity.cs` | `/Nom.Data/Communication/MessageEntity.cs`
+| `Nom.Orch/Interfaces/IRecipeOrchestrationService.cs` | `/Nom.Orch/Interfaces/IRecipeOrchestrationService.cs`
+| `Nom.Orch/Services/RecipeOrchestrationService.cs` | `/Nom.Orch/Services/RecipeOrchestrationService.cs`
+| `Nom.Orch/Interfaces/ICurationOrchestrationService.cs` | `/Nom.Orch/Interfaces/ICurationOrchestrationService.cs`
+| `Nom.Orch/Services/CurationOrchestrationService.cs` | `/Nom.Orch/Services/CurationOrchestrationService.cs`
+| `Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs` | `/Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs`
+| `Nom.Orch/Services/CommunicationOrchestrationService.cs` | `/Nom.Orch/Services/CommunicationOrchestrationService.cs`
+| `Nom.Api/Controllers/RecipesController.cs` | `/Nom.Api/Controllers/RecipesController.cs`
+| `Nom.Api/Controllers/CurationController.cs` | `/Nom.Api/Controllers/CurationController.cs`
+| `Nom.Api/Controllers/MessagingController.cs` | `/Nom.Api/Controllers/MessagingController.cs`
+| `Nom.Api/Controllers/UserManagementController.cs` | `/Nom.Api/Controllers/UserManagementController.cs`
+|===
+
+[#new-frontend-files]
+==== Frontend Files (Angular - nom-ui) - NEW
+
+[cols="33%,67%"]
+|===
+| File | GitHub URL Suffix
+
+| `src/app/recipe/models/recipe.model.ts` | `/nom-ui/src/app/recipe/models/recipe.model.ts`
+| `src/app/recipe/services/recipe.service.ts` | `/nom-ui/src/app/recipe/services/recipe.service.ts`
+| `src/app/recipe/components/recipe-author-dashboard/...` | `/nom-ui/src/app/recipe/components/recipe-author-dashboard/...`
+| `src/app/recipe/components/recipe-edit/...` | `/nom-ui/src/app/recipe/components/recipe-edit/...`
+| `src/app/curation/services/curation.service.ts` | `/nom-ui/src/app/curation/services/curation.service.ts`
+| `src/app/curation/components/curation-queue/...` | `/nom-ui/src/app/curation/components/curation-queue/...`
+| `src/app/communication/models/message.model.ts` | `/nom-ui/src/app/communication/models/message.model.ts`
+| `src/app/communication/services/communication.service.ts` | `/nom-ui/src/app/communication/services/communication.service.ts`
+| `src/app/communication/components/messaging-inbox/...` | `/nom-ui/src/app/communication/components/messaging-inbox/...`
+| `src/app/admin/services/user-management.service.ts` | `/nom-ui/src/app/admin/services/user-management.service.ts`
+| `src/app/admin/components/user-management/...` | `/nom-ui/src/app/admin/components/user-management/...`
+|===
+
 [#conclusion]
 == Conclusion
 
-This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.
+This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development, now including a full suite of content management and communication tools. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up. The successful implementation of these new features will significantly enhance the platform's value by fostering a rich, trustworthy, and collaborative community ecosystem.
 
 [#_key_achievements]
 === Key Achievements
@@ -1753,17 +2083,16 @@ This comprehensive business analysis specification provides a complete roadmap f
 . *Iterative Development*: Follow the phased approach with regular privacy compliance reviews
 
 The NOM platform is positioned to become a leader in privacy-conscious nutritional planning, setting new standards for how health applications can protect user data while delivering exceptional personalized experiences.
-
 ---
 [cols="25%,75%",options="header"]
 |===
 | Document Information |
 
 | Version
-| 1.7
+| 2.1
 
 | Date
-| July 19, 2025
+| July 24, 2025
 
 | Status
 | Active Development Specification
