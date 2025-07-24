@@ -1,8 +1,8 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 22, 2025
-:revnumber: 1.9
+:revdate: July 24, 2025
+:revnumber: 2.0
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -14,7 +14,6 @@
 This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture.
 
 The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
-
 [#_introduction]
 == Introduction
 
@@ -31,11 +30,11 @@ The NOM program aims to provide users with tools for personalized nutritional pl
 [NOTE]
 ====
 .Current Development Status
-* *User Onboarding (COMPLETE)*: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend.
+* *User Onboarding (IN PROGRESS)*: The core onboarding is complete. The multi-participant user onboarding workflow is partially implemented on both the frontend and backend.
 * *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
 * *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created and successfully used to populate the database with foundational ingredient and nutrient data.
 * *Ingredient Search (V1 COMPLETE)*: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.
-* *Immediate Next Focus*: Development will now focus on refining the ingredient search logic to improve the relevance and ordering of search results.
+* *Immediate Next Focus*: Development will now focus on completing the remaining multi-participant onboarding functionality.
 ====
 
 [#_user_roles_personas]
@@ -49,10 +48,8 @@ The following primary user roles and system actors have been identified and cons
 
 | *New User / Prospect*
 | An individual who has just registered or is in the process of initial account setup, requiring guidance through onboarding questions and initial privacy consent.
-
 | *Authenticated User*
 | A registered and logged-in user of the system who can interact with various features, including submitting personal information and participating in plans.
-
 | *Plan Administrator*
 | An authenticated user who creates and manages nutritional plans, and can invite others to join.
 
@@ -61,7 +58,6 @@ The following primary user roles and system actors have been identified and cons
 
 | *System*
 | An automated entity responsible for background processes, such as the automatic inference and recording of dietary restrictions based on user input, ensuring data integrity and auditability.
-
 | *Privacy Officer*
 | A designated role responsible for overseeing data protection compliance, handling user privacy rights requests, and maintaining compliance documentation.
 |===
@@ -74,17 +70,14 @@ The following primary user roles and system actors have been identified and cons
 
 .Objective
 To efficiently collect essential user data and personal preferences immediately following account registration, establishing a foundational user profile.
-
 [cols="20%,80%",options="header"]
 |===
 | ID | Requirement
 
 | *FR-1.1*
 | *Multi-Step Onboarding Workflow*: The system shall present a guided, multi-step onboarding process, composed of reusable domain-specific edit components.
-
 | *FR-1.2*
 | *Core Profile Data Collection*: The initial step shall collect essential personal profile details for the newly registered user.
-
 | *FR-1.3*
 | *Health Attributes Collection*: The workflow shall include an optional step for collecting health-related attributes.
 
@@ -93,19 +86,14 @@ To efficiently collect essential user data and personal preferences immediately 
 
 | *FR-1.4.1*
 | *Restriction Scope Selection*: For each identified restriction, the user shall be prompted to specify if it applies to everyone on the plan or to specific individuals.
-
 | *FR-1.4.2*
 | *Individual Restriction Assignment*: If a restriction applies to specific individuals, the user shall be provided with a selection list to designate which person(s) (including themselves) are affected.
-
 | *FR-1.5*
 | *Workflow Control Navigation*: Each step in the onboarding process shall be wrapped with a user interface providing "Next", "Back", "Skip" (where optional), "Yes", "No", and "Submit" (where applicable) buttons to control navigation and data submission.
-
 | *FR-1.6*
 | *UI-Only Workflow Steps*: Certain steps may be purely for workflow control, collecting user decisions without immediate API interaction, influencing subsequent steps.
-
 | *FR-1.7*
 | *Final Onboarding Data Submission*: Upon completing all required onboarding steps, a summary shall be presented, allowing the user to review and submit all collected PersonEntity, PersonAttributeEntity, and RestrictionEntity data in a single operation.
-
 | *FR-1.8*
 | *Multi-Participant Onboarding (Conditional)*: Support for adding multiple participants to a plan with individual preference collection.
 |===
@@ -119,7 +107,6 @@ To efficiently collect essential user data and personal preferences immediately 
 
 | *FR-1.8.1*
 | *Participation Inquiry*: An optional UI-only step shall ask if additional people will participate in the plan.
-
 | *FR-1.8.2*
 | *Participant Count*: If affirmative, a subsequent UI-only step shall ask how many additional people will participate.
 
@@ -128,7 +115,6 @@ To efficiently collect essential user data and personal preferences immediately 
 
 | *FR-1.8.4*
 | *Individual Preference Application*: An optional UI-only step shall ask if individual preferences should apply to each person on the plan.
-
 | *FR-1.8.5*
 | *Iterative Participant Onboarding*: Step 1.4 (Iterative Restriction Collection) shall be reused and repeated for each additional person added to the plan, allowing the user to skip at any point during these repetitions.
 |===
@@ -138,23 +124,19 @@ To efficiently collect essential user data and personal preferences immediately 
 
 .Objective
 To automatically identify and record dietary restrictions based on user responses during onboarding, streamlining the personalization of nutritional plans.
-
 [cols="20%,80%",options="header"]
 |===
 | ID | Requirement
 
 | *FR-2.1*
 | *Restriction Data Capture*: The system shall capture detailed dietary restrictions, including categorization into "societal, religious, or ethical practices", "allergies and medical restrictions", and "personal preferences".
-
 | *FR-2.2*
 | *Specific Restriction Details*: Capture detailed restriction information across multiple categories.
 
 | *FR-2.3*
 | *Person- or Plan-Level Association*: Restrictions collected during onboarding must be associable with either specific individuals (PersonEntity) or the entire PlanEntity, as determined by FR-1.4.1.
-
 | *FR-2.4*
 | *Prevention of Duplicates*: The system shall prevent the creation of duplicate Restriction records for the same Person (or Plan, if applicable) and the same Restriction Type.
-
 | *FR-2.5*
 | *Auditability*: All created Restriction records shall include audit information, indicating their creation time and the creating Person (or System).
 |===
@@ -182,10 +164,8 @@ To enable users to join existing nutritional plans through a secure invitation m
 
 | *FR-3.1*
 | *Invitation Code Input*: The onboarding process shall include an optional step for users to input a unique invitation code.
-
 | *FR-3.2*
 | *Plan Linking*: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user’s Person record to the corresponding Plan using a PlanParticipant entity.
-
 | *FR-3.3*
 | *Role Assignment*: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
 |===
@@ -202,10 +182,8 @@ To secure system access and protect sensitive user data and functionalities.
 
 | *FR-4.1*
 | *Authenticated Access*: Most API endpoints shall require a valid authentication token (e.g., JWT) for access, ensuring only authenticated users can perform actions or retrieve sensitive data.
-
 | *FR-4.2*
 | *Anonymous Access for Onboarding*: Specific public endpoints (e.g., initial user registration) shall be accessible without prior authentication to facilitate the initial user journey.
-
 | *FR-4.3*
 | *User Registration*: The system shall support user registration, creating new user accounts and associated Person records.
 
@@ -218,7 +196,6 @@ To secure system access and protect sensitive user data and functionalities.
 
 .Objective
 To ensure compliance with applicable data privacy regulations and provide users with control over their personal data.
-
 [IMPORTANT]
 ====
 Privacy compliance is *mandatory* for EU users under GDPR and represents a critical competitive advantage for building user trust in the health application market.
@@ -239,13 +216,10 @@ Privacy compliance is *mandatory* for EU users under GDPR and represents a criti
 
 | *FR-4.5.4*
 | *Privacy Dashboard*: The system shall provide a dedicated user interface (`PrivacySettingsComponent`) for managing privacy settings, viewing consent status, and exercising data subject rights.
-
 | *FR-4.5.5*
 | *Data Processing Logging*: All access to and modifications of personal data shall be logged for audit purposes in the `DataProcessingLogEntity` table, including timestamp, actor, and action details.
-
 | *FR-4.5.6*
 | *Privacy Policy Integration*: The system shall prominently display privacy policy information during onboarding and provide easy access throughout the application.
-
 | *FR-4.5.7*
 | *Data Retention Management*: The system shall implement automated data retention policies that align with stated privacy policies and legal requirements.
 |===
@@ -276,7 +250,6 @@ Manages individual user accounts and associated personal profiles within the sys
 
 | *Rule-5.1.4*
 | *Password Security*: Users must be able to securely reset forgotten passwords and update existing passwords, requiring validation of their current identity.
-
 | *Rule-5.1.5*
 | *Two-Factor Authentication (2FA)*: Users can opt to enable 2FA for enhanced login security, which requires a one-time code from an authenticator app in addition to their password. The system must support the generation of shared keys and recovery codes.
 
@@ -296,13 +269,10 @@ Guides new users through initial data collection to personalize their experience
 
 | *Rule-5.2.1*
 | *Workflow Sequencing*: The onboarding process follows a predefined sequence of steps, leveraging reusable edit components.
-
 | *Rule-5.2.2*
 | *Data Aggregation*: All data collected across multiple steps and components during onboarding shall be aggregated into a single, comprehensive payload for final submission.
-
 | *Rule-5.2.3*
 | *Conditional Step Execution*: The execution of certain onboarding steps (e.g., additional participant details, individual restriction assignments) is conditional based on prior user input.
-
 | *Rule-5.2.4*
 | *Data Integrity on Navigation*: User inputs must be preserved when navigating back and forth through the onboarding wizard.
 |===
@@ -325,7 +295,6 @@ Facilitates the creation, management, and participation in shared nutritional pl
 
 | *Rule-5.3.3*
 | *Participant Association*: PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
-
 | *Rule-5.3.4*
 | *Participant Roles*: Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
 |===
@@ -342,7 +311,6 @@ Provides a centralized, extensible system for managing predefined, static lists 
 
 | *Rule-5.4.1*
 | *Categorization*: Reference items are organized into Groups (e.g., "Measurement Type", "Nutrient Type", "Meal Type") to provide context.
-
 | *Rule-5.4.2*
 | *Many-to-Many Association*: A Reference item can belong to multiple Groups, and a Group can contain multiple Reference items. This relationship is managed implicitly by the system.
 
@@ -362,13 +330,11 @@ Records and applies dietary constraints for individuals or entire plans to tailo
 
 | *Rule-5.5.1*
 | *Association Constraint*: Every Restriction must be explicitly linked to either a Person OR a Plan (or both), but not neither.
-
 | *Rule-5.5.2*
 | *Type Definition*: Each Restriction must be categorized by a RestrictionType defined in the Reference Data domain.
 
 | *Rule-5.5.3*
 | *Uniqueness per Context*: A specific RestrictionType can only be applied once per Person or once per Plan to avoid redundant entries.
-
 | *Rule-5.5.4*
 | *Audit Trail*: Every Restriction record must capture who CreatedByPersonId it and CreatedDate.
 |===
@@ -378,7 +344,6 @@ Records and applies dietary constraints for individuals or entire plans to tailo
 
 .Purpose
 Ensures compliance with applicable data privacy regulations and provides users with control over their personal data.
-
 [WARNING]
 ====
 *GDPR Compliance is Mandatory* for EU users. Non-compliance can result in fines up to €20 million or 4% of global revenue, whichever is higher.
@@ -390,7 +355,6 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *Rule-5.6.1*
 | *Lawful Basis*: All personal data processing must have a valid lawful basis under applicable privacy laws (consent, legitimate interest, etc.).
-
 | *Rule-5.6.2*
 | *Consent Documentation*: All user consents must be documented with timestamp, version, and specific scope of consent granted.
 
@@ -399,16 +363,12 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *Rule-5.6.4*
 | *Purpose Limitation*: Personal data may only be used for the purposes explicitly communicated to the user at the time of collection.
-
 | *Rule-5.6.5*
 | *Retention Limitation*: Personal data must be deleted or anonymized when no longer necessary for the original purpose, subject to legal retention requirements.
-
 | *Rule-5.6.6*
 | *Security by Design*: Appropriate technical and organizational measures must be implemented to protect personal data against unauthorized access, modification, or disclosure.
-
 | *Rule-5.6.7*
 | *Breach Notification*: Data breaches affecting personal data must be documented and, where required by law, reported to supervisory authorities and affected individuals within specified timeframes.
-
 | *Rule-5.6.8*
 | *Cross-Border Transfers*: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).
 |===
@@ -425,7 +385,6 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.1.1*
 | *Responsive UI*: The user interface for the questionnaire should load quickly and respond smoothly to user interactions, minimizing perceived delays.
-
 | *NFR-6.1.2*
 | *Efficient API Calls*: Backend API endpoints for fetching questions and submitting answers should respond within acceptable timeframes to ensure a fluid user experience.
 |===
@@ -439,13 +398,10 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.2.1*
 | *Data Protection*: All sensitive user data (e.g., passwords, personal information, dietary restrictions) shall be transmitted and stored securely.
-
 | *NFR-6.2.2*
 | *Input Sanitization*: User inputs shall be properly sanitized and validated to prevent common web vulnerabilities (e.g., XSS, SQL injection).
-
 | *NFR-6.2.3*
 | *Access Control*: The system shall enforce proper authorization checks to ensure users can only access data and perform actions they are permitted to.
-
 | *NFR-6.2.4*
 | *Encryption*: Personal data shall be encrypted both in transit (TLS) and at rest (database encryption).
 
@@ -462,7 +418,6 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.3.1*
 | *GDPR Compliance*: The system shall comply with GDPR requirements for EU users, including data subject rights, lawful basis documentation, and privacy by design principles.
-
 | *NFR-6.3.2*
 | *Consent Management*: User consents shall be granular, documented, and easily withdrawable.
 
@@ -471,7 +426,6 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.3.4*
 | *Right to Erasure*: The system shall support secure deletion of personal data upon user request, subject to legal retention requirements.
-
 | *NFR-6.3.5*
 | *Audit Logging*: All access to and modification of personal data shall be logged for compliance auditing purposes.
 
@@ -488,13 +442,10 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.4.1*
 | *Modular Architecture*: The application shall be built with a modular, domain-driven architecture (both frontend and backend) to facilitate independent development, testing, and deployment of features.
-
 | *NFR-6.4.2*
 | *Consistent Conventions*: Strict adherence to naming conventions, coding standards (e.g., BEM for CSS, explicit property assignment in TS constructors), and design patterns to ensure code readability and ease of maintenance.
-
 | *NFR-6.4.3*
 | *Separation of Concerns*: Clear boundaries shall be maintained between UI components, business logic (orchestration services), data access layers, and API endpoints.
-
 | *NFR-6.4.4*
 | *Extensibility*: The system should be designed to allow for the easy addition of new restriction types and participant management scenarios in the future without significant code refactoring.
 |===
@@ -508,13 +459,10 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 | *NFR-6.5.1*
 | *Intuitive Workflow*: The onboarding process should be easy to understand and navigate for all users.
-
 | *NFR-6.5.2*
 | *Clear Feedback*: Users shall receive immediate and clear feedback on their actions, including loading states, validation errors, and submission success/failure messages.
-
 | *NFR-6.5.3*
 | *Responsive Design*: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
-
 | *NFR-6.5.4*
 | *Privacy Transparency*: Privacy policies and data processing information shall be presented in clear, understandable language.
 |===
@@ -589,7 +537,8 @@ Ensures compliance with applicable data privacy regulations and provides users w
 
 [IMPORTANT]
 ====
-*CRITICAL NAMING RULE*: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto". *DTO IS STRICTLY FORBIDDEN!*
+*CRITICAL NAMING RULE*: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto".
+*DTO IS STRICTLY FORBIDDEN!*
 
 *Acceptable Model/Data Transport Suffixes:*
 * `Model` - For core domain entities and data structures
@@ -735,14 +684,12 @@ This section provides a detailed mapping between the high-level functional requi
 
 .Role
 This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.1>> (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.
 * <<onboarding-requirements,FR-1.5>> (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic.
 * <<onboarding-requirements,FR-1.6>> (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps without immediate API calls.
 * <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.
 * <<onboarding-requirements,FR-1.8>> (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants.
-
 .Domain Rules Mapping
 * <<onboarding-domain,Rule-5.2.1>> (Workflow Sequencing): Directly manages the sequence of steps.
 * <<onboarding-domain,Rule-5.2.2>> (Data Aggregation): Maintains a central onboardingData object.
@@ -759,10 +706,8 @@ This is the top-level orchestrator for the entire onboarding process. It manages
 
 .Role
 Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.2>> (Core Profile Data Collection): Direct implementation of core profile data collection.
-
 .Domain Rules Mapping
 * <<user-domain,Rule-5.1.1>> (Unique Identification): Ensures data collected adheres to unique identification requirements.
 
@@ -776,7 +721,6 @@ Collects and validates core PersonEntity data (e.g., name, gender, birthdate if 
 
 .Role
 Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.3>> (Health Attributes Collection): Direct implementation of health attributes collection.
 
@@ -790,12 +734,10 @@ Collects PersonAttributeEntity data related to health (e.g., height, weight, act
 
 .Role
 A reusable component to allow users to define RestrictionEntity data. It dynamically renders complex sub-questions and selection lists based on the Restriction Type being configured.
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.4>> (Iterative Restriction Collection): Direct implementation of restriction collection workflow.
 * <<restriction-requirements,FR-2.1>> (Restriction Data Capture): Captures detailed dietary restrictions.
 * <<restriction-requirements,FR-2.2>> (Specific Restriction Details): Manages complex restriction detail collection.
-
 .Domain Rules Mapping
 * <<restriction-domain,Rule-5.5.1>> (Association Constraint): Ensures restrictions are properly linked to Person or Plan.
 * <<restriction-domain,Rule-5.5.2>> (Type Definition): Handles restriction type categorization.
@@ -810,12 +752,10 @@ A reusable component to allow users to define RestrictionEntity data. It dynamic
 
 .Role
 Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights. It uses a custom `ConfirmationDialogComponent` for critical actions like account deletion to ensure a robust and user-friendly experience.
-
 .Functional Requirements Mapping
 * <<privacy-requirements,FR-4.5.4>> (Privacy Dashboard): Direct implementation of privacy management interface.
 * <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Supports consent withdrawal functionality.
 * <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Facilitates exercise of GDPR rights.
-
 .Domain Rules Mapping
 * <<privacy-domain,Rule-5.6.2>> (Consent Documentation): Displays consent documentation and status.
 * <<privacy-domain,Rule-5.6.5>> (Retention Limitation): Provides interface for data retention management.
@@ -832,7 +772,6 @@ Provides users with a centralized interface for managing their privacy settings,
 
 .Functional Requirements Mapping
 * <<auth-requirements,FR-4.3>> (User Registration): Handles new user account creation.
-
 .Domain Rules Mapping
 * <<user-domain,Rule-5.1.2>> (Account Creation): Implements email and password validation.
 
@@ -867,10 +806,8 @@ Provides users with a centralized interface for managing their privacy settings,
 
 .Role
 Handles all API interactions related to the Person domain, including the composite onboarding submission.
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Contains `submitOnboardingComplete()` method for API interaction.
-
 .Data Structures Used
 `PersonModel`, `PersonAttributeModel`, `RestrictionModel`, `OnboardingCompleteRequestModel`
 
@@ -882,7 +819,6 @@ Handles all API interactions related to the Person domain, including the composi
 
 .Role
 Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.
-
 .Functional Requirements Mapping
 * <<restriction-requirements,FR-2.2>> (Specific Restriction Details): Provides methods to fetch curated ingredients and micronutrients.
 
@@ -894,13 +830,11 @@ Handles API interactions related to the Restriction domain, including fetching d
 
 .Role
 Handles all privacy-related API interactions including consent management, data subject rights, and privacy dashboard functionality.
-
 .Functional Requirements Mapping
 * <<privacy-requirements,FR-4.5.1>> (Privacy Consent Management): Manages consent collection and updates.
 * <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Handles consent withdrawal requests.
 * <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Facilitates data access, rectification, erasure, and portability.
 * <<privacy-requirements,FR-4.5.5>> (Data Processing Logging): Retrieves audit logs for user review.
-
 .Key Methods
 `updateConsent()`, `requestDataExport()`, `requestDataDeletion()`, `getConsentStatus()`, `getAuditLog()`
 
@@ -914,7 +848,6 @@ Handles all privacy-related API interactions including consent management, data 
 * `FR-4.1` (Authenticated Access): Primary interface for authenticated API calls.
 * `FR-4.3` (User Registration): Handles new user creation.
 * `FR-4.4` (User Login): Manages user authentication and JWT handling.
-
 .Additional Features
 * Email confirmation and password reset functionality
 * Two-factor authentication support
@@ -928,7 +861,6 @@ Handles all privacy-related API interactions including consent management, data 
 
 .Role
 Manages client-side authentication state, including JWT tokens, token expiration, and storage preferences.
-
 .Key Properties
 `token`, `refreshToken`, `tokenExpiration`, `rememberMe`, `userLogin` (BehaviorSubject)
 
@@ -943,7 +875,6 @@ Manages client-side authentication state, including JWT tokens, token expiration
 
 .Role
 Provides consistent user feedback notifications across the application.
-
 .Methods
 `success()`, `info()`, `warning()`, `error()`
 
@@ -952,7 +883,8 @@ Provides consistent user feedback notifications across the application.
 
 [IMPORTANT]
 ====
-All models follow the strict naming convention: *NO DTO SUFFIXES ALLOWED*. Use `Model`, `Request`, or `Response` only.
+All models follow the strict naming convention: *NO DTO SUFFIXES ALLOWED*.
+Use `Model`, `Request`, or `Response` only.
 ====
 
 [#_core_models]
@@ -1027,7 +959,6 @@ All models follow the strict naming convention: *NO DTO SUFFIXES ALLOWED*. Use `
 
 .Role
 Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and now integrates with the `IPrivacyOrchestrationService` to save initial consents.
-
 .Functional Requirements Mapping
 * <<onboarding-requirements,FR-1.7>> (Final Onboarding Data Submission): Backend processing of onboarding completion.
 * <<restriction-requirements,FR-2.1>> through <<restriction-requirements,FR-2.5>>: Restriction data capture and management.
@@ -1051,16 +982,13 @@ Handles the orchestration of onboarding completion, including creation/update of
 
 .Role
 Handles complex business logic related to privacy compliance, data subject rights, and consent management.
-
 .Functional Requirements Mapping
 * <<privacy-requirements,FR-4.5.2>> (Consent Withdrawal): Processes consent withdrawal requests.
 * <<privacy-requirements,FR-4.5.3>> (Data Subject Rights): Handles GDPR rights requests.
 * <<privacy-requirements,FR-4.5.5>> (Data Processing Logging): Manages audit log access.
 * <<privacy-requirements,FR-4.5.7>> (Data Retention Management): Implements retention policies.
-
 .Domain Rules Mapping
 * <<privacy-domain,Rule-5.6.1>> through <<privacy-domain,Rule-5.6.8>>: All privacy and compliance rules.
-
 .Key Methods
 `UpdateConsentAsync()`, `RequestDataExportAsync()`, `RequestDataDeletionAsync()`
 
@@ -1075,7 +1003,6 @@ Handles complex business logic related to privacy compliance, data subject right
 
 .Role
 Exposes API endpoints for person-related functionality including onboarding completion.
-
 .Key Endpoints
 * `[HttpPost("onboarding-complete")]`: Processes complete onboarding submission
 
@@ -1087,7 +1014,6 @@ Exposes API endpoints for person-related functionality including onboarding comp
 
 .Role
 Exposes API endpoints for privacy-related functionality.
-
 .Key Endpoints
 * `[HttpPost("consent")]`: Update user consent preferences
 * `[HttpPost("data-export")]`: Generate data export for user
@@ -1205,21 +1131,25 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 ==== Privacy & Compliance Status
 
 .Implementation Complete
-* *Data Layer*: `UserConsentEntity`, `DataProcessingLogEntity`, and `PrivacyRequestEntity` are created and in use. [cite: PrivacyOrchestrationService.cs]
-* *Orchestration & Background Processing*: `PrivacyOrchestrationService` handles all business logic, successfully queueing tasks to the `BackgroundTaskQueueOrchestrationService`. [cite: PrivacyOrchestrationService.cs] The `DataExportOrchestrationService` and `DataAnonymizationOrchestrationService` correctly execute these background jobs. [cite: DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]
-* *API Layer*: `PrivacyController` is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization. [cite: PrivacyController.cs]
-* *Auditing*: The `AuditOrchestrationService` is available for logging all data processing activities. [cite: AuditOrchestrationService.cs]
+* *Data Layer*: `UserConsentEntity`, `DataProcessingLogEntity`, and `PrivacyRequestEntity` are created and in use.
+* *Orchestration & Background Processing*: `PrivacyOrchestrationService` handles all business logic, successfully queueing tasks to the `BackgroundTaskQueueOrchestrationService`. The `DataExportOrchestrationService` and `DataAnonymizationOrchestrationService` correctly execute these background jobs.
+* *API Layer*: `PrivacyController` is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization.
+* *Auditing*: The `AuditOrchestrationService` is available for logging all data processing activities.
 * *Frontend UI*: The `PrivacySettingsComponent` is fully functional, allowing users to manage their data rights via the `PrivacyService` and using a robust `ConfirmationDialogComponent` for critical actions.
 
 [#_immediate_next_focus]
 ==== Immediate Next Focus
 
-With the privacy feature set now complete, the sole focus is on the remaining onboarding functionality.
+With the privacy feature set now complete, the primary focus is on completing the remaining onboarding functionality.
 
 [dlist]
 *Frontend Priority*::
-. Complete iterative flow for additional participants in `OnboardingWorkflowComponent`.
-. Implement individual restriction collection when `applyIndividualPreferencesToEachPerson` is true.
+. Finalize the iterative flow for additional participants in `OnboardingWorkflowComponent`.
+. Ensure robust state management for individual restriction collection when `applyIndividualPreferencesToEachPerson` is true.
+. Conduct end-to-end testing of the complete multi-participant workflow.
+*Backend Priority*::
+. Add final validation and error handling to the `PersonOrchestrationService` for the multi-participant submission payload.
+. Perform integration testing with the frontend.
 
 [#tech-stack]
 === Technology Stack Rationale
@@ -1793,7 +1723,7 @@ https://github.com/danielhokanson/nutrition-optimization-machine/blob/main/
 [#conclusion]
 == Conclusion
 
-This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. The document serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.
+This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.
 
 [#_key_achievements]
 === Key Achievements
@@ -1841,4 +1771,3 @@ The NOM platform is positioned to become a leader in privacy-conscious nutrition
 | Next Review
 | 30 days post-implementation start
 |===
-

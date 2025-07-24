@@ -558,8 +558,8 @@ pre.rouge .gs {
 <h1>Nutritional Optimization Machine (NOM) Program: Business Analysis Specification</h1>
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
-<span id="revnumber">version 1.9,</span>
-<span id="revdate">July 22, 2025</span>
+<span id="revnumber">version 2.0,</span>
+<span id="revdate">July 24, 2025</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -842,7 +842,7 @@ pre.rouge .gs {
 <div class="title">Current Development Status</div>
 <ul>
 <li>
-<p><strong>User Onboarding (COMPLETE)</strong>: The comprehensive, multi-participant user onboarding workflow is now fully implemented on both the frontend and backend.</p>
+<p><strong>User Onboarding (IN PROGRESS)</strong>: The core onboarding is complete. The multi-participant user onboarding workflow is partially implemented on both the frontend and backend.</p>
 </li>
 <li>
 <p><strong>Privacy &amp; Compliance Feature (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.</p>
@@ -854,7 +854,7 @@ pre.rouge .gs {
 <p><strong>Ingredient Search (V1 COMPLETE)</strong>: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.</p>
 </li>
 <li>
-<p><strong>Immediate Next Focus</strong>: Development will now focus on refining the ingredient search logic to improve the relevance and ordering of search results.</p>
+<p><strong>Immediate Next Focus</strong>: Development will now focus on completing the remaining multi-participant onboarding functionality.</p>
 </li>
 </ul>
 </div>
@@ -1843,7 +1843,8 @@ pre.rouge .gs {
 </td>
 <td class="content">
 <div class="paragraph">
-<p><strong>CRITICAL NAMING RULE</strong>: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto". <strong>DTO IS STRICTLY FORBIDDEN!</strong></p>
+<p><strong>CRITICAL NAMING RULE</strong>: NO MODEL OR DATA TRANSPORT CLASS SHALL EVER USE THE SUFFIX "DTO", "Dto", or "dto".
+<strong>DTO IS STRICTLY FORBIDDEN!</strong></p>
 </div>
 <div class="paragraph">
 <p><strong>Acceptable Model/Data Transport Suffixes:</strong>
@@ -2131,44 +2132,18 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.1</a> (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.</p>
-</li>
-<li>
-<p><a href="#onboarding-requirements">FR-1.5</a> (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic.</p>
-</li>
-<li>
-<p><a href="#onboarding-requirements">FR-1.6</a> (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps without immediate API calls.</p>
-</li>
-<li>
-<p><a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.</p>
-</li>
-<li>
-<p><a href="#onboarding-requirements">FR-1.8</a> (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-domain">Rule-5.2.1</a> (Workflow Sequencing): Directly manages the sequence of steps.</p>
-</li>
-<li>
-<p><a href="#onboarding-domain">Rule-5.2.2</a> (Data Aggregation): Maintains a central onboardingData object.</p>
-</li>
-<li>
-<p><a href="#onboarding-domain">Rule-5.2.3</a> (Conditional Step Execution): Logic within nextStep() and skipStep() evaluates user choices.</p>
-</li>
-<li>
-<p><a href="#onboarding-domain">Rule-5.2.4</a> (Data Integrity on Navigation): Passes collected data to child components for pre-population.</p>
-</li>
-</ul>
+<p>This is the top-level orchestrator for the entire onboarding process. It manages the multi-step flow, holds the aggregated onboarding data, and controls the visibility and data passing to/from child edit components.
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.1</a> (Multi-Step Onboarding Workflow): Manages the currentStepIndex and dynamically renders child components based on this index.
+* <a href="#onboarding-requirements">FR-1.5</a> (Workflow Control Navigation): Implements nextStep(), previousStep(), skipStep() (where applicable), and submit() logic.
+* <a href="#onboarding-requirements">FR-1.6</a> (UI-Only Workflow Steps): Stores and processes decisions from UI-only steps without immediate API calls.
+* <a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Triggers the final POST request to the backend with the complete OnboardingCompleteRequestModel payload.
+* <a href="#onboarding-requirements">FR-1.8</a> (Multi-Participant Onboarding): Contains the state and logic to conditionally render steps for additional participants.
+.Domain Rules Mapping
+* <a href="#onboarding-domain">Rule-5.2.1</a> (Workflow Sequencing): Directly manages the sequence of steps.
+* <a href="#onboarding-domain">Rule-5.2.2</a> (Data Aggregation): Maintains a central onboardingData object.
+* <a href="#onboarding-domain">Rule-5.2.3</a> (Conditional Step Execution): Logic within nextStep() and skipStep() evaluates user choices.
+* <a href="#onboarding-domain">Rule-5.2.4</a> (Data Integrity on Navigation): Passes collected data to child components for pre-population.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2189,23 +2164,11 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.2</a> (Core Profile Data Collection): Direct implementation of core profile data collection.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#user-domain">Rule-5.1.1</a> (Unique Identification): Ensures data collected adheres to unique identification requirements.</p>
-</li>
-</ul>
+<p>Collects and validates core PersonEntity data (e.g., name, gender, birthdate if applicable).
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.2</a> (Core Profile Data Collection): Direct implementation of core profile data collection.
+.Domain Rules Mapping
+* <a href="#user-domain">Rule-5.1.1</a> (Unique Identification): Ensures data collected adheres to unique identification requirements.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2226,15 +2189,9 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.3</a> (Health Attributes Collection): Direct implementation of health attributes collection.</p>
-</li>
-</ul>
+<p>Collects PersonAttributeEntity data related to health (e.g., height, weight, activity level).
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.3</a> (Health Attributes Collection): Direct implementation of health attributes collection.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2255,32 +2212,14 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>A reusable component to allow users to define RestrictionEntity data. It dynamically renders complex sub-questions and selection lists based on the Restriction Type being configured.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.4</a> (Iterative Restriction Collection): Direct implementation of restriction collection workflow.</p>
-</li>
-<li>
-<p><a href="#restriction-requirements">FR-2.1</a> (Restriction Data Capture): Captures detailed dietary restrictions.</p>
-</li>
-<li>
-<p><a href="#restriction-requirements">FR-2.2</a> (Specific Restriction Details): Manages complex restriction detail collection.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#restriction-domain">Rule-5.5.1</a> (Association Constraint): Ensures restrictions are properly linked to Person or Plan.</p>
-</li>
-<li>
-<p><a href="#restriction-domain">Rule-5.5.2</a> (Type Definition): Handles restriction type categorization.</p>
-</li>
-</ul>
+<p>A reusable component to allow users to define RestrictionEntity data. It dynamically renders complex sub-questions and selection lists based on the Restriction Type being configured.
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.4</a> (Iterative Restriction Collection): Direct implementation of restriction collection workflow.
+* <a href="#restriction-requirements">FR-2.1</a> (Restriction Data Capture): Captures detailed dietary restrictions.
+* <a href="#restriction-requirements">FR-2.2</a> (Specific Restriction Details): Manages complex restriction detail collection.
+.Domain Rules Mapping
+* <a href="#restriction-domain">Rule-5.5.1</a> (Association Constraint): Ensures restrictions are properly linked to Person or Plan.
+* <a href="#restriction-domain">Rule-5.5.2</a> (Type Definition): Handles restriction type categorization.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2301,32 +2240,14 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights. It uses a custom <code>ConfirmationDialogComponent</code> for critical actions like account deletion to ensure a robust and user-friendly experience.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.4</a> (Privacy Dashboard): Direct implementation of privacy management interface.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Supports consent withdrawal functionality.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Facilitates exercise of GDPR rights.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.2</a> (Consent Documentation): Displays consent documentation and status.</p>
-</li>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.5</a> (Retention Limitation): Provides interface for data retention management.</p>
-</li>
-</ul>
+<p>Provides users with a centralized interface for managing their privacy settings, viewing consent status, and exercising data subject rights. It uses a custom <code>ConfirmationDialogComponent</code> for critical actions like account deletion to ensure a robust and user-friendly experience.
+.Functional Requirements Mapping
+* <a href="#privacy-requirements">FR-4.5.4</a> (Privacy Dashboard): Direct implementation of privacy management interface.
+* <a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Supports consent withdrawal functionality.
+* <a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Facilitates exercise of GDPR rights.
+.Domain Rules Mapping
+* <a href="#privacy-domain">Rule-5.6.2</a> (Consent Documentation): Displays consent documentation and status.
+* <a href="#privacy-domain">Rule-5.6.5</a> (Retention Limitation): Provides interface for data retention management.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2348,13 +2269,9 @@ pre.rouge .gs {
 <div class="title">Functional Requirements Mapping</div>
 <ul>
 <li>
-<p><a href="#auth-requirements">FR-4.3</a> (User Registration): Handles new user account creation.</p>
+<p><a href="#auth-requirements">FR-4.3</a> (User Registration): Handles new user account creation.
+.Domain Rules Mapping</p>
 </li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
 <li>
 <p><a href="#user-domain">Rule-5.1.2</a> (Account Creation): Implements email and password validation.</p>
 </li>
@@ -2420,19 +2337,11 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles all API interactions related to the Person domain, including the composite onboarding submission.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Contains <code>submitOnboardingComplete()</code> method for API interaction.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Data Structures Used</div>
-<p><code>PersonModel</code>, <code>PersonAttributeModel</code>, <code>RestrictionModel</code>, <code>OnboardingCompleteRequestModel</code></p>
+<p>Handles all API interactions related to the Person domain, including the composite onboarding submission.
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Contains <code>submitOnboardingComplete()</code> method for API interaction.
+.Data Structures Used
+<code>PersonModel</code>, <code>PersonAttributeModel</code>, <code>RestrictionModel</code>, <code>OnboardingCompleteRequestModel</code></p>
 </div>
 </div>
 <div class="sect3">
@@ -2443,15 +2352,9 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#restriction-requirements">FR-2.2</a> (Specific Restriction Details): Provides methods to fetch curated ingredients and micronutrients.</p>
-</li>
-</ul>
+<p>Handles API interactions related to the Restriction domain, including fetching dynamic lists for selections.
+.Functional Requirements Mapping
+* <a href="#restriction-requirements">FR-2.2</a> (Specific Restriction Details): Provides methods to fetch curated ingredients and micronutrients.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2462,28 +2365,14 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles all privacy-related API interactions including consent management, data subject rights, and privacy dashboard functionality.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Manages consent collection and updates.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Handles consent withdrawal requests.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Facilitates data access, rectification, erasure, and portability.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.5</a> (Data Processing Logging): Retrieves audit logs for user review.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Key Methods</div>
-<p><code>updateConsent()</code>, <code>requestDataExport()</code>, <code>requestDataDeletion()</code>, <code>getConsentStatus()</code>, <code>getAuditLog()</code></p>
+<p>Handles all privacy-related API interactions including consent management, data subject rights, and privacy dashboard functionality.
+.Functional Requirements Mapping
+* <a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Manages consent collection and updates.
+* <a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Handles consent withdrawal requests.
+* <a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Facilitates data access, rectification, erasure, and portability.
+* <a href="#privacy-requirements">FR-4.5.5</a> (Data Processing Logging): Retrieves audit logs for user review.
+.Key Methods
+<code>updateConsent()</code>, <code>requestDataExport()</code>, <code>requestDataDeletion()</code>, <code>getConsentStatus()</code>, <code>getAuditLog()</code></p>
 </div>
 </div>
 <div class="sect3">
@@ -2502,13 +2391,9 @@ pre.rouge .gs {
 <p><code>FR-4.3</code> (User Registration): Handles new user creation.</p>
 </li>
 <li>
-<p><code>FR-4.4</code> (User Login): Manages user authentication and JWT handling.</p>
+<p><code>FR-4.4</code> (User Login): Manages user authentication and JWT handling.
+.Additional Features</p>
 </li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Additional Features</div>
-<ul>
 <li>
 <p>Email confirmation and password reset functionality</p>
 </li>
@@ -2529,11 +2414,9 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Manages client-side authentication state, including JWT tokens, token expiration, and storage preferences.</p>
-</div>
-<div class="paragraph">
-<div class="title">Key Properties</div>
-<p><code>token</code>, <code>refreshToken</code>, <code>tokenExpiration</code>, <code>rememberMe</code>, <code>userLogin</code> (BehaviorSubject)</p>
+<p>Manages client-side authentication state, including JWT tokens, token expiration, and storage preferences.
+.Key Properties
+<code>token</code>, <code>refreshToken</code>, <code>tokenExpiration</code>, <code>rememberMe</code>, <code>userLogin</code> (BehaviorSubject)</p>
 </div>
 <div class="paragraph">
 <div class="title">Key Methods</div>
@@ -2548,11 +2431,9 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Provides consistent user feedback notifications across the application.</p>
-</div>
-<div class="paragraph">
-<div class="title">Methods</div>
-<p><code>success()</code>, <code>info()</code>, <code>warning()</code>, <code>error()</code></p>
+<p>Provides consistent user feedback notifications across the application.
+.Methods
+<code>success()</code>, <code>info()</code>, <code>warning()</code>, <code>error()</code></p>
 </div>
 </div>
 </div>
@@ -2566,7 +2447,8 @@ pre.rouge .gs {
 </td>
 <td class="content">
 <div class="paragraph">
-<p>All models follow the strict naming convention: <strong>NO DTO SUFFIXES ALLOWED</strong>. Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
+<p>All models follow the strict naming convention: <strong>NO DTO SUFFIXES ALLOWED</strong>.
+Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </div>
 </td>
 </tr>
@@ -2728,24 +2610,12 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and now integrates with the <code>IPrivacyOrchestrationService</code> to save initial consents.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Backend processing of onboarding completion.</p>
-</li>
-<li>
-<p><a href="#restriction-requirements">FR-2.1</a> through <a href="#restriction-requirements">FR-2.5</a>: Restriction data capture and management.</p>
-</li>
-<li>
-<p><a href="#plan-requirements">FR-3.2</a>, <a href="#plan-requirements">FR-3.3</a>: Plan linking and role assignment.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Consent record creation via injected service.</p>
-</li>
-</ul>
+<p>Handles the orchestration of onboarding completion, including creation/update of PersonEntity, PersonAttributeEntity, RestrictionEntity, and now integrates with the <code>IPrivacyOrchestrationService</code> to save initial consents.
+.Functional Requirements Mapping
+* <a href="#onboarding-requirements">FR-1.7</a> (Final Onboarding Data Submission): Backend processing of onboarding completion.
+* <a href="#restriction-requirements">FR-2.1</a> through <a href="#restriction-requirements">FR-2.5</a>: Restriction data capture and management.
+* <a href="#plan-requirements">FR-3.2</a>, <a href="#plan-requirements">FR-3.3</a>: Plan linking and role assignment.
+* <a href="#privacy-requirements">FR-4.5.1</a> (Privacy Consent Management): Consent record creation via injected service.</p>
 </div>
 <div class="ulist">
 <div class="title">Domain Rules Mapping</div>
@@ -2777,36 +2647,16 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Handles complex business logic related to privacy compliance, data subject rights, and consent management.</p>
-</div>
-<div class="ulist">
-<div class="title">Functional Requirements Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Processes consent withdrawal requests.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Handles GDPR rights requests.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.5</a> (Data Processing Logging): Manages audit log access.</p>
-</li>
-<li>
-<p><a href="#privacy-requirements">FR-4.5.7</a> (Data Retention Management): Implements retention policies.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Domain Rules Mapping</div>
-<ul>
-<li>
-<p><a href="#privacy-domain">Rule-5.6.1</a> through <a href="#privacy-domain">Rule-5.6.8</a>: All privacy and compliance rules.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Key Methods</div>
-<p><code>UpdateConsentAsync()</code>, <code>RequestDataExportAsync()</code>, <code>RequestDataDeletionAsync()</code></p>
+<p>Handles complex business logic related to privacy compliance, data subject rights, and consent management.
+.Functional Requirements Mapping
+* <a href="#privacy-requirements">FR-4.5.2</a> (Consent Withdrawal): Processes consent withdrawal requests.
+* <a href="#privacy-requirements">FR-4.5.3</a> (Data Subject Rights): Handles GDPR rights requests.
+* <a href="#privacy-requirements">FR-4.5.5</a> (Data Processing Logging): Manages audit log access.
+* <a href="#privacy-requirements">FR-4.5.7</a> (Data Retention Management): Implements retention policies.
+.Domain Rules Mapping
+* <a href="#privacy-domain">Rule-5.6.1</a> through <a href="#privacy-domain">Rule-5.6.8</a>: All privacy and compliance rules.
+.Key Methods
+<code>UpdateConsentAsync()</code>, <code>RequestDataExportAsync()</code>, <code>RequestDataDeletionAsync()</code></p>
 </div>
 </div>
 <div class="sect3">
@@ -2819,15 +2669,9 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Exposes API endpoints for person-related functionality including onboarding completion.</p>
-</div>
-<div class="ulist">
-<div class="title">Key Endpoints</div>
-<ul>
-<li>
-<p><code>[HttpPost("onboarding-complete")]</code>: Processes complete onboarding submission</p>
-</li>
-</ul>
+<p>Exposes API endpoints for person-related functionality including onboarding completion.
+.Key Endpoints
+* <code>[HttpPost("onboarding-complete")]</code>: Processes complete onboarding submission</p>
 </div>
 </div>
 <div class="sect4">
@@ -2838,21 +2682,11 @@ pre.rouge .gs {
 </div>
 <div class="paragraph">
 <div class="title">Role</div>
-<p>Exposes API endpoints for privacy-related functionality.</p>
-</div>
-<div class="ulist">
-<div class="title">Key Endpoints</div>
-<ul>
-<li>
-<p><code>[HttpPost("consent")]</code>: Update user consent preferences</p>
-</li>
-<li>
-<p><code>[HttpPost("data-export")]</code>: Generate data export for user</p>
-</li>
-<li>
-<p><code>[HttpPost("data-deletion")]</code>: Process account deletion request</p>
-</li>
-</ul>
+<p>Exposes API endpoints for privacy-related functionality.
+.Key Endpoints
+* <code>[HttpPost("consent")]</code>: Update user consent preferences
+* <code>[HttpPost("data-export")]</code>: Generate data export for user
+* <code>[HttpPost("data-deletion")]</code>: Process account deletion request</p>
 </div>
 <div class="paragraph">
 <div class="title">Security</div>
@@ -3124,16 +2958,16 @@ pre.rouge .gs {
 <div class="title">Implementation Complete</div>
 <ul>
 <li>
-<p><strong>Data Layer</strong>: <code>UserConsentEntity</code>, <code>DataProcessingLogEntity</code>, and <code>PrivacyRequestEntity</code> are created and in use. [cite: PrivacyOrchestrationService.cs]</p>
+<p><strong>Data Layer</strong>: <code>UserConsentEntity</code>, <code>DataProcessingLogEntity</code>, and <code>PrivacyRequestEntity</code> are created and in use.</p>
 </li>
 <li>
-<p><strong>Orchestration &amp; Background Processing</strong>: <code>PrivacyOrchestrationService</code> handles all business logic, successfully queueing tasks to the <code>BackgroundTaskQueueOrchestrationService</code>. [cite: PrivacyOrchestrationService.cs] The <code>DataExportOrchestrationService</code> and <code>DataAnonymizationOrchestrationService</code> correctly execute these background jobs. [cite: DataExportOrchestrationService.cs, DataAnonymizationOrchestrationService.cs]</p>
+<p><strong>Orchestration &amp; Background Processing</strong>: <code>PrivacyOrchestrationService</code> handles all business logic, successfully queueing tasks to the <code>BackgroundTaskQueueOrchestrationService</code>. The <code>DataExportOrchestrationService</code> and <code>DataAnonymizationOrchestrationService</code> correctly execute these background jobs.</p>
 </li>
 <li>
-<p><strong>API Layer</strong>: <code>PrivacyController</code> is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization. [cite: PrivacyController.cs]</p>
+<p><strong>API Layer</strong>: <code>PrivacyController</code> is implemented and exposes all necessary endpoints for consent, data export, and data deletion, secured via authorization.</p>
 </li>
 <li>
-<p><strong>Auditing</strong>: The <code>AuditOrchestrationService</code> is available for logging all data processing activities. [cite: AuditOrchestrationService.cs]</p>
+<p><strong>Auditing</strong>: The <code>AuditOrchestrationService</code> is available for logging all data processing activities.</p>
 </li>
 <li>
 <p><strong>Frontend UI</strong>: The <code>PrivacySettingsComponent</code> is fully functional, allowing users to manage their data rights via the <code>PrivacyService</code> and using a robust <code>ConfirmationDialogComponent</code> for critical actions.</p>
@@ -3144,7 +2978,7 @@ pre.rouge .gs {
 <div class="sect3">
 <h4 id="_immediate_next_focus"><a class="link" href="#_immediate_next_focus">Immediate Next Focus</a></h4>
 <div class="paragraph">
-<p>With the privacy feature set now complete, the sole focus is on the remaining onboarding functionality.</p>
+<p>With the privacy feature set now complete, the primary focus is on completing the remaining onboarding functionality.</p>
 </div>
 <div class="dlist dlist">
 <dl>
@@ -3153,10 +2987,26 @@ pre.rouge .gs {
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Complete iterative flow for additional participants in <code>OnboardingWorkflowComponent</code>.</p>
+<p>Finalize the iterative flow for additional participants in <code>OnboardingWorkflowComponent</code>.</p>
 </li>
 <li>
-<p>Implement individual restriction collection when <code>applyIndividualPreferencesToEachPerson</code> is true.</p>
+<p>Ensure robust state management for individual restriction collection when <code>applyIndividualPreferencesToEachPerson</code> is true.</p>
+</li>
+<li>
+<p>Conduct end-to-end testing of the complete multi-participant workflow.</p>
+</li>
+</ol>
+</div>
+</dd>
+<dt><strong>Backend Priority</strong></dt>
+<dd>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Add final validation and error handling to the <code>PersonOrchestrationService</code> for the multi-participant submission payload.</p>
+</li>
+<li>
+<p>Perform integration testing with the frontend.</p>
 </li>
 </ol>
 </div>
@@ -4327,7 +4177,7 @@ pre.rouge .gs {
 <h2 id="conclusion"><a class="link" href="#conclusion">Conclusion</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. The document serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.</p>
+<p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up.</p>
 </div>
 <div class="sect2">
 <h3 id="_key_achievements"><a class="link" href="#_key_achievements">Key Achievements</a></h3>
@@ -4436,8 +4286,8 @@ pre.rouge .gs {
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 1.9<br>
-Last updated 2025-07-22 02:39:21 -0600
+Version 2.0<br>
+Last updated 2025-07-24 00:09:32 -0600
 </div>
 </div>
 </body>
