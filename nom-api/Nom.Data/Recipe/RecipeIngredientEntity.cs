@@ -17,7 +17,7 @@ namespace Nom.Data.Recipe
         /// <summary>
         /// Foreign key to the associated RecipeEntity this ingredient belongs to.
         /// </summary>
-        [Required] // Added Required based on typical FK constraints
+        [Required]
         public long RecipeId { get; set; }
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace Nom.Data.Recipe
         /// <summary>
         /// Foreign key to the standardized IngredientEntity.
         /// </summary>
-        [Required] // Added Required based on typical FK constraints
+        [Required]
         public long IngredientId { get; set; }
 
         /// <summary>
@@ -50,20 +50,20 @@ namespace Nom.Data.Recipe
         /// Foreign key to the Reference.Reference table, indicating the unit of measurement
         /// for the quantity (e.g., "cup", "gram", "each").
         /// </summary>
-        [Required] // Added Required based on typical FK constraints, even if "unknown" is allowed
+        [Required]
         public long MeasurementTypeId { get; set; }
 
         /// <summary>
         /// Navigation property to the associated MeasurementType ReferenceEntity.
         /// </summary>
         [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity? MeasurementType { get; set; } // It can be nullable if "unknown" is allowed in Reference, but FK itself is required
+        public virtual ReferenceEntity? MeasurementType { get; set; }
 
         /// <summary>
         /// The original raw text line of the ingredient as it appeared in the source recipe (e.g., "1 1/2 cups all-purpose flour").
         /// Useful for debugging, display, or if parsing is incomplete.
         /// </summary>
-        [Column(TypeName = "Text")] // Adjust max length as needed
+        [Column(TypeName = "Text")]
         public string RawLine { get; set; } = string.Empty;
     }
 }

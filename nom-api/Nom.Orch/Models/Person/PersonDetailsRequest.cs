@@ -14,7 +14,7 @@ namespace Nom.Orch.Models.Person
         /// It is used to identify the person in the context of the onboarding process.
         /// It is not the primary key in the database.
         /// </summary>
-        public int Id { get; set; }
+        public long Id { get; set; }
         [Required(ErrorMessage = "Name is required.")]
         [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
         public string Name { get; set; } = string.Empty;

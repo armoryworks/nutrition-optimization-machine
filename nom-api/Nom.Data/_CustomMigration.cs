@@ -1,3 +1,5 @@
+// File: Nom.Data/_CustomMigration.cs
+
 using Microsoft.EntityFrameworkCore.Migrations;
 using Nom.Data.Reference; // For ReferenceDiscriminatorEnum
 using System;
@@ -104,9 +106,23 @@ namespace Nom.Data
         private const long PrivacyConsentTypeMarketingId = 8001L;
         private const long PrivacyConsentTypePersonalizationId = 8002L;
 
+        // --- NEW: Curation and Feedback Reference IDs (9000-9299 series) ---
+        private const long CurationStatusTypeNonCuratedId = 9000L;
+        private const long CurationStatusTypePendingCurationId = 9001L;
+        private const long CurationStatusTypeRequiresRevisionId = 9002L;
+        private const long CurationStatusTypeCuratedId = 9003L;
+        private const long CurationStatusTypeRejectedId = 9004L;
+
+        private const long FeedbackEntityTypeRecipeId = 9100L;
+        private const long FeedbackEntityTypeIngredientId = 9101L;
+
+        private const long FeedbackTypeApprovalPrivateId = 9200L;
+        private const long FeedbackTypeApprovalPublicId = 9201L;
+        private const long FeedbackTypeRevisionRequestId = 9202L;
+        private const long FeedbackTypeRejectionId = 9203L;
+
         // --- Nutrient Guideline IDs (7xxxL series) ---
         private static long nextGuidelineId = 7000L;
-
 
         public static void ApplyCustomUpOperations(this MigrationBuilder migrationBuilder)
         {
@@ -117,7 +133,9 @@ namespace Nom.Data
             migrationBuilder.EnsureSchema(name: "nutrient");
             migrationBuilder.EnsureSchema(name: "shopping");
             migrationBuilder.EnsureSchema(name: "reference");
-            migrationBuilder.EnsureSchema(name: "privacy"); // Ensure the privacy schema exists
+            migrationBuilder.EnsureSchema(name: "privacy");
+            migrationBuilder.EnsureSchema(name: "curation");
+            migrationBuilder.EnsureSchema(name: "communication");
 
             SeedInitialSystemPerson(migrationBuilder);
 
@@ -127,12 +145,13 @@ namespace Nom.Data
             AddPlanInvitationRoles(migrationBuilder);
             AddMeasurementTypes(migrationBuilder);
             AddGoalTypes(migrationBuilder);
-            AddPrivacyConsentTypes(migrationBuilder); // Add new privacy consent types
+            AddPrivacyConsentTypes(migrationBuilder);
 
-            // Add Nutrients including parent-child relationships
+            AddCurationStatusTypes(migrationBuilder);
+            AddFeedbackEntityTypes(migrationBuilder);
+            AddFeedbackTypes(migrationBuilder);
+
             AddNutrientTypes(migrationBuilder);
-
-            // Add Nutrient Guidelines
             AddNutrientGuidelines(migrationBuilder);
 
             CreateReferenceGroupView(migrationBuilder);
@@ -145,7 +164,12 @@ namespace Nom.Data
             // Removal order is important
             RemoveNutrientGuidelines(migrationBuilder);
             RemoveNutrientTypes(migrationBuilder);
-            RemovePrivacyConsentTypes(migrationBuilder); // Remove new privacy consent types
+
+            RemoveFeedbackTypes(migrationBuilder);
+            RemoveFeedbackEntityTypes(migrationBuilder);
+            RemoveCurationStatusTypes(migrationBuilder);
+
+            RemovePrivacyConsentTypes(migrationBuilder);
             RemoveGoalTypes(migrationBuilder);
             RemoveMeasurementTypes(migrationBuilder);
             RemovePlanInvitationRoles(migrationBuilder);
@@ -161,6 +185,8 @@ namespace Nom.Data
             migrationBuilder.DropSchema(name: "nutrient");
             migrationBuilder.DropSchema(name: "shopping");
             migrationBuilder.DropSchema(name: "reference");
+            migrationBuilder.DropSchema(name: "curation");
+            migrationBuilder.DropSchema(name: "communication");
         }
 
         public static void SeedInitialSystemPerson(MigrationBuilder migrationBuilder)
@@ -202,7 +228,10 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.NutrientType, "Nutrient Types", "Categories of nutrients (e.g., macronutrients, vitamins, minerals).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.CuisineType, "Cuisine Types", "Types of culinary styles (e.g., Italian, Mexican, Asian).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.PlanInvitationRole, "Plan Invitation Roles", "Roles for invited participants in a plan (e.g., Admin, Member)", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.PrivacyConsentType, "Privacy Consent Types", "Types of user consent for data processing under GDPR.", DateTime.UtcNow, SystemPersonId }
+                    { (long)ReferenceDiscriminatorEnum.PrivacyConsentType, "Privacy Consent Types", "Types of user consent for data processing under GDPR.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.CurationStatusType, "Curation Status Types", "Statuses for the content curation lifecycle.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.FeedbackEntityType, "Feedback Entity Types", "The types of entities that can receive curation feedback.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.FeedbackType, "Feedback Types", "The classification of feedback provided during curation.", DateTime.UtcNow, SystemPersonId }
                 });
         }
 
@@ -224,7 +253,10 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.NutrientType,
                     (long)ReferenceDiscriminatorEnum.CuisineType,
                     (long)ReferenceDiscriminatorEnum.PlanInvitationRole,
-                    (long)ReferenceDiscriminatorEnum.PrivacyConsentType
+                    (long)ReferenceDiscriminatorEnum.PrivacyConsentType,
+                    (long)ReferenceDiscriminatorEnum.CurationStatusType,
+                    (long)ReferenceDiscriminatorEnum.FeedbackEntityType,
+                    (long)ReferenceDiscriminatorEnum.FeedbackType
                 });
         }
 
@@ -303,11 +335,11 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    { 3000L, "Plan Admin", "A person who can manage plan settings, participants, and overall plan details.", DateTime.UtcNow, SystemPersonId },
-                    { 3001L, "Plan Member", "A person who participates in the plan and has individual settings.", DateTime.UtcNow, SystemPersonId }
+                    { 4000L, "Plan Admin", "A person who can manage plan settings, participants, and overall plan details.", DateTime.UtcNow, SystemPersonId },
+                    { 4001L, "Plan Member", "A person who participates in the plan and has individual settings.", DateTime.UtcNow, SystemPersonId }
                 });
 
-            foreach (long id in new long[] { 3000L, 3001L })
+            foreach (long id in new long[] { 4000L, 4001L })
             {
                 migrationBuilder.InsertData(
                     schema: "reference",
@@ -321,7 +353,7 @@ namespace Nom.Data
         {
             long planInvitationRoleGroupId = (long)ReferenceDiscriminatorEnum.PlanInvitationRole;
 
-            foreach (long id in new long[] { 3000L, 3001L })
+            foreach (long id in new long[] { 4000L, 4001L })
             {
                 migrationBuilder.DeleteData(
                     schema: "reference",
@@ -336,7 +368,7 @@ namespace Nom.Data
                 keyColumn: "Id",
                 keyValues: new object[]
                 {
-                    3000L, 3001L
+                    4000L, 4001L
                 });
         }
 
@@ -568,6 +600,83 @@ namespace Nom.Data
                 keyValues: privacyConsentTypeIds.Cast<object>().ToArray());
         }
 
+        public static void AddCurationStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.CurationStatusType;
+            migrationBuilder.InsertData(
+                schema: "reference", table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { CurationStatusTypeNonCuratedId, "Non-Curated", "Content has not been submitted for review.", DateTime.UtcNow, SystemPersonId },
+                    { CurationStatusTypePendingCurationId, "Pending Curation", "Content is awaiting admin review.", DateTime.UtcNow, SystemPersonId },
+                    { CurationStatusTypeRequiresRevisionId, "Requires Revision", "Admin has requested changes from the author.", DateTime.UtcNow, SystemPersonId },
+                    { CurationStatusTypeCuratedId, "Curated", "Content has been approved and is publicly visible.", DateTime.UtcNow, SystemPersonId },
+                    { CurationStatusTypeRejectedId, "Rejected", "Content was reviewed and not approved.", DateTime.UtcNow, SystemPersonId }
+                });
+            foreach (long id in new[] { CurationStatusTypeNonCuratedId, CurationStatusTypePendingCurationId, CurationStatusTypeRequiresRevisionId, CurationStatusTypeCuratedId, CurationStatusTypeRejectedId })
+            {
+                migrationBuilder.InsertData(schema: "reference", table: "ReferenceIndex", columns: new[] { "ReferenceId", "GroupId" }, values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveCurationStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long[] ids = new[] { CurationStatusTypeNonCuratedId, CurationStatusTypePendingCurationId, CurationStatusTypeRequiresRevisionId, CurationStatusTypeCuratedId, CurationStatusTypeRejectedId };
+            foreach (long id in ids) { migrationBuilder.DeleteData(schema: "reference", table: "ReferenceIndex", keyColumns: new[] { "ReferenceId", "GroupId" }, keyValues: new object[] { id, (long)ReferenceDiscriminatorEnum.CurationStatusType }); }
+            migrationBuilder.DeleteData(schema: "reference", table: "Reference", keyColumn: "Id", keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddFeedbackEntityTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.FeedbackEntityType;
+            migrationBuilder.InsertData(
+                schema: "reference", table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { FeedbackEntityTypeRecipeId, "Recipe", "Feedback is related to a Recipe.", DateTime.UtcNow, SystemPersonId },
+                    { FeedbackEntityTypeIngredientId, "Ingredient", "Feedback is related to an Ingredient.", DateTime.UtcNow, SystemPersonId }
+                });
+            foreach (long id in new[] { FeedbackEntityTypeRecipeId, FeedbackEntityTypeIngredientId })
+            {
+                migrationBuilder.InsertData(schema: "reference", table: "ReferenceIndex", columns: new[] { "ReferenceId", "GroupId" }, values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveFeedbackEntityTypes(MigrationBuilder migrationBuilder)
+        {
+            long[] ids = new[] { FeedbackEntityTypeRecipeId, FeedbackEntityTypeIngredientId };
+            foreach (long id in ids) { migrationBuilder.DeleteData(schema: "reference", table: "ReferenceIndex", keyColumns: new[] { "ReferenceId", "GroupId" }, keyValues: new object[] { id, (long)ReferenceDiscriminatorEnum.FeedbackEntityType }); }
+            migrationBuilder.DeleteData(schema: "reference", table: "Reference", keyColumn: "Id", keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddFeedbackTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.FeedbackType;
+            migrationBuilder.InsertData(
+                schema: "reference", table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { FeedbackTypeApprovalPrivateId, "Approval (Private)", "Notes for the author upon approval, not publicly visible.", DateTime.UtcNow, SystemPersonId },
+                    { FeedbackTypeApprovalPublicId, "Approval (Public)", "Notes that are publicly visible on the curated content.", DateTime.UtcNow, SystemPersonId },
+                    { FeedbackTypeRevisionRequestId, "Revision Request", "Feedback asking the author to make changes.", DateTime.UtcNow, SystemPersonId },
+                    { FeedbackTypeRejectionId, "Rejection", "Notes explaining why the content was rejected.", DateTime.UtcNow, SystemPersonId }
+                });
+            foreach (long id in new[] { FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId })
+            {
+                migrationBuilder.InsertData(schema: "reference", table: "ReferenceIndex", columns: new[] { "ReferenceId", "GroupId" }, values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveFeedbackTypes(MigrationBuilder migrationBuilder)
+        {
+            long[] ids = new[] { FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId };
+            foreach (long id in ids) { migrationBuilder.DeleteData(schema: "reference", table: "ReferenceIndex", keyColumns: new[] { "ReferenceId", "GroupId" }, keyValues: new object[] { id, (long)ReferenceDiscriminatorEnum.FeedbackType }); }
+            migrationBuilder.DeleteData(schema: "reference", table: "Reference", keyColumn: "Id", keyValues: ids.Cast<object>().ToArray());
+        }
+
         public static void AddNutrientTypes(MigrationBuilder migrationBuilder)
         {
             // First, insert all parent nutrients
@@ -577,15 +686,12 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "Description", "DefaultMeasurementTypeId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
                 values: new object[,]
                 {
-                    // DRVs (Food Components) - Parent Nutrients
                     { NutrientFatId, "Fat", "Total fat content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientTotalCarbohydratesId, "Total Carbohydrates", "Total carbohydrate content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientProteinId, "Protein", "Protein content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientCholesterolId, "Cholesterol", "Cholesterol content.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientSodiumId, "Sodium", "Sodium content.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientCaloriesFDCId, "Calories", "Energy content of food. Often referred to as 'Energy' in FDC API.", MeasurementTypeKcalId, DateTime.UtcNow, SystemPersonId, null },
-
-                    // RDIs (Vitamins)
                     { NutrientVitaminAId, "Vitamin A", "Vitamin A, Retinol Activity Equivalents (RAE).", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientVitaminCId, "Vitamin C", "Ascorbic acid.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientVitaminDId, "Vitamin D", "Vitamin D.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
@@ -600,8 +706,6 @@ namespace Nom.Data
                     { NutrientBiotinId, "Biotin", "Vitamin B7.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientPantothenicAcidId, "Pantothenic Acid", "Vitamin B5.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientCholineId, "Choline", "Choline.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-
-                    // RDIs (Minerals)
                     { NutrientCalciumId, "Calcium", "Calcium.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientIronId, "Iron", "Iron.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
                     { NutrientPhosphorusId, "Phosphorus", "Phosphorus.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
@@ -624,10 +728,7 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "Description", "DefaultMeasurementTypeId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
                 values: new object[,]
                 {
-                    // Components of Fat
                     { NutrientSaturatedFatId, "Saturated Fat", "Saturated fatty acids.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientFatId },
-
-                    // Components of Total Carbohydrates
                     { NutrientDietaryFiberId, "Dietary Fiber", "Dietary fiber content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId },
                     { NutrientAddedSugarsId, "Added Sugars", "Added sugars content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId }
                 });
@@ -663,7 +764,6 @@ namespace Nom.Data
                 columns: new[] { "Id", "NutrientId", "GoalTypeId", "MeasurementTypeId", "MinAmount", "MaxAmount", "RecommendedAmount", "Notes", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    // DRVs - Adults and Children >= 4 years
                     { GetNextGuidelineId(), NutrientFatId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 20.0m, "DRV for Saturated Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
@@ -672,13 +772,9 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientProteinId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Protein based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-
-                    // DRVs - Infants through 12 months
                     { GetNextGuidelineId(), NutrientFatId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 30.0m, "DRV for Fat.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 95.0m, "DRV for Total Carbohydrates.", DateTime.UtcNow, SystemPersonId },
-
-                    // DRVs - Children 1 through 3 years
                     { GetNextGuidelineId(), NutrientFatId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 39.0m, "DRV for Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 10.0m, "DRV for Saturated Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
@@ -687,16 +783,12 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 14.0m, "DRV for Dietary Fiber based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientProteinId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 13.0m, "DRV for Protein based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 25.0m, "DRV for Added Sugars based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-
-                    // DRVs - Pregnant women and lactating women
                     { GetNextGuidelineId(), NutrientFatId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholesterolId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 275.0m, "DRV for Total Carbohydrates based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientSodiumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 2300.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-
-                    // RDIs - Adults and Children >= 4 years
                     { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 900.0m, "RDI for Vitamin A (RAE).", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 90.0m, "RDI for Vitamin C.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCalciumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1300.0m, "RDI for Calcium.", DateTime.UtcNow, SystemPersonId },
@@ -724,8 +816,6 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientChlorideId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 2300.0m, "RDI for Chloride.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 4700.0m, "RDI for Potassium.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholineId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 550.0m, "RDI for Choline.", DateTime.UtcNow, SystemPersonId },
-
-                    // RDIs - Infants through 12 months
                     { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 500.0m, "RDI for Vitamin A (RAE) for infants.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 50.0m, "RDI for Vitamin C for infants.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCalciumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 260.0m, "RDI for Calcium for infants.", DateTime.UtcNow, SystemPersonId },
@@ -754,8 +844,6 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 700.0m, "RDI for Potassium for infants.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholineId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 150.0m, "RDI for Choline for infants.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientProteinId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 11.0m, "RDI for Protein for infants.", DateTime.UtcNow, SystemPersonId },
-
-                    // RDIs - Children 1 through 3 years
                     { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 300.0m, "RDI for Vitamin A (RAE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 15.0m, "RDI for Vitamin C for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCalciumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 700.0m, "RDI for Calcium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
@@ -783,8 +871,6 @@ namespace Nom.Data
                     { GetNextGuidelineId(), NutrientChlorideId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 1500.0m, "RDI for Chloride for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 3000.0m, "RDI for Potassium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCholineId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 200.0m, "RDI for Choline for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-
-                    // RDIs - Pregnant women and lactating women
                     { GetNextGuidelineId(), NutrientVitaminAId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 1300.0m, "RDI for Vitamin A (RAE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientVitaminCId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 120.0m, "RDI for Vitamin C for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
                     { GetNextGuidelineId(), NutrientCalciumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1300.0m, "RDI for Calcium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },

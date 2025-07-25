@@ -65,7 +65,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                         b => b.MigrationsAssembly("Nom.Data")));
 
 // --- UPDATED IDENTITY AND AUTHENTICATION CONFIGURATION ---
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanManageCuration", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireClaim("CanManageCuration", "true"));
+
+    options.AddPolicy("CanManageUserRoles", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireClaim("CanManageUserRoles", "true"));
+});
 
 // Add a no-op IEmailSender for development to satisfy Identity's requirements
 builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();

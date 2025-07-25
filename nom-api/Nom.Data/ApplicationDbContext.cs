@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data.Audit;
+using Nom.Data.Communication;
+using Nom.Data.Curation;
 using Nom.Data.Nutrient;
 using Nom.Data.Person;
 using Nom.Data.Plan;
@@ -24,14 +26,12 @@ namespace Nom.Data
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        // This constructor is used by the application at runtime, with DI providing IHttpContextAccessor.
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // This constructor is specifically for design-time tools (like migrations).
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -40,6 +40,16 @@ namespace Nom.Data
 
         #region Audit
         public DbSet<AuditLogEntryEntity> AuditLogEntries { get; set; } = default!;
+        #endregion
+
+        #region Communication
+        public DbSet<MessageEntity> Messages { get; set; } = default!;
+        public DbSet<MessageThreadEntity> MessageThreads { get; set; } = default!;
+        public DbSet<MessageThreadParticipantEntity> MessageThreadParticipants { get; set; } = default!;
+        #endregion
+
+        #region Curation
+        public DbSet<CurationFeedbackEntity> CurationFeedbacks { get; set; } = default!;
         #endregion
 
         #region Nutrient
@@ -90,6 +100,9 @@ namespace Nom.Data
         public DbSet<CuisineTypeViewEntity> CuisineTypes { get; set; } = default!;
         public DbSet<PlanInvitationRoleViewEntity> PlanInvitationRoles { get; set; } = default!;
         public DbSet<PrivacyConsentTypeViewEntity> PrivacyConsentTypes { get; set; } = default!;
+        public DbSet<CurationStatusTypeViewEntity> CurationStatusTypes { get; set; } = default!; // NEW
+        public DbSet<FeedbackEntityTypeViewEntity> FeedbackEntityTypes { get; set; } = default!; // NEW
+        public DbSet<FeedbackTypeViewEntity> FeedbackTypes { get; set; } = default!;             // NEW
         #endregion
 
         #region Shopping
@@ -101,8 +114,6 @@ namespace Nom.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // Explicitly map Identity tables to the 'auth' schema
             modelBuilder.HasDefaultSchema("auth");
 
             #region Person Namespace Fluent API Configurations
@@ -164,7 +175,10 @@ namespace Nom.Data
                 .HasValue<NutrientTypeViewEntity>((long)ReferenceDiscriminatorEnum.NutrientType)
                 .HasValue<CuisineTypeViewEntity>((long)ReferenceDiscriminatorEnum.CuisineType)
                 .HasValue<PlanInvitationRoleViewEntity>((long)ReferenceDiscriminatorEnum.PlanInvitationRole)
-                .HasValue<PrivacyConsentTypeViewEntity>((long)ReferenceDiscriminatorEnum.PrivacyConsentType);
+                .HasValue<PrivacyConsentTypeViewEntity>((long)ReferenceDiscriminatorEnum.PrivacyConsentType)
+                .HasValue<CurationStatusTypeViewEntity>((long)ReferenceDiscriminatorEnum.CurationStatusType)       // NEW
+                .HasValue<FeedbackEntityTypeViewEntity>((long)ReferenceDiscriminatorEnum.FeedbackEntityType) // NEW
+                .HasValue<FeedbackTypeViewEntity>((long)ReferenceDiscriminatorEnum.FeedbackType);             // NEW
             #endregion
 
             #region Plan Namespace Fluent API Configurations
@@ -246,52 +260,75 @@ namespace Nom.Data
             #endregion
 
             #region Recipe Namespace Fluent API Configurations
-            modelBuilder.Entity<RecipeEntity>().ToTable("Recipe", schema: "recipe");
+            modelBuilder.Entity<RecipeEntity>(entity =>
+            {
+                entity.ToTable("Recipe", schema: "recipe");
 
-            modelBuilder.Entity<RecipeEntity>()
-                .HasOne(r => r.ServingQuantityMeasurementType)
-                .WithMany()
-                .HasForeignKey(r => r.ServingQuantityMeasurementTypeId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ServingQuantityMeasurementType)
+                      .WithMany()
+                      .HasForeignKey(r => r.ServingQuantityMeasurementTypeId)
+                      .IsRequired(false)
+                      .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<RecipeEntity>()
-                .HasOne(r => r.Curator)
-                .WithMany()
-                .HasForeignKey(r => r.CuratedById)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Author)
+                      .WithMany()
+                      .HasForeignKey(r => r.AuthorId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<RecipeEntity>()
-                .HasMany(r => r.Meals)
-                .WithMany(m => m.Recipes)
-                .UsingEntity<Dictionary<string, object>>(
-                    "MealRecipeIndex",
-                    j => j.HasOne<MealEntity>().WithMany().HasForeignKey("MealId").HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId"),
-                    j => j.HasOne<RecipeEntity>().WithMany().HasForeignKey("RecipeId").HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId"),
-                    j => { j.ToTable("meal_recipe_index", "plan"); j.HasKey("MealId", "RecipeId"); });
+                entity.HasOne(r => r.ParentRecipe)
+                      .WithMany()
+                      .HasForeignKey(r => r.ParentRecipeId)
+                      .IsRequired(false)
+                      .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<RecipeEntity>()
-                .HasMany(r => r.RecipeTypes)
-                .WithMany()
-                .UsingEntity<Dictionary<string, object>>(
-                    "RecipeTypeIndex",
-                    j => j.HasOne<ReferenceEntity>().WithMany().HasForeignKey("RecipeTypeId").HasConstraintName("FK_RecipeTypeIndex_ReferenceEntity_RecipeTypeId"),
-                    j => j.HasOne<RecipeEntity>().WithMany().HasForeignKey("RecipeId").HasConstraintName("FK_RecipeTypeIndex_RecipeEntity_RecipeId"),
-                    j => { j.ToTable("recipe_type_index", "recipe"); j.HasKey("RecipeId", "RecipeTypeId"); });
+                entity.HasOne(r => r.CurationStatus)
+                      .WithMany()
+                      .HasForeignKey(r => r.CurationStatusId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(r => r.Meals)
+                      .WithMany(m => m.Recipes)
+                      .UsingEntity<Dictionary<string, object>>(
+                          "MealRecipeIndex",
+                          j => j.HasOne<MealEntity>().WithMany().HasForeignKey("MealId").HasConstraintName("FK_MealRecipeIndex_MealEntity_MealId"),
+                          j => j.HasOne<RecipeEntity>().WithMany().HasForeignKey("RecipeId").HasConstraintName("FK_MealRecipeIndex_RecipeEntity_RecipeId"),
+                          j => { j.ToTable("meal_recipe_index", "plan"); j.HasKey("MealId", "RecipeId"); });
+
+                entity.HasMany(r => r.RecipeTypes)
+                      .WithMany()
+                      .UsingEntity<Dictionary<string, object>>(
+                          "RecipeTypeIndex",
+                          j => j.HasOne<ReferenceEntity>().WithMany().HasForeignKey("RecipeTypeId").HasConstraintName("FK_RecipeTypeIndex_ReferenceEntity_RecipeTypeId"),
+                          j => j.HasOne<RecipeEntity>().WithMany().HasForeignKey("RecipeId").HasConstraintName("FK_RecipeTypeIndex_RecipeEntity_RecipeId"),
+                          j => { j.ToTable("recipe_type_index", "recipe"); j.HasKey("RecipeId", "RecipeTypeId"); });
+            });
 
             modelBuilder.Entity<IngredientEntity>(entity =>
             {
                 entity.ToTable("Ingredient", schema: "recipe");
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.FdcId).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
+
+                entity.HasOne(i => i.Author)
+                      .WithMany()
+                      .HasForeignKey(i => i.AuthorId)
+                      .IsRequired(false)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.CurationStatus)
+                      .WithMany()
+                      .HasForeignKey(i => i.CurationStatusId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<IngredientAliasEntity>(entity =>
             {
                 entity.ToTable("IngredientAlias", schema: "recipe");
                 entity.HasKey(e => new { e.IngredientId, e.AliasName });
-                entity.HasOne(e => e.Ingredient).WithMany().HasForeignKey(e => e.IngredientId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Ingredient).WithMany(i => i.Aliases).HasForeignKey(e => e.IngredientId).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<RecipeIngredientEntity>(entity =>
@@ -348,6 +385,59 @@ namespace Nom.Data
                     j => j.HasOne<ShoppingTripEntity>().WithMany().HasForeignKey("ShoppingTripId").HasConstraintName("FK_ShoppingTripMealIndex_ShoppingTripEntity_ShoppingTripId"),
                     j => { j.ToTable("shopping_trip_meal_index", "shopping"); j.HasKey("ShoppingTripId", "MealId"); });
             #endregion
+
+            #region Curation Namespace Fluent API Configurations
+            modelBuilder.Entity<CurationFeedbackEntity>(entity =>
+            {
+                entity.ToTable("CurationFeedback", schema: "curation");
+
+                entity.HasOne(cf => cf.Admin)
+                      .WithMany()
+                      .HasForeignKey(cf => cf.AdminId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(cf => cf.EntityType)
+                      .WithMany()
+                      .HasForeignKey(cf => cf.EntityTypeId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(cf => cf.FeedbackType)
+                      .WithMany()
+                      .HasForeignKey(cf => cf.FeedbackTypeId)
+                      .IsRequired()
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+            #endregion
+
+            #region Communication Namespace Fluent API Configurations
+            modelBuilder.Entity<MessageThreadEntity>(entity =>
+            {
+                entity.ToTable("MessageThread", schema: "communication");
+
+                entity.HasOne(mt => mt.Recipe).WithMany().HasForeignKey(mt => mt.RecipeId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(mt => mt.Ingredient).WithMany().HasForeignKey(mt => mt.IngredientId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(mt => mt.Plan).WithMany().HasForeignKey(mt => mt.PlanId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<MessageThreadParticipantEntity>(entity =>
+            {
+                entity.ToTable("MessageThreadParticipant", schema: "communication");
+                entity.HasKey(p => new { p.MessageThreadId, p.PersonId });
+
+                entity.HasOne(p => p.MessageThread).WithMany(t => t.Participants).HasForeignKey(p => p.MessageThreadId);
+                entity.HasOne(p => p.Person).WithMany().HasForeignKey(p => p.PersonId);
+            });
+
+            modelBuilder.Entity<MessageEntity>(entity =>
+            {
+                entity.ToTable("Message", schema: "communication");
+
+                entity.HasOne(m => m.MessageThread).WithMany(t => t.Messages).HasForeignKey(m => m.MessageThreadId);
+                entity.HasOne(m => m.SenderPerson).WithMany().HasForeignKey(m => m.SenderPersonId);
+            });
+            #endregion
         }
 
         public override int SaveChanges()
@@ -365,7 +455,7 @@ namespace Nom.Data
         private void ApplyAuditInformation()
         {
             var httpContext = _httpContextAccessor?.HttpContext;
-            if (httpContext == null) return; // Do not apply audit info if no HttpContext (e.g., during migrations)
+            if (httpContext == null) return;
 
             var personIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "PersonId")?.Value;
             long? currentPersonId = long.TryParse(personIdClaim, out long id) ? (long?)id : null;

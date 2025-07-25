@@ -9,7 +9,7 @@ namespace Nom.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize] // Most restriction-related actions should be authorized
-    public class RestrictionController : ControllerBase
+    public class RestrictionController : BaseApiController
     {
         private readonly IRestrictionOrchestrationService _restrictionOrchestrationService;
 

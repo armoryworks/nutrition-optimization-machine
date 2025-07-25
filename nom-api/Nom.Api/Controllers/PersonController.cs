@@ -14,7 +14,7 @@ namespace Nom.Api.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class PersonController : ControllerBase
+    public class PersonController : BaseApiController
     {
         private readonly IPersonOrchestrationService _personOrchestrationService;
         private readonly ILogger<PersonController> _logger;

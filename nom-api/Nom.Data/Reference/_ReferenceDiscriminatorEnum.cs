@@ -1,36 +1,36 @@
+// File: Nom.Data/Reference/_ReferenceDiscriminatorEnum.cs
+
 namespace Nom.Data.Reference
 {
-    /// <summary>
-    /// Serves as a discriminator for the 'Group' table in the 'reference' schema.
-    /// Each enum member represents a distinct category or type of reference data.
-    /// These values are used as primary keys in the 'Group' table and foreign keys
-    /// in the 'ReferenceIndex' table to categorize 'Reference' entries.
-    /// </summary>
     public enum ReferenceDiscriminatorEnum : long
     {
         Unknown = 0,
 
         // Core System Reference Groups (1-999)
-        MealType = 1,           // e.g., Breakfast, Lunch, Dinner, Snack
-        MeasurementType = 2,    // e.g., grams, ml, cup, tbsp, each
-        RecipeType = 3,         // e.g., Appetizer, Main Course, Dessert, Soup
-        ShoppingStatusType = 4, // e.g., Planned, Active, Completed, Canceled
-        ItemStatusType = 5,     // e.g., On Hand, Low, Out of Stock, Expired
+        MealType = 1,
+        MeasurementType = 2,
+        RecipeType = 3,
+        ShoppingStatusType = 4,
+        ItemStatusType = 5,
 
         // Core Application Feature Reference Groups (1000-1999)
-        QuestionCategory = 1000, // e.g., Onboarding, Preferences, Health
-        AnswerType = 1001,       // e.g., Yes/No, Text Input, Multi-Select, Single-Select
+        QuestionCategory = 1000,
+        AnswerType = 1001,
+        CurationStatusType = 1002,      // NEW
+        FeedbackEntityType = 1003,      // NEW
+        FeedbackType = 1004,            // NEW
 
         // Dietary & Health Related Reference Groups (2000-2999)
-        RestrictionType = 2000, // e.g., Gluten-Free, Vegan, Allergy, Lactose-Intolerant
-        GoalType = 2001,        // e.g., Weight Loss, Muscle Gain, Maintenance
+        RestrictionType = 2000,
+        GoalType = 2001,
 
         // Nutritional & Ingredient Reference Groups (3000-3999)
-        NutrientType = 3000,     // e.g., Macronutrient, Vitamin, Mineral
-        CuisineType = 3001,      // e.g., Italian, Mexican, Asian
+        NutrientType = 3000,
+        CuisineType = 3001,
 
         // Plan Management & User Roles (4000-4999)
-        PlanInvitationRole = 4000, // NEW: e.g., Plan Admin, Plan Member
+        PlanInvitationRole = 4000,
+
         // Privacy & Compliance (5000-5999)
         PrivacyConsentType = 5000
     }
