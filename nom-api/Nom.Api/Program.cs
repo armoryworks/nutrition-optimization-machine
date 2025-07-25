@@ -1,5 +1,6 @@
 // File: Nom.Api/Program.cs
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -7,16 +8,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Nom.Api.Authentication; // For CustomClaimsPrincipalFactory and NoOpEmailSender
+using Microsoft.IdentityModel.Tokens;
+using Nom.Api.Authentication;
 using Nom.Data;
 using Nom.Orch;
 using System.Linq;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Add services to the container. ---
 
-// 1. Configure CORS from appsettings.json
 const string corsPolicyName = "AllowWebApp";
 var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins");
 
@@ -44,40 +46,21 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure Kestrel to increase the maximum request body size
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 524288000; // 500 MB
+    serverOptions.Limits.MaxRequestBodySize = 524288000;
 });
 
-// Configure the form options to increase the multipart body length limit.
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 524288000; // 500 MB
+    options.MultipartBodyLengthLimit = 524288000;
 });
 
-// Add Memory Cache service
 builder.Services.AddMemoryCache();
 
-// Configure ApplicationDbContext to use PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
                         b => b.MigrationsAssembly("Nom.Data")));
-
-// --- UPDATED IDENTITY AND AUTHENTICATION CONFIGURATION ---
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("CanManageCuration", policy =>
-        policy.RequireAuthenticatedUser()
-              .RequireClaim("CanManageCuration", "true"));
-
-    options.AddPolicy("CanManageUserRoles", policy =>
-        policy.RequireAuthenticatedUser()
-              .RequireClaim("CanManageUserRoles", "true"));
-});
-
-// Add a no-op IEmailSender for development to satisfy Identity's requirements
-builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 
 // Use AddIdentity for more control, allowing for custom claims factory registration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
@@ -94,7 +77,22 @@ builder.Services.AddAuthentication(options =>
 }).AddBearerToken(IdentityConstants.BearerScheme);
 // --- END OF UPDATED CONFIGURATION ---
 
-// Register all orchestration and utility services using the extension method
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanManageCuration", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanManageCuration", "true"));
+
+    options.AddPolicy("CanManageUserRoles", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanManageUserRoles", "true"));
+});
+
+builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
+// --- END OF CORRECTED CONFIGURATION ---
+
 builder.Services.AddOrchestrationServices();
 
 var app = builder.Build();
@@ -108,31 +106,23 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// CORRECTED MIDDLEWARE ORDER:
-// This is a standard and robust pipeline configuration.
-// 1. UseRouting to determine the endpoint.
 app.UseRouting();
-
-// 2. UseCors to apply the CORS policy to the matched endpoint.
 app.UseCors(corsPolicyName);
 
-// 3. UseAuthentication and UseAuthorization after CORS.
 app.UseAuthentication();
 app.UseAuthorization();
 
-
-// Map the Identity API endpoints to the "/api/auth" route group
+// This will now use Identity's cookie schemes without conflict.
 app.MapGroup("api/auth")
     .MapIdentityApi<IdentityUser>();
 
-// Setup custom logout functionality to match frontend expectations
 app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager) =>
 {
     await signInManager.SignOutAsync();
     return Results.Ok("User logged out successfully");
 });
 
+// Your API controllers will use JWT Bearer authentication via explicit attributes.
 app.MapControllers();
 
 app.Run();

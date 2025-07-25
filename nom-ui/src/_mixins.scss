@@ -1,0 +1,28 @@
+// File: nom-ui/src/styles/_mixins.scss
+
+@use 'variables' as *;
+
+// Mixin for centering content using flexbox.
+// This is a common utility to reduce repetitive flex properties.
+@mixin flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+// Mixin for handling responsive media queries.
+// It uses the $breakpoint-mobile variable defined in your _variables.scss file.
+// Example usage:
+// .my-element {
+//   width: 100%;
+//   @include breakpoint(mobile) {
+//     width: 50%;
+//   }
+// }
+@mixin breakpoint($point) {
+    @if $point ==mobile {
+        @media (max-width: $breakpoint-mobile) {
+            @content;
+        }
+    }
+}

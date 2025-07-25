@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250723071237_InitialCreate")]
+    [Migration("20250725065705_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -281,6 +281,177 @@ namespace Nom.Data.Migrations
                     b.HasIndex("ChangedByPersonId");
 
                     b.ToTable("AuditLogEntry", "audit");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("MessageThreadId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SenderPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageThreadId");
+
+                    b.HasIndex("SenderPersonId");
+
+                    b.ToTable("Message", "communication");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageThreadEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("PlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("MessageThread", "communication");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageThreadParticipantEntity", b =>
+                {
+                    b.Property<long>("MessageThreadId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateJoined")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MessageThreadId", "PersonId");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("MessageThreadParticipant", "communication");
+                });
+
+            modelBuilder.Entity("Nom.Data.Curation.CurationFeedbackEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AdminId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("EntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("EntityTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FeedbackNotes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("FeedbackTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("EntityTypeId");
+
+                    b.HasIndex("FeedbackTypeId");
+
+                    b.ToTable("CurationFeedback", "curation");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
@@ -1016,9 +1187,6 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("IngredientEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1031,8 +1199,6 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("IngredientId", "AliasName");
 
-                    b.HasIndex("IngredientEntityId");
-
                     b.ToTable("IngredientAlias", "recipe");
                 });
 
@@ -1044,11 +1210,17 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("AuthorId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CurationStatusId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -1075,6 +1247,10 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CurationStatusId");
+
                     b.HasIndex("FdcId")
                         .IsUnique()
                         .HasFilter("\"FdcId\" IS NOT NULL");
@@ -1093,8 +1269,11 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int?>("CookTimeMinutes")
-                        .HasColumnType("integer");
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CookTimeMinutes")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
@@ -1102,11 +1281,14 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long?>("CuratedById")
+                    b.Property<long>("CurationStatusId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateOnly?>("CuratedDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("DateCurationCompleted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DateSubmittedForCuration")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
@@ -1114,9 +1296,6 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Instructions")
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsCurated")
-                        .HasColumnType("boolean");
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1129,8 +1308,11 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(511)
                         .HasColumnType("character varying(511)");
 
-                    b.Property<int?>("PrepTimeMinutes")
-                        .HasColumnType("integer");
+                    b.Property<long?>("ParentRecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PrepTimeMinutes")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("RawIngredientsString")
                         .HasColumnType("text");
@@ -1141,8 +1323,8 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("ServingQuantityMeasurementTypeId")
                         .HasColumnType("bigint");
 
-                    b.Property<int?>("Servings")
-                        .HasColumnType("integer");
+                    b.Property<long?>("Servings")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("SourceSite")
                         .HasMaxLength(255)
@@ -1152,9 +1334,16 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CuratedById");
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CurationStatusId");
+
+                    b.HasIndex("ParentRecipeId");
 
                     b.HasIndex("ServingQuantityMeasurementTypeId");
 
@@ -1551,6 +1740,27 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(3001L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.CurationStatusTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(1002L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.FeedbackEntityTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(1003L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.FeedbackTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(1004L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.GoalTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -1698,6 +1908,95 @@ namespace Nom.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("ChangedByPerson");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Communication.MessageThreadEntity", "MessageThread")
+                        .WithMany("Messages")
+                        .HasForeignKey("MessageThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", "SenderPerson")
+                        .WithMany()
+                        .HasForeignKey("SenderPersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MessageThread");
+
+                    b.Navigation("SenderPerson");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageThreadEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageThreadParticipantEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Communication.MessageThreadEntity", "MessageThread")
+                        .WithMany("Participants")
+                        .HasForeignKey("MessageThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MessageThread");
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("Nom.Data.Curation.CurationFeedbackEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "EntityType")
+                        .WithMany()
+                        .HasForeignKey("EntityTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "FeedbackType")
+                        .WithMany()
+                        .HasForeignKey("FeedbackTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+
+                    b.Navigation("EntityType");
+
+                    b.Navigation("FeedbackType");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
@@ -1966,12 +2265,8 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.IngredientAliasEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
-                        .WithMany("Aliases")
-                        .HasForeignKey("IngredientEntityId");
-
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
-                        .WithMany()
+                        .WithMany("Aliases")
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1979,19 +2274,53 @@ namespace Nom.Data.Migrations
                     b.Navigation("Ingredient");
                 });
 
+            modelBuilder.Entity("Nom.Data.Recipe.IngredientEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "CurationStatus")
+                        .WithMany()
+                        .HasForeignKey("CurationStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("CurationStatus");
+                });
+
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Person.PersonEntity", "Curator")
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
                         .WithMany()
-                        .HasForeignKey("CuratedById")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "CurationStatus")
+                        .WithMany()
+                        .HasForeignKey("CurationStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "ParentRecipe")
+                        .WithMany()
+                        .HasForeignKey("ParentRecipeId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "ServingQuantityMeasurementType")
                         .WithMany()
                         .HasForeignKey("ServingQuantityMeasurementTypeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Curator");
+                    b.Navigation("Author");
+
+                    b.Navigation("CurationStatus");
+
+                    b.Navigation("ParentRecipe");
 
                     b.Navigation("ServingQuantityMeasurementType");
                 });
@@ -2158,6 +2487,13 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_ShoppingTripMealIndex_ShoppingTripEntity_ShoppingTripId");
+                });
+
+            modelBuilder.Entity("Nom.Data.Communication.MessageThreadEntity", b =>
+                {
+                    b.Navigation("Messages");
+
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>

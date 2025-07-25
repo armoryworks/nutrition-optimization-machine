@@ -3,7 +3,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { IngredientModel } from '../../models/ingredient.model';
-import { NutrientValueModel } from '../../models/nutrient-value.model';
+import { NutrientValueModel } from '../../../nutrient/models/nutrient-value.model';
 
 // Import the new label component and its data model
 import { NutritionLabelComponent } from '../../../nutrient/components/nutrition-label/nutrition-label.component';

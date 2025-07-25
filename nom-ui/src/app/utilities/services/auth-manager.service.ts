@@ -1,3 +1,5 @@
+// File: nom-ui/src/app/utilities/services/auth-manager.service.ts
+
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject, Observable, throwError, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -10,16 +12,14 @@ import {
   filter,
   take,
 } from 'rxjs/operators';
+import { NotificationService } from '../../utilities/services/notification.service';
 
-import { NotificationService } from '../../utilities/services/notification.service'; // Adjust path if necessary
-
-// Define interfaces for API responses/requests
+// Define interfaces for API responses/requests from your baseline
 interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number; // Time in seconds until access token expires
-  personId: number; // The actual person ID associated with the user
-  // Add other user details if needed
+  expiresIn: number;
+  personId: number;
 }
 
 interface RefreshTokenResponse {
@@ -37,38 +37,30 @@ interface LoginRequest {
   providedIn: 'root',
 })
 export class AuthManagerService {
-  // Public observable for login status changes.
-  public userLogin: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
-    false
-  );
-
-  // Subject to signal that the user menu should be opened (e.g., after registration).
+  public userLogin: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   public openUserMenuSignal: Subject<void> = new Subject<void>();
 
-  // Backend API URL for authentication endpoints
-  private apiUrl = 'api/Auth'; // TODO: IMPORTANT: Replace with your actual backend authentication API URL (e.g., 'https://localhost:5001/api/auth')
+  // NEW: Observables for administrative roles
+  private _canManageCuration = new BehaviorSubject<boolean>(false);
+  private _canManageUserRoles = new BehaviorSubject<boolean>(false);
+  public readonly canManageCuration$ = this._canManageCuration.asObservable();
+  public readonly canManageUserRoles$ = this._canManageUserRoles.asObservable();
 
-  // Internal flags for token refreshing
-  private isRefreshing = false; // Flag to prevent multiple refresh calls simultaneously
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(
-    null
-  ); // Used to queue requests during token refresh
+  private apiUrl = 'api/Auth';
+  private isRefreshing = false;
+  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  // Keys used for storing authentication data in browser storage.
   private readonly TOKEN_KEY = 'nom-token';
   private readonly REFRESH_TOKEN_KEY = 'nom-refresh-token';
   private readonly EXPIRATION_KEY = 'nom-token-expiration';
   private readonly REMEMBER_ME_KEY = 'nom-remember-me';
-  private readonly PERSON_ID_KEY = 'nom-person-id'; // Key for storing the primary PersonId
+  private readonly PERSON_ID_KEY = 'nom-person-id';
 
-  // Private backing fields for token and rememberMe state.
   private _accessToken?: string;
-  private _refreshToken?: string; // This is the backing field for the stored refresh token
+  private _refreshToken?: string;
   private _tokenExpiration?: number;
-  private _rememberMe: boolean = false; // Tracks the "remember me" preference
-  private _personId?: number; // Stores the primary PersonId
-
-  // Dynamically selected storage (localStorage or sessionStorage) based on rememberMe.
+  private _rememberMe: boolean = false;
+  private _personId?: number;
   private storage!: Storage;
 
   constructor(
@@ -76,35 +68,28 @@ export class AuthManagerService {
     private router: Router,
     private notificationService: NotificationService
   ) {
-    // Initialize storage based on the last remembered preference
     this._rememberMe = localStorage.getItem(this.REMEMBER_ME_KEY) === 'true';
     this.storage = this._rememberMe ? localStorage : sessionStorage;
 
-    // Load existing tokens and personId from the determined storage
     this._accessToken = this.storage.getItem(this.TOKEN_KEY) || undefined;
     const storedExpiration = this.storage.getItem(this.EXPIRATION_KEY);
-    this._tokenExpiration = storedExpiration
-      ? parseInt(storedExpiration, 10)
-      : undefined;
-    this._refreshToken =
-      this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
+    this._tokenExpiration = storedExpiration ? parseInt(storedExpiration, 10) : undefined;
+    this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
     const storedPersonId = this.storage.getItem(this.PERSON_ID_KEY);
     this._personId = storedPersonId ? parseInt(storedPersonId, 10) : undefined;
 
-    // Immediately check and set initial login status
     this.checkUserLoggedInStatus();
   }
-
-  // --- Getters/Setters for Auth Data ---
 
   set token(value: string | undefined) {
     this._accessToken = value;
     if (this._accessToken) {
       this.storage.setItem(this.TOKEN_KEY, this._accessToken);
+      this.decodeAndSetClaims(this._accessToken);
     } else {
       this.storage.removeItem(this.TOKEN_KEY);
+      this.clearClaims();
     }
-    // Update login status whenever token changes
     this.userLogin.next(!!this._accessToken);
   }
 
@@ -115,7 +100,6 @@ export class AuthManagerService {
     return this._accessToken;
   }
 
-  // RENAMED: Getter for the stored refresh token
   set storedRefreshToken(value: string | undefined) {
     this._refreshToken = value;
     if (this._refreshToken) {
@@ -125,11 +109,9 @@ export class AuthManagerService {
     }
   }
 
-  // RENAMED: Getter for the stored refresh token
   get storedRefreshToken(): string | undefined {
     if (!this._refreshToken) {
-      this._refreshToken =
-        this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
+      this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
     }
     return this._refreshToken;
   }
@@ -137,10 +119,7 @@ export class AuthManagerService {
   set tokenExpiration(value: number | undefined) {
     this._tokenExpiration = value;
     if (this._tokenExpiration) {
-      this.storage.setItem(
-        this.EXPIRATION_KEY,
-        this._tokenExpiration.toString()
-      );
+      this.storage.setItem(this.EXPIRATION_KEY, this._tokenExpiration.toString());
     } else {
       this.storage.removeItem(this.EXPIRATION_KEY);
     }
@@ -171,17 +150,14 @@ export class AuthManagerService {
     return this._personId;
   }
 
-  // Getter/Setter for Remember Me preference
   set rememberMe(value: boolean) {
     if (this._rememberMe !== value) {
       this._rememberMe = value;
-      localStorage.setItem(this.REMEMBER_ME_KEY, value.toString()); // Always store preference in localStorage
+      localStorage.setItem(this.REMEMBER_ME_KEY, value.toString());
 
-      // IMPORTANT: If storage type changes, move current tokens
-      const oldStorage = this.storage; // Capture current storage
-      this.storage = this._rememberMe ? localStorage : sessionStorage; // Set new storage
+      const oldStorage = this.storage;
+      this.storage = this._rememberMe ? localStorage : sessionStorage;
 
-      // If storage type changed, copy data from old storage to new one before clearing old
       if (oldStorage !== this.storage) {
         const currentToken = oldStorage.getItem(this.TOKEN_KEY);
         const currentRefreshToken = oldStorage.getItem(this.REFRESH_TOKEN_KEY);
@@ -189,18 +165,14 @@ export class AuthManagerService {
         const currentPersonId = oldStorage.getItem(this.PERSON_ID_KEY);
 
         if (currentToken) this.storage.setItem(this.TOKEN_KEY, currentToken);
-        if (currentRefreshToken)
-          this.storage.setItem(this.REFRESH_TOKEN_KEY, currentRefreshToken);
-        if (currentExpiration)
-          this.storage.setItem(this.EXPIRATION_KEY, currentExpiration);
-        if (currentPersonId)
-          this.storage.setItem(this.PERSON_ID_KEY, currentPersonId);
+        if (currentRefreshToken) this.storage.setItem(this.REFRESH_TOKEN_KEY, currentRefreshToken);
+        if (currentExpiration) this.storage.setItem(this.EXPIRATION_KEY, currentExpiration);
+        if (currentPersonId) this.storage.setItem(this.PERSON_ID_KEY, currentPersonId);
 
-        // Clear from old storage after moving
         oldStorage.removeItem(this.TOKEN_KEY);
         oldStorage.removeItem(this.REFRESH_TOKEN_KEY);
         oldStorage.removeItem(this.EXPIRATION_KEY);
-        oldStorage.removeItem(this.PERSON_ID_KEY); // Clear personId from old storage too
+        oldStorage.removeItem(this.PERSON_ID_KEY);
       }
     }
   }
@@ -209,51 +181,61 @@ export class AuthManagerService {
     return this._rememberMe;
   }
 
-  // --- Auth Logic Methods ---
-
-  /**
-   * Helper to store all authentication tokens and related data.
-   */
-  private storeAuthData(
-    accessToken: string,
-    refreshToken: string,
-    expiresIn: number,
-    personId: number
-  ): void {
+  private storeAuthData(accessToken: string, refreshToken: string, expiresIn: number, personId: number): void {
     this.token = accessToken;
-    this.storedRefreshToken = refreshToken; // Use the renamed setter here
-    // Calculate actual expiration time (e.g., Unix timestamp)
+    this.storedRefreshToken = refreshToken;
     this.tokenExpiration = Math.floor(Date.now() / 1000) + expiresIn;
     this.personId = personId;
-    this.userLogin.next(true); // Update auth status
+    this.userLogin.next(true);
   }
 
-  /**
-   * Checks if a user is currently logged in based on the presence of an access token.
-   * Updates the userLogin BehaviorSubject accordingly.
-   */
+  private decodeAndSetClaims(token: string): void {
+    try {
+      const payloadParts = token.split('.');
+      if (payloadParts.length !== 3) {
+        throw new Error('Invalid JWT token format.');
+      }
+      let payload = payloadParts[1];
+
+      payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = '='.repeat((4 - payload.length % 4) % 4);
+      const base64 = payload + padding;
+
+      const decodedPayload = JSON.parse(atob(base64));
+
+      const canCure = !!decodedPayload['CanManageCuration'];
+      const canManageRoles = !!decodedPayload['CanManageUserRoles'];
+
+      this._canManageCuration.next(canCure);
+      this._canManageUserRoles.next(canManageRoles);
+    } catch (error) {
+      console.error("Failed to decode token or claims:", error);
+      this.clearClaims();
+    }
+  }
+
+  private clearClaims(): void {
+    this._canManageCuration.next(false);
+    this._canManageUserRoles.next(false);
+  }
+
   checkUserLoggedInStatus(): void {
-    const isLoggedIn = !!this.token; // Access the getter to check token existence
+    const isLoggedIn = !!this.token;
+    if (isLoggedIn && this.token) {
+      this.decodeAndSetClaims(this.token);
+    } else {
+      this.clearClaims();
+    }
     if (this.userLogin.value !== isLoggedIn) {
       this.userLogin.next(isLoggedIn);
     }
   }
 
-  /**
-   * Returns true if an access token exists (does not check for expiration).
-   * This is primarily used by the HttpInterceptor.
-   */
   hasAccessToken(): boolean {
     return !!this.token;
   }
 
-  /**
-   * Handles user login.
-   * @param credentials LoginRequest containing email and password.
-   * @returns Observable of LoginResponse.
-   */
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    // TODO: Update with your actual login endpoint
     return this.http
       .post<LoginResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
@@ -269,104 +251,82 @@ export class AuthManagerService {
         catchError((error) => {
           this.notificationService.error(
             'Login failed: ' +
-              (error.error?.message || 'Please check your credentials.')
+            (error.error?.message || 'Please check your credentials.')
           );
           return throwError(() => error);
         })
       );
   }
 
-  /**
-   * Clears all authentication-related data and logs the user out.
-   * Also redirects the user to the 'home' route.
-   */
   logout(): void {
     this.storage.removeItem(this.TOKEN_KEY);
     this.storage.removeItem(this.REFRESH_TOKEN_KEY);
     this.storage.removeItem(this.EXPIRATION_KEY);
-    this.storage.removeItem(this.PERSON_ID_KEY); // Clear personId on logout
-
-    // Also explicitly clear the rememberMe preference from localStorage
+    this.storage.removeItem(this.PERSON_ID_KEY);
     localStorage.removeItem(this.REMEMBER_ME_KEY);
 
-    // Reset internal state
     this._accessToken = undefined;
-    this._refreshToken = undefined; // Reset the backing field
+    this._refreshToken = undefined;
     this._tokenExpiration = undefined;
-    this._personId = undefined; // Reset personId
-    this._rememberMe = false; // Reset the preference
-
-    // After logout, default to sessionStorage for subsequent operations until rememberMe is set again
+    this._personId = undefined;
+    this._rememberMe = false;
     this.storage = sessionStorage;
 
-    this.userLogin.next(false); // Ensure login status is updated
-    this.router.navigate(['/home']); // Redirect to home route
+    this.userLogin.next(false);
+    this.clearClaims();
+    this.router.navigate(['/home']);
     this.notificationService.info('You have been logged out.');
   }
 
-  /**
-   * Attempts to refresh the access token using the refresh token.
-   * This method is called by the HttpInterceptor when a 401 is received.
-   * @returns Observable of the new access token.
-   */
   refreshToken(): Observable<string> {
     if (this.isRefreshing) {
-      // If a refresh request is already in progress, wait for it to complete
       return this.refreshTokenSubject.asObservable().pipe(
-        filter((token) => token !== null), // Wait until token is available
-        take(1), // Take the first emitted token
+        filter((token) => token !== null),
+        take(1),
         switchMap((token: string) => {
           return token
             ? of(token)
-            : throwError(
-                () =>
-                  new Error('Refresh token failed while already refreshing.')
-              );
+            : throwError(() => new Error('Refresh token failed while already refreshing.'));
         })
       );
     }
 
     this.isRefreshing = true;
-    this.refreshTokenSubject.next(null); // Clear previous token on new refresh attempt
+    this.refreshTokenSubject.next(null);
 
-    const refreshToken = this.storedRefreshToken; // Use the renamed getter for the stored refresh token
+    const refreshToken = this.storedRefreshToken;
     if (!refreshToken) {
-      this.logout(); // No refresh token, force logout
+      this.logout();
       return throwError(() => new Error('No refresh token available.'));
     }
 
-    // TODO: Update with your actual refresh token endpoint
-    // The backend should receive the refresh token and return a new access token & refresh token
     return this.http
       .post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, {
-        refreshToken, // Pass the stored refresh token to the backend
+        refreshToken,
       })
       .pipe(
         tap((response) => {
-          // Update tokens and personId in storage
           this.storeAuthData(
             response.accessToken,
             response.refreshToken,
             response.expiresIn,
-            this.personId || 0 // Use existing personId, or default if somehow missing
+            this.personId || 0
           );
         }),
         switchMap((response) => {
           this.isRefreshing = false;
-          this.refreshTokenSubject.next(response.accessToken); // Emit the new access token
-          return of(response.accessToken); // Return the new access token
+          this.refreshTokenSubject.next(response.accessToken);
+          return of(response.accessToken);
         }),
         catchError((error) => {
           this.isRefreshing = false;
-          this.refreshTokenSubject.error(error); // Notify subscribers of refresh failure
-          this.logout(); // Refresh failed, force logout
-          this.notificationService.error(
-            'Session expired. Please log in again.'
-          );
+          this.refreshTokenSubject.error(error);
+          this.logout();
+          this.notificationService.error('Session expired. Please log in again.');
           return throwError(() => error);
         }),
         finalize(() => {
-          this.isRefreshing = false; // Ensure flag is reset regardless of success/failure
+          this.isRefreshing = false;
         })
       );
   }

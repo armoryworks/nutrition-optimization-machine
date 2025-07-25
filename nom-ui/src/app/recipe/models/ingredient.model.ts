@@ -1,10 +1,11 @@
-// File: nom-ui/src/app/recipe/models/ingredient.model.ts
-import { NutrientValueModel } from './nutrient-value.model';
+import { NutrientValueModel } from '../../nutrient/models/nutrient-value.model';
+import { BaseCommonModel } from '../../common/models/_base-common.model';
 
-export interface IngredientModel {
-  id: number;
-  name: string;
-  fdcId: string;
-  description: string;
-  nutrients: NutrientValueModel[];
+export interface IngredientModel extends BaseCommonModel {
+    name: string;
+    description?: string;
+    fdcId?: string;
+    curationStatusId: number;
+    authorId?: number;
+    nutrients: NutrientValueModel[];
 }

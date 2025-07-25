@@ -2,5 +2,5 @@
 export interface IngredientSearchResponseModel {
     id: number;
     name: string;
-    fdcId: string;
+    fdcId?: string;
   }

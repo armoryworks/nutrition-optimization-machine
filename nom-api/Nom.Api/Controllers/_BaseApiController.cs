@@ -30,7 +30,7 @@ namespace Nom.Api.Controllers
                 return personId;
             }
 
-            // This should theoretically never be reached for an endpoint protected by [Authorize],
+            // This should theoretically never be reached for an endpoint protected by [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)],
             // as the claim is essential for a valid session.
             throw new UnauthorizedAccessException("PersonId claim is missing, invalid, or could not be parsed from the user's token.");
         }

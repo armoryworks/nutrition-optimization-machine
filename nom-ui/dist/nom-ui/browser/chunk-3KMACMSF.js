@@ -1,0 +1,1 @@
+import{Sc as s,jb as t}from"./chunk-YX2NRNWV.js";var o=class n{static \u0275fac=function(e){return new(e||n)};static \u0275cmp=t({type:n,selectors:[["app-messaging-inbox"]],decls:0,vars:0,template:function(e,m){},dependencies:[s],encapsulation:2})};var f=[{path:"",component:o,title:"Inbox"}];export{f as COMMUNICATION_ROUTES};

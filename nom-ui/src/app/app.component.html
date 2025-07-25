@@ -1,6 +1,5 @@
 <header class="app-header">
   <div class="app-header__left">
-    <!--logo goes here-->
   </div>
   <div class="app-header__right">
     <button mat-icon-button (click)="toggleTheme()" class="app-header__theme-toggle">
@@ -9,7 +8,6 @@
 
     <div class="app-user-menu" (click)="toggleUserMenu()">
       <div class="app-user-menu__icon-container">
-        <!-- User icon placeholder image -->
         <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="app-user-menu__user-icon" />
         <span class="app-user-menu__status-indicator"
           [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"></span>
@@ -18,13 +16,19 @@
   </div>
 </header>
 <main class="app-content">
-  <!-- User Popover/Dropdown Menu -->
-  @if (isLoggedIn) {
+  @if (isLoggedIn$ | async) {
   <div class="app-user-menu__dropdown" [class.app-user-menu__dropdown--open]="isUserMenuOpen">
     <ul class="app-user-menu__logged-in-list">
       <li>
+        <a routerLink="/user/dashboard" (click)="toggleUserMenu()" class="app-user-menu__link">My Dashboard</a>
+      </li>
+      <li>
+        <a routerLink="/messaging" (click)="toggleUserMenu()" class="app-user-menu__link">Messages</a>
+      </li>
+      <li>
         <a routerLink="/ingredient-search" (click)="toggleUserMenu()" class="app-user-menu__link">Ingredient Search</a>
       </li>
+      <li class="app-user-menu__divider"></li>
       <li>
         <a routerLink="/update-info" (click)="toggleUserMenu()" class="app-user-menu__link">Update Profile</a>
       </li>
@@ -32,8 +36,24 @@
         <a routerLink="/update-two-factor" (click)="toggleUserMenu()" class="app-user-menu__link">2FA Settings</a>
       </li>
       <li>
-        <a routerLink="/privacy-settings" (click)="toggleUserMenu()" class="app-user-menu__link">Privacy Settings</a>
+        <a routerLink="/user/privacy-settings" (click)="toggleUserMenu()" class="app-user-menu__link">Privacy
+          Settings</a>
       </li>
+
+      @if (canManageCuration$ | async) {
+      <li class="app-user-menu__divider"></li>
+      <li>
+        <a routerLink="/curation" (click)="toggleUserMenu()" class="app-user-menu__link">Curation Queue</a>
+      </li>
+      }
+      @if (canManageUserRoles$ | async) {
+      <li>
+        <a routerLink="/admin/user-management" (click)="toggleUserMenu()" class="app-user-menu__link">User
+          Management</a>
+      </li>
+      }
+
+      <li class="app-user-menu__divider"></li>
       <li>
         <a (click)="logout()" class="app-user-menu__link app-user-menu__link--logout">Logout</a>
       </li>
@@ -42,7 +62,6 @@
   } @else {
   <app-login [class.app-user-menu__dropdown--open]="isUserMenuOpen"
     class="app-user-menu__dropdown app-user-menu__logged-out-content app-user-menu__login-component"></app-login>
-
   }
   <router-outlet></router-outlet>
 </main>

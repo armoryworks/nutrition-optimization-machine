@@ -31,8 +31,8 @@ USING (
     FROM "Staging_Food" s
 ) AS source ON target."Name" = source.description
 WHEN NOT MATCHED THEN
-    INSERT ("FdcId", "Name", "Description", "FdcDataType", "CreatedDate")
-    VALUES (source."FdcId", source.description, source.description, source.data_type, NOW());
+    INSERT ("FdcId", "Name", "Description", "FdcDataType", "CreatedDate", "CurationStatusId")
+    VALUES (source."FdcId", source.description, source.description, source.data_type, NOW(), 9000);
 
 -- *** ADDED: 3. Populate the "NutrientGuideline" table ***
 INSERT INTO nutrient."NutrientGuideline" (

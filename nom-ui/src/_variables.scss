@@ -1,0 +1,25 @@
+// File: nom-ui/src/styles/_variables.scss
+
+// Breakpoints
+$breakpoint-mobile: 768px;
+
+// Spacing
+$spacing-xsmall: 0.25rem;
+$spacing-small: 0.5rem;
+$spacing-medium: 1rem;
+$spacing-large: 1.5rem;
+$spacing-xlarge: 2rem;
+$spacing-xxlarge: 3rem;
+
+// --- NEW COLOR VARIABLES ---
+
+// Colors
+$nom-border-color: #e0e0e0; // A standard, light grey for borders
+$nom-border-color-light: #eee; // An even lighter variant for subtle dividers
+
+// Other color variables would go here (e.g., $nom-primary-color, $nom-text-color)
+$nom-text-color-light: #555;
+$nom-background-color-light: #f7f7f7;
+
+// Borders
+$nom-border-radius: 8px;

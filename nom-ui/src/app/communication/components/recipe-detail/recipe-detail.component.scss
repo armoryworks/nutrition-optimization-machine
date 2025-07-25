@@ -1,0 +1,71 @@
+// File: nom-ui/src/app/recipe/components/recipe-detail/recipe-detail.component.scss
+
+// CORRECTED: Use a relative path to navigate to the global styles from this component's location.
+@use '../../../../variables' as *;
+@use '../../../../mixins' as *;
+
+.nom-recipe-detail {
+    &__header {
+        padding-bottom: $spacing-medium;
+        margin-bottom: $spacing-large;
+        border-bottom: 1px solid $nom-border-color;
+
+        h1 {
+            margin-bottom: $spacing-small;
+        }
+    }
+
+    &__description {
+        font-style: italic;
+        color: $nom-text-color-light;
+    }
+
+    &__meta {
+        display: flex;
+        justify-content: space-around;
+        background-color: $nom-background-color-light;
+        padding: $spacing-medium;
+        border-radius: $nom-border-radius;
+        margin-bottom: $spacing-large;
+    }
+
+    &__meta-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        span {
+            font-size: 0.9em;
+            color: $nom-text-color-light;
+        }
+
+        strong {
+            font-size: 1.1em;
+        }
+    }
+
+    &__section {
+        margin-bottom: $spacing-large;
+
+        h2 {
+            margin-bottom: $spacing-medium;
+            border-bottom: 1px solid $nom-border-color-light;
+            padding-bottom: $spacing-small;
+        }
+    }
+
+    &__ingredient-list,
+    &__step-list {
+        padding-left: 20px;
+
+        li {
+            margin-bottom: $spacing-small;
+            line-height: 1.6;
+        }
+    }
+
+    &__loading-container {
+        @include flex-center;
+        min-height: 300px;
+    }
+}

@@ -14,6 +14,10 @@ namespace Nom.Data
         // --- System Person ID ---
         private const long SystemPersonId = 1L;
 
+        // --- CORRECTED: Plan Invitation Role IDs (41xxL series to align with GroupId 4000) ---
+        private const long PlanInvitationRoleAdminId = 4100L;
+        private const long PlanInvitationRoleMemberId = 4101L;
+
         // --- Reference Data IDs (Measurement Types) ---
         private const long MeasurementTypeUnknownId = 4000L;
         private const long MeasurementTypeToTasteId = 4001L;
@@ -101,12 +105,12 @@ namespace Nom.Data
         private const long GoalTypePregnantAndLactatingWomenId = 6003L;
         private const long GoalTypeGeneralAdultId = 6004L;
 
-        // --- NEW: Privacy Consent Type IDs (8xxxL series) ---
+        // --- Privacy Consent Type IDs (8xxxL series) ---
         private const long PrivacyConsentTypeAnalyticsId = 8000L;
         private const long PrivacyConsentTypeMarketingId = 8001L;
         private const long PrivacyConsentTypePersonalizationId = 8002L;
 
-        // --- NEW: Curation and Feedback Reference IDs (9000-9299 series) ---
+        // --- Curation and Feedback Reference IDs (9000-9299 series) ---
         private const long CurationStatusTypeNonCuratedId = 9000L;
         private const long CurationStatusTypePendingCurationId = 9001L;
         private const long CurationStatusTypeRequiresRevisionId = 9002L;
@@ -161,7 +165,6 @@ namespace Nom.Data
         {
             DropReferenceGroupView(migrationBuilder);
 
-            // Removal order is important
             RemoveNutrientGuidelines(migrationBuilder);
             RemoveNutrientTypes(migrationBuilder);
 
@@ -305,7 +308,6 @@ namespace Nom.Data
         public static void RemoveRestrictionTypes(MigrationBuilder migrationBuilder)
         {
             long restrictionGroupId = (long)ReferenceDiscriminatorEnum.RestrictionType;
-
             foreach (long id in new long[] { 2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L })
             {
                 migrationBuilder.DeleteData(
@@ -314,15 +316,11 @@ namespace Nom.Data
                     keyColumns: new[] { "ReferenceId", "GroupId" },
                     keyValues: new object[] { id, restrictionGroupId });
             }
-
             migrationBuilder.DeleteData(
                 schema: "reference",
                 table: "Reference",
                 keyColumn: "Id",
-                keyValues: new object[]
-                {
-                    2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L
-                });
+                keyValues: new object[] { 2000L, 2001L, 2002L, 2003L, 2004L, 2005L, 2006L, 2007L, 2008L, 2009L, 2010L, 2011L, 2012L, 2013L, 2014L, 2015L, 2016L, 2017L, 2018L, 2019L });
         }
 
         public static void AddPlanInvitationRoles(MigrationBuilder migrationBuilder)
@@ -335,11 +333,11 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    { 4000L, "Plan Admin", "A person who can manage plan settings, participants, and overall plan details.", DateTime.UtcNow, SystemPersonId },
-                    { 4001L, "Plan Member", "A person who participates in the plan and has individual settings.", DateTime.UtcNow, SystemPersonId }
+                    { PlanInvitationRoleAdminId, "Plan Admin", "A person who can manage plan settings, participants, and overall plan details.", DateTime.UtcNow, SystemPersonId },
+                    { PlanInvitationRoleMemberId, "Plan Member", "A person who participates in the plan and has individual settings.", DateTime.UtcNow, SystemPersonId }
                 });
 
-            foreach (long id in new long[] { 4000L, 4001L })
+            foreach (long id in new long[] { PlanInvitationRoleAdminId, PlanInvitationRoleMemberId })
             {
                 migrationBuilder.InsertData(
                     schema: "reference",
@@ -352,8 +350,7 @@ namespace Nom.Data
         public static void RemovePlanInvitationRoles(MigrationBuilder migrationBuilder)
         {
             long planInvitationRoleGroupId = (long)ReferenceDiscriminatorEnum.PlanInvitationRole;
-
-            foreach (long id in new long[] { 4000L, 4001L })
+            foreach (long id in new long[] { PlanInvitationRoleAdminId, PlanInvitationRoleMemberId })
             {
                 migrationBuilder.DeleteData(
                     schema: "reference",
@@ -361,15 +358,11 @@ namespace Nom.Data
                     keyColumns: new[] { "ReferenceId", "GroupId" },
                     keyValues: new object[] { id, planInvitationRoleGroupId });
             }
-
             migrationBuilder.DeleteData(
                 schema: "reference",
                 table: "Reference",
                 keyColumn: "Id",
-                keyValues: new object[]
-                {
-                    4000L, 4001L
-                });
+                keyValues: new object[] { PlanInvitationRoleAdminId, PlanInvitationRoleMemberId });
         }
 
         public static void AddMeasurementTypes(MigrationBuilder migrationBuilder)
@@ -455,7 +448,6 @@ namespace Nom.Data
         public static void RemoveMeasurementTypes(MigrationBuilder migrationBuilder)
         {
             long measurementGroupId = (long)ReferenceDiscriminatorEnum.MeasurementType;
-
             long[] measurementTypeIds = new long[] {
                 MeasurementTypeUnknownId, MeasurementTypeToTasteId, MeasurementTypeEachId,
                 MeasurementTypeGramId, MeasurementTypeMilligramId, MeasurementTypeMicrogramId,
@@ -473,7 +465,6 @@ namespace Nom.Data
                 MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
                 MeasurementTypeSpGrId
             };
-
             foreach (long id in measurementTypeIds)
             {
                 migrationBuilder.DeleteData(
@@ -482,7 +473,6 @@ namespace Nom.Data
                     keyColumns: new[] { "ReferenceId", "GroupId" },
                     keyValues: new object[] { id, measurementGroupId });
             }
-
             migrationBuilder.DeleteData(
                 schema: "reference",
                 table: "Reference",
@@ -493,7 +483,6 @@ namespace Nom.Data
         public static void AddGoalTypes(MigrationBuilder migrationBuilder)
         {
             long goalGroupId = (long)ReferenceDiscriminatorEnum.GoalType;
-
             migrationBuilder.InsertData(
                 schema: "reference",
                 table: "Reference",
@@ -506,12 +495,10 @@ namespace Nom.Data
                     { GoalTypePregnantAndLactatingWomenId, "Pregnant and Lactating Women", "Dietary guidelines for pregnant and lactating women.", DateTime.UtcNow, SystemPersonId },
                     { GoalTypeGeneralAdultId, "General Adult", "Broader dietary guidelines for typical healthy adults (Dietary Reference Intakes)).", DateTime.UtcNow, SystemPersonId }
                 });
-
             long[] goalTypeIds = new long[] {
                 GoalTypeAdultsAndChildren4PlusId, GoalTypeInfantsThrough12MonthsId, GoalTypeChildren1Through3YearsId,
                 GoalTypePregnantAndLactatingWomenId, GoalTypeGeneralAdultId
             };
-
             foreach (long id in goalTypeIds)
             {
                 migrationBuilder.InsertData(
@@ -525,12 +512,10 @@ namespace Nom.Data
         public static void RemoveGoalTypes(MigrationBuilder migrationBuilder)
         {
             long goalGroupId = (long)ReferenceDiscriminatorEnum.GoalType;
-
             long[] goalTypeIds = new long[] {
                 GoalTypeAdultsAndChildren4PlusId, GoalTypeInfantsThrough12MonthsId, GoalTypeChildren1Through3YearsId,
                 GoalTypePregnantAndLactatingWomenId, GoalTypeGeneralAdultId
             };
-
             foreach (long id in goalTypeIds)
             {
                 migrationBuilder.DeleteData(
@@ -539,7 +524,6 @@ namespace Nom.Data
                     keyColumns: new[] { "ReferenceId", "GroupId" },
                     keyValues: new object[] { id, goalGroupId });
             }
-
             migrationBuilder.DeleteData(
                 schema: "reference",
                 table: "Reference",
@@ -550,7 +534,6 @@ namespace Nom.Data
         public static void AddPrivacyConsentTypes(MigrationBuilder migrationBuilder)
         {
             long privacyConsentGroupId = (long)ReferenceDiscriminatorEnum.PrivacyConsentType;
-
             migrationBuilder.InsertData(
                 schema: "reference",
                 table: "Reference",
@@ -561,11 +544,9 @@ namespace Nom.Data
                     { PrivacyConsentTypeMarketingId, "Marketing", "Consent to receive marketing communications and offers.", DateTime.UtcNow, SystemPersonId },
                     { PrivacyConsentTypePersonalizationId, "Personalization", "Consent to use data to personalize content and recommendations.", DateTime.UtcNow, SystemPersonId }
                 });
-
             long[] privacyConsentTypeIds = new long[] {
                 PrivacyConsentTypeAnalyticsId, PrivacyConsentTypeMarketingId, PrivacyConsentTypePersonalizationId
             };
-
             foreach (long id in privacyConsentTypeIds)
             {
                 migrationBuilder.InsertData(
@@ -579,11 +560,9 @@ namespace Nom.Data
         public static void RemovePrivacyConsentTypes(MigrationBuilder migrationBuilder)
         {
             long privacyConsentGroupId = (long)ReferenceDiscriminatorEnum.PrivacyConsentType;
-
             long[] privacyConsentTypeIds = new long[] {
                 PrivacyConsentTypeAnalyticsId, PrivacyConsentTypeMarketingId, PrivacyConsentTypePersonalizationId
             };
-
             foreach (long id in privacyConsentTypeIds)
             {
                 migrationBuilder.DeleteData(
@@ -592,7 +571,6 @@ namespace Nom.Data
                     keyColumns: new[] { "ReferenceId", "GroupId" },
                     keyValues: new object[] { id, privacyConsentGroupId });
             }
-
             migrationBuilder.DeleteData(
                 schema: "reference",
                 table: "Reference",

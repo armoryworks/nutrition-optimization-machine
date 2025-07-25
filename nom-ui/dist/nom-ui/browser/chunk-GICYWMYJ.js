@@ -1,0 +1,1 @@
+import{Sc as u,jb as n}from"./chunk-YX2NRNWV.js";var e=class o{static \u0275fac=function(t){return new(t||o)};static \u0275cmp=n({type:o,selectors:[["app-curation-queue"]],decls:0,vars:0,template:function(t,i){},dependencies:[u],encapsulation:2})};var f=[{path:"",component:e,title:"Curation Queue"}];export{f as CURATION_ROUTES};
