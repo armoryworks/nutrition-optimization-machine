@@ -1,8 +1,8 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 25, 2025
-:revnumber: 2.1
+:revdate: July 27, 2025
+:revnumber: 2.2
 :toc: left
 :toclevels: 4
 :sectlinks:
@@ -11,7 +11,7 @@
 [#_abstract]
 == Abstract
 
-This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.1) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.2) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
 
 [#_introduction]
 == Introduction
@@ -32,6 +32,7 @@ This specification introduces the next major phase of development, focusing on u
 ====
 .Current Development Status
 * *User Onboarding (IN PROGRESS)*: The core onboarding is complete. The multi-participant user onboarding workflow is partially implemented on both the frontend and backend.
+* *Authentication & Authorization (COMPLETE)*: The system's security architecture, including JWT issuance, claims-based authorization, and frontend state management, is fully implemented.
 * *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
 * *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created and successfully used to populate the database with foundational ingredient and nutrient data.
 * *Ingredient Search (V1 COMPLETE)*: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.
@@ -170,13 +171,13 @@ To empower Recipe Authors to create, manage, and version their own recipes and c
 | ID | Requirement
 
 | *FR-RM-1.1*
-| *Recipe Creation*: An author shall be able to create a new recipe, providing a name, description, and instructions.
+| *Recipe Creation*: An author shall be able to create a new recipe, providing a name, description, ingredients, and instructions (steps).
 | *FR-RM-1.2*
-| *Ingredient Association*: While creating a recipe, an author shall be able to associate ingredients with it, specifying quantity and measurement units.
+| *Reuse-First Ingredient Workflow*: When adding ingredients to a recipe, the UI shall prioritize searching for and reusing existing ingredients.
 | *FR-RM-1.3*
-| *Custom Ingredient Creation*: An author shall be able to create a new ingredient that is not in the system. This ingredient will have a default `CurationStatus` of `NonCurated` and will be linked to the author.
+| *Custom Ingredient Creation*: The UI shall provide a secondary workflow for an author to create a new ingredient, including its nutritional data, if it does not already exist. This new ingredient will have a default `CurationStatus` of `NonCurated`.
 | *FR-RM-1.4*
-| *Recipe & Ingredient Dashboard*: An author shall have a dedicated dashboard to view all their created recipes and ingredients, filterable by their `CurationStatus`.
+| *Recipe & Ingredient Dashboard*: An author shall have a dedicated dashboard (`RecipeAuthorDashboardComponent`) to view all their created recipes and ingredients, filterable by their `CurationStatus`.
 | *FR-RM-1.5*
 | *Recipe Modification & Deletion*: An author shall be able to modify or delete their `NonCurated` or `Rejected` recipes.
 | *FR-RM-1.6*
@@ -198,7 +199,7 @@ To provide a robust system for Site-Wide Admins to review and manage user-submit
 | *FR-CU-2.1*
 | *Submission for Curation*: A Recipe Author shall be able to submit their `NonCurated` recipes and ingredients for curation, which changes their status to `PendingCuration`.
 | *FR-CU-2.2*
-| *Curation Queue*: Site-Wide Admins shall have access to a Curation Queue screen, displaying all content with a `PendingCuration` status.
+| *Curation Queue*: Site-Wide Admins shall have access to a Curation Queue screen (`CurationQueueComponent`), displaying all content with a `PendingCuration` status.
 | *FR-CU-2.3*
 | *Queue Filtering & Sorting*: The Curation Queue shall be sortable by submission date and filterable by author and resubmission status.
 | *FR-CU-2.4*
@@ -234,7 +235,7 @@ To facilitate communication between users and admins, supporting both contextual
 | | *Admins* shall be able to search for and message any user in the system.
 | | *Regular users* shall be able to search for and message any user who is a member of any of their shared plans.
 | *FR-CO-3.6*
-| *Inbox*: The UI shall provide a centralized "Inbox" to view and manage all message threads.
+| *Inbox*: The UI shall provide a centralized "Inbox" (`MessagingInboxComponent`) to view and manage all message threads.
 | *FR-CO-3.7*
 | *Reply-Only Threads*: For curation feedback, the initial message is sent by the admin. The author can reply to this thread but cannot initiate a curation-specific conversation.
 |===
@@ -250,7 +251,7 @@ To provide authorized users with the tools to manage system roles and permission
 | ID | Requirement
 
 | *FR-AD-4.1*
-| *User Role Management*: A User Role Manager shall have access to an interface to grant or revoke the `CanManageCuration` and `CanManageUserRoles` claims for any user.
+| *User Role Management*: A User Role Manager shall have access to an interface (`UserManagementComponent`) to grant or revoke the `CanManageCuration` and `CanManageUserRoles` claims for any user.
 | *FR-AD-4.2*
 | *User List*: The user management interface shall provide a searchable list of all users in the system.
 | *FR-AD-4.3*
