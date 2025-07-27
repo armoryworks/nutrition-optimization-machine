@@ -55,7 +55,11 @@ export const routes: Routes = [
     loadChildren: () => import('./communication/communication.routes').then(m => m.COMMUNICATION_ROUTES),
     canActivate: [AuthGuard]
   },
-
+  {
+    path: 'user',
+    loadChildren: () => import('./user/user.routes').then(m => m.USER_ROUTES),
+    canActivate: [AuthGuard]
+  },
   // --- Default and Wildcard routes MUST be last ---
   { path: '', redirectTo: '/home', pathMatch: 'full' }, // Default route
   { path: '**', redirectTo: '/home' }, // Wildcard route for any other invalid path

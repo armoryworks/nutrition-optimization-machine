@@ -1,0 +1,59 @@
+<div class="nom-author-dashboard nom-page-container">
+    <mat-card class="nom-card">
+        <mat-card-header class="nom-card__header">
+            <mat-card-title class="nom-card__title">My Dashboard</mat-card-title>
+            <mat-card-subtitle class="nom-card__subtitle">
+                Manage your created recipes and ingredients.
+            </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="nom-card__content">
+
+            <div class="nom-author-dashboard__section">
+                <div class="nom-author-dashboard__section-header">
+                    <h3 class="nom-author-dashboard__section-title">My Recipes</h3>
+                    <button mat-raised-button color="primary" routerLink="/recipes/new">
+                        <mat-icon>add</mat-icon>
+                        Create New Recipe
+                    </button>
+                </div>
+
+                @if (recipes$ | async; as recipes) {
+                <div class="nom-author-dashboard__item-list">
+                    @for (recipe of recipes; track recipe.id) {
+                    <div class="nom-author-dashboard__item">
+                        <span class="nom-author-dashboard__item-name">{{ recipe.name }}</span>
+                        <span class="nom-author-dashboard__item-status">{{ recipe.curationStatus }}</span>
+                        <div class="nom-author-dashboard__item-actions">
+                            <button mat-icon-button title="Edit Recipe" [routerLink]="['/recipes', recipe.id, 'edit']">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                    } @empty {
+                    <p class="nom-author-dashboard__empty-message">You haven't created any recipes yet.</p>
+                    }
+                </div>
+                } @else {
+                <div class="nom-author-dashboard__loading-container">
+                    <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                </div>
+                }
+                @if (error) {
+                <p class="nom-author-dashboard__error-message">{{ error }}</p>
+                }
+            </div>
+
+            <div class="nom-author-dashboard__section">
+                <div class="nom-author-dashboard__section-header">
+                    <h3 class="nom-author-dashboard__section-title">My Custom Ingredients</h3>
+                    <button mat-raised-button color="primary" routerLink="/recipes/ingredients/new">
+                        <mat-icon>add</mat-icon>
+                        Create New Ingredient
+                    </button>
+                </div>
+            </div>
+
+        </mat-card-content>
+    </mat-card>
+    </div>

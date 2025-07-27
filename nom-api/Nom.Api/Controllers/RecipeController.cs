@@ -69,6 +69,35 @@ namespace Nom.Api.Controllers
             }
         }
 
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
+        {
+            if (id != request.Id)
+            {
+                return BadRequest("ID mismatch between route and request body.");
+            }
+
+            try
+            {
+                var authorPersonId = GetCurrentPersonId();
+                await _recipeOrchestrationService.UpdateRecipeAsync(request, authorPersonId);
+                return NoContent(); // Success
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while updating recipe {RecipeId}", id);
+                return StatusCode(500, "An unexpected error occurred while updating the recipe.");
+            }
+        }
+
         /// <summary>
         /// Creates a new version of an existing curated recipe.
         /// </summary>
@@ -100,6 +129,22 @@ namespace Nom.Api.Controllers
         {
             await Task.CompletedTask;
             return Ok(new { Id = id, Message = "Endpoint not fully implemented." });
+        }
+
+        [HttpGet("my-recipes")]
+        public async Task<IActionResult> GetMyRecipes()
+        {
+            try
+            {
+                var authorPersonId = GetCurrentPersonId();
+                var recipes = await _recipeOrchestrationService.GetAuthorRecipesAsync(authorPersonId);
+                return Ok(recipes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching recipes for user {PersonId}", GetCurrentPersonId());
+                return StatusCode(500, "An unexpected error occurred while fetching recipes.");
+            }
         }
     }
 }

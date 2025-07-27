@@ -87,21 +87,15 @@ export class AppComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.router.events.subscribe((event) => {
         if (event instanceof NavigationStart) {
-          if (this.isUserMenuOpen) {
-            this.toggleUserMenu();
-          }
-          if (this.isMenuOpen) {
-            this.toggleMenu();
-          }
+          if (this.isUserMenuOpen) { this.toggleUserMenu(); }
+          if (this.isMenuOpen) { this.toggleMenu(); }
         }
       })
     );
 
     this.subscriptions.add(
       this.authManagerService.openUserMenuSignal.subscribe(() => {
-        if (!this.isUserMenuOpen) {
-          this.toggleUserMenu();
-        }
+        if (!this.isUserMenuOpen) { this.toggleUserMenu(); }
       })
     );
   }
@@ -112,7 +106,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   checkLoggedIn() {
     this.subscriptions.add(
-      // Use the observable for the boolean flag as well
       this.isLoggedIn$.subscribe((status) => {
         this.isLoggedIn = status;
       })
@@ -120,13 +113,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.authManagerService.checkUserLoggedInStatus();
   }
 
-  toggleMenu(): void {
-    this.isMenuOpen = !this.isMenuOpen;
-  }
-
-  toggleUserMenu(): void {
-    this.isUserMenuOpen = !this.isUserMenuOpen;
-  }
+  toggleMenu(): void { this.isMenuOpen = !this.isMenuOpen; }
+  toggleUserMenu(): void { this.isUserMenuOpen = !this.isUserMenuOpen; }
 
   toggleTheme(): void {
     this.isDarkTheme = !this.isDarkTheme;
@@ -139,9 +127,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private applyThemeClass(): void {
     if (isPlatformBrowser(this.platformId)) {
       document.body.classList.remove('dark-theme', 'light-theme');
-      document.body.classList.add(
-        this.isDarkTheme ? 'dark-theme' : 'light-theme'
-      );
+      document.body.classList.add(this.isDarkTheme ? 'dark-theme' : 'light-theme');
     }
   }
 
@@ -154,18 +140,13 @@ export class AppComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         console.error('Logout error:', error);
-        this.notificationService.error(
-          error.message || 'Failed to log out. Please try again.'
-        );
+        this.notificationService.error(error.message || 'Failed to log out. Please try again.');
       },
     });
   }
 
   onOnboardingComplete(success: boolean): void {
-    console.log(
-      'Onboarding Workflow completed:',
-      success ? 'Successfully!' : 'With errors.'
-    );
+    console.log('Onboarding Workflow completed:', success ? 'Successfully!' : 'With errors.');
     if (success) {
       alert('Onboarding complete! Redirecting to dashboard (simulated).');
     } else {

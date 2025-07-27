@@ -1,0 +1,123 @@
+<div class="nom-recipe-edit nom-page-container full-canvas">
+    <mat-card class="nom-card">
+        <mat-card-header class="nom-card__header">
+            <mat-card-title class="nom-card__title">{{ pageTitle }}</mat-card-title>
+        </mat-card-header>
+
+        @if (isLoading) {
+        <div class="nom-recipe-edit__loading-container">
+            <mat-spinner diameter="50"></mat-spinner>
+        </div>
+        } @else {
+        <mat-card-content class="nom-card__content">
+            <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="nom-recipe-edit__form">
+
+                <div class="nom-recipe-edit__section">
+                    <h3 class="nom-recipe-edit__section-title">General Information</h3>
+                    <mat-form-field class="nom-recipe-edit__form-field">
+                        <mat-label>Recipe Name</mat-label>
+                        <input matInput formControlName="name" placeholder="e.g., Classic Lasagna">
+                    </mat-form-field>
+                    <mat-form-field class="nom-recipe-edit__form-field">
+                        <mat-label>Description</mat-label>
+                        <textarea matInput formControlName="description" rows="4"
+                            placeholder="A short summary of the recipe..."></textarea>
+                    </mat-form-field>
+                </div>
+
+                <div class="nom-recipe-edit__section">
+                    <div class="nom-recipe-edit__section-header">
+                        <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
+                    </div>
+                    <div class="nom-ingredient-search">
+                        <mat-form-field class="nom-ingredient-search__form-field">
+                            <mat-label>Add an Ingredient</mat-label>
+                            <input matInput type="text" placeholder="Start typing to search..."
+                                [formControl]="ingredientSearchCtrl" [matAutocomplete]="auto">
+                            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onIngredientSelected($event)"
+                                [displayWith]="displayIngredient">
+                                @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
+                                <mat-option [value]="ingredient">{{ ingredient.name }}</mat-option>
+                                }
+                            </mat-autocomplete>
+                        </mat-form-field>
+                        <button mat-stroked-button type="button" routerLink="/recipes/ingredients/new">
+                            Create New Ingredient
+                        </button>
+                    </div>
+                    <div class="nom-ingredient-list" formArrayName="ingredients">
+                        @for (ingredient of ingredients.controls; track i; let i = $index) {
+                        <div [formGroupName]="i" class="nom-ingredient-list__item">
+                            <span class="nom-ingredient-list__item-name">{{ ingredient.get('name')?.value }}</span>
+                            <div class="nom-ingredient-list__item-inputs">
+                                <mat-form-field appearance="outline" class="nom-ingredient-list__quantity-field">
+                                    <mat-label>Qty</mat-label>
+                                    <input matInput type="number" formControlName="quantity">
+                                </mat-form-field>
+                                <mat-form-field appearance="outline" class="nom-ingredient-list__unit-field">
+                                    <mat-label>Unit</mat-label>
+                                    <mat-select formControlName="measurementTypeId">
+                                        @for (unit of measurementTypes$ | async; track unit.id) {
+                                        <mat-option [value]="unit.id">{{ unit.name }}</mat-option>
+                                        }
+                                    </mat-select>         
+                                </mat-form-field>
+                            </div>
+                            <button mat-icon-button type="button" (click)="removeIngredient(i)"
+                                title="Remove Ingredient">
+                                <mat-icon>delete_outline</mat-icon>
+                            </button>
+                        </div>
+                        }
+                    </div>
+                    @if (ingredients.length === 0) {
+                    <p class="nom-ingredient-list__empty-message">No ingredients added yet.</p>
+                    }
+                </div>
+
+                <div class="nom-recipe-edit__section">
+                    <div class="nom-recipe-edit__section-header">
+                        <h3 class="nom-recipe-edit__section-title">Instructions</h3>
+                        <button mat-stroked-button type="button" (click)="addStep()">
+                            <mat-icon>add</mat-icon>
+                            Add Step
+                        </button>
+                    </div>
+                    <div class="nom-step-list" cdkDropList (cdkDropListDropped)="dropStep($event)"
+                        formArrayName="steps">
+                        @for (step of steps.controls; track i; let i = $index) {
+                        <div [formGroupName]="i" class="nom-step-list__item" cdkDrag>
+                            <div class="nom-step-list__drag-handle" cdkDragHandle>
+                                <mat-icon>drag_indicator</mat-icon>
+                            </div>
+                            <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
+                            <mat-form-field class="nom-step-list__item-field">
+                                <mat-label>Step</mat-label>
+                                <textarea matInput formControlName="description" cdkTextareaAutosize
+                                    #autosize="cdkTextareaAutosize" cdkAutosizeMinRows="3"></textarea>
+                            </mat-form-field>
+                            <button mat-icon-button type="button" (click)="removeStep(i)" title="Remove Step"
+                                class="nom-step-list__remove-button">
+                                <mat-icon>delete_outline</mat-icon>
+                            </button>
+                        </div>
+                        }
+                    </div>
+                    @if (steps.length === 0) {
+                    <p class="nom-step-list__empty-message">No steps have been added to this recipe yet.</p>
+                    }
+                </div>
+
+            </form>
+        </mat-card-content>
+
+        <mat-card-actions class="nom-card__footer">
+            <button mat-button type="button" (click)="router.navigate(['/user/dashboard'])">Cancel</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="recipeForm.invalid"
+                (click)="onSubmit()">
+                {{ isEditMode ? 'Save Changes' : 'Create Recipe' }}
+            </button>
+        </mat-card-actions>
+        }
+    </mat-card>
+    </div>

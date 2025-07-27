@@ -1,3 +1,5 @@
+// File: nom-ui/src/styles.scss
+
 @use '@angular/material' as mat;
 @use 'nom-theme';
 @use 'variables' as vars;
@@ -8,31 +10,23 @@
 
 html {
   .dark-theme {
-    @include mat.theme(
-      (
-        color: (
-          primary: nom-theme.$primary-palette,
+    @include mat.theme((color: (primary: nom-theme.$primary-palette,
           tertiary: nom-theme.$tertiary-palette,
           theme-type: dark,
         ),
         typography: Roboto,
         density: 0,
-      )
-    );
+      ));
   }
 
   .light-theme {
-    @include mat.theme(
-      (
-        color: (
-          primary: nom-theme.$primary-palette,
+    @include mat.theme((color: (primary: nom-theme.$primary-palette,
           tertiary: nom-theme.$tertiary-palette,
           theme-type: light,
         ),
         typography: Roboto,
         density: 0,
-      )
-    );
+      ));
   }
 
   // High contrast overrides for accessibility, applied directly to html when media query matches
@@ -53,6 +47,16 @@ html {
   background-color: var(--mat-sys-background); // Main background color
   box-sizing: border-box;
   color: var(--mat-sys-on-background); // Main text color
+
+  // NEW: Full Canvas Modifier
+  // When this class is added, it overrides the default centering and max-width.
+  &.full-canvas {
+    align-items: flex-start; // Align content to the top instead of center
+
+    .nom-card {
+      max-width: none; // Remove the max-width constraint
+    }
+  }
 }
 
 // Common Card Styles
@@ -93,6 +97,7 @@ html {
   &__footer {
     padding-top: 15px;
     text-align: center;
+
     .mat-spinner {
       display: inline-block;
       vertical-align: middle;
@@ -158,9 +163,7 @@ html {
   color: var(--mat-sys-on-surface-variant);
   margin-bottom: 20px;
   text-align: center;
-  line-height: var(
-    --mat-sys-body-medium-line-height
-  ); // Use specific line-height from var
+  line-height: var(--mat-sys-body-medium-line-height); // Use specific line-height from var
 }
 
 .nom-prompt-text {
@@ -168,9 +171,7 @@ html {
   color: var(--mat-sys-on-surface-variant);
   text-align: center;
   margin-top: 20px;
-  line-height: var(
-    --mat-sys-body-medium-line-height
-  ); // Use specific line-height from var
+  line-height: var(--mat-sys-body-medium-line-height); // Use specific line-height from var
 }
 
 .nom-link {
@@ -178,6 +179,7 @@ html {
   text-decoration: none;
   font: inherit; // Inherit font from parent, or set specifically if needed
   cursor: pointer;
+
   &:hover {
     text-decoration: underline;
     color: var(--mat-sys-primary-fixed-variant);
@@ -189,9 +191,7 @@ html {
   font: var(--mat-sys-body-large); // Using body-large for messages
   color: var(--mat-sys-on-surface-variant);
   margin: 0;
-  line-height: var(
-    --mat-sys-body-large-line-height
-  ); // Use specific line-height from var
+  line-height: var(--mat-sys-body-large-line-height); // Use specific line-height from var
   text-align: center;
 }
 
@@ -209,15 +209,13 @@ html {
   margin-bottom: 20px;
   gap: 15px; // Default gap for items in a section
 
-  & > * {
+  &>* {
     width: 100%;
     flex-basis: 100%;
   }
 
   &__heading {
-    font: var(
-      --mat-sys-headline-medium
-    ); // Using headline-medium for section headings
+    font: var(--mat-sys-headline-medium); // Using headline-medium for section headings
     margin: 0;
     color: var(--mat-sys-on-surface);
     text-align: center;
@@ -268,9 +266,7 @@ html {
 
   .nom-code-label {
     font: var(--mat-sys-label-large); // Using label-large for code labels
-    font-weight: var(
-      --mat-sys-label-large-weight-prominent
-    ); // Explicitly use prominent weight
+    font-weight: var(--mat-sys-label-large-weight-prominent); // Explicitly use prominent weight
     margin: 0;
     color: var(--mat-sys-on-surface);
   }
@@ -290,9 +286,7 @@ html {
   border-radius: 4px;
   font-family: 'Courier New', Courier, monospace; // Monospace for code
   font: var(--mat-sys-label-medium); // Using label-medium for code items
-  font-weight: var(
-    --mat-sys-label-medium-weight-prominent
-  ); // Explicitly use prominent weight
+  font-weight: var(--mat-sys-label-medium-weight-prominent); // Explicitly use prominent weight
   color: var(--mat-sys-on-primary);
   white-space: nowrap;
 }
@@ -310,41 +304,48 @@ html {
   .nom-page-container {
     padding: 20px;
   }
+
   .nom-card {
     max-width: 500px; // Desktop card width
     padding: 30px;
     box-shadow: 0 8px 16px rgba(var(--mat-sys-shadow), 0.2);
     border-radius: 12px;
   }
+
   .nom-card__header {
     margin-bottom: 30px;
   }
+
   .nom-card__title {
     font: var(--mat-sys-display-small); // Larger title on desktop
   }
+
   .nom-card__subtitle {
     font: var(--mat-sys-headline-small); // Larger subtitle on desktop
   }
+
   .nom-card__content {
     padding: 30px 0;
   }
+
   .nom-form__field {
     margin-bottom: 20px;
   }
+
   .nom-button {
     height: 52px;
     font: var(--mat-sys-label-large); // Consistent label-large
     margin-top: 15px;
   }
+
   .nom-instruction-text,
   .nom-prompt-text,
   .nom-message-text,
   .nom-small-text {
-    font-size: var(
-      --mat-sys-body-large-size
-    ); // Use body-large size for desktop instructions/prompts/messages
+    font-size: var(--mat-sys-body-large-size); // Use body-large size for desktop instructions/prompts/messages
     margin-bottom: 25px; // For instruction/prompt text
   }
+
   .nom-card__footer {
     padding-top: 20px;
   }
@@ -354,34 +355,43 @@ html {
     margin-bottom: 30px;
     gap: 20px;
   }
+
   .nom-section__heading {
     font: var(--mat-sys-headline-large); // Larger heading on desktop
     text-align: left;
   }
+
   .nom-horizontal-group {
     gap: 20px;
   }
+
   .nom-divider {
     margin: 30px 0;
   }
+
   .nom-status-icon {
     font-size: 80px;
     width: 80px;
     height: 80px;
   }
+
   .nom-code-box {
     justify-content: space-between; // Space between code and copy button
+
     .nom-code-text {
       font: var(--mat-sys-body-large); // Larger code text on desktop
     }
   }
+
   .nom-code-item {
     font: var(--mat-sys-label-large); // Larger code item on desktop
     padding: 8px 12px;
   }
+
   .nom-qr-code-image {
     max-width: 180px;
   }
+
   .nom-spinner-container {
     gap: 20px;
   }
@@ -390,65 +400,52 @@ html {
 // 4. Themed Snackbar Styles
 // --------------------------
 .snackbar {
-  // Common properties for all snackbar themes
   padding: 16px;
   box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
     0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12);
-  border-radius: 5px !important; // Consistent border-radius for all snackbars
+  border-radius: 5px !important;
 
-  // This rule targets the internal Angular Material snackbar surface
-  // to ensure our custom background colors and text colors are applied
-  // without being overridden by Material's default internal styling.
-  // We make their internal background transparent and color inherit.
   .mdc-snackbar__surface,
   .mat-mdc-snackbar-surface {
     background-color: transparent !important;
     color: inherit !important;
   }
 
-  // Modifier for success theme (compiles to .snackbar-success)
   &-success {
-    background-color: #d4edda !important; /* Pastel Green */
-    color: #155724 !important; /* Darker Green for text (high contrast) */
-    border: 2px solid #155724 !important; // 2px border matching text color
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border: 2px solid #155724 !important;
 
-    // Action button within the success theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
-      color: #155724 !important; /* Match text color for action button */
+      color: #155724 !important;
     }
   }
 
-  // Modifier for info theme (compiles to .snackbar-info)
   &-info {
-    background-color: #cce5ff !important; /* Pastel Blue */
-    color: #004085 !important; /* Darker Blue for text (high contrast) */
-    border: 2px solid #004085 !important; // 2px border matching text color
+    background-color: #cce5ff !important;
+    color: #004085 !important;
+    border: 2px solid #004085 !important;
 
-    // Action button within the info theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #004085 !important;
     }
   }
 
-  // Modifier for warning theme (compiles to .snackbar-warning)
   &-warning {
-    background-color: #fff3cd !important; /* Pastel Yellow/Cream */
-    color: #664d03 !important; /* Darker Yellow/Brown for text (high contrast) */
-    border: 2px solid #664d03 !important; // 2px border matching text color
+    background-color: #fff3cd !important;
+    color: #664d03 !important;
+    border: 2px solid #664d03 !important;
 
-    // Action button within the warning theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #664d03 !important;
     }
   }
 
-  // Modifier for error theme (compiles to .snackbar-error)
   &-error {
-    background-color: #f8d7da !important; /* Pastel Red/Pink */
-    color: #721c24 !important; /* Darker Red for text (high contrast) */
-    border: 2px solid #721c24 !important; // 2px border matching text color
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border: 2px solid #721c24 !important;
 
-    // Action button within the error theme
     .mat-mdc-button.mat-mdc-snack-bar-action {
       color: #721c24 !important;
     }

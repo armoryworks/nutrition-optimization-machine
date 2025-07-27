@@ -1,0 +1,131 @@
+// File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.scss
+
+// No longer using a max-width for this author-facing component.
+// The .nom-page-container class in the HTML still provides base padding.
+
+.nom-recipe-edit {
+    // The max-width from .nom-page-container is effectively overridden by the card's width.
+    // We can add specific padding if needed here.
+
+    &__loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+    }
+
+    &__section {
+        margin-bottom: 2rem;
+    }
+
+    &__section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    &__section-title {
+        font-size: 1.25rem;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    &__form-field {
+        width: 100%;
+    }
+}
+
+// Ingredient Styles
+.nom-ingredient-search {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    &__form-field {
+        flex-grow: 1;
+    }
+}
+
+.nom-ingredient-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &__item {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 4px;
+    }
+
+    &__item-name {
+        font-weight: 500;
+    }
+
+    &__item-inputs {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    &__quantity-field {
+        width: 100px;
+    }
+
+    &__unit-field {
+        flex-grow: 1;
+    }
+
+    &__empty-message {
+        text-align: center;
+        padding: 2rem;
+        font-style: italic;
+        color: var(--mat-sys-on-surface-variant);
+        border: 1px dashed var(--mat-form-field-outline-color);
+        border-radius: 4px;
+    }
+}
+
+// Step List Styles
+.nom-step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    &__item {
+        display: grid;
+        grid-template-columns: auto auto 1fr auto;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 4px;
+    }
+
+    &__drag-handle {
+        cursor: grab;
+        color: var(--mat-sys-on-surface-variant);
+    }
+
+    &__item-number {
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant);
+    }
+
+    &__item-field {
+        width: 100%;
+    }
+
+    &__empty-message {
+        text-align: center;
+        padding: 2rem;
+        font-style: italic;
+        color: var(--mat-sys-on-surface-variant);
+        border: 1px dashed var(--mat-form-field-outline-color);
+        border-radius: 4px;
+    } }

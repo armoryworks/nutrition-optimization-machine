@@ -1,7 +1,7 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 24, 2025
+:revdate: July 25, 2025
 :revnumber: 2.1
 :toc: left
 :toclevels: 4
@@ -262,7 +262,6 @@ To provide authorized users with the tools to manage system roles and permission
 
 .Objective
 To enable users to join existing nutritional plans through a secure invitation mechanism.
-
 [cols="20%,80%",options="header"]
 |===
 | ID | Requirement
@@ -280,7 +279,6 @@ To enable users to join existing nutritional plans through a secure invitation m
 
 .Objective
 To secure system access and protect sensitive user data and functionalities.
-
 [cols="20%,80%",options="header"]
 |===
 | ID | Requirement
@@ -305,20 +303,16 @@ To ensure compliance with applicable data privacy regulations and provide users 
 ====
 Privacy compliance is *mandatory* for EU users under GDPR and represents a critical competitive advantage for building user trust in the health application market.
 ====
-
 [cols="20%,80%",options="header"]
 |===
 | ID | Requirement
 
 | *FR-4.5.1*
 | *Privacy Consent Management*: The system shall implement granular consent collection during user registration and onboarding. All consents are stored in the `UserConsentEntity` table.
-
 | *FR-4.5.2*
 | *Consent Withdrawal*: Users shall be able to withdraw previously granted consents at any time through their account settings.
-
 | *FR-4.5.3*
 | *Data Subject Rights (GDPR)*: The system shall provide mechanisms for users to exercise their GDPR rights, including Right of Access (Article 15), Right to Rectification (Article 16), Right to Erasure (Article 17), and Right to Data Portability (Article 20). These requests are tracked in the `PrivacyRequestEntity` table.
-
 | *FR-4.5.4*
 | *Privacy Dashboard*: The system shall provide a dedicated user interface (`PrivacySettingsComponent`) for managing privacy settings, viewing consent status, and exercising data subject rights.
 | *FR-4.5.5*
@@ -960,8 +954,8 @@ Provides users with a centralized interface for managing their privacy settings,
 ==== RecipeAuthorDashboardComponent
 
 .File Locations
-* TypeScript: `src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.ts`
-* HTML: `src/app/recipe/components/recipe-author-dashboard/recipe-author-dashboard.component.html`
+* TypeScript: `src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.ts`
+* HTML: `src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.html`
 .Role
 Top-level component for authors to view and manage their created recipes and ingredients, categorized by `CurationStatus`.
 .Functional Requirements Mapping
@@ -1263,8 +1257,8 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 === API Controllers (NOT STARTED)
 
 [#recipes-controller]
-==== RecipesController
-.File Location: `Nom.Api/Controllers/RecipesController.cs`
+==== RecipeController
+.File Location: `Nom.Api/Controllers/RecipeController.cs`
 .Role: Exposes endpoints for author-specific recipe and ingredient management.
 
 [#curation-controller]
@@ -2024,7 +2018,7 @@ This section outlines the proposed new files to be added to the repository for t
 | `Nom.Orch/Services/CurationOrchestrationService.cs` | `/Nom.Orch/Services/CurationOrchestrationService.cs`
 | `Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs` | `/Nom.Orch/Interfaces/ICommunicationOrchestrationService.cs`
 | `Nom.Orch/Services/CommunicationOrchestrationService.cs` | `/Nom.Orch/Services/CommunicationOrchestrationService.cs`
-| `Nom.Api/Controllers/RecipesController.cs` | `/Nom.Api/Controllers/RecipesController.cs`
+| `Nom.Api/Controllers/RecipeController.cs` | `/Nom.Api/Controllers/RecipeController.cs`
 | `Nom.Api/Controllers/CurationController.cs` | `/Nom.Api/Controllers/CurationController.cs`
 | `Nom.Api/Controllers/MessagingController.cs` | `/Nom.Api/Controllers/MessagingController.cs`
 | `Nom.Api/Controllers/UserManagementController.cs` | `/Nom.Api/Controllers/UserManagementController.cs`
@@ -2039,7 +2033,7 @@ This section outlines the proposed new files to be added to the repository for t
 
 | `src/app/recipe/models/recipe.model.ts` | `/nom-ui/src/app/recipe/models/recipe.model.ts`
 | `src/app/recipe/services/recipe.service.ts` | `/nom-ui/src/app/recipe/services/recipe.service.ts`
-| `src/app/recipe/components/recipe-author-dashboard/...` | `/nom-ui/src/app/recipe/components/recipe-author-dashboard/...`
+| `src/app/user/components/recipe-author-dashboard/...` | `/nom-ui/src/app/user/components/recipe-author-dashboard/...`
 | `src/app/recipe/components/recipe-edit/...` | `/nom-ui/src/app/recipe/components/recipe-edit/...`
 | `src/app/curation/services/curation.service.ts` | `/nom-ui/src/app/curation/services/curation.service.ts`
 | `src/app/curation/components/curation-queue/...` | `/nom-ui/src/app/curation/components/curation-queue/...`
@@ -2055,34 +2049,6 @@ This section outlines the proposed new files to be added to the repository for t
 
 This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development, now including a full suite of content management and communication tools. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up. The successful implementation of these new features will significantly enhance the platform's value by fostering a rich, trustworthy, and collaborative community ecosystem.
 
-[#_key_achievements]
-=== Key Achievements
-
-[dlist]
-*Comprehensive Architecture*:: The specification defines a complete, scalable architecture that separates concerns appropriately while maintaining clear data flow and integration points.
-*Privacy by Design*:: GDPR compliance requirements are integrated throughout the system design, from data collection to storage and user rights management.
-*Clear Development Path*:: The phased implementation approach provides concrete milestones and deliverables, allowing for iterative development and validation.
-*Strict Standards*:: Naming conventions and coding standards ensure consistency and maintainability across the entire codebase.
-
-[#_strategic_value]
-=== Strategic Value
-
-[dlist]
-*Regulatory Compliance*:: The privacy-first approach positions NOM for successful operation in global markets, particularly the EU where GDPR compliance is mandatory.
-*User Trust*:: Transparent data handling and robust privacy controls build user confidence, critical for health applications handling sensitive personal information.
-*Scalable Foundation*:: The modular, domain-driven architecture supports future growth and feature expansion without architectural debt.
-*Competitive Advantage*:: Privacy compliance as a core feature differentiates NOM in a market where user trust is paramount.
-
-[#_next_steps]
-=== Next Steps
-
-. *Review and Approval*: Stakeholder review of this specification
-. *Team Onboarding*: Ensure all developers understand the privacy requirements and naming conventions
-. *Environment Setup*: Configure development environments with privacy considerations
-. *Phase 1 Implementation*: Begin with critical privacy infrastructure
-. *Iterative Development*: Follow the phased approach with regular privacy compliance reviews
-
-The NOM platform is positioned to become a leader in privacy-conscious nutritional planning, setting new standards for how health applications can protect user data while delivering exceptional personalized experiences.
 ---
 [cols="25%,75%",options="header"]
 |===
@@ -2092,7 +2058,7 @@ The NOM platform is positioned to become a leader in privacy-conscious nutrition
 | 2.1
 
 | Date
-| July 24, 2025
+| July 25, 2025
 
 | Status
 | Active Development Specification

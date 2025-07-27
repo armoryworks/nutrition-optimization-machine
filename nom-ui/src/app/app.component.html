@@ -19,44 +19,28 @@
   @if (isLoggedIn$ | async) {
   <div class="app-user-menu__dropdown" [class.app-user-menu__dropdown--open]="isUserMenuOpen">
     <ul class="app-user-menu__logged-in-list">
-      <li>
-        <a routerLink="/user/dashboard" (click)="toggleUserMenu()" class="app-user-menu__link">My Dashboard</a>
-      </li>
-      <li>
-        <a routerLink="/messaging" (click)="toggleUserMenu()" class="app-user-menu__link">Messages</a>
-      </li>
-      <li>
-        <a routerLink="/ingredient-search" (click)="toggleUserMenu()" class="app-user-menu__link">Ingredient Search</a>
-      </li>
+      <li><a routerLink="/user/dashboard" (click)="toggleUserMenu()" class="app-user-menu__link">My Dashboard</a></li>
+      <li><a routerLink="/messaging" (click)="toggleUserMenu()" class="app-user-menu__link">Messages</a></li>
+      <li><a routerLink="/ingredient-search" (click)="toggleUserMenu()" class="app-user-menu__link">Ingredient
+          Search</a></li>
       <li class="app-user-menu__divider"></li>
-      <li>
-        <a routerLink="/update-info" (click)="toggleUserMenu()" class="app-user-menu__link">Update Profile</a>
+      <li><a routerLink="/update-info" (click)="toggleUserMenu()" class="app-user-menu__link">Update Profile</a></li>
+      <li><a routerLink="/update-two-factor" (click)="toggleUserMenu()" class="app-user-menu__link">2FA Settings</a>
       </li>
-      <li>
-        <a routerLink="/update-two-factor" (click)="toggleUserMenu()" class="app-user-menu__link">2FA Settings</a>
-      </li>
-      <li>
-        <a routerLink="/user/privacy-settings" (click)="toggleUserMenu()" class="app-user-menu__link">Privacy
-          Settings</a>
-      </li>
+      <li><a routerLink="/user/privacy-settings" (click)="toggleUserMenu()" class="app-user-menu__link">Privacy
+          Settings</a></li>
 
       @if (canManageCuration$ | async) {
       <li class="app-user-menu__divider"></li>
-      <li>
-        <a routerLink="/curation" (click)="toggleUserMenu()" class="app-user-menu__link">Curation Queue</a>
-      </li>
+      <li><a routerLink="/curation" (click)="toggleUserMenu()" class="app-user-menu__link">Curation Queue</a></li>
       }
       @if (canManageUserRoles$ | async) {
-      <li>
-        <a routerLink="/admin/user-management" (click)="toggleUserMenu()" class="app-user-menu__link">User
-          Management</a>
-      </li>
+      <li><a routerLink="/admin/user-management" (click)="toggleUserMenu()" class="app-user-menu__link">User
+          Management</a></li>
       }
 
       <li class="app-user-menu__divider"></li>
-      <li>
-        <a (click)="logout()" class="app-user-menu__link app-user-menu__link--logout">Logout</a>
-      </li>
+      <li><a (click)="logout()" class="app-user-menu__link app-user-menu__link--logout">Logout</a></li>
     </ul>
   </div>
   } @else {
