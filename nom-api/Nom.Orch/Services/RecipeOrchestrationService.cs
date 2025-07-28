@@ -314,5 +314,23 @@ namespace Nom.Orch.Services
 
             return recipes;
         }
+
+        public async Task<List<RecipeDashboardItemModel>> GetAuthorIngredientsAsync(long authorPersonId)
+        {
+            _logger.LogInformation("Fetching ingredients for author {AuthorPersonId}", authorPersonId);
+
+            var ingredients = await _db.Ingredients
+                .Where(i => i.AuthorId == authorPersonId)
+                .OrderByDescending(i => i.LastModifiedDate)
+                .Select(i => new RecipeDashboardItemModel
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    CurationStatus = i.CurationStatus.Name // Assumes CurationStatus is a loaded navigation property
+                })
+                .ToListAsync();
+
+            return ingredients;
+        }
     }
 }

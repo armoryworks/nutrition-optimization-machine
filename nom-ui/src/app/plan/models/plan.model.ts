@@ -1,47 +1,105 @@
 import { PersonModel } from '../../person/models/person.model'; // Adjust path as needed
-import { RestrictionModel } from '../../restriction/models/restriction.model'; // Adjust path as needed
+import { RestrictionModel as RestrictionModelBase } from '../../restriction/models/restriction.model';
 
 /**
  * Interface representing the structure of a nutritional plan.
  * Used on the frontend for data transfer and display.
  */
-export interface IPlanModel {
-  id?: number;
+export interface PlanModel {
+  id: number;
   name: string;
   description?: string;
-  invitationCode?: string; // Code for inviting others to this plan
-  createdByPersonId?: number; // ID of the person who created this plan
+  startDate?: Date;
+  endDate?: Date;
+  invitationCode?: string;
+  curationStatus: string;
+  authorId: number;
+  authorName: string;
+  dateSubmittedForCuration?: Date;
+  dateCurationCompleted?: Date;
+  parentPlanId?: number;
+  version: number;
+  createdDate: Date;
+  lastModifiedDate?: Date;
 
-  // Optional: Full PersonModel for the creator if needed on frontend
-  // createdByPerson?: PersonModel;
-
-  participants?: PersonModel[]; // People associated with this plan
-  restrictions?: RestrictionModel[]; // Restrictions applied to this plan (either plan-wide or per-person)
-  // Add other properties relevant to a plan (e.g., goals, start/end dates)
+  // Navigation properties
+  goals: GoalModel[];
+  meals: MealModel[];
+  restrictions: RestrictionModel[];
+  participants?: PlanParticipantModel[];
 }
 
-/**
- * Model class for a nutritional plan, implementing IPlanModel.
- * Provides a constructor for easier instantiation.
- */
-export class PlanModel implements IPlanModel {
-  id?: number;
+export interface GoalModel {
+  id: number;
   name: string;
   description?: string;
-  invitationCode?: string;
-  createdByPersonId?: number;
-  // createdByPerson?: PersonModel;
-  participants?: PersonModel[];
-  restrictions?: RestrictionModel[];
+  goalType?: string;
+  beginDate?: Date;
+  endDate?: Date;
+  goalItems: GoalItemModel[];
+}
 
-  constructor(data: Partial<IPlanModel> = {}) {
-    this.id = data.id;
-    this.name = data.name || ''; // Ensure name is always provided or defaults
-    this.description = data.description;
-    this.invitationCode = data.invitationCode;
-    this.createdByPersonId = data.createdByPersonId;
-    // this.createdByPerson = data.createdByPerson;
-    this.participants = data.participants || [];
-    this.restrictions = data.restrictions || [];
-  }
+export interface GoalItemModel {
+  id: number;
+  name: string;
+  description?: string;
+  isQuantifiable: boolean;
+  ingredientName?: string;
+  nutrientName?: string;
+  timeframeType?: string;
+  measurementType?: string;
+  measurementMinimum?: number;
+  measurementMaximum?: number;
+}
+
+export interface MealModel {
+  id: number;
+  mealType: string;
+  date: Date;
+  recipes: RecipeModel[];
+}
+
+export interface RecipeModel {
+  id: number;
+  name: string;
+  description?: string;
+  curationStatus: string;
+}
+
+export interface RestrictionModel {
+  id: number;
+  name: string;
+  description?: string;
+  restrictionType?: string;
+  ingredientName?: string;
+  nutrientName?: string;
+}
+
+export interface PlanParticipantModel {
+  id: number;
+  personId: number;
+  personName: string;
+  role: string;
+  joinedDate: Date;
+}
+
+export interface CreatePlanRequest {
+  name: string;
+  description?: string;
+  startDate?: Date;
+  endDate?: Date;
+  goals?: GoalModel[];
+  meals?: MealModel[];
+  restrictions?: RestrictionModel[];
+}
+
+export interface UpdatePlanRequest {
+  name: string;
+  description?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export interface ClonePlanRequest {
+  newPlanName: string;
 }

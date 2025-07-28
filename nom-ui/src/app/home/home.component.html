@@ -1,1 +1,129 @@
-<p>home works!</p>
+<div class="nom-page-container">
+  <div class="home">
+    <!-- Hero Section -->
+    <section class="home__hero">
+      <div class="home__hero-content">
+        <h1 class="home__hero-title">
+          Welcome to <span class="home__hero-accent">NOM</span>
+        </h1>
+        <p class="home__hero-subtitle">
+          Your Nutrition Optimization Machine - Discover, create, and share amazing recipes
+        </p>
+        <div class="home__hero-actions">
+          <button mat-raised-button color="primary" class="home__hero-btn" routerLink="/register">
+            <mat-icon>person_add</mat-icon>
+            Get Started
+          </button>
+          <button mat-stroked-button class="home__hero-btn" routerLink="/recipe-search">
+            <mat-icon>search</mat-icon>
+            Browse Recipes
+          </button>
+        </div>
+      </div>
+      <div class="home__hero-visual">
+        <div class="home__hero-cards">
+          <div class="home__hero-card home__hero-card--recipe">
+            <mat-icon>restaurant</mat-icon>
+            <span>Recipes</span>
+          </div>
+          <div class="home__hero-card home__hero-card--ingredient">
+            <mat-icon>eco</mat-icon>
+            <span>Ingredients</span>
+          </div>
+          <div class="home__hero-card home__hero-card--nutrition">
+            <mat-icon>monitor_heart</mat-icon>
+            <span>Nutrition</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="home__features">
+      <h2 class="home__section-title">Why Choose NOM?</h2>
+      <div class="home__features-grid">
+        <div class="home__feature-card">
+          <div class="home__feature-icon">
+            <mat-icon>verified</mat-icon>
+          </div>
+          <h3>Curated Quality</h3>
+          <p>Every recipe and ingredient is carefully reviewed by our nutrition experts to ensure quality and accuracy.</p>
+        </div>
+        <div class="home__feature-card">
+          <div class="home__feature-icon">
+            <mat-icon>community</mat-icon>
+          </div>
+          <h3>Community Driven</h3>
+          <p>Share your own recipes and discover creations from our growing community of food enthusiasts.</p>
+        </div>
+        <div class="home__feature-card">
+          <div class="home__feature-icon">
+            <mat-icon>insights</mat-icon>
+          </div>
+          <h3>Nutrition Insights</h3>
+          <p>Get detailed nutritional information for every recipe, helping you make informed dietary choices.</p>
+        </div>
+        <div class="home__feature-card">
+          <div class="home__feature-icon">
+            <mat-icon>search</mat-icon>
+          </div>
+          <h3>Smart Search</h3>
+          <p>Find exactly what you're looking for with our powerful search across recipes, ingredients, and nutrition data.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Actions Section -->
+    <section class="home__quick-actions">
+      <h2 class="home__section-title">Get Started Today</h2>
+      <div class="home__actions-grid">
+        <div class="home__action-card" routerLink="/recipe-search">
+          <mat-icon>search</mat-icon>
+          <h3>Browse Recipes</h3>
+          <p>Explore our curated collection of delicious recipes</p>
+          <span class="home__action-arrow">→</span>
+        </div>
+        <div class="home__action-card" routerLink="/curated-plans">
+          <mat-icon>schedule</mat-icon>
+          <h3>Discover Meal Plans</h3>
+          <p>Find professionally curated meal plans and customize them for your needs</p>
+          <span class="home__action-arrow">→</span>
+        </div>
+        <div class="home__action-card" routerLink="/register">
+          <mat-icon>person_add</mat-icon>
+          <h3>Join Community</h3>
+          <p>Create an account to share your own recipes</p>
+          <span class="home__action-arrow">→</span>
+        </div>
+        <div class="home__action-card" routerLink="/ingredient-search">
+          <mat-icon>eco</mat-icon>
+          <h3>Find Ingredients</h3>
+          <p>Search our comprehensive ingredient database</p>
+          <span class="home__action-arrow">→</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="home__stats">
+      <div class="home__stats-grid">
+        <div class="home__stat">
+          <div class="home__stat-number">500+</div>
+          <div class="home__stat-label">Curated Recipes</div>
+        </div>
+        <div class="home__stat">
+          <div class="home__stat-number">1000+</div>
+          <div class="home__stat-label">Ingredients</div>
+        </div>
+        <div class="home__stat">
+          <div class="home__stat-number">50+</div>
+          <div class="home__stat-label">Community Members</div>
+        </div>
+        <div class="home__stat">
+          <div class="home__stat-number">24/7</div>
+          <div class="home__stat-label">Available</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

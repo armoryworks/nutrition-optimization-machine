@@ -26,3 +26,20 @@
         }
     }
 }
+
+@mixin nom-card-bg {
+  background-color: var(--nom-card-bg);
+  border-radius: $nom-border-radius;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid var(--nom-border-subtle);
+}
+
+@mixin nom-panel-bg {
+  background-color: var(--nom-panel-bg);
+  border-radius: $nom-border-radius;
+  border: 1px solid var(--nom-border-subtle);
+}
+
+@mixin nom-high-contrast-text {
+  color: var(--nom-text-high-contrast);
+}

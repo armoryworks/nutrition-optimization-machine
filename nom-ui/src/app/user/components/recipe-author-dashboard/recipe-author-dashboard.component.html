@@ -1,59 +1,205 @@
-<div class="nom-author-dashboard nom-page-container">
-    <mat-card class="nom-card">
-        <mat-card-header class="nom-card__header">
-            <mat-card-title class="nom-card__title">My Dashboard</mat-card-title>
-            <mat-card-subtitle class="nom-card__subtitle">
-                Manage your created recipes and ingredients.
-            </mat-card-subtitle>
-        </mat-card-header>
+<div class="nom-page-container full-canvas">
+    <div class="nom-dashboard">
+        <div class="nom-dashboard__header">
+            <div class="nom-dashboard__header-content">
+                <h1 class="nom-dashboard__title">My Dashboard</h1>
+                <p class="nom-dashboard__subtitle">Manage your created recipes and ingredients</p>
+            </div>
+            <div class="nom-dashboard__header-actions">
+                <button mat-raised-button color="primary" routerLink="/recipes/new" class="nom-dashboard__action-button">
+                    <mat-icon>add</mat-icon>
+                    <span>Create Recipe</span>
+                </button>
+                <button mat-stroked-button routerLink="/recipes/ingredients/new" class="nom-dashboard__action-button">
+                    <mat-icon>eco</mat-icon>
+                    <span>Create Ingredient</span>
+                </button>
+            </div>
+        </div>
 
-        <mat-card-content class="nom-card__content">
-
-            <div class="nom-author-dashboard__section">
-                <div class="nom-author-dashboard__section-header">
-                    <h3 class="nom-author-dashboard__section-title">My Recipes</h3>
-                    <button mat-raised-button color="primary" routerLink="/recipes/new">
-                        <mat-icon>add</mat-icon>
-                        Create New Recipe
-                    </button>
+        <div class="nom-dashboard__content">
+            <!-- Stats Cards -->
+            <div class="nom-dashboard__stats">
+                <div class="nom-dashboard__stat-card">
+                    <div class="nom-dashboard__stat-icon">
+                        <mat-icon>restaurant</mat-icon>
+                    </div>
+                    <div class="nom-dashboard__stat-content">
+                        <h3 class="nom-dashboard__stat-number">
+                            {{ recipesCount$ | async }}
+                        </h3>
+                        <p class="nom-dashboard__stat-label">Recipes</p>
+                    </div>
                 </div>
+                <div class="nom-dashboard__stat-card">
+                    <div class="nom-dashboard__stat-icon">
+                        <mat-icon>eco</mat-icon>
+                    </div>
+                    <div class="nom-dashboard__stat-content">
+                        <h3 class="nom-dashboard__stat-number">
+                            {{ ingredientsCount$ | async }}
+                        </h3>
+                        <p class="nom-dashboard__stat-label">Ingredients</p>
+                    </div>
+                </div>
+                <div class="nom-dashboard__stat-card">
+                    <div class="nom-dashboard__stat-icon">
+                        <mat-icon>pending</mat-icon>
+                    </div>
+                    <div class="nom-dashboard__stat-content">
+                        <h3 class="nom-dashboard__stat-number">
+                            {{ pendingCurationCount$ | async }}
+                        </h3>
+                        <p class="nom-dashboard__stat-label">Pending Curation</p>
+                    </div>
+                </div>
+            </div>
 
-                @if (recipes$ | async; as recipes) {
-                <div class="nom-author-dashboard__item-list">
-                    @for (recipe of recipes; track recipe.id) {
-                    <div class="nom-author-dashboard__item">
-                        <span class="nom-author-dashboard__item-name">{{ recipe.name }}</span>
-                        <span class="nom-author-dashboard__item-status">{{ recipe.curationStatus }}</span>
-                        <div class="nom-author-dashboard__item-actions">
-                            <button mat-icon-button title="Edit Recipe" [routerLink]="['/recipes', recipe.id, 'edit']">
-                                <mat-icon>edit</mat-icon>
+            <!-- Main Content Grid -->
+            <div class="nom-dashboard__grid">
+                <!-- Recipes Section -->
+                <div class="nom-dashboard__section">
+                    <div class="nom-dashboard__section-header">
+                        <div class="nom-dashboard__section-title-group">
+                            <h2 class="nom-dashboard__section-title">My Recipes</h2>
+                            <p class="nom-dashboard__section-subtitle">Your created recipes</p>
+                        </div>
+                        <button mat-stroked-button routerLink="/recipes/new" class="nom-dashboard__section-action">
+                            <mat-icon>add</mat-icon>
+                            <span>New Recipe</span>
+                        </button>
+                    </div>
+
+                    @if (recipes$ | async; as recipes) {
+                    <div class="nom-dashboard__item-grid">
+                        @for (recipe of recipes; track recipe.id) {
+                        <div class="nom-dashboard__item-card">
+                            <div class="nom-dashboard__item-header">
+                                <h3 class="nom-dashboard__item-title">{{ recipe.name }}</h3>
+                                <div class="nom-dashboard__item-status">
+                                    @if (isSubmitting(recipe.id)) {
+                                    <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                    <span>Submitting...</span>
+                                    } @else {
+                                    <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + recipe.curationStatus.toLowerCase()">
+                                        {{ recipe.curationStatus }}
+                                    </span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="nom-dashboard__item-actions">
+                                <button mat-icon-button title="Edit Recipe" [routerLink]="['/recipes', recipe.id, 'edit']" class="nom-dashboard__action-btn">
+                                    <mat-icon>edit</mat-icon>
+                                </button>
+                                @if (canSubmitForCuration(recipe.curationStatus)) {
+                                <button mat-icon-button 
+                                        title="Submit for Curation" 
+                                        (click)="submitRecipeForCuration(recipe.id)"
+                                        [disabled]="isSubmitting(recipe.id)"
+                                        class="nom-dashboard__action-btn">
+                                    @if (isSubmitting(recipe.id)) {
+                                    <mat-icon>hourglass_empty</mat-icon>
+                                    } @else {
+                                    <mat-icon>send</mat-icon>
+                                    }
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        } @empty {
+                        <div class="nom-dashboard__empty-state">
+                            <mat-icon class="nom-dashboard__empty-icon">restaurant</mat-icon>
+                            <h3>No recipes yet</h3>
+                            <p>Start creating your first recipe to build your collection</p>
+                            <button mat-raised-button routerLink="/recipes/new" class="nom-dashboard__empty-action">
+                                <mat-icon>add</mat-icon>
+                                Create Your First Recipe
                             </button>
                         </div>
+                        }
                     </div>
-                    } @empty {
-                    <p class="nom-author-dashboard__empty-message">You haven't created any recipes yet.</p>
+                    } @else {
+                    <div class="nom-dashboard__loading-container">
+                        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                    </div>
                     }
                 </div>
-                } @else {
-                <div class="nom-author-dashboard__loading-container">
-                    <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+
+                <!-- Ingredients Section -->
+                <div class="nom-dashboard__section">
+                    <div class="nom-dashboard__section-header">
+                        <div class="nom-dashboard__section-title-group">
+                            <h2 class="nom-dashboard__section-title">My Ingredients</h2>
+                            <p class="nom-dashboard__section-subtitle">Your custom ingredients</p>
+                        </div>
+                        <button mat-stroked-button routerLink="/recipes/ingredients/new" class="nom-dashboard__section-action">
+                            <mat-icon>add</mat-icon>
+                            <span>New Ingredient</span>
+                        </button>
+                    </div>
+
+                    @if (ingredients$ | async; as ingredients) {
+                    <div class="nom-dashboard__item-grid">
+                        @for (ingredient of ingredients; track ingredient.id) {
+                        <div class="nom-dashboard__item-card">
+                            <div class="nom-dashboard__item-header">
+                                <h3 class="nom-dashboard__item-title">{{ ingredient.name }}</h3>
+                                <div class="nom-dashboard__item-status">
+                                    @if (isSubmitting(ingredient.id)) {
+                                    <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                    <span>Submitting...</span>
+                                    } @else {
+                                    <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + ingredient.curationStatus.toLowerCase()">
+                                        {{ ingredient.curationStatus }}
+                                    </span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="nom-dashboard__item-actions">
+                                <button mat-icon-button title="Edit Ingredient" [routerLink]="['/recipes/ingredients', ingredient.id, 'edit']" class="nom-dashboard__action-btn">
+                                    <mat-icon>edit</mat-icon>
+                                </button>
+                                @if (canSubmitForCuration(ingredient.curationStatus)) {
+                                <button mat-icon-button 
+                                        title="Submit for Curation" 
+                                        (click)="submitIngredientForCuration(ingredient.id)"
+                                        [disabled]="isSubmitting(ingredient.id)"
+                                        class="nom-dashboard__action-btn">
+                                    @if (isSubmitting(ingredient.id)) {
+                                    <mat-icon>hourglass_empty</mat-icon>
+                                    } @else {
+                                    <mat-icon>send</mat-icon>
+                                    }
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        } @empty {
+                        <div class="nom-dashboard__empty-state">
+                            <mat-icon class="nom-dashboard__empty-icon">eco</mat-icon>
+                            <h3>No ingredients yet</h3>
+                            <p>Create custom ingredients to enhance your recipes</p>
+                            <button mat-raised-button routerLink="/recipes/ingredients/new" class="nom-dashboard__empty-action">
+                                <mat-icon>add</mat-icon>
+                                Create Your First Ingredient
+                            </button>
+                        </div>
+                        }
+                    </div>
+                    } @else {
+                    <div class="nom-dashboard__loading-container">
+                        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                    </div>
+                    }
                 </div>
-                }
-                @if (error) {
-                <p class="nom-author-dashboard__error-message">{{ error }}</p>
-                }
             </div>
 
-            <div class="nom-author-dashboard__section">
-                <div class="nom-author-dashboard__section-header">
-                    <h3 class="nom-author-dashboard__section-title">My Custom Ingredients</h3>
-                    <button mat-raised-button color="primary" routerLink="/recipes/ingredients/new">
-                        <mat-icon>add</mat-icon>
-                        Create New Ingredient
-                    </button>
-                </div>
+            @if (error) {
+            <div class="nom-dashboard__error-message">
+                <mat-icon>error</mat-icon>
+                <p>{{ error }}</p>
             </div>
-
-        </mat-card-content>
-    </mat-card>
+            }
+        </div>
     </div>
+</div>

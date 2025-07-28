@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
+using Nom.Data.Reference;
 
 namespace Nom.Data.Plan
 {
@@ -45,6 +46,45 @@ namespace Nom.Data.Plan
         /// </summary>
         [MaxLength(50)]
         public string? InvitationCode { get; set; } // NEW: For inviting users
+
+        /// <summary>
+        /// Curation status for the plan (NonCurated, PendingCuration, Curated, etc.)
+        /// </summary>
+        [Required]
+        public long CurationStatusId { get; set; } = 9000L; // Default to NonCurated
+        [ForeignKey(nameof(CurationStatusId))]
+        public virtual ReferenceEntity? CurationStatus { get; set; }
+
+        /// <summary>
+        /// The person who created this plan (author)
+        /// </summary>
+        [Required]
+        public long AuthorId { get; set; }
+        [ForeignKey(nameof(AuthorId))]
+        public virtual PersonEntity? Author { get; set; }
+
+        /// <summary>
+        /// Date when the plan was submitted for curation
+        /// </summary>
+        public DateTime? DateSubmittedForCuration { get; set; }
+
+        /// <summary>
+        /// Date when curation was completed
+        /// </summary>
+        public DateTime? DateCurationCompleted { get; set; }
+
+        /// <summary>
+        /// Reference to the original curated plan if this is a cloned plan
+        /// </summary>
+        public long? ParentPlanId { get; set; }
+        [ForeignKey(nameof(ParentPlanId))]
+        public virtual PlanEntity? ParentPlan { get; set; }
+
+        /// <summary>
+        /// Version number for plan versioning
+        /// </summary>
+        [Required]
+        public long Version { get; set; } = 1;
 
         /// <summary>
         /// Collection of restrictions associated with this plan.

@@ -1,6 +1,5 @@
 export interface CurationDecisionRequestModel {
     entityId: number;
-    entityType: 'Recipe' | 'Ingredient';
-    decisionNotes: string;
-    publicNotes?: string;
+    entityType: 'Recipe' | 'Ingredient' | 'Plan';
+    decisionNotes?: string;
 }

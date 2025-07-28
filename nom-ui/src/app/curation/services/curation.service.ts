@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SubmitForCurationRequestModel } from '../models/submit-for-curation-request.model';
 import { CurationDecisionRequestModel } from '../models/curation-decision-request.model';
+import { CurationQueueItemModel } from '../models/curation-queue-item.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +14,10 @@ export class CurationService {
   private readonly apiUrl = `api/Curation`;
 
   constructor(private http: HttpClient) { }
+
+  getCurationQueue(): Observable<CurationQueueItemModel[]> {
+    return this.http.get<CurationQueueItemModel[]>(`${this.apiUrl}/queue`);
+  }
 
   submitForCuration(request: SubmitForCurationRequestModel): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/submit`, request);

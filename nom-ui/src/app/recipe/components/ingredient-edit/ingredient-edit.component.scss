@@ -1,16 +1,21 @@
 // File: nom-ui/src/app/recipe/components/ingredient-edit/ingredient-edit.component.scss
 
 .nom-ingredient-edit {
-
-    &__loading-container {
+    &__form {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 200px;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    &__form-field {
+        width: 100%;
     }
 
     &__section {
-        margin-bottom: 2rem;
+        background-color: var(--mat-sys-surface-container);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid var(--mat-sys-outline-variant);
     }
 
     &__section-header {
@@ -22,35 +27,50 @@
 
     &__section-title {
         font-size: 1.25rem;
-        font-weight: 500;
+        font-weight: 600;
         margin: 0;
+        color: var(--mat-sys-on-surface);
     }
 
-    &__form-field {
-        width: 100%;
-    }
+    &__nutrient-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
 
-    &__nutrient-row {
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr auto;
-        gap: 1rem;
-        align-items: center;
-        margin-bottom: 1rem;
-        padding: 0.5rem 1rem;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 4px;
-    }
+        &__item {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--mat-sys-surface-container-low);
+            border: 1px solid var(--mat-sys-outline-variant);
+            border-radius: 8px;
+            transition: all 0.2s ease;
 
-    &__remove-button {
-        margin-top: -1.25rem; // Align with mat-form-field baseline
-    }
+            &:hover {
+                background-color: var(--mat-sys-surface-container);
+                border-color: var(--mat-sys-outline);
+            }
+        }
 
-    &__empty-message {
-        text-align: center;
-        padding: 2rem;
-        font-style: italic;
-        color: var(--mat-sys-on-surface-variant);
-        border: 1px dashed var(--mat-form-field-outline-color);
-        border-radius: 4px;
-        margin-top: 1rem;
-    } }
+        &__nutrient-name {
+            font-weight: 500;
+            color: var(--mat-sys-on-surface);
+        }
+
+        &__nutrient-value {
+            width: 100px;
+        }
+
+        &__empty-message {
+            text-align: center;
+            padding: 2rem;
+            font-style: italic;
+            color: var(--mat-sys-on-surface-variant);
+            border: 1px dashed var(--mat-sys-outline-variant);
+            border-radius: 8px;
+            background-color: var(--mat-sys-surface-container-low);
+        }
+    }
+}

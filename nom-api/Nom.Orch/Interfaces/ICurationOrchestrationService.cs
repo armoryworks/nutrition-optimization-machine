@@ -1,4 +1,5 @@
 using Nom.Orch.Models.Curation;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Nom.Orch.Interfaces
@@ -9,5 +10,6 @@ namespace Nom.Orch.Interfaces
         Task ApproveAsync(CurationDecisionRequest request, long adminId);
         Task RequestRevisionAsync(CurationDecisionRequest request, long adminId);
         Task RejectAsync(CurationDecisionRequest request, long adminId);
+        Task<List<CurationQueueItemModel>> GetCurationQueueAsync();
     }
 }

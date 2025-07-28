@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250725065705_InitialCreate")]
+    [Migration("20250728074041_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -864,10 +864,22 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("CurationStatusId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DateCurationCompleted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DateSubmittedForCuration")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
@@ -892,14 +904,26 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<long?>("ParentPlanId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CurationStatusId");
 
                     b.HasIndex("InvitationCode")
                         .IsUnique()
                         .HasFilter("\"InvitationCode\" IS NOT NULL");
+
+                    b.HasIndex("ParentPlanId");
 
                     b.ToTable("Plan", "plan");
                 });
@@ -2159,6 +2183,32 @@ namespace Nom.Data.Migrations
                     b.Navigation("MealType");
 
                     b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "CurationStatus")
+                        .WithMany()
+                        .HasForeignKey("CurationStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", "ParentPlan")
+                        .WithMany()
+                        .HasForeignKey("ParentPlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Author");
+
+                    b.Navigation("CurationStatus");
+
+                    b.Navigation("ParentPlan");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.PlanParticipantEntity", b =>

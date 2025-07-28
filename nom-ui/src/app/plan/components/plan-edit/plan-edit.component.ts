@@ -23,10 +23,8 @@ import {
 } from '@angular/forms';
 
 import { PersonModel } from '../../../person/models/person.model';
-import { RestrictionModel } from '../../../restriction/models/restriction.model';
-import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component';
+import { PlanModel, RestrictionModel } from '../../models/plan.model';
 import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum'; // Import RestrictionTypeEnum
-import { PlanModel } from '../../models/plan.model';
 
 @Component({
   selector: 'app-plan-edit',
@@ -39,8 +37,7 @@ import { PlanModel } from '../../models/plan.model';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule,
-    RestrictionEditComponent, // Ensure RestrictionEditComponent is imported
+    MatSelectModule
   ],
   templateUrl: './plan-edit.component.html',
   styleUrls: ['./plan-edit.component.scss'],
@@ -65,7 +62,7 @@ export class PlanEditComponent implements OnInit {
   // Expose enum to template
   public RestrictionTypeEnum = RestrictionTypeEnum;
 
-  constructor(private fb: NonNullableFormBuilder) {}
+  constructor(private fb: NonNullableFormBuilder) { }
 
   ngOnInit(): void {
     this.planForm = this.fb.group({
@@ -107,13 +104,11 @@ export class PlanEditComponent implements OnInit {
   }
 
   public onRestrictionsSubmitted(restriction: RestrictionModel): void {
-    // <--- CHANGED FROM RestrictionModel[] to RestrictionModel
     // This logic needs to manage adding/updating the single restriction in the temporary list
     const index = this.tempRestrictions.findIndex(
       (r) =>
-        r.restrictionTypeId === restriction.restrictionTypeId &&
-        r.personId === restriction.personId &&
-        r.planId === restriction.planId
+        r.restrictionType === restriction.restrictionType &&
+        r.name === restriction.name
     );
 
     if (index !== -1) {
@@ -150,11 +145,9 @@ export class PlanEditComponent implements OnInit {
     if (this.currentRestrictionType === null) {
       return [];
     }
-    // Filter for current type and for the current person/plan scope
+    // Filter for current type
     return this.tempRestrictions.filter(
-      (r) =>
-        r.restrictionTypeId === this.currentRestrictionType &&
-        (r.personId === this.currentPersonId || r.planId !== null) // Assuming planId != null means it's a plan-wide restriction
+      (r) => r.restrictionType === this.getRestrictionTypeName(this.currentRestrictionType!)
     );
   }
 }

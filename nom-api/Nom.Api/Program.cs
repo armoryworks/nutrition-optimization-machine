@@ -68,13 +68,20 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddDefaultTokenProviders()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
 
+
+
 // Configure Bearer token authentication and set it as the default scheme
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
     options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
     options.DefaultScheme = IdentityConstants.BearerScheme;
-}).AddBearerToken(IdentityConstants.BearerScheme);
+}).AddBearerToken(IdentityConstants.BearerScheme, options =>
+{
+    // Configure Bearer token expiration (default is 15 minutes)
+    // Set to 24 hours for longer sessions
+    options.BearerTokenExpiration = TimeSpan.FromHours(24);
+});
 // --- END OF UPDATED CONFIGURATION ---
 
 builder.Services.AddAuthorization(options =>

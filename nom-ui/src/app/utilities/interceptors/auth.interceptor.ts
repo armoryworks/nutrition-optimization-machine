@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   HttpRequest,
   HttpHandler,
@@ -17,7 +17,7 @@ export class AuthInterceptor implements HttpInterceptor {
     null
   );
 
-  constructor(private authManager: AuthManagerService) {}
+  private authManager = inject(AuthManagerService);
 
   intercept(
     request: HttpRequest<any>,

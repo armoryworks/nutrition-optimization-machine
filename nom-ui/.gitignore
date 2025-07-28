@@ -1,5 +1,8 @@
 /node_modules
 /.angular
+/dist
+/dist/**/*
+/dist/*
 *.development.json
 
 **/DataImportScripts/Source

@@ -1,0 +1,111 @@
+<div class="nom-page-container">
+  <div class="recipe-search">
+    <div class="recipe-search__header">
+      <h1 class="recipe-search__title">Recipe Search</h1>
+      <p class="recipe-search__subtitle">
+        @if (isLoggedIn) {
+        Search for curated recipes and ingredients
+        } @else {
+        Search our curated collection of recipes and ingredients
+        }
+      </p>
+    </div>
+
+    <div class="recipe-search__search-container">
+      <mat-form-field class="recipe-search__search-field">
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput 
+               placeholder="Search recipes and ingredients..." 
+               [(ngModel)]="searchQuery"
+               (input)="onSearchInput($event)"
+               (keyup.enter)="performSearch()">
+        <button mat-icon-button matSuffix (click)="performSearch()" *ngIf="searchQuery">
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+
+    @if (isLoading) {
+    <div class="recipe-search__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+      <p>Searching...</p>
+    </div>
+    } @else if (error) {
+    <div class="recipe-search__error">
+      <mat-icon>error</mat-icon>
+      <p>{{ error }}</p>
+    </div>
+    } @else if (searchQuery && (curatedCount > 0 || nonCuratedCount > 0)) {
+    <div class="recipe-search__results">
+      <div class="recipe-search__stats">
+        @if (curatedCount > 0) {
+        <mat-chip color="primary" selected>
+          {{ curatedCount }} Curated
+        </mat-chip>
+        }
+        @if (nonCuratedCount > 0 && isLoggedIn) {
+        <mat-chip color="accent" selected>
+          {{ nonCuratedCount }} Non-Curated
+        </mat-chip>
+        }
+      </div>
+
+      <div class="recipe-search__results-grid">
+        @for (result of searchResults$ | async; track result.id) {
+        <mat-card class="recipe-search__result-card">
+          <div class="recipe-search__result-header">
+            <div class="recipe-search__result-icon">
+              <mat-icon>{{ getTypeIcon(result.type) }}</mat-icon>
+            </div>
+            <div class="recipe-search__result-info">
+              <h3 class="recipe-search__result-title">{{ result.name }}</h3>
+              <p class="recipe-search__result-type">{{ result.type }}</p>
+              @if (result.authorName) {
+              <p class="recipe-search__result-author">by {{ result.authorName }}</p>
+              }
+            </div>
+            <div class="recipe-search__result-status">
+              <mat-chip [color]="getStatusColor(result.curationStatus)" selected>
+                {{ result.curationStatus }}
+              </mat-chip>
+            </div>
+          </div>
+          @if (result.description) {
+          <div class="recipe-search__result-description">
+            <p>{{ result.description }}</p>
+          </div>
+          }
+          <div class="recipe-search__result-actions">
+            <button mat-stroked-button [routerLink]="['/recipes', result.id]">
+              <mat-icon>visibility</mat-icon>
+              View Details
+            </button>
+          </div>
+        </mat-card>
+        }
+      </div>
+    </div>
+    } @else if (searchQuery) {
+    <div class="recipe-search__empty">
+      <mat-icon class="recipe-search__empty-icon">search_off</mat-icon>
+      <h3>No results found</h3>
+      <p>Try adjusting your search terms or browse our curated collection</p>
+    </div>
+    } @else {
+    <div class="recipe-search__welcome">
+      <mat-icon class="recipe-search__welcome-icon">search</mat-icon>
+      <h3>Start searching</h3>
+      <p>Enter a recipe name, ingredient, or description to find what you're looking for</p>
+      @if (!isLoggedIn) {
+      <div class="recipe-search__login-prompt">
+        <p>Sign in to see non-curated recipes and ingredients created by our community</p>
+        <button mat-raised-button color="primary" routerLink="/home">
+          <mat-icon>login</mat-icon>
+          Sign In
+        </button>
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div> 

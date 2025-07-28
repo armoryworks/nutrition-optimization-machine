@@ -68,5 +68,7 @@ namespace Nom.Orch.Interfaces
 
         Task<List<RecipeDashboardItemModel>> GetAuthorRecipesAsync(long authorPersonId);
 
+        Task<List<RecipeDashboardItemModel>> GetAuthorIngredientsAsync(long authorPersonId);
+
     }
 }

@@ -558,8 +558,8 @@ pre.rouge .gs {
 <h1>Nutritional Optimization Machine (NOM) Program: Business Analysis Specification</h1>
 <div class="details">
 <span id="author" class="author">NOM Development Team</span><br>
-<span id="revnumber">version 2.2,</span>
-<span id="revdate">July 27, 2025</span>
+<span id="revnumber">version 2.4,</span>
+<span id="revdate">July 28, 2025</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -623,6 +623,7 @@ pre.rouge .gs {
 </ul>
 </li>
 <li><a href="#backend-arch">Backend Architecture (nom-api - ASP.NET Core Web API)</a></li>
+<li><a href="#ioc-architecture">IoC Architecture &amp; Service Communication</a></li>
 <li><a href="#database-arch">Database Architecture (PostgreSQL)</a></li>
 <li><a href="#privacy-arch">Privacy &amp; Compliance Architecture</a></li>
 </ul>
@@ -833,6 +834,7 @@ pre.rouge .gs {
 <ul class="sectlevel3">
 <li><a href="#new-backend-files">Backend Files (C# - .NET Solution) - IMPLEMENTED</a></li>
 <li><a href="#new-frontend-files">Frontend Files (Angular - nom-ui) - PARTIALLY IMPLEMENTED</a></li>
+<li><a href="#ioc-architecture-files">IoC Architecture Files (Angular - nom-ui) - IMPLEMENTED</a></li>
 </ul>
 </li>
 </ul>
@@ -849,11 +851,38 @@ pre.rouge .gs {
 </div>
 </div>
 <div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>Changelog for v2.4 (July 28, 2025)</strong>
+- Marked Curation Queue, Recipe Edit, Ingredient Edit as COMPLETE in all status tables and component mappings
+- Updated Messaging System to Backend: COMPLETE, Frontend: PARTIAL
+- Added requirements for Material 3 theming (no hardcoded colors, all UI must use theme variables)
+- Added requirements and domain model for Curated Plans (clonable, customizable, submittable for curation)
+- Added requirement for real-time claims update after login
+- Noted that the initial admin claims SQL script now auto-selects the first user
+- Updated Non-Functional Requirements to include Material 3 theming and responsive design as mandatory
+- Marked all relevant frontend components as COMPLETE
+- Added CuratedPlansComponent to the technical mapping</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
 <div class="sect1">
 <h2 id="_abstract"><a class="link" href="#_abstract">Abstract</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.2) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
+<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.4) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system&#8217;s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
 </div>
 </div>
 </div>
@@ -891,7 +920,10 @@ pre.rouge .gs {
 <p><strong>User Onboarding (IN PROGRESS)</strong>: The core onboarding is complete. The multi-participant user onboarding workflow is partially implemented on both the frontend and backend.</p>
 </li>
 <li>
-<p><strong>Authentication &amp; Authorization (COMPLETE)</strong>: The system&#8217;s security architecture, including JWT issuance, claims-based authorization, and frontend state management, is fully implemented.</p>
+<p><strong>Authentication &amp; Authorization (COMPLETE)</strong>: The system&#8217;s security architecture, including Bearer token authentication with 24-hour expiration, claims-based authorization, and frontend state management, is fully implemented.</p>
+</li>
+<li>
+<p><strong>IoC Architecture (COMPLETE)</strong>: Event-driven service communication implemented with <code>EventBusService</code>, decoupling <code>AuthManagerService</code> and <code>UserInfoService</code> for improved maintainability and testability.</p>
 </li>
 <li>
 <p><strong>Privacy &amp; Compliance Feature (COMPLETE)</strong>: The system&#8217;s "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.</p>
@@ -1128,7 +1160,7 @@ pre.rouge .gs {
 </dd>
 <dt><strong>Allergies/Medical</strong></dt>
 <dd>
-<p>Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn’s, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.</p>
+<p>Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn&#8217;s, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.</p>
 </dd>
 <dt><strong>Personal Preferences</strong></dt>
 <dd>
@@ -1350,7 +1382,7 @@ pre.rouge .gs {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-3.2</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Plan Linking</strong>: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user’s Person record to the corresponding Plan using a PlanParticipant entity.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Plan Linking</strong>: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user&#8217;s Person record to the corresponding Plan using a PlanParticipant entity.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-3.3</strong></p></td>
@@ -1583,6 +1615,10 @@ pre.rouge .gs {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.3.4</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Participant Roles</strong>: Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.3.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Curated Plan Concept</strong>: The system supports curated plans, which are centrally managed, clonable by users, and can be customized and submitted for curation. Cloned plans retain a link to the original curated plan.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1718,7 +1754,7 @@ pre.rouge .gs {
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Rule-5.6.8</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cross-Border Transfers</strong>: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cross-Border Transfers</strong>: Transfer of personal data outside the user&#8217;s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).</p></td>
 </tr>
 </tbody>
 </table>
@@ -1997,6 +2033,10 @@ pre.rouge .gs {
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>NFR-6.5.4</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Privacy Transparency</strong>: Privacy policies and data processing information shall be presented in clear, understandable language.</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>NFR-6.5.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Material 3 Theming &amp; Responsive Design</strong>: All UI must use Material 3 theme variables, support both light and dark themes, and be fully responsive across devices. No hardcoded colors, borders, or shadows are allowed in any component.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -2085,11 +2125,68 @@ pre.rouge .gs {
 </dd>
 <dt><strong>Security</strong></dt>
 <dd>
-<p>ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; <code>[Authorize]</code> and <code>[AllowAnonymous]</code> attributes for endpoint-level authorization</p>
+<p>ASP.NET Core Identity for user management; Bearer Tokens for authentication with configurable expiration (24 hours); <code>[Authorize]</code> and <code>[AllowAnonymous]</code> attributes for endpoint-level authorization</p>
 </dd>
 <dt><strong>Privacy &amp; Compliance</strong></dt>
 <dd>
 <p>Dedicated services for consent management, data export, anonymization, and audit logging</p>
+</dd>
+<dt><strong>Authentication Configuration</strong></dt>
+<dd>
+<p>Bearer token expiration configured to 24 hours via <code>BearerTokenExpiration</code> setting in <code>Program.cs</code></p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ioc-architecture"><a class="link" href="#ioc-architecture">IoC Architecture &amp; Service Communication</a></h3>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Event-Driven Communication</strong></dt>
+<dd>
+<p>Services communicate through a centralized <code>EventBusService</code> to maintain loose coupling</p>
+</dd>
+<dt><strong>Service Decoupling</strong></dt>
+<dd>
+<p><code>AuthManagerService</code> and <code>UserInfoService</code> no longer have direct dependencies, using events instead</p>
+</dd>
+<dt><strong>Event Types</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>auth:login</code> - User login event</p>
+</li>
+<li>
+<p><code>auth:logout</code> - User logout event</p>
+</li>
+<li>
+<p><code>auth:claims-loaded</code> - Claims loading requested</p>
+</li>
+<li>
+<p><code>user:info-updated</code> - User information updated with claims</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Benefits</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Improved testability through service isolation</p>
+</li>
+<li>
+<p>Enhanced maintainability with reduced coupling</p>
+</li>
+<li>
+<p>Better scalability for adding new event listeners</p>
+</li>
+<li>
+<p>Single responsibility principle enforcement</p>
+</li>
+</ul>
+</div>
 </dd>
 </dl>
 </div>
@@ -2741,7 +2838,7 @@ A form for creating and editing recipes, including associating existing ingredie
 <p>HTML: <code>src/app/curation/components/curation-queue/curation-queue.component.html</code>
 .Role
 Admin-only interface for viewing and actioning items in the curation queue.
-.Status: PLACEHOLDER - Component exists but UI is empty, backend API ready
+.Status: COMPLETE - Fully implemented with Material 3 theming and admin workflow
 .Functional Requirements Mapping</p>
 </li>
 <li>
@@ -2765,7 +2862,7 @@ Admin-only interface for viewing and actioning items in the curation queue.
 <p>HTML: <code>src/app/communication/components/messaging-inbox/messaging-inbox.component.html</code>
 .Role
 Centralized UI for viewing message threads and composing messages.
-.Status: PLACEHOLDER - Component exists but UI is empty, backend API ready
+.Status: PARTIAL - Backend complete, frontend UI partially implemented
 .Functional Requirements Mapping</p>
 </li>
 <li>
@@ -3886,7 +3983,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <dl>
 <dt><strong>AOT Compilation</strong></dt>
 <dd>
-<p>Angular’s AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).</p>
+<p>Angular&#8217;s AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).</p>
 </dd>
 <dt><strong>Standalone Component Imports</strong></dt>
 <dd>
@@ -3894,7 +3991,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </dd>
 <dt><strong>Data Flow Patterns</strong></dt>
 <dd>
-<p>Be mindful of Angular’s unidirectional data flow. Use <code>@Input</code> for data down, <code>@Output</code> for events up. Avoid direct child manipulation.</p>
+<p>Be mindful of Angular&#8217;s unidirectional data flow. Use <code>@Input</code> for data down, <code>@Output</code> for events up. Avoid direct child manipulation.</p>
 </dd>
 <dt><strong>Template Logic</strong></dt>
 <dd>
@@ -4869,6 +4966,35 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </tbody>
 </table>
 </div>
+<div class="sect3">
+<h4 id="ioc-architecture-files"><a class="link" href="#ioc-architecture-files">IoC Architecture Files (Angular - nom-ui) - IMPLEMENTED</a></h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33%;">
+<col style="width: 67%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">File</th>
+<th class="tableblock halign-left valign-top">GitHub URL Suffix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/utilities/services/event-bus.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/utilities/services/event-bus.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/utilities/services/auth-manager.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/utilities/services/auth-manager.service.ts</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/utilities/services/user-info.service.ts</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/nom-ui/src/app/utilities/services/user-info.service.ts</code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 </div>
@@ -4945,23 +5071,28 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Curation Queue</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PLACEHOLDER</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Component exists but UI is empty, backend API ready</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fully implemented admin interface for reviewing and managing pending submissions, with Material 3 theming</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Messaging System</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PLACEHOLDER</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Component exists but UI is empty, backend API ready</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend: COMPLETE, Frontend: PARTIAL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend fully implemented; frontend inbox and thread UI partially implemented</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">User Management</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">IMPLEMENTED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Admin interface for managing user roles and claims</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Authentication</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Full authentication flow with JWT and claims-based authorization</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full authentication flow with Bearer tokens (24-hour expiration) and claims-based authorization</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">IoC Architecture</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Event-driven service communication with EventBusService, decoupled AuthManagerService and UserInfoService</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Privacy Features</p></td>
@@ -5016,11 +5147,11 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Version</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.4</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Date</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">July 25, 2025</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">July 28, 2025</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Status</p></td>
@@ -5037,8 +5168,8 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 2.2<br>
-Last updated 2025-07-27 22:27:20 -0600
+Version 2.4<br>
+Last updated 2025-07-28 02:38:46 -0600
 </div>
 </div>
 </body>

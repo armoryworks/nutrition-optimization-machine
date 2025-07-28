@@ -14,7 +14,6 @@ import { PrivacySettingsComponent } from './user/components/privacy-settings/pri
 import { IngredientSearchComponent } from './recipe/components/ingredient-search/ingredient-search.component';
 import { AuthGuard } from './guards/auth.guard';
 
-
 export const routes: Routes = [
   // Eager-loaded routes for immediate access
   { path: 'home', component: HomeComponent },
@@ -33,6 +32,16 @@ export const routes: Routes = [
   { path: 'onboarding/:stepId', component: OnboardingWorkflowComponent, canActivate: [AuthGuard] },
   { path: 'privacy-settings', component: PrivacySettingsComponent, canActivate: [AuthGuard] },
   { path: 'ingredient-search', component: IngredientSearchComponent, canActivate: [AuthGuard] },
+  {
+    path: 'recipe-search',
+    loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'curated-plans',
+    loadComponent: () => import('./plan/components/curated-plans/curated-plans.component').then(m => m.CuratedPlansComponent),
+    canActivate: [AuthGuard]
+  },
 
   // --- NEW LAZY-LOADED FEATURE ROUTES ---
   {
@@ -61,6 +70,5 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   // --- Default and Wildcard routes MUST be last ---
-  { path: '', redirectTo: '/home', pathMatch: 'full' }, // Default route
-  { path: '**', redirectTo: '/home' }, // Wildcard route for any other invalid path
+  { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];

@@ -15,6 +15,7 @@ import {
   Router,
   NavigationStart,
 } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -27,7 +28,9 @@ import { NomConfigService } from './utilities/services/nom-config.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
 import { AuthService } from './auth/auth.service';
 import { NotificationService } from './utilities/services/notification.service';
+import { UserInfoService } from './utilities/services/user-info.service';
 import { Subscription, Observable } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -36,6 +39,7 @@ import { Subscription, Observable } from 'rxjs';
     CommonModule,
     RouterOutlet,
     RouterLink,
+    FormsModule,
     LoginComponent,
     MatToolbarModule,
     MatButtonModule,
@@ -56,6 +60,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isUserMenuOpen: boolean = false;
   isDarkTheme: boolean = false;
   currentYear: number = new Date().getFullYear();
+  searchQuery: string = '';
 
   // Observables for reactive UI updates
   isLoggedIn$: Observable<boolean>;
@@ -70,6 +75,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private configService: NomConfigService,
     private authManagerService: AuthManagerService,
     private authService: AuthService,
+    private userInfoService: UserInfoService,
     private router: Router
   ) {
     // Initialize observables from the AuthManagerService
@@ -83,6 +89,20 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isDarkTheme = localStorage.getItem('theme') === 'dark';
     this.applyThemeClass();
     this.checkLoggedIn();
+    // Removed loadUserInfo() call since AuthManagerService will handle it
+
+    // Add debugging for claims observables
+    this.subscriptions.add(
+      this.canManageCuration$.subscribe(hasCuration => {
+        console.log('CanManageCuration changed:', hasCuration);
+      })
+    );
+
+    this.subscriptions.add(
+      this.canManageUserRoles$.subscribe(hasUserRoles => {
+        console.log('CanManageUserRoles changed:', hasUserRoles);
+      })
+    );
 
     this.subscriptions.add(
       this.router.events.subscribe((event) => {
@@ -108,9 +128,24 @@ export class AppComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.isLoggedIn$.subscribe((status) => {
         this.isLoggedIn = status;
+        // Don't load user info here since AuthManagerService will handle it after login
       })
     );
     this.authManagerService.checkUserLoggedInStatus();
+  }
+
+  loadUserInfo() {
+    // Only load user info if user is logged in
+    if (this.authManagerService.isLoggedIn()) {
+      this.authService.loadUserInfo().subscribe({
+        next: (userInfo) => {
+          console.log('User info loaded:', userInfo);
+        },
+        error: (error) => {
+          console.error('Error loading user info:', error);
+        }
+      });
+    }
   }
 
   toggleMenu(): void { this.isMenuOpen = !this.isMenuOpen; }
@@ -122,6 +157,26 @@ export class AppComponent implements OnInit, OnDestroy {
       localStorage.setItem('theme', this.isDarkTheme ? 'dark' : 'light');
     }
     this.applyThemeClass();
+  }
+
+  onSearchInput(event: any): void {
+    // Handle search input with debouncing
+    const query = event.target.value;
+    if (query.length >= 2) {
+      // Implement debounced search here if needed
+      console.log('Search query:', query);
+    }
+  }
+
+  performSearch(): void {
+    if (this.searchQuery.trim()) {
+      // Navigate to recipe search with query only
+      this.router.navigate(['/recipe-search'], {
+        queryParams: {
+          q: this.searchQuery.trim()
+        }
+      });
+    }
   }
 
   private applyThemeClass(): void {

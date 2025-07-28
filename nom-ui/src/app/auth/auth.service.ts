@@ -18,6 +18,7 @@ import {
 import { CurrentInfo } from './models/current-info';
 import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
 import { AuthManagerService } from '../utilities/services/auth-manager.service';
+import { UserInfoService } from '../utilities/services/user-info.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,8 +26,9 @@ import { AuthManagerService } from '../utilities/services/auth-manager.service';
 export class AuthService {
   constructor(
     private httpClient: HttpClient,
-    private authManager: AuthManagerService
-  ) {}
+    private authManager: AuthManagerService,
+    private userInfoService: UserInfoService
+  ) { }
 
   register(userData: RegisterUser): Observable<void> {
     return this.httpClient
@@ -49,6 +51,8 @@ export class AuthService {
           this.authManager.token = response.accessToken;
           this.authManager.tokenExpiration =
             response.expiresIn + new Date().getTime();
+
+          // Removed loadUserInfo() call since AuthManagerService will handle it
         })
       );
   }
@@ -56,7 +60,13 @@ export class AuthService {
   logout(): Observable<void> {
     return this.httpClient
       .post<void>('/api/auth/logout', undefined)
-      .pipe(catchError(this.handleError));
+      .pipe(
+        catchError(this.handleError),
+        tap(() => {
+          // Clear user info on logout
+          this.userInfoService.clearUserInfo();
+        })
+      );
   }
 
   forgotPassword(data: ForgotPassword): Observable<void> {
@@ -87,6 +97,48 @@ export class AuthService {
     return this.httpClient
       .post<void>('/api/auth/manage/info', updateData)
       .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Load user information and claims from the backend
+   */
+  loadUserInfo(): Observable<any> {
+    return this.userInfoService.getCurrentUserInfo();
+  }
+
+  /**
+   * Get current user info synchronously
+   */
+  getCurrentUserInfo() {
+    return this.userInfoService.getCurrentUserInfoValue();
+  }
+
+  /**
+   * Check if user has a specific claim
+   */
+  hasClaim(claimType: string, claimValue?: string): boolean {
+    return this.userInfoService.hasClaimSync(claimType, claimValue);
+  }
+
+  /**
+   * Check if user has curation permission
+   */
+  hasCurationPermission(): boolean {
+    return this.userInfoService.hasCurationPermission();
+  }
+
+  /**
+   * Check if user has user role management permission
+   */
+  hasUserRoleManagementPermission(): boolean {
+    return this.userInfoService.hasUserRoleManagementPermission();
+  }
+
+  /**
+   * Get current person ID
+   */
+  getCurrentPersonId(): number | null {
+    return this.userInfoService.getPersonId();
   }
 
   /**
@@ -163,9 +215,8 @@ export class AuthService {
       } else if (error.status === 500) {
         errorMessage = 'Internal server error. Please try again later.';
       } else {
-        errorMessage = `Server responded with status: ${
-          error.status
-        }. Message: ${error.message || 'No specific message.'}`;
+        errorMessage = `Server responded with status: ${error.status
+          }. Message: ${error.message || 'No specific message.'}`;
       }
     }
     // Re-throw the error with the processed message.

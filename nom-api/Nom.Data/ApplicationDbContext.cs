@@ -190,6 +190,27 @@ namespace Nom.Data
                 .HasFilter("\"InvitationCode\" IS NOT NULL");
 
             modelBuilder.Entity<PlanEntity>()
+                .HasOne(p => p.CurationStatus)
+                .WithMany()
+                .HasForeignKey(p => p.CurationStatusId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlanEntity>()
+                .HasOne(p => p.Author)
+                .WithMany()
+                .HasForeignKey(p => p.AuthorId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlanEntity>()
+                .HasOne(p => p.ParentPlan)
+                .WithMany()
+                .HasForeignKey(p => p.ParentPlanId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PlanEntity>()
                 .HasMany(p => p.Restrictions)
                 .WithOne(r => r.Plan)
                 .HasForeignKey(r => r.PlanId)

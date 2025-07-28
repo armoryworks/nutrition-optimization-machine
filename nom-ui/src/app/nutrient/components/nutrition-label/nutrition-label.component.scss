@@ -5,9 +5,9 @@
 }
 
 .nutrition-label {
-    border: 2px solid black;
+    border: 2px solid var(--mat-sys-on-surface);
     padding: 8px;
-    color: black;
+    color: var(--mat-sys-on-surface);
 
     &__title {
         font-size: 2.2rem;
@@ -44,7 +44,7 @@
     &__daily-value-header {
         font-weight: 800;
         text-align: right;
-        border-top: 1px solid black;
+        border-top: 1px solid var(--mat-sys-on-surface);
         padding-top: 2px;
     }
 
@@ -62,23 +62,24 @@
 
     &__divider--thick {
         border: none;
-        border-top: 10px solid black;
+        border-top: 10px solid var(--mat-sys-on-surface);
         margin: 4px 0;
     }
 
     &__divider--medium {
         border: none;
-        border-top: 5px solid black;
+        border-top: 5px solid var(--mat-sys-on-surface);
         margin: 4px 0;
     }
 
     &__divider--thin {
         border: none;
-        border-top: 1px solid black;
+        border-top: 1px solid var(--mat-sys-on-surface);
         margin: 2px 0;
     }
 
     &__footnote {
         font-size: 0.8rem;
         margin-top: 8px;
-    } }
+    }
+}

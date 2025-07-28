@@ -11,15 +11,81 @@ $spacing-large: 1.5rem;
 $spacing-xlarge: 2rem;
 $spacing-xxlarge: 3rem;
 
-// --- NEW COLOR VARIABLES ---
+// --- ENHANCED COLOR VARIABLES ---
 
-// Colors
-$nom-border-color: #e0e0e0; // A standard, light grey for borders
-$nom-border-color-light: #eee; // An even lighter variant for subtle dividers
+// Primary Colors (Blue)
+$nom-primary-50: #eff6ff;
+$nom-primary-100: #dbeafe;
+$nom-primary-200: #bfdbfe;
+$nom-primary-300: #93c5fd;
+$nom-primary-400: #60a5fa;
+$nom-primary-500: #3b82f6;
+$nom-primary-600: #2563eb;
+$nom-primary-700: #1d4ed8;
+$nom-primary-800: #1e40af;
+$nom-primary-900: #1e3a8a;
 
-// Other color variables would go here (e.g., $nom-primary-color, $nom-text-color)
-$nom-text-color-light: #555;
-$nom-background-color-light: #f7f7f7;
+// Secondary Colors (Purple)
+$nom-secondary-50: #faf5ff;
+$nom-secondary-100: #f3e8ff;
+$nom-secondary-200: #e9d5ff;
+$nom-secondary-300: #d8b4fe;
+$nom-secondary-400: #c084fc;
+$nom-secondary-500: #a855f7;
+$nom-secondary-600: #9333ea;
+$nom-secondary-700: #7c3aed;
+$nom-secondary-800: #6b21a8;
+$nom-secondary-900: #581c87;
+
+// Tertiary Colors (Green)
+$nom-tertiary-50: #f0fdf4;
+$nom-tertiary-100: #dcfce7;
+$nom-tertiary-200: #bbf7d0;
+$nom-tertiary-300: #86efac;
+$nom-tertiary-400: #4ade80;
+$nom-tertiary-500: #22c55e;
+$nom-tertiary-600: #16a34a;
+$nom-tertiary-700: #15803d;
+$nom-tertiary-800: #166534;
+$nom-tertiary-900: #14532d;
+
+// Neutral Colors
+$nom-neutral-50: #f8fafc;
+$nom-neutral-100: #f1f5f9;
+$nom-neutral-200: #e2e8f0;
+$nom-neutral-300: #cbd5e1;
+$nom-neutral-400: #94a3b8;
+$nom-neutral-500: #64748b;
+$nom-neutral-600: #475569;
+$nom-neutral-700: #334155;
+$nom-neutral-800: #1e293b;
+$nom-neutral-900: #0f172a;
+
+// Semantic Colors
+$nom-success: #10b981;
+$nom-warning: #f59e0b;
+$nom-error: #ef4444;
+$nom-info: #3b82f6;
+
+// Legacy Colors (for backward compatibility)
+$nom-border-color: $nom-neutral-200;
+$nom-border-color-light: $nom-neutral-100;
+$nom-text-color-light: $nom-neutral-600;
+$nom-background-color-light: $nom-neutral-50;
 
 // Borders
 $nom-border-radius: 8px;
+
+// Card/Panel backgrounds
+$nom-card-bg-light: $nom-neutral-100;
+$nom-card-bg-dark: $nom-neutral-800;
+$nom-panel-bg-light: $nom-neutral-50;
+$nom-panel-bg-dark: $nom-neutral-900;
+
+// High-contrast text
+$nom-text-high-contrast-light: $nom-neutral-900;
+$nom-text-high-contrast-dark: $nom-neutral-50;
+
+// Subtle border
+$nom-border-subtle-light: $nom-neutral-200;
+$nom-border-subtle-dark: $nom-neutral-700;

@@ -53,7 +53,7 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private authManager: AuthManagerService,
     private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loginForm = this.nonNullableFb.group({
@@ -81,23 +81,21 @@ export class LoginComponent implements OnInit {
     const credentials: LoginUser = this.loginForm.getRawValue();
     this.authManager.rememberMe = !!credentials.rememberMe; // Ensure boolean conversion
 
-    this.authService.login(credentials).subscribe({
+    // Use AuthManagerService.login() instead of AuthService.login()
+    this.authManager.login(credentials).subscribe({
       next: (response: LoginResponse) => {
         this.isLoading = false;
-        // Update AuthManagerService with login response details
-
-        // Display success notification
-        this.notificationService.success('Logged in successfully!');
+        // Success notification is handled by AuthManagerService
         // Optionally, navigate to a dashboard or home page after successful login
         // this.router.navigate(['/dashboard']);
       },
       error: (error: any) => {
         this.isLoading = false;
         console.error('Login error:', error);
-        // The error.message is already processed by the AuthService's handleError
+        // The error.message is already processed by the AuthManagerService
         this.notificationService.error(
           error.message ||
-            'An unexpected error occurred during login. Please try again.'
+          'An unexpected error occurred during login. Please try again.'
         );
       },
     });

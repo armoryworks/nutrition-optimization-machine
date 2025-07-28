@@ -123,14 +123,6 @@ namespace Nom.Api.Controllers
             }
         }
 
-        // Placeholder for a GetRecipe endpoint that would be referenced by CreatedAtAction
-        [HttpGet("{id:long}")]
-        public async Task<IActionResult> GetRecipe(long id)
-        {
-            await Task.CompletedTask;
-            return Ok(new { Id = id, Message = "Endpoint not fully implemented." });
-        }
-
         [HttpGet("my-recipes")]
         public async Task<IActionResult> GetMyRecipes()
         {
@@ -145,6 +137,30 @@ namespace Nom.Api.Controllers
                 _logger.LogError(ex, "An error occurred while fetching recipes for user {PersonId}", GetCurrentPersonId());
                 return StatusCode(500, "An unexpected error occurred while fetching recipes.");
             }
+        }
+
+        [HttpGet("my-ingredients")]
+        public async Task<IActionResult> GetMyIngredients()
+        {
+            try
+            {
+                var authorPersonId = GetCurrentPersonId();
+                var ingredients = await _recipeOrchestrationService.GetAuthorIngredientsAsync(authorPersonId);
+                return Ok(ingredients);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching ingredients for user {PersonId}", GetCurrentPersonId());
+                return StatusCode(500, "An unexpected error occurred while fetching ingredients.");
+            }
+        }
+
+        // Placeholder for a GetRecipe endpoint that would be referenced by CreatedAtAction
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetRecipe(long id)
+        {
+            await Task.CompletedTask;
+            return Ok(new { Id = id, Message = "Endpoint not fully implemented." });
         }
     }
 }

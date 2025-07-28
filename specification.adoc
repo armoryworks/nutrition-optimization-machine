@@ -1,17 +1,31 @@
 = Nutritional Optimization Machine (NOM) Program: Business Analysis Specification
 :description: Comprehensive business analysis and technical specifications for the NOM nutritional planning platform
 :author: NOM Development Team
-:revdate: July 27, 2025
-:revnumber: 2.2
+:revdate: July 28, 2025
+:revnumber: 2.4
 :toc: left
 :toclevels: 4
 :sectlinks:
 :source-highlighter: rouge
 
+[NOTE]
+====
+*Changelog for v2.4 (July 28, 2025)*
+- Marked Curation Queue, Recipe Edit, Ingredient Edit as COMPLETE in all status tables and component mappings
+- Updated Messaging System to Backend: COMPLETE, Frontend: PARTIAL
+- Added requirements for Material 3 theming (no hardcoded colors, all UI must use theme variables)
+- Added requirements and domain model for Curated Plans (clonable, customizable, submittable for curation)
+- Added requirement for real-time claims update after login
+- Noted that the initial admin claims SQL script now auto-selects the first user
+- Updated Non-Functional Requirements to include Material 3 theming and responsive design as mandatory
+- Marked all relevant frontend components as COMPLETE
+- Added CuratedPlansComponent to the technical mapping
+====
+
 [#_abstract]
 == Abstract
 
-This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.2) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system’s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.4) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
 
 [#_introduction]
 == Introduction
@@ -32,7 +46,8 @@ This specification introduces the next major phase of development, focusing on u
 ====
 .Current Development Status
 * *User Onboarding (IN PROGRESS)*: The core onboarding is complete. The multi-participant user onboarding workflow is partially implemented on both the frontend and backend.
-* *Authentication & Authorization (COMPLETE)*: The system's security architecture, including JWT issuance, claims-based authorization, and frontend state management, is fully implemented.
+* *Authentication & Authorization (COMPLETE)*: The system's security architecture, including Bearer token authentication with 24-hour expiration, claims-based authorization, and frontend state management, is fully implemented.
+* *IoC Architecture (COMPLETE)*: Event-driven service communication implemented with `EventBusService`, decoupling `AuthManagerService` and `UserInfoService` for improved maintainability and testability.
 * *Privacy & Compliance Feature (COMPLETE)*: The system's "privacy-by-design" architecture is fully implemented, including backend services and a complete frontend UI for managing data rights.
 * *USDA FoodData Central Integration (COMPLETE)*: A dedicated console application, `Nom.Import`, has been created and successfully used to populate the database with foundational ingredient and nutrient data.
 * *Ingredient Search (V1 COMPLETE)*: The backend API and frontend UI for searching ingredients and viewing their nutritional data are now implemented.
@@ -156,7 +171,7 @@ To automatically identify and record dietary restrictions based on user response
 *Societal/Religious/Ethical*::
 Capture selections from predefined lists (e.g., Kosher, Vegan), fasting schedules, and mandatory inclusions (searchable list of curated ingredients).
 *Allergies/Medical*::
-Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn’s, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.
+Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No for specific conditions (Celiac, Lactose Intolerance, Diabetes types, High Blood Pressure/Cholesterol, Gout, Anemia, Pregnancy), selections for gastrointestinal conditions (Crohn's, IBS), specific nutrient restrictions for kidney disease (sodium, potassium, phosphorus, protein, fluids), vitamin/mineral deficiencies (searchable list of micronutrients), and prescription interactions.
 *Personal Preferences*::
 Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
 
@@ -270,7 +285,7 @@ To enable users to join existing nutritional plans through a secure invitation m
 | *FR-3.1*
 | *Invitation Code Input*: The onboarding process shall include an optional step for users to input a unique invitation code.
 | *FR-3.2*
-| *Plan Linking*: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user’s Person record to the corresponding Plan using a PlanParticipant entity.
+| *Plan Linking*: If a valid invitation code is provided and the user successfully completes onboarding, the system shall link the user's Person record to the corresponding Plan using a PlanParticipant entity.
 | *FR-3.3*
 | *Role Assignment*: Upon successful plan participation via invitation code, the PlanParticipant shall be assigned a default role (e.g., "Plan Member").
 |===
@@ -396,6 +411,8 @@ Facilitates the creation, management, and participation in shared nutritional pl
 | *Participant Association*: PlanParticipant records define the relationship between a Person and a Plan, and must link to a valid Plan and Person.
 | *Rule-5.3.4*
 | *Participant Roles*: Each PlanParticipant must have a defined Role (e.g., Admin, Member) governed by a reference data type.
+| *Rule-5.3.5*
+| *Curated Plan Concept*: The system supports curated plans, which are centrally managed, clonable by users, and can be customized and submitted for curation. Cloned plans retain a link to the original curated plan.
 |===
 
 [#reference-domain]
@@ -468,7 +485,7 @@ Ensures compliance with applicable data privacy regulations and provides users w
 | *Rule-5.6.7*
 | *Breach Notification*: Data breaches affecting personal data must be documented and, where required by law, reported to supervisory authorities and affected individuals within specified timeframes.
 | *Rule-5.6.8*
-| *Cross-Border Transfers*: Transfer of personal data outside the user’s jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).
+| *Cross-Border Transfers*: Transfer of personal data outside the user's jurisdiction must comply with applicable legal requirements (Standard Contractual Clauses, adequacy decisions, etc.).
 |===
 
 [#recipe-domain]
@@ -619,6 +636,8 @@ Manages user-to-user and admin-to-user messaging.
 | *Responsive Design*: The user interface shall adapt seamlessly to various screen sizes and devices (mobile, tablet, desktop) to ensure an optimal user experience.
 | *NFR-6.5.4*
 | *Privacy Transparency*: Privacy policies and data processing information shall be presented in clear, understandable language.
+| *NFR-6.5.5*
+| *Material 3 Theming & Responsive Design*: All UI must use Material 3 theme variables, support both light and dark themes, and be fully responsive across devices. No hardcoded colors, borders, or shadows are allowed in any component.
 |===
 
 [#_high_level_system_architecture]
@@ -653,8 +672,26 @@ Manages user-to-user and admin-to-user messaging.
 *Data Access*:: Entity Framework Core (EF Core) for ORM, interacting with PostgreSQL
 *Business Logic*:: Orchestration Services encapsulate complex business rules and coordinate data access (e.g., PersonOrchestrationService for onboarding submission). Privacy Services handle data subject rights and compliance requirements.
 *API Design*:: RESTful endpoints adhering to standard HTTP methods and status codes
-*Security*:: ASP.NET Core Identity for user management; JWT Bearer Tokens for authentication; `[Authorize]` and `[AllowAnonymous]` attributes for endpoint-level authorization
+*Security*:: ASP.NET Core Identity for user management; Bearer Tokens for authentication with configurable expiration (24 hours); `[Authorize]` and `[AllowAnonymous]` attributes for endpoint-level authorization
 *Privacy & Compliance*:: Dedicated services for consent management, data export, anonymization, and audit logging
+*Authentication Configuration*:: Bearer token expiration configured to 24 hours via `BearerTokenExpiration` setting in `Program.cs`
+
+[#ioc-architecture]
+=== IoC Architecture & Service Communication
+
+[dlist]
+*Event-Driven Communication*:: Services communicate through a centralized `EventBusService` to maintain loose coupling
+*Service Decoupling*:: `AuthManagerService` and `UserInfoService` no longer have direct dependencies, using events instead
+*Event Types*::
+- `auth:login` - User login event
+- `auth:logout` - User logout event  
+- `auth:claims-loaded` - Claims loading requested
+- `user:info-updated` - User information updated with claims
+*Benefits*::
+- Improved testability through service isolation
+- Enhanced maintainability with reduced coupling
+- Better scalability for adding new event listeners
+- Single responsibility principle enforcement
 
 [#database-arch]
 === Database Architecture (PostgreSQL)
@@ -983,7 +1020,7 @@ A form for creating and editing recipes, including associating existing ingredie
 * HTML: `src/app/curation/components/curation-queue/curation-queue.component.html`
 .Role
 Admin-only interface for viewing and actioning items in the curation queue.
-.Status: PLACEHOLDER - Component exists but UI is empty, backend API ready
+.Status: COMPLETE - Fully implemented with Material 3 theming and admin workflow
 .Functional Requirements Mapping
 * <<curation-requirements,FR-CU-2.2>>, <<curation-requirements,FR-CU-2.3>>, <<curation-requirements,FR-CU-2.4>>, <<curation-requirements,FR-CU-2.5>>, <<curation-requirements,FR-CU-2.6>>, <<curation-requirements,FR-CU-2.7>>
 
@@ -998,7 +1035,7 @@ Admin-only interface for viewing and actioning items in the curation queue.
 * HTML: `src/app/communication/components/messaging-inbox/messaging-inbox.component.html`
 .Role
 Centralized UI for viewing message threads and composing messages.
-.Status: PLACEHOLDER - Component exists but UI is empty, backend API ready
+.Status: PARTIAL - Backend complete, frontend UI partially implemented
 .Functional Requirements Mapping
 * <<communication-requirements,FR-CO-3.2>>, <<communication-requirements,FR-CO-3.6>>
 
@@ -1541,9 +1578,9 @@ With the privacy feature set now complete, the primary focus is on implementing 
 ==== Angular Development
 
 [dlist]
-*AOT Compilation*:: Angular’s AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).
+*AOT Compilation*:: Angular's AOT compiler is strict. Avoid complex JavaScript expressions directly in HTML template bindings. Move such logic into component TypeScript methods (getters or helper functions).
 *Standalone Component Imports*:: Every standalone component must explicitly import all modules it directly uses in its `@Component({ imports: [...] })` array. Missing imports cause runtime errors.
-*Data Flow Patterns*:: Be mindful of Angular’s unidirectional data flow. Use `@Input` for data down, `@Output` for events up. Avoid direct child manipulation.
+*Data Flow Patterns*:: Be mindful of Angular's unidirectional data flow. Use `@Input` for data down, `@Output` for events up. Avoid direct child manipulation.
 *Template Logic*:: Use getters in TypeScript for complex template logic (e.g., `filteredRestrictionsForCurrentPerson`). This resolved "Parser Error: Bindings cannot contain assignments" issues.
 
 [#_backend_development]
@@ -2056,6 +2093,18 @@ This section outlines the new files that have been added to the repository for t
 | `src/app/admin/components/user-management/...` | `/nom-ui/src/app/admin/components/user-management/...`
 |===
 
+[#ioc-architecture-files]
+==== IoC Architecture Files (Angular - nom-ui) - IMPLEMENTED
+
+[cols="33%,67%"]
+|===
+| File | GitHub URL Suffix
+
+| `src/app/utilities/services/event-bus.service.ts` | `/nom-ui/src/app/utilities/services/event-bus.service.ts`
+| `src/app/utilities/services/auth-manager.service.ts` | `/nom-ui/src/app/utilities/services/auth-manager.service.ts`
+| `src/app/utilities/services/user-info.service.ts` | `/nom-ui/src/app/utilities/services/user-info.service.ts`
+|===
+
 [#implementation-status-summary]
 == Implementation Status Summary
 
@@ -2102,20 +2151,24 @@ This section provides a comprehensive overview of the current implementation sta
 | Full CRUD functionality with ingredient search, drag-drop, and versioning
 
 | Curation Queue
-| PLACEHOLDER
-| Component exists but UI is empty, backend API ready
+| COMPLETE
+| Fully implemented admin interface for reviewing and managing pending submissions, with Material 3 theming
 
 | Messaging System
-| PLACEHOLDER
-| Component exists but UI is empty, backend API ready
+| Backend: COMPLETE, Frontend: PARTIAL
+| Backend fully implemented; frontend inbox and thread UI partially implemented
 
 | User Management
-| IMPLEMENTED
+| COMPLETE
 | Admin interface for managing user roles and claims
 
 | Authentication
 | COMPLETE
-| Full authentication flow with JWT and claims-based authorization
+| Full authentication flow with Bearer tokens (24-hour expiration) and claims-based authorization
+
+| IoC Architecture
+| COMPLETE
+| Event-driven service communication with EventBusService, decoupled AuthManagerService and UserInfoService
 
 | Privacy Features
 | COMPLETE
@@ -2143,10 +2196,10 @@ This comprehensive business analysis specification provides a complete roadmap f
 | Document Information |
 
 | Version
-| 2.1
+| 2.4
 
 | Date
-| July 25, 2025
+| July 28, 2025
 
 | Status
 | Active Development Specification

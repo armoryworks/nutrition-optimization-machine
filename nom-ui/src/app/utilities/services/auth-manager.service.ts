@@ -13,24 +13,20 @@ import {
   take,
 } from 'rxjs/operators';
 import { NotificationService } from '../../utilities/services/notification.service';
+import { EventBusService } from './event-bus.service';
+import { UserInfoService } from './user-info.service';
+import { LoginResponse } from '../../auth/models/login-response';
 
 // Define interfaces for API responses/requests from your baseline
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  personId: number;
+interface LoginRequest {
+  email: string;
+  password: string;
 }
 
 interface RefreshTokenResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
 }
 
 @Injectable({
@@ -47,8 +43,6 @@ export class AuthManagerService {
   public readonly canManageUserRoles$ = this._canManageUserRoles.asObservable();
 
   private apiUrl = 'api/Auth';
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
   private readonly TOKEN_KEY = 'nom-token';
   private readonly REFRESH_TOKEN_KEY = 'nom-refresh-token';
@@ -66,7 +60,9 @@ export class AuthManagerService {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private eventBus: EventBusService,
+    private userInfoService: UserInfoService
   ) {
     this._rememberMe = localStorage.getItem(this.REMEMBER_ME_KEY) === 'true';
     this.storage = this._rememberMe ? localStorage : sessionStorage;
@@ -78,14 +74,24 @@ export class AuthManagerService {
     const storedPersonId = this.storage.getItem(this.PERSON_ID_KEY);
     this._personId = storedPersonId ? parseInt(storedPersonId, 10) : undefined;
 
-    this.checkUserLoggedInStatus();
+    // Don't call checkUserLoggedInStatus() here to avoid circular dependency
+    // It will be called when needed by other components
+
+    // Listen to user info updates
+    this.eventBus.events$.pipe(
+      filter(event => event.type === 'user:info-updated')
+    ).subscribe((event) => {
+      this.updateClaimsFromUserInfo(event.data);
+    });
   }
 
   set token(value: string | undefined) {
+    console.log('Token setter called with value:', value ? 'present' : 'undefined');
     this._accessToken = value;
     if (this._accessToken) {
       this.storage.setItem(this.TOKEN_KEY, this._accessToken);
-      this.decodeAndSetClaims(this._accessToken);
+      console.log('Calling loadUserClaims from token setter...');
+      this.loadUserClaims();
     } else {
       this.storage.removeItem(this.TOKEN_KEY);
       this.clearClaims();
@@ -98,6 +104,69 @@ export class AuthManagerService {
       this._accessToken = this.storage.getItem(this.TOKEN_KEY) || undefined;
     }
     return this._accessToken;
+  }
+
+
+
+  set tokenExpiration(value: number | undefined) {
+    this._tokenExpiration = value;
+    if (this._tokenExpiration) {
+      this.storage.setItem(this.EXPIRATION_KEY, this._tokenExpiration.toString());
+    } else {
+      this.storage.removeItem(this.EXPIRATION_KEY);
+    }
+  }
+
+  get tokenExpiration(): number | undefined {
+    if (!this._tokenExpiration) {
+      const stored = this.storage.getItem(this.EXPIRATION_KEY);
+      this._tokenExpiration = stored ? parseInt(stored, 10) : undefined;
+    }
+    return this._tokenExpiration;
+  }
+
+  set personId(value: number | undefined) {
+    this._personId = value;
+    if (this._personId) {
+      this.storage.setItem(this.PERSON_ID_KEY, this._personId.toString());
+    } else {
+      this.storage.removeItem(this.PERSON_ID_KEY);
+    }
+  }
+
+  get personId(): number | undefined {
+    if (!this._personId) {
+      const stored = this.storage.getItem(this.PERSON_ID_KEY);
+      this._personId = stored ? parseInt(stored, 10) : undefined;
+    }
+    return this._personId;
+  }
+
+  set rememberMe(value: boolean) {
+    this._rememberMe = value;
+    localStorage.setItem(this.REMEMBER_ME_KEY, value.toString());
+    this.storage = value ? localStorage : sessionStorage;
+  }
+
+  get rememberMe(): boolean {
+    return this._rememberMe;
+  }
+
+  isLoggedIn(): boolean {
+    const hasToken = !!this.token;
+    const hasExpiration = !!this.tokenExpiration;
+    const isNotExpired = this.tokenExpiration ? this.tokenExpiration > Date.now() : false;
+
+    console.log('isLoggedIn check:', {
+      hasToken,
+      hasExpiration,
+      tokenExpiration: this.tokenExpiration,
+      currentTime: Date.now(),
+      isNotExpired,
+      result: hasToken && hasExpiration && isNotExpired
+    });
+
+    return hasToken && hasExpiration && isNotExpired;
   }
 
   set storedRefreshToken(value: string | undefined) {
@@ -116,100 +185,38 @@ export class AuthManagerService {
     return this._refreshToken;
   }
 
-  set tokenExpiration(value: number | undefined) {
-    this._tokenExpiration = value;
-    if (this._tokenExpiration) {
-      this.storage.setItem(this.EXPIRATION_KEY, this._tokenExpiration.toString());
-    } else {
-      this.storage.removeItem(this.EXPIRATION_KEY);
-    }
-  }
+  private storeAuthData(accessToken: string, refreshToken: string, expiresIn: number): void {
+    console.log('storeAuthData called:', {
+      accessToken: accessToken ? 'present' : 'missing',
+      refreshToken: refreshToken ? 'present' : 'missing',
+      expiresIn,
+      currentTime: Date.now(),
+      calculatedExpiration: Date.now() + expiresIn
+    });
 
-  get tokenExpiration(): number | undefined {
-    if (!this._tokenExpiration) {
-      const expiration = this.storage.getItem(this.EXPIRATION_KEY);
-      this._tokenExpiration = expiration ? parseInt(expiration, 10) : undefined;
-    }
-    return this._tokenExpiration;
-  }
-
-  set personId(value: number | undefined) {
-    this._personId = value;
-    if (this._personId !== undefined) {
-      this.storage.setItem(this.PERSON_ID_KEY, this._personId.toString());
-    } else {
-      this.storage.removeItem(this.PERSON_ID_KEY);
-    }
-  }
-
-  get personId(): number | undefined {
-    if (this._personId === undefined) {
-      const storedId = this.storage.getItem(this.PERSON_ID_KEY);
-      this._personId = storedId ? parseInt(storedId, 10) : undefined;
-    }
-    return this._personId;
-  }
-
-  set rememberMe(value: boolean) {
-    if (this._rememberMe !== value) {
-      this._rememberMe = value;
-      localStorage.setItem(this.REMEMBER_ME_KEY, value.toString());
-
-      const oldStorage = this.storage;
-      this.storage = this._rememberMe ? localStorage : sessionStorage;
-
-      if (oldStorage !== this.storage) {
-        const currentToken = oldStorage.getItem(this.TOKEN_KEY);
-        const currentRefreshToken = oldStorage.getItem(this.REFRESH_TOKEN_KEY);
-        const currentExpiration = oldStorage.getItem(this.EXPIRATION_KEY);
-        const currentPersonId = oldStorage.getItem(this.PERSON_ID_KEY);
-
-        if (currentToken) this.storage.setItem(this.TOKEN_KEY, currentToken);
-        if (currentRefreshToken) this.storage.setItem(this.REFRESH_TOKEN_KEY, currentRefreshToken);
-        if (currentExpiration) this.storage.setItem(this.EXPIRATION_KEY, currentExpiration);
-        if (currentPersonId) this.storage.setItem(this.PERSON_ID_KEY, currentPersonId);
-
-        oldStorage.removeItem(this.TOKEN_KEY);
-        oldStorage.removeItem(this.REFRESH_TOKEN_KEY);
-        oldStorage.removeItem(this.EXPIRATION_KEY);
-        oldStorage.removeItem(this.PERSON_ID_KEY);
-      }
-    }
-  }
-
-  get rememberMe(): boolean {
-    return this._rememberMe;
-  }
-
-  private storeAuthData(accessToken: string, refreshToken: string, expiresIn: number, personId: number): void {
     this.token = accessToken;
     this.storedRefreshToken = refreshToken;
-    this.tokenExpiration = Math.floor(Date.now() / 1000) + expiresIn;
-    this.personId = personId;
-    this.userLogin.next(true);
+    this.tokenExpiration = Date.now() + expiresIn;
+    // personId will be retrieved from user info endpoint
   }
 
-  private decodeAndSetClaims(token: string): void {
-    try {
-      const payloadParts = token.split('.');
-      if (payloadParts.length !== 3) {
-        throw new Error('Invalid JWT token format.');
-      }
-      let payload = payloadParts[1];
-
-      payload = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const padding = '='.repeat((4 - payload.length % 4) % 4);
-      const base64 = payload + padding;
-
-      const decodedPayload = JSON.parse(atob(base64));
-
-      const canCure = !!decodedPayload['CanManageCuration'];
-      const canManageRoles = !!decodedPayload['CanManageUserRoles'];
-
-      this._canManageCuration.next(canCure);
-      this._canManageUserRoles.next(canManageRoles);
-    } catch (error) {
-      console.error("Failed to decode token or claims:", error);
+  private loadUserClaims(): void {
+    console.log('loadUserClaims called, isLoggedIn:', this.isLoggedIn());
+    if (this.isLoggedIn()) {
+      // Directly load user info instead of relying on events
+      console.log('Loading user info from UserInfoService...');
+      this.userInfoService.getCurrentUserInfo().subscribe({
+        next: (userInfo) => {
+          console.log('User info received in loadUserClaims:', userInfo);
+          this.updateClaimsFromUserInfo(userInfo);
+        },
+        error: (error) => {
+          console.error('Error loading user claims:', error);
+          this.clearClaims();
+        }
+      });
+    } else {
+      console.log('User not logged in, clearing claims');
       this.clearClaims();
     }
   }
@@ -219,12 +226,37 @@ export class AuthManagerService {
     this._canManageUserRoles.next(false);
   }
 
-  checkUserLoggedInStatus(): void {
-    const isLoggedIn = !!this.token;
-    if (isLoggedIn && this.token) {
-      this.decodeAndSetClaims(this.token);
+  private updateClaimsFromUserInfo(userInfo: any): void {
+    console.log('Updating claims from user info:', userInfo);
+    if (userInfo && userInfo.claims) {
+      // Set personId from user info
+      if (userInfo.PersonId) {
+        this.personId = userInfo.PersonId;
+      }
+
+      const canCure = userInfo.claims.some((claim: any) => claim.type === 'CanManageCuration');
+      const canManageRoles = userInfo.claims.some((claim: any) => claim.type === 'CanManageUserRoles');
+
+      console.log('Claims found:', {
+        canManageCuration: canCure,
+        canManageUserRoles: canManageRoles,
+        allClaims: userInfo.claims
+      });
+
+      this._canManageCuration.next(canCure);
+      this._canManageUserRoles.next(canManageRoles);
     } else {
+      console.log('No user info or claims found, clearing claims');
       this.clearClaims();
+    }
+  }
+
+  checkUserLoggedInStatus(): void {
+    const isLoggedIn = this.isLoggedIn();
+    if (isLoggedIn) {
+      this.loadUserClaims();
+    } else {
+      this.logout();
     }
     if (this.userLogin.value !== isLoggedIn) {
       this.userLogin.next(isLoggedIn);
@@ -240,12 +272,13 @@ export class AuthManagerService {
       .post<LoginResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap((response) => {
+          console.log('Login successful, storing auth data...');
           this.storeAuthData(
             response.accessToken,
             response.refreshToken,
-            response.expiresIn,
-            response.personId
+            response.expiresIn
           );
+          this.loadUserClaims();
           this.notificationService.success('Logged in successfully!');
         }),
         catchError((error) => {
@@ -274,60 +307,32 @@ export class AuthManagerService {
 
     this.userLogin.next(false);
     this.clearClaims();
+    this.eventBus.emitLogout();
     this.router.navigate(['/home']);
     this.notificationService.info('You have been logged out.');
   }
 
   refreshToken(): Observable<string> {
-    if (this.isRefreshing) {
-      return this.refreshTokenSubject.asObservable().pipe(
-        filter((token) => token !== null),
-        take(1),
-        switchMap((token: string) => {
-          return token
-            ? of(token)
-            : throwError(() => new Error('Refresh token failed while already refreshing.'));
-        })
-      );
-    }
-
-    this.isRefreshing = true;
-    this.refreshTokenSubject.next(null);
-
-    const refreshToken = this.storedRefreshToken;
-    if (!refreshToken) {
-      this.logout();
-      return throwError(() => new Error('No refresh token available.'));
-    }
-
     return this.http
       .post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, {
-        refreshToken,
+        refreshToken: this.storedRefreshToken,
       })
       .pipe(
         tap((response) => {
           this.storeAuthData(
             response.accessToken,
             response.refreshToken,
-            response.expiresIn,
-            this.personId || 0
+            response.expiresIn
           );
         }),
-        switchMap((response) => {
-          this.isRefreshing = false;
-          this.refreshTokenSubject.next(response.accessToken);
-          return of(response.accessToken);
-        }),
+        switchMap((response) => of(response.accessToken)),
         catchError((error) => {
-          this.isRefreshing = false;
-          this.refreshTokenSubject.error(error);
+          console.error('Token refresh failed:', error);
           this.logout();
-          this.notificationService.error('Session expired. Please log in again.');
           return throwError(() => error);
-        }),
-        finalize(() => {
-          this.isRefreshing = false;
         })
       );
   }
+
+
 }

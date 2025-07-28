@@ -35,6 +35,20 @@ html {
   }
 }
 
+:root {
+  --nom-card-bg: #f1f5f9;
+  --nom-panel-bg: #f8fafc;
+  --nom-text-high-contrast: #1e293b;
+  --nom-border-subtle: #e2e8f0;
+}
+
+body.dark-theme, [data-theme='dark'] {
+  --nom-card-bg: #1e293b;
+  --nom-panel-bg: #0f172a;
+  --nom-text-high-contrast: #f8fafc;
+  --nom-border-subtle: #334155;
+}
+
 // 2. Base Layout Elements & Common Components
 // --------------------------------------------
 
