@@ -42,7 +42,7 @@ The Enhanced FDC Import System is a comprehensive upgrade to the original Nom.Im
 {
   "ImportSettings": {
     "UseEnhancedImport": true,
-    "SourceDirectory": "/home/dhokanson/Dev/ImportSource",
+    "SourceDirectory": "path/to/your/dir",
     "QualityFilter": {
       "MinimumDataPoints": 1,
       "MinimumYearAcquired": 2010,
@@ -243,7 +243,7 @@ ORDER BY avg_quality DESC;
 1. **Missing Source Files**:
 
    ```bash
-   ls -la /home/dhokanson/Dev/ImportSource/
+   ls -la /path/to/your/source
    ```
 
 2. **Database Connection Issues**:
