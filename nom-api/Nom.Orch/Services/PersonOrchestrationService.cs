@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Nom.Orch.Services
 {
@@ -25,19 +26,19 @@ namespace Nom.Orch.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IRestrictionOrchestrationService _restrictionOrchestrationService;
         private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
+        private readonly ILogger<PersonOrchestrationService> _logger;
 
         public PersonOrchestrationService(
             ApplicationDbContext dbContext,
-            IRestrictionOrchestrationService restrictionOrchestrationService,
+            IHttpContextAccessor httpContextAccessor,
             IPrivacyOrchestrationService privacyOrchestrationService,
-            IHttpContextAccessor httpContextAccessor)
+            ILogger<PersonOrchestrationService> logger)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
-            _restrictionOrchestrationService = restrictionOrchestrationService;
             _privacyOrchestrationService = privacyOrchestrationService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -46,7 +47,9 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel request)
         {
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Upserting person with name {Name}", request.PersonName);
+
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
                 throw new InvalidOperationException("User is not authenticated.");
@@ -57,28 +60,36 @@ namespace Nom.Orch.Services
 
             if (existingPerson != null)
             {
-                // Person exists, update their name
                 existingPerson.Name = request.PersonName;
                 _dbContext.Persons.Update(existingPerson);
                 await _dbContext.SaveChangesAsync();
 
-                return new PersonCreateResponseModel { Id = existingPerson.Id, Name = existingPerson.Name, UserId = existingPerson.UserId };
-            }
-            else
-            {
-                // Person does not exist, create a new one
-                var newPerson = new PersonEntity
-                {
-                    Name = request.PersonName,
-                    UserId = userId,
-                    InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                _logger.LogInformation("Successfully updated person {PersonId}", existingPerson.Id);
+                return new PersonCreateResponseModel 
+                { 
+                    Id = existingPerson.Id, 
+                    Name = existingPerson.Name, 
+                    UserId = existingPerson.UserId 
                 };
-
-                _dbContext.Persons.Add(newPerson);
-                await _dbContext.SaveChangesAsync();
-
-                return new PersonCreateResponseModel { Id = newPerson.Id, Name = newPerson.Name, UserId = newPerson.UserId };
             }
+
+            var newPerson = new PersonEntity
+            {
+                Name = request.PersonName,
+                UserId = userId,
+                CreatedByPersonId = 1L // System person
+            };
+
+            _dbContext.Persons.Add(newPerson);
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully created person {PersonId}", newPerson.Id);
+            return new PersonCreateResponseModel 
+            { 
+                Id = newPerson.Id, 
+                Name = newPerson.Name, 
+                UserId = newPerson.UserId 
+            };
         }
 
         /// <summary>
@@ -97,49 +108,21 @@ namespace Nom.Orch.Services
                 {
                     Name = "System",
                     UserId = null,
-                    InvitationCode = null
                 };
                 _dbContext.Persons.Add(systemPerson);
                 await _dbContext.SaveChangesAsync();
             }
 
-            var invitationCode = await GenerateUniqueInvitationCodeAsync();
-
             var newPerson = new PersonEntity
             {
                 Name = personName,
                 UserId = identityUserId,
-                InvitationCode = invitationCode
             };
 
             _dbContext.Persons.Add(newPerson);
             await _dbContext.SaveChangesAsync();
 
             return newPerson;
-        }
-
-        /// <summary>
-        /// Generates a unique 6-character alphanumeric invitation code.
-        /// </summary>
-        /// <returns>A unique invitation code string.</returns>
-        public async Task<string> GenerateUniqueInvitationCodeAsync()
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            string code;
-            bool isUnique;
-
-            do
-            {
-                code = new string(Enumerable.Repeat(chars, 6)
-                  .Select(s => s[random.Next(s.Length)]).ToArray());
-
-                isUnique = !await _dbContext.Persons.AnyAsync(p => p.InvitationCode == code) &&
-                           !await _dbContext.Plans.AnyAsync(p => p.InvitationCode == code);
-
-            } while (!isUnique);
-
-            return code;
         }
 
         /// <summary>
@@ -150,167 +133,76 @@ namespace Nom.Orch.Services
         /// <returns>An OnboardingCompleteResponse indicating success and the primary PersonId.</returns>
         public async Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request)
         {
-            if (request?.PersonDetails == null || string.IsNullOrWhiteSpace(request.PersonDetails.Name))
+            _logger.LogInformation("Completing onboarding for user {UserId}", request.UserId);
+
+            var currentIdentityUserId = request.UserId;
+            var primaryPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
+
+            if (primaryPerson == null)
             {
-                return new OnboardingCompleteResponse { Success = false, Message = "Your name is required to complete onboarding." };
+                throw new KeyNotFoundException($"Person not found for user {currentIdentityUserId}");
             }
 
-            var currentIdentityUserId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
-            try
+            // Handle plan invitation if provided
+            if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
             {
-                var systemPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.Name == "System");
-                if (systemPerson == null)
-                {
-                    systemPerson = new PersonEntity { Name = "System" };
-                    _dbContext.Persons.Add(systemPerson);
-                    await _dbContext.SaveChangesAsync();
-                }
+                // TODO: Implement plan invitation claiming using the new InvitationEntity system
+                _logger.LogWarning("Plan invitation claiming not yet implemented with new invitation system");
+            }
 
-                // 1. Find or Create Primary Person Entity
-                PersonEntity? primaryPerson = await _dbContext.Persons
-                                            .FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
+            // Create default plan for the primary person
+            var defaultPlan = new PlanEntity
+            {
+                Name = $"{primaryPerson.Name}'s Default Plan",
+                AuthorId = primaryPerson.Id,
+                CurationStatusId = 9000L, // NonCurated
+                Version = 1
+            };
+            _dbContext.Plans.Add(defaultPlan);
+            await _dbContext.SaveChangesAsync();
 
-                if (primaryPerson == null)
+            // Add primary person as admin to their default plan
+            var primaryParticipant = new PlanParticipantEntity
+            {
+                PlanId = defaultPlan.Id,
+                PersonId = primaryPerson.Id,
+                RoleRefId = 4100L, // Admin role
+                JoinedDate = DateTime.UtcNow
+            };
+            _dbContext.PlanParticipants.Add(primaryParticipant);
+
+            // Add additional participants if provided
+            if (request.AdditionalParticipants != null && request.AdditionalParticipants.Any())
+            {
+                foreach (var participantDetails in request.AdditionalParticipants)
                 {
-                    primaryPerson = new PersonEntity
+                    var newParticipant = new PersonEntity
                     {
-                        Name = request.PersonDetails.Name,
-                        UserId = currentIdentityUserId,
-                        InvitationCode = await GenerateUniqueInvitationCodeAsync()
+                        Name = participantDetails.Name,
+                        CreatedByPersonId = primaryPerson.Id
                     };
-                    _dbContext.Persons.Add(primaryPerson);
-                }
-                else
-                {
-                    primaryPerson.Name = request.PersonDetails.Name;
-                    _dbContext.Persons.Update(primaryPerson);
-                }
-                await _dbContext.SaveChangesAsync();
-
-                var clientSideIdToRealIdMap = new Dictionary<long, long> { { request.PersonId, primaryPerson.Id } };
-                var allParticipants = new List<PersonEntity> { primaryPerson };
-
-                // 2. Process Additional Participants
-                if (request.HasAdditionalParticipants && request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
-                {
-                    foreach (var participantDetails in request.AdditionalParticipantDetails)
-                    {
-                        var newParticipant = new PersonEntity
-                        {
-                            Name = participantDetails.Name,
-                            InvitationCode = await GenerateUniqueInvitationCodeAsync()
-                        };
-                        _dbContext.Persons.Add(newParticipant);
-                        allParticipants.Add(newParticipant);
-                        clientSideIdToRealIdMap.Add(participantDetails.Id, 0);
-                    }
+                    _dbContext.Persons.Add(newParticipant);
                     await _dbContext.SaveChangesAsync();
 
-                    int i = 0;
-                    foreach (var participantDetails in request.AdditionalParticipantDetails)
+                    var participant = new PlanParticipantEntity
                     {
-                        clientSideIdToRealIdMap[participantDetails.Id] = allParticipants[1 + i].Id;
-                        i++;
-                    }
+                        PlanId = defaultPlan.Id,
+                        PersonId = newParticipant.Id,
+                        RoleRefId = 4101L, // Member role
+                        JoinedDate = DateTime.UtcNow
+                    };
+                    _dbContext.PlanParticipants.Add(participant);
                 }
-
-                // 3. Process Person Attributes for Primary Person
-                if (request.Attributes != null && request.Attributes.Any())
-                {
-                    var existingAttrs = await _dbContext.PersonAttributes.Where(pa => pa.PersonId == primaryPerson.Id).ToListAsync();
-                    foreach (var attrRequest in request.Attributes)
-                    {
-                        var existingAttr = existingAttrs.FirstOrDefault(pa => pa.AttributeTypeId == attrRequest.AttributeTypeRefId);
-                        if (existingAttr == null)
-                        {
-                            _dbContext.PersonAttributes.Add(new PersonAttributeEntity { PersonId = primaryPerson.Id, AttributeTypeId = attrRequest.AttributeTypeRefId, Value = attrRequest.Value });
-                        }
-                        else
-                        {
-                            existingAttr.Value = attrRequest.Value;
-                            _dbContext.PersonAttributes.Update(existingAttr);
-                        }
-                    }
-                }
-
-                // 4. Process Restrictions
-                if (request.Restrictions != null && request.Restrictions.Any())
-                {
-                    foreach (var restrictionRequest in request.Restrictions)
-                    {
-                        var restrictionTypeRef = await _dbContext.References.FirstOrDefaultAsync(r => r.Name == restrictionRequest.Name);
-                        if (restrictionTypeRef == null) continue;
-
-                        if (restrictionRequest.AppliesToEntirePlan)
-                        {
-                            var primaryPlan = await _dbContext.Plans.FirstOrDefaultAsync(p => p.CreatedByPersonId == primaryPerson.Id);
-                            if (primaryPlan == null)
-                            {
-                                primaryPlan = new PlanEntity { Name = $"{primaryPerson.Name}'s Default Plan", InvitationCode = await GenerateUniqueInvitationCodeAsync() };
-                                _dbContext.Plans.Add(primaryPlan);
-                                await _dbContext.SaveChangesAsync();
-                            }
-                            if (!await _dbContext.Restrictions.AnyAsync(r => r.PlanId == primaryPlan.Id && r.RestrictionTypeId == restrictionTypeRef.Id))
-                            {
-                                _dbContext.Restrictions.Add(new RestrictionEntity { PlanId = primaryPlan.Id, Name = restrictionRequest.Name, Description = restrictionRequest.Description, RestrictionTypeId = restrictionTypeRef.Id });
-                            }
-                        }
-                        else
-                        {
-                            var actualAffectedPersonClientIds = restrictionRequest.AffectedPersonIds?.Any() == true ? restrictionRequest.AffectedPersonIds.ToList() : new List<long> { request.PersonId };
-                            foreach (var affectedClientSideId in actualAffectedPersonClientIds)
-                            {
-                                if (clientSideIdToRealIdMap.TryGetValue(affectedClientSideId, out long realAffectedPersonId) && allParticipants.Any(p => p.Id == realAffectedPersonId))
-                                {
-                                    if (!await _dbContext.Restrictions.AnyAsync(r => r.PersonId == realAffectedPersonId && r.RestrictionTypeId == restrictionTypeRef.Id))
-                                    {
-                                        _dbContext.Restrictions.Add(new RestrictionEntity { PersonId = realAffectedPersonId, Name = restrictionRequest.Name, Description = restrictionRequest.Description, RestrictionTypeId = restrictionTypeRef.Id });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 5. Handle Plan Invitation Code
-                if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
-                {
-                    var existingPlan = await _dbContext.Plans.Include(p => p.Participants).FirstOrDefaultAsync(p => p.InvitationCode == request.PlanInvitationCode);
-                    if (existingPlan != null && !existingPlan.Participants.Any(pp => pp.PersonId == primaryPerson.Id))
-                    {
-                        var memberRoleRef = await _dbContext.References.FirstOrDefaultAsync(r => r.Name == "Plan Member");
-                        if (memberRoleRef != null)
-                        {
-                            _dbContext.PlanParticipants.Add(new PlanParticipantEntity { PlanId = existingPlan.Id, PersonId = primaryPerson.Id, RoleRefId = memberRoleRef.Id });
-                        }
-                    }
-                }
-
-                // 6. Process Initial Consents
-                if (request.Consents != null && request.Consents.Any())
-                {
-                    var consentUpdateRequest = new UpdateConsentRequest { Consents = request.Consents };
-                    await _privacyOrchestrationService.UpdateConsentAsync(consentUpdateRequest, primaryPerson.Id);
-                }
-
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return new OnboardingCompleteResponse
-                {
-                    Success = true,
-                    Message = "Onboarding completed successfully!",
-                    NewPersonId = primaryPerson.Id
-                };
             }
-            catch (Exception ex)
+
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully completed onboarding for user {UserId}", request.UserId);
+            return new OnboardingCompleteResponse
             {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"Error completing onboarding: {ex.Message}");
-                return new OnboardingCompleteResponse { Success = false, Message = $"Onboarding failed: {ex.Message}" };
-            }
+                Success = true,
+                Message = "Onboarding completed successfully"
+            };
         }
 
         /// <summary>
@@ -324,6 +216,98 @@ namespace Nom.Orch.Services
                 return personId;
             }
             return 0;
+        }
+
+        public async Task<PersonModel> GetPersonByUserIdAsync(string userId)
+        {
+            var person = await _dbContext.Persons
+                .Include(p => p.PlanParticipations)
+                .ThenInclude(pp => pp.Plan)
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            return person != null ? await GetPersonModelAsync(person.Id) : null!;
+        }
+
+        public async Task<PersonModel> GetPersonByIdAsync(long personId)
+        {
+            return await GetPersonModelAsync(personId);
+        }
+
+        public async Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId)
+        {
+            var participants = await _dbContext.PlanParticipants
+                .Include(pp => pp.Person)
+                .Include(pp => pp.Plan)
+                .Where(pp => pp.PlanId == planId)
+                .ToListAsync();
+
+            var personModels = new List<PersonModel>();
+            foreach (var participant in participants)
+            {
+                personModels.Add(await GetPersonModelAsync(participant.PersonId));
+            }
+
+            return personModels;
+        }
+
+        public async Task<PersonModel> UpdatePersonAsync(UpdatePersonRequest request)
+        {
+            var person = await _dbContext.Persons.FindAsync(request.Id);
+            if (person == null)
+                throw new KeyNotFoundException($"Person with ID {request.Id} not found.");
+
+            person.Name = request.Name;
+            person.UserId = request.UserId;
+
+            _dbContext.Persons.Update(person);
+            await _dbContext.SaveChangesAsync();
+
+            return await GetPersonModelAsync(person.Id);
+        }
+
+        public async Task<bool> DeletePersonAsync(long personId)
+        {
+            var person = await _dbContext.Persons.FindAsync(personId);
+            if (person == null)
+                return false;
+
+            _dbContext.Persons.Remove(person);
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+
+        private async Task<PersonModel> GetPersonModelAsync(long personId)
+        {
+            var person = await _dbContext.Persons
+                .Include(p => p.PlanParticipations)
+                .ThenInclude(pp => pp.Plan)
+                .FirstOrDefaultAsync(p => p.Id == personId);
+
+            if (person == null)
+                throw new KeyNotFoundException($"Person with ID {personId} not found.");
+
+            var planParticipations = person.PlanParticipations?.Select(pp => new PlanParticipantModel
+            {
+                Id = pp.Id,
+                PlanId = pp.PlanId,
+                PlanName = pp.Plan?.Name ?? "Unknown",
+                PersonId = pp.PersonId,
+                PersonName = person.Name,
+                RoleId = pp.RoleRefId,
+                RoleName = "Unknown", // TODO: Add role name lookup
+                IsActive = true // TODO: Add active status logic
+            }).ToList() ?? new List<PlanParticipantModel>();
+
+            return new PersonModel
+            {
+                Id = person.Id,
+                Name = person.Name,
+                UserId = person.UserId,
+                CreatedDate = person.CreatedDate,
+                CreatedByPersonId = person.CreatedByPersonId,
+                Attributes = new List<PersonAttributeModel>(), // TODO: Add attributes support
+                PlanParticipations = planParticipations
+            };
         }
     }
 }

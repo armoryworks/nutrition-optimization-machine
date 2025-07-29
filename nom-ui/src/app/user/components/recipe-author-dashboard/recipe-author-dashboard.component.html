@@ -74,36 +74,50 @@
                     <div class="nom-dashboard__item-grid">
                         @for (recipe of recipes; track recipe.id) {
                         <div class="nom-dashboard__item-card">
-                            <div class="nom-dashboard__item-header">
-                                <h3 class="nom-dashboard__item-title">{{ recipe.name }}</h3>
-                                <div class="nom-dashboard__item-status">
-                                    @if (isSubmitting(recipe.id)) {
-                                    <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
-                                    <span>Submitting...</span>
-                                    } @else {
-                                    <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + recipe.curationStatus.toLowerCase()">
-                                        {{ recipe.curationStatus }}
-                                    </span>
-                                    }
+                            <div class="nom-dashboard__item-row">
+                                <div class="nom-dashboard__item-info">
+                                    <h3 class="nom-dashboard__item-title" 
+                                        [matTooltip]="recipe.name" 
+                                        matTooltipPosition="above"
+                                        [matTooltipDisabled]="recipe.name.length <= 30">
+                                        {{ recipe.name }}
+                                    </h3>
+                                    <div class="nom-dashboard__item-status">
+                                        @if (isSubmitting(recipe.id)) {
+                                        <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                        <span>Submitting...</span>
+                                        } @else {
+                                        <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + recipe.curationStatus.toLowerCase()">
+                                            {{ recipe.curationStatus }}
+                                        </span>
+                                        }
+                                    </div>
+                                    <div class="nom-dashboard__item-version">
+                                        <span class="nom-dashboard__version-text">v1.0</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="nom-dashboard__item-actions">
-                                <button mat-icon-button title="Edit Recipe" [routerLink]="['/recipes', recipe.id, 'edit']" class="nom-dashboard__action-btn">
-                                    <mat-icon>edit</mat-icon>
-                                </button>
-                                @if (canSubmitForCuration(recipe.curationStatus)) {
-                                <button mat-icon-button 
-                                        title="Submit for Curation" 
-                                        (click)="submitRecipeForCuration(recipe.id)"
-                                        [disabled]="isSubmitting(recipe.id)"
-                                        class="nom-dashboard__action-btn">
-                                    @if (isSubmitting(recipe.id)) {
-                                    <mat-icon>hourglass_empty</mat-icon>
-                                    } @else {
-                                    <mat-icon>send</mat-icon>
-                                    }
-                                </button>
-                                }
+                                <div class="nom-dashboard__item-actions">
+                                    <button mat-icon-button [matMenuTriggerFor]="recipeMenu" class="nom-dashboard__action-btn" title="Actions">
+                                        <mat-icon>more_vert</mat-icon>
+                                    </button>
+                                    <mat-menu #recipeMenu="matMenu">
+                                        @for (item of getRecipeMenuItems(recipe); track item.label) {
+                                        @if (item.routerLink) {
+                                        <button mat-menu-item [routerLink]="item.routerLink">
+                                            <mat-icon>{{ item.icon }}</mat-icon>
+                                            <span>{{ item.label }}</span>
+                                        </button>
+                                        } @else {
+                                        <button mat-menu-item 
+                                                (click)="item.action()"
+                                                [disabled]="item.disabled">
+                                            <mat-icon>{{ item.icon }}</mat-icon>
+                                            <span>{{ item.label }}</span>
+                                        </button>
+                                        }
+                                        }
+                                    </mat-menu>
+                                </div>
                             </div>
                         </div>
                         } @empty {
@@ -142,36 +156,50 @@
                     <div class="nom-dashboard__item-grid">
                         @for (ingredient of ingredients; track ingredient.id) {
                         <div class="nom-dashboard__item-card">
-                            <div class="nom-dashboard__item-header">
-                                <h3 class="nom-dashboard__item-title">{{ ingredient.name }}</h3>
-                                <div class="nom-dashboard__item-status">
-                                    @if (isSubmitting(ingredient.id)) {
-                                    <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
-                                    <span>Submitting...</span>
-                                    } @else {
-                                    <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + ingredient.curationStatus.toLowerCase()">
-                                        {{ ingredient.curationStatus }}
-                                    </span>
-                                    }
+                            <div class="nom-dashboard__item-row">
+                                <div class="nom-dashboard__item-info">
+                                    <h3 class="nom-dashboard__item-title" 
+                                        [matTooltip]="ingredient.name" 
+                                        matTooltipPosition="above"
+                                        [matTooltipDisabled]="ingredient.name.length <= 30">
+                                        {{ ingredient.name }}
+                                    </h3>
+                                    <div class="nom-dashboard__item-status">
+                                        @if (isSubmitting(ingredient.id)) {
+                                        <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                        <span>Submitting...</span>
+                                        } @else {
+                                        <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + ingredient.curationStatus.toLowerCase()">
+                                            {{ ingredient.curationStatus }}
+                                        </span>
+                                        }
+                                    </div>
+                                    <div class="nom-dashboard__item-version">
+                                        <span class="nom-dashboard__version-text">v1.0</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="nom-dashboard__item-actions">
-                                <button mat-icon-button title="Edit Ingredient" [routerLink]="['/recipes/ingredients', ingredient.id, 'edit']" class="nom-dashboard__action-btn">
-                                    <mat-icon>edit</mat-icon>
-                                </button>
-                                @if (canSubmitForCuration(ingredient.curationStatus)) {
-                                <button mat-icon-button 
-                                        title="Submit for Curation" 
-                                        (click)="submitIngredientForCuration(ingredient.id)"
-                                        [disabled]="isSubmitting(ingredient.id)"
-                                        class="nom-dashboard__action-btn">
-                                    @if (isSubmitting(ingredient.id)) {
-                                    <mat-icon>hourglass_empty</mat-icon>
-                                    } @else {
-                                    <mat-icon>send</mat-icon>
-                                    }
-                                </button>
-                                }
+                                <div class="nom-dashboard__item-actions">
+                                    <button mat-icon-button [matMenuTriggerFor]="ingredientMenu" class="nom-dashboard__action-btn" title="Actions">
+                                        <mat-icon>more_vert</mat-icon>
+                                    </button>
+                                    <mat-menu #ingredientMenu="matMenu">
+                                        @for (item of getIngredientMenuItems(ingredient); track item.label) {
+                                        @if (item.routerLink) {
+                                        <button mat-menu-item [routerLink]="item.routerLink">
+                                            <mat-icon>{{ item.icon }}</mat-icon>
+                                            <span>{{ item.label }}</span>
+                                        </button>
+                                        } @else {
+                                        <button mat-menu-item 
+                                                (click)="item.action()"
+                                                [disabled]="item.disabled">
+                                            <mat-icon>{{ item.icon }}</mat-icon>
+                                            <span>{{ item.label }}</span>
+                                        </button>
+                                        }
+                                        }
+                                    </mat-menu>
+                                </div>
                             </div>
                         </div>
                         } @empty {

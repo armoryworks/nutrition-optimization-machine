@@ -3,6 +3,7 @@
 import { Routes } from '@angular/router';
 import { RecipeAuthorDashboardComponent } from '../user/components/recipe-author-dashboard/recipe-author-dashboard.component';
 import { RecipeEditComponent } from './components/recipe-edit/recipe-edit.component';
+import { IngredientEditComponent } from './components/ingredient-edit/ingredient-edit.component';
 
 // This defines the routes for the lazy-loaded recipe feature
 export const RECIPE_ROUTES: Routes = [
@@ -25,5 +26,15 @@ export const RECIPE_ROUTES: Routes = [
     path: ':id/edit', // e.g., /recipes/123/edit
     component: RecipeEditComponent,
     title: 'Edit Recipe'
+  },
+  {
+    path: 'ingredients/new', // e.g., /recipes/ingredients/new
+    component: IngredientEditComponent,
+    title: 'Create New Ingredient'
+  },
+  {
+    path: 'ingredients/:id/edit', // e.g., /recipes/ingredients/123/edit
+    component: IngredientEditComponent,
+    title: 'Edit Ingredient'
   }
 ];

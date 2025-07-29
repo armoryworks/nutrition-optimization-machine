@@ -81,6 +81,18 @@ builder.Services.AddAuthentication(options =>
     // Configure Bearer token expiration (default is 15 minutes)
     // Set to 24 hours for longer sessions
     options.BearerTokenExpiration = TimeSpan.FromHours(24);
+})
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    // Configure JWT Bearer authentication for compatibility with existing tokens
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = false,
+        ClockSkew = TimeSpan.Zero
+    };
 });
 // --- END OF UPDATED CONFIGURATION ---
 
@@ -88,12 +100,12 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("CanManageCuration", policy =>
         policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
               .RequireClaim("CanManageCuration", "true"));
 
     options.AddPolicy("CanManageUserRoles", policy =>
         policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
               .RequireClaim("CanManageUserRoles", "true"));
 });
 

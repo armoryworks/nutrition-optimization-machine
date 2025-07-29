@@ -6,7 +6,11 @@ namespace Nom.Orch.Models.Recipe
 {
     public class RecipeStepModel
     {
+        public long Id { get; set; }
+        
         [Required]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
+        
+        public int Order { get; set; }
     }
 }

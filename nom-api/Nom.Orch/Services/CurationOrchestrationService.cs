@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace Nom.Orch.Services
 {
@@ -41,11 +42,14 @@ namespace Nom.Orch.Services
 
             var queueItems = new List<CurationQueueItemModel>();
 
-            // Get pending recipes
+            // Get pending recipes with structured data
             var pendingRecipes = await _db.Recipes
                 .Include(r => r.Author)
                 .Include(r => r.CurationStatus)
-                .Where(r => r.CurationStatus!.Name == "PendingCuration")
+                .Include(r => r.RecipeIngredients)
+                .ThenInclude(ri => ri.Ingredient)
+                .Include(r => r.RecipeSteps)
+                .Where(r => r.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
                 .Select(r => new CurationQueueItemModel
                 {
                     Id = r.Id,
@@ -54,8 +58,6 @@ namespace Nom.Orch.Services
                     AuthorName = r.Author!.Name,
                     DateSubmitted = r.DateSubmittedForCuration ?? r.CreatedDate,
                     Description = r.Description,
-                    Instructions = r.Instructions,
-                    RawIngredientsString = r.RawIngredientsString,
                     SourceUrl = r.SourceUrl,
                     AuthorId = r.AuthorId
                 })
@@ -67,7 +69,7 @@ namespace Nom.Orch.Services
             var pendingIngredients = await _db.Ingredients
                 .Include(i => i.Author)
                 .Include(i => i.CurationStatus)
-                .Where(i => i.CurationStatus!.Name == "PendingCuration")
+                .Where(i => i.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
                 .Select(i => new CurationQueueItemModel
                 {
                     Id = i.Id,
@@ -86,7 +88,7 @@ namespace Nom.Orch.Services
             var pendingPlans = await _db.Plans
                 .Include(p => p.Author)
                 .Include(p => p.CurationStatus)
-                .Where(p => p.CurationStatus!.Name == "PendingCuration")
+                .Where(p => p.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
                 .Select(p => new CurationQueueItemModel
                 {
                     Id = p.Id,
@@ -120,7 +122,7 @@ namespace Nom.Orch.Services
                 if (recipe.AuthorId != authorId)
                     throw new UnauthorizedAccessException("You can only submit your own recipes for curation");
 
-                recipe.CurationStatusId = 9001L; // PendingCuration
+                recipe.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
                 recipe.DateSubmittedForCuration = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
             }
@@ -136,7 +138,7 @@ namespace Nom.Orch.Services
                 if (ingredient.AuthorId != authorId)
                     throw new UnauthorizedAccessException("You can only submit your own ingredients for curation");
 
-                ingredient.CurationStatusId = 9001L; // PendingCuration
+                ingredient.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
                 await _db.SaveChangesAsync();
             }
             else if (request.EntityType == "Plan")
@@ -151,7 +153,7 @@ namespace Nom.Orch.Services
                 if (plan.AuthorId != authorId)
                     throw new UnauthorizedAccessException("You can only submit your own plans for curation");
 
-                plan.CurationStatusId = 9001L; // PendingCuration
+                plan.CurationStatusId = (long)CurationStatusEnum.PendingCuration;
                 plan.DateSubmittedForCuration = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
             }
@@ -178,7 +180,7 @@ namespace Nom.Orch.Services
 
                 // Check if all ingredients are curated
                 var uncuratedIngredients = recipe.RecipeIngredients?
-                    .Where(ri => ri.Ingredient != null && ri.Ingredient.CurationStatus != null && ri.Ingredient.CurationStatus.Name != "Curated")
+                    .Where(ri => ri.Ingredient != null && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated)
                     .Select(ri => ri.Ingredient?.Name ?? "Unknown")
                     .ToList() ?? new List<string>();
 
@@ -187,7 +189,7 @@ namespace Nom.Orch.Services
                     throw new InvalidOperationException($"Cannot approve recipe: The following ingredients are not curated: {string.Join(", ", uncuratedIngredients)}");
                 }
 
-                recipe.CurationStatusId = 9003L; // Curated
+                recipe.CurationStatusId = (long)CurationStatusEnum.Curated;
                 recipe.DateCurationCompleted = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
 
@@ -215,7 +217,7 @@ namespace Nom.Orch.Services
                 if (ingredient == null)
                     throw new ArgumentException($"Ingredient with ID {request.EntityId} not found");
 
-                ingredient.CurationStatusId = 9003L; // Curated
+                ingredient.CurationStatusId = (long)CurationStatusEnum.Curated;
                 await _db.SaveChangesAsync();
 
                 // Create feedback if notes provided
@@ -248,7 +250,7 @@ namespace Nom.Orch.Services
                 // Check if all recipes in the plan are curated
                 var uncuratedRecipes = plan.Meals?
                     .SelectMany(m => m.Recipes ?? new List<RecipeEntity>())
-                    .Where(r => r.CurationStatus != null && r.CurationStatus.Name != "Curated")
+                    .Where(r => r.CurationStatusId != (long)CurationStatusEnum.Curated)
                     .Select(r => r.Name)
                     .ToList() ?? new List<string>();
 
@@ -257,7 +259,7 @@ namespace Nom.Orch.Services
                     throw new InvalidOperationException($"Cannot approve plan: The following recipes are not curated: {string.Join(", ", uncuratedRecipes)}");
                 }
 
-                plan.CurationStatusId = 9003L; // Curated
+                plan.CurationStatusId = (long)CurationStatusEnum.Curated;
                 plan.DateCurationCompleted = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
 
@@ -296,7 +298,7 @@ namespace Nom.Orch.Services
                 if (recipe == null)
                     throw new ArgumentException($"Recipe with ID {request.EntityId} not found");
 
-                recipe.CurationStatusId = 9002L; // RequiresRevision
+                recipe.CurationStatusId = (long)CurationStatusEnum.RequiresRevision;
                 await _db.SaveChangesAsync();
             }
             else if (request.EntityType == "Ingredient")
@@ -305,7 +307,7 @@ namespace Nom.Orch.Services
                 if (ingredient == null)
                     throw new ArgumentException($"Ingredient with ID {request.EntityId} not found");
 
-                ingredient.CurationStatusId = 9002L; // RequiresRevision
+                ingredient.CurationStatusId = (long)CurationStatusEnum.RequiresRevision;
                 await _db.SaveChangesAsync();
             }
             else if (request.EntityType == "Plan")
@@ -314,7 +316,7 @@ namespace Nom.Orch.Services
                 if (plan == null)
                     throw new ArgumentException($"Plan with ID {request.EntityId} not found");
 
-                plan.CurationStatusId = 9002L; // RequiresRevision
+                plan.CurationStatusId = (long)CurationStatusEnum.RequiresRevision;
                 await _db.SaveChangesAsync();
             }
             else
@@ -349,7 +351,7 @@ namespace Nom.Orch.Services
                 if (recipe == null)
                     throw new ArgumentException($"Recipe with ID {request.EntityId} not found");
 
-                recipe.CurationStatusId = 9004L; // Rejected
+                recipe.CurationStatusId = (long)CurationStatusEnum.Rejected;
                 await _db.SaveChangesAsync();
             }
             else if (request.EntityType == "Ingredient")
@@ -358,7 +360,7 @@ namespace Nom.Orch.Services
                 if (ingredient == null)
                     throw new ArgumentException($"Ingredient with ID {request.EntityId} not found");
 
-                ingredient.CurationStatusId = 9004L; // Rejected
+                ingredient.CurationStatusId = (long)CurationStatusEnum.Rejected;
                 await _db.SaveChangesAsync();
             }
             else if (request.EntityType == "Plan")
@@ -367,7 +369,7 @@ namespace Nom.Orch.Services
                 if (plan == null)
                     throw new ArgumentException($"Plan with ID {request.EntityId} not found");
 
-                plan.CurationStatusId = 9004L; // Rejected
+                plan.CurationStatusId = (long)CurationStatusEnum.Rejected;
                 await _db.SaveChangesAsync();
             }
             else

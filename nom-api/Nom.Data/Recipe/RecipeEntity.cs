@@ -21,9 +21,6 @@ namespace Nom.Data.Recipe
         [MaxLength(2047)]
         public string? Description { get; set; }
 
-        [Column(TypeName = "text")]
-        public string? Instructions { get; set; }
-
         public long? PrepTimeMinutes { get; set; }
         public long? CookTimeMinutes { get; set; }
         public long? Servings { get; set; }
@@ -34,9 +31,6 @@ namespace Nom.Data.Recipe
         public long? ServingQuantityMeasurementTypeId { get; set; }
         [ForeignKey(nameof(ServingQuantityMeasurementTypeId))]
         public virtual ReferenceEntity? ServingQuantityMeasurementType { get; set; }
-
-        [Column(TypeName = "text")]
-        public string? RawIngredientsString { get; set; }
 
         [Required]
         public long CurationStatusId { get; set; }

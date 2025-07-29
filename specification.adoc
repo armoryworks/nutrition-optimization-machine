@@ -22,10 +22,25 @@
 - Added CuratedPlansComponent to the technical mapping
 ====
 
+[NOTE]
+====
+*Changelog for v2.5 (July 29, 2025)*
+- Added comprehensive technical implementation details for authentication configuration and Bearer token handling
+- Documented ingredient creation workflow improvements including modal-based creation and duplicate prevention
+- Added details about frontend form validation and backend response handling for recipe creation
+- Documented the invitation system refactoring from InvitationCode to dedicated InvitationEntity
+- Added information about entity field audit and removal of redundant fields (Instructions, RawIngredientsString)
+- Updated authentication configuration to support both Identity.Bearer and JWT Bearer schemes
+- Added details about source map configuration for Angular debugging
+- Documented the complete recipe creation workflow with ingredient search and modal creation
+- Added information about curation status enums and type safety improvements
+- Updated component status mappings to reflect current implementation state
+====
+
 [#_abstract]
 == Abstract
 
-This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.4) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
+This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.5) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system's current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.
 
 [#_introduction]
 == Introduction
@@ -176,7 +191,7 @@ Capture selections from predefined allergy lists (e.g., Peanuts, Dairy), Yes/No 
 Capture preferred spice levels, disliked ingredients (searchable list of curated ingredients), disliked textures, and preferred cooking methods.
 
 [#recipe-management-requirements]
-=== Recipe & Ingredient Management (PARTIALLY IMPLEMENTED)
+=== Recipe & Ingredient Management (IMPLEMENTED)
 
 .Objective
 To empower Recipe Authors to create, manage, and version their own recipes and custom ingredients.
@@ -199,6 +214,10 @@ To empower Recipe Authors to create, manage, and version their own recipes and c
 | *Recipe Versioning*: If an author edits a `Curated` recipe, the system shall create a new version of that recipe with a `CurationStatus` of `NonCurated`. The original `Curated` version remains unchanged and publicly visible.
 | *FR-RM-1.7*
 | *Version Pre-population*: When creating a new version of an existing recipe, the creation form shall be pre-populated with all the data from the previous version.
+| *FR-RM-1.8*
+| *Ingredient Duplicate Prevention*: The system shall prevent creation of duplicate ingredients by implementing real-time duplicate checking in the ingredient creation modal, providing UI feedback and allowing users to select existing ingredients instead.
+| *FR-RM-1.9*
+| *Modal-Based Ingredient Creation*: Ingredient creation shall occur in a modal dialog that pre-populates the ingredient name from the search field, returns the created ingredient to the parent component, and automatically selects it in the recipe form.
 |===
 
 [#curation-requirements]
@@ -308,6 +327,10 @@ To secure system access and protect sensitive user data and functionalities.
 
 | *FR-4.4*
 | *User Login*: The system shall support user login, issuing authentication tokens upon successful credential verification.
+| *FR-4.5*
+| *Dual Authentication Scheme Support*: The system shall support both `IdentityConstants.BearerScheme` and `JwtBearerDefaults.AuthenticationScheme` to ensure compatibility with different token types and frontend authentication patterns.
+| *FR-4.6*
+| *Claims-Based Authorization*: The system shall implement claims-based authorization with policies for `CanManageCuration` and `CanManageUserRoles`, supporting both authentication schemes.
 |===
 
 [#privacy-requirements]
@@ -653,6 +676,8 @@ Manages user-to-user and admin-to-user messaging.
 *Form Management*:: Reactive Forms for robust validation and state management
 *Structure*:: Domain-driven directory organization (src/app/<domain>/), with subdirectories for models, services, components, etc. Common utilities reside in src/app/common/
 *Privacy Components*:: Dedicated privacy management components including consent collection, privacy dashboard, and data export functionality
+*Source Map Configuration*:: TypeScript and Angular configurations optimized for debugging with explicit source map generation and development build settings
+*Authentication*:: Bearer token authentication with automatic token management, refresh capabilities, and claims-based authorization
 
 [#_frontend_naming_conventions]
 ==== Frontend Naming Conventions
@@ -675,6 +700,8 @@ Manages user-to-user and admin-to-user messaging.
 *Security*:: ASP.NET Core Identity for user management; Bearer Tokens for authentication with configurable expiration (24 hours); `[Authorize]` and `[AllowAnonymous]` attributes for endpoint-level authorization
 *Privacy & Compliance*:: Dedicated services for consent management, data export, anonymization, and audit logging
 *Authentication Configuration*:: Bearer token expiration configured to 24 hours via `BearerTokenExpiration` setting in `Program.cs`
+*Authentication Schemes*:: Dual Bearer token support - `IdentityConstants.BearerScheme` for Identity tokens and `JwtBearerDefaults.AuthenticationScheme` for standard JWT tokens, ensuring compatibility with frontend authentication
+*Authorization Policies*:: Claims-based authorization with `CanManageCuration` and `CanManageUserRoles` policies supporting both authentication schemes
 
 [#ioc-architecture]
 === IoC Architecture & Service Communication
@@ -1008,9 +1035,9 @@ Top-level component for authors to view and manage their created recipes and ing
 * HTML: `src/app/recipe/components/recipe-edit/recipe-edit.component.html`
 .Role
 A form for creating and editing recipes, including associating existing ingredients or creating new ones.
-.Status: IMPLEMENTED - Full CRUD functionality with ingredient search, drag-drop reordering, and recipe versioning
+.Status: IMPLEMENTED - Full CRUD functionality with ingredient search, modal-based ingredient creation, duplicate prevention, drag-drop reordering, and recipe versioning
 .Functional Requirements Mapping
-* <<recipe-management-requirements,FR-RM-1.1>>, <<recipe-management-requirements,FR-RM-1.2>>, <<recipe-management-requirements,FR-RM-1.3>>, <<recipe-management-requirements,FR-RM-1.6>>, <<recipe-management-requirements,FR-RM-1.7>>
+* <<recipe-management-requirements,FR-RM-1.1>>, <<recipe-management-requirements,FR-RM-1.2>>, <<recipe-management-requirements,FR-RM-1.3>>, <<recipe-management-requirements,FR-RM-1.6>>, <<recipe-management-requirements,FR-RM-1.7>>, <<recipe-management-requirements,FR-RM-1.8>>, <<recipe-management-requirements,FR-RM-1.9>>
 
 [#curation-queue-component]
 ==== CurationQueueComponent
@@ -1023,6 +1050,19 @@ Admin-only interface for viewing and actioning items in the curation queue.
 .Status: COMPLETE - Fully implemented with Material 3 theming and admin workflow
 .Functional Requirements Mapping
 * <<curation-requirements,FR-CU-2.2>>, <<curation-requirements,FR-CU-2.3>>, <<curation-requirements,FR-CU-2.4>>, <<curation-requirements,FR-CU-2.5>>, <<curation-requirements,FR-CU-2.6>>, <<curation-requirements,FR-CU-2.7>>
+
+[#ingredient-create-modal-component]
+==== IngredientCreateModalComponent
+
+.File Locations
+* TypeScript: `src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.ts`
+* HTML: `src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.html`
+* SCSS: `src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.scss`
+.Role
+Modal dialog for creating new ingredients with real-time duplicate checking and existing ingredient selection.
+.Status: IMPLEMENTED - Full functionality with duplicate prevention, UI feedback, and robust data flow
+.Functional Requirements Mapping
+* <<recipe-management-requirements,FR-RM-1.3>>, <<recipe-management-requirements,FR-RM-1.8>>, <<recipe-management-requirements,FR-RM-1.9>>
 
 [#communication-admin-components]
 === Communication & Admin Components (PARTIALLY IMPLEMENTED)
@@ -1145,7 +1185,7 @@ Use `Model`, `Request`, or `Response` only.
 [#_core_models]
 ==== Core Models
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Model | File Location | Purpose
 
@@ -1177,7 +1217,7 @@ Use `Model`, `Request`, or `Response` only.
 [#_privacy_models_new]
 ==== Privacy Models (COMPLETE)
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Model | File Location | Purpose
 
@@ -1254,7 +1294,8 @@ Handles complex business logic related to privacy compliance, data subject right
 ==== RecipeOrchestrationService
 .File Location: `Nom.Orch/Services/RecipeOrchestrationService.cs`
 .Role: Handles business logic for creating, updating, and versioning recipes and ingredients.
-.Status: IMPLEMENTED - Full recipe CRUD, versioning, ingredient search, and author dashboard functionality
+.Status: IMPLEMENTED - Full recipe CRUD, versioning, ingredient search, author dashboard functionality, and ingredient creation with proper response handling
+.Key Methods: `CreateIngredientAsync()` now returns full `IngredientModel` instead of just ID, ensuring proper frontend data flow
 
 [#curation-orchestration-service]
 ==== CurationOrchestrationService
@@ -1306,6 +1347,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 .File Location: `Nom.Api/Controllers/RecipeController.cs`
 .Role: Exposes endpoints for author-specific recipe and ingredient management.
 .Status: IMPLEMENTED - Full CRUD operations for recipes with ingredient search and versioning
+.Security: All endpoints require `[Authorize]` with proper Bearer token authentication scheme support
 
 [#curation-controller]
 ==== CurationController
@@ -1331,7 +1373,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 [#_core_entities]
 ==== Core Entities
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Entity | File Location | Purpose
 
@@ -1359,7 +1401,7 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 [#_privacy_entities_new]
 ==== Privacy Entities (NEW)
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Entity | File Location | Purpose
 
@@ -1388,19 +1430,19 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 [#new-backend-entities]
 === Backend Entities (NEW)
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Entity | File Location | Purpose
 
 | `RecipeEntity`
 | `Nom.Data/Recipe/RecipeEntity.cs`
-| **UPDATED:** Will be modified to include `Version` and `ParentRecipeId`.
+| **UPDATED:** Modified to include `Version` and `ParentRecipeId`. **CLEANED:** Removed redundant `Instructions` and `RawIngredientsString` fields.
 | `RecipeIngredientEntity`
 | `Nom.Data/Recipe/RecipeIngredientEntity.cs`
 | Junction table linking recipes to ingredients.
 | `IngredientEntity`
 | `Nom.Data/Ingredient/IngredientEntity.cs`
-| **UPDATED:** Will be modified to include `AuthorId` and `CurationStatus`.
+| **UPDATED:** Modified to include `AuthorId` and `CurationStatus`. Maintains `FdcDataType` for USDA integration.
 | `CurationFeedbackEntity`
 | `Nom.Data/Curation/CurationFeedbackEntity.cs`
 | Stores admin feedback for recipes and ingredients.
@@ -1413,12 +1455,15 @@ All endpoints require `[Authorize]` to ensure only authenticated users can acces
 | `MessageEntity`
 | `Nom.Data/Communication/MessageEntity.cs`
 | Represents a single message within a thread.
+| `InvitationEntity`
+| `Nom.Data/Person/InvitationEntity.cs`
+| **NEW:** Dedicated invitation system replacing `InvitationCode` fields on Person and Plan entities.
 |===
 
 [#_reference_data_entities]
 ==== Reference Data Entities
 
-[cols="25%,37.5%,37.5%",options="header"]
+[cols="25%,37%,38%",options="header"]
 |===
 | Entity | File Location | Purpose
 
@@ -1582,6 +1627,9 @@ With the privacy feature set now complete, the primary focus is on implementing 
 *Standalone Component Imports*:: Every standalone component must explicitly import all modules it directly uses in its `@Component({ imports: [...] })` array. Missing imports cause runtime errors.
 *Data Flow Patterns*:: Be mindful of Angular's unidirectional data flow. Use `@Input` for data down, `@Output` for events up. Avoid direct child manipulation.
 *Template Logic*:: Use getters in TypeScript for complex template logic (e.g., `filteredRestrictionsForCurrentPerson`). This resolved "Parser Error: Bindings cannot contain assignments" issues.
+*Source Map Configuration*:: For debugging in Firefox/Chrome, ensure TypeScript and Angular configurations explicitly enable source maps. Add `"sourceMap": true` to `tsconfig.json` and configure development builds with proper source map settings.
+*Form Validation*:: When working with complex forms (like recipe creation), ensure proper form validation by calling `updateValueAndValidity()` after dynamic changes and using `setTimeout` for async operations to ensure validation state is properly updated.
+*Modal Data Flow*:: When using modals for data creation (like ingredient creation), ensure robust data extraction from modal results, handling both object and primitive return types, and properly updating parent component state.
 
 [#_backend_development]
 ==== Backend Development
@@ -1590,6 +1638,10 @@ With the privacy feature set now complete, the primary focus is on implementing 
 *API URL Management*:: Always double-check `apiUrl` constants in frontend services. These frequently need adjustment between local development and deployment environments.
 *Interceptor Order*:: The order of `HTTP_INTERCEPTORS` in `app.config.ts` matters. Ensure `BearerInterceptor` runs before `ApiInteractionInterceptor`.
 *Privacy Compliance*:: Always consider data minimization when adding new data collection points. Document the lawful basis for any new personal data processing.
+*Authentication Scheme Configuration*:: When implementing Bearer token authentication, ensure both `IdentityConstants.BearerScheme` and `JwtBearerDefaults.AuthenticationScheme` are configured to handle different token types and prevent "No authentication handler is registered" errors.
+*Authorization Policies*:: Configure authorization policies to support multiple authentication schemes using `AddAuthenticationSchemes()` to ensure compatibility with different token types.
+*Entity Field Auditing*:: Regularly audit entity fields to identify and remove redundant or inappropriate fields (like `Instructions` string properties that duplicate `RecipeSteps` collections).
+*Database Migration Safety*:: When removing fields from entities, ensure all references are updated in migrations, services, and controllers to prevent runtime errors during migration application.
 
 [#_debugging_tips]
 ==== Debugging Tips
@@ -1598,6 +1650,10 @@ With the privacy feature set now complete, the primary focus is on implementing 
 *Browser Caching*:: During frontend development, browser caching can cause issues. Clear browser cache or use "Incognito/Private" mode. `ng serve` usually handles this well.
 *Clean Builds*:: For persistent issues, perform clean builds: `npm install`, delete `.angular` and `dist` directories, then rebuild.
 *Service Scope Issues*:: Resolved `ServiceScopeFactory` reference errors in `Program.cs` by ensuring proper dependency injection configuration.
+*Authentication Debugging*:: When debugging authentication issues, check both frontend token storage and backend authentication scheme configuration. Use browser dev tools to inspect token format and backend logs for authentication handler registration.
+*Form Validation Debugging*:: For complex forms, add temporary debug panels to inspect form validity states and individual control validation. Use `console.log` to track form state changes and identify validation issues.
+*Modal Data Flow Debugging*:: When debugging modal data flow, log both the modal result and the extracted data in the parent component to identify data transformation issues.
+*Source Map Issues*:: If source files don't appear in browser debugger, check TypeScript and Angular configuration for source map settings, clear browser cache, and ensure development build is used.
 
 [#dependencies]
 === Required Dependencies
@@ -2148,7 +2204,7 @@ This section provides a comprehensive overview of the current implementation sta
 
 | Recipe Management
 | IMPLEMENTED
-| Full CRUD functionality with ingredient search, drag-drop, and versioning
+| Full CRUD functionality with ingredient search, modal-based ingredient creation, duplicate prevention, drag-drop, and versioning
 
 | Curation Queue
 | COMPLETE
@@ -2164,7 +2220,7 @@ This section provides a comprehensive overview of the current implementation sta
 
 | Authentication
 | COMPLETE
-| Full authentication flow with Bearer tokens (24-hour expiration) and claims-based authorization
+| Full authentication flow with dual Bearer token support (Identity and JWT schemes), 24-hour expiration, and claims-based authorization
 
 | IoC Architecture
 | COMPLETE
@@ -2179,27 +2235,38 @@ This section provides a comprehensive overview of the current implementation sta
 [#next-priorities]
 === Next Development Priorities
 
-1. **Complete Curation Queue UI** - Build the admin interface for reviewing and managing pending submissions
-2. **Complete Messaging Inbox UI** - Build the user interface for viewing and composing messages
-3. **Add Recipe Author Dashboard** - Create the dashboard for authors to view their recipes by status
-4. **Complete Multi-Participant Onboarding** - Finish the remaining onboarding workflow components
-5. **Add Email Notifications** - Implement automated email notifications for key events
+1. **Complete Curation Queue UI**: Finish the admin interface for reviewing and managing pending submissions
+2. **Complete Messaging System**: Implement the frontend messaging inbox and thread management
+3. **Complete Multi-Participant Onboarding**: Finish the remaining onboarding workflow for multiple participants
+4. **Frontend Invitation System**: Implement the new invitation workflow components in the UI
+5. **Testing and Validation**: Comprehensive testing of all implemented features
 
 [#conclusion]
 == Conclusion
 
-This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development, now including a full suite of content management and communication tools. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up. The successful implementation of these new features will significantly enhance the platform's value by fostering a rich, trustworthy, and collaborative community ecosystem.
+This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program's current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, and administrative oversight capabilities.
 
+Key achievements include:
+- Complete authentication and authorization system with dual Bearer token support
+- Full privacy compliance implementation with GDPR-compliant data subject rights
+- Comprehensive recipe and ingredient management with modal-based creation and duplicate prevention
+- Robust curation workflow with admin interface and type-safe status management
+- Event-driven architecture with decoupled services for improved maintainability
+- Material 3 theming and responsive design throughout the application
+
+The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, and user experience. The modular architecture supports future enhancements while maintaining code quality and consistency.
+
+As the project continues to evolve, this specification serves as a living document that will be updated to reflect new features, architectural decisions, and implementation details.
 ---
 [cols="25%,75%",options="header"]
 |===
 | Document Information |
 
 | Version
-| 2.4
+| 2.5
 
 | Date
-| July 28, 2025
+| July 29, 2025
 
 | Status
 | Active Development Specification

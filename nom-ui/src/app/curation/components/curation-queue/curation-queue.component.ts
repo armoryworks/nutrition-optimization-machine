@@ -14,6 +14,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
 import { CurationDecisionRequestModel } from '../../models/curation-decision-request.model';
@@ -36,7 +37,8 @@ import { NotificationService } from '../../../utilities/services/notification.se
     MatChipsModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatTooltipModule
   ],
   templateUrl: './curation-queue.component.html',
   styleUrls: ['./curation-queue.component.scss']
@@ -215,5 +217,44 @@ export class CurationQueueComponent implements OnInit {
   truncateText(text: string, maxLength: number = 100): string {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  }
+
+  parseIngredients(ingredientsString: string): Array<{name: string, quantity: string, unit: string}> {
+    if (!ingredientsString) return [];
+    
+    try {
+      // Try to parse as JSON first
+      const ingredients = JSON.parse(ingredientsString);
+      if (Array.isArray(ingredients)) {
+        return ingredients.map(ing => ({
+          name: ing.name || ing.ingredientName || 'Unknown',
+          quantity: ing.quantity || ing.amount || '0',
+          unit: ing.unit || ing.measurementType || 'g'
+        }));
+      }
+    } catch (e) {
+      // If JSON parsing fails, try to parse as string
+      console.log('Failed to parse ingredients as JSON, trying string parsing');
+    }
+
+    // Fallback: parse as comma-separated string
+    return ingredientsString.split(',').map(item => {
+      const parts = item.trim().split(' ');
+      if (parts.length >= 3) {
+        const quantity = parts[0];
+        const unit = parts[1];
+        const name = parts.slice(2).join(' ');
+        return { name, quantity, unit };
+      } else {
+        return { name: item.trim(), quantity: '0', unit: 'g' };
+      }
+    });
+  }
+
+  getRecipeSteps(item: CurationQueueItemModel): string[] {
+    // For now, return empty array since we need to fetch recipe steps separately
+    // In a real implementation, you might want to add a separate API endpoint
+    // to get recipe details including steps for curation
+    return [];
   }
 }

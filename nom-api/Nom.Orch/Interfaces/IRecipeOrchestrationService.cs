@@ -36,6 +36,14 @@ namespace Nom.Orch.Interfaces
         Task UpdateRecipeAsync(UpdateRecipeRequest request, long authorPersonId);
 
         /// <summary>
+        /// Retrieves a recipe for editing, verifying ownership.
+        /// </summary>
+        /// <param name="recipeId">The ID of the recipe to retrieve.</param>
+        /// <param name="authorPersonId">The PersonId of the user requesting the edit.</param>
+        /// <returns>The recipe details suitable for an edit form.</returns>
+        Task<RecipeEditModel> GetRecipeForEditAsync(long recipeId, long authorPersonId);
+
+        /// <summary>
         /// Creates a new version of an existing recipe.
         /// </summary>
         /// <param name="parentRecipeId">The ID of the recipe to create a new version of.</param>
@@ -56,8 +64,8 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         /// <param name="request">The request model containing the new ingredient's data.</param>
         /// <param name="authorPersonId">The PersonId of the user creating the ingredient.</param>
-        /// <returns>The ID of the newly created ingredient.</returns>
-        Task<long> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId);
+        /// <returns>The newly created ingredient model.</returns>
+        Task<IngredientModel> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId);
 
         /// <summary>
         /// Updates an existing user-submitted ingredient.

@@ -38,13 +38,13 @@ namespace Nom.Data.Migrations
                 name: "nutrient");
 
             migrationBuilder.EnsureSchema(
+                name: "person");
+
+            migrationBuilder.EnsureSchema(
                 name: "communication");
 
             migrationBuilder.EnsureSchema(
                 name: "shopping");
-
-            migrationBuilder.EnsureSchema(
-                name: "person");
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
@@ -115,7 +115,6 @@ namespace Nom.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: true),
-                    InvitationCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -619,13 +618,11 @@ namespace Nom.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: false),
                     Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Instructions = table.Column<string>(type: "text", nullable: true),
                     PrepTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
                     CookTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
                     Servings = table.Column<long>(type: "bigint", nullable: true),
                     ServingQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
                     ServingQuantityMeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    RawIngredientsString = table.Column<string>(type: "text", nullable: true),
                     CurationStatusId = table.Column<long>(type: "bigint", nullable: false),
                     AuthorId = table.Column<long>(type: "bigint", nullable: false),
                     DateSubmittedForCuration = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -882,6 +879,53 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Invitation",
+                schema: "person",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    InviterPersonId = table.Column<long>(type: "bigint", nullable: false),
+                    InviteePersonId = table.Column<long>(type: "bigint", nullable: true),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    UsedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    InvitationType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PlanId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Invitation", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Invitation_Person_InviteePersonId",
+                        column: x => x.InviteePersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Invitation_Person_InviterPersonId",
+                        column: x => x.InviterPersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Invitation_Plan_PlanId",
+                        column: x => x.PlanId,
+                        principalSchema: "plan",
+                        principalTable: "Plan",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1581,6 +1625,31 @@ namespace Nom.Data.Migrations
                 column: "NutrientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Invitation_Code",
+                schema: "person",
+                table: "Invitation",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invitation_InviteePersonId",
+                schema: "person",
+                table: "Invitation",
+                column: "InviteePersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invitation_InviterPersonId",
+                schema: "person",
+                table: "Invitation",
+                column: "InviterPersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invitation_PlanId",
+                schema: "person",
+                table: "Invitation",
+                column: "PlanId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Meal_MealTypeId",
                 schema: "plan",
                 table: "Meal",
@@ -1711,12 +1780,12 @@ namespace Nom.Data.Migrations
                 column: "ShoppingTripId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Person_InvitationCode",
+                name: "IX_Person_UserId",
                 schema: "person",
                 table: "Person",
-                column: "InvitationCode",
+                column: "UserId",
                 unique: true,
-                filter: "\"InvitationCode\" IS NOT NULL");
+                filter: "\"UserId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PersonAttribute_AttributeTypeId",
@@ -1943,6 +2012,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "IngredientNutrient",
                 schema: "nutrient");
+
+            migrationBuilder.DropTable(
+                name: "Invitation",
+                schema: "person");
 
             migrationBuilder.DropTable(
                 name: "meal_recipe_index",

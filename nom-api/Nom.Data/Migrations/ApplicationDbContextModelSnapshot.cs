@@ -610,6 +610,72 @@ namespace Nom.Data.Migrations
                     b.ToTable("NutrientGuideline", "nutrient");
                 });
 
+            modelBuilder.Entity("Nom.Data.Person.InvitationEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvitationType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long?>("InviteePersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("InviterPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("PlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("InviteePersonId");
+
+                    b.HasIndex("InviterPersonId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("Invitation", "person");
+                });
+
             modelBuilder.Entity("Nom.Data.Person.PersonAttributeEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -667,10 +733,6 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("InvitationCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -687,9 +749,9 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvitationCode")
+                    b.HasIndex("UserId")
                         .IsUnique()
-                        .HasFilter("\"InvitationCode\" IS NOT NULL");
+                        .HasFilter("\"UserId\" IS NOT NULL");
 
                     b.ToTable("Person", "person");
                 });
@@ -1315,9 +1377,6 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
-                    b.Property<string>("Instructions")
-                        .HasColumnType("text");
-
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1334,9 +1393,6 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("PrepTimeMinutes")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("RawIngredientsString")
-                        .HasColumnType("text");
 
                     b.Property<decimal?>("ServingQuantity")
                         .HasColumnType("decimal(18,2)");
@@ -2090,6 +2146,31 @@ namespace Nom.Data.Migrations
                     b.Navigation("MeasurementType");
 
                     b.Navigation("Nutrient");
+                });
+
+            modelBuilder.Entity("Nom.Data.Person.InvitationEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Invitee")
+                        .WithMany()
+                        .HasForeignKey("InviteePersonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Inviter")
+                        .WithMany()
+                        .HasForeignKey("InviterPersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Invitee");
+
+                    b.Navigation("Inviter");
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("Nom.Data.Person.PersonAttributeEntity", b =>

@@ -10,6 +10,8 @@ import { CreateRecipeRequestModel } from '../models/create-recipe-request-model'
 import { RecipeDashboardItemModel } from '../models/recipe-dashboard-item.model';
 import { ReferenceItemModel } from '../../common/models/reference-item.model';
 import { UpdateRecipeRequest } from '../models/update-recipe-request.model';
+import { CreateIngredientRequestModel } from '../models/create-ingredient-request.model';
+import { RecipeEditModel } from '../models/recipe-edit.model';
 
 interface SearchResult {
   id: number;
@@ -27,6 +29,7 @@ interface SearchResult {
 export class RecipeService {
   private readonly apiUrl = `/api/Recipe`;
   private readonly referenceApiUrl = `/api/Reference`;
+  private readonly ingredientsApiUrl = `/api/Ingredients`;
 
 
   constructor(private http: HttpClient) { }
@@ -79,6 +82,14 @@ export class RecipeService {
 
   getIngredientDetails(id: number): Observable<IngredientModel> {
     return this.http.get<IngredientModel>(`${this.apiUrl}/ingredients/${id}`);
+  }
+
+  getRecipe(id: number): Observable<RecipeEditModel> {
+    return this.http.get<RecipeEditModel>(`${this.apiUrl}/${id}`);
+  }
+
+  createIngredient(request: CreateIngredientRequestModel): Observable<IngredientModel> {
+    return this.http.post<IngredientModel>(this.ingredientsApiUrl, request);
   }
 
   createRecipe(request: CreateRecipeRequestModel): Observable<RecipeModel> {

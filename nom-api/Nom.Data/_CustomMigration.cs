@@ -197,10 +197,10 @@ namespace Nom.Data
             migrationBuilder.InsertData(
                 schema: "person",
                 table: "Person",
-                columns: new[] { "Id", "Name", "UserId", "InvitationCode", "CreatedDate", "CreatedByPersonId" },
+                columns: new[] { "Id", "Name", "UserId", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    { SystemPersonId, "System", null, null, DateTime.UtcNow, SystemPersonId }
+                    { SystemPersonId, "System", null, DateTime.UtcNow, SystemPersonId }
                 });
         }
 

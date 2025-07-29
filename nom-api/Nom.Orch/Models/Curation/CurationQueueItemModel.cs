@@ -10,8 +10,6 @@ namespace Nom.Orch.Models.Curation
         public string AuthorName { get; set; } = string.Empty;
         public DateTime DateSubmitted { get; set; }
         public string? Description { get; set; }
-        public string? Instructions { get; set; } // For recipes
-        public string? RawIngredientsString { get; set; } // For recipes
         public string? SourceUrl { get; set; }
         public long AuthorId { get; set; }
     }

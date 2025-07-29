@@ -39,10 +39,10 @@ namespace Nom.Orch.Services
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                person.Name = $"[Deleted User {person.Id}]";
-                person.InvitationCode = null;
+                person.Name = $"Anonymized_{person.Id}";
                 var identityUserId = person.UserId;
                 person.UserId = null;
+                // InvitationCode is now handled by separate InvitationEntity
 
                 var attributes = _dbContext.PersonAttributes.Where(pa => pa.PersonId == personId);
                 _dbContext.PersonAttributes.RemoveRange(attributes);
@@ -55,17 +55,11 @@ namespace Nom.Orch.Services
                     var identityUser = await _userManager.FindByIdAsync(identityUserId);
                     if (identityUser != null)
                     {
-                        identityUser.Email = $"{person.Id}@deleted.user";
-                        identityUser.NormalizedEmail = identityUser.Email.ToUpperInvariant();
-                        identityUser.UserName = identityUser.Email;
-                        identityUser.NormalizedUserName = identityUser.NormalizedEmail;
-                        identityUser.PasswordHash = null;
-                        identityUser.SecurityStamp = Guid.NewGuid().ToString();
-                        identityUser.EmailConfirmed = false;
-                        identityUser.PhoneNumber = null;
-                        identityUser.PhoneNumberConfirmed = false;
-                        identityUser.TwoFactorEnabled = false;
-                        await _userManager.UpdateAsync(identityUser);
+                        var result = await _userManager.DeleteAsync(identityUser);
+                        if (!result.Succeeded)
+                        {
+                            _logger.LogWarning("Failed to delete identity user {UserId}: {Errors}", identityUserId, string.Join(", ", result.Errors.Select(e => e.Description)));
+                        }
                     }
                 }
 

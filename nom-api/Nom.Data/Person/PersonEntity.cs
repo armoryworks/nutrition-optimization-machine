@@ -28,13 +28,6 @@ namespace Nom.Data.Person
         /// </summary>
         public string? UserId { get; set; } // Matches IdentityUser.Id type (typically string)
 
-        /// <summary>
-        /// Optional: The invitation code associated with this person, if they are an invited participant.
-        /// This code is used when an invited person registers and claims their pre-existing Person record.
-        /// Should be unique if not null.
-        /// </summary>
-        [MaxLength(50)]
-        public string? InvitationCode { get; set; } // For invited users to claim this Person record
         public virtual ICollection<PlanParticipantEntity> PlanParticipations { get; set; } = new List<PlanParticipantEntity>();
 
         // Other attributes can be added here or via a PersonAttributeEntity for extensibility

@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Nom.Orch.Interfaces;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize]
     public class IngredientsController : BaseApiController
     {
         private readonly ILogger<IngredientsController> _logger;
@@ -51,8 +52,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var newIngredientId = await _recipeOrch.CreateIngredientAsync(request, GetCurrentPersonId());
-                return CreatedAtAction(nameof(GetIngredient), new { id = newIngredientId }, null);
+                var newIngredient = await _recipeOrch.CreateIngredientAsync(request, GetCurrentPersonId());
+                return CreatedAtAction(nameof(GetIngredient), new { id = newIngredient.Id }, newIngredient);
             }
             catch (Exception ex)
             {

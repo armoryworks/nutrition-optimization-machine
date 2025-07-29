@@ -18,12 +18,11 @@ namespace Nom.Orch.Interfaces
         /// <returns>A response containing the ID of the created or updated person.</returns>
         Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel request);
 
-        /// <summary>
-        /// Generates a unique invitation code for a person.
-        /// </summary>
-        /// <returns>A unique invitation code string.</returns>
-        Task<string> GenerateUniqueInvitationCodeAsync();
-
+        Task<PersonModel> GetPersonByUserIdAsync(string userId);
+        Task<PersonModel> GetPersonByIdAsync(long personId);
+        Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId);
+        Task<PersonModel> UpdatePersonAsync(UpdatePersonRequest request);
+        Task<bool> DeletePersonAsync(long personId);
         Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
 
         long GetCurrentPersonId();

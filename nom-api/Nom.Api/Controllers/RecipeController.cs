@@ -159,8 +159,25 @@ namespace Nom.Api.Controllers
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetRecipe(long id)
         {
-            await Task.CompletedTask;
-            return Ok(new { Id = id, Message = "Endpoint not fully implemented." });
+            try
+            {
+                var authorPersonId = GetCurrentPersonId();
+                var recipe = await _recipeOrchestrationService.GetRecipeForEditAsync(id, authorPersonId);
+                return Ok(recipe);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving recipe {RecipeId}", id);
+                return StatusCode(500, "An unexpected error occurred while retrieving the recipe.");
+            }
         }
     }
 }

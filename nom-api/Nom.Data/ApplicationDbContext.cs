@@ -61,6 +61,7 @@ namespace Nom.Data
         #region Person
         public DbSet<PersonEntity> Persons { get; set; } = default!;
         public DbSet<PersonAttributeEntity> PersonAttributes { get; set; } = default!;
+        public DbSet<InvitationEntity> Invitations { get; set; } = default!;
         #endregion
 
         #region Plan
@@ -121,15 +122,40 @@ namespace Nom.Data
             modelBuilder.Entity<PersonAttributeEntity>().ToTable("PersonAttribute", schema: "person");
 
             modelBuilder.Entity<PersonEntity>()
-                .HasIndex(p => p.InvitationCode)
+                .HasIndex(p => p.UserId)
                 .IsUnique()
-                .HasFilter("\"InvitationCode\" IS NOT NULL");
+                .HasFilter("\"UserId\" IS NOT NULL");
 
             modelBuilder.Entity<PersonEntity>()
                 .HasMany(p => p.PlanParticipations)
                 .WithOne(pp => pp.Person)
                 .HasForeignKey(pp => pp.PersonId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InvitationEntity>()
+                .HasIndex(i => i.Code)
+                .IsUnique();
+
+            modelBuilder.Entity<InvitationEntity>()
+                .HasOne(i => i.Inviter)
+                .WithMany()
+                .HasForeignKey(i => i.InviterPersonId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<InvitationEntity>()
+                .HasOne(i => i.Invitee)
+                .WithMany()
+                .HasForeignKey(i => i.InviteePersonId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<InvitationEntity>()
+                .HasOne(i => i.Plan)
+                .WithMany()
+                .HasForeignKey(i => i.PlanId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
             #endregion
 
             #region Audit Namespace Fluent API Configurations

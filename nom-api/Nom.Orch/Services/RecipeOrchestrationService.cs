@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using System.Text.Json;
 
 namespace Nom.Orch.Services
 {
@@ -154,6 +155,49 @@ namespace Nom.Orch.Services
             _logger.LogInformation("Successfully updated recipe {RecipeId}", recipe.Id);
         }
 
+        public async Task<RecipeEditModel> GetRecipeForEditAsync(long recipeId, long authorPersonId)
+        {
+            var recipe = await _db.Recipes
+                .AsNoTracking()
+                .Include(r => r.RecipeIngredients)
+                    .ThenInclude(ri => ri.Ingredient)
+                .Include(r => r.RecipeSteps)
+                .Where(r => r.Id == recipeId)
+                .Select(r => new RecipeEditModel
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description,
+                    AuthorId = r.AuthorId,
+                    Ingredients = r.RecipeIngredients.Select(ri => new RecipeIngredientModel
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient.Name,
+                        Quantity = ri.Quantity,
+                        MeasurementTypeId = ri.MeasurementTypeId
+                    }).ToList(),
+                    Steps = r.RecipeSteps.Select(rs => new RecipeStepModel
+                    {
+                        Id = rs.Id,
+                        Description = rs.Description,
+                        Order = rs.StepNumber
+                    }).OrderBy(s => s.Order).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (recipe == null)
+            {
+                throw new KeyNotFoundException($"Recipe with ID {recipeId} not found.");
+            }
+
+            if (recipe.AuthorId != authorPersonId)
+            {
+                throw new UnauthorizedAccessException("User is not authorized to edit this recipe.");
+            }
+
+            return recipe;
+        }
+
 
         public async Task<long> CreateNewRecipeVersionAsync(long parentRecipeId, long authorPersonId)
         {
@@ -182,13 +226,11 @@ namespace Nom.Orch.Services
             {
                 Name = parentRecipe.Name,
                 Description = parentRecipe.Description,
-                Instructions = parentRecipe.Instructions,
                 PrepTimeMinutes = parentRecipe.PrepTimeMinutes,
                 CookTimeMinutes = parentRecipe.CookTimeMinutes,
                 Servings = parentRecipe.Servings,
                 ServingQuantity = parentRecipe.ServingQuantity,
                 ServingQuantityMeasurementTypeId = parentRecipe.ServingQuantityMeasurementTypeId,
-                RawIngredientsString = parentRecipe.RawIngredientsString,
                 SourceUrl = parentRecipe.SourceUrl,
                 SourceSite = parentRecipe.SourceSite,
                 AuthorId = authorPersonId,
@@ -256,7 +298,7 @@ namespace Nom.Orch.Services
             return ingredient;
         }
 
-        public async Task<long> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId)
+        public async Task<IngredientModel> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId)
         {
             var newIngredient = new IngredientEntity
             {
@@ -271,7 +313,15 @@ namespace Nom.Orch.Services
             _db.Ingredients.Add(newIngredient);
             await _db.SaveChangesAsync();
             _logger.LogInformation("Created new ingredient {IngredientId} by author {AuthorPersonId}", newIngredient.Id, authorPersonId);
-            return newIngredient.Id;
+            
+            // Return the full ingredient model
+            return new IngredientModel
+            {
+                Id = newIngredient.Id,
+                Name = newIngredient.Name,
+                Description = newIngredient.Description,
+                Nutrients = new List<NutrientValueModel>() // Empty for now, can be populated if needed
+            };
         }
 
         public async Task UpdateIngredientAsync(UpdateIngredientRequest request, long authorPersonId)

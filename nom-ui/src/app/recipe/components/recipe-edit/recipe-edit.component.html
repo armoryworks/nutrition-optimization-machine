@@ -41,7 +41,7 @@
                                 }
                             </mat-autocomplete>
                         </mat-form-field>
-                        <button mat-stroked-button type="button" routerLink="/recipes/ingredients/new">
+                        <button mat-stroked-button type="button" (click)="openCreateIngredientModal()">
                             Create New Ingredient
                         </button>
                     </div>
@@ -93,7 +93,7 @@
                             <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
                             <mat-form-field class="nom-step-list__item-field">
                                 <mat-label>Step</mat-label>
-                                <textarea matInput formControlName="description" cdkTextareaAutosize
+                                <textarea matInput formControlName="instruction" cdkTextareaAutosize
                                     #autosize="cdkTextareaAutosize" cdkAutosizeMinRows="3"></textarea>
                             </mat-form-field>
                             <button mat-icon-button type="button" (click)="removeStep(i)" title="Remove Step"
@@ -117,6 +117,14 @@
                 (click)="onSubmit()">
                 {{ isEditMode ? 'Save Changes' : 'Create Recipe' }}
             </button>
+            @if (isEditMode && recipeId) {
+            <button mat-stroked-button color="accent" type="button" 
+                [disabled]="recipeForm.invalid || isSubmitting"
+                (click)="submitForCuration()">
+                <mat-icon>send</mat-icon>
+                Submit for Curation
+            </button>
+            }
         </mat-card-actions>
         }
     </mat-card>

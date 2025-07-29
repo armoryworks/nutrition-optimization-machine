@@ -584,7 +584,7 @@ pre.rouge .gs {
 <li><a href="#_specific_restriction_details">Specific Restriction Details</a></li>
 </ul>
 </li>
-<li><a href="#recipe-management-requirements">Recipe &amp; Ingredient Management (PARTIALLY IMPLEMENTED)</a></li>
+<li><a href="#recipe-management-requirements">Recipe &amp; Ingredient Management (IMPLEMENTED)</a></li>
 <li><a href="#curation-requirements">Content Curation Workflow (PARTIALLY IMPLEMENTED)</a></li>
 <li><a href="#communication-requirements">User Communication System (PARTIALLY IMPLEMENTED)</a></li>
 <li><a href="#admin-requirements">Administrative Functions (PARTIALLY IMPLEMENTED)</a></li>
@@ -687,6 +687,7 @@ pre.rouge .gs {
 <li><a href="#recipe-author-dashboard-component">RecipeAuthorDashboardComponent</a></li>
 <li><a href="#recipe-edit-component">RecipeEditComponent</a></li>
 <li><a href="#curation-queue-component">CurationQueueComponent</a></li>
+<li><a href="#ingredient-create-modal-component">IngredientCreateModalComponent</a></li>
 </ul>
 </li>
 <li><a href="#communication-admin-components">Communication &amp; Admin Components (PARTIALLY IMPLEMENTED)</a>
@@ -876,13 +877,37 @@ pre.rouge .gs {
 </tr>
 </table>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>Changelog for v2.5 (July 29, 2025)</strong>
+- Added comprehensive technical implementation details for authentication configuration and Bearer token handling
+- Documented ingredient creation workflow improvements including modal-based creation and duplicate prevention
+- Added details about frontend form validation and backend response handling for recipe creation
+- Documented the invitation system refactoring from InvitationCode to dedicated InvitationEntity
+- Added information about entity field audit and removal of redundant fields (Instructions, RawIngredientsString)
+- Updated authentication configuration to support both Identity.Bearer and JWT Bearer schemes
+- Added details about source map configuration for Angular debugging
+- Documented the complete recipe creation workflow with ingredient search and modal creation
+- Added information about curation status enums and type safety improvements
+- Updated component status mappings to reflect current implementation state</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_abstract"><a class="link" href="#_abstract">Abstract</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.4) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system&#8217;s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
+<p>This document outlines the business analysis and functional specifications for key components of the Nutritional Optimization Machine (NOM) program. It synthesizes the requirements and functionalities identified and developed during the initial phases of the project, particularly focusing on user onboarding, dietary restriction management, data privacy compliance, and foundational system architecture. This revision (2.5) expands the specification to include a comprehensive recipe and ingredient management system, a site-wide content curation workflow, and a user-to-user communication platform. The purpose of this specification is to provide a common understanding for stakeholders, developers, and testers regarding the system&#8217;s current and planned capabilities, its intended user interactions, the data privacy requirements, and the underlying business rules it enforces.</p>
 </div>
 </div>
 </div>
@@ -1171,7 +1196,7 @@ pre.rouge .gs {
 </div>
 </div>
 <div class="sect2">
-<h3 id="recipe-management-requirements"><a class="link" href="#recipe-management-requirements">Recipe &amp; Ingredient Management (PARTIALLY IMPLEMENTED)</a></h3>
+<h3 id="recipe-management-requirements"><a class="link" href="#recipe-management-requirements">Recipe &amp; Ingredient Management (IMPLEMENTED)</a></h3>
 <div class="paragraph">
 <div class="title">Objective</div>
 <p>To empower Recipe Authors to create, manage, and version their own recipes and custom ingredients.</p>
@@ -1215,6 +1240,14 @@ pre.rouge .gs {
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.7</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Version Pre-population</strong>: When creating a new version of an existing recipe, the creation form shall be pre-populated with all the data from the previous version.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.8</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Ingredient Duplicate Prevention</strong>: The system shall prevent creation of duplicate ingredients by implementing real-time duplicate checking in the ingredient creation modal, providing UI feedback and allowing users to select existing ingredients instead.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-RM-1.9</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Modal-Based Ingredient Creation</strong>: Ingredient creation shall occur in a modal dialog that pre-populates the ingredient name from the search field, returns the created ingredient to the parent component, and automatically selects it in the recipe form.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1424,6 +1457,14 @@ pre.rouge .gs {
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.4</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>User Login</strong>: The system shall support user login, issuing authentication tokens upon successful credential verification.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.5</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Dual Authentication Scheme Support</strong>: The system shall support both <code>IdentityConstants.BearerScheme</code> and <code>JwtBearerDefaults.AuthenticationScheme</code> to ensure compatibility with different token types and frontend authentication patterns.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>FR-4.6</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Claims-Based Authorization</strong>: The system shall implement claims-based authorization with policies for <code>CanManageCuration</code> and <code>CanManageUserRoles</code>, supporting both authentication schemes.</p></td>
 </tr>
 </tbody>
 </table>
@@ -2073,6 +2114,14 @@ pre.rouge .gs {
 <dd>
 <p>Dedicated privacy management components including consent collection, privacy dashboard, and data export functionality</p>
 </dd>
+<dt><strong>Source Map Configuration</strong></dt>
+<dd>
+<p>TypeScript and Angular configurations optimized for debugging with explicit source map generation and development build settings</p>
+</dd>
+<dt><strong>Authentication</strong></dt>
+<dd>
+<p>Bearer token authentication with automatic token management, refresh capabilities, and claims-based authorization</p>
+</dd>
 </dl>
 </div>
 <div class="sect3">
@@ -2134,6 +2183,14 @@ pre.rouge .gs {
 <dt><strong>Authentication Configuration</strong></dt>
 <dd>
 <p>Bearer token expiration configured to 24 hours via <code>BearerTokenExpiration</code> setting in <code>Program.cs</code></p>
+</dd>
+<dt><strong>Authentication Schemes</strong></dt>
+<dd>
+<p>Dual Bearer token support - <code>IdentityConstants.BearerScheme</code> for Identity tokens and <code>JwtBearerDefaults.AuthenticationScheme</code> for standard JWT tokens, ensuring compatibility with frontend authentication</p>
+</dd>
+<dt><strong>Authorization Policies</strong></dt>
+<dd>
+<p>Claims-based authorization with <code>CanManageCuration</code> and <code>CanManageUserRoles</code> policies supporting both authentication schemes</p>
 </dd>
 </dl>
 </div>
@@ -2817,11 +2874,11 @@ Top-level component for authors to view and manage their created recipes and ing
 <p>HTML: <code>src/app/recipe/components/recipe-edit/recipe-edit.component.html</code>
 .Role
 A form for creating and editing recipes, including associating existing ingredients or creating new ones.
-.Status: IMPLEMENTED - Full CRUD functionality with ingredient search, drag-drop reordering, and recipe versioning
+.Status: IMPLEMENTED - Full CRUD functionality with ingredient search, modal-based ingredient creation, duplicate prevention, drag-drop reordering, and recipe versioning
 .Functional Requirements Mapping</p>
 </li>
 <li>
-<p><a href="#recipe-management-requirements">FR-RM-1.1</a>, <a href="#recipe-management-requirements">FR-RM-1.2</a>, <a href="#recipe-management-requirements">FR-RM-1.3</a>, <a href="#recipe-management-requirements">FR-RM-1.6</a>, <a href="#recipe-management-requirements">FR-RM-1.7</a></p>
+<p><a href="#recipe-management-requirements">FR-RM-1.1</a>, <a href="#recipe-management-requirements">FR-RM-1.2</a>, <a href="#recipe-management-requirements">FR-RM-1.3</a>, <a href="#recipe-management-requirements">FR-RM-1.6</a>, <a href="#recipe-management-requirements">FR-RM-1.7</a>, <a href="#recipe-management-requirements">FR-RM-1.8</a>, <a href="#recipe-management-requirements">FR-RM-1.9</a></p>
 </li>
 </ul>
 </div>
@@ -2843,6 +2900,30 @@ Admin-only interface for viewing and actioning items in the curation queue.
 </li>
 <li>
 <p><a href="#curation-requirements">FR-CU-2.2</a>, <a href="#curation-requirements">FR-CU-2.3</a>, <a href="#curation-requirements">FR-CU-2.4</a>, <a href="#curation-requirements">FR-CU-2.5</a>, <a href="#curation-requirements">FR-CU-2.6</a>, <a href="#curation-requirements">FR-CU-2.7</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ingredient-create-modal-component"><a class="link" href="#ingredient-create-modal-component">IngredientCreateModalComponent</a></h4>
+<div class="ulist">
+<div class="title">File Locations</div>
+<ul>
+<li>
+<p>TypeScript: <code>src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.ts</code></p>
+</li>
+<li>
+<p>HTML: <code>src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.html</code></p>
+</li>
+<li>
+<p>SCSS: <code>src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.scss</code>
+.Role
+Modal dialog for creating new ingredients with real-time duplicate checking and existing ingredient selection.
+.Status: IMPLEMENTED - Full functionality with duplicate prevention, UI feedback, and robust data flow
+.Functional Requirements Mapping</p>
+</li>
+<li>
+<p><a href="#recipe-management-requirements">FR-RM-1.3</a>, <a href="#recipe-management-requirements">FR-RM-1.8</a>, <a href="#recipe-management-requirements">FR-RM-1.9</a></p>
 </li>
 </ul>
 </div>
@@ -3023,72 +3104,46 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h4 id="_core_models"><a class="link" href="#_core_models">Core Models</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Model</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>_BaseCommonModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/common/models/_base-common.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Base interface for common properties like <code>id</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ApiResponseCommonModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/common/models/api-response-common.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Common structure for API responses</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/person/models/person.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core person entity data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonAttributeModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/person/models/person-attribute.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Health attributes data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RestrictionModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/restriction/models/restriction.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Dietary restriction data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>OnboardingCompleteRequestModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/onboarding/models/onboarding-complete-request.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consolidated onboarding submission payload</p></td>
 </tr>
 </tbody>
@@ -3098,45 +3153,31 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h4 id="_privacy_models_new"><a class="link" href="#_privacy_models_new">Privacy Models (COMPLETE)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Model</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ConsentModel</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/consent.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consent record data structure</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>DataExportRequest</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/data-export-request.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Data export request payload</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrivacyRequestStatusResponse</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>src/app/privacy/models/privacy-request-status-response.model.ts</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Response for asynchronous privacy requests</p></td>
 </tr>
 </tbody>
@@ -3301,63 +3342,41 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Status: IMPLEMENTED - User role management with proper authorization</caption>
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Person/PersonEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core user profile data storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersonAttributeEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Person/PersonAttributeEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Health attributes storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RestrictionEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/RestrictionEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Dietary restrictions storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PlanEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/PlanEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Nutritional plan definitions</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PlanParticipantEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Plan/PlanParticipantEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Person-to-plan relationships</p></td>
 </tr>
 </tbody>
@@ -3367,45 +3386,31 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h4 id="_privacy_entities_new"><a class="link" href="#_privacy_entities_new">Privacy Entities (NEW)</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UserConsentEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/UserConsentEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">User consent records storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>DataProcessingLogEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/DataProcessingLogEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Audit trail for data access/modifications</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrivacyRequestEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Privacy/PrivacyRequestEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Data subject rights request tracking</p></td>
 </tr>
 </tbody>
@@ -3440,82 +3445,57 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h3 id="new-backend-entities"><a class="link" href="#new-backend-entities">Backend Entities (NEW)</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RecipeEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeEntity.cs</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Will be modified to include <code>Version</code> and <code>ParentRecipeId</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Modified to include <code>Version</code> and <code>ParentRecipeId</code>. <strong>CLEANED:</strong> Removed redundant <code>Instructions</code> and <code>RawIngredientsString</code> fields.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>RecipeIngredientEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Recipe/RecipeIngredientEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Junction table linking recipes to ingredients.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>IngredientEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Ingredient/IngredientEntity.cs</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Will be modified to include <code>AuthorId</code> and <code>CurationStatus</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>UPDATED:</strong> Modified to include <code>AuthorId</code> and <code>CurationStatus</code>. Maintains <code>FdcDataType</code> for USDA integration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>CurationFeedbackEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Curation/CurationFeedbackEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Stores admin feedback for recipes and ingredients.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageThreadEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Represents a conversation thread.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageThreadParticipantEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageThreadParticipantEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Junction table linking users to message threads.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>MessageEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Communication/MessageEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Represents a single message within a thread.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Represents a single message within a thread.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>InvitationEntity</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Person/InvitationEntity.cs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>NEW:</strong> Dedicated invitation system replacing <code>InvitationCode</code> fields on Person and Plan entities.</p></td>
 </tr>
 </tbody>
 </table>
@@ -3523,45 +3503,31 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h4 id="_reference_data_entities"><a class="link" href="#_reference_data_entities">Reference Data Entities</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 100%;">
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Entity</th>
+<th class="tableblock halign-left valign-top">File Location</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">File Location</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Purpose</p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ReferenceEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/ReferenceEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Core reference data storage</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>GroupEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/GroupEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Reference data categorization</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>GroupedReferenceViewEntity</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Nom.Data/Reference/GroupedReferenceViewEntity.cs</code></p></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Structured reference data views</p></td>
 </tr>
 </tbody>
@@ -3997,6 +3963,18 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <dd>
 <p>Use getters in TypeScript for complex template logic (e.g., <code>filteredRestrictionsForCurrentPerson</code>). This resolved "Parser Error: Bindings cannot contain assignments" issues.</p>
 </dd>
+<dt><strong>Source Map Configuration</strong></dt>
+<dd>
+<p>For debugging in Firefox/Chrome, ensure TypeScript and Angular configurations explicitly enable source maps. Add <code>"sourceMap": true</code> to <code>tsconfig.json</code> and configure development builds with proper source map settings.</p>
+</dd>
+<dt><strong>Form Validation</strong></dt>
+<dd>
+<p>When working with complex forms (like recipe creation), ensure proper form validation by calling <code>updateValueAndValidity()</code> after dynamic changes and using <code>setTimeout</code> for async operations to ensure validation state is properly updated.</p>
+</dd>
+<dt><strong>Modal Data Flow</strong></dt>
+<dd>
+<p>When using modals for data creation (like ingredient creation), ensure robust data extraction from modal results, handling both object and primitive return types, and properly updating parent component state.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -4016,6 +3994,22 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <dd>
 <p>Always consider data minimization when adding new data collection points. Document the lawful basis for any new personal data processing.</p>
 </dd>
+<dt><strong>Authentication Scheme Configuration</strong></dt>
+<dd>
+<p>When implementing Bearer token authentication, ensure both <code>IdentityConstants.BearerScheme</code> and <code>JwtBearerDefaults.AuthenticationScheme</code> are configured to handle different token types and prevent "No authentication handler is registered" errors.</p>
+</dd>
+<dt><strong>Authorization Policies</strong></dt>
+<dd>
+<p>Configure authorization policies to support multiple authentication schemes using <code>AddAuthenticationSchemes()</code> to ensure compatibility with different token types.</p>
+</dd>
+<dt><strong>Entity Field Auditing</strong></dt>
+<dd>
+<p>Regularly audit entity fields to identify and remove redundant or inappropriate fields (like <code>Instructions</code> string properties that duplicate <code>RecipeSteps</code> collections).</p>
+</dd>
+<dt><strong>Database Migration Safety</strong></dt>
+<dd>
+<p>When removing fields from entities, ensure all references are updated in migrations, services, and controllers to prevent runtime errors during migration application.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -4034,6 +4028,22 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <dt><strong>Service Scope Issues</strong></dt>
 <dd>
 <p>Resolved <code>ServiceScopeFactory</code> reference errors in <code>Program.cs</code> by ensuring proper dependency injection configuration.</p>
+</dd>
+<dt><strong>Authentication Debugging</strong></dt>
+<dd>
+<p>When debugging authentication issues, check both frontend token storage and backend authentication scheme configuration. Use browser dev tools to inspect token format and backend logs for authentication handler registration.</p>
+</dd>
+<dt><strong>Form Validation Debugging</strong></dt>
+<dd>
+<p>For complex forms, add temporary debug panels to inspect form validity states and individual control validation. Use <code>console.log</code> to track form state changes and identify validation issues.</p>
+</dd>
+<dt><strong>Modal Data Flow Debugging</strong></dt>
+<dd>
+<p>When debugging modal data flow, log both the modal result and the extracted data in the parent component to identify data transformation issues.</p>
+</dd>
+<dt><strong>Source Map Issues</strong></dt>
+<dd>
+<p>If source files don&#8217;t appear in browser debugger, check TypeScript and Angular configuration for source map settings, clear browser cache, and ensure development build is used.</p>
 </dd>
 </dl>
 </div>
@@ -5067,7 +5077,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Recipe Management</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">IMPLEMENTED</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Full CRUD functionality with ingredient search, drag-drop, and versioning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full CRUD functionality with ingredient search, modal-based ingredient creation, duplicate prevention, drag-drop, and versioning</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Curation Queue</p></td>
@@ -5087,7 +5097,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Authentication</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Full authentication flow with Bearer tokens (24-hour expiration) and claims-based authorization</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full authentication flow with dual Bearer token support (Identity and JWT schemes), 24-hour expiration, and claims-based authorization</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">IoC Architecture</p></td>
@@ -5107,19 +5117,19 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><strong>Complete Curation Queue UI</strong> - Build the admin interface for reviewing and managing pending submissions</p>
+<p><strong>Complete Curation Queue UI</strong>: Finish the admin interface for reviewing and managing pending submissions</p>
 </li>
 <li>
-<p><strong>Complete Messaging Inbox UI</strong> - Build the user interface for viewing and composing messages</p>
+<p><strong>Complete Messaging System</strong>: Implement the frontend messaging inbox and thread management</p>
 </li>
 <li>
-<p><strong>Add Recipe Author Dashboard</strong> - Create the dashboard for authors to view their recipes by status</p>
+<p><strong>Complete Multi-Participant Onboarding</strong>: Finish the remaining onboarding workflow for multiple participants</p>
 </li>
 <li>
-<p><strong>Complete Multi-Participant Onboarding</strong> - Finish the remaining onboarding workflow components</p>
+<p><strong>Frontend Invitation System</strong>: Implement the new invitation workflow components in the UI</p>
 </li>
 <li>
-<p><strong>Add Email Notifications</strong> - Implement automated email notifications for key events</p>
+<p><strong>Testing and Validation</strong>: Comprehensive testing of all implemented features</p>
 </li>
 </ol>
 </div>
@@ -5130,9 +5140,24 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h2 id="conclusion"><a class="link" href="#conclusion">Conclusion</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This comprehensive business analysis specification provides a complete roadmap for the Nutritional Optimization Machine (NOM) platform development, now including a full suite of content management and communication tools. It serves as both a technical guide and a compliance framework, ensuring that privacy considerations are built into the system from the ground up. The successful implementation of these new features will significantly enhance the platform&#8217;s value by fostering a rich, trustworthy, and collaborative community ecosystem.</p>
+<p>This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program&#8217;s current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, and administrative oversight capabilities.</p>
 </div>
-<hr>
+<div class="paragraph">
+<p>Key achievements include:
+- Complete authentication and authorization system with dual Bearer token support
+- Full privacy compliance implementation with GDPR-compliant data subject rights
+- Comprehensive recipe and ingredient management with modal-based creation and duplicate prevention
+- Robust curation workflow with admin interface and type-safe status management
+- Event-driven architecture with decoupled services for improved maintainability
+- Material 3 theming and responsive design throughout the application</p>
+</div>
+<div class="paragraph">
+<p>The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, and user experience. The modular architecture supports future enhancements while maintaining code quality and consistency.</p>
+</div>
+<div class="paragraph">
+<p>As the project continues to evolve, this specification serves as a living document that will be updated to reflect new features, architectural decisions, and implementation details.
+---</p>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 25%;">
@@ -5147,11 +5172,11 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Version</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2.4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.5</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Date</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">July 28, 2025</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">July 29, 2025</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Status</p></td>
@@ -5169,7 +5194,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <div id="footer">
 <div id="footer-text">
 Version 2.4<br>
-Last updated 2025-07-28 02:38:46 -0600
+Last updated 2025-07-29 01:46:33 -0600
 </div>
 </div>
 </body>
