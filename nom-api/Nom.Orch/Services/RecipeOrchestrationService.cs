@@ -308,7 +308,7 @@ namespace Nom.Orch.Services
                 CurationStatusId = 9000L // NonCurated
             };
 
-            // Logic to add IngredientNutrientEntity records from the request would go here
+            // Logic to add nutrient records from the request would go here
 
             _db.Ingredients.Add(newIngredient);
             await _db.SaveChangesAsync();

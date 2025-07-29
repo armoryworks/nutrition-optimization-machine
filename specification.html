@@ -625,6 +625,36 @@ pre.rouge .gs {
 <li><a href="#backend-arch">Backend Architecture (nom-api - ASP.NET Core Web API)</a></li>
 <li><a href="#ioc-architecture">IoC Architecture &amp; Service Communication</a></li>
 <li><a href="#database-arch">Database Architecture (PostgreSQL)</a></li>
+<li><a href="#data-cleanup-strategy">USDA FDC Data Cleanup &amp; Standardization Strategy</a>
+<ul class="sectlevel3">
+<li><a href="#_data-quality-issues">Data Quality Issues Identified</a></li>
+<li><a href="#_cleanup-action-plan">Data Cleanup Action Plan</a>
+<ul class="sectlevel4">
+<li><a href="#_phase-1-filtering">Phase 1: Data Cleanup &amp; Filtering</a></li>
+<li><a href="#_phase-2-standardization">Phase 2: Name Standardization</a></li>
+<li><a href="#_phase-3-nutrient-prioritization">Phase 3: Nutrient Prioritization</a></li>
+<li><a href="#_phase-4-import-improvements">Phase 4: Import Process Improvements</a></li>
+<li><a href="#_phase-5-application-integration">Phase 5: Application Integration</a></li>
+<li><a href="#_immediate-action-items">Immediate Action Items</a></li>
+<li><a href="#_importsource-augmentation-plan">ImportSource CSV Dataset Augmentation Plan</a></li>
+<li><a href="#_phase-1-foundation-enhancement">Phase 1: Foundation Enhancement (High Priority)</a></li>
+<li><a href="#_phase-2-advanced-features">Phase 2: Advanced Features (Medium Priority)</a></li>
+<li><a href="#_phase-3-advanced-analytics">Phase 3: Advanced Analytics (Long Term)</a></li>
+<li><a href="#_data-quality-improvements">Data Quality Improvements</a></li>
+<li><a href="#_immediate-implementation-steps">Immediate Implementation Steps</a></li>
+<li><a href="#_enhanced-import-system">Enhanced Import System Implementation</a></li>
+<li><a href="#_enhanced-import-features">Enhanced Import Features</a></li>
+<li><a href="#_enhanced-import-architecture">Enhanced Import Architecture</a></li>
+<li><a href="#_enhanced-import-quality-scoring">Quality Scoring Algorithm</a></li>
+<li><a href="#_enhanced-import-expected-results">Expected Results</a></li>
+<li><a href="#_enhanced-import-performance">Performance Comparison</a></li>
+<li><a href="#_enhanced-import-usage">Usage and Configuration</a></li>
+<li><a href="#_enhanced-import-file-structure">Enhanced Import File Structure</a></li>
+<li><a href="#_enhanced-import-phases">Implementation Phases</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a href="#privacy-arch">Privacy &amp; Compliance Architecture</a></li>
 </ul>
 </li>
@@ -895,7 +925,10 @@ pre.rouge .gs {
 - Added details about source map configuration for Angular debugging
 - Documented the complete recipe creation workflow with ingredient search and modal creation
 - Added information about curation status enums and type safety improvements
-- Updated component status mappings to reflect current implementation state</p>
+- Updated component status mappings to reflect current implementation state
+- <strong>NEW</strong>: Added comprehensive USDA FDC Data Cleanup &amp; Standardization Strategy with 5-phase action plan for managing the 490K+ ingredient dataset
+- <strong>NEW</strong>: Added ImportSource CSV Dataset Augmentation Plan with 3-phase implementation strategy for 39.8M records across 43 CSV files
+- <strong>NEW</strong>: Added Enhanced Import System Implementation with Phase 1 complete (quality filtering, performance optimization, comprehensive configuration)</p>
 </div>
 </td>
 </tr>
@@ -2269,6 +2302,1315 @@ pre.rouge .gs {
 <p>Data encryption at rest for sensitive personal information</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="data-cleanup-strategy"><a class="link" href="#data-cleanup-strategy">USDA FDC Data Cleanup &amp; Standardization Strategy</a></h3>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>Current Data State (July 29, 2025)</strong>
+- <strong>490,533 ingredients</strong> imported from USDA FoodData Central
+- <strong>406 nutrients</strong> with comprehensive coverage
+- <strong>6,930,337 ingredient-nutrient relationships</strong> (~14.8 nutrients per ingredient)
+- <strong>94.9% branded foods</strong> (465,641) vs 0.05% foundation foods (239)</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_data-quality-issues"><a class="link" href="#_data-quality-issues">Data Quality Issues Identified</a></h4>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Naming Problems</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Extremely long ingredient names (up to 581 characters)</p>
+</li>
+<li>
+<p>Repetitive, concatenated product names</p>
+</li>
+<li>
+<p>1 empty ingredient name</p>
+</li>
+<li>
+<p>Inconsistent naming conventions</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Usability Issues</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Hard to search and filter effectively</p>
+</li>
+<li>
+<p>Difficult to find common ingredients</p>
+</li>
+<li>
+<p>Branded products dominate, making it hard to find generic ingredients</p>
+</li>
+<li>
+<p>Overwhelming dataset impacts performance</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Performance Concerns</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>6.9M nutrient relationships to process</p>
+</li>
+<li>
+<p>Large dataset impacts search performance</p>
+</li>
+<li>
+<p>Complex queries become expensive</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_cleanup-action-plan"><a class="link" href="#_cleanup-action-plan">Data Cleanup Action Plan</a></h4>
+<div class="sect4">
+<h5 id="_phase-1-filtering"><a class="link" href="#_phase-1-filtering">Phase 1: Data Cleanup &amp; Filtering</a></h5>
+<div class="paragraph">
+<p><strong>Create a curated subset focusing on foundation foods and common ingredients</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="sql"><span class="c1">-- Create a curated subset focusing on foundation foods and common ingredients</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">recipe</span><span class="p">.</span><span class="nv">"CuratedIngredient"</span> <span class="k">AS</span>
+<span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">recipe</span><span class="p">.</span><span class="nv">"Ingredient"</span>
+<span class="k">WHERE</span> <span class="nv">"FdcDataType"</span> <span class="k">IN</span> <span class="p">(</span><span class="s1">'foundation_food'</span><span class="p">,</span> <span class="s1">'sr_legacy_food'</span><span class="p">)</span>
+   <span class="k">OR</span> <span class="nv">"Name"</span> <span class="k">LIKE</span> <span class="s1">'%apple%'</span>
+   <span class="k">OR</span> <span class="nv">"Name"</span> <span class="k">LIKE</span> <span class="s1">'%chicken%'</span>
+   <span class="k">OR</span> <span class="nv">"Name"</span> <span class="k">LIKE</span> <span class="s1">'%rice%'</span>
+   <span class="c1">-- Add more common ingredient patterns</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-2-standardization"><a class="link" href="#_phase-2-standardization">Phase 2: Name Standardization</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Standardized Ingredient Names</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Remove brand names from ingredient titles</p>
+</li>
+<li>
+<p>Standardize measurements (e.g., "1 cup", "100g")</p>
+</li>
+<li>
+<p>Normalize common variations and synonyms</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Ingredient Aliases</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Map multiple names to single ingredients</p>
+</li>
+<li>
+<p>Handle regional variations (e.g., "aubergine" vs "eggplant")</p>
+</li>
+<li>
+<p>Support common misspellings and abbreviations</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Quality Scoring</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Implement automated quality scoring for ingredients</p>
+</li>
+<li>
+<p>Prioritize foundation foods and survey foods</p>
+</li>
+<li>
+<p>Flag low-quality or incomplete data</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-3-nutrient-prioritization"><a class="link" href="#_phase-3-nutrient-prioritization">Phase 3: Nutrient Prioritization</a></h5>
+<div class="paragraph">
+<p><strong>Focus on key nutrients for most use cases</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="sql"><span class="c1">-- Focus on key nutrients for most use cases</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">nutrient</span><span class="p">.</span><span class="nv">"CoreNutrients"</span> <span class="k">AS</span>
+<span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">nutrient</span><span class="p">.</span><span class="nv">"Nutrient"</span>
+<span class="k">WHERE</span> <span class="nv">"Name"</span> <span class="k">IN</span> <span class="p">(</span>
+    <span class="s1">'Protein'</span><span class="p">,</span> <span class="s1">'Fat'</span><span class="p">,</span> <span class="s1">'Carbohydrates'</span><span class="p">,</span> <span class="s1">'Fiber'</span><span class="p">,</span> <span class="s1">'Sugar'</span><span class="p">,</span>
+    <span class="s1">'Sodium'</span><span class="p">,</span> <span class="s1">'Calcium'</span><span class="p">,</span> <span class="s1">'Iron'</span><span class="p">,</span> <span class="s1">'Vitamin A'</span><span class="p">,</span> <span class="s1">'Vitamin C'</span><span class="p">,</span>
+    <span class="s1">'Vitamin D'</span><span class="p">,</span> <span class="s1">'Vitamin E'</span><span class="p">,</span> <span class="s1">'Vitamin K'</span><span class="p">,</span> <span class="s1">'Thiamin'</span><span class="p">,</span> <span class="s1">'Riboflavin'</span><span class="p">,</span>
+    <span class="s1">'Niacin'</span><span class="p">,</span> <span class="s1">'Vitamin B6'</span><span class="p">,</span> <span class="s1">'Folate'</span><span class="p">,</span> <span class="s1">'Vitamin B12'</span>
+<span class="p">);</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-4-import-improvements"><a class="link" href="#_phase-4-import-improvements">Phase 4: Import Process Improvements</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Pre-import Filtering</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Filter out branded products by default</p>
+</li>
+<li>
+<p>Focus on foundation foods and survey foods</p>
+</li>
+<li>
+<p>Implement quality scoring during import</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Post-import Curation</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Manual review of high-value ingredients</p>
+</li>
+<li>
+<p>Community curation for common ingredients</p>
+</li>
+<li>
+<p>Automated quality checks and validation</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Performance Optimization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Create materialized views for common queries</p>
+</li>
+<li>
+<p>Implement caching for frequently accessed data</p>
+</li>
+<li>
+<p>Add database indexes for search optimization</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-5-application-integration"><a class="link" href="#_phase-5-application-integration">Phase 5: Application Integration</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Search Optimization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Implement fuzzy matching for ingredient search</p>
+</li>
+<li>
+<p>Prioritize curated ingredients in search results</p>
+</li>
+<li>
+<p>Support ingredient aliases and synonyms</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Performance Improvements</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Create materialized views for common queries</p>
+</li>
+<li>
+<p>Implement caching for frequently accessed data</p>
+</li>
+<li>
+<p>Add database indexes for search optimization</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>User Experience</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Provide ingredient suggestions based on common patterns</p>
+</li>
+<li>
+<p>Implement autocomplete with curated ingredient list</p>
+</li>
+<li>
+<p>Support ingredient substitution recommendations</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_immediate-action-items"><a class="link" href="#_immediate-action-items">Immediate Action Items</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>High Priority</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Create a curated ingredient subset (1,000-5,000 most common ingredients)</p>
+</li>
+<li>
+<p>Implement name standardization for better searchability</p>
+</li>
+<li>
+<p>Focus on core nutrients (20-30 most important) for most use cases</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Medium Priority</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Add ingredient aliases for better user experience</p>
+</li>
+<li>
+<p>Implement quality scoring to prioritize better data</p>
+</li>
+<li>
+<p>Create materialized views for performance optimization</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Long Term</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Community curation system for ingredient quality</p>
+</li>
+<li>
+<p>Machine learning for ingredient name normalization</p>
+</li>
+<li>
+<p>Advanced search algorithms with semantic understanding</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_importsource-augmentation-plan"><a class="link" href="#_importsource-augmentation-plan">ImportSource CSV Dataset Augmentation Plan</a></h5>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>ImportSource Dataset Overview (July 29, 2025)</strong>
+- <strong>43 CSV files</strong> with <strong>39.8M total records</strong>
+- <strong>Key datasets</strong>: food_nutrient.csv (26.8M), food.csv (2.1M), branded_food.csv (2.0M), Recipe.csv (2.2M)
+- <strong>Quality indicators</strong>: data_points, derivation_id, footnote, min_year_acquired
+- <strong>Comprehensive coverage</strong>: 479 nutrients, 20+ food categories, FDA guidelines</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-1-foundation-enhancement"><a class="link" href="#_phase-1-foundation-enhancement">Phase 1: Foundation Enhancement (High Priority)</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Foundation Foods Import</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Import 342 foundation foods for quality ingredients</p>
+</li>
+<li>
+<p>Focus on generic ingredients over branded products</p>
+</li>
+<li>
+<p>Implement quality scoring based on data points and derivation</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Nutrient Quality Scoring</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use <code>data_points</code>, <code>derivation_id</code>, <code>footnote</code> for quality assessment</p>
+</li>
+<li>
+<p>Prioritize nutrients with multiple data points and recent acquisition dates</p>
+</li>
+<li>
+<p>Implement automated quality filtering for ingredient selection</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Measurement Standardization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Integrate measure_unit.csv (123 units) for consistent measurements</p>
+</li>
+<li>
+<p>Use food_portion.csv (47K portions) for accurate serving sizes</p>
+</li>
+<li>
+<p>Implement gram_weight calculations for nutritional accuracy</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Recipe Import &amp; Categorization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Import 2.2M recipes from Recipe.csv with structured ingredients</p>
+</li>
+<li>
+<p>Use NER (Named Entity Recognition) field for ingredient extraction</p>
+</li>
+<li>
+<p>Auto-categorize recipes using food_category.csv (29 categories)</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-2-advanced-features"><a class="link" href="#_phase-2-advanced-features">Phase 2: Advanced Features (Medium Priority)</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Dietary Guidelines Integration</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Integrate guidelines.csv (FDA Labeling Standards) for nutritional goals</p>
+</li>
+<li>
+<p>Implement %DV calculations using percent_daily_value field</p>
+</li>
+<li>
+<p>Create personalized recommendations based on user demographics</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Enhanced Search &amp; Discovery</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Implement semantic search using multiple data sources</p>
+</li>
+<li>
+<p>Use food_attribute.csv (2.5M attributes) for advanced filtering</p>
+</li>
+<li>
+<p>Leverage food_component.csv for ingredient substitution suggestions</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Quality Filtering System</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Filter ingredients by quality indicators (data_points, derivation_id)</p>
+</li>
+<li>
+<p>Prioritize foundation foods and survey foods over branded products</p>
+</li>
+<li>
+<p>Implement data freshness scoring using min_year_acquired</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Recipe Categorization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Auto-categorize recipes by food category using ingredient composition</p>
+</li>
+<li>
+<p>Map categories to dietary restrictions (dairy-free, gluten-free, etc.)</p>
+</li>
+<li>
+<p>Use market_acquisition.csv for seasonal availability recommendations</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_phase-3-advanced-analytics"><a class="link" href="#_phase-3-advanced-analytics">Phase 3: Advanced Analytics (Long Term)</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Ingredient Substitution Engine</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use food_component.csv for smart ingredient substitutions</p>
+</li>
+<li>
+<p>Implement nutritional equivalence calculations</p>
+</li>
+<li>
+<p>Provide allergy-friendly and dietary restriction alternatives</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Seasonal &amp; Market Intelligence</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use market_acquisition.csv (7K records) for seasonal recommendations</p>
+</li>
+<li>
+<p>Implement agricultural_samples.csv for regional ingredient availability</p>
+</li>
+<li>
+<p>Create market-based ingredient suggestions</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Personalized Nutrition Algorithms</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Advanced algorithms using comprehensive nutrient data (479 nutrients)</p>
+</li>
+<li>
+<p>Machine learning for ingredient name normalization</p>
+</li>
+<li>
+<p>Semantic understanding for recipe and ingredient matching</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Community Features</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Recipe sharing with quality indicators</p>
+</li>
+<li>
+<p>Community curation system for ingredient quality</p>
+</li>
+<li>
+<p>User-generated content with quality validation</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_data-quality-improvements"><a class="link" href="#_data-quality-improvements">Data Quality Improvements</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Quality Indicators</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>data_points</code>: Number of supporting data points (higher = better quality)</p>
+</li>
+<li>
+<p><code>derivation_id</code>: How nutrient value was calculated (methodology)</p>
+</li>
+<li>
+<p><code>footnote</code>: Additional quality information and caveats</p>
+</li>
+<li>
+<p><code>min_year_acquired</code>: Data freshness indicator</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Filtering Strategy</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Prioritize foundation foods (342 records) over branded foods (2M records)</p>
+</li>
+<li>
+<p>Focus on survey foods (7.8K records) for reliable data</p>
+</li>
+<li>
+<p>Use SR legacy foods (7.8K records) for historical accuracy</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Performance Optimization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Create materialized views for common queries</p>
+</li>
+<li>
+<p>Implement caching for frequently accessed data</p>
+</li>
+<li>
+<p>Add database indexes for search optimization</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_immediate-implementation-steps"><a class="link" href="#_immediate-implementation-steps">Immediate Implementation Steps</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Week 1-2</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Analyze current 490K ingredients vs 2.1M food items</p>
+</li>
+<li>
+<p>Import foundation foods and implement quality scoring</p>
+</li>
+<li>
+<p>Set up measurement unit system integration</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Week 3-4</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Import and structure 2.2M recipes with categorization</p>
+</li>
+<li>
+<p>Implement FDA guidelines integration for nutritional goals</p>
+</li>
+<li>
+<p>Create quality filtering system for ingredient selection</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Week 5-6</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Implement enhanced search using multiple data sources</p>
+</li>
+<li>
+<p>Add ingredient substitution capabilities</p>
+</li>
+<li>
+<p>Create seasonal recommendation system</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Ongoing</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Community curation system development</p>
+</li>
+<li>
+<p>Machine learning for ingredient normalization</p>
+</li>
+<li>
+<p>Advanced analytics and personalization features</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-system"><a class="link" href="#_enhanced-import-system">Enhanced Import System Implementation</a></h5>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>Enhanced Import System Status (July 29, 2025)</strong>
+- <strong>Phase 1: COMPLETE</strong> - Foundation enhancement with quality filtering
+- <strong>Phase 2: PLANNED</strong> - Advanced features and recipe import
+- <strong>Phase 3: PLANNED</strong> - Advanced analytics and community features</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-features"><a class="link" href="#_enhanced-import-features">Enhanced Import Features</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Quality-First Approach</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Foundation foods priority (342 high-quality ingredients)</p>
+</li>
+<li>
+<p>Quality scoring algorithm based on data points, freshness, and food type</p>
+</li>
+<li>
+<p>Configurable quality thresholds and filtering</p>
+</li>
+<li>
+<p>Removal of low-quality branded foods and overly long names</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Performance Optimization</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Batch processing with configurable batch sizes (5,000 records)</p>
+</li>
+<li>
+<p>Parallel processing using multiple CPU cores</p>
+</li>
+<li>
+<p>Automatic quality and performance indexing</p>
+</li>
+<li>
+<p>Materialized views for common queries</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Comprehensive Data Support</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Measurement system (123 units, 47K portions)</p>
+</li>
+<li>
+<p>Food categories (29 categories for organization)</p>
+</li>
+<li>
+<p>FDA dietary guidelines integration</p>
+</li>
+<li>
+<p>Recipe import system (2.2M recipes - Phase 2)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Advanced Configuration</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Flexible settings for different import scenarios</p>
+</li>
+<li>
+<p>Selective data source import options</p>
+</li>
+<li>
+<p>Quality threshold configuration</p>
+</li>
+<li>
+<p>Performance tuning parameters</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-architecture"><a class="link" href="#_enhanced-import-architecture">Enhanced Import Architecture</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Enhanced Settings System</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ImportSettings.cs</code> with comprehensive configuration</p>
+</li>
+<li>
+<p>Quality filtering settings (<code>QualityFilterSettings</code>)</p>
+</li>
+<li>
+<p>Data source selection (<code>DataSourceSettings</code>)</p>
+</li>
+<li>
+<p>Performance optimization (<code>PerformanceSettings</code>)</p>
+</li>
+<li>
+<p>Measurement system (<code>MeasurementSettings</code>)</p>
+</li>
+<li>
+<p>Recipe import configuration (<code>RecipeSettings</code>)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Enhanced Import Service</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>EnhancedFdcImporterService.cs</code> with quality scoring</p>
+</li>
+<li>
+<p>Foundation foods priority import</p>
+</li>
+<li>
+<p>Survey foods medium priority import</p>
+</li>
+<li>
+<p>Branded foods optional import</p>
+</li>
+<li>
+<p>Batch processing and parallel execution</p>
+</li>
+<li>
+<p>Comprehensive error handling and logging</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Enhanced Staging System</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>01_create_enhanced_staging_tables.sql</code> with quality scoring</p>
+</li>
+<li>
+<p>Performance indexes for faster processing</p>
+</li>
+<li>
+<p>Support for multiple data types</p>
+</li>
+<li>
+<p>Quality-scored staging structure</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Enhanced Transform System</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>03_transform_enhanced.sql</code> with quality filtering</p>
+</li>
+<li>
+<p>Quality indexes creation</p>
+</li>
+<li>
+<p>Materialized views for performance</p>
+</li>
+<li>
+<p>Quality summary views and statistics</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-quality-scoring"><a class="link" href="#_enhanced-import-quality-scoring">Quality Scoring Algorithm</a></h5>
+<div class="paragraph">
+<p>The enhanced import system implements a weighted quality scoring algorithm:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code>Quality Score = (DataPoints * 0.3) + (DataFreshness * 0.2) + (FoodType * 0.3) + (NameQuality * 0.2)</code></pre>
+</div>
+</div>
+<div class="dlist dlist">
+<dl>
+<dt><strong>DataPoints</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Number of supporting data points (higher = better quality)</p>
+</li>
+<li>
+<p>Minimum threshold: 1 data point</p>
+</li>
+<li>
+<p>Recommended threshold: 2+ data points</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>DataFreshness</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Year of data acquisition (newer = better quality)</p>
+</li>
+<li>
+<p>Minimum threshold: 2010</p>
+</li>
+<li>
+<p>Recommended threshold: 2015+</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>FoodType</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Foundation foods: 0.9 (highest quality)</p>
+</li>
+<li>
+<p>Survey foods: 0.7 (medium quality)</p>
+</li>
+<li>
+<p>Branded foods: 0.5 (lower quality)</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>NameQuality</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Length and clarity of ingredient names</p>
+</li>
+<li>
+<p>Maximum length: 150 characters</p>
+</li>
+<li>
+<p>Filters out overly long, repetitive names</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-expected-results"><a class="link" href="#_enhanced-import-expected-results">Expected Results</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Foundation Foods</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>~342 high-quality ingredients</p>
+</li>
+<li>
+<p>Quality score: 0.8-0.9</p>
+</li>
+<li>
+<p>Priority import for all scenarios</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Survey Foods</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>~7,800 medium-quality ingredients</p>
+</li>
+<li>
+<p>Quality score: 0.6-0.8</p>
+</li>
+<li>
+<p>Secondary priority for most scenarios</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Branded Foods</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Limited or none (configurable)</p>
+</li>
+<li>
+<p>Quality score: 0.4-0.6</p>
+</li>
+<li>
+<p>Optional import based on settings</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Total Ingredients</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>8,000-15,000 (vs 490K in original)</p>
+</li>
+<li>
+<p>Significant quality improvement</p>
+</li>
+<li>
+<p>Better search performance</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Nutrients</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>200-300 high-quality nutrients</p>
+</li>
+<li>
+<p>Rank-based quality assessment</p>
+</li>
+<li>
+<p>Measurement unit mapping</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Relationships</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>50K-100K quality-filtered relationships</p>
+</li>
+<li>
+<p>Data point filtering</p>
+</li>
+<li>
+<p>Year-based filtering</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-performance"><a class="link" href="#_enhanced-import-performance">Performance Comparison</a></h5>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 37%;">
+<col style="width: 38%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Metric</th>
+<th class="tableblock halign-left valign-top">Original Import</th>
+<th class="tableblock halign-left valign-top">Enhanced Import</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Data Sources</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 files</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8+ files</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Quality Filtering</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Comprehensive</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Processing Time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">30-60 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5-15 minutes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Memory Usage</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Optimized</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Result Quality</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mixed</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">High</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Search Performance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Slow</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fast</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Ingredient Count</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">490,533</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8,000-15,000</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Quality Score</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N/A</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.5-0.9</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-usage"><a class="link" href="#_enhanced-import-usage">Usage and Configuration</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Test the System</strong></dt>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="bash"><span class="nb">cd </span>nom-api/Nom.Import
+./test_enhanced_import.sh</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Run Enhanced Import</strong></dt>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="bash"><span class="nb">cd </span>nom-api/Nom.Import
+dotnet run</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Validate Results</strong></dt>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="sql"><span class="c1">-- Check quality distribution</span>
+<span class="k">SELECT</span> <span class="nv">"FdcDataType"</span><span class="p">,</span> <span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">),</span> <span class="k">AVG</span><span class="p">(</span><span class="nv">"QualityScore"</span><span class="p">)</span>
+<span class="k">FROM</span> <span class="n">recipe</span><span class="p">.</span><span class="nv">"Ingredient"</span>
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="nv">"FdcDataType"</span><span class="p">;</span>
+
+<span class="c1">-- Check ingredient quality summary</span>
+<span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">recipe</span><span class="p">.</span><span class="nv">"IngredientQualitySummary"</span><span class="p">;</span></code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><strong>Configuration Example</strong></dt>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code data-lang="json"><span class="p">{</span><span class="w">
+  </span><span class="nl">"ImportSettings"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"UseEnhancedImport"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"QualityFilter"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"MinimumDataPoints"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"MinimumYearAcquired"</span><span class="p">:</span><span class="w"> </span><span class="mi">2010</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"PrioritizeFoundationFoods"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"MaximumIngredientNameLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"DataSources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="nl">"ImportFoundationFoods"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"ImportBrandedFoods"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"ImportSurveyFoods"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"MaxIngredientsToImport"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-file-structure"><a class="link" href="#_enhanced-import-file-structure">Enhanced Import File Structure</a></h5>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight"><code>nom-api/Nom.Import/
+├── Services/
+│   ├── FdcFoodImporterService.cs          # Original service
+│   └── EnhancedFdcImporterService.cs      # Enhanced service
+├── Settings/
+│   └── ImportSettings.cs                   # Enhanced settings
+├── DataImportScripts/
+│   ├── 01_create_staging_tables.sql       # Original staging
+│   ├── 01_create_enhanced_staging_tables.sql  # Enhanced staging
+│   ├── 03_transform_from_staging.sql      # Original transform
+│   └── 03_transform_enhanced.sql          # Enhanced transform
+├── appsettings.json                        # Original config
+├── appsettings.enhanced.json              # Enhanced config
+├── test_enhanced_import.sh                # Test script
+└── README_ENHANCED_IMPORT.md              # Documentation</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_enhanced-import-phases"><a class="link" href="#_enhanced-import-phases">Implementation Phases</a></h5>
+<div class="dlist dlist">
+<dl>
+<dt><strong>Phase 1: Foundation Enhancement (COMPLETE)</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Quality-filtered ingredient import</p>
+</li>
+<li>
+<p>Foundation foods priority</p>
+</li>
+<li>
+<p>Quality scoring and filtering</p>
+</li>
+<li>
+<p>Performance optimization</p>
+</li>
+<li>
+<p>Measurement system integration</p>
+</li>
+<li>
+<p>Quality indexes and materialized views</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Phase 2: Advanced Features (PLANNED)</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Recipe import system (2.2M recipes)</p>
+</li>
+<li>
+<p>Ingredient extraction from NER data</p>
+</li>
+<li>
+<p>Recipe categorization</p>
+</li>
+<li>
+<p>Enhanced search capabilities</p>
+</li>
+<li>
+<p>Food attributes import</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt><strong>Phase 3: Advanced Analytics (PLANNED)</strong></dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Ingredient substitution engine</p>
+</li>
+<li>
+<p>Seasonal recommendations</p>
+</li>
+<li>
+<p>Personalized nutrition algorithms</p>
+</li>
+<li>
+<p>Community features</p>
+</li>
+<li>
+<p>Machine learning integration</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -5194,7 +6536,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <div id="footer">
 <div id="footer-text">
 Version 2.4<br>
-Last updated 2025-07-29 01:46:33 -0600
+Last updated 2025-07-29 02:38:33 -0600
 </div>
 </div>
 </body>

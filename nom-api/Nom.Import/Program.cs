@@ -29,6 +29,9 @@ public class Program
                 // Add environment-specific appsettings, e.g., appsettings.Development.json
                 config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
+                // Add enhanced configuration if available
+                config.AddJsonFile("appsettings.enhanced.json", optional: true, reloadOnChange: true);
+
                 // For local development, you might want to link to the API's user secrets
                 if (context.HostingEnvironment.IsDevelopment())
                 {
@@ -54,7 +57,18 @@ public class Program
                         o.CommandTimeout(300);
                     }));
 
-                // Add the FdcFoodImporterService as a hosted service.
-                services.AddHostedService<FdcFoodImporterService>();
+                // Determine which import service to use based on configuration
+                var useEnhancedImport = hostContext.Configuration.GetValue<bool>("ImportSettings:UseEnhancedImport", false);
+                
+                if (useEnhancedImport)
+                {
+                    // Add the Enhanced FDC Importer Service
+                    services.AddHostedService<EnhancedFdcImporterService>();
+                }
+                else
+                {
+                    // Add the original FDC Importer Service
+                    services.AddHostedService<FdcFoodImporterService>();
+                }
             });
 }
