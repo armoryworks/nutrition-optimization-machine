@@ -1,4 +1,5 @@
 -- Enhanced transform script with quality filtering and comprehensive data import
+-- Fixed version - removes QualityScore columns and uses correct schema
 
 -- Truncate the final tables to ensure a clean import and reset identity sequences.
 TRUNCATE TABLE nutrient."Nutrient", recipe."Ingredient", nutrient."IngredientNutrient", nutrient."NutrientGuideline" RESTART IDENTITY CASCADE;
@@ -7,10 +8,17 @@ TRUNCATE TABLE nutrient."Nutrient", recipe."Ingredient", nutrient."IngredientNut
 MERGE INTO nutrient."Nutrient" AS target
 USING (
     SELECT DISTINCT ON (s.name, s.unit_name)
-        s.id::BIGINT,
+        CASE 
+            WHEN s.id ~ '^[0-9]+$' THEN s.id::BIGINT 
+            ELSE NULL 
+        END as nutrient_id,
         s.name,
-        ref."Id" AS "MeasurementTypeId",
-        s.quality_score
+        CASE 
+            WHEN s.id ~ '^[0-9]+$' THEN s.id 
+            ELSE NULL 
+        END as fdc_id,
+        ref."Id" AS measurement_type_id,
+        NOW() as created_date
     FROM "Staging_Nutrient_Enhanced" s
     JOIN reference."Reference" ref ON LOWER(ref."Name") = LOWER(s.unit_name)
     WHERE EXISTS (
@@ -19,135 +27,141 @@ USING (
         WHERE g."Name" = 'Measurement Types' AND ri."ReferenceId" = ref."Id"
     )
     AND s.quality_score >= 0.5
+    AND s.id != '' 
+    AND s.id IS NOT NULL
+    AND LENGTH(s.id) > 0
+    AND s.id ~ '^[0-9]+$'
+    AND CASE 
+        WHEN s.id ~ '^[0-9]+$' THEN s.id::BIGINT 
+        ELSE NULL 
+    END IS NOT NULL
 ) AS source 
-ON target."Name" = source.name AND target."DefaultMeasurementTypeId" = source."MeasurementTypeId"
-WHEN NOT MATCHED THEN
-    INSERT ("Id", "Name", "FdcId", "DefaultMeasurementTypeId", "QualityScore", "CreatedDate")
-    VALUES (source.id, source.name, source.id::TEXT, source."MeasurementTypeId", source.quality_score, NOW())
+ON target."Name" = source.name AND target."DefaultMeasurementTypeId" = source.measurement_type_id
 WHEN MATCHED THEN
-    UPDATE SET "QualityScore" = source.quality_score, "UpdatedDate" = NOW();
+    UPDATE SET "LastModifiedDate" = NOW()
+WHEN NOT MATCHED THEN
+    INSERT ("Id", "Name", "FdcId", "DefaultMeasurementTypeId", "CreatedDate")
+    VALUES (source.nutrient_id, source.name, source.fdc_id, source.measurement_type_id, source.created_date);
 
 -- 2. Populate the "Ingredient" table with quality-filtered foods using MERGE.
 MERGE INTO recipe."Ingredient" AS target
 USING (
-    SELECT DISTINCT ON (s.description)
-        s.fdc_id::TEXT AS "FdcId",
-        s.description,
-        s.data_type,
-        s.quality_score
-    FROM "Staging_Food_Enhanced" s
-    WHERE s.description IS NOT NULL 
-    AND s.description != ''
-    AND LENGTH(s.description) <= 150
-    AND s.quality_score >= 0.5
-) AS source ON target."Name" = source.description
-WHEN NOT MATCHED THEN
-    INSERT ("FdcId", "Name", "Description", "FdcDataType", "QualityScore", "CreatedDate", "CurationStatusId")
-    VALUES (source."FdcId", source.description, source.description, source.data_type, source.quality_score, NOW(), 9000)
+    SELECT DISTINCT
+        fdc_id,
+        description,
+        description as description_text,
+        data_type,
+        NOW() as created_date,
+        9000 as curation_status_id
+    FROM (
+        SELECT 
+            fdc_id,
+            description,
+            data_type,
+            quality_score,
+            ROW_NUMBER() OVER (PARTITION BY description ORDER BY quality_score DESC, fdc_id) as rn
+        FROM "Staging_Food_Enhanced"
+        WHERE quality_score >= 0.5
+        AND description IS NOT NULL 
+        AND description != ''
+        AND LENGTH(description) <= 150
+    ) ranked
+    WHERE rn = 1
+) AS source ON target."FdcId" = source.fdc_id
 WHEN MATCHED THEN
     UPDATE SET 
-        "QualityScore" = source.quality_score,
+        "Name" = source.description,
+        "Description" = source.description_text,
         "FdcDataType" = source.data_type,
-        "UpdatedDate" = NOW();
+        "LastModifiedDate" = NOW()
+WHEN NOT MATCHED THEN
+    INSERT ("FdcId", "Name", "Description", "FdcDataType", "CreatedDate", "CurationStatusId")
+    VALUES (source.fdc_id, source.description, source.description_text, source.data_type, source.created_date, source.curation_status_id);
 
--- 3. Populate the "NutrientGuideline" table from enhanced guidelines
-INSERT INTO nutrient."NutrientGuideline" (
-    "NutrientId",
-    "GoalTypeId",
-    "MeasurementTypeId",
-    "RecommendedAmount",
-    "MaxAmount",
-    "Notes",
-    "CreatedDate"
-)
-SELECT
-    n."Id" AS "NutrientId",
-    goal."Id" AS "GoalTypeId",
-    unit."Id" AS "MeasurementTypeId",
-    NULLIF(sg."RecommendedAmount", '')::NUMERIC,
-    NULLIF(sg."MaxAmount", '')::NUMERIC,
-    'Imported from FDA Labeling Guidelines' AS "Notes",
-    NOW()
-FROM "Staging_Guideline" sg
-JOIN nutrient."Nutrient" n ON n."Name" = sg."NutrientName"
-JOIN reference."Reference" goal ON goal."Name" = sg."GoalTypeName"
-JOIN reference."Reference" unit ON unit."Name" = sg."UnitName"
-ON CONFLICT ("NutrientId", "GoalTypeId") DO UPDATE SET
-    "RecommendedAmount" = EXCLUDED."RecommendedAmount",
-    "MaxAmount" = EXCLUDED."MaxAmount",
-    "UpdatedDate" = NOW();
+-- 3. Populate the "NutrientGuideline" table from enhanced guidelines using MERGE
+MERGE INTO nutrient."NutrientGuideline" AS target
+USING (
+    SELECT DISTINCT
+        n."Id" AS nutrient_id,
+        goal."Id" AS goal_type_id,
+        unit."Id" AS measurement_type_id,
+        NULLIF(sg."RecommendedAmount", '')::NUMERIC as recommended_amount,
+        NULLIF(sg."MaxAmount", '')::NUMERIC as max_amount,
+        'Imported from FDA Labeling Guidelines' AS notes,
+        NOW() as created_date
+    FROM "Staging_Guideline" sg
+    JOIN nutrient."Nutrient" n ON n."Name" = sg."NutrientName"
+    JOIN reference."Reference" goal ON goal."Name" = sg."GoalTypeName"
+    JOIN reference."Reference" unit ON unit."Name" = sg."UnitName"
+) AS source ON target."NutrientId" = source.nutrient_id AND target."GoalTypeId" = source.goal_type_id
+WHEN MATCHED THEN
+    UPDATE SET
+        "RecommendedAmount" = source.recommended_amount,
+        "MaxAmount" = source.max_amount,
+        "LastModifiedDate" = NOW()
+WHEN NOT MATCHED THEN
+    INSERT ("NutrientId", "GoalTypeId", "MeasurementTypeId", "RecommendedAmount", "MaxAmount", "Notes", "CreatedDate")
+    VALUES (source.nutrient_id, source.goal_type_id, source.measurement_type_id, source.recommended_amount, source.max_amount, source.notes, source.created_date);
 
--- 4. Populate the "IngredientNutrient" linking table with quality filtering.
-INSERT INTO nutrient."IngredientNutrient" (
-    "IngredientId", 
-    "NutrientId", 
-    "Amount", 
-    "MeasurementTypeId", 
-    "FdcId", 
-    "QualityScore",
-    "MinYearAcquired",
-    "CreatedDate"
-)
-SELECT
-    i."Id" AS "IngredientId",
-    sfn.nutrient_id AS "NutrientId",
-    NULLIF(sfn.amount, '')::NUMERIC,
-    n."DefaultMeasurementTypeId",
-    sfn.fdc_id::TEXT,
-    sfn.quality_score,
-    NULLIF(sfn.min_year_acquired, '')::INTEGER,
-    NOW()
-FROM "Staging_Food_Nutrient_Enhanced" sfn
-JOIN recipe."Ingredient" i ON i."FdcId" = sfn.fdc_id::TEXT
-JOIN nutrient."Nutrient" n ON n."Id" = sfn.nutrient_id
-WHERE NULLIF(sfn.amount, '') IS NOT NULL
-AND sfn.quality_score >= 0.5
-AND (sfn.min_year_acquired IS NULL OR sfn.min_year_acquired::INTEGER >= 2010)
-ON CONFLICT ("IngredientId", "NutrientId") DO UPDATE SET
-    "Amount" = EXCLUDED."Amount",
-    "QualityScore" = EXCLUDED."QualityScore",
-    "MinYearAcquired" = EXCLUDED."MinYearAcquired",
-    "UpdatedDate" = NOW();
+-- 4. Populate the "IngredientNutrient" linking table with quality filtering using MERGE.
+MERGE INTO nutrient."IngredientNutrient" AS target
+USING (
+    SELECT DISTINCT
+        i."Id" AS ingredient_id,
+        sfn.nutrient_id AS nutrient_id,
+        NULLIF(sfn.amount, '')::NUMERIC as amount,
+        n."DefaultMeasurementTypeId" as measurement_type_id,
+        sfn.fdc_id::TEXT as fdc_id,
+        NOW() as created_date
+    FROM "Staging_Food_Nutrient_Enhanced" sfn
+    JOIN recipe."Ingredient" i ON i."FdcId" = sfn.fdc_id::TEXT
+    JOIN nutrient."Nutrient" n ON n."Id" = sfn.nutrient_id
+    WHERE NULLIF(sfn.amount, '') IS NOT NULL
+    AND sfn.quality_score >= 0.5
+    AND (sfn.min_year_acquired IS NULL OR NULLIF(sfn.min_year_acquired, '')::INTEGER >= 2010)
+) AS source ON target."IngredientId" = source.ingredient_id AND target."NutrientId" = source.nutrient_id
+WHEN MATCHED THEN
+    UPDATE SET 
+        "Amount" = source.amount,
+        "LastModifiedDate" = NOW()
+WHEN NOT MATCHED THEN
+    INSERT ("IngredientId", "NutrientId", "Amount", "MeasurementTypeId", "FdcId", "CreatedDate")
+    VALUES (source.ingredient_id, source.nutrient_id, source.amount, source.measurement_type_id, source.fdc_id, source.created_date);
 
--- 5. Create quality indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_ingredient_quality_score ON recipe."Ingredient" ("QualityScore");
+-- 5. Create indexes for better performance (using existing columns)
 CREATE INDEX IF NOT EXISTS idx_ingredient_fdc_data_type ON recipe."Ingredient" ("FdcDataType");
 CREATE INDEX IF NOT EXISTS idx_ingredient_name_length ON recipe."Ingredient" (LENGTH("Name"));
-CREATE INDEX IF NOT EXISTS idx_nutrient_quality_score ON nutrient."Nutrient" ("QualityScore");
-CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_quality ON nutrient."IngredientNutrient" ("QualityScore");
-CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_year ON nutrient."IngredientNutrient" ("MinYearAcquired");
+CREATE INDEX IF NOT EXISTS idx_ingredient_fdc_id ON recipe."Ingredient" ("FdcId");
+CREATE INDEX IF NOT EXISTS idx_nutrient_fdc_id ON nutrient."Nutrient" ("FdcId");
+CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_amount ON nutrient."IngredientNutrient" ("Amount");
 
--- 6. Create summary statistics for quality assessment
-CREATE OR REPLACE VIEW recipe."IngredientQualitySummary" AS
+-- 6. Create summary statistics for ingredient assessment
+DROP VIEW IF EXISTS recipe."IngredientSummary";
+CREATE OR REPLACE VIEW recipe."IngredientSummary" AS
 SELECT 
     "FdcDataType",
     COUNT(*) as total_ingredients,
-    AVG("QualityScore") as avg_quality_score,
-    MIN("QualityScore") as min_quality_score,
-    MAX("QualityScore") as max_quality_score,
-    COUNT(CASE WHEN "QualityScore" >= 0.8 THEN 1 END) as high_quality_count,
-    COUNT(CASE WHEN "QualityScore" >= 0.6 AND "QualityScore" < 0.8 THEN 1 END) as medium_quality_count,
-    COUNT(CASE WHEN "QualityScore" < 0.6 THEN 1 END) as low_quality_count
+    COUNT(CASE WHEN LENGTH("Name") > 50 THEN 1 END) as long_name_count,
+    COUNT(CASE WHEN LENGTH("Name") <= 20 THEN 1 END) as short_name_count,
+    AVG(LENGTH("Name")) as avg_name_length
 FROM recipe."Ingredient"
 GROUP BY "FdcDataType";
 
 -- 7. Create materialized view for common ingredient searches
+DROP MATERIALIZED VIEW IF EXISTS recipe."IngredientSearchView";
 CREATE MATERIALIZED VIEW recipe."IngredientSearchView" AS
 SELECT 
     i."Id",
     i."Name",
     i."Description",
     i."FdcDataType",
-    i."QualityScore",
-    COUNT(inr."NutrientId") as nutrient_count,
-    AVG(inr."QualityScore") as avg_nutrient_quality
+    COUNT(inr."NutrientId") as nutrient_count
 FROM recipe."Ingredient" i
 LEFT JOIN nutrient."IngredientNutrient" inr ON i."Id" = inr."IngredientId"
-WHERE i."QualityScore" >= 0.5
-GROUP BY i."Id", i."Name", i."Description", i."FdcDataType", i."QualityScore";
+GROUP BY i."Id", i."Name", i."Description", i."FdcDataType";
 
 CREATE INDEX IF NOT EXISTS idx_ingredient_search_name ON recipe."IngredientSearchView" USING gin(to_tsvector('english', "Name"));
-CREATE INDEX IF NOT EXISTS idx_ingredient_search_quality ON recipe."IngredientSearchView" ("QualityScore");
+CREATE INDEX IF NOT EXISTS idx_ingredient_search_type ON recipe."IngredientSearchView" ("FdcDataType");
 
 -- 8. Clean up staging tables (optional - uncomment to remove staging data)
 -- DROP TABLE IF EXISTS "Staging_Food_Enhanced";

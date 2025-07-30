@@ -73,7 +73,7 @@ check_source_files() {
     # Check required files for enhanced import
     check_file "$SOURCE_DIR/foundation_food.csv" "Foundation foods" || missing_files=$((missing_files + 1))
     check_file "$SOURCE_DIR/sr_legacy_food.csv" "Survey foods" || missing_files=$((missing_files + 1))
-    checkByName food.csv "Main food data" || missing_files=$((missing_files + 1))
+    check_file "$SOURCE_DIR/food.csv" "Main food data" || missing_files=$((missing_files + 1))
     check_file "$SOURCE_DIR/nutrient.csv" "Nutrients" || missing_files=$((missing_files + 1))
     check_file "$SOURCE_DIR/food_nutrient.csv" "Food-nutrient relationships" || missing_files=$((missing_files + 1))
     check_file "$SOURCE_DIR/guidelines.csv" "Dietary guidelines" || missing_files=$((missing_files + 1))

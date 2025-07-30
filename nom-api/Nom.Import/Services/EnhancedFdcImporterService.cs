@@ -22,30 +22,19 @@ namespace Nom.Import.Services
     /// Enhanced FDC importer service that supports comprehensive data import
     /// with quality filtering, multiple data sources, and performance optimization.
     /// </summary>
-    public class EnhancedFdcImporterService : IHostedService
+    public class EnhancedFdcImporterService : BaseImporterService, IHostedService
     {
-        private readonly ILogger<EnhancedFdcImporterService> _logger;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ImportSettings _importSettings;
-        private readonly IHostApplicationLifetime _appLifetime;
-        private readonly string _connectionString;
 
         public EnhancedFdcImporterService(
             ILogger<EnhancedFdcImporterService> logger,
             IServiceProvider serviceProvider,
             IOptions<ImportSettings> importSettings,
             IHostApplicationLifetime appLifetime,
-            IConfiguration configuration)
+            IConfiguration configuration) : base(logger, serviceProvider, importSettings, appLifetime, configuration)
         {
-            _logger = logger;
-            _serviceProvider = serviceProvider;
-            _importSettings = importSettings.Value;
-            _appLifetime = appLifetime;
-            _connectionString = configuration.GetConnectionString("NomConnection")
-                ?? throw new InvalidOperationException("Connection string 'NomConnection' not found.");
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Enhanced FDC Importer Service is starting.");
 
@@ -76,13 +65,13 @@ namespace Nom.Import.Services
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public override Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Enhanced FDC Importer Service is stopping.");
             return Task.CompletedTask;
         }
 
-        private async Task ImportDataAsync(ApplicationDbContext context, string sqlScriptDirectory, CancellationToken cancellationToken)
+        protected override async Task ImportDataAsync(ApplicationDbContext context, string sqlScriptDirectory, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting enhanced data import process...");
 
@@ -147,13 +136,17 @@ namespace Nom.Import.Services
             // Copy measurement units to staging
             await PerformCopy(conn, "Staging_Measure_Unit", "measure_unit.csv", cancellationToken);
 
-            // Transform to reference table
+            // Transform to reference table using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO reference.""Reference"" (""Name"", ""Description"", ""CreatedDate"")
-                SELECT DISTINCT name, 'Imported measurement unit: ' || name, NOW()
-                FROM ""Staging_Measure_Unit""
-                WHERE name IS NOT NULL AND name != ''
-                ON CONFLICT (""Name"") DO NOTHING;", cancellationToken);
+                MERGE INTO reference.""Reference"" AS target
+                USING (
+                    SELECT DISTINCT name, 'Imported measurement unit: ' || name as description, NOW() as created_date
+                    FROM ""Staging_Measure_Unit""
+                    WHERE name IS NOT NULL AND name != ''
+                ) AS source ON target.""Name"" = source.name
+                WHEN NOT MATCHED THEN
+                    INSERT (""Name"", ""Description"", ""CreatedDate"")
+                    VALUES (source.name, source.description, source.created_date);", cancellationToken);
 
             _logger.LogInformation("Measurement units imported successfully.");
         }
@@ -184,13 +177,17 @@ namespace Nom.Import.Services
             // Copy food categories to staging
             await PerformCopy(conn, "Staging_Food_Category", "food_category.csv", cancellationToken);
 
-            // Transform to reference table
+            // Transform to reference table using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO reference.""Reference"" (""Name"", ""Description"", ""CreatedDate"")
-                SELECT DISTINCT description, 'Food category: ' || code || ' - ' || description, NOW()
-                FROM ""Staging_Food_Category""
-                WHERE description IS NOT NULL AND description != ''
-                ON CONFLICT (""Name"") DO NOTHING;", cancellationToken);
+                MERGE INTO reference.""Reference"" AS target
+                USING (
+                    SELECT DISTINCT description, 'Food category: ' || code || ' - ' || description as description_text, NOW() as created_date
+                    FROM ""Staging_Food_Category""
+                    WHERE description IS NOT NULL AND description != ''
+                ) AS source ON target.""Name"" = source.description
+                WHEN NOT MATCHED THEN
+                    INSERT (""Name"", ""Description"", ""CreatedDate"")
+                    VALUES (source.description, source.description_text, source.created_date);", cancellationToken);
 
             _logger.LogInformation("Food categories imported successfully.");
         }
@@ -366,8 +363,8 @@ namespace Nom.Import.Services
             await PerformCopy(conn, "Staging_Branded_Food", "branded_food.csv", cancellationToken);
 
             // Import only high-quality branded foods with short descriptions
-            var limit = _importSettings.DataSources.MaxIngredientsToImport > 0 
-                ? $"LIMIT {_importSettings.DataSources.MaxIngredientsToImport}" 
+            var limit = _importSettings.DataSources.MaxIngredientsToImport > 0
+                ? $"LIMIT {_importSettings.DataSources.MaxIngredientsToImport}"
                 : "";
 
             await conn.ExecuteNonQueryAsync(@"
@@ -396,25 +393,40 @@ namespace Nom.Import.Services
         {
             _logger.LogInformation("Transforming staged food data to ingredients...");
 
-            // Apply quality filtering and transform to ingredients
+            // Apply quality filtering and transform to ingredients using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO recipe.""Ingredient"" (""FdcId"", ""Name"", ""Description"", ""FdcDataType"", ""QualityScore"", ""CreatedDate"", ""CurationStatusId"")
-                SELECT 
-                    fdc_id,
-                    description,
-                    description,
-                    data_type,
-                    quality_score,
-                    NOW(),
-                    9000
-                FROM ""Staging_Food_Enhanced""
-                WHERE quality_score >= 0.5
-                AND description IS NOT NULL 
-                AND description != ''
-                ON CONFLICT (""Name"") DO UPDATE SET
-                    ""QualityScore"" = EXCLUDED.""QualityScore"",
-                    ""FdcDataType"" = EXCLUDED.""FdcDataType"",
-                    ""UpdatedDate"" = NOW();", cancellationToken);
+                MERGE INTO recipe.""Ingredient"" AS target
+                USING (
+                    SELECT DISTINCT
+                        fdc_id,
+                        description,
+                        description as description_text,
+                        data_type,
+                        NOW() as created_date,
+                        9000 as curation_status_id
+                    FROM (
+                        SELECT 
+                            fdc_id,
+                            description,
+                            data_type,
+                            quality_score,
+                            ROW_NUMBER() OVER (PARTITION BY description ORDER BY quality_score DESC, fdc_id) as rn
+                        FROM ""Staging_Food_Enhanced""
+                        WHERE quality_score >= 0.5
+                        AND description IS NOT NULL 
+                        AND description != ''
+                    ) ranked
+                    WHERE rn = 1
+                ) AS source ON target.""FdcId"" = source.fdc_id
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        ""Name"" = source.description,
+                        ""Description"" = source.description_text,
+                        ""FdcDataType"" = source.data_type,
+                        ""LastModifiedDate"" = NOW()
+                WHEN NOT MATCHED THEN
+                    INSERT (""FdcId"", ""Name"", ""Description"", ""FdcDataType"", ""CreatedDate"", ""CurationStatusId"")
+                    VALUES (source.fdc_id, source.description, source.description_text, source.data_type, source.created_date, source.curation_status_id);", cancellationToken);
 
             _logger.LogInformation("Ingredients transformed successfully.");
         }
@@ -434,15 +446,15 @@ namespace Nom.Import.Services
                     name TEXT,
                     unit_name TEXT,
                     nutrient_nbr TEXT,
-                    rank TEXT,
-                    quality_score NUMERIC
+                    rank TEXT
                 );", cancellationToken);
 
             // Copy and score nutrients
             await PerformCopy(conn, "Staging_Nutrient_Enhanced", "nutrient.csv", cancellationToken);
 
-            // Calculate quality scores for nutrients
+            // Add quality_score column and calculate quality scores for nutrients
             await conn.ExecuteNonQueryAsync(@"
+                ALTER TABLE ""Staging_Nutrient_Enhanced"" ADD COLUMN quality_score NUMERIC DEFAULT 0.5;
                 UPDATE ""Staging_Nutrient_Enhanced"" 
                 SET quality_score = 
                     CASE 
@@ -453,27 +465,44 @@ namespace Nom.Import.Services
                     END
                 WHERE rank ~ '^[0-9]+$';", cancellationToken);
 
-            // Transform to final nutrient table
+            // Transform to final nutrient table using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO nutrient.""Nutrient"" (""Id"", ""Name"", ""FdcId"", ""DefaultMeasurementTypeId"", ""QualityScore"", ""CreatedDate"")
-                SELECT 
-                    n.id::BIGINT,
-                    n.name,
-                    n.id,
-                    ref.""Id"" AS ""MeasurementTypeId"",
-                    n.quality_score,
-                    NOW()
-                FROM ""Staging_Nutrient_Enhanced"" n
-                JOIN reference.""Reference"" ref ON LOWER(ref.""Name"") = LOWER(n.unit_name)
-                WHERE EXISTS (
-                    SELECT 1 FROM reference.""Group"" g
-                    JOIN reference.""ReferenceIndex"" ri ON g.""Id"" = ri.""GroupId""
-                    WHERE g.""Name"" = 'Measurement Types' AND ri.""ReferenceId"" = ref.""Id""
-                )
-                AND n.quality_score >= 0.5
-                ON CONFLICT (""Name"") DO UPDATE SET
-                    ""QualityScore"" = EXCLUDED.""QualityScore"",
-                    ""UpdatedDate"" = NOW();", cancellationToken);
+                MERGE INTO nutrient.""Nutrient"" AS target
+                USING (
+                    SELECT DISTINCT
+                        CASE 
+                            WHEN n.id ~ '^[0-9]+$' THEN n.id::BIGINT 
+                            ELSE NULL 
+                        END as nutrient_id,
+                        n.name,
+                        CASE 
+                            WHEN n.id ~ '^[0-9]+$' THEN n.id 
+                            ELSE NULL 
+                        END as fdc_id,
+                        ref.""Id"" AS measurement_type_id,
+                        NOW() as created_date
+                    FROM ""Staging_Nutrient_Enhanced"" n
+                    JOIN reference.""Reference"" ref ON LOWER(ref.""Name"") = LOWER(n.unit_name)
+                    WHERE EXISTS (
+                        SELECT 1 FROM reference.""Group"" g
+                        JOIN reference.""ReferenceIndex"" ri ON g.""Id"" = ri.""GroupId""
+                        WHERE g.""Name"" = 'Measurement Types' AND ri.""ReferenceId"" = ref.""Id""
+                    )
+                    AND n.quality_score >= 0.5
+                    AND n.id != '' 
+                    AND n.id IS NOT NULL
+                    AND LENGTH(n.id) > 0
+                    AND n.id ~ '^[0-9]+$'
+                    AND CASE 
+                        WHEN n.id ~ '^[0-9]+$' THEN n.id::BIGINT 
+                        ELSE NULL 
+                    END IS NOT NULL
+                ) AS source ON target.""Name"" = source.name AND target.""DefaultMeasurementTypeId"" = source.measurement_type_id
+                WHEN MATCHED THEN
+                    UPDATE SET ""LastModifiedDate"" = NOW()
+                WHEN NOT MATCHED THEN
+                    INSERT (""Id"", ""Name"", ""FdcId"", ""DefaultMeasurementTypeId"", ""CreatedDate"")
+                    VALUES (source.nutrient_id, source.name, source.fdc_id, source.measurement_type_id, source.created_date);", cancellationToken);
 
             _logger.LogInformation("Quality-filtered nutrients imported successfully.");
         }
@@ -501,14 +530,14 @@ namespace Nom.Import.Services
                     loq TEXT,
                     footnote TEXT,
                     min_year_acquired TEXT,
-                    percent_daily_value TEXT,
-                    quality_score NUMERIC
+                    percent_daily_value TEXT
                 );", cancellationToken);
 
             await PerformCopy(conn, "Staging_Food_Nutrient_Enhanced", "food_nutrient.csv", cancellationToken);
 
-            // Calculate quality scores for relationships
+            // Add quality_score column and calculate quality scores for relationships
             await conn.ExecuteNonQueryAsync(@"
+                ALTER TABLE ""Staging_Food_Nutrient_Enhanced"" ADD COLUMN quality_score NUMERIC DEFAULT 0.5;
                 UPDATE ""Staging_Food_Nutrient_Enhanced"" 
                 SET quality_score = 
                     CASE 
@@ -519,27 +548,31 @@ namespace Nom.Import.Services
                     END
                 WHERE data_points ~ '^[0-9]+$';", cancellationToken);
 
-            // Import only high-quality relationships
+            // Import only high-quality relationships using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO nutrient.""IngredientNutrient"" (""IngredientId"", ""NutrientId"", ""Amount"", ""MeasurementTypeId"", ""FdcId"", ""QualityScore"", ""CreatedDate"")
-                SELECT
-                    i.""Id"" AS ""IngredientId"",
-                    sfn.nutrient_id AS ""NutrientId"",
-                    NULLIF(sfn.amount, '')::NUMERIC,
-                    n.""DefaultMeasurementTypeId"",
-                    sfn.fdc_id::TEXT,
-                    sfn.quality_score,
-                    NOW()
-                FROM ""Staging_Food_Nutrient_Enhanced"" sfn
-                JOIN recipe.""Ingredient"" i ON i.""FdcId"" = sfn.fdc_id::TEXT
-                JOIN nutrient.""Nutrient"" n ON n.""Id"" = sfn.nutrient_id
-                WHERE NULLIF(sfn.amount, '') IS NOT NULL
-                AND sfn.quality_score >= 0.5
-                AND sfn.min_year_acquired::INTEGER >= " + _importSettings.QualityFilter.MinimumYearAcquired + @"
-                ON CONFLICT (""IngredientId"", ""NutrientId"") DO UPDATE SET
-                    ""Amount"" = EXCLUDED.""Amount"",
-                    ""QualityScore"" = EXCLUDED.""QualityScore"",
-                    ""UpdatedDate"" = NOW();", cancellationToken);
+                MERGE INTO nutrient.""IngredientNutrient"" AS target
+                USING (
+                    SELECT DISTINCT
+                        i.""Id"" AS ingredient_id,
+                        sfn.nutrient_id AS nutrient_id,
+                        NULLIF(sfn.amount, '')::NUMERIC as amount,
+                        n.""DefaultMeasurementTypeId"" as measurement_type_id,
+                        sfn.fdc_id::TEXT as fdc_id,
+                        NOW() as created_date
+                    FROM ""Staging_Food_Nutrient_Enhanced"" sfn
+                    JOIN recipe.""Ingredient"" i ON i.""FdcId"" = sfn.fdc_id::TEXT
+                    JOIN nutrient.""Nutrient"" n ON n.""Id"" = sfn.nutrient_id
+                    WHERE NULLIF(sfn.amount, '') IS NOT NULL
+                    AND sfn.quality_score >= 0.5
+                    AND (sfn.min_year_acquired IS NULL OR NULLIF(sfn.min_year_acquired, '')::INTEGER >= " + _importSettings.QualityFilter.MinimumYearAcquired + @")
+                ) AS source ON target.""IngredientId"" = source.ingredient_id AND target.""NutrientId"" = source.nutrient_id
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        ""Amount"" = source.amount,
+                        ""LastModifiedDate"" = NOW()
+                WHEN NOT MATCHED THEN
+                    INSERT (""IngredientId"", ""NutrientId"", ""Amount"", ""MeasurementTypeId"", ""FdcId"", ""CreatedDate"")
+                    VALUES (source.ingredient_id, source.nutrient_id, source.amount, source.measurement_type_id, source.fdc_id, source.created_date);", cancellationToken);
 
             _logger.LogInformation("Food-nutrient relationships imported successfully.");
         }
@@ -571,11 +604,11 @@ namespace Nom.Import.Services
                     NER TEXT
                 );", cancellationToken);
 
-            var limit = _importSettings.DataSources.MaxRecipesToImport > 0 
-                ? $"LIMIT {_importSettings.DataSources.MaxRecipesToImport}" 
+            var limit = _importSettings.DataSources.MaxRecipesToImport > 0
+                ? $"LIMIT {_importSettings.DataSources.MaxRecipesToImport}"
                 : "";
 
-            await PerformCopy(conn, "Staging_Recipe", "Recipe.csv", cancellationToken, limit);
+            await PerformCopy(conn, "Staging_Recipe", "Recipe.csv", cancellationToken);
 
             // Import recipes with ingredient extraction
             await ImportRecipesWithIngredients(conn, cancellationToken);
@@ -637,33 +670,31 @@ namespace Nom.Import.Services
 
             await PerformCopy(conn, "Staging_Guideline", "guidelines.csv", cancellationToken);
 
-            // Import guidelines
+            // Import guidelines using MERGE
             await conn.ExecuteNonQueryAsync(@"
-                INSERT INTO nutrient.""NutrientGuideline"" (
-                    ""NutrientId"",
-                    ""GoalTypeId"",
-                    ""MeasurementTypeId"",
-                    ""RecommendedAmount"",
-                    ""MaxAmount"",
-                    ""Notes"",
-                    ""CreatedDate""
-                )
-                SELECT
-                    n.""Id"" AS ""NutrientId"",
-                    goal.""Id"" AS ""GoalTypeId"",
-                    unit.""Id"" AS ""MeasurementTypeId"",
-                    NULLIF(sg.""RecommendedAmount"", '')::NUMERIC,
-                    NULLIF(sg.""MaxAmount"", '')::NUMERIC,
-                    'Imported from FDA Labeling Guidelines' AS ""Notes"",
-                    NOW()
-                FROM ""Staging_Guideline"" sg
-                JOIN nutrient.""Nutrient"" n ON n.""Name"" = sg.""NutrientName""
-                JOIN reference.""Reference"" goal ON goal.""Name"" = sg.""GoalTypeName""
-                JOIN reference.""Reference"" unit ON unit.""Name"" = sg.""UnitName""
-                ON CONFLICT (""NutrientId"", ""GoalTypeId"") DO UPDATE SET
-                    ""RecommendedAmount"" = EXCLUDED.""RecommendedAmount"",
-                    ""MaxAmount"" = EXCLUDED.""MaxAmount"",
-                    ""UpdatedDate"" = NOW();", cancellationToken);
+                MERGE INTO nutrient.""NutrientGuideline"" AS target
+                USING (
+                    SELECT DISTINCT
+                        n.""Id"" AS nutrient_id,
+                        goal.""Id"" AS goal_type_id,
+                        unit.""Id"" AS measurement_type_id,
+                        NULLIF(sg.""RecommendedAmount"", '')::NUMERIC as recommended_amount,
+                        NULLIF(sg.""MaxAmount"", '')::NUMERIC as max_amount,
+                        'Imported from FDA Labeling Guidelines' AS notes,
+                        NOW() as created_date
+                    FROM ""Staging_Guideline"" sg
+                    JOIN nutrient.""Nutrient"" n ON n.""Name"" = sg.""NutrientName""
+                    JOIN reference.""Reference"" goal ON goal.""Name"" = sg.""GoalTypeName""
+                    JOIN reference.""Reference"" unit ON unit.""Name"" = sg.""UnitName""
+                ) AS source ON target.""NutrientId"" = source.nutrient_id AND target.""GoalTypeId"" = source.goal_type_id
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        ""RecommendedAmount"" = source.recommended_amount,
+                        ""MaxAmount"" = source.max_amount,
+                        ""LastModifiedDate"" = NOW()
+                WHEN NOT MATCHED THEN
+                    INSERT (""NutrientId"", ""GoalTypeId"", ""MeasurementTypeId"", ""RecommendedAmount"", ""MaxAmount"", ""Notes"", ""CreatedDate"")
+                    VALUES (source.nutrient_id, source.goal_type_id, source.measurement_type_id, source.recommended_amount, source.max_amount, source.notes, source.created_date);", cancellationToken);
 
             _logger.LogInformation("Dietary guidelines imported successfully.");
         }
@@ -682,50 +713,13 @@ namespace Nom.Import.Services
 
             // Create indexes for better performance
             await conn.ExecuteNonQueryAsync(@"
-                CREATE INDEX IF NOT EXISTS idx_ingredient_quality_score ON recipe.""Ingredient"" (""QualityScore"");
                 CREATE INDEX IF NOT EXISTS idx_ingredient_fdc_data_type ON recipe.""Ingredient"" (""FdcDataType"");
                 CREATE INDEX IF NOT EXISTS idx_ingredient_name_length ON recipe.""Ingredient"" (LENGTH(""Name""));
-                CREATE INDEX IF NOT EXISTS idx_nutrient_quality_score ON nutrient.""Nutrient"" (""QualityScore"");
-                CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_quality ON nutrient.""IngredientNutrient"" (""QualityScore"");
-                CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_year ON nutrient.""IngredientNutrient"" (""MinYearAcquired"");", cancellationToken);
+                CREATE INDEX IF NOT EXISTS idx_ingredient_fdc_id ON recipe.""Ingredient"" (""FdcId"");
+                CREATE INDEX IF NOT EXISTS idx_nutrient_fdc_id ON nutrient.""Nutrient"" (""FdcId"");
+                CREATE INDEX IF NOT EXISTS idx_ingredient_nutrient_amount ON nutrient.""IngredientNutrient"" (""Amount"");", cancellationToken);
 
             _logger.LogInformation("Quality indexes created successfully.");
-        }
-
-        private async Task PerformCopy(NpgsqlConnection connection, string tableName, string fileName, CancellationToken cancellationToken, string? limit = null)
-        {
-            var filePath = Path.Combine(_importSettings.SourceDirectory, fileName);
-            if (!File.Exists(filePath))
-            {
-                _logger.LogError("CSV file not found: {FilePath}. Skipping.", filePath);
-                return;
-            }
-
-            _logger.LogInformation("Copying data from {FileName} to {TableName}...", fileName, tableName);
-
-            using (var reader = File.OpenText(filePath))
-            {
-                // Skip the header row
-                await reader.ReadLineAsync(cancellationToken);
-
-                await using (var writer = await connection.BeginTextImportAsync($"COPY \"{tableName}\" FROM STDIN (FORMAT CSV)", cancellationToken))
-                {
-                    string? line;
-                    var lineCount = 0;
-                    while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
-                    {
-                        await writer.WriteLineAsync(line.AsMemory(), cancellationToken);
-                        lineCount++;
-
-                        if (limit != null && lineCount >= _importSettings.Performance.BatchSize)
-                        {
-                            break;
-                        }
-                    }
-                    await writer.FlushAsync(cancellationToken);
-                }
-            }
-            _logger.LogInformation("Successfully copied data for {TableName}.", tableName);
         }
     }
 
@@ -740,4 +734,4 @@ namespace Nom.Import.Services
             return await command.ExecuteNonQueryAsync(cancellationToken);
         }
     }
-} 
+}

@@ -23,14 +23,15 @@ public class Program
                 // Clear default providers if necessary
                 config.Sources.Clear();
 
-                // Add base appsettings.json
+                // 1. Base configuration (lowest priority)
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-                // Add environment-specific appsettings, e.g., appsettings.Development.json
-                config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-
-                // Add enhanced configuration if available
+                // 2. Enhanced configuration (medium priority)
                 config.AddJsonFile("appsettings.enhanced.json", optional: true, reloadOnChange: true);
+
+                // 3. Environment-specific configuration (highest priority)
+                // This will override values from appsettings.json and appsettings.enhanced.json
+                config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
                 // For local development, you might want to link to the API's user secrets
                 if (context.HostingEnvironment.IsDevelopment())
@@ -44,11 +45,20 @@ public class Program
             })
             .ConfigureServices((hostContext, services) =>
             {
+                // DEBUG: Log the connection string being used
+                var connectionString = hostContext.Configuration.GetConnectionString("NomConnection");
+                var environment = hostContext.HostingEnvironment.EnvironmentName;
+                Console.WriteLine($"=== Configuration Debug ===");
+                Console.WriteLine($"Environment: {environment}");
+                Console.WriteLine($"Connection String: {connectionString}");
+                Console.WriteLine($"Using NomUser: {connectionString?.Contains("NomUser") == true}");
+                Console.WriteLine($"Using postgres: {connectionString?.Contains("postgres") == true}");
+                Console.WriteLine("===========================");
+
                 // Bind the ImportSettings section from configuration
                 services.Configure<ImportSettings>(hostContext.Configuration.GetSection("ImportSettings"));
 
                 // Configure the DbContext using the "NomConnection" connection string
-                var connectionString = hostContext.Configuration.GetConnectionString("NomConnection");
                 services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseNpgsql(connectionString, o =>
                     {
