@@ -382,5 +382,55 @@ namespace Nom.Orch.Services
 
             return ingredients;
         }
+
+        public async Task AddIngredientAliasAsync(long ingredientId, string aliasName, string? sourceContext, long authorPersonId)
+        {
+            _logger.LogInformation("Adding alias '{AliasName}' to ingredient {IngredientId} by author {AuthorPersonId}", 
+                aliasName, ingredientId, authorPersonId);
+
+            var ingredient = await _db.Ingredients.FindAsync(ingredientId);
+            if (ingredient == null)
+            {
+                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
+            }
+
+            var alias = new IngredientAliasEntity
+            {
+                IngredientId = ingredientId,
+                AliasName = aliasName,
+                SourceContext = sourceContext ?? "Manual",
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _db.IngredientAliases.Add(alias);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully added alias '{AliasName}' to ingredient {IngredientId}", aliasName, ingredientId);
+        }
+
+        public async Task<List<IngredientAliasModel>> GetIngredientAliasesAsync(long ingredientId)
+        {
+            _logger.LogInformation("Fetching aliases for ingredient {IngredientId}", ingredientId);
+
+            var ingredient = await _db.Ingredients.FindAsync(ingredientId);
+            if (ingredient == null)
+            {
+                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
+            }
+
+            var aliases = await _db.IngredientAliases
+                .Where(ia => ia.IngredientId == ingredientId)
+                .OrderBy(ia => ia.AliasName)
+                .Select(ia => new IngredientAliasModel
+                {
+                    Id = ia.Id,
+                    AliasName = ia.AliasName,
+                    SourceContext = ia.SourceContext,
+                    CreatedDate = ia.CreatedDate
+                })
+                .ToListAsync();
+
+            return aliases;
+        }
     }
 }

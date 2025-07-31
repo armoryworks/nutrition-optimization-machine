@@ -6,5 +6,6 @@ namespace Nom.Orch.Models.Recipe
         public long Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? FdcId { get; set; }
+        public string? MatchedAlias { get; set; } // The alias that matched the search term, if any
     }
 }

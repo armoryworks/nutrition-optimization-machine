@@ -179,5 +179,58 @@ namespace Nom.Api.Controllers
                 return StatusCode(500, "An unexpected error occurred while retrieving the recipe.");
             }
         }
+
+        /// <summary>
+        /// Adds an alias to an ingredient.
+        /// </summary>
+        /// <param name="ingredientId">The ID of the ingredient.</param>
+        /// <param name="request">The alias request containing the alias name and optional source context.</param>
+        [HttpPost("ingredients/{ingredientId:long}/aliases")]
+        public async Task<IActionResult> AddIngredientAlias(long ingredientId, [FromBody] AddIngredientAliasRequest request)
+        {
+            try
+            {
+                var authorPersonId = GetCurrentPersonId();
+                await _recipeOrchestrationService.AddIngredientAliasAsync(ingredientId, request.AliasName, request.SourceContext, authorPersonId);
+                return NoContent(); // Success
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while adding alias to ingredient {IngredientId}", ingredientId);
+                return StatusCode(500, "An unexpected error occurred while adding the alias.");
+            }
+        }
+
+        /// <summary>
+        /// Gets all aliases for an ingredient.
+        /// </summary>
+        /// <param name="ingredientId">The ID of the ingredient.</param>
+        /// <returns>A list of aliases for the ingredient.</returns>
+        [HttpGet("ingredients/{ingredientId:long}/aliases")]
+        public async Task<IActionResult> GetIngredientAliases(long ingredientId)
+        {
+            try
+            {
+                var aliases = await _recipeOrchestrationService.GetIngredientAliasesAsync(ingredientId);
+                return Ok(aliases);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving aliases for ingredient {IngredientId}", ingredientId);
+                return StatusCode(500, "An unexpected error occurred while retrieving the aliases.");
+            }
+        }
     }
 }

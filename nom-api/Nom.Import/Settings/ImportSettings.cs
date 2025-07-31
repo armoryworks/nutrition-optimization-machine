@@ -37,6 +37,11 @@ namespace Nom.Import.Settings
         /// Configuration for recipe import and categorization.
         /// </summary>
         public RecipeSettings Recipe { get; set; } = new();
+
+        /// <summary>
+        /// Configuration for AI-powered ingredient enhancement.
+        /// </summary>
+        public AiEnhancementSettings AiEnhancement { get; set; } = new();
     }
 
     /// <summary>
@@ -218,5 +223,58 @@ namespace Nom.Import.Settings
         /// Maximum number of ingredients per recipe to process.
         /// </summary>
         public int MaxIngredientsPerRecipe { get; set; } = 20;
+    }
+
+    /// <summary>
+    /// Settings for AI-powered ingredient enhancement.
+    /// </summary>
+    public class AiEnhancementSettings
+    {
+        /// <summary>
+        /// Whether to enable AI enhancement of ingredients.
+        /// </summary>
+        public bool EnableAiEnhancement { get; set; } = false;
+
+        /// <summary>
+        /// The AI service provider to use for enhancement.
+        /// Options: OpenAI, Anthropic, GoogleGemini, AzureOpenAI, Ollama
+        /// </summary>
+        public string AiProvider { get; set; } = "OpenAI";
+
+        /// <summary>
+        /// Batch size for AI processing (to avoid rate limits).
+        /// </summary>
+        public int BatchSize { get; set; } = 10;
+
+        /// <summary>
+        /// Delay between batches in milliseconds (to avoid rate limits).
+        /// </summary>
+        public int BatchDelayMs { get; set; } = 1000;
+
+        /// <summary>
+        /// Whether to preserve original names as aliases.
+        /// </summary>
+        public bool PreserveOriginalNamesAsAliases { get; set; } = true;
+
+        /// <summary>
+        /// Whether to update ingredient descriptions with AI-enhanced descriptions.
+        /// </summary>
+        public bool UpdateDescriptions { get; set; } = true;
+
+        /// <summary>
+        /// Whether to update ingredient names with AI-enhanced names.
+        /// </summary>
+        public bool UpdateNames { get; set; } = true;
+
+        /// <summary>
+        /// Maximum number of ingredients to process (0 = unlimited).
+        /// </summary>
+        public int MaxIngredientsToProcess { get; set; } = 0;
+
+        /// <summary>
+        /// Quality threshold for AI enhancement (0.0 to 1.0).
+        /// Ingredients below this threshold will not be enhanced.
+        /// </summary>
+        public double QualityThreshold { get; set; } = 0.5;
     }
 }

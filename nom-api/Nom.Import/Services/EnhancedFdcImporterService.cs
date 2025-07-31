@@ -98,6 +98,18 @@ namespace Nom.Import.Services
             // Phase 5: Import food-nutrient relationships
             await ImportFoodNutrientRelationships(cancellationToken);
 
+            // Phase 6: AI-powered ingredient enhancement (if enabled)
+            if (_importSettings.AiEnhancement.EnableAiEnhancement)
+            {
+                await EnhanceIngredientsWithAiAsync(cancellationToken);
+            }
+
+            // Phase 7: Create quality indexes and materialized views
+            if (_importSettings.Performance.CreateIndexesAfterImport)
+            {
+                await CreateQualityIndexes(cancellationToken);
+            }
+
             // Phase 6: Import recipes (if enabled)
             if (_importSettings.Recipe.ImportRecipes)
             {
@@ -108,7 +120,44 @@ namespace Nom.Import.Services
             await ImportGuidelines(cancellationToken);
             await ExecuteSqlScripts(context, sqlScriptDirectory, "03_transform_enhanced.sql", cancellationToken);
 
-            _logger.LogInformation("Enhanced data import process completed successfully.");
+            _logger.LogInformation("Enhanced FDC data import process completed successfully.");
+        }
+
+        /// <summary>
+        /// Enhances ingredients using AI processing with flavor profile integration.
+        /// </summary>
+        private async Task EnhanceIngredientsWithAiAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Starting AI-powered ingredient enhancement with flavor profiles...");
+
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                
+                // Check if flavor profile CSV exists
+                var flavorProfilePath = Path.Combine(_importSettings.SourceDirectory, "processed_ingredients.csv");
+                if (File.Exists(flavorProfilePath))
+                {
+                    _logger.LogInformation("Found flavor profile data. Using enhanced processing with flavor profiles.");
+                    
+                    var flavorProfileService = scope.ServiceProvider.GetRequiredService<FlavorProfileEnhancedImportService>();
+                    await flavorProfileService.ProcessFlavorProfileEnhancementAsync(flavorProfilePath);
+                }
+                else
+                {
+                    _logger.LogInformation("No flavor profile data found. Using standard AI enhancement.");
+                    
+                    var aiEnhancementService = scope.ServiceProvider.GetRequiredService<AiIngredientEnhancementService>();
+                    await aiEnhancementService.EnhanceIngredientsAsync(cancellationToken);
+                }
+                
+                _logger.LogInformation("AI-powered ingredient enhancement completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during AI-powered ingredient enhancement");
+                // Don't throw - AI enhancement is optional
+            }
         }
 
         private async Task ImportMeasurementUnits(CancellationToken cancellationToken)

@@ -78,5 +78,21 @@ namespace Nom.Orch.Interfaces
 
         Task<List<RecipeDashboardItemModel>> GetAuthorIngredientsAsync(long authorPersonId);
 
+        /// <summary>
+        /// Adds an alias to an ingredient.
+        /// </summary>
+        /// <param name="ingredientId">The ID of the ingredient.</param>
+        /// <param name="aliasName">The alias name to add.</param>
+        /// <param name="sourceContext">Optional context about where this alias came from.</param>
+        /// <param name="authorPersonId">The PersonId of the user adding the alias.</param>
+        Task AddIngredientAliasAsync(long ingredientId, string aliasName, string? sourceContext, long authorPersonId);
+
+        /// <summary>
+        /// Gets all aliases for an ingredient.
+        /// </summary>
+        /// <param name="ingredientId">The ID of the ingredient.</param>
+        /// <returns>A list of aliases for the ingredient.</returns>
+        Task<List<IngredientAliasModel>> GetIngredientAliasesAsync(long ingredientId);
+
     }
 }

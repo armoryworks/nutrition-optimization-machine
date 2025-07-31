@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Nom.Data;
 using Nom.Import.Services;
 using Nom.Import.Settings;
+using Nom.Import;
 
 public class Program
 {
@@ -74,6 +75,9 @@ public class Program
                 {
                     // Add the Enhanced FDC Importer Service
                     services.AddHostedService<EnhancedFdcImporterService>();
+                    
+                    // Add AI enhancement services
+                    services.AddAiEnhancementServices();
                 }
                 else
                 {
