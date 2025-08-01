@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdCreateRequestModel } from '../../models/household.model';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'app-household-create',
@@ -37,7 +38,8 @@ export class HouseholdCreateComponent implements OnInit {
         private formBuilder: FormBuilder,
         private householdService: HouseholdService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private userInfoService: UserInfoService
     ) {
         this.householdForm = this.formBuilder.group({
             Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -49,8 +51,9 @@ export class HouseholdCreateComponent implements OnInit {
 
     ngOnInit(): void {
         // Set default values or get from current user context
+        const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
         this.householdForm.patchValue({
-            AuthorId: 1 // This should come from auth service
+            AuthorId: currentPersonId || 1 // Use current person ID or fallback
         });
     }
 

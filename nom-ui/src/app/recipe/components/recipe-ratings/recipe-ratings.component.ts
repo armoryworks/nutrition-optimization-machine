@@ -14,6 +14,7 @@ import { MatSliderModule } from '@angular/material/slider';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeRatingModel } from '../../models/recipe.model';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'app-recipe-ratings',
@@ -47,7 +48,8 @@ export class RecipeRatingsComponent implements OnInit {
     constructor(
         private recipeService: RecipeService,
         private formBuilder: FormBuilder,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private userInfoService: UserInfoService
     ) {
         this.ratingForm = this.formBuilder.group({
             rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
@@ -93,9 +95,10 @@ export class RecipeRatingsComponent implements OnInit {
     }
 
     findUserRating(): void {
-        // TODO: Get current user ID from auth service
-        const currentUserId = 1;
-        this.userRating = this.ratings.find(r => r.authorId === currentUserId) || null;
+        const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
+        if (currentPersonId) {
+            this.userRating = this.ratings.find(r => r.authorId === currentPersonId) || null;
+        }
 
         if (this.userRating) {
             this.ratingForm.patchValue({
@@ -109,9 +112,19 @@ export class RecipeRatingsComponent implements OnInit {
         if (this.ratingForm.valid && !this.isSubmitting) {
             this.isSubmitting = true;
 
+            const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
+            if (!currentPersonId) {
+                this.snackBar.open('User information not available. Please log in again.', 'Close', {
+                    duration: 3000,
+                    horizontalPosition: 'center',
+                    verticalPosition: 'top'
+                });
+                return;
+            }
+
             const ratingData = {
                 recipeId: this.recipeId,
-                authorId: 1, // TODO: Get from auth service
+                authorId: currentPersonId,
                 rating: this.ratingForm.value.rating,
                 comment: this.ratingForm.value.comment
             };

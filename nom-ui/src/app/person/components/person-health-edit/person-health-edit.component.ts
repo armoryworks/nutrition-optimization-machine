@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { PersonAttributeModel } from '../../models/person-attribute.model';
 import { MatSelectModule } from '@angular/material/select'; // For dropdowns if needed
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
+import { ReferenceService } from '../../../common/services/reference.service';
 
 // Extended interface for attribute types with additional properties
 interface AttributeTypeModel extends ReferenceItemModel {
@@ -60,12 +61,38 @@ export class PersonHealthEditComponent implements OnInit {
 
   healthAttributesForm!: FormGroup;
 
-  //TODO: implement service to retrieve attributeTypes
   attributeTypes: AttributeTypeModel[] = [];
 
-  constructor(private fb: NonNullableFormBuilder) { }
+  constructor(
+    private fb: NonNullableFormBuilder,
+    private referenceService: ReferenceService
+  ) { }
 
   ngOnInit(): void {
+    this.loadAttributeTypes();
+  }
+
+  loadAttributeTypes(): void {
+    this.referenceService.getAttributeTypes().subscribe({
+      next: (attributeTypes) => {
+        // Transform basic reference items to extended attribute types
+        this.attributeTypes = attributeTypes.map(attr => ({
+          ...attr,
+          label: attr.name,
+          unit: this.getUnitForAttribute(attr.name),
+          icon: this.getIconForAttribute(attr.name),
+          class: this.getClassForAttribute(attr.name),
+          options: this.getOptionsForAttribute(attr.name)
+        }));
+        this.initializeForm();
+      },
+      error: (error) => {
+        console.error('Error loading attribute types:', error);
+      }
+    });
+  }
+
+  private initializeForm(): void {
     const formControls: { [key: string]: FormControl } = {};
 
     this.attributeTypes.forEach((attrType) => {
@@ -163,5 +190,73 @@ export class PersonHealthEditComponent implements OnInit {
 
   onSkip(): void {
     this.skipStep.emit();
+  }
+
+  private getUnitForAttribute(attributeName: string): string {
+    switch (attributeName.toLowerCase()) {
+      case 'height':
+        return 'inches';
+      case 'weight':
+        return 'lbs';
+      case 'activity level':
+        return '';
+      case 'goal':
+        return '';
+      default:
+        return '';
+    }
+  }
+
+  private getIconForAttribute(attributeName: string): string {
+    switch (attributeName.toLowerCase()) {
+      case 'height':
+        return 'fa-ruler-vertical';
+      case 'weight':
+        return 'fa-weight';
+      case 'activity level':
+        return 'fa-running';
+      case 'goal':
+        return 'fa-bullseye';
+      default:
+        return 'fa-info-circle';
+    }
+  }
+
+  private getClassForAttribute(attributeName: string): string {
+    switch (attributeName.toLowerCase()) {
+      case 'height':
+        return 'height-input';
+      case 'weight':
+        return 'weight-input';
+      case 'activity level':
+        return 'activity-input';
+      case 'goal':
+        return 'goal-input';
+      default:
+        return '';
+    }
+  }
+
+  private getOptionsForAttribute(attributeName: string): Array<{ value: string; label: string }> | undefined {
+    switch (attributeName.toLowerCase()) {
+      case 'activity level':
+        return [
+          { value: 'sedentary', label: 'Sedentary (little or no exercise)' },
+          { value: 'lightly_active', label: 'Lightly Active (light exercise 1-3 days/week)' },
+          { value: 'moderately_active', label: 'Moderately Active (moderate exercise 3-5 days/week)' },
+          { value: 'very_active', label: 'Very Active (hard exercise 6-7 days/week)' },
+          { value: 'extremely_active', label: 'Extremely Active (very hard exercise, physical job)' }
+        ];
+      case 'goal':
+        return [
+          { value: 'lose_weight', label: 'Lose Weight' },
+          { value: 'maintain_weight', label: 'Maintain Weight' },
+          { value: 'gain_weight', label: 'Gain Weight' },
+          { value: 'build_muscle', label: 'Build Muscle' },
+          { value: 'improve_fitness', label: 'Improve Fitness' }
+        ];
+      default:
+        return undefined;
+    }
   }
 }

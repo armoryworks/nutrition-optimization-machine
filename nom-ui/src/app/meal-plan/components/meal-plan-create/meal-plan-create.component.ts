@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { MealPlanService } from '../../services/meal-plan.service';
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { MealPlanCreateRequestModel } from '../../models/meal-plan.model';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
   selector: 'app-meal-plan-create',
@@ -233,7 +234,8 @@ export class MealPlanCreateComponent implements OnInit {
     private mealPlanService: MealPlanService,
     private recipeService: RecipeService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private userInfoService: UserInfoService
   ) {
     this.mealPlanForm = this.fb.group({
       date: [new Date(), [Validators.required]],
@@ -268,8 +270,14 @@ export class MealPlanCreateComponent implements OnInit {
     this.isSubmitting = true;
     const formValue = this.mealPlanForm.value;
 
+    const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
+    if (!currentPersonId) {
+      this.snackBar.open('User information not available. Please log in again.', 'Close', { duration: 3000 });
+      return;
+    }
+
     const request: MealPlanCreateRequestModel = {
-      householdId: 1, // TODO: Get from current user context
+      householdId: 1, // TODO: Get household ID from user context or selected household
       date: formValue.date,
       mealTypeId: formValue.mealTypeId,
       title: `Meal Plan for ${formValue.date.toLocaleDateString()}`, // Generate a title

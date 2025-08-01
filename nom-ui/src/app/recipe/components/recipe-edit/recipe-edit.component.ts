@@ -24,6 +24,7 @@ import { IngredientCreateModalComponent, IngredientCreateModalData } from '../in
 import { IngredientModel } from '../../models/ingredient.model';
 import { RecipeEditModel, RecipeIngredientModel, RecipeStepModel } from '../../models/recipe-edit.model';
 import { CurationService } from '../../../curation/services/curation.service';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'app-recipe-edit',
@@ -67,7 +68,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         private recipeService: RecipeService,
         private notificationService: NotificationService,
         private dialog: MatDialog,
-        private curationService: CurationService
+        private curationService: CurationService,
+        private userInfoService: UserInfoService
     ) {
         this.recipeForm = this.fb.group({
             name: ['', [Validators.required, Validators.maxLength(511)]],
@@ -302,10 +304,16 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         this.isSubmitting = true;
         const formValue = this.recipeForm.value;
 
+        const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
+        if (!currentPersonId) {
+            this.notificationService.error('User information not available. Please log in again.');
+            return;
+        }
+
         const request = {
             name: formValue.name,
             description: formValue.description,
-            authorId: 1, // TODO: Get from auth service
+            authorId: currentPersonId,
             ingredients: formValue.ingredients.map((ingredient: any) => ({
                 ingredientId: ingredient.ingredientId,
                 quantity: ingredient.quantity,
