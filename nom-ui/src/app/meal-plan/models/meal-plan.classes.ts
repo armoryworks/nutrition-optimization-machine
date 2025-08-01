@@ -35,6 +35,7 @@ export class MealPlanCreateRequestModel implements IMealPlanCreateRequestModel {
     householdId: number = 0;
     date: Date = new Date();
     mealTypeId: number = 0;
+    mealType?: string;
     title: string = '';
     notes?: string;
     recipeId?: number;

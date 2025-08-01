@@ -270,7 +270,7 @@ export class MealPlanCreateComponent implements OnInit {
 
         const request: MealPlanCreateRequestModel = {
             date: formValue.date,
-            mealType: formValue.mealType,
+            mealTypeId: formValue.mealTypeId,
             recipeId: formValue.recipeId || undefined,
             notes: formValue.notes || undefined
         };

@@ -36,6 +36,7 @@ export interface IShoppingListResponseModel {
     modifiedDate?: Date;
     itemCount: number;
     completedItemCount: number;
+    completedCount?: number; // Alias for backward compatibility
     items: IShoppingListItemModel[];
 }
 

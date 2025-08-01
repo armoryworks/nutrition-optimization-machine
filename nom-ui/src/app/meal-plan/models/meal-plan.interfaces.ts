@@ -17,6 +17,7 @@ export interface IMealPlanCreateRequestModel {
     householdId: number;
     date: Date;
     mealTypeId: number;
+    mealType?: string;
     title: string;
     notes?: string;
     recipeId?: number;

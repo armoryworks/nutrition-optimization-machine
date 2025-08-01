@@ -58,12 +58,11 @@ export class HouseholdCreateComponent implements OnInit {
         if (this.householdForm.valid) {
             this.isLoading = true;
 
-            const createRequest = new HouseholdCreateRequestModel(
-                this.householdForm.value.Name,
-                this.householdForm.value.Description,
-                this.householdForm.value.GroupId,
-                this.householdForm.value.AuthorId
-            );
+            const createRequest = new HouseholdCreateRequestModel({
+                householdId: 0, // Will be set by the service
+                name: this.householdForm.value.Name,
+                description: this.householdForm.value.Description
+            });
 
             this.householdService.createHousehold(createRequest).subscribe({
                 next: (response) => {

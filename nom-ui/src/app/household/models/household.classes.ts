@@ -18,6 +18,8 @@ export class HouseholdModel implements IHouseholdModel {
     description?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
+    memberCount: number = 0;
+    planCount: number = 0;
 
     constructor(data?: Partial<IHouseholdModel>) {
         if (data) {
@@ -58,7 +60,9 @@ export class HouseholdResponseModel implements IHouseholdResponseModel {
     createdDate: Date = new Date();
     modifiedDate?: Date;
     memberCount: number = 0;
+    planCount: number = 0;
     isOwner: boolean = false;
+    groupId?: number;
 
     constructor(data?: Partial<IHouseholdResponseModel>) {
         if (data) {

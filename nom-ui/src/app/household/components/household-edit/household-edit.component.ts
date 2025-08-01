@@ -84,11 +84,10 @@ export class HouseholdEditComponent implements OnInit {
         if (this.householdForm.valid) {
             this.isLoading = true;
 
-            const updateRequest = new HouseholdUpdateRequestModel(
-                this.householdForm.value.Name,
-                this.householdForm.value.Description,
-                this.householdForm.value.GroupId
-            );
+            const updateRequest = new HouseholdUpdateRequestModel({
+                name: this.householdForm.value.Name,
+                description: this.householdForm.value.Description
+            });
 
             this.householdService.updateHousehold(this.householdId, updateRequest).subscribe({
                 next: (response) => {

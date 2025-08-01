@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ShoppingListCategoryService } from '../../services/shopping-list-category.service';
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
 
@@ -28,7 +29,8 @@ import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/s
         MatSelectModule,
         MatCardModule,
         MatChipsModule,
-        MatSnackBarModule
+        MatSnackBarModule,
+        MatProgressSpinnerModule
     ],
     templateUrl: './shopping-category-management.component.html',
     styleUrls: ['./shopping-category-management.component.scss']

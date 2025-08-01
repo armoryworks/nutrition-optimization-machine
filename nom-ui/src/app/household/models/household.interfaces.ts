@@ -6,6 +6,8 @@ export interface IHouseholdModel {
     description?: string;
     createdDate: Date;
     modifiedDate?: Date;
+    memberCount: number;
+    planCount: number;
 }
 
 export interface IHouseholdCreateRequestModel {
@@ -28,7 +30,9 @@ export interface IHouseholdResponseModel {
     createdDate: Date;
     modifiedDate?: Date;
     memberCount: number;
+    planCount: number;
     isOwner: boolean;
+    groupId?: number;
 }
 
 export interface IHouseholdUpdateRequestModel {
