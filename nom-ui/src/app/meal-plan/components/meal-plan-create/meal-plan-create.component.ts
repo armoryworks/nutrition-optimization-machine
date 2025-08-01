@@ -16,21 +16,21 @@ import { RecipeService } from '../../../recipe/services/recipe.service';
 import { MealPlanCreateRequestModel } from '../../models/meal-plan.model';
 
 @Component({
-    selector: 'app-meal-plan-create',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSelectModule,
-        MatButtonModule,
-        MatIconModule,
-        MatDatepickerModule,
-        MatNativeDateModule,
-    ],
-    template: `
+  selector: 'app-meal-plan-create',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+  ],
+  template: `
     <div class="meal-plan-create">
       <div class="meal-plan-create__container">
         <mat-card class="meal-plan-create__card">
@@ -104,7 +104,7 @@ import { MealPlanCreateRequestModel } from '../../models/meal-plan.model';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .meal-plan-create {
       min-height: 100vh;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -224,71 +224,73 @@ import { MealPlanCreateRequestModel } from '../../models/meal-plan.model';
   `]
 })
 export class MealPlanCreateComponent implements OnInit {
-    mealPlanForm: FormGroup;
-    isSubmitting = false;
-    recipes: any[] = [];
+  mealPlanForm: FormGroup;
+  isSubmitting = false;
+  recipes: any[] = [];
 
-    constructor(
-        private fb: FormBuilder,
-        private mealPlanService: MealPlanService,
-        private recipeService: RecipeService,
-        private router: Router,
-        private snackBar: MatSnackBar
-    ) {
-        this.mealPlanForm = this.fb.group({
-            date: [new Date(), [Validators.required]],
-            mealType: ['', [Validators.required]],
-            recipeId: [''],
-            notes: ['']
-        });
+  constructor(
+    private fb: FormBuilder,
+    private mealPlanService: MealPlanService,
+    private recipeService: RecipeService,
+    private router: Router,
+    private snackBar: MatSnackBar
+  ) {
+    this.mealPlanForm = this.fb.group({
+      date: [new Date(), [Validators.required]],
+      mealType: ['', [Validators.required]],
+      recipeId: [''],
+      notes: ['']
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadRecipes();
+  }
+
+  loadRecipes(): void {
+    this.recipeService.getRecipes().subscribe({
+      next: (recipes) => {
+        this.recipes = recipes;
+      },
+      error: (error) => {
+        console.error('Error loading recipes:', error);
+        this.snackBar.open('Failed to load recipes', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  onSubmit(): void {
+    if (this.mealPlanForm.invalid) {
+      this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+      return;
     }
 
-    ngOnInit(): void {
-        this.loadRecipes();
-    }
+    this.isSubmitting = true;
+    const formValue = this.mealPlanForm.value;
 
-    loadRecipes(): void {
-        this.recipeService.getRecipes().subscribe({
-            next: (recipes) => {
-                this.recipes = recipes;
-            },
-            error: (error) => {
-                console.error('Error loading recipes:', error);
-                this.snackBar.open('Failed to load recipes', 'Close', { duration: 3000 });
-            }
-        });
-    }
+    const request: MealPlanCreateRequestModel = {
+      householdId: 1, // TODO: Get from current user context
+      date: formValue.date,
+      mealTypeId: formValue.mealTypeId,
+      title: `Meal Plan for ${formValue.date.toLocaleDateString()}`, // Generate a title
+      recipeId: formValue.recipeId || undefined,
+      notes: formValue.notes || undefined
+    };
 
-    onSubmit(): void {
-        if (this.mealPlanForm.invalid) {
-            this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
-            return;
-        }
-
-        this.isSubmitting = true;
-        const formValue = this.mealPlanForm.value;
-
-        const request: MealPlanCreateRequestModel = {
-            date: formValue.date,
-            mealTypeId: formValue.mealTypeId,
-            recipeId: formValue.recipeId || undefined,
-            notes: formValue.notes || undefined
-        };
-
-        this.mealPlanService.createMealPlan(request).subscribe({
-            next: (response) => {
-                this.snackBar.open('Meal plan created successfully!', 'Close', { duration: 3000 });
-                this.router.navigate(['/meal-plan']);
-            },
-            error: (error) => {
-                console.error('Error creating meal plan:', error);
-                this.snackBar.open('Failed to create meal plan. Please try again.', 'Close', { duration: 3000 });
-                this.isSubmitting = false;
-            }
-        });
-    }
-
-    onCancel(): void {
+    this.mealPlanService.createMealPlan(request).subscribe({
+      next: (response) => {
+        this.snackBar.open('Meal plan created successfully!', 'Close', { duration: 3000 });
         this.router.navigate(['/meal-plan']);
-    }
+      },
+      error: (error) => {
+        console.error('Error creating meal plan:', error);
+        this.snackBar.open('Failed to create meal plan. Please try again.', 'Close', { duration: 3000 });
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  onCancel(): void {
+    this.router.navigate(['/meal-plan']);
+  }
 } 

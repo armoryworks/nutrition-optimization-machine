@@ -20,6 +20,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { PersonAttributeModel } from '../../models/person-attribute.model';
 import { MatSelectModule } from '@angular/material/select'; // For dropdowns if needed
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
+
+// Extended interface for attribute types with additional properties
+interface AttributeTypeModel extends ReferenceItemModel {
+  label?: string;
+  unit?: string;
+  icon?: string;
+  class?: string;
+  options?: Array<{ value: string; label: string }>;
+}
 
 @Component({
   selector: 'app-person-health-edit',
@@ -50,40 +60,10 @@ export class PersonHealthEditComponent implements OnInit {
 
   healthAttributesForm!: FormGroup;
 
-  // Mock data for attribute types. In a real app, this would come from a service fetching Reference Data.
-  attributeTypes = [
-    {
-      id: this.HEIGHT_ATTRIBUTE_ID,
-      name: this.HEIGHT_IN_FEET_NAME,
-      label: 'Height',
-      unit: 'feet',
-      icon: 'fa-ruler-vertical',
-      class: 'half-width',
-    },
-    {
-      id: this.HEIGHT_ATTRIBUTE_ID,
-      name: this.HEIGHT_IN_INCHES_NAME,
-      label: 'Height',
-      unit: 'inches',
-      icon: 'fa-ruler-vertical',
-      class: 'half-width',
-    }, // Example AttributeTypeRefIds
-    { id: 2001, name: 'Weight', unit: 'lbs', icon: 'fa-weight-hanging' },
-    {
-      id: 2002,
-      name: 'Activity Level',
-      label: 'Activity Level',
-      icon: 'fa-person-running',
-      options: [
-        'Sedentary',
-        'Lightly Active',
-        'Moderately Active',
-        'Very Active',
-      ],
-    },
-  ];
+  //TODO: implement service to retrieve attributeTypes
+  attributeTypes: AttributeTypeModel[] = [];
 
-  constructor(private fb: NonNullableFormBuilder) {}
+  constructor(private fb: NonNullableFormBuilder) { }
 
   ngOnInit(): void {
     const formControls: { [key: string]: FormControl } = {};

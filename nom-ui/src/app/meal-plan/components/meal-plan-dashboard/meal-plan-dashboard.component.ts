@@ -79,38 +79,7 @@ export class MealPlanDashboardComponent implements OnInit {
         // TODO: Implement get all meal plans service method
         // For now, using mock data
         setTimeout(() => {
-            this.mealPlans = [
-                {
-                    id: 1,
-                    householdId: 1,
-                    authorId: 1,
-                    date: new Date(),
-                    mealType: 'Breakfast',
-                    recipeId: 1,
-                    recipeName: 'Oatmeal with Berries',
-                    notes: 'Add honey for sweetness'
-                },
-                {
-                    id: 2,
-                    householdId: 1,
-                    authorId: 1,
-                    date: new Date(),
-                    mealType: 'Lunch',
-                    recipeId: 2,
-                    recipeName: 'Grilled Chicken Salad',
-                    notes: 'Use mixed greens'
-                },
-                {
-                    id: 3,
-                    householdId: 1,
-                    authorId: 1,
-                    date: new Date(),
-                    mealType: 'Dinner',
-                    recipeId: 3,
-                    recipeName: 'Pasta Carbonara',
-                    notes: 'Add extra cheese'
-                }
-            ];
+            this.mealPlans = [];
             this.filteredPlans = [...this.mealPlans];
             this.isLoading = false;
         }, 1000);

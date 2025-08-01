@@ -75,24 +75,7 @@ export class ShoppingDashboardComponent implements OnInit {
         // TODO: Implement get all shopping lists service method
         // For now, using mock data
         setTimeout(() => {
-            this.shoppingLists = [
-                {
-                    id: 1,
-                    name: 'Weekly Groceries',
-                    description: 'Essential items for the week',
-                    householdId: 1,
-                    itemCount: 12,
-                    completedCount: 3
-                },
-                {
-                    id: 2,
-                    name: 'Party Supplies',
-                    description: 'Items for the weekend party',
-                    householdId: 1,
-                    itemCount: 8,
-                    completedCount: 0
-                }
-            ];
+            this.shoppingLists = [];
             this.filteredLists = [...this.shoppingLists];
             this.isLoading = false;
         }, 1000);
@@ -137,7 +120,7 @@ export class ShoppingDashboardComponent implements OnInit {
 
     getProgressPercentage(list: ShoppingListResponseModel): number {
         if (list.itemCount === 0) return 0;
-        return Math.round((list.completedCount / list.itemCount) * 100);
+        return Math.round((list.completedItemCount / list.itemCount) * 100);
     }
 
     getProgressColor(percentage: number): string {

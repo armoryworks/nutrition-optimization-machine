@@ -59,7 +59,6 @@ export class HouseholdCreateComponent implements OnInit {
             this.isLoading = true;
 
             const createRequest = new HouseholdCreateRequestModel({
-                householdId: 0, // Will be set by the service
                 name: this.householdForm.value.Name,
                 description: this.householdForm.value.Description
             });
