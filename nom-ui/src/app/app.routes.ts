@@ -69,6 +69,21 @@ export const routes: Routes = [
     loadChildren: () => import('./user/user.routes').then(m => m.USER_ROUTES),
     canActivate: [AuthGuard]
   },
+  {
+    path: 'household',
+    loadChildren: () => import('./household/household.routes').then(m => m.HOUSEHOLD_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'shopping',
+    loadChildren: () => import('./shopping/shopping.routes').then(m => m.SHOPPING_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'meal-plan',
+    loadChildren: () => import('./meal-plan/meal-plan.routes').then(m => m.MEAL_PLAN_ROUTES),
+    canActivate: [AuthGuard]
+  },
   // --- Default and Wildcard routes MUST be last ---
   { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];

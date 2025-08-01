@@ -29,7 +29,7 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var ingredient = await _recipeOrch.GetIngredientForEditAsync(id, GetCurrentPersonId());
+                var ingredient = await _recipeOrch.GetIngredientForEditAsync(id);
                 if (ingredient == null)
                 {
                     return NotFound();
@@ -52,7 +52,7 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var newIngredient = await _recipeOrch.CreateIngredientAsync(request, GetCurrentPersonId());
+                var newIngredient = await _recipeOrch.CreateIngredientAsync(request);
                 return CreatedAtAction(nameof(GetIngredient), new { id = newIngredient.Id }, newIngredient);
             }
             catch (Exception ex)
@@ -71,7 +71,7 @@ namespace Nom.Api.Controllers
                 {
                     return BadRequest("ID mismatch between route and request body.");
                 }
-                await _recipeOrch.UpdateIngredientAsync(request, GetCurrentPersonId());
+                await _recipeOrch.UpdateIngredientAsync(request);
                 return NoContent(); // Success
             }
             catch (UnauthorizedAccessException ex)

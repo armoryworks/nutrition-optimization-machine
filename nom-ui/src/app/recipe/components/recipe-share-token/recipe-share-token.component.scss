@@ -1,0 +1,275 @@
+@use "@angular/material" as mat;
+
+.recipe-share-token {
+    &__card {
+        background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 50));
+        border-radius: 12px;
+        box-shadow: var(--mat-card-elevation-shadow, 0 2px 8px rgba(0, 0, 0, 0.1));
+        margin-bottom: 16px;
+    }
+
+    &__header {
+        padding: 24px 24px 0;
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--mat-card-title-text-color, mat.get-color-from-palette(mat.$gray-palette, 900));
+        font-size: 1.25rem;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    &__icon {
+        color: var(--mat-primary-color, mat.get-color-from-palette(mat.$primary-palette, 500));
+    }
+
+    &__subtitle {
+        color: var(--mat-card-subtitle-text-color, mat.get-color-from-palette(mat.$gray-palette, 600));
+        font-size: 0.875rem;
+        margin: 8px 0 0;
+    }
+
+    &__content {
+        padding: 16px 24px 24px;
+    }
+
+    &__form {
+        margin-bottom: 24px;
+    }
+
+    &__form-row {
+        margin-bottom: 16px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    &__field {
+        width: 100%;
+    }
+
+    &__form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 16px;
+    }
+
+    &__submit-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    &__loading {
+        animation: spin 1s linear infinite;
+    }
+
+    &__divider {
+        margin: 24px 0;
+    }
+
+    &__tokens-section {
+        margin-top: 24px;
+    }
+
+    &__section-title {
+        color: var(--mat-card-title-text-color, mat.get-color-from-palette(mat.$gray-palette, 900));
+        font-size: 1.125rem;
+        font-weight: 500;
+        margin: 0 0 16px;
+    }
+
+    &__loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        color: var(--mat-card-subtitle-text-color, mat.get-color-from-palette(mat.$gray-palette, 600));
+    }
+
+    &__loading-icon {
+        font-size: 2rem;
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: 8px;
+        animation: spin 1s linear infinite;
+    }
+
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        color: var(--mat-card-subtitle-text-color, mat.get-color-from-palette(mat.$gray-palette, 600));
+        text-align: center;
+    }
+
+    &__empty-icon {
+        font-size: 3rem;
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    &__tokens-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    &__token-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 16px;
+        background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 50));
+        border: 1px solid var(--mat-divider-color, mat.get-color-from-palette(mat.$gray-palette, 200));
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+
+        &:hover {
+            border-color: var(--mat-primary-color, mat.get-color-from-palette(mat.$primary-palette, 300));
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    &__token-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    &__token-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        gap: 12px;
+    }
+
+    &__token-name {
+        color: var(--mat-card-title-text-color, mat.get-color-from-palette(mat.$gray-palette, 900));
+        font-size: 1rem;
+        font-weight: 500;
+        margin: 0;
+        word-break: break-word;
+    }
+
+    &__token-chips {
+        flex-shrink: 0;
+    }
+
+    &__token-chip {
+        font-size: 0.75rem;
+        height: 24px;
+    }
+
+    &__token-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    &__token-url,
+    &__token-date {
+        color: var(--mat-card-subtitle-text-color, mat.get-color-from-palette(mat.$gray-palette, 600));
+        font-size: 0.875rem;
+        margin: 0;
+        word-break: break-all;
+    }
+
+    &__token-text {
+        font-family: 'Courier New', monospace;
+        background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 100));
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+
+    &__token-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+        margin-left: 16px;
+    }
+
+    &__action-btn {
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+
+        .mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+    .recipe-share-token {
+        &__card {
+            background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 900));
+        }
+
+        &__token-item {
+            background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 800));
+            border-color: var(--mat-divider-color, mat.get-color-from-palette(mat.$gray-palette, 700));
+        }
+
+        &__token-text {
+            background: var(--mat-card-background-color, mat.get-color-from-palette(mat.$gray-palette, 700));
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .recipe-share-token {
+        &__header {
+            padding: 16px 16px 0;
+        }
+
+        &__content {
+            padding: 12px 16px 16px;
+        }
+
+        &__token-item {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        &__token-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        &__token-actions {
+            margin-left: 0;
+            align-self: flex-end;
+        }
+    }
+}
+
+// Animation
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+} 

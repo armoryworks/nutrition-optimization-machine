@@ -24,6 +24,18 @@
         <mat-icon>dashboard</mat-icon>
         <span>Dashboard</span>
       </a>
+      <a routerLink="/household" class="app-main-nav__link">
+        <mat-icon>home</mat-icon>
+        <span>Households</span>
+      </a>
+      <a routerLink="/shopping" class="app-main-nav__link">
+        <mat-icon>shopping_cart</mat-icon>
+        <span>Shopping</span>
+      </a>
+      <a routerLink="/meal-plan" class="app-main-nav__link">
+        <mat-icon>restaurant_menu</mat-icon>
+        <span>Meal Plans</span>
+      </a>
       <a routerLink="/messaging" class="app-main-nav__link">
         <mat-icon>message</mat-icon>
         <span>Messages</span>
@@ -34,7 +46,7 @@
       </a>
       <a routerLink="/curated-plans" class="app-main-nav__link">
         <mat-icon>schedule</mat-icon>
-        <span>Meal Plans</span>
+        <span>Curated Plans</span>
       </a>
     </nav>
     }
@@ -85,5 +97,7 @@
 </main>
 
 <footer class="app-footer">
-  <p>&copy; {{ currentYear }} {{ title }}. All rights reserved.</p>
+  <p>Powered by Mealie: <a href="https://github.com/mealie-recipes/mealie"
+    target="_blank">https://github.com/mealie-recipes/mealie</a>. A big Thank you to the contributors of that project!</p>
+  <p>&copy; {{ currentYear }} {{ title }}. All rights reserved. A big thank you to the contributors of </p>
 </footer>

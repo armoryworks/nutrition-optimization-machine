@@ -1,0 +1,351 @@
+// Component styles only - theme is handled globally
+
+.household-detail {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1rem;
+
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem;
+  }
+
+  &__container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  &__loading,
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+    color: white;
+
+    p {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+    }
+  }
+
+  &__error-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+  }
+
+  &__error-content {
+    text-align: center;
+    padding: 2rem;
+  }
+
+  &__error-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: #f44336;
+    margin-bottom: 1rem;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  &__header-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  &__header {
+    padding: 2rem;
+
+    @media (max-width: 768px) {
+      padding: 1.5rem 1rem;
+    }
+  }
+
+  &__header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  &__title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+  }
+
+  &__title-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    color: #667eea;
+
+    @media (max-width: 768px) {
+      font-size: 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+  }
+
+  &__title-info {
+    flex: 1;
+  }
+
+  &__title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    color: #333;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  &__description {
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+  }
+
+  &__menu-button {
+    color: #666;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  &__stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+
+    @media (max-width: 768px) {
+      padding: 1rem;
+    }
+  }
+
+  &__stat-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #667eea;
+  }
+
+  &__stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  &__stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1;
+  }
+
+  &__stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__actions-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  &__quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__action-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  &__members-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  &__invite-button {
+    color: #667eea;
+  }
+
+  &__empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #666;
+  }
+
+  &__empty-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: #ccc;
+    margin-bottom: 1rem;
+  }
+
+  &__members-list {
+    padding: 0;
+  }
+
+  &__member-item {
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__member-avatar {
+    color: #667eea;
+  }
+
+  &__member-name {
+    font-weight: 500;
+    color: #333;
+  }
+
+  &__member-role {
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  &__member-menu {
+    color: #666;
+  }
+
+  &__back-section {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+  }
+
+  &__back-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Material overrides
+::ng-deep {
+  .mat-mdc-card {
+    .mat-mdc-card-header {
+      padding: 0;
+    }
+
+    .mat-mdc-card-content {
+      padding: 0;
+    }
+
+    .mat-mdc-card-actions {
+      padding: 0;
+    }
+  }
+
+  .mat-mdc-menu-panel {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .mat-mdc-list-item {
+    padding: 1rem;
+  }
+
+  .household-detail__delete-button {
+    color: #f44336;
+  }
+} 

@@ -32,7 +32,7 @@ namespace Nom.Orch.Services
                 InviterPersonId = request.InviterPersonId,
                 InvitationType = request.InvitationType,
                 PlanId = request.PlanId,
-                ExpiresAt = request.ExpiresAt,
+                ExpirationDate = request.ExpirationDate,
                 Notes = request.Notes,
                 IsUsed = false
             };
@@ -63,7 +63,7 @@ namespace Nom.Orch.Services
                 throw new InvalidOperationException($"Invitation with code {request.InvitationCode} has already been used.");
             }
 
-            if (invitation.ExpiresAt.HasValue && invitation.ExpiresAt.Value < DateTime.UtcNow)
+            if (invitation.ExpirationDate.HasValue && invitation.ExpirationDate.Value < DateTime.UtcNow)
             {
                 throw new InvalidOperationException($"Invitation with code {request.InvitationCode} has expired.");
             }
@@ -138,7 +138,7 @@ namespace Nom.Orch.Services
             if (invitation.IsUsed)
                 return false;
 
-            if (invitation.ExpiresAt.HasValue && invitation.ExpiresAt.Value < DateTime.UtcNow)
+            if (invitation.ExpirationDate.HasValue && invitation.ExpirationDate.Value < DateTime.UtcNow)
                 return false;
 
             return true;
@@ -163,7 +163,7 @@ namespace Nom.Orch.Services
                 InviterName = invitation.Inviter?.Name ?? "Unknown",
                 InviteePersonId = invitation.InviteePersonId,
                 InviteeName = invitation.Invitee?.Name,
-                ExpiresAt = invitation.ExpiresAt,
+                ExpirationDate = invitation.ExpirationDate,
                 IsUsed = invitation.IsUsed,
                 UsedAt = invitation.UsedAt,
                 Notes = invitation.Notes,
@@ -192,4 +192,4 @@ namespace Nom.Orch.Services
             return code;
         }
     }
-} 
+}

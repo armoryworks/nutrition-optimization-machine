@@ -1,0 +1,126 @@
+<div class="nom-recipe-rating">
+  <!-- Average Rating Display -->
+  <mat-card class="nom-recipe-rating__average-card" *ngIf="!isLoading">
+    <mat-card-header>
+      <mat-card-title>Recipe Rating</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="nom-recipe-rating__average-display">
+        <div class="nom-recipe-rating__stars">
+          <mat-icon 
+            *ngFor="let star of [1,2,3,4,5]" 
+            [class]="getAverageStarClass(star)"
+            class="nom-recipe-rating__star">
+            star
+          </mat-icon>
+        </div>
+        <div class="nom-recipe-rating__average-info">
+          <span class="nom-recipe-rating__average-score">{{ averageRating.toFixed(1) }}</span>
+          <span class="nom-recipe-rating__average-text">out of 5</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- User Rating Form -->
+  <mat-card class="nom-recipe-rating__form-card">
+    <mat-card-header>
+      <mat-card-title>
+        {{ userRating ? 'Update Your Rating' : 'Rate This Recipe' }}
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="ratingForm" (ngSubmit)="userRating ? updateRating() : submitRating()" class="nom-recipe-rating__form">
+        
+        <!-- Star Rating -->
+        <div class="nom-recipe-rating__star-rating">
+          <label class="nom-recipe-rating__star-label">Your Rating:</label>
+          <div class="nom-recipe-rating__stars">
+            <mat-icon 
+              *ngFor="let star of [1,2,3,4,5]" 
+              [class]="getStarClass(star)"
+              class="nom-recipe-rating__star nom-recipe-rating__star--clickable"
+              (click)="setRating(star)"
+              [matTooltip]="'Rate ' + star + ' stars'">
+              star
+            </mat-icon>
+          </div>
+          <span class="nom-recipe-rating__rating-text">
+            {{ (ratingForm.get('rating')?.value || 0) }} out of 5
+          </span>
+        </div>
+
+        <!-- Review Text -->
+        <mat-form-field appearance="outline" class="nom-recipe-rating__field">
+          <mat-label>Review (Optional)</mat-label>
+          <textarea 
+            matInput 
+            formControlName="reviewText" 
+            placeholder="Share your thoughts about this recipe..."
+            rows="3">
+          </textarea>
+          <mat-error *ngIf="ratingForm.get('reviewText')?.hasError('maxlength')">
+            Review cannot exceed 2047 characters
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Form Actions -->
+        <div class="nom-recipe-rating__actions">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="ratingForm.invalid || isSubmitting"
+            class="nom-recipe-rating__submit-btn">
+            <mat-icon>{{ userRating ? 'edit' : 'star' }}</mat-icon>
+            {{ isSubmitting ? 'Submitting...' : (userRating ? 'Update Rating' : 'Submit Rating') }}
+          </button>
+
+          <button 
+            *ngIf="userRating"
+            mat-stroked-button 
+            color="warn"
+            type="button"
+            (click)="deleteRating()"
+            [disabled]="isSubmitting"
+            class="nom-recipe-rating__delete-btn">
+            <mat-icon>delete</mat-icon>
+            Delete Rating
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- User's Current Rating Display -->
+  <mat-card *ngIf="userRating" class="nom-recipe-rating__user-rating-card">
+    <mat-card-header>
+      <mat-card-title>Your Rating</mat-card-title>
+      <mat-card-subtitle>{{ formatDate(userRating.createdDate) }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="nom-recipe-rating__user-rating-display">
+        <div class="nom-recipe-rating__stars">
+          <mat-icon 
+            *ngFor="let star of [1,2,3,4,5]" 
+            [class]="star <= userRating.rating ? 'star-filled' : 'star-empty'"
+            class="nom-recipe-rating__star">
+            star
+          </mat-icon>
+        </div>
+        <div class="nom-recipe-rating__user-rating-info">
+          <span class="nom-recipe-rating__user-score">{{ userRating.rating }} out of 5</span>
+          <p *ngIf="userRating.reviewText" class="nom-recipe-rating__user-review">
+            {{ userRating.reviewText }}
+          </p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="nom-recipe-rating__loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading rating data...</p>
+  </div>
+</div> 

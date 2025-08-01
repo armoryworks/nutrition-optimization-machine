@@ -117,7 +117,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
                     // Clear existing arrays and populate with recipe data
                     this.ingredients.clear();
-                    recipeData.ingredients.forEach(ingredient => {
+                    recipeData.ingredients?.forEach(ingredient => {
                         console.log('Adding ingredient:', ingredient);
                         this.ingredients.push(this.fb.group({
                             ingredientId: [ingredient.ingredientId, Validators.required],
@@ -128,7 +128,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                     });
 
                     this.steps.clear();
-                    recipeData.steps.forEach(step => {
+                    recipeData.steps?.forEach(step => {
                         console.log('Adding step:', step);
                         this.steps.push(this.fb.group({
                             instruction: [step.description, [Validators.required, Validators.maxLength(2047)]],
@@ -305,6 +305,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         const request = {
             name: formValue.name,
             description: formValue.description,
+            authorId: 1, // TODO: Get from auth service
             ingredients: formValue.ingredients.map((ingredient: any) => ({
                 ingredientId: ingredient.ingredientId,
                 quantity: ingredient.quantity,

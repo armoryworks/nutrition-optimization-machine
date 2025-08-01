@@ -2,117 +2,97 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { RecipeModel } from '../models/recipe.model';
-import { IngredientSearchResponseModel } from '../models/ingredient-search-response.model';
-import { IngredientModel } from '../models/ingredient.model';
-import { CreateRecipeRequestModel } from '../models/create-recipe-request-model';
-import { RecipeDashboardItemModel } from '../models/recipe-dashboard-item.model';
-import { ReferenceItemModel } from '../../common/models/reference-item.model';
-import { UpdateRecipeRequest } from '../models/update-recipe-request.model';
-import { CreateIngredientRequestModel } from '../models/create-ingredient-request.model';
-import { RecipeEditModel } from '../models/recipe-edit.model';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
-interface SearchResult {
-  id: number;
-  name: string;
-  type: 'Recipe' | 'Ingredient';
-  curationStatus: string;
-  isCurated: boolean;
-  authorName?: string;
-  description?: string;
-}
+import {
+  RecipeModel,
+  RecipeCreateModel,
+  RecipeUpdateModel,
+  RecipeCommentModel,
+  RecipeRatingModel,
+  RecipeCommentCreateModel,
+  RecipeRatingCreateModel,
+  RecipeRatingUpdateModel
+} from '../models/recipe.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RecipeService {
-  private readonly apiUrl = `/api/Recipe`;
-  private readonly referenceApiUrl = `/api/Reference`;
-  private readonly ingredientsApiUrl = `/api/Ingredients`;
-
+  private apiUrl = `${environment.apiUrl}/recipe`;
 
   constructor(private http: HttpClient) { }
 
-  searchIngredients(query: string): Observable<IngredientSearchResponseModel[]> {
-    return this.http.get<IngredientSearchResponseModel[]>(`${this.apiUrl}/ingredients/search`, { params: { q: query } });
+  getRecipes(): Observable<RecipeModel[]> {
+    return this.http.get<RecipeModel[]>(this.apiUrl);
   }
 
-  searchRecipes(query: string): Observable<SearchResult[]> {
-    // TODO: Replace with actual API call when backend is ready
-    // For now, return mock data
-    const mockResults: SearchResult[] = [
-      {
-        id: 1,
-        name: 'Chicken Caesar Salad',
-        type: 'Recipe',
-        curationStatus: 'Curated',
-        isCurated: true,
-        authorName: 'Chef John',
-        description: 'A classic Caesar salad with grilled chicken breast, romaine lettuce, and traditional Caesar dressing.'
-      },
-      {
-        id: 2,
-        name: 'Fresh Basil',
-        type: 'Ingredient',
-        curationStatus: 'Curated',
-        isCurated: true,
-        authorName: 'Garden Fresh Co.',
-        description: 'Fresh basil leaves with aromatic flavor, perfect for Italian dishes and pesto.'
-      },
-      {
-        id: 3,
-        name: 'My Homemade Pizza',
-        type: 'Recipe',
-        curationStatus: 'NonCurated',
-        isCurated: false,
-        authorName: 'Current User',
-        description: 'A personal recipe for homemade pizza with custom toppings.'
-      }
-    ];
-
-    // Filter results based on query
-    const filteredResults = mockResults.filter(result =>
-      result.name.toLowerCase().includes(query.toLowerCase()) ||
-      result.description?.toLowerCase().includes(query.toLowerCase())
-    );
-
-    return of(filteredResults);
+  getRecipe(id: number): Observable<RecipeModel> {
+    return this.http.get<RecipeModel>(`${this.apiUrl}/${id}`);
   }
 
-  getIngredientDetails(id: number): Observable<IngredientModel> {
-    return this.http.get<IngredientModel>(`${this.apiUrl}/ingredients/${id}`);
+  createRecipe(recipe: RecipeCreateModel): Observable<RecipeModel> {
+    return this.http.post<RecipeModel>(this.apiUrl, recipe);
   }
 
-  getRecipe(id: number): Observable<RecipeEditModel> {
-    return this.http.get<RecipeEditModel>(`${this.apiUrl}/${id}`);
+  updateRecipe(id: number, recipe: RecipeUpdateModel): Observable<RecipeModel> {
+    return this.http.put<RecipeModel>(`${this.apiUrl}/${id}`, recipe);
   }
 
-  createIngredient(request: CreateIngredientRequestModel): Observable<IngredientModel> {
-    return this.http.post<IngredientModel>(this.ingredientsApiUrl, request);
+  deleteRecipe(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  createRecipe(request: CreateRecipeRequestModel): Observable<RecipeModel> {
-    return this.http.post<RecipeModel>(this.apiUrl, request);
+  // Recipe Comments
+  getComments(recipeId: number): Observable<RecipeCommentModel[]> {
+    return this.http.get<RecipeCommentModel[]>(`${this.apiUrl}/${recipeId}/comments`);
   }
 
-  updateRecipe(id: number, request: UpdateRecipeRequest): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}`, request);
+  addComment(comment: RecipeCommentCreateModel): Observable<RecipeCommentModel> {
+    return this.http.post<RecipeCommentModel>(`${this.apiUrl}/${comment.recipeId}/comments`, comment);
   }
 
-  createNewVersion(parentRecipeId: number): Observable<RecipeModel> {
-    return this.http.post<RecipeModel>(`${this.apiUrl}/${parentRecipeId}/version`, {});
+  deleteComment(commentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/comments/${commentId}`);
   }
 
-  getMyRecipes(): Observable<RecipeDashboardItemModel[]> {
-    return this.http.get<RecipeDashboardItemModel[]>(`${this.apiUrl}/my-recipes`);
+  // Recipe Ratings
+  getRatings(recipeId: number): Observable<RecipeRatingModel[]> {
+    return this.http.get<RecipeRatingModel[]>(`${this.apiUrl}/${recipeId}/ratings`);
   }
 
-  getMyIngredients(): Observable<RecipeDashboardItemModel[]> {
-    return this.http.get<RecipeDashboardItemModel[]>(`${this.apiUrl}/my-ingredients`);
+  addRating(rating: RecipeRatingCreateModel): Observable<RecipeRatingModel> {
+    return this.http.post<RecipeRatingModel>(`${this.apiUrl}/${rating.recipeId}/ratings`, rating);
   }
 
-  getMeasurementTypes(): Observable<ReferenceItemModel[]> {
-    return this.http.get<ReferenceItemModel[]>(`${this.referenceApiUrl}/measurement-types`);
+  updateRating(ratingId: number, rating: RecipeRatingUpdateModel): Observable<RecipeRatingModel> {
+    return this.http.put<RecipeRatingModel>(`${this.apiUrl}/ratings/${ratingId}`, rating);
+  }
+
+  deleteRating(ratingId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/ratings/${ratingId}`);
+  }
+
+  // Ingredient methods
+  searchIngredients(query: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/ingredient/search?q=${query}`);
+  }
+
+  createIngredient(ingredient: any): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/ingredient`, ingredient);
+  }
+
+  getIngredientDetails(id: number): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/ingredient/${id}`);
+  }
+
+  getMeasurementTypes(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/measurement-types`);
+  }
+
+  // Recipe search
+  searchRecipes(query: string): Observable<RecipeModel[]> {
+    return this.http.get<RecipeModel[]>(`${this.apiUrl}/search?q=${query}`);
   }
 }

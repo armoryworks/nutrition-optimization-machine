@@ -1,235 +1,217 @@
-// File: Nom.Api/Controllers/RecipesController.cs
+// File: Nom.Api/Controllers/RecipeController.cs
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
-using System;
-using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     [Authorize]
     public class RecipeController : BaseApiController
     {
-        private readonly IRecipeOrchestrationService _recipeOrchestrationService;
-        private readonly ILogger<RecipeController> _logger;
+        private readonly IRecipeOrchestrationService _recipeService;
 
-        public RecipeController(IRecipeOrchestrationService recipeOrchestrationService, ILogger<RecipeController> logger)
+        public RecipeController(IRecipeOrchestrationService recipeService)
         {
-            _recipeOrchestrationService = recipeOrchestrationService;
-            _logger = logger;
+            _recipeService = recipeService;
         }
 
-        /// <summary>
-        /// Searches for ingredients by a given search term.
-        /// </summary>
-        /// <param name="q">The query string to search for.</param>
-        /// <returns>A list of matching ingredients.</returns>
-        [HttpGet("ingredients/search")]
-        public async Task<IActionResult> SearchIngredients([FromQuery] string q)
-        {
-            var result = await _recipeOrchestrationService.SearchIngredientsAsync(q);
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Gets the detailed nutritional information for a specific ingredient.
-        /// </summary>
-        /// <param name="id">The ID of the ingredient.</param>
-        /// <returns>The ingredient details with its nutrient profile.</returns>
-        [HttpGet("ingredients/{id:long}")]
-        public async Task<IActionResult> GetIngredientDetails(long id)
-        {
-            var result = await _recipeOrchestrationService.GetIngredientDetailsAsync(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Creates a new recipe.
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> CreateRecipe([FromBody] CreateRecipeRequest request)
+        [HttpGet]
+        public async Task<ActionResult<List<RecipeResponseModel>>> GetRecipes()
         {
             try
             {
-                var authorPersonId = GetCurrentPersonId();
-                var newRecipeId = await _recipeOrchestrationService.CreateRecipeAsync(request, authorPersonId);
-                return CreatedAtAction(nameof(GetRecipe), new { id = newRecipeId }, null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while creating a recipe for user {PersonId}", GetCurrentPersonId());
-                return StatusCode(500, "An unexpected error occurred while creating the recipe.");
-            }
-        }
-
-        [HttpPut("{id:long}")]
-        public async Task<IActionResult> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
-        {
-            if (id != request.Id)
-            {
-                return BadRequest("ID mismatch between route and request body.");
-            }
-
-            try
-            {
-                var authorPersonId = GetCurrentPersonId();
-                await _recipeOrchestrationService.UpdateRecipeAsync(request, authorPersonId);
-                return NoContent(); // Success
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while updating recipe {RecipeId}", id);
-                return StatusCode(500, "An unexpected error occurred while updating the recipe.");
-            }
-        }
-
-        /// <summary>
-        /// Creates a new version of an existing curated recipe.
-        /// </summary>
-        /// <param name="id">The ID of the parent recipe.</param>
-        [HttpPost("{id:long}/version")]
-        public async Task<IActionResult> CreateNewVersion(long id)
-        {
-            try
-            {
-                var authorPersonId = GetCurrentPersonId();
-                var newVersionId = await _recipeOrchestrationService.CreateNewRecipeVersionAsync(id, authorPersonId);
-                return CreatedAtAction(nameof(GetRecipe), new { id = newVersionId }, null);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation while creating a new version for recipe {RecipeId}", id);
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while creating a new version for recipe {RecipeId}", id);
-                return StatusCode(500, "An unexpected error occurred while creating the new version.");
-            }
-        }
-
-        [HttpGet("my-recipes")]
-        public async Task<IActionResult> GetMyRecipes()
-        {
-            try
-            {
-                var authorPersonId = GetCurrentPersonId();
-                var recipes = await _recipeOrchestrationService.GetAuthorRecipesAsync(authorPersonId);
+                var recipes = await _recipeService.GetAllRecipesAsync();
                 return Ok(recipes);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while fetching recipes for user {PersonId}", GetCurrentPersonId());
-                return StatusCode(500, "An unexpected error occurred while fetching recipes.");
+                return StatusCode(500, new { message = "Failed to retrieve recipes", error = ex.Message });
             }
         }
 
-        [HttpGet("my-ingredients")]
-        public async Task<IActionResult> GetMyIngredients()
+        [HttpPost]
+        public async Task<ActionResult<RecipeCreateResponseModel>> CreateRecipe([FromBody] RecipeCreateModel request)
         {
             try
             {
-                var authorPersonId = GetCurrentPersonId();
-                var ingredients = await _recipeOrchestrationService.GetAuthorIngredientsAsync(authorPersonId);
-                return Ok(ingredients);
+                var response = await _recipeService.CreateRecipeAsync(request);
+                return CreatedAtAction(nameof(GetRecipe), new { id = response.Id }, response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while fetching ingredients for user {PersonId}", GetCurrentPersonId());
-                return StatusCode(500, "An unexpected error occurred while fetching ingredients.");
+                return StatusCode(500, new { message = "Failed to create recipe", error = ex.Message });
             }
         }
 
-        // Placeholder for a GetRecipe endpoint that would be referenced by CreatedAtAction
-        [HttpGet("{id:long}")]
-        public async Task<IActionResult> GetRecipe(long id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
         {
             try
             {
-                var authorPersonId = GetCurrentPersonId();
-                var recipe = await _recipeOrchestrationService.GetRecipeForEditAsync(id, authorPersonId);
+                var recipe = await _recipeService.GetRecipeAsync(id);
+                if (recipe == null)
+                {
+                    return NotFound(new { message = "Recipe not found" });
+                }
                 return Ok(recipe);
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving recipe {RecipeId}", id);
-                return StatusCode(500, "An unexpected error occurred while retrieving the recipe.");
+                return StatusCode(500, new { message = "Failed to retrieve recipe", error = ex.Message });
             }
         }
 
-        /// <summary>
-        /// Adds an alias to an ingredient.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient.</param>
-        /// <param name="request">The alias request containing the alias name and optional source context.</param>
-        [HttpPost("ingredients/{ingredientId:long}/aliases")]
-        public async Task<IActionResult> AddIngredientAlias(long ingredientId, [FromBody] AddIngredientAliasRequest request)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] RecipeUpdateModel request)
         {
             try
             {
-                var authorPersonId = GetCurrentPersonId();
-                await _recipeOrchestrationService.AddIngredientAliasAsync(ingredientId, request.AliasName, request.SourceContext, authorPersonId);
-                return NoContent(); // Success
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
+                var response = await _recipeService.UpdateRecipeAsync(id, request);
+                if (response == null)
+                {
+                    return NotFound(new { message = "Recipe not found" });
+                }
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while adding alias to ingredient {IngredientId}", ingredientId);
-                return StatusCode(500, "An unexpected error occurred while adding the alias.");
+                return StatusCode(500, new { message = "Failed to update recipe", error = ex.Message });
             }
         }
 
-        /// <summary>
-        /// Gets all aliases for an ingredient.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient.</param>
-        /// <returns>A list of aliases for the ingredient.</returns>
-        [HttpGet("ingredients/{ingredientId:long}/aliases")]
-        public async Task<IActionResult> GetIngredientAliases(long ingredientId)
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteRecipe(long id)
         {
             try
             {
-                var aliases = await _recipeOrchestrationService.GetIngredientAliasesAsync(ingredientId);
-                return Ok(aliases);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                var success = await _recipeService.DeleteRecipeAsync(id);
+                if (!success)
+                {
+                    return NotFound(new { message = "Recipe not found" });
+                }
+                return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving aliases for ingredient {IngredientId}", ingredientId);
-                return StatusCode(500, "An unexpected error occurred while retrieving the aliases.");
+                return StatusCode(500, new { message = "Failed to delete recipe", error = ex.Message });
+            }
+        }
+
+        // Recipe Comments Endpoints
+        [HttpPost("{id}/comments")]
+        public async Task<ActionResult<RecipeCommentResponseModel>> AddComment(long id, [FromBody] RecipeCommentCreateModel request)
+        {
+            try
+            {
+                request.RecipeId = id;
+                var response = await _recipeService.AddCommentAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to add comment", error = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/comments")]
+        public async Task<ActionResult<List<RecipeCommentResponseModel>>> GetComments(long id)
+        {
+            try
+            {
+                var comments = await _recipeService.GetCommentsAsync(id);
+                return Ok(comments);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve comments", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("comments/{commentId}")]
+        public async Task<ActionResult> DeleteComment(long commentId)
+        {
+            try
+            {
+                var success = await _recipeService.DeleteCommentAsync(commentId);
+                if (!success)
+                {
+                    return NotFound(new { message = "Comment not found" });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to delete comment", error = ex.Message });
+            }
+        }
+
+        // Recipe Ratings Endpoints
+        [HttpPost("{id}/ratings")]
+        public async Task<ActionResult<RecipeRatingResponseModel>> AddRating(long id, [FromBody] RecipeRatingCreateModel request)
+        {
+            try
+            {
+                request.RecipeId = id;
+                var response = await _recipeService.AddRatingAsync(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to add rating", error = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/ratings")]
+        public async Task<ActionResult<List<RecipeRatingResponseModel>>> GetRatings(long id)
+        {
+            try
+            {
+                var ratings = await _recipeService.GetRatingsAsync(id);
+                return Ok(ratings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve ratings", error = ex.Message });
+            }
+        }
+
+        [HttpPut("ratings/{ratingId}")]
+        public async Task<ActionResult<RecipeRatingResponseModel>> UpdateRating(long ratingId, [FromBody] RecipeRatingUpdateModel request)
+        {
+            try
+            {
+                var response = await _recipeService.UpdateRatingAsync(ratingId, request);
+                if (response == null)
+                {
+                    return NotFound(new { message = "Rating not found" });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to update rating", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("ratings/{ratingId}")]
+        public async Task<ActionResult> DeleteRating(long ratingId)
+        {
+            try
+            {
+                var success = await _recipeService.DeleteRatingAsync(ratingId);
+                if (!success)
+                {
+                    return NotFound(new { message = "Rating not found" });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to delete rating", error = ex.Message });
             }
         }
     }

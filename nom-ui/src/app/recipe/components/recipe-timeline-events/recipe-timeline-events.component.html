@@ -1,0 +1,148 @@
+<div class="recipe-timeline-events">
+    <mat-card class="recipe-timeline-events__card">
+        <mat-card-header class="recipe-timeline-events__header">
+            <mat-card-title class="recipe-timeline-events__title">
+                <mat-icon class="recipe-timeline-events__icon">timeline</mat-icon>
+                Recipe Timeline
+            </mat-card-title>
+            <mat-card-subtitle class="recipe-timeline-events__subtitle">
+                Track important events and milestones for this recipe
+            </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="recipe-timeline-events__content">
+            <!-- Create Timeline Event Form -->
+            <form [formGroup]="timelineEventForm" (ngSubmit)="createTimelineEvent()" class="recipe-timeline-events__form">
+                <div class="recipe-timeline-events__form-row">
+                    <mat-form-field class="recipe-timeline-events__field" appearance="outline">
+                        <mat-label>Event Type</mat-label>
+                        <mat-select formControlName="eventTypeId">
+                            <mat-option *ngFor="let eventType of eventTypes" [value]="eventType.id">
+                                {{ eventType.name }}
+                            </mat-option>
+                        </mat-select>
+                        <mat-error *ngIf="timelineEventForm.get('eventTypeId')?.hasError('required')">
+                            Event type is required
+                        </mat-error>
+                        <mat-error *ngIf="timelineEventForm.get('eventTypeId')?.hasError('min')">
+                            Please select a valid event type
+                        </mat-error>
+                    </mat-form-field>
+                </div>
+
+                <div class="recipe-timeline-events__form-row">
+                    <mat-form-field class="recipe-timeline-events__field" appearance="outline">
+                        <mat-label>Event Title</mat-label>
+                        <input matInput formControlName="eventTitle" placeholder="Enter event title">
+                        <mat-error *ngIf="timelineEventForm.get('eventTitle')?.hasError('required')">
+                            Event title is required
+                        </mat-error>
+                        <mat-error *ngIf="timelineEventForm.get('eventTitle')?.hasError('maxlength')">
+                            Event title cannot exceed 511 characters
+                        </mat-error>
+                    </mat-form-field>
+                </div>
+
+                <div class="recipe-timeline-events__form-row">
+                    <mat-form-field class="recipe-timeline-events__field" appearance="outline">
+                        <mat-label>Event Description (Optional)</mat-label>
+                        <textarea matInput formControlName="eventDescription" placeholder="Enter event description" rows="3"></textarea>
+                        <mat-error *ngIf="timelineEventForm.get('eventDescription')?.hasError('maxlength')">
+                            Event description cannot exceed 2047 characters
+                        </mat-error>
+                    </mat-form-field>
+                </div>
+
+                <div class="recipe-timeline-events__form-row">
+                    <mat-form-field class="recipe-timeline-events__field" appearance="outline">
+                        <mat-label>Event Date (Optional)</mat-label>
+                        <input matInput [matDatepicker]="picker" formControlName="eventDate" placeholder="Choose event date">
+                        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                        <mat-datepicker #picker></mat-datepicker>
+                    </mat-form-field>
+                </div>
+
+                <div class="recipe-timeline-events__form-actions">
+                    <button 
+                        mat-raised-button 
+                        color="primary" 
+                        type="submit"
+                        [disabled]="timelineEventForm.invalid || isSubmitting"
+                        class="recipe-timeline-events__submit-btn">
+                        <mat-icon *ngIf="!isSubmitting">add</mat-icon>
+                        <mat-icon *ngIf="isSubmitting" class="recipe-timeline-events__loading">hourglass_empty</mat-icon>
+                        {{ isSubmitting ? 'Creating...' : 'Add Timeline Event' }}
+                    </button>
+                </div>
+            </form>
+
+            <mat-divider class="recipe-timeline-events__divider"></mat-divider>
+
+            <!-- Timeline Events List -->
+            <div class="recipe-timeline-events__timeline-section">
+                <h3 class="recipe-timeline-events__section-title">Recipe Timeline</h3>
+                
+                <div *ngIf="isLoading" class="recipe-timeline-events__loading-container">
+                    <mat-icon class="recipe-timeline-events__loading-icon">hourglass_empty</mat-icon>
+                    <p>Loading timeline events...</p>
+                </div>
+
+                <div *ngIf="!isLoading && timelineEvents.length === 0" class="recipe-timeline-events__empty">
+                    <mat-icon class="recipe-timeline-events__empty-icon">timeline</mat-icon>
+                    <p>No timeline events yet</p>
+                </div>
+
+                <div *ngIf="!isLoading && timelineEvents.length > 0" class="recipe-timeline-events__timeline">
+                    <div *ngFor="let event of timelineEvents; let i = index" class="recipe-timeline-events__timeline-item">
+                        <!-- Timeline Connector -->
+                        <div class="recipe-timeline-events__timeline-connector">
+                            <div class="recipe-timeline-events__timeline-dot">
+                                <mat-icon class="recipe-timeline-events__event-icon">
+                                    {{ getEventIcon(event.eventTypeId) }}
+                                </mat-icon>
+                            </div>
+                            <div *ngIf="i < timelineEvents.length - 1" class="recipe-timeline-events__timeline-line"></div>
+                        </div>
+
+                        <!-- Timeline Content -->
+                        <div class="recipe-timeline-events__timeline-content">
+                            <div class="recipe-timeline-events__event-header">
+                                <h4 class="recipe-timeline-events__event-title">{{ event.eventTitle }}</h4>
+                                <mat-chip-set class="recipe-timeline-events__event-chips">
+                                    <mat-chip color="primary" class="recipe-timeline-events__event-chip">
+                                        {{ getEventTypeName(event.eventTypeId) }}
+                                    </mat-chip>
+                                </mat-chip-set>
+                            </div>
+                            
+                            <div class="recipe-timeline-events__event-details">
+                                <p *ngIf="event.eventDescription" class="recipe-timeline-events__event-description">
+                                    {{ event.eventDescription }}
+                                </p>
+                                <div class="recipe-timeline-events__event-meta">
+                                    <p class="recipe-timeline-events__event-date">
+                                        <strong>Event Date:</strong> {{ formatEventDate(event.eventDate) }}
+                                    </p>
+                                    <p class="recipe-timeline-events__event-created">
+                                        <strong>Created:</strong> {{ formatDate(event.createdDate) }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="recipe-timeline-events__event-actions">
+                                <button 
+                                    mat-icon-button 
+                                    color="warn"
+                                    matTooltip="Delete timeline event"
+                                    (click)="deleteTimelineEvent(event.id)"
+                                    class="recipe-timeline-events__action-btn">
+                                    <mat-icon>delete</mat-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </mat-card-content>
+    </mat-card>
+</div> 

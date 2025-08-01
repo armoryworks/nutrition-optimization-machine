@@ -10,7 +10,7 @@ namespace Nom.Data.Person
     /// Handles invitation codes separately from Person entities for better tracking and flexibility.
     /// </summary>
     [Table("Invitation", Schema = "person")]
-    public class InvitationEntity : BaseEntity
+    public class InvitationEntity : BaseExpirationEntity
     {
         /// <summary>
         /// The unique invitation code that can be shared with invitees.
@@ -33,11 +33,6 @@ namespace Nom.Data.Person
         public long? InviteePersonId { get; set; }
         [ForeignKey(nameof(InviteePersonId))]
         public virtual PersonEntity? Invitee { get; set; }
-
-        /// <summary>
-        /// When the invitation expires. Null means no expiration.
-        /// </summary>
-        public DateTime? ExpiresAt { get; set; }
 
         /// <summary>
         /// Whether the invitation has been used/claimed.

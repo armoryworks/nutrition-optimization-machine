@@ -1,0 +1,192 @@
+<div class="meal-plan-dashboard">
+  <div class="meal-plan-dashboard__container">
+    <!-- Header -->
+    <div class="meal-plan-dashboard__header">
+      <div class="meal-plan-dashboard__header-content">
+        <div class="meal-plan-dashboard__title-section">
+          <mat-icon class="meal-plan-dashboard__title-icon">restaurant_menu</mat-icon>
+          <div class="meal-plan-dashboard__title-info">
+            <h1 class="meal-plan-dashboard__title">Meal Plans</h1>
+            <p class="meal-plan-dashboard__subtitle">Plan and organize your meals for the week</p>
+          </div>
+        </div>
+        <div class="meal-plan-dashboard__header-actions">
+          <button mat-raised-button color="primary" (click)="onCreatePlan()" class="meal-plan-dashboard__create-button">
+            <mat-icon>add</mat-icon>
+            Create Plan
+          </button>
+          <button mat-button (click)="onViewRules()" class="meal-plan-dashboard__rules-button">
+            <mat-icon>settings</mat-icon>
+            Rules
+          </button>
+          <button mat-icon-button (click)="onRefresh()" class="meal-plan-dashboard__refresh-button">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Mode Toggle -->
+    <div class="meal-plan-dashboard__view-controls">
+      <div class="meal-plan-dashboard__view-toggle">
+        <button 
+          mat-button 
+          [class.meal-plan-dashboard__view-button--active]="viewMode === 'week'"
+          (click)="onViewModeChange('week')"
+          class="meal-plan-dashboard__view-button"
+        >
+          <mat-icon>view_week</mat-icon>
+          Week
+        </button>
+        <button 
+          mat-button 
+          [class.meal-plan-dashboard__view-button--active]="viewMode === 'month'"
+          (click)="onViewModeChange('month')"
+          class="meal-plan-dashboard__view-button"
+        >
+          <mat-icon>calendar_view_month</mat-icon>
+          Month
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="meal-plan-dashboard__search-section">
+      <mat-form-field class="meal-plan-dashboard__search-field">
+        <mat-label>Search meal plans</mat-label>
+        <input 
+          matInput 
+          [formControl]="searchControl"
+          placeholder="Search by recipe name, meal type, or notes..."
+          class="meal-plan-dashboard__search-input"
+        />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="meal-plan-dashboard__loading">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading meal plans...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="meal-plan-dashboard__error">
+      <mat-card class="meal-plan-dashboard__error-card">
+        <mat-card-content>
+          <div class="meal-plan-dashboard__error-content">
+            <mat-icon class="meal-plan-dashboard__error-icon">error</mat-icon>
+            <h3>Error Loading Meal Plans</h3>
+            <p>{{ error }}</p>
+            <button mat-raised-button color="primary" (click)="onRefresh()">
+              <mat-icon>refresh</mat-icon>
+              Try Again
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Meal Plans Content -->
+    <div *ngIf="!isLoading && !error" class="meal-plan-dashboard__content">
+      <!-- Week View -->
+      <div *ngIf="viewMode === 'week'" class="meal-plan-dashboard__week-view">
+        <div class="meal-plan-dashboard__calendar-header">
+          <button mat-icon-button (click)="onDateChange(getPreviousWeekDate())">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <h2 class="meal-plan-dashboard__calendar-title">
+            {{ selectedDate | date:'MMMM yyyy' }}
+          </h2>
+          <button mat-icon-button (click)="onDateChange(getNextWeekDate())">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+
+        <div class="meal-plan-dashboard__calendar-grid">
+          <div *ngFor="let day of getWeekDays()" class="meal-plan-dashboard__day-column">
+            <div class="meal-plan-dashboard__day-header">
+              <div 
+                class="meal-plan-dashboard__day-title"
+                [class.meal-plan-dashboard__day-title--today]="isToday(day)"
+                [class.meal-plan-dashboard__day-title--selected]="isSelectedDate(day)"
+                (click)="onDateChange(day)"
+              >
+                <span class="meal-plan-dashboard__day-name">{{ day | date:'EEE' }}</span>
+                <span class="meal-plan-dashboard__day-number">{{ day | date:'d' }}</span>
+              </div>
+            </div>
+            
+            <div class="meal-plan-dashboard__day-content">
+              <div *ngFor="let plan of getPlansForDate(day)" class="meal-plan-dashboard__plan-item">
+                <mat-card class="meal-plan-dashboard__plan-card">
+                  <mat-card-content>
+                    <div class="meal-plan-dashboard__plan-header">
+                      <mat-icon 
+                        [class]="'meal-plan-dashboard__meal-icon meal-plan-dashboard__meal-icon--' + getMealTypeColor(plan.mealType)"
+                      >
+                        {{ getMealTypeIcon(plan.mealType) }}
+                      </mat-icon>
+                      <span class="meal-plan-dashboard__meal-type">{{ plan.mealType }}</span>
+                    </div>
+                    <h4 class="meal-plan-dashboard__recipe-name">{{ plan.recipeName }}</h4>
+                    <p *ngIf="plan.notes" class="meal-plan-dashboard__plan-notes">{{ plan.notes }}</p>
+                  </mat-card-content>
+                  <mat-card-actions>
+                    <button mat-button (click)="onViewPlan(plan.id)" class="meal-plan-dashboard__plan-action">
+                      <mat-icon>visibility</mat-icon>
+                      View
+                    </button>
+                    <button mat-button (click)="onEditPlan(plan.id)" class="meal-plan-dashboard__plan-action">
+                      <mat-icon>edit</mat-icon>
+                      Edit
+                    </button>
+                  </mat-card-actions>
+                </mat-card>
+              </div>
+              
+              <div *ngIf="getPlansForDate(day).length === 0" class="meal-plan-dashboard__empty-day">
+                <mat-icon class="meal-plan-dashboard__empty-icon">restaurant</mat-icon>
+                <p>No meals planned</p>
+                <button mat-button (click)="onCreatePlan()" class="meal-plan-dashboard__add-meal-button">
+                  <mat-icon>add</mat-icon>
+                  Add Meal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month View (Placeholder) -->
+      <div *ngIf="viewMode === 'month'" class="meal-plan-dashboard__month-view">
+        <mat-card class="meal-plan-dashboard__month-card">
+          <mat-card-content>
+            <div class="meal-plan-dashboard__month-content">
+              <mat-icon class="meal-plan-dashboard__month-icon">calendar_view_month</mat-icon>
+              <h3>Month View</h3>
+              <p>Month view functionality coming soon...</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredPlans.length === 0 && !searchControl.value" class="meal-plan-dashboard__empty-state">
+        <mat-card class="meal-plan-dashboard__empty-card">
+          <mat-card-content>
+            <div class="meal-plan-dashboard__empty-content">
+              <mat-icon class="meal-plan-dashboard__empty-icon">restaurant_menu</mat-icon>
+              <h3>No Meal Plans Found</h3>
+              <p>Create your first meal plan to get started.</p>
+              <button mat-raised-button color="primary" (click)="onCreatePlan()">
+                <mat-icon>add</mat-icon>
+                Create Meal Plan
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -1,0 +1,90 @@
+<div class="nom-recipe-comments">
+  <!-- Comment Form -->
+  <mat-card class="nom-recipe-comments__form-card">
+    <mat-card-header>
+      <mat-card-title>Add a Comment</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="nom-recipe-comments__form">
+        <mat-form-field appearance="outline" class="nom-recipe-comments__field">
+          <mat-label>Title (Optional)</mat-label>
+          <input matInput formControlName="title" placeholder="Enter a title for your comment">
+          <mat-error *ngIf="commentForm.get('title')?.hasError('maxlength')">
+            Title cannot exceed 511 characters
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nom-recipe-comments__field">
+          <mat-label>Comment</mat-label>
+          <textarea 
+            matInput 
+            formControlName="commentText" 
+            placeholder="Share your thoughts about this recipe..."
+            rows="3">
+          </textarea>
+          <mat-error *ngIf="commentForm.get('commentText')?.hasError('required')">
+            Comment is required
+          </mat-error>
+          <mat-error *ngIf="commentForm.get('commentText')?.hasError('maxlength')">
+            Comment cannot exceed 2047 characters
+          </mat-error>
+        </mat-form-field>
+
+        <div class="nom-recipe-comments__actions">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="commentForm.invalid || isSubmitting"
+            class="nom-recipe-comments__submit-btn">
+            <mat-icon>comment</mat-icon>
+            {{ isSubmitting ? 'Posting...' : 'Post Comment' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Comments List -->
+  <div class="nom-recipe-comments__list">
+    <div *ngIf="isLoading" class="nom-recipe-comments__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading comments...</p>
+    </div>
+
+    <div *ngIf="!isLoading && comments.length === 0" class="nom-recipe-comments__empty">
+      <mat-icon>chat_bubble_outline</mat-icon>
+      <p>No comments yet. Be the first to share your thoughts!</p>
+    </div>
+
+    <mat-card 
+      *ngFor="let comment of comments" 
+      class="nom-recipe-comments__comment-card">
+      <mat-card-header>
+        <mat-card-title class="nom-recipe-comments__comment-title">
+          <span *ngIf="comment.title">{{ comment.title }}</span>
+          <span *ngIf="!comment.title">Comment</span>
+        </mat-card-title>
+        <mat-card-subtitle class="nom-recipe-comments__comment-meta">
+          <span class="nom-recipe-comments__author">{{ comment.authorName }}</span>
+          <span class="nom-recipe-comments__date">{{ formatDate(comment.createdDate) }}</span>
+        </mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <p class="nom-recipe-comments__comment-text">{{ comment.commentText }}</p>
+      </mat-card-content>
+
+      <mat-card-actions class="nom-recipe-comments__comment-actions">
+        <button 
+          mat-icon-button 
+          color="warn"
+          (click)="deleteComment(comment.id)"
+          class="nom-recipe-comments__delete-btn"
+          matTooltip="Delete comment">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div> 

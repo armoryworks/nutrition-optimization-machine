@@ -7,7 +7,7 @@ namespace Nom.Orch.Models.Person
         public long InviterPersonId { get; set; }
         public string InvitationType { get; set; } = string.Empty;
         public long? PlanId { get; set; }
-        public DateTime? ExpiresAt { get; set; }
+        public DateTime? ExpirationDate { get; set; }
         public string? Notes { get; set; }
     }
 } 

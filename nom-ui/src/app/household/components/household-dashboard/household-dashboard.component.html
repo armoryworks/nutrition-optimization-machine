@@ -1,0 +1,100 @@
+<div class="nom-household-dashboard">
+  <mat-card class="nom-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>home</mat-icon>
+        Household Dashboard
+      </mat-card-title>
+      <mat-card-subtitle>
+        Manage your households and shared resources
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="nom-household-dashboard__actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="createHousehold()"
+          class="nom-button--primary"
+        >
+          <mat-icon>add</mat-icon>
+          Create Household
+        </button>
+      </div>
+
+      <div class="nom-household-dashboard__content">
+        <div *ngIf="loading" class="nom-loading">
+          <mat-spinner></mat-spinner>
+          <p>Loading households...</p>
+        </div>
+
+        <div *ngIf="error" class="nom-error">
+          <mat-icon>error</mat-icon>
+          <p>{{ error }}</p>
+        </div>
+
+        <div *ngIf="!loading && !error && households.length === 0" class="nom-empty-state">
+          <mat-icon>home</mat-icon>
+          <h3>No Households Found</h3>
+          <p>Create your first household to get started with shared meal planning and shopping lists.</p>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="createHousehold()"
+            class="nom-button--primary"
+          >
+            Create Household
+          </button>
+        </div>
+
+        <div *ngIf="!loading && !error && households.length > 0" class="nom-household-dashboard__grid">
+          <mat-card
+            *ngFor="let household of households"
+            class="nom-household-card"
+            (click)="viewHousehold(household)"
+          >
+            <mat-card-header>
+              <mat-card-title>{{ household.name }}</mat-card-title>
+              <mat-card-subtitle *ngIf="household.description">
+                {{ household.description }}
+              </mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+              <div class="nom-household-card__stats">
+                <div class="nom-household-card__stat">
+                  <mat-icon>people</mat-icon>
+                  <span>{{ household.memberCount }} members</span>
+                </div>
+                <div class="nom-household-card__stat">
+                  <mat-icon>restaurant_menu</mat-icon>
+                  <span>{{ household.planCount }} plans</span>
+                </div>
+              </div>
+            </mat-card-content>
+
+            <mat-card-actions>
+              <button
+                mat-button
+                color="primary"
+                (click)="editHousehold(household); $event.stopPropagation()"
+              >
+                <mat-icon>edit</mat-icon>
+                Edit
+              </button>
+              <button
+                mat-button
+                color="accent"
+                (click)="inviteMembers(household); $event.stopPropagation()"
+              >
+                <mat-icon>person_add</mat-icon>
+                Invite
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div> 

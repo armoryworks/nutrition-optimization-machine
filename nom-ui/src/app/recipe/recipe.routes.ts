@@ -13,6 +13,11 @@ export const RECIPE_ROUTES: Routes = [
     title: 'My Recipes' // Optional: Set a page title
   },
   {
+    path: 'search', // e.g., /recipes/search
+    loadComponent: () => import('./components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
+    title: 'Recipe Search'
+  },
+  {
     path: 'new', // e.g., /recipes/new
     component: RecipeEditComponent,
     title: 'Create Recipe'

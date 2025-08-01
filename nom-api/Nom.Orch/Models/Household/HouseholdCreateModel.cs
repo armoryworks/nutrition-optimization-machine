@@ -1,0 +1,22 @@
+// File: Nom.Orch/Models/Household/HouseholdCreateModel.cs
+
+using System.ComponentModel.DataAnnotations;
+
+namespace Nom.Orch.Models.Household
+{
+    public class HouseholdCreateModel
+    {
+        [Required(ErrorMessage = "Household name is required.")]
+        [StringLength(255, ErrorMessage = "Household name cannot exceed 255 characters.")]
+        public required string Name { get; set; }
+
+        [StringLength(2047, ErrorMessage = "Description cannot exceed 2047 characters.")]
+        public string? Description { get; set; }
+
+        [Required(ErrorMessage = "Group ID is required.")]
+        public long GroupId { get; set; }
+
+        [Required(ErrorMessage = "Author ID is required.")]
+        public long AuthorId { get; set; }
+    }
+} 

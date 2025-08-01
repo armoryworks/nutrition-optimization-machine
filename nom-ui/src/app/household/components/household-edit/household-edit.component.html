@@ -1,0 +1,76 @@
+<div class="household-edit">
+  <mat-card class="household-edit__card">
+    <mat-card-header class="household-edit__header">
+      <mat-card-title>
+        <mat-icon class="household-edit__icon">edit</mat-icon>
+        Edit Household
+      </mat-card-title>
+      <mat-card-subtitle>
+        Update household information and settings
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content class="household-edit__content">
+      <div *ngIf="isLoading" class="household-edit__loading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading household details...</p>
+      </div>
+
+      <form *ngIf="!isLoading" [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-edit__form">
+        <div class="household-edit__form-row">
+          <mat-form-field appearance="outline" class="household-edit__field">
+            <mat-label>Household Name</mat-label>
+            <input matInput formControlName="Name" placeholder="Enter household name" required>
+            <mat-error *ngIf="householdForm.get('Name')?.hasError('required')">
+              Household name is required
+            </mat-error>
+            <mat-error *ngIf="householdForm.get('Name')?.hasError('minlength')">
+              Household name must be at least 2 characters
+            </mat-error>
+            <mat-error *ngIf="householdForm.get('Name')?.hasError('maxlength')">
+              Household name cannot exceed 100 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="household-edit__form-row">
+          <mat-form-field appearance="outline" class="household-edit__field">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="Description" placeholder="Enter household description" rows="3"></textarea>
+            <mat-error *ngIf="householdForm.get('Description')?.hasError('maxlength')">
+              Description cannot exceed 500 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="household-edit__form-row">
+          <mat-form-field appearance="outline" class="household-edit__field">
+            <mat-label>Group ID</mat-label>
+            <input matInput type="number" formControlName="GroupId" placeholder="Enter group ID">
+          </mat-form-field>
+        </div>
+
+        <div class="household-edit__actions">
+          <button 
+            type="button" 
+            mat-button 
+            (click)="onCancel()" 
+            class="household-edit__cancel-btn">
+            <mat-icon>cancel</mat-icon>
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            mat-raised-button 
+            color="primary" 
+            [disabled]="householdForm.invalid || isLoading"
+            class="household-edit__submit-btn">
+            <mat-icon *ngIf="!isLoading">save</mat-icon>
+            <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+            {{ isLoading ? 'Updating...' : 'Update Household' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div> 

@@ -1,0 +1,232 @@
+.nom-recipe-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  &__form-card {
+    background-color: var(--mat-sys-surface-container);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(var(--mat-sys-shadow), 0.1);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__field {
+    width: 100%;
+
+    .mat-form-field-wrapper {
+      background-color: var(--mat-sys-surface-container-low);
+      border-radius: 8px;
+    }
+
+    .mat-form-field-label,
+    .mat-form-field-hint,
+    .mat-form-field-prefix,
+    .mat-form-field-suffix {
+      color: var(--mat-sys-on-surface);
+    }
+
+    input.mat-input-element,
+    textarea.mat-input-element {
+      color: var(--mat-sys-on-surface);
+
+      &::placeholder {
+        color: var(--mat-sys-outline);
+      }
+    }
+
+    mat-error {
+      color: var(--mat-sys-error);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  &__submit-btn {
+    background-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background-color: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.2);
+    }
+
+    &:disabled {
+      background-color: var(--mat-sys-outline);
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__loading,
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    background-color: var(--mat-sys-surface-container-low);
+    border-radius: 12px;
+    color: var(--mat-sys-on-surface-variant);
+    text-align: center;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    p {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  }
+
+  &__comment-card {
+    background-color: var(--mat-sys-surface-container);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(var(--mat-sys-shadow), 0.1);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(var(--mat-sys-shadow), 0.15);
+      transform: translateY(-2px);
+    }
+  }
+
+  &__comment-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface);
+    margin-bottom: 4px;
+  }
+
+  &__comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 14px;
+  }
+
+  &__author {
+    font-weight: 500;
+    color: var(--mat-sys-primary);
+  }
+
+  &__date {
+    opacity: 0.7;
+  }
+
+  &__comment-text {
+    color: var(--mat-sys-on-surface);
+    line-height: 1.6;
+    margin: 16px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  &__comment-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 0;
+  }
+
+  &__delete-btn {
+    color: var(--mat-sys-error);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+      transform: scale(1.1);
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .nom-recipe-comments {
+    gap: 16px;
+
+    &__form {
+      gap: 12px;
+    }
+
+    &__actions {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    &__submit-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    &__comment-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    &__loading,
+    &__empty {
+      padding: 32px 16px;
+
+      mat-icon {
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// Dark theme adjustments
+@media (prefers-color-scheme: dark) {
+  .nom-recipe-comments {
+    &__form-card,
+    &__comment-card {
+      background-color: var(--mat-sys-surface-container-high);
+    }
+
+    &__field .mat-form-field-wrapper {
+      background-color: var(--mat-sys-surface-container);
+    }
+
+    &__loading,
+    &__empty {
+      background-color: var(--mat-sys-surface-container);
+    }
+  }
+} 

@@ -202,8 +202,7 @@ namespace Nom.Orch.Services
                         EntityTypeId = await GetReferenceIdByNameAsync("Recipe"),
                         AdminId = adminId,
                         FeedbackNotes = request.DecisionNotes,
-                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval"),
-                        DateCreated = DateTime.UtcNow
+                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval")
                     };
                     _db.CurationFeedbacks.Add(feedback);
                     await _db.SaveChangesAsync();
@@ -229,8 +228,7 @@ namespace Nom.Orch.Services
                         EntityTypeId = await GetReferenceIdByNameAsync("Ingredient"),
                         AdminId = adminId,
                         FeedbackNotes = request.DecisionNotes,
-                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval"),
-                        DateCreated = DateTime.UtcNow
+                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval")
                     };
                     _db.CurationFeedbacks.Add(feedback);
                     await _db.SaveChangesAsync();
@@ -272,8 +270,7 @@ namespace Nom.Orch.Services
                         EntityTypeId = await GetReferenceIdByNameAsync("Plan"),
                         AdminId = adminId,
                         FeedbackNotes = request.DecisionNotes,
-                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval"),
-                        DateCreated = DateTime.UtcNow
+                        FeedbackTypeId = await GetReferenceIdByNameAsync("Approval")
                     };
                     _db.CurationFeedbacks.Add(feedback);
                     await _db.SaveChangesAsync();
@@ -331,8 +328,7 @@ namespace Nom.Orch.Services
                 EntityTypeId = await GetReferenceIdByNameAsync(request.EntityType),
                 AdminId = adminId,
                 FeedbackNotes = request.DecisionNotes,
-                FeedbackTypeId = await GetReferenceIdByNameAsync("Revision"),
-                DateCreated = DateTime.UtcNow
+                FeedbackTypeId = await GetReferenceIdByNameAsync("Revision")
             };
             _db.CurationFeedbacks.Add(feedback);
             await _db.SaveChangesAsync();
@@ -384,8 +380,7 @@ namespace Nom.Orch.Services
                 EntityTypeId = await GetReferenceIdByNameAsync(request.EntityType),
                 AdminId = adminId,
                 FeedbackNotes = request.DecisionNotes,
-                FeedbackTypeId = await GetReferenceIdByNameAsync("Rejection"),
-                DateCreated = DateTime.UtcNow
+                FeedbackTypeId = await GetReferenceIdByNameAsync("Rejection")
             };
             _db.CurationFeedbacks.Add(feedback);
             await _db.SaveChangesAsync();

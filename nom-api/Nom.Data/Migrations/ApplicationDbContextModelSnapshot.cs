@@ -418,9 +418,6 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<long>("EntityId")
                         .HasColumnType("bigint");
 
@@ -629,7 +626,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("ExpiresAt")
+                    b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("InvitationType")
@@ -733,6 +730,9 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long?>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -748,6 +748,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdEntityId");
 
                     b.HasIndex("UserId")
                         .IsUnique()
@@ -876,6 +878,469 @@ namespace Nom.Data.Migrations
                     b.ToTable("GoalItem", "plan");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdCookbookEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("HouseholdCookbook", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdCookbookRecipeEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("HouseholdCookbookId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdCookbookId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("HouseholdCookbookRecipe", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long>("GroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("Household", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdEventNotifierEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Configuration")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("NotificationType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("HouseholdEventNotifier", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdIngredientEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("HouseholdIngredient", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdInviteTokenEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("UsesLeft")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("HouseholdInviteToken", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdPreferenceEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PreferenceKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("PreferenceValue")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("HouseholdPreference", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdRecipeActionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ActionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("HouseholdRecipeAction", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdRecipeEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("HouseholdRecipe", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdToolEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ToolId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("ToolId");
+
+                    b.ToTable("HouseholdTool", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdWebhookEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("HouseholdWebhook", "plan");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.MealEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -915,6 +1380,112 @@ namespace Nom.Data.Migrations
                     b.ToTable("Meal", "plan");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("MealTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("MealTypeId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("MealPlan", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanRuleEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("DayOfWeekId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("MaxRecipes")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("MealTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("QueryFilter")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DayOfWeekId");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.HasIndex("MealTypeId");
+
+                    b.ToTable("MealPlanRule", "plan");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -948,6 +1519,9 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<long?>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("InvitationCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -977,6 +1551,8 @@ namespace Nom.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("CurationStatusId");
+
+                    b.HasIndex("HouseholdEntityId");
 
                     b.HasIndex("InvitationCode")
                         .IsUnique()
@@ -1317,6 +1893,9 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<long?>("LabelId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1325,6 +1904,21 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("NameNormalized")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<bool?>("OnHand")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PluralName")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("PluralNameNormalized")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
@@ -1338,10 +1932,182 @@ namespace Nom.Data.Migrations
                         .IsUnique()
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
+                    b.HasIndex("LabelId");
+
                     b.HasIndex("Name")
                         .IsUnique();
 
                     b.ToTable("Ingredient", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.IngredientExtrasEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("IngredientExtras", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeAssetEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Extension")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FilePath")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<decimal?>("FileSize")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeAsset", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeCategoryEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeCategory", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeCommentEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeComment", "recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
@@ -1355,6 +2121,10 @@ namespace Nom.Data.Migrations
                     b.Property<long>("AuthorId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("CookTime")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<long?>("CookTimeMinutes")
                         .HasColumnType("bigint");
 
@@ -1367,15 +2137,38 @@ namespace Nom.Data.Migrations
                     b.Property<long>("CurationStatusId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DateAdded")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("DateCurationCompleted")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DateSubmittedForCuration")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("DescriptionNormalized")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Image")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<bool?>("IsOcrRecipe")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastMade")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1388,11 +2181,40 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(511)
                         .HasColumnType("character varying(511)");
 
+                    b.Property<string>("NameNormalized")
+                        .HasMaxLength(511)
+                        .HasColumnType("character varying(511)");
+
+                    b.Property<string>("OrgUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<long?>("ParentRecipeId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("PerformTime")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PrepTime")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<long?>("PrepTimeMinutes")
                         .HasColumnType("bigint");
+
+                    b.Property<decimal?>("Rating")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<decimal?>("RecipeServings")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RecipeYield")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("RecipeYieldQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ServingQuantity")
                         .HasColumnType("decimal(18,2)");
@@ -1403,6 +2225,10 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("Servings")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("SourceSite")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1410,6 +2236,10 @@ namespace Nom.Data.Migrations
                     b.Property<string>("SourceUrl")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("TotalTime")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<long>("Version")
                         .HasColumnType("bigint");
@@ -1419,6 +2249,8 @@ namespace Nom.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("CurationStatusId");
+
+                    b.HasIndex("HouseholdEntityId");
 
                     b.HasIndex("ParentRecipeId");
 
@@ -1447,6 +2279,9 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("IngredientEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1465,11 +2300,238 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("RecipeId", "IngredientId");
 
+                    b.HasIndex("IngredientEntityId");
+
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("MeasurementTypeId");
 
                     b.ToTable("RecipeIngredient", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeNoteEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeNote", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeNutritionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("DailyValuePercentage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("DateCalculated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("NutrientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NutrientId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeNutrition", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeRatingEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DateRated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RaterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Rating")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RaterId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeRating", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeSettingsEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SettingKey")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SettingType")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SettingValue")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeSettings", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeShareTokenEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int?>("UsesLeft")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeShareToken", "recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeStepEntity", b =>
@@ -1516,6 +2578,131 @@ namespace Nom.Data.Migrations
                     b.HasIndex("StepTypeId");
 
                     b.ToTable("RecipeStep", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeTagEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TagId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("RecipeTag", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeTimelineEventEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ActorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EventDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("EventTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("EventTypeId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeTimelineEvent", "recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeToolEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ToolId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("ToolId");
+
+                    b.ToTable("RecipeTool", "recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.GroupEntity", b =>
@@ -1681,6 +2868,202 @@ namespace Nom.Data.Migrations
                     b.HasIndex("ShoppingTripId");
 
                     b.ToTable("PantryItem", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListCategoryEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("ShoppingListCategory", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("GroupId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("ShoppingList", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListItemEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsChecked")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("MeasurementTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(511)
+                        .HasColumnType("character varying(511)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<long?>("RecipeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ShoppingListId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("MeasurementTypeId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.ToTable("ShoppingListItem", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListLabelEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("LabelId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ShoppingListId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabelId");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.ToTable("ShoppingListLabel", "shopping");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingPreferenceEntity", b =>
@@ -2192,6 +3575,13 @@ namespace Nom.Data.Migrations
                     b.Navigation("Person");
                 });
 
+            modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany("Members")
+                        .HasForeignKey("HouseholdEntityId");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "GoalType")
@@ -2244,6 +3634,175 @@ namespace Nom.Data.Migrations
                     b.Navigation("TimeframeType");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdCookbookEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("Cookbooks")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdCookbookRecipeEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdCookbookEntity", "HouseholdCookbook")
+                        .WithMany("Recipes")
+                        .HasForeignKey("HouseholdCookbookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HouseholdCookbook");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdEventNotifierEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("EventNotifiers")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdIngredientEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("IngredientsOnHand")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdInviteTokenEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("InviteTokens")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdPreferenceEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("Preferences")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdRecipeActionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("RecipeActions")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Household");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdRecipeEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdToolEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("ToolsOnHand")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tool")
+                        .WithMany()
+                        .HasForeignKey("ToolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+
+                    b.Navigation("Tool");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdWebhookEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany("Webhooks")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.MealEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
@@ -2263,6 +3822,66 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
+                        .WithMany()
+                        .HasForeignKey("MealTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Household");
+
+                    b.Navigation("MealType");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanRuleEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "DayOfWeek")
+                        .WithMany()
+                        .HasForeignKey("DayOfWeekId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
+                        .WithMany()
+                        .HasForeignKey("MealTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DayOfWeek");
+
+                    b.Navigation("Household");
+
+                    b.Navigation("MealType");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
                 {
                     b.HasOne("Nom.Data.Person.PersonEntity", "Author")
@@ -2276,6 +3895,10 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("CurationStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany("Plans")
+                        .HasForeignKey("HouseholdEntityId");
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "ParentPlan")
                         .WithMany()
@@ -2415,9 +4038,75 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Label")
+                        .WithMany()
+                        .HasForeignKey("LabelId");
+
                     b.Navigation("Author");
 
                     b.Navigation("CurationStatus");
+
+                    b.Navigation("Label");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.IngredientExtrasEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany("Extras")
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeAssetEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Assets")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeCategoryEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("RecipeCategories")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeCommentEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Comments")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
@@ -2433,6 +4122,10 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("CurationStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany("MadeRecipes")
+                        .HasForeignKey("HouseholdEntityId");
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "ParentRecipe")
                         .WithMany()
@@ -2455,6 +4148,10 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
+                        .WithMany("RecipeIngredients")
+                        .HasForeignKey("IngredientEntityId");
+
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
@@ -2480,6 +4177,85 @@ namespace Nom.Data.Migrations
                     b.Navigation("Recipe");
                 });
 
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeNoteEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Notes")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeNutritionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
+                        .WithMany()
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Nutrition")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Nutrient");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeRatingEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Rater")
+                        .WithMany()
+                        .HasForeignKey("RaterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Ratings")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rater");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeSettingsEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("Settings")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeShareTokenEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("ShareTokens")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
             modelBuilder.Entity("Nom.Data.Recipe.RecipeStepEntity", b =>
                 {
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -2495,6 +4271,71 @@ namespace Nom.Data.Migrations
                     b.Navigation("Recipe");
 
                     b.Navigation("StepType");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeTagEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("RecipeTags")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tag")
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeTimelineEventEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "EventType")
+                        .WithMany()
+                        .HasForeignKey("EventTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("TimelineEvents")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("EventType");
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Recipe.RecipeToolEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany("RecipeTools")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tool")
+                        .WithMany()
+                        .HasForeignKey("ToolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("Tool");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.PantryItemEntity", b =>
@@ -2536,6 +4377,94 @@ namespace Nom.Data.Migrations
                     b.Navigation("Plan");
 
                     b.Navigation("ShoppingTrip");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListCategoryEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId");
+
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListItemEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Shopping.ShoppingListCategoryEntity", "Category")
+                        .WithMany("Items")
+                        .HasForeignKey("CategoryId");
+
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId");
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                        .WithMany()
+                        .HasForeignKey("MeasurementTypeId");
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId");
+
+                    b.HasOne("Nom.Data.Shopping.ShoppingListEntity", "ShoppingList")
+                        .WithMany("Items")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("MeasurementType");
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("ShoppingList");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListLabelEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Label")
+                        .WithMany()
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Shopping.ShoppingListEntity", "ShoppingList")
+                        .WithMany("Labels")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Label");
+
+                    b.Navigation("ShoppingList");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingPreferenceEntity", b =>
@@ -2647,6 +4576,36 @@ namespace Nom.Data.Migrations
                     b.Navigation("GoalItems");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdCookbookEntity", b =>
+                {
+                    b.Navigation("Recipes");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdEntity", b =>
+                {
+                    b.Navigation("Cookbooks");
+
+                    b.Navigation("EventNotifiers");
+
+                    b.Navigation("IngredientsOnHand");
+
+                    b.Navigation("InviteTokens");
+
+                    b.Navigation("MadeRecipes");
+
+                    b.Navigation("Members");
+
+                    b.Navigation("Plans");
+
+                    b.Navigation("Preferences");
+
+                    b.Navigation("RecipeActions");
+
+                    b.Navigation("ToolsOnHand");
+
+                    b.Navigation("Webhooks");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.PlanEntity", b =>
                 {
                     b.Navigation("Goals");
@@ -2662,14 +4621,52 @@ namespace Nom.Data.Migrations
                 {
                     b.Navigation("Aliases");
 
+                    b.Navigation("Extras");
+
                     b.Navigation("IngredientNutrients");
+
+                    b.Navigation("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeEntity", b =>
                 {
+                    b.Navigation("Assets");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("Notes");
+
+                    b.Navigation("Nutrition");
+
+                    b.Navigation("Ratings");
+
+                    b.Navigation("RecipeCategories");
+
                     b.Navigation("RecipeIngredients");
 
                     b.Navigation("RecipeSteps");
+
+                    b.Navigation("RecipeTags");
+
+                    b.Navigation("RecipeTools");
+
+                    b.Navigation("Settings");
+
+                    b.Navigation("ShareTokens");
+
+                    b.Navigation("TimelineEvents");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListCategoryEntity", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListEntity", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Labels");
                 });
 #pragma warning restore 612, 618
         }

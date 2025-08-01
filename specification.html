@@ -884,6 +884,13 @@ pre.rouge .gs {
 <ul class="sectlevel2">
 <li><a href="#backend-implementation-status">Backend Implementation Status</a></li>
 <li><a href="#frontend-implementation-status">Frontend Implementation Status</a></li>
+<li><a href="#mealie-integration-status">Mealie Integration Status</a>
+<ul class="sectlevel3">
+<li><a href="#_backend_integration">Backend Integration ✅</a></li>
+<li><a href="#_frontend_foundation">Frontend Foundation ✅</a></li>
+<li><a href="#_integration_patterns_applied">Integration Patterns Applied</a></li>
+</ul>
+</li>
 <li><a href="#next-priorities">Next Development Priorities</a></li>
 </ul>
 </li>
@@ -7180,27 +7187,27 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Database Schema</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">All entities implemented including Recipe, Curation, Communication, and User Management</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All entities implemented including Recipe, Curation, Communication, User Management, Household, Shopping, and Meal Planning</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">API Controllers</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">All controllers implemented with proper authorization and business logic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All controllers implemented with proper authorization and business logic, including new Household, ShoppingList, and MealPlan controllers</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Orchestration Services</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">All business logic services implemented with full CRUD operations</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All business logic services implemented with full CRUD operations, including new household, shopping, and meal plan services</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Data Models</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">All request/response models implemented for API communication</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All request/response models implemented for API communication, including comprehensive models for new features</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Database Migrations</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">All schema changes applied and tested</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All schema changes applied and tested, including new household, shopping, and meal plan entities</p></td>
 </tr>
 </tbody>
 </table>
@@ -7242,6 +7249,21 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Admin interface for managing user roles and claims</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Household Management</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend: COMPLETE, Frontend: FOUNDATION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend fully implemented with household entities, orchestration services, and API controllers. Frontend has routing, models, services, and sample dashboard component</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shopping Lists</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend: COMPLETE, Frontend: FOUNDATION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend fully implemented with shopping list entities, orchestration services, and API controllers. Frontend has routing, models, and services</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Meal Planning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend: COMPLETE, Frontend: FOUNDATION</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Backend fully implemented with meal plan entities, orchestration services, and API controllers. Frontend has routing, models, and services</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Authentication</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">COMPLETE</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Full authentication flow with dual Bearer token support (Identity and JWT schemes), 24-hour expiration, and claims-based authorization</p></td>
@@ -7260,9 +7282,103 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 </table>
 </div>
 <div class="sect2">
+<h3 id="mealie-integration-status"><a class="link" href="#mealie-integration-status">Mealie Integration Status</a></h3>
+<div class="paragraph">
+<p>The NOM application has successfully integrated key functionality from the Mealie recipe management platform, converting Python/FastAPI/Vue.js to C#/.NET/Angular 17 while maintaining NOM&#8217;s strict conventions.</p>
+</div>
+<div class="sect3">
+<h4 id="_backend_integration"><a class="link" href="#_backend_integration">Backend Integration ✅</a></h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Recipe Enhancements</strong>: Enhanced RecipeEntity with Mealie features including time properties, serving information, social features, and normalized search fields</p>
+</li>
+<li>
+<p><strong>New Entities</strong>: Implemented 20+ new entities for recipe comments, ratings, assets, notes, timeline events, share tokens, tags, categories, tools, nutrition, and settings</p>
+</li>
+<li>
+<p><strong>Household System</strong>: Complete household management with invite tokens, member management, preferences, and cookbooks</p>
+</li>
+<li>
+<p><strong>Shopping Lists</strong>: Full shopping list functionality with items, labels, and household integration</p>
+</li>
+<li>
+<p><strong>Meal Planning</strong>: Comprehensive meal planning with rules, date-based entries, and recipe integration</p>
+</li>
+<li>
+<p><strong>Orchestration Services</strong>: Three new orchestration services with proper business logic and error handling</p>
+</li>
+<li>
+<p><strong>API Controllers</strong>: Three new controllers following NOM&#8217;s conventions and patterns</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_frontend_foundation"><a class="link" href="#_frontend_foundation">Frontend Foundation ✅</a></h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Routing</strong>: Lazy-loaded feature routes for household, shopping, and meal plan functionality</p>
+</li>
+<li>
+<p><strong>Models</strong>: TypeScript models with explicit property assignment following NOM conventions</p>
+</li>
+<li>
+<p><strong>Services</strong>: Angular services for API communication with proper error handling</p>
+</li>
+<li>
+<p><strong>Navigation</strong>: Updated main navigation with new feature links</p>
+</li>
+<li>
+<p><strong>Sample Component</strong>: Complete household dashboard component with Material 3 theming</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_integration_patterns_applied"><a class="link" href="#_integration_patterns_applied">Integration Patterns Applied</a></h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Database Schema</strong>: Proper organization into existing schemas (<code>recipe</code>, <code>plan</code>, <code>shopping</code>)</p>
+</li>
+<li>
+<p><strong>Code-First EF</strong>: All entities follow NOM&#8217;s Code-First patterns with proper attributes and relationships</p>
+</li>
+<li>
+<p><strong>API Conventions</strong>: Consistent use of <code>Model</code>, <code>Request</code>, <code>Response</code> suffixes (NO DTO)</p>
+</li>
+<li>
+<p><strong>Frontend Conventions</strong>: Angular 17 standalone components, Material 3 theming, BEM methodology</p>
+</li>
+<li>
+<p><strong>Naming Conventions</strong>: Strict adherence to NOM&#8217;s PascalCase, camelCase, and kebab-case patterns</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
 <h3 id="next-priorities"><a class="link" href="#next-priorities">Next Development Priorities</a></h3>
 <div class="olist arabic">
 <ol class="arabic">
+<li>
+<p><strong>Complete Frontend Components</strong>: Implement remaining household, shopping, and meal plan components</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Household: create, detail, edit, invite components</p>
+</li>
+<li>
+<p>Shopping: dashboard, create, detail, edit components</p>
+</li>
+<li>
+<p>Meal Plan: dashboard, create, detail, edit, rules components</p>
+</li>
+</ul>
+</div>
+</li>
 <li>
 <p><strong>Complete Curation Queue UI</strong>: Finish the admin interface for reviewing and managing pending submissions</p>
 </li>
@@ -7273,10 +7389,13 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <p><strong>Complete Multi-Participant Onboarding</strong>: Finish the remaining onboarding workflow for multiple participants</p>
 </li>
 <li>
-<p><strong>Frontend Invitation System</strong>: Implement the new invitation workflow components in the UI</p>
+<p><strong>Advanced Recipe Features</strong>: Implement recipe sharing, comments, ratings, assets, timeline, notes, tags, categories, tools, nutrition, and settings UI</p>
 </li>
 <li>
-<p><strong>Testing and Validation</strong>: Comprehensive testing of all implemented features</p>
+<p><strong>Integration Testing</strong>: Comprehensive testing of all Mealie integration features</p>
+</li>
+<li>
+<p><strong>Performance Optimization</strong>: Database migrations, indexing, and query optimization</p>
 </li>
 </ol>
 </div>
@@ -7287,7 +7406,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <h2 id="conclusion"><a class="link" href="#conclusion">Conclusion</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program&#8217;s current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, and administrative oversight capabilities.</p>
+<p>This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program&#8217;s current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, administrative oversight capabilities, and comprehensive Mealie integration.</p>
 </div>
 <div class="paragraph">
 <p>Key achievements include:
@@ -7296,10 +7415,14 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 - Comprehensive recipe and ingredient management with modal-based creation and duplicate prevention
 - Robust curation workflow with admin interface and type-safe status management
 - Event-driven architecture with decoupled services for improved maintainability
-- Material 3 theming and responsive design throughout the application</p>
+- Material 3 theming and responsive design throughout the application
+- <strong>Complete Mealie Integration</strong>: Successfully integrated household management, shopping lists, and meal planning functionality from Mealie into NOM&#8217;s architecture</p>
 </div>
 <div class="paragraph">
-<p>The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, and user experience. The modular architecture supports future enhancements while maintaining code quality and consistency.</p>
+<p>The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, user experience, and code quality. The modular architecture supports future enhancements while maintaining strict adherence to NOM&#8217;s conventions and patterns.</p>
+</div>
+<div class="paragraph">
+<p>The Mealie integration represents a significant milestone, bringing advanced recipe management, household collaboration, shopping list functionality, and meal planning capabilities to the NOM platform while maintaining the application&#8217;s architectural integrity and user experience standards.</p>
 </div>
 <div class="paragraph">
 <p>As the project continues to evolve, this specification serves as a living document that will be updated to reflect new features, architectural decisions, and implementation details.
@@ -7319,15 +7442,15 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Version</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2.5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.7</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Date</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">July 29, 2025</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">July 30, 2025</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Status</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Active Development Specification</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Active Development Specification with Mealie Integration</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Next Review</p></td>
@@ -7341,7 +7464,7 @@ Use <code>Model</code>, <code>Request</code>, or <code>Response</code> only.</p>
 <div id="footer">
 <div id="footer-text">
 Version 2.7<br>
-Last updated 2025-07-30 16:59:24 -0600
+Last updated 2025-07-31 09:22:54 -0600
 </div>
 </div>
 </body>

@@ -19,6 +19,11 @@ namespace Nom.Data.Reference
         CurationStatusType = 1002,      // NEW
         FeedbackEntityType = 1003,      // NEW
         FeedbackType = 1004,            // NEW
+        RecipeEventType = 1005,         // NEW - Recipe timeline events
+        RecipeStatusType = 1006,        // NEW - Recipe status (draft, published, etc.)
+        RecipeShareTokenType = 1007,    // NEW - Recipe share token types
+        RecipeCommentType = 1008,       // NEW - Recipe comment types
+        RecipeNoteType = 1009,          // NEW - Recipe note types
 
         // Dietary & Health Related Reference Groups (2000-2999)
         RestrictionType = 2000,

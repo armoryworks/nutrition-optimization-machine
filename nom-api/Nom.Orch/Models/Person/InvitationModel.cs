@@ -10,7 +10,7 @@ namespace Nom.Orch.Models.Person
         public string InviterName { get; set; } = string.Empty;
         public long? InviteePersonId { get; set; }
         public string? InviteeName { get; set; }
-        public DateTime? ExpiresAt { get; set; }
+        public DateTime? ExpirationDate { get; set; }
         public bool IsUsed { get; set; }
         public DateTime? UsedAt { get; set; }
         public string? Notes { get; set; }
@@ -19,4 +19,4 @@ namespace Nom.Orch.Models.Person
         public string? PlanName { get; set; }
         public DateTime CreatedDate { get; set; }
     }
-} 
+}

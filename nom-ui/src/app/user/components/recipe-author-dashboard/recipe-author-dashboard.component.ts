@@ -62,7 +62,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.recipes$ = this.recipeService.getMyRecipes().pipe(
+    this.recipes$ = this.recipeService.getRecipes().pipe(
+      map(recipes => recipes.map(recipe => ({
+        ...recipe,
+        curationStatus: recipe.curationStatus || 'draft'
+      }))),
       catchError((err: any) => {
         console.error('Error fetching recipes:', err);
         this.error = 'Could not load your recipes. Please try again later.';
@@ -70,7 +74,8 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       })
     );
 
-    this.ingredients$ = this.recipeService.getMyIngredients().pipe(
+    // TODO: Implement getMyIngredients method in RecipeService
+    this.ingredients$ = of([]).pipe(
       catchError((err: any) => {
         console.error('Error fetching ingredients:', err);
         this.error = 'Could not load your ingredients. Please try again later.';
@@ -112,7 +117,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         this.notificationService.success('Recipe submitted for curation successfully!');
         this.submittingItems.delete(recipeId);
         // Refresh the recipes list
-        this.recipes$ = this.recipeService.getMyRecipes().pipe(
+        this.recipes$ = this.recipeService.getRecipes().pipe(
+          map(recipes => recipes.map(recipe => ({
+            ...recipe,
+            curationStatus: recipe.curationStatus || 'draft'
+          }))),
           catchError((err: any) => {
             console.error('Error fetching recipes:', err);
             this.error = 'Could not load your recipes. Please try again later.';
@@ -140,7 +149,8 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         this.notificationService.success('Ingredient submitted for curation successfully!');
         this.submittingItems.delete(ingredientId);
         // Refresh the ingredients list
-        this.ingredients$ = this.recipeService.getMyIngredients().pipe(
+        // TODO: Implement getMyIngredients method in RecipeService
+        this.ingredients$ = of([]).pipe(
           catchError((err: any) => {
             console.error('Error fetching ingredients:', err);
             this.error = 'Could not load your ingredients. Please try again later.';

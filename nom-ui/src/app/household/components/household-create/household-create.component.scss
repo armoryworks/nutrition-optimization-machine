@@ -1,0 +1,236 @@
+// Component styles only - theme is handled globally
+
+.household-create {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem;
+  }
+
+  &__container {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  &__card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+  }
+
+  &__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 2rem 1.5rem;
+
+    @media (max-width: 768px) {
+      padding: 1.5rem 1rem 1rem;
+    }
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+    }
+  }
+
+  &__title-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+
+    @media (max-width: 768px) {
+      font-size: 1.75rem;
+      width: 1.75rem;
+      height: 1.75rem;
+    }
+  }
+
+  &__subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    margin: 0.5rem 0 0;
+    line-height: 1.5;
+  }
+
+  &__content {
+    padding: 2rem;
+
+    @media (max-width: 768px) {
+      padding: 1.5rem 1rem;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  &__form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  &__field {
+    width: 100%;
+
+    &--full {
+      flex: 1;
+    }
+  }
+
+  &__input,
+  &__textarea {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  &__textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  &__actions {
+    padding: 1.5rem 2rem 2rem;
+    display: flex;
+    justify-content: flex-end;
+
+    @media (max-width: 768px) {
+      padding: 1rem 1rem 1.5rem;
+      flex-direction: column;
+      gap: 1rem;
+    }
+  }
+
+  &__action-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+
+    @media (max-width: 768px) {
+      flex-direction: column-reverse;
+      width: 100%;
+    }
+  }
+
+  &__button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+    }
+
+    &--primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+
+      &:disabled {
+        background: rgba(102, 126, 234, 0.3);
+        color: rgba(255, 255, 255, 0.7);
+        box-shadow: none;
+      }
+    }
+
+    &--secondary {
+      color: #666;
+      border: 1px solid #ddd;
+
+      &:hover:not(:disabled) {
+        background: #f5f5f5;
+        border-color: #ccc;
+      }
+
+      &:disabled {
+        color: #ccc;
+        border-color: #eee;
+      }
+    }
+  }
+
+  &__spinner {
+    margin-right: 0.5rem;
+  }
+}
+
+// Material form field overrides
+::ng-deep {
+  .mat-mdc-form-field {
+    .mat-mdc-form-field-flex {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: rgba(102, 126, 234, 0.5);
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      &.mat-focused {
+        border-color: #667eea;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+      }
+    }
+
+    .mat-mdc-form-field-focus-overlay {
+      background: transparent;
+    }
+
+    .mat-mdc-text-field-wrapper {
+      padding: 0;
+    }
+
+    .mat-mdc-form-field-subscript-wrapper {
+      margin-top: 0.25rem;
+    }
+  }
+
+  .mat-mdc-card {
+    .mat-mdc-card-header {
+      padding: 0;
+    }
+
+    .mat-mdc-card-content {
+      padding: 0;
+    }
+
+    .mat-mdc-card-actions {
+      padding: 0;
+    }
+  }
+} 

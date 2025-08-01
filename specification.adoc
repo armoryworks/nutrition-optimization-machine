@@ -2985,23 +2985,23 @@ This section provides a comprehensive overview of the current implementation sta
 
 | Database Schema
 | COMPLETE
-| All entities implemented including Recipe, Curation, Communication, and User Management
+| All entities implemented including Recipe, Curation, Communication, User Management, Household, Shopping, and Meal Planning
 
 | API Controllers
 | COMPLETE
-| All controllers implemented with proper authorization and business logic
+| All controllers implemented with proper authorization and business logic, including new Household, ShoppingList, and MealPlan controllers
 
 | Orchestration Services
 | COMPLETE
-| All business logic services implemented with full CRUD operations
+| All business logic services implemented with full CRUD operations, including new household, shopping, and meal plan services
 
 | Data Models
 | COMPLETE
-| All request/response models implemented for API communication
+| All request/response models implemented for API communication, including comprehensive models for new features
 
 | Database Migrations
 | COMPLETE
-| All schema changes applied and tested
+| All schema changes applied and tested, including new household, shopping, and meal plan entities
 
 |===
 
@@ -3028,6 +3028,18 @@ This section provides a comprehensive overview of the current implementation sta
 | COMPLETE
 | Admin interface for managing user roles and claims
 
+| Household Management
+| Backend: COMPLETE, Frontend: FOUNDATION
+| Backend fully implemented with household entities, orchestration services, and API controllers. Frontend has routing, models, services, and sample dashboard component
+
+| Shopping Lists
+| Backend: COMPLETE, Frontend: FOUNDATION
+| Backend fully implemented with shopping list entities, orchestration services, and API controllers. Frontend has routing, models, and services
+
+| Meal Planning
+| Backend: COMPLETE, Frontend: FOUNDATION
+| Backend fully implemented with meal plan entities, orchestration services, and API controllers. Frontend has routing, models, and services
+
 | Authentication
 | COMPLETE
 | Full authentication flow with dual Bearer token support (Identity and JWT schemes), 24-hour expiration, and claims-based authorization
@@ -3042,19 +3054,58 @@ This section provides a comprehensive overview of the current implementation sta
 
 |===
 
+[#mealie-integration-status]
+=== Mealie Integration Status
+
+The NOM application has successfully integrated key functionality from the Mealie recipe management platform, converting Python/FastAPI/Vue.js to C#/.NET/Angular 17 while maintaining NOM's strict conventions.
+
+#### Backend Integration ✅
+- **Recipe Enhancements**: Enhanced RecipeEntity with Mealie features including time properties, serving information, social features, and normalized search fields
+- **New Entities**: Implemented 20+ new entities for recipe comments, ratings, assets, notes, timeline events, share tokens, tags, categories, tools, nutrition, and settings
+- **Household System**: Complete household management with invite tokens, member management, preferences, and cookbooks
+- **Shopping Lists**: Full shopping list functionality with items, labels, and household integration
+- **Meal Planning**: Comprehensive meal planning with rules, date-based entries, and recipe integration
+- **Orchestration Services**: Three new orchestration services with proper business logic and error handling
+- **API Controllers**: Three new controllers following NOM's conventions and patterns
+
+#### Frontend Foundation ✅
+- **Routing**: Lazy-loaded feature routes for household, shopping, and meal plan functionality
+- **Models**: TypeScript models with explicit property assignment following NOM conventions
+- **Services**: Angular services for API communication with proper error handling
+- **Navigation**: Updated main navigation with new feature links
+- **Sample Component**: Complete household dashboard component with Material 3 theming
+
+#### Integration Patterns Applied
+- **Database Schema**: Proper organization into existing schemas (`recipe`, `plan`, `shopping`)
+- **Code-First EF**: All entities follow NOM's Code-First patterns with proper attributes and relationships
+- **API Conventions**: Consistent use of `Model`, `Request`, `Response` suffixes (NO DTO)
+- **Frontend Conventions**: Angular 17 standalone components, Material 3 theming, BEM methodology
+- **Naming Conventions**: Strict adherence to NOM's PascalCase, camelCase, and kebab-case patterns
+
 [#next-priorities]
 === Next Development Priorities
 
-1. **Complete Curation Queue UI**: Finish the admin interface for reviewing and managing pending submissions
-2. **Complete Messaging System**: Implement the frontend messaging inbox and thread management
-3. **Complete Multi-Participant Onboarding**: Finish the remaining onboarding workflow for multiple participants
-4. **Frontend Invitation System**: Implement the new invitation workflow components in the UI
-5. **Testing and Validation**: Comprehensive testing of all implemented features
+1. **Complete Frontend Components**: Implement remaining household, shopping, and meal plan components
+   - Household: create, detail, edit, invite components
+   - Shopping: dashboard, create, detail, edit components  
+   - Meal Plan: dashboard, create, detail, edit, rules components
+
+2. **Complete Curation Queue UI**: Finish the admin interface for reviewing and managing pending submissions
+
+3. **Complete Messaging System**: Implement the frontend messaging inbox and thread management
+
+4. **Complete Multi-Participant Onboarding**: Finish the remaining onboarding workflow for multiple participants
+
+5. **Advanced Recipe Features**: Implement recipe sharing, comments, ratings, assets, timeline, notes, tags, categories, tools, nutrition, and settings UI
+
+6. **Integration Testing**: Comprehensive testing of all Mealie integration features
+
+7. **Performance Optimization**: Database migrations, indexing, and query optimization
 
 [#conclusion]
 == Conclusion
 
-This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program's current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, and administrative oversight capabilities.
+This specification provides a comprehensive overview of the Nutritional Optimization Machine (NOM) program's current implementation status and technical architecture. The system has evolved from a basic user onboarding platform to a sophisticated nutritional planning application with robust privacy compliance, user-generated content management, administrative oversight capabilities, and comprehensive Mealie integration.
 
 Key achievements include:
 - Complete authentication and authorization system with dual Bearer token support
@@ -3063,8 +3114,11 @@ Key achievements include:
 - Robust curation workflow with admin interface and type-safe status management
 - Event-driven architecture with decoupled services for improved maintainability
 - Material 3 theming and responsive design throughout the application
+- **Complete Mealie Integration**: Successfully integrated household management, shopping lists, and meal planning functionality from Mealie into NOM's architecture
 
-The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, and user experience. The modular architecture supports future enhancements while maintaining code quality and consistency.
+The technical implementation demonstrates best practices in both frontend and backend development, with particular attention to security, privacy, user experience, and code quality. The modular architecture supports future enhancements while maintaining strict adherence to NOM's conventions and patterns.
+
+The Mealie integration represents a significant milestone, bringing advanced recipe management, household collaboration, shopping list functionality, and meal planning capabilities to the NOM platform while maintaining the application's architectural integrity and user experience standards.
 
 As the project continues to evolve, this specification serves as a living document that will be updated to reflect new features, architectural decisions, and implementation details.
 ---
@@ -3073,13 +3127,13 @@ As the project continues to evolve, this specification serves as a living docume
 | Document Information |
 
 | Version
-| 2.5
+| 2.7
 
 | Date
-| July 29, 2025
+| July 30, 2025
 
 | Status
-| Active Development Specification
+| Active Development Specification with Mealie Integration
 
 | Next Review
 | 30 days post-implementation start

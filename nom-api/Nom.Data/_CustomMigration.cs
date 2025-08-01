@@ -125,6 +125,43 @@ namespace Nom.Data
         private const long FeedbackTypeRevisionRequestId = 9202L;
         private const long FeedbackTypeRejectionId = 9203L;
 
+        // --- Recipe Reference IDs (10000-10999 series) ---
+        // Recipe Event Types (10000-10099)
+        private const long RecipeEventTypeCreatedId = 10001L;
+        private const long RecipeEventTypeUpdatedId = 10002L;
+        private const long RecipeEventTypePublishedId = 10003L;
+        private const long RecipeEventTypeRatedId = 10004L;
+        private const long RecipeEventTypeCommentedId = 10005L;
+        private const long RecipeEventTypeMadeId = 10006L;
+        private const long RecipeEventTypeSharedId = 10007L;
+        private const long RecipeEventTypeFavoritedId = 10008L;
+        private const long RecipeEventTypeAddedToPlanId = 10009L;
+        private const long RecipeEventTypeExportedId = 10010L;
+
+        // Recipe Status Types (10100-10199)
+        private const long RecipeStatusTypeDraftId = 10101L;
+        private const long RecipeStatusTypePublishedId = 10102L;
+        private const long RecipeStatusTypeArchivedId = 10103L;
+        private const long RecipeStatusTypeDeletedId = 10104L;
+
+        // Recipe Share Token Types (10200-10299)
+        private const long RecipeShareTokenTypePublicId = 10201L;
+        private const long RecipeShareTokenTypePrivateId = 10202L;
+        private const long RecipeShareTokenTypeTemporaryId = 10203L;
+
+        // Recipe Comment Types (10300-10399)
+        private const long RecipeCommentTypeGeneralId = 10301L;
+        private const long RecipeCommentTypeReviewId = 10302L;
+        private const long RecipeCommentTypeSuggestionId = 10303L;
+        private const long RecipeCommentTypeQuestionId = 10304L;
+
+        // Recipe Note Types (10400-10499)
+        private const long RecipeNoteTypePrivateId = 10401L;
+        private const long RecipeNoteTypePublicId = 10402L;
+        private const long RecipeNoteTypeCookingTipId = 10403L;
+        private const long RecipeNoteTypeVariationId = 10404L;
+        private const long RecipeNoteTypeSubstitutionId = 10405L;
+
         // --- Nutrient Guideline IDs (7xxxL series) ---
         private static long nextGuidelineId = 7000L;
 
@@ -155,6 +192,12 @@ namespace Nom.Data
             AddFeedbackEntityTypes(migrationBuilder);
             AddFeedbackTypes(migrationBuilder);
 
+            AddRecipeEventTypes(migrationBuilder);
+            AddRecipeStatusTypes(migrationBuilder);
+            AddRecipeShareTokenTypes(migrationBuilder);
+            AddRecipeCommentTypes(migrationBuilder);
+            AddRecipeNoteTypes(migrationBuilder);
+
             AddNutrientTypes(migrationBuilder);
             AddNutrientGuidelines(migrationBuilder);
 
@@ -167,6 +210,12 @@ namespace Nom.Data
 
             RemoveNutrientGuidelines(migrationBuilder);
             RemoveNutrientTypes(migrationBuilder);
+
+            RemoveRecipeNoteTypes(migrationBuilder);
+            RemoveRecipeCommentTypes(migrationBuilder);
+            RemoveRecipeShareTokenTypes(migrationBuilder);
+            RemoveRecipeStatusTypes(migrationBuilder);
+            RemoveRecipeEventTypes(migrationBuilder);
 
             RemoveFeedbackTypes(migrationBuilder);
             RemoveFeedbackEntityTypes(migrationBuilder);
@@ -234,7 +283,12 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.PrivacyConsentType, "Privacy Consent Types", "Types of user consent for data processing under GDPR.", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.CurationStatusType, "Curation Status Types", "Statuses for the content curation lifecycle.", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.FeedbackEntityType, "Feedback Entity Types", "The types of entities that can receive curation feedback.", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.FeedbackType, "Feedback Types", "The classification of feedback provided during curation.", DateTime.UtcNow, SystemPersonId }
+                    { (long)ReferenceDiscriminatorEnum.FeedbackType, "Feedback Types", "The classification of feedback provided during curation.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeEventType, "Recipe Event Types", "Types of events that can occur in a recipe's timeline.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeStatusType, "Recipe Status Types", "Statuses for recipe lifecycle (draft, published, archived).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeShareTokenType, "Recipe Share Token Types", "Types of sharing tokens for recipes.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeCommentType, "Recipe Comment Types", "Types of comments that can be made on recipes.", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeNoteType, "Recipe Note Types", "Types of notes that can be added to recipes.", DateTime.UtcNow, SystemPersonId }
                 });
         }
 
@@ -259,7 +313,12 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.PrivacyConsentType,
                     (long)ReferenceDiscriminatorEnum.CurationStatusType,
                     (long)ReferenceDiscriminatorEnum.FeedbackEntityType,
-                    (long)ReferenceDiscriminatorEnum.FeedbackType
+                    (long)ReferenceDiscriminatorEnum.FeedbackType,
+                    (long)ReferenceDiscriminatorEnum.RecipeEventType,
+                    (long)ReferenceDiscriminatorEnum.RecipeStatusType,
+                    (long)ReferenceDiscriminatorEnum.RecipeShareTokenType,
+                    (long)ReferenceDiscriminatorEnum.RecipeCommentType,
+                    (long)ReferenceDiscriminatorEnum.RecipeNoteType
                 });
         }
 
@@ -892,6 +951,285 @@ namespace Nom.Data
                 table: "NutrientGuideline",
                 keyColumn: "Id",
                 keyValues: guidelineIdsToRemove);
+        }
+
+        // Recipe Event Types
+        public static void AddRecipeEventTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeEventType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeEventTypeCreatedId, "Recipe Created", "Recipe was initially created", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeUpdatedId, "Recipe Updated", "Recipe was modified", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypePublishedId, "Recipe Published", "Recipe was made public", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeRatedId, "Recipe Rated", "Recipe received a rating", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeCommentedId, "Recipe Commented", "Recipe received a comment", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeMadeId, "Recipe Made", "Recipe was prepared/cooked", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeSharedId, "Recipe Shared", "Recipe was shared with others", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeFavoritedId, "Recipe Favorited", "Recipe was added to favorites", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeAddedToPlanId, "Recipe Added to Plan", "Recipe was added to meal plan", DateTime.UtcNow, SystemPersonId },
+                    { RecipeEventTypeExportedId, "Recipe Exported", "Recipe was exported to external format", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] eventTypeIds = new long[] {
+                RecipeEventTypeCreatedId, RecipeEventTypeUpdatedId, RecipeEventTypePublishedId,
+                RecipeEventTypeRatedId, RecipeEventTypeCommentedId, RecipeEventTypeMadeId,
+                RecipeEventTypeSharedId, RecipeEventTypeFavoritedId, RecipeEventTypeAddedToPlanId,
+                RecipeEventTypeExportedId
+            };
+
+            foreach (long id in eventTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeEventTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeEventType;
+            long[] eventTypeIds = new long[] {
+                RecipeEventTypeCreatedId, RecipeEventTypeUpdatedId, RecipeEventTypePublishedId,
+                RecipeEventTypeRatedId, RecipeEventTypeCommentedId, RecipeEventTypeMadeId,
+                RecipeEventTypeSharedId, RecipeEventTypeFavoritedId, RecipeEventTypeAddedToPlanId,
+                RecipeEventTypeExportedId
+            };
+
+            foreach (long id in eventTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: eventTypeIds.Cast<object>().ToArray());
+        }
+
+        // Recipe Status Types
+        public static void AddRecipeStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeStatusType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeStatusTypeDraftId, "Draft", "Recipe is in draft mode and not publicly visible", DateTime.UtcNow, SystemPersonId },
+                    { RecipeStatusTypePublishedId, "Published", "Recipe is published and publicly visible", DateTime.UtcNow, SystemPersonId },
+                    { RecipeStatusTypeArchivedId, "Archived", "Recipe is archived and no longer actively maintained", DateTime.UtcNow, SystemPersonId },
+                    { RecipeStatusTypeDeletedId, "Deleted", "Recipe has been marked for deletion", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] statusTypeIds = new long[] {
+                RecipeStatusTypeDraftId, RecipeStatusTypePublishedId, RecipeStatusTypeArchivedId, RecipeStatusTypeDeletedId
+            };
+
+            foreach (long id in statusTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeStatusType;
+            long[] statusTypeIds = new long[] {
+                RecipeStatusTypeDraftId, RecipeStatusTypePublishedId, RecipeStatusTypeArchivedId, RecipeStatusTypeDeletedId
+            };
+
+            foreach (long id in statusTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: statusTypeIds.Cast<object>().ToArray());
+        }
+
+        // Recipe Share Token Types
+        public static void AddRecipeShareTokenTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeShareTokenType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeShareTokenTypePublicId, "Public", "Recipe can be accessed by anyone with the share token", DateTime.UtcNow, SystemPersonId },
+                    { RecipeShareTokenTypePrivateId, "Private", "Recipe can only be accessed by specific users", DateTime.UtcNow, SystemPersonId },
+                    { RecipeShareTokenTypeTemporaryId, "Temporary", "Recipe share token expires after a set time", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] shareTokenTypeIds = new long[] {
+                RecipeShareTokenTypePublicId, RecipeShareTokenTypePrivateId, RecipeShareTokenTypeTemporaryId
+            };
+
+            foreach (long id in shareTokenTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeShareTokenTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeShareTokenType;
+            long[] shareTokenTypeIds = new long[] {
+                RecipeShareTokenTypePublicId, RecipeShareTokenTypePrivateId, RecipeShareTokenTypeTemporaryId
+            };
+
+            foreach (long id in shareTokenTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: shareTokenTypeIds.Cast<object>().ToArray());
+        }
+
+        // Recipe Comment Types
+        public static void AddRecipeCommentTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeCommentType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeCommentTypeGeneralId, "General", "General comment about the recipe", DateTime.UtcNow, SystemPersonId },
+                    { RecipeCommentTypeReviewId, "Review", "Review or rating comment", DateTime.UtcNow, SystemPersonId },
+                    { RecipeCommentTypeSuggestionId, "Suggestion", "Suggestion for improving the recipe", DateTime.UtcNow, SystemPersonId },
+                    { RecipeCommentTypeQuestionId, "Question", "Question about the recipe", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] commentTypeIds = new long[] {
+                RecipeCommentTypeGeneralId, RecipeCommentTypeReviewId, RecipeCommentTypeSuggestionId, RecipeCommentTypeQuestionId
+            };
+
+            foreach (long id in commentTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeCommentTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeCommentType;
+            long[] commentTypeIds = new long[] {
+                RecipeCommentTypeGeneralId, RecipeCommentTypeReviewId, RecipeCommentTypeSuggestionId, RecipeCommentTypeQuestionId
+            };
+
+            foreach (long id in commentTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: commentTypeIds.Cast<object>().ToArray());
+        }
+
+        // Recipe Note Types
+        public static void AddRecipeNoteTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeNoteType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeNoteTypePrivateId, "Private", "Private note only visible to the author", DateTime.UtcNow, SystemPersonId },
+                    { RecipeNoteTypePublicId, "Public", "Public note visible to all users", DateTime.UtcNow, SystemPersonId },
+                    { RecipeNoteTypeCookingTipId, "Cooking Tip", "Tip for cooking the recipe", DateTime.UtcNow, SystemPersonId },
+                    { RecipeNoteTypeVariationId, "Variation", "Variation or modification of the recipe", DateTime.UtcNow, SystemPersonId },
+                    { RecipeNoteTypeSubstitutionId, "Substitution", "Ingredient substitution suggestion", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] noteTypeIds = new long[] {
+                RecipeNoteTypePrivateId, RecipeNoteTypePublicId, RecipeNoteTypeCookingTipId,
+                RecipeNoteTypeVariationId, RecipeNoteTypeSubstitutionId
+            };
+
+            foreach (long id in noteTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeNoteTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeNoteType;
+            long[] noteTypeIds = new long[] {
+                RecipeNoteTypePrivateId, RecipeNoteTypePublicId, RecipeNoteTypeCookingTipId,
+                RecipeNoteTypeVariationId, RecipeNoteTypeSubstitutionId
+            };
+
+            foreach (long id in noteTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: noteTypeIds.Cast<object>().ToArray());
         }
 
         public static void CreateReferenceGroupView(MigrationBuilder migrationBuilder)

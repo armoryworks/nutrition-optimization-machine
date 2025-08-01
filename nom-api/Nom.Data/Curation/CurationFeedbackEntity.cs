@@ -31,7 +31,5 @@ namespace Nom.Data.Curation
         public long FeedbackTypeId { get; set; }
         [ForeignKey(nameof(FeedbackTypeId))]
         public virtual ReferenceEntity? FeedbackType { get; set; }
-
-        public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     }
 }

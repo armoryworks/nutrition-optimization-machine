@@ -71,6 +71,21 @@ namespace Nom.Data
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
         public DbSet<RestrictionEntity> Restrictions { get; set; } = default!;
+        
+        // New Plan entities (from Mealie)
+        public DbSet<HouseholdEntity> Households { get; set; } = default!;
+        public DbSet<HouseholdPreferenceEntity> HouseholdPreferences { get; set; } = default!;
+        public DbSet<HouseholdInviteTokenEntity> HouseholdInviteTokens { get; set; } = default!;
+        public DbSet<HouseholdWebhookEntity> HouseholdWebhooks { get; set; } = default!;
+        public DbSet<HouseholdEventNotifierEntity> HouseholdEventNotifiers { get; set; } = default!;
+        public DbSet<HouseholdRecipeActionEntity> HouseholdRecipeActions { get; set; } = default!;
+        public DbSet<HouseholdCookbookEntity> HouseholdCookbooks { get; set; } = default!;
+        public DbSet<HouseholdCookbookRecipeEntity> HouseholdCookbookRecipes { get; set; } = default!;
+        public DbSet<HouseholdIngredientEntity> HouseholdIngredients { get; set; } = default!;
+        public DbSet<HouseholdToolEntity> HouseholdTools { get; set; } = default!;
+        public DbSet<HouseholdRecipeEntity> HouseholdRecipes { get; set; } = default!;
+        public DbSet<MealPlanEntity> MealPlans { get; set; } = default!;
+        public DbSet<MealPlanRuleEntity> MealPlanRules { get; set; } = default!;
         #endregion
 
         #region Privacy
@@ -85,6 +100,20 @@ namespace Nom.Data
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
         public DbSet<RecipeIngredientEntity> RecipeIngredients { get; set; } = default!;
         public DbSet<RecipeStepEntity> RecipeSteps { get; set; } = default!;
+        
+        // New Recipe entities (from Mealie)
+        public DbSet<RecipeCommentEntity> RecipeComments { get; set; } = default!;
+        public DbSet<RecipeRatingEntity> RecipeRatings { get; set; } = default!;
+        public DbSet<RecipeAssetEntity> RecipeAssets { get; set; } = default!;
+        public DbSet<RecipeNoteEntity> RecipeNotes { get; set; } = default!;
+        public DbSet<RecipeTimelineEventEntity> RecipeTimelineEvents { get; set; } = default!;
+        public DbSet<RecipeShareTokenEntity> RecipeShareTokens { get; set; } = default!;
+        public DbSet<RecipeTagEntity> RecipeTags { get; set; } = default!;
+        public DbSet<RecipeCategoryEntity> RecipeCategories { get; set; } = default!;
+        public DbSet<RecipeToolEntity> RecipeTools { get; set; } = default!;
+        public DbSet<RecipeNutritionEntity> RecipeNutrition { get; set; } = default!;
+        public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
+        public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;
         #endregion
 
         #region Reference
@@ -110,6 +139,12 @@ namespace Nom.Data
         public DbSet<PantryItemEntity> PantryItems { get; set; } = default!;
         public DbSet<ShoppingPreferenceEntity> ShoppingPreferences { get; set; } = default!;
         public DbSet<ShoppingTripEntity> ShoppingTrips { get; set; } = default!;
+        
+        // New Shopping entities (from Mealie)
+        public DbSet<ShoppingListEntity> ShoppingLists { get; set; } = default!;
+        public DbSet<ShoppingListItemEntity> ShoppingListItems { get; set; } = default!;
+        public DbSet<ShoppingListLabelEntity> ShoppingListLabels { get; set; } = default!;
+        public DbSet<ShoppingListCategoryEntity> ShoppingListCategories { get; set; } = default!;
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

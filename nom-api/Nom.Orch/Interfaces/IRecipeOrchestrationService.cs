@@ -6,93 +6,28 @@ using Nom.Orch.Models.Recipe;
 
 namespace Nom.Orch.Interfaces
 {
-    /// <summary>
-    /// Defines the business logic for managing recipes, ingredients, and their nutritional data.
-    /// </summary>
     public interface IRecipeOrchestrationService
     {
-        /// <summary>
-        /// Searches for ingredients based on a search term.
-        /// </summary>
-        /// <param name="searchTerm">The term to search for in ingredient names.</param>
-        /// <returns>A list of matching ingredients.</returns>
-        Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string searchTerm);
+        Task<List<RecipeResponseModel>> GetAllRecipesAsync();
+        Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model);
+        Task<RecipeResponseModel?> GetRecipeAsync(long id);
+        Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model);
+        Task<bool> DeleteRecipeAsync(long id);
 
-        /// <summary>
-        /// Retrieves the detailed nutritional information for a specific ingredient.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient.</param>
-        /// <returns>The detailed ingredient model, including its nutrients.</returns>
-        Task<IngredientModel> GetIngredientDetailsAsync(long ingredientId);
+        // Recipe Comments
+        Task<RecipeCommentResponseModel> AddCommentAsync(RecipeCommentCreateModel model);
+        Task<List<RecipeCommentResponseModel>> GetCommentsAsync(long recipeId);
+        Task<bool> DeleteCommentAsync(long commentId);
 
-        /// <summary>
-        /// Creates a new recipe for the specified author.
-        /// </summary>
-        /// <param name="request">The request model containing the new recipe's data.</param>
-        /// <param name="authorPersonId">The PersonId of the user creating the recipe.</param>
-        /// <returns>The ID of the newly created recipe.</returns>
-        Task<long> CreateRecipeAsync(CreateRecipeRequest request, long authorPersonId);
+        // Recipe Ratings
+        Task<RecipeRatingResponseModel> AddRatingAsync(RecipeRatingCreateModel model);
+        Task<List<RecipeRatingResponseModel>> GetRatingsAsync(long recipeId);
+        Task<RecipeRatingResponseModel?> UpdateRatingAsync(long ratingId, RecipeRatingUpdateModel model);
+        Task<bool> DeleteRatingAsync(long ratingId);
 
-        Task UpdateRecipeAsync(UpdateRecipeRequest request, long authorPersonId);
-
-        /// <summary>
-        /// Retrieves a recipe for editing, verifying ownership.
-        /// </summary>
-        /// <param name="recipeId">The ID of the recipe to retrieve.</param>
-        /// <param name="authorPersonId">The PersonId of the user requesting the edit.</param>
-        /// <returns>The recipe details suitable for an edit form.</returns>
-        Task<RecipeEditModel> GetRecipeForEditAsync(long recipeId, long authorPersonId);
-
-        /// <summary>
-        /// Creates a new version of an existing recipe.
-        /// </summary>
-        /// <param name="parentRecipeId">The ID of the recipe to create a new version of.</param>
-        /// <param name="authorPersonId">The PersonId of the user creating the new version.</param>
-        /// <returns>The ID of the newly created recipe version.</returns>
-        Task<long> CreateNewRecipeVersionAsync(long parentRecipeId, long authorPersonId);
-
-        /// <summary>
-        /// Retrieves an ingredient for editing, verifying ownership.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient to retrieve.</param>
-        /// <param name="authorPersonId">The PersonId of the user requesting the edit.</param>
-        /// <returns>The ingredient details suitable for an edit form.</returns>
-        Task<IngredientEditModel> GetIngredientForEditAsync(long ingredientId, long authorPersonId);
-
-        /// <summary>
-        /// Creates a new user-submitted ingredient.
-        /// </summary>
-        /// <param name="request">The request model containing the new ingredient's data.</param>
-        /// <param name="authorPersonId">The PersonId of the user creating the ingredient.</param>
-        /// <returns>The newly created ingredient model.</returns>
-        Task<IngredientModel> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId);
-
-        /// <summary>
-        /// Updates an existing user-submitted ingredient.
-        /// </summary>
-        /// <param name="request">The request model containing the updated ingredient data.</param>
-        /// <param name="authorPersonId">The PersonId of the user updating the ingredient.</param>
-        Task UpdateIngredientAsync(UpdateIngredientRequest request, long authorPersonId);
-
-        Task<List<RecipeDashboardItemModel>> GetAuthorRecipesAsync(long authorPersonId);
-
-        Task<List<RecipeDashboardItemModel>> GetAuthorIngredientsAsync(long authorPersonId);
-
-        /// <summary>
-        /// Adds an alias to an ingredient.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient.</param>
-        /// <param name="aliasName">The alias name to add.</param>
-        /// <param name="sourceContext">Optional context about where this alias came from.</param>
-        /// <param name="authorPersonId">The PersonId of the user adding the alias.</param>
-        Task AddIngredientAliasAsync(long ingredientId, string aliasName, string? sourceContext, long authorPersonId);
-
-        /// <summary>
-        /// Gets all aliases for an ingredient.
-        /// </summary>
-        /// <param name="ingredientId">The ID of the ingredient.</param>
-        /// <returns>A list of aliases for the ingredient.</returns>
-        Task<List<IngredientAliasModel>> GetIngredientAliasesAsync(long ingredientId);
-
+        // Recipe Ingredients
+        Task<IngredientEditModel?> GetIngredientForEditAsync(long ingredientId);
+        Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model);
+        Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model);
     }
 }

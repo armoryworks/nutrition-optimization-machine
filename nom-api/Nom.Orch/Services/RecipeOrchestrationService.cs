@@ -1,436 +1,345 @@
 // File: Nom.Orch/Services/RecipeOrchestrationService.cs
 
-using Nom.Data;
-using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Threading.Tasks;
-using System;
-using Nom.Orch.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Nom.Orch.Models.Recipe;
-using System.Collections.Generic;
-using System.Linq;
+using Nom.Data;
 using Nom.Data.Recipe;
-using Nom.Data.Reference;
-using System.Text.Json;
+using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Recipe;
 
 namespace Nom.Orch.Services
 {
-    /// <summary>
-    /// Service responsible for orchestrating high-level recipe-related operations.
-    /// </summary>
     public class RecipeOrchestrationService : IRecipeOrchestrationService
     {
-        private readonly ApplicationDbContext _db;
-        private readonly ILogger<RecipeOrchestrationService> _logger;
+        private readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public RecipeOrchestrationService(ApplicationDbContext dbContext, ILogger<RecipeOrchestrationService> logger)
+        public RecipeOrchestrationService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
-            _db = dbContext;
-            _logger = logger;
+            _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string searchTerm)
+        private long GetCurrentUserId()
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
+            // This is a simplified implementation - in a real app, you'd get this from JWT token or session
+            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("UserId")?.Value;
+            if (long.TryParse(userIdClaim, out var userId))
             {
-                return new List<IngredientSearchResponseModel>();
+                return userId;
             }
-            var lowerSearchTerm = searchTerm.ToLower();
-            return await _db.Ingredients
-                .Where(i => EF.Functions.ILike(i.Name, $"%{searchTerm}%"))
-                .OrderBy(i => i.FdcDataType == "foundation_food" || i.FdcDataType == "sr_legacy_food" ? 0 : i.FdcDataType == "branded_food" ? 2 : 1)
-                .ThenBy(i => i.Name.ToLower() == lowerSearchTerm ? 0 : i.Name.ToLower().StartsWith(lowerSearchTerm) ? 1 : 2)
-                .ThenBy(i => i.Name)
-                .Select(i => new IngredientSearchResponseModel { Id = i.Id, Name = i.Name, FdcId = i.FdcId })
-                .Take(25)
+            return 1; // Default user ID for development
+        }
+
+        public async Task<List<RecipeResponseModel>> GetAllRecipesAsync()
+        {
+            var recipes = await _context.Recipes
+                .Include(r => r.Author)
+                .Include(r => r.Comments)
+                .Include(r => r.Ratings)
                 .ToListAsync();
-        }
 
-        public async Task<IngredientModel> GetIngredientDetailsAsync(long ingredientId)
-        {
-            var ingredient = await _db.Ingredients
-                .AsNoTracking()
-                .Where(i => i.Id == ingredientId)
-                .Select(i => new IngredientModel
-                {
-                    Id = i.Id,
-                    Name = i.Name,
-                    FdcId = i.FdcId,
-                    Description = i.Description,
-                    Nutrients = _db.IngredientNutrients
-                        .Where(inu => inu.IngredientId == i.Id)
-                        .Select(inu => new NutrientValueModel
-                        {
-                            NutrientId = inu.NutrientId,
-                            NutrientName = inu.Nutrient.Name,
-                            Amount = inu.Amount,
-                            UnitName = inu.MeasurementType.Name
-                        })
-                        .ToList()
-                })
-                .FirstOrDefaultAsync();
-            if (ingredient == null)
+            return recipes.Select(r => new RecipeResponseModel
             {
-                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
-            }
-            return ingredient;
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description ?? string.Empty,
+                AuthorId = r.AuthorId,
+                AuthorName = r.Author?.Name ?? "Unknown",
+                Rating = r.Rating ?? 0,
+                CommentCount = r.Comments?.Count ?? 0,
+                RatingCount = r.Ratings?.Count ?? 0,
+                CreatedDate = r.CreatedDate,
+                ModifiedDate = r.LastModifiedDate
+            }).ToList();
         }
 
-        public async Task<long> CreateRecipeAsync(CreateRecipeRequest request, long authorPersonId)
+        public async Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model)
         {
-            _logger.LogInformation("Creating new recipe '{RecipeName}' for author {AuthorPersonId}", request.Name, authorPersonId);
-
             var recipe = new RecipeEntity
             {
-                Name = request.Name,
-                Description = request.Description,
-                AuthorId = authorPersonId,
-                CurationStatusId = 9000L, // NonCurated
-                Version = 1,
-                RecipeIngredients = request.Ingredients.Select(i => new RecipeIngredientEntity
-                {
-                    IngredientId = i.IngredientId,
-                    Quantity = i.Quantity,
-                    MeasurementTypeId = i.MeasurementTypeId
-                }).ToList(),
-                RecipeSteps = request.Steps.Select((s, index) => new RecipeStepEntity
-                {
-                    StepNumber = (byte)(index + 1),
-                    Description = s.Description,
-                    Summary = s.Description.Substring(0, Math.Min(s.Description.Length, 255)) // Auto-generate summary
-                }).ToList()
+                Name = model.Name,
+                Description = model.Description,
+                AuthorId = model.AuthorId,
+                CreatedDate = DateTime.UtcNow,
+                LastModifiedDate = DateTime.UtcNow
             };
 
-            _db.Recipes.Add(recipe);
-            await _db.SaveChangesAsync();
+            _context.Recipes.Add(recipe);
+            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully created recipe {RecipeId}", recipe.Id);
-            return recipe.Id;
+            return new RecipeCreateResponseModel
+            {
+                Id = recipe.Id,
+                Name = recipe.Name,
+                Description = recipe.Description ?? string.Empty,
+                AuthorId = recipe.AuthorId,
+                CreatedDate = recipe.CreatedDate
+            };
         }
 
-        public async Task UpdateRecipeAsync(UpdateRecipeRequest request, long authorPersonId)
+        public async Task<RecipeResponseModel?> GetRecipeAsync(long id)
         {
-            _logger.LogInformation("Updating recipe {RecipeId} by author {AuthorPersonId}", request.Id, authorPersonId);
-
-            var recipe = await _db.Recipes
-                .Include(r => r.RecipeIngredients)
-                .Include(r => r.RecipeSteps)
-                .FirstOrDefaultAsync(r => r.Id == request.Id);
+            var recipe = await _context.Recipes
+                .Include(r => r.Author)
+                .Include(r => r.Comments)
+                .Include(r => r.Ratings)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
-            {
-                throw new KeyNotFoundException($"Recipe with ID {request.Id} not found.");
-            }
-            if (recipe.AuthorId != authorPersonId)
-            {
-                throw new UnauthorizedAccessException("User is not authorized to edit this recipe.");
-            }
+                return null;
 
-            // Update simple properties
-            recipe.Name = request.Name;
-            recipe.Description = request.Description;
-
-            // Update collections using "clear and replace" strategy
-            // Ingredients
-            recipe.RecipeIngredients.Clear();
-            recipe.RecipeIngredients = request.Ingredients.Select(i => new RecipeIngredientEntity
+            return new RecipeResponseModel
             {
-                IngredientId = i.IngredientId,
-                Quantity = i.Quantity,
-                MeasurementTypeId = i.MeasurementTypeId
-            }).ToList();
-
-            // Steps
-            recipe.RecipeSteps.Clear();
-            recipe.RecipeSteps = request.Steps.Select((s, index) => new RecipeStepEntity
-            {
-                StepNumber = (byte)(index + 1),
-                Description = s.Description,
-                Summary = s.Description.Substring(0, Math.Min(s.Description.Length, 255))
-            }).ToList();
-
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Successfully updated recipe {RecipeId}", recipe.Id);
+                Id = recipe.Id,
+                Name = recipe.Name,
+                Description = recipe.Description ?? string.Empty,
+                AuthorId = recipe.AuthorId,
+                AuthorName = recipe.Author?.Name ?? "Unknown",
+                Rating = recipe.Rating ?? 0,
+                CommentCount = recipe.Comments?.Count ?? 0,
+                RatingCount = recipe.Ratings?.Count ?? 0,
+                CreatedDate = recipe.CreatedDate,
+                ModifiedDate = recipe.LastModifiedDate
+            };
         }
 
-        public async Task<RecipeEditModel> GetRecipeForEditAsync(long recipeId, long authorPersonId)
+        public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model)
         {
-            var recipe = await _db.Recipes
-                .AsNoTracking()
-                .Include(r => r.RecipeIngredients)
-                    .ThenInclude(ri => ri.Ingredient)
-                .Include(r => r.RecipeSteps)
-                .Where(r => r.Id == recipeId)
-                .Select(r => new RecipeEditModel
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    Description = r.Description,
-                    AuthorId = r.AuthorId,
-                    Ingredients = r.RecipeIngredients.Select(ri => new RecipeIngredientModel
-                    {
-                        IngredientId = ri.IngredientId,
-                        Name = ri.Ingredient.Name,
-                        Quantity = ri.Quantity,
-                        MeasurementTypeId = ri.MeasurementTypeId
-                    }).ToList(),
-                    Steps = r.RecipeSteps.Select(rs => new RecipeStepModel
-                    {
-                        Id = rs.Id,
-                        Description = rs.Description,
-                        Order = rs.StepNumber
-                    }).OrderBy(s => s.Order).ToList()
-                })
-                .FirstOrDefaultAsync();
-
+            var recipe = await _context.Recipes.FindAsync(id);
             if (recipe == null)
+                return null;
+
+            recipe.Name = model.Name;
+            recipe.Description = model.Description;
+            recipe.LastModifiedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new RecipeResponseModel
             {
-                throw new KeyNotFoundException($"Recipe with ID {recipeId} not found.");
-            }
-
-            if (recipe.AuthorId != authorPersonId)
-            {
-                throw new UnauthorizedAccessException("User is not authorized to edit this recipe.");
-            }
-
-            return recipe;
-        }
-
-
-        public async Task<long> CreateNewRecipeVersionAsync(long parentRecipeId, long authorPersonId)
-        {
-            _logger.LogInformation("Creating new version for recipe {ParentRecipeId} by author {AuthorPersonId}", parentRecipeId, authorPersonId);
-
-            var parentRecipe = await _db.Recipes
-                .AsNoTracking()
-                .Include(r => r.RecipeIngredients)
-                .Include(r => r.RecipeSteps) // Ensure steps are loaded
-                .FirstOrDefaultAsync(r => r.Id == parentRecipeId);
-
-            if (parentRecipe == null)
-            {
-                _logger.LogWarning("Parent recipe with ID {ParentRecipeId} not found for versioning.", parentRecipeId);
-                throw new KeyNotFoundException($"Parent recipe with ID {parentRecipeId} not found.");
-            }
-
-            if (parentRecipe.CurationStatusId != 9003L) // 9003L is Curated
-            {
-                _logger.LogWarning("Attempted to create a new version of a non-curated recipe {ParentRecipeId}", parentRecipeId);
-                throw new InvalidOperationException("Cannot create a new version of a recipe that is not curated.");
-            }
-
-            // Create a copy for the new version
-            var newVersion = new RecipeEntity
-            {
-                Name = parentRecipe.Name,
-                Description = parentRecipe.Description,
-                PrepTimeMinutes = parentRecipe.PrepTimeMinutes,
-                CookTimeMinutes = parentRecipe.CookTimeMinutes,
-                Servings = parentRecipe.Servings,
-                ServingQuantity = parentRecipe.ServingQuantity,
-                ServingQuantityMeasurementTypeId = parentRecipe.ServingQuantityMeasurementTypeId,
-                SourceUrl = parentRecipe.SourceUrl,
-                SourceSite = parentRecipe.SourceSite,
-                AuthorId = authorPersonId,
-                CurationStatusId = 9000L, // New versions start as NonCurated
-                ParentRecipeId = parentRecipe.Id,
-                Version = parentRecipe.Version + 1,
-                // Deep copy collection properties
-                RecipeIngredients = parentRecipe.RecipeIngredients?.Select(ri => new RecipeIngredientEntity
-                {
-                    IngredientId = ri.IngredientId,
-                    MeasurementTypeId = ri.MeasurementTypeId,
-                    Quantity = ri.Quantity,
-                    RawLine = ri.RawLine
-                }).ToList(),
-                RecipeSteps = parentRecipe.RecipeSteps?.Select(rs => new RecipeStepEntity
-                {
-                    StepNumber = rs.StepNumber,
-                    Summary = rs.Summary,
-                    Description = rs.Description,
-                    StepTypeId = rs.StepTypeId
-                }).ToList()
-            };
-
-            _db.Recipes.Add(newVersion);
-            await _db.SaveChangesAsync();
-
-            _logger.LogInformation("Successfully created new version {NewRecipeId} for parent recipe {ParentRecipeId}", newVersion.Id, parentRecipeId);
-            return newVersion.Id;
-        }
-
-        public async Task<IngredientEditModel> GetIngredientForEditAsync(long ingredientId, long authorPersonId)
-        {
-            var ingredient = await _db.Ingredients
-                .AsNoTracking()
-                .Where(i => i.Id == ingredientId)
-                .Select(i => new IngredientEditModel
-                {
-                    Id = i.Id,
-                    Name = i.Name,
-                    Description = i.Description,
-                    AuthorId = i.AuthorId,
-                    Nutrients = _db.IngredientNutrients
-                        .Where(inu => inu.IngredientId == i.Id)
-                        .Select(inu => new NutrientValueModel
-                        {
-                            NutrientId = inu.NutrientId,
-                            NutrientName = inu.Nutrient.Name,
-                            Amount = inu.Amount,
-                            UnitName = inu.MeasurementType.Name
-                        })
-                        .ToList()
-                })
-                .FirstOrDefaultAsync();
-
-            if (ingredient == null)
-            {
-                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
-            }
-
-            if (ingredient.AuthorId != authorPersonId)
-            {
-                throw new UnauthorizedAccessException("User is not authorized to edit this ingredient.");
-            }
-
-            return ingredient;
-        }
-
-        public async Task<IngredientModel> CreateIngredientAsync(CreateIngredientRequest request, long authorPersonId)
-        {
-            var newIngredient = new IngredientEntity
-            {
-                Name = request.Name,
-                Description = request.Description,
-                AuthorId = authorPersonId,
-                CurationStatusId = 9000L // NonCurated
-            };
-
-            // Logic to add nutrient records from the request would go here
-
-            _db.Ingredients.Add(newIngredient);
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Created new ingredient {IngredientId} by author {AuthorPersonId}", newIngredient.Id, authorPersonId);
-            
-            // Return the full ingredient model
-            return new IngredientModel
-            {
-                Id = newIngredient.Id,
-                Name = newIngredient.Name,
-                Description = newIngredient.Description,
-                Nutrients = new List<NutrientValueModel>() // Empty for now, can be populated if needed
+                Id = recipe.Id,
+                Name = recipe.Name,
+                Description = recipe.Description ?? string.Empty,
+                AuthorId = recipe.AuthorId,
+                AuthorName = "Updated", // Would need to load author to get name
+                Rating = recipe.Rating ?? 0,
+                CommentCount = 0, // Would need to load comments to get count
+                RatingCount = 0, // Would need to load ratings to get count
+                CreatedDate = recipe.CreatedDate,
+                ModifiedDate = recipe.LastModifiedDate
             };
         }
 
-        public async Task UpdateIngredientAsync(UpdateIngredientRequest request, long authorPersonId)
+        public async Task<bool> DeleteRecipeAsync(long id)
         {
-            var ingredient = await _db.Ingredients
-                .Include(i => i.IngredientNutrients)
-                .FirstOrDefaultAsync(i => i.Id == request.Id);
+            var recipe = await _context.Recipes.FindAsync(id);
+            if (recipe == null)
+                return false;
 
-            if (ingredient == null)
-            {
-                throw new KeyNotFoundException($"Ingredient with ID {request.Id} not found.");
-            }
-            if (ingredient.AuthorId != authorPersonId)
-            {
-                throw new UnauthorizedAccessException("User is not authorized to edit this ingredient.");
-            }
-
-            ingredient.Name = request.Name;
-            ingredient.Description = request.Description;
-            // In a real implementation, you'd have more robust logic to update, add, and remove nutrient entries.
-
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Updated ingredient {IngredientId} by author {AuthorPersonId}", request.Id, authorPersonId);
+            _context.Recipes.Remove(recipe);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task<List<RecipeDashboardItemModel>> GetAuthorRecipesAsync(long authorPersonId)
+        // Recipe Comments Implementation
+        public async Task<RecipeCommentResponseModel> AddCommentAsync(RecipeCommentCreateModel model)
         {
-            _logger.LogInformation("Fetching recipes for author {AuthorPersonId}", authorPersonId);
+            var comment = new RecipeCommentEntity
+            {
+                RecipeId = model.RecipeId,
+                AuthorId = GetCurrentUserId(), // Use current user instead of model.AuthorId
+                Comment = model.Comment,
+                CreatedDate = DateTime.UtcNow,
+                LastModifiedDate = DateTime.UtcNow
+            };
 
-            var recipes = await _db.Recipes
-                .Where(r => r.AuthorId == authorPersonId)
-                .OrderByDescending(r => r.LastModifiedDate)
-                .Select(r => new RecipeDashboardItemModel
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    CurationStatus = r.CurationStatus.Name // Assumes CurationStatus is a loaded navigation property
-                })
+            _context.RecipeComments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            return new RecipeCommentResponseModel
+            {
+                Id = comment.Id,
+                RecipeId = comment.RecipeId,
+                AuthorId = comment.AuthorId,
+                AuthorName = "Comment Author", // Would need to load author to get name
+                Comment = comment.Comment,
+                CreatedDate = comment.CreatedDate,
+                LastModifiedDate = comment.LastModifiedDate
+            };
+        }
+
+        public async Task<List<RecipeCommentResponseModel>> GetCommentsAsync(long recipeId)
+        {
+            var comments = await _context.RecipeComments
+                .Include(c => c.Author)
+                .Where(c => c.RecipeId == recipeId)
+                .OrderByDescending(c => c.CreatedDate)
                 .ToListAsync();
 
-            return recipes;
+            return comments.Select(c => new RecipeCommentResponseModel
+            {
+                Id = c.Id,
+                RecipeId = c.RecipeId,
+                AuthorId = c.AuthorId,
+                AuthorName = c.Author?.Name ?? "Unknown",
+                Comment = c.Comment,
+                CreatedDate = c.CreatedDate,
+                LastModifiedDate = c.LastModifiedDate
+            }).ToList();
         }
 
-        public async Task<List<RecipeDashboardItemModel>> GetAuthorIngredientsAsync(long authorPersonId)
+        public async Task<bool> DeleteCommentAsync(long commentId)
         {
-            _logger.LogInformation("Fetching ingredients for author {AuthorPersonId}", authorPersonId);
+            var comment = await _context.RecipeComments.FindAsync(commentId);
+            if (comment == null)
+                return false;
 
-            var ingredients = await _db.Ingredients
-                .Where(i => i.AuthorId == authorPersonId)
-                .OrderByDescending(i => i.LastModifiedDate)
-                .Select(i => new RecipeDashboardItemModel
-                {
-                    Id = i.Id,
-                    Name = i.Name,
-                    CurationStatus = i.CurationStatus.Name // Assumes CurationStatus is a loaded navigation property
-                })
-                .ToListAsync();
-
-            return ingredients;
+            _context.RecipeComments.Remove(comment);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task AddIngredientAliasAsync(long ingredientId, string aliasName, string? sourceContext, long authorPersonId)
+        // Recipe Ratings Implementation
+        public async Task<RecipeRatingResponseModel> AddRatingAsync(RecipeRatingCreateModel model)
         {
-            _logger.LogInformation("Adding alias '{AliasName}' to ingredient {IngredientId} by author {AuthorPersonId}", 
-                aliasName, ingredientId, authorPersonId);
-
-            var ingredient = await _db.Ingredients.FindAsync(ingredientId);
-            if (ingredient == null)
+            var rating = new RecipeRatingEntity
             {
-                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
-            }
-
-            var alias = new IngredientAliasEntity
-            {
-                IngredientId = ingredientId,
-                AliasName = aliasName,
-                SourceContext = sourceContext ?? "Manual",
-                CreatedDate = DateTime.UtcNow
+                RecipeId = model.RecipeId,
+                RaterId = GetCurrentUserId(), // Use current user instead of model.AuthorId
+                Rating = model.Rating,
+                DateRated = DateTime.UtcNow
             };
 
-            _db.IngredientAliases.Add(alias);
-            await _db.SaveChangesAsync();
+            _context.RecipeRatings.Add(rating);
+            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully added alias '{AliasName}' to ingredient {IngredientId}", aliasName, ingredientId);
+            return new RecipeRatingResponseModel
+            {
+                Id = rating.Id,
+                RecipeId = rating.RecipeId,
+                RaterId = rating.RaterId,
+                RaterName = "Rating Author", // Would need to load author to get name
+                Rating = rating.Rating,
+                CreatedDate = rating.CreatedDate,
+                LastModifiedDate = rating.LastModifiedDate
+            };
         }
 
-        public async Task<List<IngredientAliasModel>> GetIngredientAliasesAsync(long ingredientId)
+        public async Task<List<RecipeRatingResponseModel>> GetRatingsAsync(long recipeId)
         {
-            _logger.LogInformation("Fetching aliases for ingredient {IngredientId}", ingredientId);
-
-            var ingredient = await _db.Ingredients.FindAsync(ingredientId);
-            if (ingredient == null)
-            {
-                throw new KeyNotFoundException($"Ingredient with ID {ingredientId} not found.");
-            }
-
-            var aliases = await _db.IngredientAliases
-                .Where(ia => ia.IngredientId == ingredientId)
-                .OrderBy(ia => ia.AliasName)
-                .Select(ia => new IngredientAliasModel
-                {
-                    Id = ia.Id,
-                    AliasName = ia.AliasName,
-                    SourceContext = ia.SourceContext,
-                    CreatedDate = ia.CreatedDate
-                })
+            var ratings = await _context.RecipeRatings
+                .Include(r => r.Rater)
+                .Where(r => r.RecipeId == recipeId)
+                .OrderByDescending(r => r.CreatedDate)
                 .ToListAsync();
 
-            return aliases;
+            return ratings.Select(r => new RecipeRatingResponseModel
+            {
+                Id = r.Id,
+                RecipeId = r.RecipeId,
+                RaterId = r.RaterId,
+                RaterName = r.Rater?.Name ?? "Unknown",
+                Rating = r.Rating,
+                CreatedDate = r.CreatedDate,
+                LastModifiedDate = r.LastModifiedDate
+            }).ToList();
+        }
+
+        public async Task<RecipeRatingResponseModel?> UpdateRatingAsync(long ratingId, RecipeRatingUpdateModel model)
+        {
+            var rating = await _context.RecipeRatings.FindAsync(ratingId);
+            if (rating == null)
+                return null;
+
+            rating.Rating = model.Rating;
+            rating.LastModifiedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new RecipeRatingResponseModel
+            {
+                Id = rating.Id,
+                RecipeId = rating.RecipeId,
+                RaterId = rating.RaterId,
+                RaterName = "Updated Rating Author", // Would need to load author to get name
+                Rating = rating.Rating,
+                CreatedDate = rating.CreatedDate,
+                LastModifiedDate = rating.LastModifiedDate
+            };
+        }
+
+        public async Task<bool> DeleteRatingAsync(long ratingId)
+        {
+            var rating = await _context.RecipeRatings.FindAsync(ratingId);
+            if (rating == null)
+                return false;
+
+            _context.RecipeRatings.Remove(rating);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // Recipe Ingredients Implementation
+        public async Task<IngredientEditModel?> GetIngredientForEditAsync(long ingredientId)
+        {
+            var ingredient = await _context.Ingredients
+                .FirstOrDefaultAsync(i => i.Id == ingredientId);
+
+            if (ingredient == null)
+                return null;
+
+            return new IngredientEditModel
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                Description = ingredient.Description,
+                AuthorId = ingredient.CreatedByPersonId,
+                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+            };
+        }
+
+        public async Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model)
+        {
+            var ingredient = new IngredientEntity
+            {
+                Name = model.Name,
+                Description = model.Description
+            };
+
+            _context.Ingredients.Add(ingredient);
+            await _context.SaveChangesAsync();
+
+            return new IngredientEditModel
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                Description = ingredient.Description,
+                AuthorId = ingredient.CreatedByPersonId,
+                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+            };
+        }
+
+        public async Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model)
+        {
+            var ingredient = await _context.Ingredients.FindAsync(model.Id);
+            if (ingredient == null)
+                throw new ArgumentException("Ingredient not found");
+
+            ingredient.Name = model.Name;
+            ingredient.Description = model.Description;
+            ingredient.LastModifiedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new IngredientEditModel
+            {
+                Id = ingredient.Id,
+                Name = ingredient.Name,
+                Description = ingredient.Description,
+                AuthorId = ingredient.CreatedByPersonId,
+                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+            };
         }
     }
 }

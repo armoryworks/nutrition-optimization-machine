@@ -1,0 +1,196 @@
+<div class="household-detail">
+  <div class="household-detail__container">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="household-detail__loading">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading household details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="household-detail__error">
+      <mat-card class="household-detail__error-card">
+        <mat-card-content>
+          <div class="household-detail__error-content">
+            <mat-icon class="household-detail__error-icon">error</mat-icon>
+            <h3>Error Loading Household</h3>
+            <p>{{ error }}</p>
+            <button mat-raised-button color="primary" (click)="onRefresh()">
+              <mat-icon>refresh</mat-icon>
+              Try Again
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Household Details -->
+    <div *ngIf="household && !isLoading" class="household-detail__content">
+      <!-- Header Card -->
+      <mat-card class="household-detail__header-card">
+        <mat-card-header class="household-detail__header">
+          <div class="household-detail__header-content">
+            <div class="household-detail__title-section">
+              <mat-icon class="household-detail__title-icon">home</mat-icon>
+              <div class="household-detail__title-info">
+                <h1 class="household-detail__title">{{ household.name }}</h1>
+                <p *ngIf="household.description" class="household-detail__description">
+                  {{ household.description }}
+                </p>
+              </div>
+            </div>
+            <div class="household-detail__actions">
+              <button mat-icon-button [matMenuTriggerFor]="menu" class="household-detail__menu-button">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onEditHousehold()">
+                  <mat-icon>edit</mat-icon>
+                  <span>Edit Household</span>
+                </button>
+                <button mat-menu-item (click)="onInviteMembers()">
+                  <mat-icon>person_add</mat-icon>
+                  <span>Invite Members</span>
+                </button>
+                <button mat-menu-item (click)="onCopyInviteLink()">
+                  <mat-icon>link</mat-icon>
+                  <span>Copy Invite Link</span>
+                </button>
+                <mat-divider></mat-divider>
+                <button mat-menu-item (click)="onDeleteHousehold()" class="household-detail__delete-button">
+                  <mat-icon>delete</mat-icon>
+                  <span>Delete Household</span>
+                </button>
+              </mat-menu>
+            </div>
+          </div>
+        </mat-card-header>
+      </mat-card>
+
+      <!-- Stats Cards -->
+      <div class="household-detail__stats">
+        <mat-card class="household-detail__stat-card">
+          <mat-card-content>
+            <div class="household-detail__stat">
+              <mat-icon class="household-detail__stat-icon">group</mat-icon>
+              <div class="household-detail__stat-info">
+                <span class="household-detail__stat-value">{{ household.memberCount || 0 }}</span>
+                <span class="household-detail__stat-label">Members</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="household-detail__stat-card">
+          <mat-card-content>
+            <div class="household-detail__stat">
+              <mat-icon class="household-detail__stat-icon">schedule</mat-icon>
+              <div class="household-detail__stat-info">
+                <span class="household-detail__stat-value">{{ household.planCount || 0 }}</span>
+                <span class="household-detail__stat-label">Meal Plans</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="household-detail__stat-card">
+          <mat-card-content>
+            <div class="household-detail__stat">
+              <mat-icon class="household-detail__stat-icon">shopping_cart</mat-icon>
+              <div class="household-detail__stat-info">
+                <span class="household-detail__stat-value">0</span>
+                <span class="household-detail__stat-label">Shopping Lists</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="household-detail__stat-card">
+          <mat-card-content>
+            <div class="household-detail__stat">
+              <mat-icon class="household-detail__stat-icon">restaurant</mat-icon>
+              <div class="household-detail__stat-info">
+                <span class="household-detail__stat-value">0</span>
+                <span class="household-detail__stat-label">Recipes</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Quick Actions -->
+      <mat-card class="household-detail__actions-card">
+        <mat-card-header>
+          <mat-card-title>Quick Actions</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="household-detail__quick-actions">
+            <button mat-raised-button color="primary" (click)="onViewMealPlans()" class="household-detail__action-button">
+              <mat-icon>schedule</mat-icon>
+              View Meal Plans
+            </button>
+            <button mat-raised-button color="accent" (click)="onViewShoppingLists()" class="household-detail__action-button">
+              <mat-icon>shopping_cart</mat-icon>
+              View Shopping Lists
+            </button>
+            <button mat-raised-button (click)="onViewRecipes()" class="household-detail__action-button">
+              <mat-icon>restaurant</mat-icon>
+              View Recipes
+            </button>
+            <button mat-raised-button (click)="onInviteMembers()" class="household-detail__action-button">
+              <mat-icon>person_add</mat-icon>
+              Invite Members
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Members Section -->
+      <mat-card class="household-detail__members-card">
+        <mat-card-header>
+          <mat-card-title>Household Members</mat-card-title>
+          <button mat-icon-button (click)="onInviteMembers()" class="household-detail__invite-button">
+            <mat-icon>person_add</mat-icon>
+          </button>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="household.memberCount === 0" class="household-detail__empty-state">
+            <mat-icon class="household-detail__empty-icon">group</mat-icon>
+            <p>No members yet</p>
+            <button mat-raised-button color="primary" (click)="onInviteMembers()">
+              <mat-icon>person_add</mat-icon>
+              Invite Members
+            </button>
+          </div>
+          <mat-list *ngIf="household.memberCount > 0" class="household-detail__members-list">
+            <mat-list-item *ngFor="let member of []; let i = index" class="household-detail__member-item">
+              <mat-icon matListItemIcon class="household-detail__member-avatar">person</mat-icon>
+              <div matListItemTitle class="household-detail__member-name">
+                Member {{ i + 1 }}
+              </div>
+              <div matListItemLine class="household-detail__member-role">
+                Member
+              </div>
+              <button mat-icon-button [matMenuTriggerFor]="memberMenu" class="household-detail__member-menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #memberMenu="matMenu">
+                <button mat-menu-item (click)="onRemoveMember(i)">
+                  <mat-icon>person_remove</mat-icon>
+                  <span>Remove Member</span>
+                </button>
+              </mat-menu>
+            </mat-list-item>
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Back Button -->
+      <div class="household-detail__back-section">
+        <button mat-button (click)="onBackToList()" class="household-detail__back-button">
+          <mat-icon>arrow_back</mat-icon>
+          Back to Households
+        </button>
+      </div>
+    </div>
+  </div>
+</div> 
