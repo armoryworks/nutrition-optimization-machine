@@ -1,8 +1,13 @@
-<div class="nom-page-container full-canvas">
+<app-base-list
+  [config]="listConfig"
+  [isLoading]="isLoading"
+  [error]="error"
+  (refresh)="onRefresh()"
+  (retry)="onRetry()">
+
   <div class="curation-queue__container">
     <!-- Compact Header -->
     <div class="curation-queue__header-compact">
-      <h1>Curation Queue</h1>
       <div class="curation-queue__stats">
         <span class="stat-item">{{ queueItems.length }} Pending</span>
         <span class="stat-item">{{ recipeCount }} Recipes</span>
@@ -99,91 +104,101 @@
                 <h3 class="section-title">Description</h3>
                 <p class="detail-value">{{ selectedItem.description }}</p>
               </div>
-              
-              <div class="detail-section no-details" *ngIf="!selectedItem.description">
+
+              <div class="detail-section" *ngIf="selectedItem.sourceUrl">
+                <h3 class="section-title">Source</h3>
+                <a [href]="selectedItem.sourceUrl" target="_blank" class="detail-link">{{ selectedItem.sourceUrl }}</a>
+              </div>
+
+              <div class="detail-section no-details" *ngIf="!selectedItem.description && !selectedItem.sourceUrl">
                 <div class="no-details__content">
                   <mat-icon class="no-details__icon">info</mat-icon>
-                  <h3 class="no-details__title">No Description</h3>
-                  <p class="no-details__text">This ingredient has no description. Consider requesting more details from the author.</p>
+                  <h3 class="no-details__title">No Additional Details</h3>
+                  <p class="no-details__text">This ingredient only contains basic information.</p>
                 </div>
               </div>
             </div>
-
-            <!-- Decision Form -->
-            <div class="decision-form-section">
-              <h3 class="section-title">Review Decision</h3>
-              <form [formGroup]="decisionForm" class="decision-form">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Decision Notes *</mat-label>
-                  <textarea matInput 
-                            formControlName="decisionNotes"
-                            placeholder="Provide detailed feedback for the author..."
-                            rows="4"></textarea>
-                  <mat-error *ngIf="decisionForm.get('decisionNotes')?.hasError('required')">
-                    Decision notes are required
-                  </mat-error>
-                  <mat-error *ngIf="decisionForm.get('decisionNotes')?.hasError('minlength')">
-                    Decision notes must be at least 10 characters
-                  </mat-error>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Public Notes (Optional)</mat-label>
-                  <textarea matInput 
-                            formControlName="publicNotes"
-                            placeholder="Optional public notes that will be visible to all users..."
-                            rows="3"></textarea>
-                  <mat-error *ngIf="decisionForm.get('publicNotes')?.hasError('maxlength')">
-                    Public notes cannot exceed 500 characters
-                  </mat-error>
-                </mat-form-field>
-              </form>
-            </div>
           </mat-card-content>
 
-          <mat-card-actions align="end">
-            <button mat-button 
-                    (click)="cancel()"
-                    [disabled]="isSubmitting">
-              Cancel
-            </button>
-            <button mat-raised-button 
-                    color="warn"
-                    (click)="reject()"
-                    [disabled]="decisionForm.invalid || isSubmitting">
-              <mat-icon>close</mat-icon>
-              Reject
-            </button>
-            <button mat-raised-button 
-                    color="accent"
-                    (click)="requestRevision()"
-                    [disabled]="decisionForm.invalid || isSubmitting">
-              <mat-icon>edit</mat-icon>
-              Request Revision
-            </button>
-            <button mat-raised-button 
-                    color="primary"
-                    (click)="approve()"
-                    [disabled]="decisionForm.invalid || isSubmitting">
-              <mat-icon>check</mat-icon>
-              Approve
-            </button>
+          <!-- Decision Form -->
+          <mat-card-actions class="decision-panel__actions">
+            <form [formGroup]="decisionForm" class="decision-form">
+              <mat-form-field appearance="outline" class="decision-form__field">
+                <mat-label>Decision Notes (Required)</mat-label>
+                <textarea 
+                  matInput 
+                  formControlName="decisionNotes" 
+                  placeholder="Provide detailed feedback for your decision..."
+                  rows="3">
+                </textarea>
+                <mat-error *ngIf="decisionForm.get('decisionNotes')?.hasError('required')">
+                  Decision notes are required
+                </mat-error>
+                <mat-error *ngIf="decisionForm.get('decisionNotes')?.hasError('minlength')">
+                  Decision notes must be at least 10 characters
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="decision-form__field">
+                <mat-label>Public Notes (Optional)</mat-label>
+                <textarea 
+                  matInput 
+                  formControlName="publicNotes" 
+                  placeholder="Notes that will be visible to the author..."
+                  rows="2">
+                </textarea>
+                <mat-error *ngIf="decisionForm.get('publicNotes')?.hasError('maxlength')">
+                  Public notes cannot exceed 500 characters
+                </mat-error>
+              </mat-form-field>
+
+              <div class="decision-form__actions">
+                <button 
+                  mat-raised-button 
+                  color="primary" 
+                  type="button"
+                  (click)="approve()"
+                  [disabled]="decisionForm.invalid || isSubmitting"
+                  class="decision-form__btn decision-form__btn--approve">
+                  <mat-icon>check</mat-icon>
+                  Approve
+                </button>
+
+                <button 
+                  mat-stroked-button 
+                  color="accent" 
+                  type="button"
+                  (click)="requestRevision()"
+                  [disabled]="decisionForm.invalid || isSubmitting"
+                  class="decision-form__btn decision-form__btn--revision">
+                  <mat-icon>edit</mat-icon>
+                  Request Revision
+                </button>
+
+                <button 
+                  mat-stroked-button 
+                  color="warn" 
+                  type="button"
+                  (click)="reject()"
+                  [disabled]="decisionForm.invalid || isSubmitting"
+                  class="decision-form__btn decision-form__btn--reject">
+                  <mat-icon>close</mat-icon>
+                  Reject
+                </button>
+
+                <button 
+                  mat-button 
+                  type="button"
+                  (click)="cancel()"
+                  [disabled]="isSubmitting"
+                  class="decision-form__btn decision-form__btn--cancel">
+                  Cancel
+                </button>
+              </div>
+            </form>
           </mat-card-actions>
-        </mat-card>
-      </div>
-
-      <!-- No Selection Message -->
-      <div *ngIf="!selectedItem && queueItems.length > 0" class="no-selection">
-        <mat-card>
-          <mat-card-content>
-            <div class="no-selection-content">
-              <mat-icon class="no-selection-icon">info</mat-icon>
-              <h3>Select an Item to Review</h3>
-              <p>Click on any item in the queue to begin the review process.</p>
-            </div>
-          </mat-card-content>
         </mat-card>
       </div>
     </div>
   </div>
-</div>
+</app-base-list>

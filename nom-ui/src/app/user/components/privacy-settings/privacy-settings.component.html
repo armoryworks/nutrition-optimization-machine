@@ -1,95 +1,71 @@
 <!-- File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.html -->
-<div class="nom-page-container privacy-settings">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title">Privacy Settings</mat-card-title>
-      <mat-card-subtitle class="nom-card__subtitle">
-        Manage your consent preferences and personal data.
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-progress-bar
-      *ngIf="isLoading"
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-
-    <mat-card-content class="nom-card__content">
-      <!-- Consent Management Section -->
-      <section class="nom-section">
-        <h2 class="nom-section__heading">Consent Management</h2>
-        <p class="nom-instruction-text">
-          We value your privacy. Use the toggles below to control how we use
-          your data. Your choices will not affect core application
-          functionality.
-        </p>
-        <form
-          [formGroup]="consentForm"
-          (ngSubmit)="onConsentSubmit()"
-          class="nom-form"
-        >
-          <div
-            *ngFor="let consent of availableConsents"
-            class="privacy-settings__consent-item"
-          >
-            <mat-slide-toggle [formControlName]="consent.name!" color="primary">
-              <span class="nom-label-large">{{ consent.name }}</span>
-            </mat-slide-toggle>
-            <p class="nom-small-text">{{ consent.description }}</p>
+<div class="privacy-settings">
+  <div class="privacy-settings__container">
+    <!-- Header -->
+    <div class="privacy-settings__header">
+      <div class="privacy-settings__header-content">
+        <div class="privacy-settings__title-section">
+          <mat-icon class="privacy-settings__title-icon">privacy_tip</mat-icon>
+          <div class="privacy-settings__title-info">
+            <h1 class="privacy-settings__title">Privacy Settings</h1>
+            <p class="privacy-settings__subtitle">Manage your data privacy and consent preferences</p>
           </div>
-          <button
-            mat-raised-button
-            color="primary"
-            type="submit"
-            [disabled]="isLoading"
-            class="nom-button"
-          >
-            Save Consent Settings
-          </button>
-        </form>
-      </section>
+        </div>
+      </div>
+    </div>
 
-      <mat-divider class="nom-divider"></mat-divider>
+    <!-- Loading State -->
+    @if (isLoading) {
+      <div class="privacy-settings__loading">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Loading privacy settings...</p>
+      </div>
+    }
 
-      <!-- Data Management Section -->
-      <section class="nom-section">
-        <h2 class="nom-section__heading">Data Management</h2>
-        <p class="nom-instruction-text">
-          You have the right to access your personal data. You can request a
-          copy of your data, which will be sent to your registered email
-          address.
-        </p>
-        <button
-          mat-stroked-button
-          color="primary"
-          (click)="onExportData()"
-          [disabled]="isLoading"
-          class="nom-button"
-        >
-          Export My Data
-        </button>
-      </section>
+    <!-- Privacy Settings Form -->
+    @if (!isLoading) {
+      <mat-card class="privacy-settings__form-card">
+        <mat-card-header>
+          <mat-card-title>Consent Preferences</mat-card-title>
+          <mat-card-subtitle>Control how your data is used</mat-card-subtitle>
+        </mat-card-header>
 
-      <mat-divider class="nom-divider"></mat-divider>
+        <mat-card-content>
+          <form [formGroup]="privacyForm" (ngSubmit)="onSubmit()" class="privacy-settings__form">
+            <div class="privacy-settings__consents-section">
+              @for (consent of availableConsents; track consent.id) {
+                <div class="privacy-settings__consent-item">
+                  <div class="privacy-settings__consent-info">
+                    <h3 class="privacy-settings__consent-title">{{ consent.name }}</h3>
+                    <p class="privacy-settings__consent-description">{{ consent.description }}</p>
+                  </div>
+                  <mat-slide-toggle 
+                    [formControlName]="consent.id.toString()"
+                    color="primary"
+                    class="privacy-settings__consent-toggle">
+                  </mat-slide-toggle>
+                </div>
+              }
+            </div>
 
-      <!-- Account Deletion Section -->
-      <section class="nom-section">
-        <h2 class="nom-section__heading">Account Deletion</h2>
-        <p class="nom-instruction-text">
-          You can request the permanent deletion of your account and all
-          associated personal data. This action is irreversible.
-        </p>
-        <button
-          mat-raised-button
-          color="warn"
-          (click)="onDeleteAccount()"
-          [disabled]="isLoading"
-          class="nom-button"
-        >
-          Delete My Account
-        </button>
-      </section>
-    </mat-card-content>
-  </mat-card>
+            <div class="privacy-settings__form-actions">
+              <button 
+                mat-raised-button 
+                color="primary" 
+                type="submit"
+                [disabled]="privacyForm.invalid || isSubmitting"
+                class="privacy-settings__submit-btn">
+                @if (!isSubmitting) {
+                  <mat-icon>save</mat-icon>
+                } @else {
+                  <mat-spinner diameter="20"></mat-spinner>
+                }
+                {{ isSubmitting ? 'Saving...' : 'Save Privacy Settings' }}
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
 </div>

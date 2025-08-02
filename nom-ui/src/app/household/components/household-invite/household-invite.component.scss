@@ -1,0 +1,81 @@
+.household-invite-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.button-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-sys-error);
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--mat-sys-error-container);
+  border-radius: 4px;
+}
+
+.invite-section {
+  margin-top: 24px;
+}
+
+.invite-section h3 {
+  margin-bottom: 16px;
+  color: var(--mat-sys-primary);
+}
+
+.invite-link-container,
+.invite-token-container {
+  margin-bottom: 16px;
+}
+
+.instructions {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: var(--mat-sys-surface-container-low);
+  border-radius: 8px;
+}
+
+.instructions h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: var(--mat-sys-on-surface);
+}
+
+.instructions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.instructions li {
+  margin-bottom: 8px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+mat-card {
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+mat-card-header {
+  margin-bottom: 16px;
+}
+
+mat-card-title {
+  color: var(--mat-sys-on-surface);
+}
+
+mat-card-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+} 

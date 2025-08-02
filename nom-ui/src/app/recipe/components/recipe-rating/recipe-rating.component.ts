@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatCardModule } from "@angular/material/card";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
@@ -13,6 +12,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { Subject, takeUntil } from "rxjs";
 import { RecipeRatingModel, RecipeRatingCreateModel } from "../../models/recipe-rating.model";
 import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
+import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
     selector: "app-recipe-rating",
@@ -20,7 +20,6 @@ import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
@@ -28,6 +27,7 @@ import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
         MatDividerModule,
         MatChipsModule,
         MatTooltipModule,
+        BaseDetailComponent,
     ],
     templateUrl: "./recipe-rating.component.html",
     styleUrls: ["./recipe-rating.component.scss"],
@@ -45,7 +45,15 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
 
     isLoading = false;
     isSubmitting = false;
+    error: string | null = null;
     private destroy$ = new Subject<void>();
+
+    detailConfig: BaseDetailConfig = {
+        title: 'Recipe Rating',
+        subtitle: 'Rate this recipe and share your thoughts',
+        showBackButton: false,
+        maxWidth: '800px'
+    };
 
     constructor(
         private fb: NonNullableFormBuilder,
@@ -66,6 +74,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
 
     loadRatingData(): void {
         this.isLoading = true;
+        this.error = null;
 
         // Load user rating and average rating in parallel
         const userRating$ = this.recipeAdvancedService.getUserRating(this.recipeId);
@@ -90,10 +99,12 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
         averageRating$.pipe(takeUntil(this.destroy$)).subscribe({
             next: (response) => {
                 this.averageRating = response.averageRating;
+                this.totalRatings = response.totalRatings;
                 this.isLoading = false;
             },
             error: (error) => {
                 console.error("Error loading average rating:", error);
+                this.error = "Failed to load rating data. Please try again.";
                 this.isLoading = false;
             },
         });
@@ -105,6 +116,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
         }
 
         this.isSubmitting = true;
+        this.error = null;
         const request: RecipeRatingCreateModel = {
             recipeId: this.recipeId,
             rating: this.ratingForm.get("rating")!.value,
@@ -117,13 +129,14 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (rating) => {
                     this.userRating = rating;
-                    this.loadRatingData(); // Reload average rating
                     this.snackBar.open("Rating submitted successfully", "Close", { duration: 3000 });
                     this.isSubmitting = false;
+                    // Reload average rating
+                    this.loadRatingData();
                 },
                 error: (error) => {
-                    console.error("Error creating rating:", error);
-                    this.snackBar.open("Failed to submit rating", "Close", { duration: 3000 });
+                    console.error("Error submitting rating:", error);
+                    this.error = "Failed to submit rating. Please try again.";
                     this.isSubmitting = false;
                 },
             });
@@ -135,6 +148,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
         }
 
         this.isSubmitting = true;
+        this.error = null;
         const request: RecipeRatingCreateModel = {
             recipeId: this.recipeId,
             rating: this.ratingForm.get("rating")!.value,
@@ -145,19 +159,16 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             .updateRating(this.userRating.id, request)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: () => {
-                    this.userRating = {
-                        ...this.userRating!,
-                        rating: request.rating,
-                        reviewText: request.reviewText,
-                    };
-                    this.loadRatingData(); // Reload average rating
+                next: (rating) => {
+                    this.userRating = rating;
                     this.snackBar.open("Rating updated successfully", "Close", { duration: 3000 });
                     this.isSubmitting = false;
+                    // Reload average rating
+                    this.loadRatingData();
                 },
                 error: (error) => {
                     console.error("Error updating rating:", error);
-                    this.snackBar.open("Failed to update rating", "Close", { duration: 3000 });
+                    this.error = "Failed to update rating. Please try again.";
                     this.isSubmitting = false;
                 },
             });
@@ -168,26 +179,26 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (confirm("Are you sure you want to delete your rating?")) {
-            this.isSubmitting = true;
-            this.recipeAdvancedService
-                .deleteRating(this.userRating.id)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                    next: () => {
-                        this.userRating = null;
-                        this.ratingForm.reset();
-                        this.loadRatingData(); // Reload average rating
-                        this.snackBar.open("Rating deleted successfully", "Close", { duration: 3000 });
-                        this.isSubmitting = false;
-                    },
-                    error: (error) => {
-                        console.error("Error deleting rating:", error);
-                        this.snackBar.open("Failed to delete rating", "Close", { duration: 3000 });
-                        this.isSubmitting = false;
-                    },
-                });
-        }
+        this.isSubmitting = true;
+        this.error = null;
+        this.recipeAdvancedService
+            .deleteRating(this.userRating.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.userRating = null;
+                    this.ratingForm.reset();
+                    this.snackBar.open("Rating deleted successfully", "Close", { duration: 3000 });
+                    this.isSubmitting = false;
+                    // Reload average rating
+                    this.loadRatingData();
+                },
+                error: (error) => {
+                    console.error("Error deleting rating:", error);
+                    this.error = "Failed to delete rating. Please try again.";
+                    this.isSubmitting = false;
+                },
+            });
     }
 
     setRating(rating: number): void {
@@ -196,24 +207,21 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
 
     getStarClass(rating: number): string {
         const currentRating = this.ratingForm.get("rating")?.value || 0;
-        if (rating <= currentRating) {
-            return "star-filled";
-        }
-        return "star-empty";
+        return rating <= currentRating ? "nom-recipe-rating__star--filled" : "nom-recipe-rating__star--empty";
     }
 
     getAverageStarClass(rating: number): string {
-        if (rating <= this.averageRating) {
-            return "star-filled";
-        }
-        return "star-empty";
+        return rating <= this.averageRating ? "nom-recipe-rating__star--filled" : "nom-recipe-rating__star--empty";
     }
 
     formatDate(dateString: string): string {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 } 

@@ -1,170 +1,143 @@
-<div class="shopping-dashboard">
-  <div class="shopping-dashboard__container">
-    <!-- Header -->
-    <div class="shopping-dashboard__header">
-      <div class="shopping-dashboard__header-content">
-        <div class="shopping-dashboard__title-section">
-          <mat-icon class="shopping-dashboard__title-icon">shopping_cart</mat-icon>
-          <div class="shopping-dashboard__title-info">
-            <h1 class="shopping-dashboard__title">Shopping Lists</h1>
-            <p class="shopping-dashboard__subtitle">Manage your shopping lists and track your purchases</p>
-          </div>
-        </div>
-        <div class="shopping-dashboard__header-actions">
-          <button mat-raised-button color="primary" (click)="onCreateList()" class="shopping-dashboard__create-button">
-            <mat-icon>add</mat-icon>
-            Create List
-          </button>
-          <button mat-icon-button (click)="onRefresh()" class="shopping-dashboard__refresh-button">
-            <mat-icon>refresh</mat-icon>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Search and Filters -->
-    <div class="shopping-dashboard__search-section">
-      <mat-form-field class="shopping-dashboard__search-field">
-        <mat-label>Search shopping lists</mat-label>
-        <input 
-          matInput 
-          [formControl]="searchControl"
-          placeholder="Search by name or description..."
-          class="shopping-dashboard__search-input"
-        />
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
-    </div>
-
-    <!-- Loading State -->
-    <div *ngIf="isLoading" class="shopping-dashboard__loading">
-      <mat-spinner diameter="50"></mat-spinner>
-      <p>Loading shopping lists...</p>
-    </div>
-
-    <!-- Error State -->
-    <div *ngIf="error && !isLoading" class="shopping-dashboard__error">
-      <mat-card class="shopping-dashboard__error-card">
-        <mat-card-content>
-          <div class="shopping-dashboard__error-content">
-            <mat-icon class="shopping-dashboard__error-icon">error</mat-icon>
-            <h3>Error Loading Shopping Lists</h3>
-            <p>{{ error }}</p>
-            <button mat-raised-button color="primary" (click)="onRefresh()">
-              <mat-icon>refresh</mat-icon>
-              Try Again
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-    <!-- Shopping Lists Grid -->
-    <div *ngIf="!isLoading && !error" class="shopping-dashboard__content">
-      <!-- Empty State -->
-      <div *ngIf="filteredLists.length === 0" class="shopping-dashboard__empty-state">
-        <mat-card class="shopping-dashboard__empty-card">
-          <mat-card-content>
-            <div class="shopping-dashboard__empty-content">
-              <mat-icon class="shopping-dashboard__empty-icon">shopping_cart</mat-icon>
-              <h3>No Shopping Lists Found</h3>
-              <p *ngIf="searchControl.value">
-                No shopping lists match your search criteria.
-              </p>
-              <p *ngIf="!searchControl.value">
-                Create your first shopping list to get started.
-              </p>
-              <button mat-raised-button color="primary" (click)="onCreateList()">
-                <mat-icon>add</mat-icon>
-                Create Shopping List
-              </button>
-            </div>
-          </mat-card-content>
-        </mat-card>
+<app-base-page
+  [config]="pageConfig"
+  [isLoading]="isLoading"
+  [error]="error"
+  (refresh)="onRefresh()"
+  (retry)="onRetry()"
+>
+  <div class="shopping-dashboard">
+    <div class="shopping-dashboard__container">
+      <!-- Header Actions -->
+      <div class="shopping-dashboard__header-actions">
+        <button mat-raised-button color="primary" (click)="onCreateList()" class="shopping-dashboard__create-button">
+          <mat-icon>add</mat-icon>
+          Create List
+        </button>
       </div>
 
-      <!-- Shopping Lists Grid -->
-      <div *ngIf="filteredLists.length > 0" class="shopping-dashboard__lists-grid">
-        <mat-card *ngFor="let list of filteredLists" class="shopping-dashboard__list-card">
-          <mat-card-header class="shopping-dashboard__list-header">
-            <div class="shopping-dashboard__list-title-section">
-              <mat-icon class="shopping-dashboard__list-icon">shopping_basket</mat-icon>
-              <div class="shopping-dashboard__list-title-info">
-                <h3 class="shopping-dashboard__list-title">{{ list.name }}</h3>
-                <p *ngIf="list.description" class="shopping-dashboard__list-description">
-                  {{ list.description }}
-                </p>
-              </div>
-            </div>
-            <button mat-icon-button [matMenuTriggerFor]="menu" class="shopping-dashboard__list-menu">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button mat-menu-item (click)="onViewList(list.id)">
-                <mat-icon>visibility</mat-icon>
-                <span>View List</span>
-              </button>
-              <button mat-menu-item (click)="onEditList(list.id)">
-                <mat-icon>edit</mat-icon>
-                <span>Edit List</span>
-              </button>
-              <mat-divider></mat-divider>
-              <button mat-menu-item (click)="onDeleteList(list.id)" class="shopping-dashboard__delete-button">
-                <mat-icon>delete</mat-icon>
-                <span>Delete List</span>
-              </button>
-            </mat-menu>
-          </mat-card-header>
+      <!-- Search and Filters -->
+      <div class="shopping-dashboard__search-section">
+        <mat-form-field class="shopping-dashboard__search-field">
+          <mat-label>Search shopping lists</mat-label>
+          <input 
+            matInput 
+            [formControl]="searchControl"
+            placeholder="Search by name or description..."
+            class="shopping-dashboard__search-input"
+          />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
 
-          <mat-card-content class="shopping-dashboard__list-content">
-            <div class="shopping-dashboard__list-stats">
-              <div class="shopping-dashboard__stat">
-                <span class="shopping-dashboard__stat-value">{{ list.itemCount }}</span>
-                <span class="shopping-dashboard__stat-label">Items</span>
-              </div>
-              <div class="shopping-dashboard__stat">
-                <span class="shopping-dashboard__stat-value">{{ list.completedCount }}</span>
-                <span class="shopping-dashboard__stat-label">Completed</span>
-              </div>
-              <div class="shopping-dashboard__stat">
-                <span class="shopping-dashboard__stat-value">{{ list.itemCount - list.completedItemCount }}</span>
-                <span class="shopping-dashboard__stat-label">Remaining</span>
-              </div>
-            </div>
+      <!-- Content -->
+      <div class="shopping-dashboard__content">
+        <!-- Empty State -->
+        @if (!isLoading && !error && filteredLists.length === 0) {
+          <div class="shopping-dashboard__empty-state">
+            <mat-card class="shopping-dashboard__empty-card">
+              <mat-card-content>
+                <div class="shopping-dashboard__empty-content">
+                  <mat-icon class="shopping-dashboard__empty-icon">shopping_cart</mat-icon>
+                  <h3>No Shopping Lists Found</h3>
+                  @if (searchControl.value) {
+                    <p>No shopping lists match your search criteria.</p>
+                  } @else {
+                    <p>Create your first shopping list to get started.</p>
+                  }
+                  <button mat-raised-button color="primary" (click)="onCreateList()">
+                    <mat-icon>add</mat-icon>
+                    Create Shopping List
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        }
 
-            <div class="shopping-dashboard__progress-section">
-              <div class="shopping-dashboard__progress-bar">
-                <div 
-                  class="shopping-dashboard__progress-fill"
-                  [style.width.%]="getProgressPercentage(list)"
-                  [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"
-                ></div>
-              </div>
-              <span class="shopping-dashboard__progress-text">
-                {{ getProgressPercentage(list) }}% Complete
-              </span>
-            </div>
+        <!-- Shopping Lists Grid -->
+        @if (!isLoading && !error && filteredLists.length > 0) {
+          <div class="shopping-dashboard__lists-grid">
+            @for (list of filteredLists; track list.id) {
+              <mat-card class="shopping-dashboard__list-card">
+                <mat-card-header class="shopping-dashboard__list-header">
+                  <div class="shopping-dashboard__list-title-section">
+                    <mat-icon class="shopping-dashboard__list-icon">shopping_basket</mat-icon>
+                    <div class="shopping-dashboard__list-title-info">
+                      <mat-card-title class="shopping-dashboard__list-title">
+                        {{ list.name }}
+                      </mat-card-title>
+                      @if (list.description) {
+                        <mat-card-subtitle class="shopping-dashboard__list-subtitle">
+                          {{ list.description }}
+                        </mat-card-subtitle>
+                      }
+                    </div>
+                  </div>
+                </mat-card-header>
 
-            <div class="shopping-dashboard__list-meta">
-              <span class="shopping-dashboard__meta-item">
-                <mat-icon class="shopping-dashboard__meta-icon">schedule</mat-icon>
-                {{ 'Today' }}
-              </span>
-            </div>
-          </mat-card-content>
+                <mat-card-content class="shopping-dashboard__list-content">
+                  <div class="shopping-dashboard__list-stats">
+                    <div class="shopping-dashboard__list-stat">
+                      <mat-icon class="shopping-dashboard__stat-icon">list</mat-icon>
+                      <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
+                    </div>
+                    <div class="shopping-dashboard__list-stat">
+                      <mat-icon class="shopping-dashboard__stat-icon">check_circle</mat-icon>
+                      <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
+                    </div>
+                  </div>
 
-          <mat-card-actions class="shopping-dashboard__list-actions">
-            <button mat-button (click)="onViewList(list.id)" class="shopping-dashboard__view-button">
-              <mat-icon>visibility</mat-icon>
-              View List
-            </button>
-            <button mat-button (click)="onEditList(list.id)" class="shopping-dashboard__edit-button">
-              <mat-icon>edit</mat-icon>
-              Edit
-            </button>
-          </mat-card-actions>
-        </mat-card>
+                  <!-- Progress Bar -->
+                  @if (list.totalItems && list.totalItems > 0) {
+                    <div class="shopping-dashboard__progress-section">
+                      <div class="shopping-dashboard__progress-bar">
+                        <div 
+                          class="shopping-dashboard__progress-fill"
+                          [style.width.%]="getProgressPercentage(list)"
+                          [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"
+                        ></div>
+                      </div>
+                      <span class="shopping-dashboard__progress-text">
+                        {{ getProgressPercentage(list) }}% complete
+                      </span>
+                    </div>
+                  }
+                </mat-card-content>
+
+                <mat-card-actions class="shopping-dashboard__list-actions">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="onViewList(list.id); $event.stopPropagation()"
+                    class="shopping-dashboard__action-button"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                    View
+                  </button>
+                  <button
+                    mat-button
+                    color="accent"
+                    (click)="onEditList(list.id); $event.stopPropagation()"
+                    class="shopping-dashboard__action-button"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    Edit
+                  </button>
+                  <button
+                    mat-button
+                    color="warn"
+                    (click)="onDeleteList(list.id); $event.stopPropagation()"
+                    class="shopping-dashboard__action-button"
+                  >
+                    <mat-icon>delete</mat-icon>
+                    Delete
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            }
+          </div>
+        }
       </div>
     </div>
   </div>
-</div> 
+</app-base-page> 

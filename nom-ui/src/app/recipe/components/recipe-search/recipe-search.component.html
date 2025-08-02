@@ -1,197 +1,170 @@
-<div class="recipe-search">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Recipe Search</mat-card-title>
-      <mat-card-subtitle>Discover recipes with advanced filtering</mat-card-subtitle>
-    </mat-card-header>
+<app-base-list
+  [config]="listConfig"
+  [items]="searchResults"
+  [loading]="loading"
+  [error]="error"
+  [totalCount]="totalCount"
+  [currentPage]="currentPage"
+  [pageSize]="pageSize"
+  (pageChange)="onPageChange($event)">
 
-    <mat-card-content>
-      <!-- Search Form -->
-      <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="search-form">
-        <div class="search-row">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Recipes</mat-label>
-            <input matInput formControlName="query" placeholder="Enter recipe name or description" 
-                   [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSuggestionSelected($event.option.value)">
-              <mat-option *ngFor="let suggestion of searchSuggestions$ | async" [value]="suggestion">
-                {{ suggestion }}
-              </mat-option>
-            </mat-autocomplete>
-            <mat-icon matSuffix>search</mat-icon>
+  <!-- Search Form -->
+  <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="search-form">
+    <div class="search-row">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search Recipes</mat-label>
+        <input matInput formControlName="query" placeholder="Enter recipe name or description" 
+               [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSuggestionSelected($event.option.value)">
+          <mat-option *ngFor="let suggestion of searchSuggestions$ | async" [value]="suggestion">
+            {{ suggestion }}
+          </mat-option>
+        </mat-autocomplete>
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+        <mat-icon>search</mat-icon>
+        Search
+      </button>
+    </div>
+
+    <!-- Advanced Filters -->
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>tune</mat-icon>
+          Advanced Filters
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <div class="filters-grid">
+        <div class="filter-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Minimum Rating</mat-label>
+            <input matInput type="number" formControlName="minRating" min="1" max="5" placeholder="1-5">
+            <mat-icon matSuffix>star</mat-icon>
           </mat-form-field>
 
-          <button mat-raised-button color="primary" type="submit" [disabled]="loading">
-            <mat-icon>search</mat-icon>
-            Search
-          </button>
+          <mat-form-field appearance="outline">
+            <mat-label>Max Prep Time (minutes)</mat-label>
+            <input matInput type="number" formControlName="maxPrepTime" min="0" placeholder="0-480">
+            <mat-icon matSuffix>schedule</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Max Cook Time (minutes)</mat-label>
+            <input matInput type="number" formControlName="maxCookTime" min="0" placeholder="0-480">
+            <mat-icon matSuffix>timer</mat-icon>
+          </mat-form-field>
         </div>
 
-        <!-- Advanced Filters -->
-        <mat-expansion-panel>
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>tune</mat-icon>
-              Advanced Filters
-            </mat-panel-title>
-          </mat-expansion-panel-header>
+        <div class="filter-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Sort By</mat-label>
+            <mat-select formControlName="sortBy">
+              <mat-option *ngFor="let option of sortOptions" [value]="option.value">
+                {{ option.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
 
-          <div class="filters-grid">
-            <div class="filter-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Minimum Rating</mat-label>
-                <input matInput type="number" formControlName="minRating" min="1" max="5" placeholder="1-5">
-                <mat-icon matSuffix>star</mat-icon>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Max Prep Time (minutes)</mat-label>
-                <input matInput type="number" formControlName="maxPrepTime" min="0" placeholder="0-480">
-                <mat-icon matSuffix>schedule</mat-icon>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Max Cook Time (minutes)</mat-label>
-                <input matInput type="number" formControlName="maxCookTime" min="0" placeholder="0-480">
-                <mat-icon matSuffix>timer</mat-icon>
-              </mat-form-field>
-            </div>
-
-            <div class="filter-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Sort By</mat-label>
-                <mat-select formControlName="sortBy">
-                  <mat-option *ngFor="let option of sortOptions" [value]="option.value">
-                    {{ option.label }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Sort Direction</mat-label>
-                <mat-select formControlName="sortDirection">
-                  <mat-option *ngFor="let option of sortDirections" [value]="option.value">
-                    {{ option.label }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-
-            <div class="filter-row">
-              <mat-checkbox formControlName="isPublic">Public Recipes Only</mat-checkbox>
-              <mat-checkbox formControlName="isApproved">Approved Recipes Only</mat-checkbox>
-              <mat-checkbox formControlName="includeIngredients">Include Ingredients</mat-checkbox>
-            </div>
-          </div>
-
-          <div class="filter-actions">
-            <button mat-button type="button" (click)="clearFilters()">
-              <mat-icon>clear</mat-icon>
-              Clear Filters
-            </button>
-          </div>
-        </mat-expansion-panel>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-          <button mat-stroked-button (click)="loadPopularRecipes()" [disabled]="loading">
-            <mat-icon>trending_up</mat-icon>
-            Popular Recipes
-          </button>
-          <button mat-stroked-button (click)="loadRecentRecipes()" [disabled]="loading">
-            <mat-icon>schedule</mat-icon>
-            Recent Recipes
-          </button>
-        </div>
-      </form>
-
-      <!-- Search Results -->
-      <div class="search-results">
-        <div *ngIf="loading" class="loading">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Searching recipes...</p>
+          <mat-form-field appearance="outline">
+            <mat-label>Sort Direction</mat-label>
+            <mat-select formControlName="sortDirection">
+              <mat-option *ngFor="let option of sortDirections" [value]="option.value">
+                {{ option.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
 
-        <div *ngIf="!loading && searchResults.length === 0" class="no-results">
-          <mat-icon>search_off</mat-icon>
-          <p>No recipes found matching your criteria.</p>
-          <p>Try adjusting your search terms or filters.</p>
+        <div class="filter-row">
+          <mat-checkbox formControlName="isPublic">Public Recipes Only</mat-checkbox>
+          <mat-checkbox formControlName="isApproved">Approved Recipes Only</mat-checkbox>
+          <mat-checkbox formControlName="includeIngredients">Include Ingredients</mat-checkbox>
         </div>
+      </div>
 
-        <div *ngIf="!loading && searchResults.length > 0" class="results-info">
-          <p>Found {{ totalCount }} recipe{{ totalCount !== 1 ? 's' : '' }}</p>
-        </div>
+      <div class="filter-actions">
+        <button mat-button type="button" (click)="clearFilters()">
+          <mat-icon>clear</mat-icon>
+          Clear Filters
+        </button>
+      </div>
+    </mat-expansion-panel>
 
-        <div class="recipe-grid" *ngIf="!loading && searchResults.length > 0">
-          <mat-card *ngFor="let recipe of searchResults" class="recipe-card">
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button mat-stroked-button (click)="loadPopularRecipes()" [disabled]="loading">
+        <mat-icon>trending_up</mat-icon>
+        Popular Recipes
+      </button>
+
+      <button mat-stroked-button (click)="loadRecentRecipes()" [disabled]="loading">
+        <mat-icon>schedule</mat-icon>
+        Recent Recipes
+      </button>
+    </div>
+  </form>
+
+  <!-- Search Results -->
+  <div class="search-results">
+    @if (searchResults.length > 0) {
+      <div class="results-grid">
+        @for (recipe of searchResults; track recipe.id) {
+          <mat-card class="recipe-card">
             <mat-card-header>
-              <div mat-card-avatar class="recipe-avatar" *ngIf="recipe.imageUrl">
-                <img [src]="recipe.imageUrl" [alt]="recipe.name">
-              </div>
               <mat-card-title>{{ recipe.name }}</mat-card-title>
               <mat-card-subtitle>
-                by {{ recipe.authorName }} • {{ recipe.createdDate | date:'shortDate' }}
+                @for (star of getRatingStars(recipe.rating); track $index) {
+                  <mat-icon class="star-icon">{{ star }}</mat-icon>
+                }
+                <span class="rating-text">{{ recipe.rating }}/5</span>
               </mat-card-subtitle>
             </mat-card-header>
 
             <mat-card-content>
-              <p *ngIf="recipe.description" class="recipe-description">
-                {{ recipe.description }}
-              </p>
-
+              <p class="recipe-description">{{ recipe.description }}</p>
+              
               <div class="recipe-meta">
                 <div class="meta-item">
                   <mat-icon>schedule</mat-icon>
-                  <span>{{ formatTime(recipe.totalTime) }}</span>
+                  <span>Prep: {{ formatTime(recipe.prepTime) }}</span>
                 </div>
                 <div class="meta-item">
-                  <mat-icon>people</mat-icon>
-                  <span>{{ recipe.servings }} serving{{ recipe.servings !== 1 ? 's' : '' }}</span>
+                  <mat-icon>timer</mat-icon>
+                  <span>Cook: {{ formatTime(recipe.cookTime) }}</span>
                 </div>
-                <div class="meta-item" *ngIf="recipe.averageRating > 0">
-                  <mat-icon *ngFor="let star of getRatingStars(recipe.averageRating)" 
-                           [class]="star">{{ star }}</mat-icon>
-                  <span>({{ recipe.ratingCount }})</span>
+                <div class="meta-item">
+                  <mat-icon>person</mat-icon>
+                  <span>{{ recipe.servings }} servings</span>
                 </div>
               </div>
 
-              <div class="recipe-tags" *ngIf="recipe.categories.length > 0 || recipe.tags.length > 0">
-                <mat-chip *ngFor="let category of recipe.categories" color="primary" selected>
-                  {{ category }}
-                </mat-chip>
-                <mat-chip *ngFor="let tag of recipe.tags" color="accent">
-                  {{ tag }}
-                </mat-chip>
-              </div>
-
-              <div class="recipe-ingredients" *ngIf="recipe.ingredients && recipe.ingredients.length > 0">
-                <h4>Ingredients:</h4>
-                <ul>
-                  <li *ngFor="let ingredient of recipe.ingredients">
-                    {{ ingredient.quantity }} {{ ingredient.measurementType }} {{ ingredient.name }}
-                    <span *ngIf="ingredient.notes">({{ ingredient.notes }})</span>
-                  </li>
-                </ul>
-              </div>
+              @if (recipe.tags && recipe.tags.length > 0) {
+                <div class="recipe-tags">
+                  @for (tag of recipe.tags; track tag) {
+                    <mat-chip>{{ tag }}</mat-chip>
+                  }
+                </div>
+              }
             </mat-card-content>
 
             <mat-card-actions>
               <button mat-button color="primary" [routerLink]="['/recipe', recipe.id]">
-                <mat-icon>visibility</mat-icon>
                 View Recipe
               </button>
             </mat-card-actions>
           </mat-card>
-        </div>
-
-        <!-- Pagination -->
-        <mat-paginator *ngIf="!loading && totalPages > 1"
-                       [length]="totalCount"
-                       [pageSize]="pageSize"
-                       [pageSizeOptions]="[10, 20, 50]"
-                       (page)="onPageChange($event)">
-        </mat-paginator>
+        }
       </div>
-    </mat-card-content>
-  </mat-card>
-</div> 
+    } @else if (!loading) {
+      <div class="no-results">
+        <mat-icon>search_off</mat-icon>
+        <p>No recipes found matching your criteria.</p>
+        <p>Try adjusting your search terms or filters.</p>
+      </div>
+    }
+  </div>
+</app-base-list> 

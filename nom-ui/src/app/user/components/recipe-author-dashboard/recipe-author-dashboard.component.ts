@@ -74,8 +74,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       })
     );
 
-    // TODO: Implement getMyIngredients method in RecipeService
-    this.ingredients$ = of([]).pipe(
+    this.ingredients$ = this.recipeService.getMyIngredients().pipe(
+      map(ingredients => ingredients.map(ingredient => ({
+        ...ingredient,
+        curationStatus: ingredient.curationStatus || 'draft'
+      }))),
       catchError((err: any) => {
         console.error('Error fetching ingredients:', err);
         this.error = 'Could not load your ingredients. Please try again later.';
@@ -149,8 +152,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         this.notificationService.success('Ingredient submitted for curation successfully!');
         this.submittingItems.delete(ingredientId);
         // Refresh the ingredients list
-        // TODO: Implement getMyIngredients method in RecipeService
-        this.ingredients$ = of([]).pipe(
+        this.ingredients$ = this.recipeService.getMyIngredients().pipe(
+          map(ingredients => ingredients.map(ingredient => ({
+            ...ingredient,
+            curationStatus: ingredient.curationStatus || 'draft'
+          }))),
           catchError((err: any) => {
             console.error('Error fetching ingredients:', err);
             this.error = 'Could not load your ingredients. Please try again later.';

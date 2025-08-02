@@ -21,14 +21,6 @@
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   margin-bottom: 1rem;
 
-  h1 {
-    @include mixins.nom-high-contrast-text;
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-  }
-
   .curation-queue__stats {
     display: flex;
     gap: 1rem;
@@ -98,7 +90,6 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 60px;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -108,18 +99,16 @@
   &.selected {
     background-color: var(--mat-sys-primary-container);
     border-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary-container);
   }
 
   &__badge {
-    @include mixins.nom-high-contrast-text;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
+    flex-shrink: 0;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 
     &--recipe {
       background-color: var(--mat-sys-primary-container);
@@ -142,17 +131,13 @@
     font-size: 0.9rem;
     font-weight: 500;
     margin: 0 0 0.25rem 0;
-    line-height: 1.3;
+    color: var(--mat-sys-on-surface);
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    word-break: break-word;
+    white-space: nowrap;
   }
 
   &__meta {
-    @include mixins.nom-high-contrast-text;
     font-size: 0.8rem;
     color: var(--mat-sys-on-surface-variant);
     margin: 0;
@@ -171,250 +156,213 @@
   }
 
   &__header {
-    padding-bottom: 0;
-
-    mat-card-title {
-      @include mixins.nom-high-contrast-text;
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    mat-card-subtitle {
-      @include mixins.nom-high-contrast-text;
-      font-size: 0.9rem;
-      margin: 0.25rem 0 0 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
   }
 
-  mat-card-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 0;
-  }
-
-  mat-card-actions {
-    padding: 1rem 0 0 0;
-    margin: 0;
+  &__actions {
+    margin-top: auto;
+    padding-top: 1rem;
     border-top: 1px solid var(--mat-sys-outline-variant);
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
   }
 }
 
-// No Selection
-.no-selection {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// Detail Sections
+.detail-section {
+  margin-bottom: 1.5rem;
 
-  .no-selection-content {
-    text-align: center;
-    padding: 2rem;
+  .section-title {
+    @include mixins.nom-high-contrast-text;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--mat-sys-on-surface);
+  }
 
-    .no-selection-icon {
-      font-size: 3rem;
-      width: 3rem;
-      height: 3rem;
-      color: var(--mat-sys-on-surface-variant);
-      margin-bottom: 1rem;
+  .detail-value {
+    color: var(--mat-sys-on-surface);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .detail-link {
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
     }
+  }
+}
 
-    h3 {
-      @include mixins.nom-high-contrast-text;
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin: 0 0 0.5rem 0;
+// Ingredients List
+.ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .ingredient-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: var(--mat-sys-surface-container-low);
+    border-radius: 4px;
+
+    .ingredient-name {
+      font-weight: 500;
       color: var(--mat-sys-on-surface);
     }
 
-    p {
-      @include mixins.nom-high-contrast-text;
+    .ingredient-quantity {
+      font-size: 0.9rem;
       color: var(--mat-sys-on-surface-variant);
-      margin: 0;
+    }
+  }
+}
+
+// Instructions List
+.instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  .instruction-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+
+    .instruction-number {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .instruction-text {
+      flex: 1;
+      color: var(--mat-sys-on-surface);
+      line-height: 1.5;
     }
   }
 }
 
 // Decision Form
 .decision-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
 
   .full-width {
     width: 100%;
   }
 }
 
-// Detailed readonly view styles
-.recipe-details,
-.ingredient-details {
-  margin-bottom: 2rem;
-}
-
-.detail-section {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: var(--mat-sys-surface-container-low);
-  border-radius: 8px;
-  border: 1px solid var(--mat-sys-outline-variant);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.section-title {
-  @include mixins.nom-high-contrast-text;
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem 0;
-  color: var(--mat-sys-primary);
-  border-bottom: 1px solid var(--mat-sys-primary);
-  padding-bottom: 0.25rem;
-}
-
-.detail-value {
-  @include mixins.nom-high-contrast-text;
-  margin: 0;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-.detail-link {
-  color: var(--mat-sys-primary);
-  text-decoration: none;
-  word-break: break-all;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-// No Details Section
+// No Details State
 .no-details {
-  .no-details__content {
+  &__content {
     text-align: center;
-    padding: 1rem;
+    padding: 2rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
 
-    .no-details__icon {
-      font-size: 2rem;
-      width: 2rem;
-      height: 2rem;
-      color: var(--mat-sys-on-surface-variant);
-      margin-bottom: 0.5rem;
-    }
+  &__icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
 
-    .no-details__title {
-      @include mixins.nom-high-contrast-text;
-      font-size: 1rem;
-      font-weight: 600;
-      margin: 0 0 0.5rem 0;
-      color: var(--mat-sys-on-surface);
-    }
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+  }
 
-    .no-details__text {
-      @include mixins.nom-high-contrast-text;
-      font-size: 0.9rem;
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0;
-      line-height: 1.4;
-    }
+  &__text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
   }
 }
 
-// Ingredients list
-.ingredients-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.ingredient-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  background-color: var(--mat-sys-surface-container);
-  border-radius: 4px;
-  border: 1px solid var(--mat-sys-outline-variant);
-
-  @include mixins.breakpoint(mobile) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-}
-
-.ingredient-name {
-  @include mixins.nom-high-contrast-text;
-  font-weight: 500;
-  flex: 1;
-}
-
-.ingredient-quantity {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 0.9rem;
-  font-weight: 500;
-  background-color: var(--mat-sys-tertiary-container);
-  color: var(--mat-sys-on-tertiary-container);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-// Instructions list
-.instructions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.instruction-item {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 0.75rem;
-  background-color: var(--mat-sys-surface-container);
-  border-radius: 6px;
-  border: 1px solid var(--mat-sys-outline-variant);
-}
-
-.instruction-number {
-  @include mixins.nom-high-contrast-text;
-  font-weight: 700;
-  color: var(--mat-sys-primary);
-  min-width: 1.5rem;
-  text-align: center;
-  background-color: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
-  border-radius: 50%;
-  width: 1.5rem;
-  height: 1.5rem;
+// No Selection State
+.no-selection {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
-  flex-shrink: 0;
+  height: 100%;
+  min-height: 400px;
+
+  &__content {
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+  }
+
+  &__text {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+  }
 }
 
-.instruction-text {
-  @include mixins.nom-high-contrast-text;
-  flex: 1;
-  line-height: 1.4;
-  word-break: break-word;
-}
+// Empty State
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
 
-// Decision form section
-.decision-form-section {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  &__content {
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant);
+  }
 
-  .section-title {
-    margin-bottom: 0.75rem;
+  &__icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    color: var(--mat-sys-primary);
+    opacity: 0.7;
+  }
+
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+  }
+
+  &__text {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
   }
 }

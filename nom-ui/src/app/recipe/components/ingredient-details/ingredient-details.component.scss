@@ -1,75 +1,9 @@
 // File: nom-ui/src/app/recipe/components/ingredient-details/ingredient-details.component.scss
 
 .ingredient-details {
-    &__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    &__title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0;
-        color: var(--mat-sys-on-surface);
-    }
-
     &__content {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
-    }
-
-    &__section {
-        background-color: var(--mat-sys-surface-container);
-        border-radius: 12px;
-        padding: 1.5rem;
-        border: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    &__section-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: var(--mat-sys-on-surface);
-        border-bottom: 1px solid var(--mat-sys-outline-variant);
-        padding-bottom: 0.5rem;
-    }
-
-    &__nutrient-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    &__nutrient-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        background-color: var(--mat-sys-surface-container-low);
-        border-radius: 8px;
-        border: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    &__nutrient-name {
-        font-weight: 500;
-        color: var(--mat-sys-on-surface);
-    }
-
-    &__nutrient-value {
-        font-weight: 600;
-        color: var(--mat-sys-on-surface);
-    }
-
-    &__empty-message {
-        text-align: center;
-        padding: 2rem;
-        font-style: italic;
-        color: var(--mat-sys-on-surface-variant);
-        background-color: var(--mat-sys-surface-container-low);
-        border-radius: 8px;
-        border: 1px dashed var(--mat-sys-outline-variant);
     }
 }

@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdCreateRequestModel } from '../../models/household.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
     selector: 'app-household-create',
@@ -26,6 +27,7 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
+        BaseFormComponent,
     ],
     templateUrl: './household-create.component.html',
     styleUrls: ['./household-create.component.scss']
@@ -33,6 +35,15 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
 export class HouseholdCreateComponent implements OnInit {
     householdForm: FormGroup;
     isLoading = false;
+
+    formConfig: BaseFormConfig = {
+        title: 'Create Household',
+        subtitle: 'Create a new household group to coordinate with family members',
+        submitText: 'Create Household',
+        showCancelButton: true,
+        cancelText: 'Cancel',
+        maxWidth: '600px',
+    };
 
     constructor(
         private formBuilder: FormBuilder,

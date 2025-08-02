@@ -14,6 +14,8 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 
 @Component({
     selector: 'app-household-detail',
@@ -29,6 +31,7 @@ import { HouseholdResponseModel } from '../../models/household.model';
         MatDialogModule,
         MatListModule,
         MatMenuModule,
+        BaseDetailComponent,
     ],
     templateUrl: './household-detail.component.html',
     styleUrls: ['./household-detail.component.scss']
@@ -38,6 +41,13 @@ export class HouseholdDetailComponent implements OnInit {
     isLoading = true;
     error: string | null = null;
     householdId: number = 0;
+
+    detailConfig: BaseDetailConfig = {
+        title: 'Household Details',
+        subtitle: 'View and manage household information',
+        showBackButton: true,
+        maxWidth: '800px',
+    };
 
     constructor(
         private route: ActivatedRoute,
@@ -71,6 +81,14 @@ export class HouseholdDetailComponent implements OnInit {
         });
     }
 
+    onBack(): void {
+        this.router.navigate(['/household']);
+    }
+
+    onRetry(): void {
+        this.loadHousehold();
+    }
+
     onEditHousehold(): void {
         this.router.navigate(['/household', this.householdId, 'edit']);
     }
@@ -91,38 +109,96 @@ export class HouseholdDetailComponent implements OnInit {
         this.router.navigate(['/recipe'], { queryParams: { householdId: this.householdId } });
     }
 
-    onBackToList(): void {
-        this.router.navigate(['/household']);
-    }
-
-    onRefresh(): void {
-        this.loadHousehold();
-    }
-
     onDeleteHousehold(): void {
-        // TODO: Implement delete confirmation dialog
-        this.snackBar.open('Delete functionality not yet implemented', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
+        if (!this.household) return;
+
+        const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: '400px',
+            data: {
+                title: 'Delete Household',
+                message: `Are you sure you want to delete "${this.household.name}"? This action cannot be undone and will remove all associated data.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                confirmColor: 'warn'
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) {
+                this.householdService.deleteHousehold(this.householdId).subscribe({
+                    next: () => {
+                        this.snackBar.open('Household deleted successfully', 'Close', {
+                            duration: 3000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                        this.router.navigate(['/household']);
+                    },
+                    error: (error) => {
+                        console.error('Error deleting household:', error);
+                        this.snackBar.open('Failed to delete household', 'Close', {
+                            duration: 5000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                    }
+                });
+            }
         });
     }
 
     onRemoveMember(memberId: number): void {
-        // TODO: Implement member removal
-        this.snackBar.open('Member removal not yet implemented', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
+        const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: '400px',
+            data: {
+                title: 'Remove Member',
+                message: 'Are you sure you want to remove this member from the household?',
+                confirmText: 'Remove',
+                cancelText: 'Cancel',
+                confirmColor: 'warn'
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) {
+                this.householdService.removeMember(this.householdId, memberId).subscribe({
+                    next: () => {
+                        this.snackBar.open('Member removed successfully', 'Close', {
+                            duration: 3000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                        this.loadHousehold();
+                    },
+                    error: (error) => {
+                        console.error('Error removing member:', error);
+                        this.snackBar.open('Failed to remove member', 'Close', {
+                            duration: 5000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                    }
+                });
+            }
         });
     }
 
     onCopyInviteLink(): void {
-        // TODO: Implement invite link copying
-        this.snackBar.open('Invite link copying not yet implemented', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-        });
+        if (this.household?.inviteToken) {
+            const inviteLink = `${window.location.origin}/household/join/${this.household.inviteToken}`;
+            navigator.clipboard.writeText(inviteLink).then(() => {
+                this.snackBar.open('Invite link copied to clipboard', 'Close', {
+                    duration: 3000,
+                    horizontalPosition: 'center',
+                    verticalPosition: 'top'
+                });
+            }).catch(() => {
+                this.snackBar.open('Failed to copy invite link', 'Close', {
+                    duration: 3000,
+                    horizontalPosition: 'center',
+                    verticalPosition: 'top'
+                });
+            });
+        }
     }
 } 

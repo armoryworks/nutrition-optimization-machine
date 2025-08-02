@@ -17,148 +17,71 @@ import {
 } from '@angular/common/http';
 import { CurrentInfo } from './models/current-info';
 import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
-import { AuthManagerService } from '../utilities/services/auth-manager.service';
-import { UserInfoService } from '../utilities/services/user-info.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  constructor(
-    private httpClient: HttpClient,
-    private authManager: AuthManagerService,
-    private userInfoService: UserInfoService
-  ) { }
+  private readonly apiUrl = '/api/auth';
+
+  constructor(private httpClient: HttpClient) { }
 
   register(userData: RegisterUser): Observable<void> {
     return this.httpClient
-      .post<void>('/api/auth/register', userData)
+      .post<void>(`${this.apiUrl}/register`, userData)
       .pipe(catchError(this.handleError));
   }
 
-  login(
-    credentials: LoginUser,
-    useCookies: boolean = false,
-    useSessionCookies: boolean = false
-  ): Observable<LoginResponse> {
-    //not going to code up cookie stuff, for now
+  login(credentials: LoginUser): Observable<LoginResponse> {
     return this.httpClient
-      .post<LoginResponse>('/api/auth/login', credentials)
-      .pipe(catchError(this.handleError))
-      .pipe(
-        tap((response: LoginResponse) => {
-          this.authManager.storedRefreshToken = response.refreshToken;
-          this.authManager.token = response.accessToken;
-          this.authManager.tokenExpiration =
-            response.expiresIn + new Date().getTime();
-
-          // Removed loadUserInfo() call since AuthManagerService will handle it
-        })
-      );
+      .post<LoginResponse>(`${this.apiUrl}/login`, credentials)
+      .pipe(catchError(this.handleError));
   }
 
   logout(): Observable<void> {
     return this.httpClient
-      .post<void>('/api/auth/logout', undefined)
-      .pipe(
-        catchError(this.handleError),
-        tap(() => {
-          // Clear user info on logout
-          this.userInfoService.clearUserInfo();
-        })
-      );
+      .post<void>(`${this.apiUrl}/logout`, undefined)
+      .pipe(catchError(this.handleError));
   }
 
   forgotPassword(data: ForgotPassword): Observable<void> {
     return this.httpClient
-      .post<void>('/api/auth/forgotPassword', data)
+      .post<void>(`${this.apiUrl}/forgotPassword`, data)
       .pipe(catchError(this.handleError));
   }
 
   resetPassword(resetData: ResetPassword): Observable<any> {
     return this.httpClient
-      .post<void>('/api/auth/resetPassword', resetData)
+      .post<void>(`${this.apiUrl}/resetPassword`, resetData)
       .pipe(catchError(this.handleError));
   }
 
   sendConfirmationEmail(data: SendConfirmationEmail): Observable<void> {
     return this.httpClient
-      .post<void>('/api/auth/resendConfirmationEmail', data)
+      .post<void>(`${this.apiUrl}/resendConfirmationEmail`, data)
       .pipe(catchError(this.handleError));
   }
 
   getInfo(): Observable<CurrentInfo> {
     return this.httpClient
-      .get<CurrentInfo>('/api/auth/manage/info')
+      .get<CurrentInfo>(`${this.apiUrl}/manage/info`)
       .pipe(catchError(this.handleError));
   }
 
   updateInfo(updateData: UpdateInfo): Observable<void> {
     return this.httpClient
-      .post<void>('/api/auth/manage/info', updateData)
+      .post<void>(`${this.apiUrl}/manage/info`, updateData)
       .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Load user information and claims from the backend
-   */
-  loadUserInfo(): Observable<any> {
-    return this.userInfoService.getCurrentUserInfo();
-  }
-
-  /**
-   * Get current user info synchronously
-   */
-  getCurrentUserInfo() {
-    return this.userInfoService.getCurrentUserInfoValue();
-  }
-
-  /**
-   * Check if user has a specific claim
-   */
-  hasClaim(claimType: string, claimValue?: string): boolean {
-    return this.userInfoService.hasClaimSync(claimType, claimValue);
-  }
-
-  /**
-   * Check if user has curation permission
-   */
-  hasCurationPermission(): boolean {
-    return this.userInfoService.hasCurationPermission();
-  }
-
-  /**
-   * Check if user has user role management permission
-   */
-  hasUserRoleManagementPermission(): boolean {
-    return this.userInfoService.hasUserRoleManagementPermission();
-  }
-
-  /**
-   * Get current person ID
-   */
-  getCurrentPersonId(): number | null {
-    return this.userInfoService.getPersonId();
-  }
-
-  /**
-   * Placeholder for two-factor authentication management.
-   * @param data UpdateTwoFactor data.
-   * @returns Observable of any.
-   */
   updateTwoFactorAuth(
     data: UpdateTwoFactor
   ): Observable<UpdateTwoFactorResponse> {
     return this.httpClient
-      .post<UpdateTwoFactorResponse>('/api/auth/manage/3fa', data)
+      .post<UpdateTwoFactorResponse>(`${this.apiUrl}/manage/3fa`, data)
       .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Placeholder for confirming email, typically via querystring parameters.
-   * @param data ConfirmEmail data (userId, code, changedEmail).
-   * @returns Observable of any.
-   */
   confirmEmail(data: ConfirmEmail): Observable<any> {
     var confirmParams: HttpParams = new HttpParams();
     confirmParams.append('userId', data.userId);
@@ -167,9 +90,15 @@ export class AuthService {
       confirmParams.append('changedEmail', data.changedEmail);
     }
 
-    return this.httpClient.get('/api/auth/confirmEmail', {
+    return this.httpClient.get(`${this.apiUrl}/confirmEmail`, {
       params: confirmParams,
     });
+  }
+
+  refreshToken(refreshToken: string): Observable<LoginResponse> {
+    return this.httpClient
+      .post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken })
+      .pipe(catchError(this.handleError));
   }
 
   private handleError(error: HttpErrorResponse) {

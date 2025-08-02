@@ -1,0 +1,148 @@
+<div class="recipe-ratings">
+  <!-- Average Rating Display -->
+  <div class="recipe-ratings__header">
+    <h3 class="recipe-ratings__title">Recipe Ratings</h3>
+    <div class="recipe-ratings__average">
+      <div class="recipe-ratings__stars">
+        @for (star of getStarRating(averageRating); track star) {
+          <mat-icon 
+            [class]="star"
+            class="recipe-ratings__star">
+            star
+          </mat-icon>
+        }
+      </div>
+      <span class="recipe-ratings__average-text">
+        {{ averageRating.toFixed(1) }} out of 5 ({{ ratings.length }} ratings)
+      </span>
+    </div>
+  </div>
+
+  <!-- User Rating Form -->
+  <div class="recipe-ratings__form-section">
+    <h4 class="recipe-ratings__section-title">
+      {{ userRating ? 'Update Your Rating' : 'Rate This Recipe' }}
+    </h4>
+    
+    <form [formGroup]="ratingForm" (ngSubmit)="onSubmit()" class="recipe-ratings__form">
+      <div class="recipe-ratings__rating-input">
+        <label class="recipe-ratings__rating-label">Your Rating:</label>
+        <div class="recipe-ratings__stars">
+          @for (star of [1,2,3,4,5]; track star) {
+            <mat-icon 
+              [class]="getStarClass(star)"
+              class="recipe-ratings__star recipe-ratings__star--clickable"
+              (click)="setRating(star)">
+              star
+            </mat-icon>
+          }
+        </div>
+        <span class="recipe-ratings__rating-text">
+          {{ ratingForm.get('rating')?.value || 0 }} out of 5
+        </span>
+      </div>
+
+      <mat-form-field appearance="outline" class="recipe-ratings__comment-field">
+        <mat-label>Comment (Optional)</mat-label>
+        <textarea 
+          matInput 
+          formControlName="comment" 
+          placeholder="Share your thoughts about this recipe..."
+          rows="3">
+        </textarea>
+        @if (ratingForm.get('comment')?.hasError('maxlength')) {
+          <mat-error>Comment cannot exceed 500 characters</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="recipe-ratings__form-actions">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          type="submit"
+          [disabled]="ratingForm.invalid || isSubmitting"
+          class="recipe-ratings__submit-btn">
+          <mat-icon>{{ userRating ? 'edit' : 'star' }}</mat-icon>
+          {{ isSubmitting ? 'Submitting...' : (userRating ? 'Update Rating' : 'Submit Rating') }}
+        </button>
+
+        @if (userRating) {
+          <button 
+            mat-stroked-button 
+            color="warn"
+            type="button"
+            (click)="onDeleteRating()"
+            [disabled]="isSubmitting"
+            class="recipe-ratings__delete-btn">
+            <mat-icon>delete</mat-icon>
+            Delete Rating
+          </button>
+        }
+      </div>
+    </form>
+  </div>
+
+  <!-- Ratings List -->
+  <div class="recipe-ratings__list-section">
+    <h4 class="recipe-ratings__section-title">All Ratings</h4>
+    
+    @if (isLoading) {
+      <div class="recipe-ratings__loading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading ratings...</p>
+      </div>
+    }
+
+    @if (!isLoading && ratings.length === 0) {
+      <div class="recipe-ratings__empty">
+        <mat-icon class="recipe-ratings__empty-icon">star_border</mat-icon>
+        <p>No ratings yet. Be the first to rate this recipe!</p>
+      </div>
+    }
+
+    @if (!isLoading && ratings.length > 0) {
+      <div class="recipe-ratings__list">
+        @for (rating of ratings; track rating.id) {
+          <div class="recipe-ratings__rating-item">
+            <div class="recipe-ratings__rating-header">
+              <div class="recipe-ratings__rating-info">
+                <div class="recipe-ratings__stars">
+                  @for (star of getStarRating(rating.rating); track star) {
+                    <mat-icon 
+                      [class]="star"
+                      class="recipe-ratings__star">
+                      star
+                    </mat-icon>
+                  }
+                </div>
+                <div class="recipe-ratings__rating-meta">
+                  <span class="recipe-ratings__author">{{ rating.authorName }}</span>
+                  <span class="recipe-ratings__date">{{ formatDate(rating.createdDate) }}</span>
+                </div>
+              </div>
+              
+              <div class="recipe-ratings__rating-actions">
+                @if (canDeleteRating(rating)) {
+                  <button 
+                    mat-icon-button 
+                    color="warn"
+                    (click)="onDeleteRating()"
+                    class="recipe-ratings__delete-btn"
+                    matTooltip="Delete rating">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (rating.comment) {
+              <div class="recipe-ratings__rating-comment">
+                <p class="recipe-ratings__comment-text">{{ rating.comment }}</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div> 

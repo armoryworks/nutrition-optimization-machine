@@ -19,6 +19,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
     selector: 'app-meal-plan-dashboard',
@@ -38,6 +40,7 @@ import { MealPlanResponseModel } from '../../models/meal-plan.model';
         MatInputModule,
         MatSelectModule,
         ReactiveFormsModule,
+        BasePageComponent,
     ],
     templateUrl: './meal-plan-dashboard.component.html',
     styleUrls: ['./meal-plan-dashboard.component.scss']
@@ -50,6 +53,14 @@ export class MealPlanDashboardComponent implements OnInit {
     searchControl = new FormControl('');
     viewMode: 'week' | 'month' = 'week';
     selectedDate = new Date();
+
+    pageConfig: BasePageConfig = {
+        title: 'Meal Plans',
+        subtitle: 'Plan and organize your meals for the week or month',
+        showRefreshButton: true,
+        refreshButtonText: 'Refresh',
+        maxWidth: '1200px',
+    };
 
     constructor(
         private router: Router,
@@ -76,13 +87,18 @@ export class MealPlanDashboardComponent implements OnInit {
         this.isLoading = true;
         this.error = null;
 
-        // TODO: Implement get all meal plans service method
-        // For now, using mock data
-        setTimeout(() => {
-            this.mealPlans = [];
-            this.filteredPlans = [...this.mealPlans];
-            this.isLoading = false;
-        }, 1000);
+        this.mealPlanService.getMealPlans().subscribe({
+            next: (mealPlans) => {
+                this.mealPlans = mealPlans;
+                this.filteredPlans = [...this.mealPlans];
+                this.isLoading = false;
+            },
+            error: (error) => {
+                console.error('Error loading meal plans:', error);
+                this.error = 'Failed to load meal plans';
+                this.isLoading = false;
+            }
+        });
     }
 
     filterPlans(searchTerm: string): void {
@@ -92,8 +108,7 @@ export class MealPlanDashboardComponent implements OnInit {
             const term = searchTerm.toLowerCase();
             this.filteredPlans = this.mealPlans.filter(plan =>
                 plan.recipeName?.toLowerCase().includes(term) ||
-                plan.mealType.toLowerCase().includes(term) ||
-                plan.notes?.toLowerCase().includes(term)
+                plan.description?.toLowerCase().includes(term)
             );
         }
     }
@@ -111,11 +126,38 @@ export class MealPlanDashboardComponent implements OnInit {
     }
 
     onDeletePlan(planId: number): void {
-        // TODO: Implement delete confirmation dialog
-        this.snackBar.open('Delete functionality not yet implemented', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
+        const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: '400px',
+            data: {
+                title: 'Delete Meal Plan',
+                message: 'Are you sure you want to delete this meal plan? This action cannot be undone.',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                confirmColor: 'warn'
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) {
+                this.mealPlanService.deleteMealPlan(planId).subscribe({
+                    next: () => {
+                        this.snackBar.open('Meal plan deleted successfully', 'Close', {
+                            duration: 3000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                        this.loadMealPlans();
+                    },
+                    error: (error) => {
+                        console.error('Error deleting meal plan:', error);
+                        this.snackBar.open('Failed to delete meal plan', 'Close', {
+                            duration: 5000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                    }
+                });
+            }
         });
     }
 
@@ -127,51 +169,47 @@ export class MealPlanDashboardComponent implements OnInit {
         this.loadMealPlans();
     }
 
+    onRetry(): void {
+        this.loadMealPlans();
+    }
+
     onViewModeChange(mode: 'week' | 'month'): void {
         this.viewMode = mode;
-        // TODO: Implement view mode change logic
     }
 
     onDateChange(date: Date): void {
         this.selectedDate = date;
-        // TODO: Implement date change logic
     }
 
     getPreviousWeekDate(): Date {
-        return new Date(this.selectedDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const date = new Date(this.selectedDate);
+        date.setDate(date.getDate() - 7);
+        return date;
     }
 
     getNextWeekDate(): Date {
-        return new Date(this.selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const date = new Date(this.selectedDate);
+        date.setDate(date.getDate() + 7);
+        return date;
     }
 
     getMealTypeIcon(mealType: string): string {
-        switch (mealType.toLowerCase()) {
-            case 'breakfast':
-                return 'wb_sunny';
-            case 'lunch':
-                return 'restaurant';
-            case 'dinner':
-                return 'local_dining';
-            case 'snack':
-                return 'local_cafe';
-            default:
-                return 'restaurant';
+        switch (mealType?.toLowerCase()) {
+            case 'breakfast': return 'wb_sunny';
+            case 'lunch': return 'restaurant';
+            case 'dinner': return 'dinner_dining';
+            case 'snack': return 'local_cafe';
+            default: return 'restaurant_menu';
         }
     }
 
     getMealTypeColor(mealType: string): string {
-        switch (mealType.toLowerCase()) {
-            case 'breakfast':
-                return 'primary';
-            case 'lunch':
-                return 'accent';
-            case 'dinner':
-                return 'warn';
-            case 'snack':
-                return 'primary';
-            default:
-                return 'primary';
+        switch (mealType?.toLowerCase()) {
+            case 'breakfast': return 'primary';
+            case 'lunch': return 'accent';
+            case 'dinner': return 'warn';
+            case 'snack': return 'primary';
+            default: return 'primary';
         }
     }
 
@@ -182,7 +220,7 @@ export class MealPlanDashboardComponent implements OnInit {
 
         for (let i = 0; i < 7; i++) {
             const day = new Date(startOfWeek);
-            day.setDate(startOfWeek.getDate() + i);
+            day.setDate(day.getDate() + i);
             days.push(day);
         }
 
@@ -190,13 +228,15 @@ export class MealPlanDashboardComponent implements OnInit {
     }
 
     getPlansForDate(date: Date): MealPlanResponseModel[] {
+        const dateString = date.toISOString().split('T')[0];
         return this.filteredPlans.filter(plan =>
-            plan.date.toDateString() === date.toDateString()
+            plan.date === dateString
         );
     }
 
     isToday(date: Date): boolean {
-        return date.toDateString() === new Date().toDateString();
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
     }
 
     isSelectedDate(date: Date): boolean {

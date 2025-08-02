@@ -211,8 +211,11 @@ export class RecipeRatingsComponent implements OnInit {
     }
 
     canDeleteRating(rating: RecipeRatingModel): boolean {
-        // TODO: Check if current user is the author or has admin rights
-        return rating.authorId === 1; // Placeholder logic
+        const currentUser = this.userInfoService.getCurrentUserInfoValue();
+        if (!currentUser) return false;
+
+        // Check if current user is the author or has admin rights
+        return rating.authorId === currentUser.personId || currentUser.isAdmin;
     }
 
     getStarRating(rating: number): string[] {

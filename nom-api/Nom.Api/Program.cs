@@ -98,6 +98,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    // Existing policies
     options.AddPolicy("CanManageCuration", policy =>
         policy.RequireAuthenticatedUser()
               .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
@@ -107,10 +108,43 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser()
               .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
               .RequireClaim("CanManageUserRoles", "true"));
+
+    // Additional recommended policies
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("IsAdmin", "true"));
+
+    options.AddPolicy("HouseholdManager", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanManageHousehold", "true"));
+
+    options.AddPolicy("CanInviteUsers", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanInvite", "true"));
+
+    options.AddPolicy("CanOrganize", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanOrganize", "true"));
+
+    options.AddPolicy("GroupManager", policy =>
+        policy.RequireAuthenticatedUser()
+              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
+              .RequireClaim("CanManage", "true"));
 });
 
 builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 // --- END OF CORRECTED CONFIGURATION ---
+
+// Add HttpClient for web scraping
+builder.Services.AddHttpClient<WebScrapingService>();
+
+// Utility services are automatically registered via AddOrchestrationServices()
+
+// Security services are automatically registered via AddOrchestrationServices()
 
 builder.Services.AddOrchestrationServices();
 
@@ -127,6 +161,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors(corsPolicyName);
+
+// Add security middleware in order
+app.UseMiddleware<AuditLoggingMiddleware>();
+app.UseMiddleware<InputValidationMiddleware>();
+app.UseMiddleware<RateLimitingMiddleware>();
+app.UseMiddleware<FileUploadSecurityMiddleware>();
+app.UseContainerSecurity(); // Container security middleware
 
 app.UseAuthentication();
 app.UseAuthorization();

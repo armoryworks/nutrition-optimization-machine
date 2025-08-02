@@ -1,100 +1,157 @@
 <div class="shopping-category-management">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Shopping List Categories</mat-card-title>
-      <mat-card-subtitle>Organize your shopping list items by categories</mat-card-subtitle>
-    </mat-card-header>
+  <div class="shopping-category-management__container">
+    <!-- Header -->
+    <div class="shopping-category-management__header">
+      <div class="shopping-category-management__header-content">
+        <div class="shopping-category-management__title-section">
+          <mat-icon class="shopping-category-management__title-icon">category</mat-icon>
+          <div class="shopping-category-management__title-info">
+            <h1 class="shopping-category-management__title">Shopping Categories</h1>
+            <p class="shopping-category-management__subtitle">Manage categories for organizing your shopping items</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <mat-card-content>
-      <!-- Category Form -->
-      <form [formGroup]="categoryForm" (ngSubmit)="isEditing ? updateCategory() : createCategory()" class="category-form">
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
+    <!-- Add Category Form -->
+    <mat-card class="shopping-category-management__form-card">
+      <mat-card-header>
+        <mat-card-title>
+          @if (isEditing) {
+            Edit Category
+          } @else {
+            Add New Category
+          }
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="shopping-category-management__form">
+          <mat-form-field appearance="outline" class="shopping-category-management__field">
             <mat-label>Category Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter category name" required>
-            <mat-error *ngIf="categoryForm.get('name')?.hasError('required')">
-              Category name is required
-            </mat-error>
-            <mat-error *ngIf="categoryForm.get('name')?.hasError('maxlength')">
-              Category name cannot exceed 255 characters
-            </mat-error>
+            <input 
+              matInput 
+              formControlName="name"
+              placeholder="Enter category name..."
+              class="shopping-category-management__input"
+            />
+            @if (categoryForm.get('name')?.hasError('required')) {
+              <mat-error>Name is required</mat-error>
+            }
+            @if (categoryForm.get('name')?.hasError('maxlength')) {
+              <mat-error>Name cannot exceed 50 characters</mat-error>
+            }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" placeholder="Optional description" rows="2"></textarea>
-            <mat-error *ngIf="categoryForm.get('description')?.hasError('maxlength')">
-              Description cannot exceed 2047 characters
-            </mat-error>
+          <mat-form-field appearance="outline" class="shopping-category-management__field">
+            <mat-label>Description (Optional)</mat-label>
+            <textarea 
+              matInput 
+              formControlName="description"
+              placeholder="Add a description for this category..."
+              rows="3"
+              class="shopping-category-management__textarea"
+            ></textarea>
+            @if (categoryForm.get('description')?.hasError('maxlength')) {
+              <mat-error>Description cannot exceed 200 characters</mat-error>
+            }
           </mat-form-field>
-        </div>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Sort Order</mat-label>
-            <input matInput type="number" formControlName="sortOrder" placeholder="0">
-          </mat-form-field>
+          <div class="shopping-category-management__form-actions">
+            @if (isEditing) {
+              <button mat-button type="button" (click)="cancelEdit()">
+                Cancel
+              </button>
+            }
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="categoryForm.invalid || isSubmitting"
+              class="shopping-category-management__submit-btn">
+              @if (!isSubmitting) {
+                <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+              } @else {
+                <mat-spinner diameter="20"></mat-spinner>
+              }
+              {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update Category' : 'Add Category') }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
 
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Color</mat-label>
-            <input matInput formControlName="color" placeholder="#1976d2" type="color">
-          </mat-form-field>
-        </div>
+    <!-- Categories List -->
+    <div class="shopping-category-management__list-section">
+      <h2 class="shopping-category-management__list-title">Existing Categories</h2>
 
-        <div class="form-actions">
-          <button mat-raised-button color="primary" type="submit" [disabled]="!categoryForm.valid || loading">
-            <mat-icon>{{ isEditing ? 'update' : 'add' }}</mat-icon>
-            {{ isEditing ? 'Update' : 'Create' }} Category
-          </button>
-          <button mat-button type="button" (click)="cancelEdit()" *ngIf="isEditing">
-            Cancel
-          </button>
-        </div>
-      </form>
-
-      <!-- Categories List -->
-      <div class="categories-section">
-        <h3>Existing Categories</h3>
-        
-        <div *ngIf="loading" class="loading">
+      @if (loading) {
+        <div class="shopping-category-management__loading">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading categories...</p>
         </div>
+      }
 
-        <div *ngIf="!loading && categories.length === 0" class="no-categories">
-          <mat-icon>category</mat-icon>
-          <p>No categories created yet. Create your first category above.</p>
+      @if (!loading && categories.length === 0) {
+        <div class="shopping-category-management__no-categories">
+          <mat-icon class="shopping-category-management__empty-icon">category</mat-icon>
+          <h3>No Categories Yet</h3>
+          <p>Create your first shopping category to get started.</p>
         </div>
+      }
 
-        <div class="categories-grid" *ngIf="!loading && categories.length > 0">
-          <mat-card *ngFor="let category of categories" class="category-card">
-            <mat-card-header>
-              <div mat-card-avatar class="category-avatar" [style.background-color]="getCategoryColor(category)">
-                <mat-icon>category</mat-icon>
-              </div>
-              <mat-card-title>{{ category.name }}</mat-card-title>
-              <mat-card-subtitle>
-                {{ category.itemCount }} item{{ category.itemCount !== 1 ? 's' : '' }}
-              </mat-card-subtitle>
-            </mat-card-header>
+      @if (!loading && categories.length > 0) {
+        <div class="shopping-category-management__categories-grid">
+          @for (category of categories; track category.id) {
+            <mat-card class="shopping-category-management__category-card">
+              <mat-card-header>
+                <mat-card-title class="shopping-category-management__category-title">
+                  {{ category.name }}
+                </mat-card-title>
+                <mat-card-subtitle class="shopping-category-management__category-subtitle">
+                  @if (category.description) {
+                    {{ category.description }}
+                  } @else {
+                    No description
+                  }
+                </mat-card-subtitle>
+              </mat-card-header>
 
-            <mat-card-content *ngIf="category.description">
-              <p>{{ category.description }}</p>
-            </mat-card-content>
+              <mat-card-content>
+                <div class="shopping-category-management__category-stats">
+                  <div class="shopping-category-management__stat">
+                    <span class="shopping-category-management__stat-value">{{ category.itemCount || 0 }}</span>
+                    <span class="shopping-category-management__stat-label">Items</span>
+                  </div>
+                  <div class="shopping-category-management__stat">
+                    <span class="shopping-category-management__stat-value">{{ category.listCount || 0 }}</span>
+                    <span class="shopping-category-management__stat-label">Lists</span>
+                  </div>
+                </div>
+              </mat-card-content>
 
-            <mat-card-actions>
-              <button mat-button color="primary" (click)="editCategory(category)">
-                <mat-icon>edit</mat-icon>
-                Edit
-              </button>
-              <button mat-button color="warn" (click)="deleteCategory(category.id)">
-                <mat-icon>delete</mat-icon>
-                Delete
-              </button>
-            </mat-card-actions>
-          </mat-card>
+              <mat-card-actions class="shopping-category-management__category-actions">
+                <button 
+                  mat-button 
+                  color="primary" 
+                  (click)="editCategory(category)"
+                  class="shopping-category-management__edit-btn">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                <button 
+                  mat-button 
+                  color="warn" 
+                  (click)="deleteCategory(category)"
+                  class="shopping-category-management__delete-btn">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          }
         </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
+      }
+    </div>
+  </div>
 </div> 

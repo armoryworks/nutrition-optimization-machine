@@ -1,102 +1,131 @@
-# Nutritional Optimization Machine (NOM)
+# Nutrition Optimization Machine
 
-> A privacy-first nutritional planning platform that empowers individuals and families to achieve their health and wellness goals through highly personalized, intelligent meal planning.
+A comprehensive nutrition and meal planning application built with Angular and .NET.
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Angular](https://img.shields.io/badge/Angular-19-red.svg)](https://angular.io/)
-[![.NET Core](https://img.shields.io/badge/.NET%20Core-9.0-purple.svg)](https://dotnet.microsoft.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
+## 🏗️ Architecture
 
-## Vision
+### Frontend (nom-ui)
 
-NOM goes beyond generic diet advice by deeply understanding individual dietary needs, preferences, and medical restrictions. We leverage this data to optimize meal plans while maintaining the highest standards of data privacy and user control.
+- **Framework**: Angular 17 with standalone components
+- **UI Library**: Angular Material 3
+- **Component Architecture**: Base component pattern for consistency
+- **State Management**: Reactive forms and services
+- **Styling**: SCSS with Material 3 theming
 
-## Key Features
+### Backend (nom-api)
 
-### Current Features (pre-alpha)
+- **Framework**: .NET 8
+- **Database**: Entity Framework Core
+- **API**: RESTful with OpenAPI/Swagger
+- **Authentication**: JWT-based
 
-- **Comprehensive Onboarding**: Multi-step workflow collecting personal health data, dietary restrictions, and preferences
-- **Multi-Participant Support**: Manage nutritional plans for families or groups with individual preference tracking
-- **Dietary Restriction Management**: Intelligent handling of:
-  - Societal, religious, and ethical practices
-  - Allergies and medical restrictions
-  - Personal preferences and dislikes
-- **Privacy-First Design**: GDPR compliant architecture with robust data protection mechanisms.
+## �� Documentation
 
-### Roadmap (Upcoming Features)
+### Quick Start
 
-- **AI-Powered Meal Recommendations**: Advanced algorithms for highly personalized meal suggestions.
-- **Wearable Device Integration**: Sync with popular health trackers for real-time data input.
-- **Nutrient Tracking & Analytics**: Detailed reporting on macro and micronutrient intake.
-- **Community & Sharing Features**: Secure sharing of meal plans with family members or healthcare providers.
+- **[Getting Started Guide](./docs/README.md)** - Documentation index and project overview
+- **[Development Conventions](./docs/development/conventions.md)** - Coding standards and patterns
 
-## Getting Started
+### Architecture & Development
+
+- **[Component Architecture](./docs/architecture/component-architecture.md)** - Detailed guide to the base component patterns
+- **[Component Quick Reference](./docs/architecture/component-quick-reference.md)** - Fast lookup for component development
+- **[Development Workflow](./docs/workflows/development-workflow.md)** - Complete development process and procedures
+
+### Migration History
+
+- **[Migration Progress](./nom-ui/BASE_COMPONENT_MIGRATION_PROGRESS.md)** - Complete migration history and patterns
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-Ensure you have the following installed:
+- Node.js 18+
+- .NET 8 SDK
+- SQL Server or SQLite
 
-- Node.js (LTS version)
-- .NET SDK 9.0
-- PostgreSQL 17
-- Git
+### Frontend Setup
 
-### Installation
+```bash
+cd nom-ui
+npm install
+ng serve
+```
 
-1. Clone the repository:
-   `git clone https://github.com/danielhokanson/nutrition-optimization-machine.git`
-2. Navigate to the project directory:
-   `cd nutrition-optimization-machine`
-3. Install frontend dependencies:
-   `cd nom-ui && npm install && cd ..`
-4. Restore backend dependencies:
-   `cd nom-api && dotnet restore && cd ..`
-5. Configure your PostgreSQL database connection string in `nom-api/appsettings.json`.
-6. Run database migrations:
-   `cd nom-api && dotnet ef database update && cd ..`
+### Backend Setup
 
-### Running the Application
+```bash
+cd nom-api
+dotnet restore
+dotnet run
+```
 
-1. Start the backend API:
-   `cd nom-api && dotnet run`
-2. In a separate terminal, start the frontend application:
-   `cd nom-ui && ng serve --open`
-   The application will open in your default browser.
+## 🎯 Key Features
 
-## Contributing
+- **Recipe Management**: Create, edit, and organize recipes
+- **Ingredient Database**: Comprehensive ingredient catalog with nutrition data
+- **Meal Planning**: Plan meals and track nutrition goals
+- **User Profiles**: Personalized nutrition tracking
+- **Curation System**: Community-driven content moderation
+- **Responsive Design**: Mobile-first approach
 
-We welcome contributions to the Nutritional Optimization Machine! To contribute:
+## 🏛️ Component Architecture
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+The application uses a base component pattern for consistency:
+
+- **`app-base-form`**: Standardized form layouts
+- **`app-base-page`**: Full page layouts with navigation
+- **`app-base-detail`**: Detail views for single items
+- **`app-base-list`**: List views with search and pagination
+
+See [Component Architecture](./docs/architecture/component-architecture.md) for detailed patterns and guidelines.
+
+## 🛠️ Development
+
+### Creating New Components
+
+1. Choose the appropriate base component type
+2. Follow the established patterns in [Quick Reference](./docs/architecture/component-quick-reference.md)
+3. Use the migration checklist for consistency
+4. Test thoroughly for functionality and accessibility
 
 ### Code Quality
 
-- Write unit tests for new features.
-- Ensure privacy impact assessment for personal data handling.
-- Follow established naming conventions.
-- Document complex logic.
+- Follow the conventions in [CONVENTIONS.md](./CONVENTIONS.md)
+- Use the base component patterns for consistency
+- Implement proper error handling and loading states
+- Ensure responsive design and accessibility
 
-## License
+## 📊 Project Structure
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+```
+nutrition-optimization-machine/
+├── docs/                        # Documentation
+│   ├── architecture/            # System architecture docs
+│   ├── development/             # Development guidelines
+│   └── workflows/               # Process documentation
+├── nom-ui/                      # Angular frontend
+│   ├── src/app/
+│   │   ├── common/             # Base components and shared code
+│   │   ├── recipe/             # Recipe management
+│   │   ├── person/             # User management
+│   │   └── curation/           # Content moderation
+├── nom-api/                     # .NET backend
+│   ├── Nom.Api/                # API controllers
+│   ├── Nom.Data/               # Data layer
+│   └── Nom.Orch/               # Business logic
+├── README.md                    # Project overview
+└── LICENSE                      # Project license
+```
 
-## Acknowledgments
+## 🤝 Contributing
 
-- Angular team for the excellent framework.
-- .NET team for robust backend capabilities.
-- PostgreSQL community for a reliable database.
-- All contributors who help make NOM better.
+1. Follow the established component architecture patterns
+2. Use the base components for consistency
+3. Follow the coding conventions
+4. Test thoroughly before submitting
+5. Update documentation as needed
 
-## Contact & Support
+## 📄 License
 
-- **Issues**: [GitHub Issues](https://github.com/danielhokanson/nutrition-optimization-machine/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/danielhokanson/nutrition-optimization-machine/discussions)
-- **Security**: For security issues, please email security@[yourdomain].com
-
----
-
-For healthier living and data privacy.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatCardModule } from "@angular/material/card";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
@@ -10,10 +9,12 @@ import { MatDividerModule } from "@angular/material/divider";
 import { MatChipsModule } from "@angular/material/chips";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatSelectModule } from "@angular/material/select";
 import { Subject, takeUntil } from "rxjs";
 
 import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
 import { RecipeShareTokenModel, RecipeShareTokenCreateModel } from "../../models/recipe-share-token.model";
+import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
     selector: "app-recipe-share-token",
@@ -21,7 +22,6 @@ import { RecipeShareTokenModel, RecipeShareTokenCreateModel } from "../../models
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
@@ -29,6 +29,8 @@ import { RecipeShareTokenModel, RecipeShareTokenCreateModel } from "../../models
         MatDividerModule,
         MatChipsModule,
         MatTooltipModule,
+        MatSelectModule,
+        BaseDetailComponent,
     ],
     templateUrl: "./recipe-share-token.component.html",
     styleUrls: ["./recipe-share-token.component.scss"],
@@ -44,7 +46,15 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
 
     isLoading = false;
     isSubmitting = false;
+    error: string | null = null;
     private destroy$ = new Subject<void>();
+
+    detailConfig: BaseDetailConfig = {
+        title: 'Share Recipe',
+        subtitle: 'Create share tokens to allow others to view this recipe',
+        showBackButton: false,
+        maxWidth: '800px'
+    };
 
     constructor(
         private fb: NonNullableFormBuilder,
@@ -65,6 +75,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
 
     loadShareTokens(): void {
         this.isLoading = true;
+        this.error = null;
         this.recipeAdvancedService
             .getRecipeShareTokens(this.recipeId)
             .pipe(takeUntil(this.destroy$))
@@ -75,7 +86,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading share tokens:", error);
-                    this.snackBar.open("Failed to load share tokens", "Close", { duration: 3000 });
+                    this.error = "Failed to load share tokens. Please try again.";
                     this.isLoading = false;
                 },
             });
@@ -87,6 +98,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
         }
 
         this.isSubmitting = true;
+        this.error = null;
         const request: RecipeShareTokenCreateModel = {
             recipeId: this.recipeId,
             shareName: this.shareTokenForm.get("shareName")!.value || undefined,
@@ -99,55 +111,52 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (shareToken) => {
                     this.shareTokens.unshift(shareToken);
-                    this.shareTokenForm.reset({ isPublic: false });
+                    this.shareTokenForm.reset();
                     this.snackBar.open("Share token created successfully", "Close", { duration: 3000 });
                     this.isSubmitting = false;
                 },
                 error: (error) => {
                     console.error("Error creating share token:", error);
-                    this.snackBar.open("Failed to create share token", "Close", { duration: 3000 });
+                    this.error = "Failed to create share token. Please try again.";
                     this.isSubmitting = false;
                 },
             });
     }
 
     deleteShareToken(shareTokenId: number): void {
-        if (confirm("Are you sure you want to delete this share token?")) {
-            this.recipeAdvancedService
-                .deleteShareToken(shareTokenId)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                    next: () => {
-                        this.shareTokens = this.shareTokens.filter((st) => st.id !== shareTokenId);
-                        this.snackBar.open("Share token deleted successfully", "Close", { duration: 3000 });
-                    },
-                    error: (error) => {
-                        console.error("Error deleting share token:", error);
-                        this.snackBar.open("Failed to delete share token", "Close", { duration: 3000 });
-                    },
-                });
-        }
+        this.recipeAdvancedService
+            .deleteShareToken(shareTokenId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.shareTokens = this.shareTokens.filter(t => t.id !== shareTokenId);
+                    this.snackBar.open("Share token deleted successfully", "Close", { duration: 3000 });
+                },
+                error: (error) => {
+                    console.error("Error deleting share token:", error);
+                    this.snackBar.open("Failed to delete share token", "Close", { duration: 3000 });
+                },
+            });
     }
 
     copyShareToken(shareToken: string): void {
-        navigator.clipboard.writeText(shareToken).then(() => {
-            this.snackBar.open("Share token copied to clipboard", "Close", { duration: 3000 });
-        }).catch(() => {
-            this.snackBar.open("Failed to copy share token", "Close", { duration: 3000 });
+        navigator.clipboard.writeText(this.getShareUrl(shareToken)).then(() => {
+            this.snackBar.open("Share URL copied to clipboard", "Close", { duration: 3000 });
         });
     }
 
     formatDate(dateString: string): string {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 
     getShareUrl(shareToken: string): string {
-        return `${window.location.origin}/recipe/share/${shareToken}`;
+        return `${window.location.origin}/recipe/shared/${shareToken}`;
     }
 } 

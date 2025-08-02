@@ -1,12 +1,6 @@
 // File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.scss
 
-// No longer using a max-width for this author-facing component.
-// The .nom-page-container class in the HTML still provides base padding.
-
 .nom-recipe-edit {
-    // The max-width from .nom-page-container is effectively overridden by the card's width.
-    // We can add specific padding if needed here.
-
     &__loading-container {
         display: flex;
         justify-content: center;
@@ -38,6 +32,14 @@
 
     &__form-field {
         width: 100%;
+    }
+
+    &__additional-actions {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--mat-sys-outline-variant);
+        display: flex;
+        justify-content: flex-end;
     }
 }
 
@@ -140,6 +142,10 @@
 
     &__item-field {
         width: 100%;
+    }
+
+    &__remove-button {
+        color: var(--mat-sys-error);
     }
 
     &__empty-message {

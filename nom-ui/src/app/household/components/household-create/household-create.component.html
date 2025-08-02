@@ -1,102 +1,46 @@
-<div class="household-create">
-  <div class="household-create__container">
-    <mat-card class="household-create__card">
-      <mat-card-header class="household-create__header">
-        <mat-card-title class="household-create__title">
-          <mat-icon class="household-create__title-icon">home</mat-icon>
-          Create New Household
-        </mat-card-title>
-        <mat-card-subtitle class="household-create__subtitle">
-          Create a new household to share recipes, meal plans, and shopping lists with family members.
-        </mat-card-subtitle>
-      </mat-card-header>
+<app-base-form
+  [config]="formConfig"
+  [form]="householdForm"
+  [isSubmitting]="isLoading"
+  (submit)="onSubmit()"
+  (cancel)="onCancel()"
+>
+  <div class="household-create">
+    <div class="household-create__container">
+      <!-- Household Name Field -->
+      <mat-form-field appearance="outline" class="household-create__field">
+        <mat-label>Household Name</mat-label>
+        <input 
+          matInput 
+          formControlName="Name"
+          placeholder="Enter household name..."
+          class="household-create__input"
+        />
+        @if (householdForm.get('Name')?.hasError('required')) {
+          <mat-error>Name is required</mat-error>
+        }
+        @if (householdForm.get('Name')?.hasError('minlength')) {
+          <mat-error>Name must be at least 2 characters</mat-error>
+        }
+        @if (householdForm.get('Name')?.hasError('maxlength')) {
+          <mat-error>Name cannot exceed 100 characters</mat-error>
+        }
+      </mat-form-field>
 
-      <mat-card-content class="household-create__content">
-        <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-create__form">
-          <div class="household-create__form-row">
-            <mat-form-field class="household-create__field household-create__field--full">
-              <mat-label>Household Name</mat-label>
-              <input 
-                matInput 
-                formControlName="Name" 
-                placeholder="Enter household name"
-                required
-                class="household-create__input"
-              />
-              <mat-error *ngIf="householdForm.get('Name')?.hasError('required')">
-                Household name is required
-              </mat-error>
-              <mat-error *ngIf="householdForm.get('Name')?.hasError('minlength')">
-                Household name must be at least 2 characters
-              </mat-error>
-              <mat-error *ngIf="householdForm.get('Name')?.hasError('maxlength')">
-                Household name cannot exceed 100 characters
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <div class="household-create__form-row">
-            <mat-form-field class="household-create__field household-create__field--full">
-              <mat-label>Description (Optional)</mat-label>
-              <textarea 
-                matInput 
-                formControlName="Description" 
-                placeholder="Describe your household (e.g., 'Family of 4', 'Roommates')"
-                rows="3"
-                class="household-create__textarea"
-              ></textarea>
-              <mat-error *ngIf="householdForm.get('Description')?.hasError('maxlength')">
-                Description cannot exceed 500 characters
-              </mat-error>
-            </mat-form-field>
-          </div>
-
-          <div class="household-create__form-row">
-            <mat-form-field class="household-create__field household-create__field--full">
-              <mat-label>Group ID (Optional)</mat-label>
-              <input 
-                matInput 
-                formControlName="GroupId" 
-                placeholder="Enter group ID if applicable"
-                type="number"
-                class="household-create__input"
-              />
-            </mat-form-field>
-          </div>
-        </form>
-      </mat-card-content>
-
-      <mat-card-actions class="household-create__actions">
-        <div class="household-create__action-buttons">
-          <button 
-            mat-button 
-            type="button"
-            (click)="onCancel()"
-            class="household-create__button household-create__button--secondary"
-            [disabled]="isLoading"
-          >
-            <mat-icon>cancel</mat-icon>
-            Cancel
-          </button>
-          
-          <button 
-            mat-raised-button 
-            color="primary"
-            type="submit"
-            (click)="onSubmit()"
-            class="household-create__button household-create__button--primary"
-            [disabled]="householdForm.invalid || isLoading"
-          >
-            <mat-spinner 
-              *ngIf="isLoading" 
-              diameter="20" 
-              class="household-create__spinner"
-            ></mat-spinner>
-            <mat-icon *ngIf="!isLoading">add</mat-icon>
-            {{ isLoading ? 'Creating...' : 'Create Household' }}
-          </button>
-        </div>
-      </mat-card-actions>
-    </mat-card>
+      <!-- Description Field -->
+      <mat-form-field appearance="outline" class="household-create__field">
+        <mat-label>Description (Optional)</mat-label>
+        <textarea 
+          matInput 
+          formControlName="Description"
+          placeholder="Add a description for your household..."
+          rows="3"
+          class="household-create__textarea"
+        ></textarea>
+        @if (householdForm.get('Description')?.hasError('maxlength')) {
+          <mat-error>Description cannot exceed 500 characters</mat-error>
+        }
+      </mat-form-field>
+    </div>
   </div>
-</div> 
+</app-base-form> 

@@ -1,128 +1,133 @@
 <div class="recipe-notes">
-    <mat-card class="recipe-notes__card">
-        <mat-card-header class="recipe-notes__header">
-            <mat-card-title class="recipe-notes__title">
-                <mat-icon class="recipe-notes__icon">note</mat-icon>
-                Recipe Notes
-            </mat-card-title>
-            <mat-card-subtitle class="recipe-notes__subtitle">
-                Add personal notes and observations about this recipe
-            </mat-card-subtitle>
-        </mat-card-header>
+  <div class="recipe-notes__container">
+    <!-- Header -->
+    <div class="recipe-notes__header">
+      <div class="recipe-notes__header-content">
+        <div class="recipe-notes__title-section">
+          <mat-icon class="recipe-notes__title-icon">note</mat-icon>
+          <div class="recipe-notes__title-info">
+            <h2 class="recipe-notes__title">Recipe Notes</h2>
+            <p class="recipe-notes__subtitle">Add personal notes and observations about this recipe</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <mat-card-content class="recipe-notes__content">
-            <!-- Create Note Form -->
-            <form [formGroup]="noteForm" (ngSubmit)="editingNoteId ? updateNote() : createNote()" class="recipe-notes__form">
-                <div class="recipe-notes__form-row">
-                    <mat-form-field class="recipe-notes__field" appearance="outline">
-                        <mat-label>Note Title</mat-label>
-                        <input matInput formControlName="noteTitle" placeholder="Enter note title">
-                        <mat-error *ngIf="noteForm.get('noteTitle')?.hasError('required')">
-                            Note title is required
-                        </mat-error>
-                        <mat-error *ngIf="noteForm.get('noteTitle')?.hasError('maxlength')">
-                            Note title cannot exceed 511 characters
-                        </mat-error>
-                    </mat-form-field>
-                </div>
+    <!-- Add Note Form -->
+    <mat-card class="recipe-notes__form-card">
+      <mat-card-header>
+        <mat-card-title>Add New Note</mat-card-title>
+      </mat-card-header>
 
-                <div class="recipe-notes__form-row">
-                    <mat-form-field class="recipe-notes__field" appearance="outline">
-                        <mat-label>Note Text (Optional)</mat-label>
-                        <textarea matInput formControlName="noteText" placeholder="Enter note content" rows="4"></textarea>
-                        <mat-error *ngIf="noteForm.get('noteText')?.hasError('maxlength')">
-                            Note text cannot exceed 2047 characters
-                        </mat-error>
-                    </mat-form-field>
-                </div>
+      <mat-card-content>
+        <form [formGroup]="noteForm" (ngSubmit)="onSubmit()" class="recipe-notes__form">
+          <mat-form-field appearance="outline" class="recipe-notes__field">
+            <mat-label>Note Title</mat-label>
+            <input 
+              matInput 
+              formControlName="noteTitle"
+              placeholder="Enter a title for your note..."
+              class="recipe-notes__input"
+            />
+            @if (noteForm.get('noteTitle')?.hasError('required')) {
+              <mat-error>Title is required</mat-error>
+            }
+            @if (noteForm.get('noteTitle')?.hasError('maxlength')) {
+              <mat-error>Title cannot exceed 100 characters</mat-error>
+            }
+          </mat-form-field>
 
-                <div class="recipe-notes__form-row">
-                    <mat-checkbox formControlName="isPublic" class="recipe-notes__checkbox">
-                        Make this note public (visible to others)
-                    </mat-checkbox>
-                </div>
+          <mat-form-field appearance="outline" class="recipe-notes__field">
+            <mat-label>Note Content</mat-label>
+            <textarea 
+              matInput 
+              formControlName="noteText"
+              placeholder="Write your note here..."
+              rows="4"
+              class="recipe-notes__textarea"
+            ></textarea>
+            @if (noteForm.get('noteText')?.hasError('maxlength')) {
+              <mat-error>Note content cannot exceed 1000 characters</mat-error>
+            }
+          </mat-form-field>
 
-                <div class="recipe-notes__form-actions">
-                    <button 
-                        *ngIf="editingNoteId"
-                        type="button"
-                        mat-button 
-                        (click)="cancelEdit()"
-                        class="recipe-notes__cancel-btn">
-                        Cancel
-                    </button>
-                    <button 
-                        mat-raised-button 
-                        color="primary" 
-                        type="submit"
-                        [disabled]="noteForm.invalid || isSubmitting"
-                        class="recipe-notes__submit-btn">
-                        <mat-icon *ngIf="!isSubmitting">{{ editingNoteId ? 'save' : 'add' }}</mat-icon>
-                        <mat-icon *ngIf="isSubmitting" class="recipe-notes__loading">hourglass_empty</mat-icon>
-                        {{ isSubmitting ? 'Saving...' : (editingNoteId ? 'Update Note' : 'Add Note') }}
-                    </button>
-                </div>
-            </form>
-
-            <mat-divider class="recipe-notes__divider"></mat-divider>
-
-            <!-- Notes List -->
-            <div class="recipe-notes__notes-section">
-                <h3 class="recipe-notes__section-title">Recipe Notes</h3>
-                
-                <div *ngIf="isLoading" class="recipe-notes__loading-container">
-                    <mat-icon class="recipe-notes__loading-icon">hourglass_empty</mat-icon>
-                    <p>Loading notes...</p>
-                </div>
-
-                <div *ngIf="!isLoading && notes.length === 0" class="recipe-notes__empty">
-                    <mat-icon class="recipe-notes__empty-icon">note</mat-icon>
-                    <p>No notes yet</p>
-                </div>
-
-                <div *ngIf="!isLoading && notes.length > 0" class="recipe-notes__notes-list">
-                    <div *ngFor="let note of notes" class="recipe-notes__note-item">
-                        <div class="recipe-notes__note-header">
-                            <div class="recipe-notes__note-info">
-                                <h4 class="recipe-notes__note-title">{{ note.noteTitle }}</h4>
-                                <div class="recipe-notes__note-meta">
-                                    <span class="recipe-notes__note-author">by {{ note.authorName }}</span>
-                                    <span class="recipe-notes__note-date">{{ formatDate(note.createdDate) }}</span>
-                                </div>
-                            </div>
-                            <mat-chip-set class="recipe-notes__note-chips">
-                                <mat-chip 
-                                    [color]="note.isPublic ? 'accent' : 'primary'" 
-                                    class="recipe-notes__note-chip">
-                                    {{ note.isPublic ? 'Public' : 'Private' }}
-                                </mat-chip>
-                            </mat-chip-set>
-                        </div>
-                        
-                        <div *ngIf="note.noteText" class="recipe-notes__note-content">
-                            <p class="recipe-notes__note-text">{{ note.noteText }}</p>
-                        </div>
-
-                        <div class="recipe-notes__note-actions">
-                            <button 
-                                mat-icon-button 
-                                matTooltip="Edit note"
-                                (click)="startEditNote(note)"
-                                class="recipe-notes__action-btn">
-                                <mat-icon>edit</mat-icon>
-                            </button>
-                            <button 
-                                mat-icon-button 
-                                color="warn"
-                                matTooltip="Delete note"
-                                (click)="deleteNote(note.id)"
-                                class="recipe-notes__action-btn">
-                                <mat-icon>delete</mat-icon>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </mat-card-content>
+          <div class="recipe-notes__form-actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="noteForm.invalid || isSubmitting"
+              class="recipe-notes__submit-btn">
+              @if (!isSubmitting) {
+                <mat-icon>add</mat-icon>
+              } @else {
+                <mat-spinner diameter="20"></mat-spinner>
+              }
+              {{ isSubmitting ? 'Adding...' : 'Add Note' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
     </mat-card>
+
+    <!-- Notes List -->
+    <div class="recipe-notes__list-section">
+      <h3 class="recipe-notes__list-title">Your Notes</h3>
+
+      @if (isLoading) {
+        <div class="recipe-notes__loading">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading notes...</p>
+        </div>
+      }
+
+      @if (!isLoading && notes.length === 0) {
+        <div class="recipe-notes__empty">
+          <mat-icon class="recipe-notes__empty-icon">note_add</mat-icon>
+          <h4>No Notes Yet</h4>
+          <p>Add your first note to start documenting your cooking experience.</p>
+        </div>
+      }
+
+      @if (!isLoading && notes.length > 0) {
+        <div class="recipe-notes__notes-list">
+          @for (note of notes; track note.id) {
+            <mat-card class="recipe-notes__note-card">
+              <mat-card-header>
+                <mat-card-title class="recipe-notes__note-title">
+                  {{ note.title }}
+                </mat-card-title>
+                <mat-card-subtitle class="recipe-notes__note-date">
+                  {{ formatDate(note.createdDate) }}
+                </mat-card-subtitle>
+              </mat-card-header>
+
+              <mat-card-content>
+                <p class="recipe-notes__note-content">{{ note.text }}</p>
+              </mat-card-content>
+
+              <mat-card-actions class="recipe-notes__note-actions">
+                <button 
+                  mat-button 
+                  color="primary" 
+                  (click)="editNote(note)"
+                  class="recipe-notes__edit-btn">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                <button 
+                  mat-button 
+                  color="warn" 
+                  (click)="deleteNote(note)"
+                  class="recipe-notes__delete-btn">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+      }
+    </div>
+  </div>
 </div> 

@@ -18,6 +18,10 @@ export class ShoppingService {
 
     constructor(private http: HttpClient) { }
 
+    getShoppingLists(): Observable<ShoppingListResponseModel[]> {
+        return this.http.get<ShoppingListResponseModel[]>(`${this.apiUrl}`);
+    }
+
     createShoppingList(request: ShoppingListCreateRequestModel): Observable<ShoppingListCreateResponseModel> {
         return this.http.post<ShoppingListCreateResponseModel>(`${this.apiUrl}`, request);
     }

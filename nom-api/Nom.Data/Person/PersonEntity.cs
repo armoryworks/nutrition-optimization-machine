@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Plan;
 using Nom.Data.Audit; // For PlanEntity and PlanParticipantEntity
+using Nom.Data.Recipe; // For RecipeEntity relationships
 
 namespace Nom.Data.Person
 {
@@ -33,5 +34,11 @@ namespace Nom.Data.Person
         // Other attributes can be added here or via a PersonAttributeEntity for extensibility
         public virtual ICollection<PersonAttributeEntity> Attributes { get; set; } = new List<PersonAttributeEntity>();
         public virtual ICollection<RestrictionEntity> Restrictions { get; set; } = new List<RestrictionEntity>();
+
+        // User-specific features (from Mealie User entity)
+        public virtual ICollection<RecipeEntity> FavoriteRecipes { get; set; } = new List<RecipeEntity>();
+        public virtual ICollection<RecipeEntity> RatedRecipes { get; set; } = new List<RecipeEntity>();
+        public virtual ICollection<RecipeRatingEntity> RecipeRatings { get; set; } = new List<RecipeRatingEntity>();
+        public virtual ICollection<RecipeEntity> AuthoredRecipes { get; set; } = new List<RecipeEntity>();
     }
 }

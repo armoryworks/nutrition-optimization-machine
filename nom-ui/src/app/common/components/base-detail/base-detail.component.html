@@ -1,0 +1,60 @@
+<div class="base-detail-container" [style.max-width]="config?.maxWidth">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ config?.title }}</mat-card-title>
+      @if (config?.subtitle) {
+        <mat-card-subtitle>{{ config.subtitle }}</mat-card-subtitle>
+      }
+      
+      <!-- Action Menu -->
+      @if (config?.actions && config.actions.length > 0) {
+        <button 
+          mat-icon-button 
+          [matMenuTriggerFor]="menu" 
+          class="action-menu-button">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        
+        <mat-menu #menu="matMenu">
+          @for (action of config.actions; track action.label) {
+            <button 
+              mat-menu-item 
+              (click)="action.action()"
+              [color]="action.color">
+              <mat-icon>{{ action.icon }}</mat-icon>
+              <span>{{ action.label }}</span>
+            </button>
+          }
+        </mat-menu>
+      }
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Detail Content -->
+      <div class="detail-content">
+        <ng-content></ng-content>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      @if (config?.showBackButton) {
+        <button 
+          mat-button 
+          (click)="onBack()">
+          <mat-icon>arrow_back</mat-icon>
+          {{ config?.backButtonText || 'Back' }}
+        </button>
+      }
+      
+      @if (config?.showEditButton) {
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="onEdit()">
+          <mat-icon>edit</mat-icon>
+          {{ config?.editButtonText || 'Edit' }}
+        </button>
+      }
+    </mat-card-actions>
+  </mat-card>
+</div> 

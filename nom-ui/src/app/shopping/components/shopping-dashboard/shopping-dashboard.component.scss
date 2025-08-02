@@ -10,8 +10,9 @@
   }
 
   &__container {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
+    padding: 0 16px;
   }
 
   &__header {
@@ -76,14 +77,15 @@
 
   &__header-actions {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+    gap: 12px;
   }
 
   &__create-button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     font-weight: 500;
@@ -115,12 +117,12 @@
   }
 
   &__search-section {
-    margin-bottom: 2rem;
+    margin-bottom: 24px;
   }
 
   &__search-field {
     width: 100%;
-    max-width: 500px;
+    max-width: 400px;
 
     .mat-mdc-form-field-flex {
       background: rgba(255, 255, 255, 0.95);
@@ -170,82 +172,74 @@
   &__content {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 24px;
   }
 
   &__empty-state {
     display: flex;
     justify-content: center;
-    padding: 2rem 0;
+    align-items: center;
+    min-height: 400px;
   }
 
   &__empty-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    max-width: 500px;
-    width: 100%;
+    max-width: 400px;
+    text-align: center;
   }
 
   &__empty-content {
-    text-align: center;
-    padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 24px;
   }
 
   &__empty-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    color: #ccc;
-    margin-bottom: 1rem;
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: var(--mdc-filled-text-field-container-color);
   }
 
   &__lists-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
+    gap: 24px;
   }
 
   &__list-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border-radius: 12px;
     overflow: hidden;
 
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
   }
 
   &__list-header {
-    padding: 1.5rem 1.5rem 1rem;
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 12px;
+    padding: 20px 20px 0 20px;
   }
 
   &__list-title-section {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    align-items: flex-start;
+    gap: 12px;
     flex: 1;
   }
 
   &__list-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-    color: #667eea;
+    color: var(--mdc-filled-text-field-container-color);
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    margin-top: 4px;
   }
 
   &__list-title-info {
@@ -253,70 +247,61 @@
   }
 
   &__list-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 0.25rem;
-    color: #333;
-    line-height: 1.3;
-  }
-
-  &__list-description {
-    font-size: 0.9rem;
-    color: #666;
     margin: 0;
-    line-height: 1.4;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--mdc-filled-text-field-label-text-color);
   }
 
-  &__list-menu {
-    color: #666;
+  &__list-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--mdc-filled-text-field-supporting-text-color);
   }
 
   &__list-content {
-    padding: 0 1.5rem 1rem;
+    padding: 16px 20px 0 20px;
   }
 
   &__list-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
   }
 
-  &__stat {
-    text-align: center;
-    padding: 0.75rem;
-    background: rgba(102, 126, 234, 0.1);
-    border-radius: 8px;
+  &__list-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  &__stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #667eea;
-    line-height: 1;
+  &__stat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mdc-filled-text-field-supporting-text-color);
   }
 
-  &__stat-label {
-    display: block;
-    font-size: 0.8rem;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 0.25rem;
+  &__stat-text {
+    font-size: 14px;
+    color: var(--mdc-filled-text-field-supporting-text-color);
   }
 
   &__progress-section {
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   &__progress-bar {
-    width: 100%;
+    flex: 1;
     height: 8px;
-    background: #f0f0f0;
+    background-color: var(--mdc-filled-text-field-outline-color);
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
   }
 
   &__progress-fill {
@@ -325,22 +310,22 @@
     transition: width 0.3s ease;
 
     &--primary {
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      background-color: var(--mdc-filled-text-field-container-color);
     }
 
     &--accent {
-      background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+      background-color: var(--mdc-filled-text-field-label-text-color);
     }
 
     &--warn {
-      background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%);
+      background-color: var(--mdc-filled-text-field-error-text-color);
     }
   }
 
   &__progress-text {
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
+    font-size: 12px;
+    color: var(--mdc-filled-text-field-supporting-text-color);
+    white-space: nowrap;
   }
 
   &__list-meta {
@@ -366,8 +351,16 @@
 
   &__list-actions {
     display: flex;
-    gap: 0.5rem;
-    padding: 0 1.5rem 1.5rem;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 20px 20px 20px;
+  }
+
+  &__action-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
   }
 
   &__view-button,
@@ -431,5 +424,33 @@
 
   .shopping-dashboard__delete-button {
     color: #f44336;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .shopping-dashboard {
+    &__container {
+      padding: 0 12px;
+    }
+
+    &__header-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__search-field {
+      max-width: 100%;
+    }
+
+    &__lists-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    &__list-stats {
+      flex-direction: column;
+      gap: 12px;
+    }
   }
 } 

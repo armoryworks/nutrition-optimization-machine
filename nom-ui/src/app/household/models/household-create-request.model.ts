@@ -1,0 +1,14 @@
+// File: nom-ui/src/app/household/models/household-create-request.model.ts
+
+import { IHouseholdCreateRequestModel } from './household-create-request.model.interface';
+
+export class HouseholdCreateRequestModel implements IHouseholdCreateRequestModel {
+    name: string = '';
+    description?: string;
+
+    constructor(data?: Partial<IHouseholdCreateRequestModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
+    }
+} 

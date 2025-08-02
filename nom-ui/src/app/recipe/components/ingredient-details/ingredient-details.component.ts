@@ -1,24 +1,23 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { IngredientModel } from '../../models/ingredient.model';
 import { NutrientValueModel } from '../../../nutrient/models/nutrient-value.model';
+import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 
 // Import the new label component and its data model
 import { NutritionLabelComponent } from '../../../nutrient/components/nutrition-label/nutrition-label.component';
 import { NutritionLabelData } from '../../../nutrient/models/nutrition-label-data';
 import { LabelNutrient } from '../../../nutrient/models/label-nutrient';
 
-
 @Component({
   selector: 'app-ingredient-details',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatDividerModule,
-    NutritionLabelComponent, // Import the new component
+    NutritionLabelComponent,
+    BaseDetailComponent,
   ],
   providers: [DecimalPipe],
   templateUrl: './ingredient-details.component.html',
@@ -27,8 +26,16 @@ import { LabelNutrient } from '../../../nutrient/models/label-nutrient';
 export class IngredientDetailsComponent {
   // This property will hold the formatted data for the label component
   public nutritionLabelData: NutritionLabelData | null = null;
-  
+
   private _ingredient: IngredientModel | null = null;
+
+  detailConfig: BaseDetailConfig = {
+    title: 'Ingredient Details',
+    subtitle: 'Nutritional information and details',
+    showBackButton: true,
+    backButtonText: 'Back',
+    maxWidth: '800px'
+  };
 
   @Input()
   set ingredient(value: IngredientModel | null) {
@@ -36,6 +43,13 @@ export class IngredientDetailsComponent {
     if (value) {
       // When the ingredient is set, map it to the label data structure
       this.nutritionLabelData = this.mapToLabelData(value);
+      this.detailConfig = {
+        title: value.name,
+        subtitle: `FDC ID: ${value.fdcId}`,
+        showBackButton: true,
+        backButtonText: 'Back',
+        maxWidth: '800px'
+      };
     } else {
       this.nutritionLabelData = null;
     }
@@ -43,6 +57,11 @@ export class IngredientDetailsComponent {
 
   get ingredient(): IngredientModel | null {
     return this._ingredient;
+  }
+
+  onBack(): void {
+    // This will be handled by the parent component
+    console.log('Back button clicked');
   }
 
   /**
@@ -56,7 +75,7 @@ export class IngredientDetailsComponent {
       name: nutrient.nutrientName,
       amount: nutrient.amount,
       unit: nutrient.unitName,
-      dailyValue: 0, // Placeholder for DV%, which requires another data source
+      dailyValue: this.calculateDailyValue(nutrient.nutrientName, nutrient.amount),
       isBold: boldNutrients.includes(nutrient.nutrientName),
       isIndented: indentedNutrients.includes(nutrient.nutrientName),
     }));
@@ -69,5 +88,32 @@ export class IngredientDetailsComponent {
       calories: nutrients.find(n => n.unit === 'kcal')?.amount || 0,
       nutrients: nutrients,
     };
+  }
+
+  /**
+   * Calculate daily value percentage for a nutrient.
+   * This is a simplified calculation based on FDA guidelines.
+   */
+  private calculateDailyValue(nutrientName: string, amount: number): number {
+    const dailyValues: { [key: string]: number } = {
+      'Total Fat': 78, // g
+      'Saturated Fat': 20, // g
+      'Trans Fat': 2, // g
+      'Cholesterol': 300, // mg
+      'Sodium': 2300, // mg
+      'Total Carbohydrate': 275, // g
+      'Dietary Fiber': 28, // g
+      'Total Sugars': 50, // g
+      'Protein': 50, // g
+      'Vitamin D': 20, // mcg
+      'Calcium': 1300, // mg
+      'Iron': 18, // mg
+      'Potassium': 4700, // mg
+    };
+
+    const dailyValue = dailyValues[nutrientName];
+    if (!dailyValue) return 0;
+
+    return Math.round((amount / dailyValue) * 100);
   }
 }

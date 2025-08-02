@@ -5,6 +5,7 @@ import {
   Output,
   EventEmitter,
   ViewEncapsulation,
+  OnDestroy,
 } from '@angular/core';
 import {
   FormGroup,
@@ -13,15 +14,16 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { PersonAttributeModel } from '../../models/person-attribute.model';
-import { MatSelectModule } from '@angular/material/select'; // For dropdowns if needed
+import { MatSelectModule } from '@angular/material/select';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { ReferenceService } from '../../../common/services/reference.service';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+import { Subject, takeUntil } from 'rxjs';
 
 // Extended interface for attribute types with additional properties
 interface AttributeTypeModel extends ReferenceItemModel {
@@ -38,30 +40,50 @@ interface AttributeTypeModel extends ReferenceItemModel {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule,
     MatIconModule,
     MatSelectModule,
+    BaseFormComponent,
+    BasePageComponent,
   ],
   templateUrl: './person-health-edit.component.html',
   styleUrls: ['./person-health-edit.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PersonHealthEditComponent implements OnInit {
+export class PersonHealthEditComponent implements OnInit, OnDestroy {
   public readonly HEIGHT_ATTRIBUTE_ID = 2000;
   public readonly HEIGHT_IN_FEET_NAME = 'HeightInFeet';
   public readonly HEIGHT_IN_INCHES_NAME = 'HeightInInches';
 
-  @Input() attributes: PersonAttributeModel[] = []; // Input to pre-populate
-  @Input() currentPersonId: number = 0; // The ID of the person these attributes belong to
+  @Input() attributes: PersonAttributeModel[] = [];
+  @Input() currentPersonId: number = 0;
   @Output() formSubmitted = new EventEmitter<PersonAttributeModel[]>();
   @Output() skipStep = new EventEmitter<void>();
 
   healthAttributesForm!: FormGroup;
-
   attributeTypes: AttributeTypeModel[] = [];
+  isSubmitting = false;
+  isLoading = false;
+  error: string | null = null;
+
+  pageConfig: BasePageConfig = {
+    title: 'Health Information',
+    subtitle: 'Provide some health details to help us personalize your plan (Optional)',
+    showBackButton: true,
+    maxWidth: '600px'
+  };
+
+  formConfig: BaseFormConfig = {
+    title: '',
+    subtitle: '',
+    submitText: 'Save Health Info',
+    showCancelButton: true,
+    cancelText: 'Skip',
+    maxWidth: '100%'
+  };
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: NonNullableFormBuilder,
@@ -72,8 +94,18 @@ export class PersonHealthEditComponent implements OnInit {
     this.loadAttributeTypes();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadAttributeTypes(): void {
-    this.referenceService.getAttributeTypes().subscribe({
+    this.isLoading = true;
+    this.error = null;
+
+    this.referenceService.getAttributeTypes().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (attributeTypes) => {
         // Transform basic reference items to extended attribute types
         this.attributeTypes = attributeTypes.map(attr => ({
@@ -85,9 +117,12 @@ export class PersonHealthEditComponent implements OnInit {
           options: this.getOptionsForAttribute(attr.name)
         }));
         this.initializeForm();
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Error loading attribute types:', error);
+        this.error = 'Failed to load health attributes. Please try again.';
+        this.isLoading = false;
       }
     });
   }
@@ -95,168 +130,158 @@ export class PersonHealthEditComponent implements OnInit {
   private initializeForm(): void {
     const formControls: { [key: string]: FormControl } = {};
 
-    this.attributeTypes.forEach((attrType) => {
+    // Initialize form controls for each attribute type
+    this.attributeTypes.forEach(attrType => {
       const controlName = this.getFormControlName(attrType.name);
-      const existingAttribute = this.attributes.find(
-        (a) => a.attributeTypeRefId === attrType.id
-      );
-
-      if (attrType.id === this.HEIGHT_ATTRIBUTE_ID) {
-        if (attrType.name === this.HEIGHT_IN_FEET_NAME) {
-          let heightInFeet = 0;
-          if (existingAttribute?.value) {
-            const totalHeightInInches = parseInt(existingAttribute.value);
-            heightInFeet = Math.floor(totalHeightInInches / 12);
-          }
-          formControls[controlName] = this.fb.control(heightInFeet);
-        } else if (attrType.name === this.HEIGHT_IN_INCHES_NAME) {
-          let heightInInches = 0;
-          if (existingAttribute?.value) {
-            const totalHeightInInches = parseInt(existingAttribute.value);
-            heightInInches = totalHeightInInches % 12;
-          }
-          formControls[controlName] = this.fb.control(heightInInches);
-        } else {
-          formControls[controlName] = this.fb.control('');
-        }
-      } else {
-        formControls[controlName] = this.fb.control(
-          existingAttribute?.value || ''
-        );
-      }
+      const existingValue = this.attributes.find(attr => attr.attributeTypeId === attrType.id)?.value || '';
+      formControls[controlName] = new FormControl(existingValue);
     });
+
+    // Special handling for height attributes
+    const heightAttribute = this.attributes.find(attr => attr.attributeTypeId === this.HEIGHT_ATTRIBUTE_ID);
+    if (heightAttribute) {
+      const heightInInches = parseInt(heightAttribute.value) || 0;
+      const feet = Math.floor(heightInInches / 12);
+      const inches = heightInInches % 12;
+
+      formControls[this.HEIGHT_IN_FEET_NAME] = new FormControl(feet);
+      formControls[this.HEIGHT_IN_INCHES_NAME] = new FormControl(inches);
+    } else {
+      formControls[this.HEIGHT_IN_FEET_NAME] = new FormControl('');
+      formControls[this.HEIGHT_IN_INCHES_NAME] = new FormControl('');
+    }
 
     this.healthAttributesForm = this.fb.group(formControls);
   }
 
-  /**
-   * Helper method to generate a valid form control name from a given string.
-   * Removes spaces and converts to lowercase.
-   * This is used to avoid regular expression literals in the template.
-   */
   getFormControlName(name: string): string {
-    return name.toLowerCase().replace(/\s/g, '');
+    return name.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
   }
 
-  /**
-   * Gathers data from the form and emits an array of PersonAttributeModel.
-   * Called by the parent workflow component's "Next" button.
-   */
-  submitForm(): void {
-    const submittedAttributes: PersonAttributeModel[] = [];
-    let heightProcessed = false;
+  onSubmit(): void {
+    this.isSubmitting = true;
+    this.error = null;
 
-    this.attributeTypes.forEach((attrType) => {
-      const controlName = this.getFormControlName(attrType.name);
+    if (this.healthAttributesForm.valid) {
+      const formValue = this.healthAttributesForm.value;
+      const attributes: PersonAttributeModel[] = [];
 
-      if (attrType.id === this.HEIGHT_ATTRIBUTE_ID) {
-        if (!heightProcessed) {
-          const heightInFeet =
-            this.healthAttributesForm.get(
-              this.getFormControlName(this.HEIGHT_IN_FEET_NAME)
-            )?.value || 0;
-          const heightInInches =
-            this.healthAttributesForm.get(
-              this.getFormControlName(this.HEIGHT_IN_INCHES_NAME)
-            )?.value || 0;
-          const totalHeightInInches = heightInFeet * 12 + heightInInches;
+      // Process each attribute type
+      this.attributeTypes.forEach(attrType => {
+        const controlName = this.getFormControlName(attrType.name);
+        const value = formValue[controlName];
 
-          if (totalHeightInInches > 0) {
-            submittedAttributes.push(
-              new PersonAttributeModel({
-                personId: this.currentPersonId,
-                attributeTypeRefId: attrType.id,
-                value: totalHeightInInches.toString(),
-              })
-            );
+        if (value !== null && value !== undefined && value !== '') {
+          let processedValue = value;
+
+          // Special handling for height
+          if (attrType.id === this.HEIGHT_ATTRIBUTE_ID) {
+            const feet = formValue[this.HEIGHT_IN_FEET_NAME] || 0;
+            const inches = formValue[this.HEIGHT_IN_INCHES_NAME] || 0;
+            processedValue = (feet * 12 + inches).toString();
           }
-          heightProcessed = true;
+
+          attributes.push({
+            personId: this.currentPersonId,
+            attributeTypeId: attrType.id,
+            value: processedValue.toString()
+          });
         }
-      } else {
-        const control = this.healthAttributesForm.get(controlName);
-        if (control?.value) {
-          submittedAttributes.push(
-            new PersonAttributeModel({
-              personId: this.currentPersonId,
-              attributeTypeRefId: attrType.id,
-              value: control.value.toString(),
-            })
-          );
-        }
-      }
-    });
-    this.formSubmitted.emit(submittedAttributes);
+      });
+
+      this.formSubmitted.emit(attributes);
+    } else {
+      this.error = 'Please correct the form errors before submitting.';
+    }
+    this.isSubmitting = false;
+  }
+
+  onCancel(): void {
+    this.skipStep.emit();
+  }
+
+  submitForm(): void {
+    this.onSubmit();
   }
 
   onSkip(): void {
     this.skipStep.emit();
   }
 
+  onBack(): void {
+    this.skipStep.emit();
+  }
+
+  onRefresh(): void {
+    this.loadAttributeTypes();
+  }
+
+  onRetry(): void {
+    this.error = null;
+    this.loadAttributeTypes();
+  }
+
   private getUnitForAttribute(attributeName: string): string {
-    switch (attributeName.toLowerCase()) {
-      case 'height':
-        return 'inches';
-      case 'weight':
-        return 'lbs';
-      case 'activity level':
-        return '';
-      case 'goal':
-        return '';
-      default:
-        return '';
-    }
+    const unitMap: { [key: string]: string } = {
+      'Height': 'inches',
+      'Weight': 'lbs',
+      'Age': 'years',
+      'Activity Level': '',
+      'Dietary Restrictions': '',
+      'Health Goals': '',
+      'Medical Conditions': ''
+    };
+    return unitMap[attributeName] || '';
   }
 
   private getIconForAttribute(attributeName: string): string {
-    switch (attributeName.toLowerCase()) {
-      case 'height':
-        return 'fa-ruler-vertical';
-      case 'weight':
-        return 'fa-weight';
-      case 'activity level':
-        return 'fa-running';
-      case 'goal':
-        return 'fa-bullseye';
-      default:
-        return 'fa-info-circle';
-    }
+    const iconMap: { [key: string]: string } = {
+      'Height': 'fa-ruler-vertical',
+      'Weight': 'fa-weight',
+      'Age': 'fa-birthday-cake',
+      'Activity Level': 'fa-running',
+      'Dietary Restrictions': 'fa-utensils',
+      'Health Goals': 'fa-bullseye',
+      'Medical Conditions': 'fa-heartbeat'
+    };
+    return iconMap[attributeName] || 'fa-info-circle';
   }
 
   private getClassForAttribute(attributeName: string): string {
-    switch (attributeName.toLowerCase()) {
-      case 'height':
-        return 'height-input';
-      case 'weight':
-        return 'weight-input';
-      case 'activity level':
-        return 'activity-input';
-      case 'goal':
-        return 'goal-input';
-      default:
-        return '';
-    }
+    const classMap: { [key: string]: string } = {
+      'Height': 'height-field',
+      'Weight': 'weight-field',
+      'Age': 'age-field'
+    };
+    return classMap[attributeName] || '';
   }
 
   private getOptionsForAttribute(attributeName: string): Array<{ value: string; label: string }> | undefined {
-    switch (attributeName.toLowerCase()) {
-      case 'activity level':
-        return [
-          { value: 'sedentary', label: 'Sedentary (little or no exercise)' },
-          { value: 'lightly_active', label: 'Lightly Active (light exercise 1-3 days/week)' },
-          { value: 'moderately_active', label: 'Moderately Active (moderate exercise 3-5 days/week)' },
-          { value: 'very_active', label: 'Very Active (hard exercise 6-7 days/week)' },
-          { value: 'extremely_active', label: 'Extremely Active (very hard exercise, physical job)' }
-        ];
-      case 'goal':
-        return [
-          { value: 'lose_weight', label: 'Lose Weight' },
-          { value: 'maintain_weight', label: 'Maintain Weight' },
-          { value: 'gain_weight', label: 'Gain Weight' },
-          { value: 'build_muscle', label: 'Build Muscle' },
-          { value: 'improve_fitness', label: 'Improve Fitness' }
-        ];
-      default:
-        return undefined;
-    }
+    const optionsMap: { [key: string]: Array<{ value: string; label: string }> } = {
+      'Activity Level': [
+        { value: 'sedentary', label: 'Sedentary (Little or no exercise)' },
+        { value: 'lightly_active', label: 'Lightly Active (Light exercise/sports 1-3 days/week)' },
+        { value: 'moderately_active', label: 'Moderately Active (Moderate exercise/sports 3-5 days/week)' },
+        { value: 'very_active', label: 'Very Active (Hard exercise/sports 6-7 days a week)' },
+        { value: 'extremely_active', label: 'Extremely Active (Very hard exercise/sports & physical job)' }
+      ],
+      'Dietary Restrictions': [
+        { value: 'none', label: 'No Restrictions' },
+        { value: 'vegetarian', label: 'Vegetarian' },
+        { value: 'vegan', label: 'Vegan' },
+        { value: 'gluten_free', label: 'Gluten-Free' },
+        { value: 'dairy_free', label: 'Dairy-Free' },
+        { value: 'keto', label: 'Keto' },
+        { value: 'paleo', label: 'Paleo' }
+      ],
+      'Health Goals': [
+        { value: 'weight_loss', label: 'Weight Loss' },
+        { value: 'weight_gain', label: 'Weight Gain' },
+        { value: 'maintenance', label: 'Maintenance' },
+        { value: 'muscle_gain', label: 'Muscle Gain' },
+        { value: 'general_health', label: 'General Health' }
+      ]
+    };
+    return optionsMap[attributeName];
   }
 }

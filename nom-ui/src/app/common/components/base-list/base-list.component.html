@@ -1,0 +1,97 @@
+<div class="base-list-container" [style.max-width]="config?.maxWidth">
+  <!-- Header -->
+  <div class="list-header">
+    <div class="header-content">
+      <h1 class="list-title">{{ config?.title }}</h1>
+      @if (config?.subtitle) {
+        <p class="list-subtitle">{{ config.subtitle }}</p>
+      }
+    </div>
+    
+    <div class="header-actions">
+      @if (config?.showCreateButton) {
+        <button 
+          mat-raised-button 
+          color="primary"
+          (click)="onCreate()">
+          <mat-icon>{{ config?.createButtonIcon || 'add' }}</mat-icon>
+          {{ config?.createButtonText || 'Create' }}
+        </button>
+      }
+      
+      @if (config?.showRefreshButton) {
+        <button 
+          mat-button 
+          (click)="onRefresh()">
+          <mat-icon>refresh</mat-icon>
+          {{ config?.refreshButtonText || 'Refresh' }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  @if (config?.showSearch) {
+    <div class="search-section">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search</mat-label>
+        <input 
+          matInput 
+          [formControl]="searchControl"
+          [placeholder]="config?.searchPlaceholder || 'Search...'">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ loadingMessage || 'Loading...' }}</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error && !isLoading) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <h3>{{ errorTitle || 'Error' }}</h3>
+      <p>{{ error }}</p>
+      @if (showRetryButton) {
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="onRetry()">
+          <mat-icon>refresh</mat-icon>
+          {{ retryButtonText || 'Try Again' }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading && !error && isEmpty) {
+    <div class="empty-container">
+      <mat-icon>inbox</mat-icon>
+      <h3>{{ emptyTitle || 'No Items' }}</h3>
+      <p>{{ emptyMessage || 'No items found.' }}</p>
+      @if (config?.showCreateButton) {
+        <button 
+          mat-raised-button 
+          color="primary"
+          (click)="onCreate()">
+          <mat-icon>{{ config?.createButtonIcon || 'add' }}</mat-icon>
+          {{ config?.createButtonText || 'Create' }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!isLoading && !error && !isEmpty) {
+    <div class="list-content">
+      <ng-content></ng-content>
+    </div>
+  }
+</div> 

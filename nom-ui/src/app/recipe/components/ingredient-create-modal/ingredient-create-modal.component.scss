@@ -1,28 +1,6 @@
 // File: nom-ui/src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.scss
 
 .nom-ingredient-create-modal {
-  padding: 24px;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-
-  &__header {
-    margin-bottom: 24px;
-  }
-
-  &__title {
-    margin: 0 0 8px 0;
-    font-size: 24px;
-    font-weight: 500;
-    color: var(--nom-text-primary);
-  }
-
-  &__subtitle {
-    margin: 0;
-    color: var(--nom-text-secondary);
-    font-size: 14px;
-  }
-
   &__loading {
     display: flex;
     justify-content: center;
@@ -30,16 +8,11 @@
     padding: 40px;
   }
 
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
   &__section {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    margin-bottom: 24px;
   }
 
   &__section-header {
@@ -53,7 +26,7 @@
     margin: 0;
     font-size: 18px;
     font-weight: 500;
-    color: var(--nom-text-primary);
+    color: var(--mat-sys-on-surface);
   }
 
   &__add-button {
@@ -70,10 +43,10 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--nom-warning-container);
-    color: var(--nom-warning-on-container);
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
     border-radius: 8px;
-    border: 1px solid var(--nom-warning);
+    border: 1px solid var(--mat-sys-error);
     font-size: 14px;
   }
 
@@ -84,7 +57,7 @@
     flex: 1;
 
     mat-icon {
-      color: var(--nom-warning);
+      color: var(--mat-sys-error);
       font-size: 20px;
       width: 20px;
       height: 20px;
@@ -98,20 +71,23 @@
   &__use-existing-btn {
     margin-left: auto;
     white-space: nowrap;
-    font-size: 12px;
-    padding: 4px 8px;
-    min-width: auto;
   }
 
   &__nutrient-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr auto;
     gap: 12px;
-    align-items: start;
-    padding: 16px;
-    background: var(--nom-surface-variant);
+    align-items: center;
+    padding: 12px;
+    background: var(--mat-sys-surface-container-low);
+    border: 1px solid var(--mat-sys-outline-variant);
     border-radius: 8px;
-    margin-bottom: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+      border-color: var(--mat-sys-outline);
+    }
   }
 
   &__nutrient-field {
@@ -119,48 +95,16 @@
   }
 
   &__remove-button {
-    color: var(--nom-error);
-    margin-top: 8px;
+    color: var(--mat-sys-error);
   }
 
   &__empty-message {
-    margin: 0;
-    padding: 16px;
     text-align: center;
-    color: var(--nom-text-secondary);
-    background: var(--nom-surface-variant);
-    border-radius: 8px;
+    padding: 24px;
+    color: var(--mat-sys-on-surface-variant);
     font-style: italic;
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--nom-outline);
-  }
-}
-
-// Responsive design for smaller screens
-@media (max-width: 768px) {
-  .nom-ingredient-create-modal {
-    padding: 16px;
-
-    &__nutrient-row {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-
-    &__section-header {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-    }
-
-    &__add-button {
-      align-self: flex-start;
-    }
+    border: 1px dashed var(--mat-sys-outline-variant);
+    border-radius: 8px;
+    background: var(--mat-sys-surface-container-low);
   }
 } 

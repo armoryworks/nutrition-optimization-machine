@@ -1,23 +1,12 @@
-.nom-page-container {
+.full-width {
+  width: 100%;
+}
+
+.error-message {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100%;
-}
-
-.nom-card {
-  width: 100%;
-  max-width: 500px;
-}
-
-.nom-form__field {
-  width: 100%;
-}
-
-.nom-button {
-  width: 100%;
-}
-
-.nom-button__spinner {
-  margin: auto;
+  gap: 0.5rem;
+  color: var(--mat-sys-error);
+  font-size: 0.9rem;
+  margin-top: 1rem;
 }

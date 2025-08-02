@@ -28,6 +28,10 @@ export class RecipeService {
     return this.http.get<RecipeModel[]>(this.apiUrl);
   }
 
+  getMyIngredients(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/ingredient/my`);
+  }
+
   getRecipe(id: number): Observable<RecipeModel> {
     return this.http.get<RecipeModel>(`${this.apiUrl}/${id}`);
   }

@@ -2,7 +2,6 @@
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject, Observable, throwError, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import {
   tap,
@@ -15,19 +14,9 @@ import {
 import { NotificationService } from '../../utilities/services/notification.service';
 import { EventBusService } from './event-bus.service';
 import { UserInfoService } from './user-info.service';
+import { AuthService } from '../../auth/auth.service';
 import { LoginResponse } from '../../auth/models/login-response';
-
-// Define interfaces for API responses/requests from your baseline
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
+import { LoginUser } from '../../auth/models/login-user';
 
 @Injectable({
   providedIn: 'root',
@@ -41,8 +30,6 @@ export class AuthManagerService {
   private _canManageUserRoles = new BehaviorSubject<boolean>(false);
   public readonly canManageCuration$ = this._canManageCuration.asObservable();
   public readonly canManageUserRoles$ = this._canManageUserRoles.asObservable();
-
-  private apiUrl = 'api/Auth';
 
   private readonly TOKEN_KEY = 'nom-token';
   private readonly REFRESH_TOKEN_KEY = 'nom-refresh-token';
@@ -58,11 +45,11 @@ export class AuthManagerService {
   private storage!: Storage;
 
   constructor(
-    private http: HttpClient,
     private router: Router,
     private notificationService: NotificationService,
     private eventBus: EventBusService,
-    private userInfoService: UserInfoService
+    private userInfoService: UserInfoService,
+    private authService: AuthService
   ) {
     this._rememberMe = localStorage.getItem(this.REMEMBER_ME_KEY) === 'true';
     this.storage = this._rememberMe ? localStorage : sessionStorage;
@@ -105,8 +92,6 @@ export class AuthManagerService {
     }
     return this._accessToken;
   }
-
-
 
   set tokenExpiration(value: number | undefined) {
     this._tokenExpiration = value;
@@ -267,31 +252,45 @@ export class AuthManagerService {
     return !!this.token;
   }
 
-  login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http
-      .post<LoginResponse>(`${this.apiUrl}/login`, credentials)
-      .pipe(
-        tap((response) => {
-          console.log('Login successful, storing auth data...');
-          this.storeAuthData(
-            response.accessToken,
-            response.refreshToken,
-            response.expiresIn
-          );
-          this.loadUserClaims();
-          this.notificationService.success('Logged in successfully!');
-        }),
-        catchError((error) => {
-          this.notificationService.error(
-            'Login failed: ' +
-            (error.error?.message || 'Please check your credentials.')
-          );
-          return throwError(() => error);
-        })
-      );
+  login(credentials: LoginUser): Observable<LoginResponse> {
+    return this.authService.login(credentials).pipe(
+      tap((response) => {
+        console.log('Login successful, storing auth data...');
+        this.storeAuthData(
+          response.accessToken,
+          response.refreshToken,
+          response.expiresIn
+        );
+        this.loadUserClaims();
+        this.notificationService.success('Logged in successfully!');
+      }),
+      catchError((error) => {
+        this.notificationService.error(
+          'Login failed: ' +
+          (error.error?.message || 'Please check your credentials.')
+        );
+        return throwError(() => error);
+      })
+    );
   }
 
   logout(): void {
+    // Call the API logout endpoint
+    this.authService.logout().subscribe({
+      next: () => {
+        console.log('Logout API call successful');
+      },
+      error: (error) => {
+        console.error('Logout API call failed:', error);
+        // Continue with local logout even if API call fails
+      },
+      complete: () => {
+        this.performLocalLogout();
+      }
+    });
+  }
+
+  private performLocalLogout(): void {
     this.storage.removeItem(this.TOKEN_KEY);
     this.storage.removeItem(this.REFRESH_TOKEN_KEY);
     this.storage.removeItem(this.EXPIRATION_KEY);
@@ -313,26 +312,24 @@ export class AuthManagerService {
   }
 
   refreshToken(): Observable<string> {
-    return this.http
-      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, {
-        refreshToken: this.storedRefreshToken,
+    if (!this.storedRefreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.authService.refreshToken(this.storedRefreshToken).pipe(
+      tap((response) => {
+        this.storeAuthData(
+          response.accessToken,
+          response.refreshToken,
+          response.expiresIn
+        );
+      }),
+      switchMap((response) => of(response.accessToken)),
+      catchError((error) => {
+        console.error('Token refresh failed:', error);
+        this.logout();
+        return throwError(() => error);
       })
-      .pipe(
-        tap((response) => {
-          this.storeAuthData(
-            response.accessToken,
-            response.refreshToken,
-            response.expiresIn
-          );
-        }),
-        switchMap((response) => of(response.accessToken)),
-        catchError((error) => {
-          console.error('Token refresh failed:', error);
-          this.logout();
-          return throwError(() => error);
-        })
-      );
+    );
   }
-
-
 }

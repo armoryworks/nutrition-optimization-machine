@@ -21,7 +21,8 @@ import {
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { IngredientModel } from '../../models/ingredient.model';
-import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component'; // Import details component
+import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component';
+import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-ingredient-search',
@@ -33,7 +34,8 @@ import { IngredientDetailsComponent } from '../ingredient-details/ingredient-det
     MatInputModule,
     MatAutocompleteModule,
     MatProgressSpinnerModule,
-    IngredientDetailsComponent, // Add details component to imports
+    IngredientDetailsComponent,
+    BaseListComponent,
   ],
   templateUrl: './ingredient-search.component.html',
   styleUrls: ['./ingredient-search.component.scss'],
@@ -43,9 +45,19 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
   filteredIngredients$: Observable<IngredientSearchResponseModel[]> | undefined;
   selectedIngredient: IngredientModel | null = null;
   isLoading = false;
+  error: string | null = null;
   private destroy$ = new Subject<void>();
 
-  constructor(private recipeService: RecipeService) {}
+  listConfig: BaseListConfig = {
+    title: 'Ingredient Search',
+    subtitle: 'Search for ingredients to view their nutritional information',
+    showSearch: true,
+    showFilters: false,
+    showPagination: false,
+    maxWidth: '800px'
+  };
+
+  constructor(private recipeService: RecipeService) { }
 
   ngOnInit(): void {
     this.filteredIngredients$ = this.searchControl.valueChanges.pipe(
@@ -54,19 +66,21 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
       switchMap((term) => {
         if (term && typeof term === 'string' && term.length > 2) {
           this.isLoading = true;
+          this.error = null;
           const retObs = this.recipeService.searchIngredients(term).pipe(
-            catchError(() => {
+            catchError((error) => {
+              console.error('Error searching ingredients:', error);
+              this.error = 'Failed to search ingredients. Please try again.';
               this.isLoading = false;
-              return of([]); // On error, return an empty array
+              return of([]);
             })
           );
-          retObs.subscribe((data) => { 
+          retObs.subscribe((data) => {
             this.isLoading = false;
-            console.info('made it here');
           });
           return retObs;
         } else {
-          return of([]); // If term is too short, return empty array
+          return of([]);
         }
       }),
       tap(() => (this.isLoading = false)),
@@ -86,9 +100,18 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
   onIngredientSelected(event: MatAutocompleteSelectedEvent): void {
     const selected: IngredientSearchResponseModel = event.option.value;
     this.isLoading = true;
+    this.error = null;
     this.recipeService
       .getIngredientDetails(selected.id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError((error) => {
+          console.error('Error loading ingredient details:', error);
+          this.error = 'Failed to load ingredient details.';
+          this.isLoading = false;
+          return of(null);
+        })
+      )
       .subscribe((details) => {
         this.selectedIngredient = details;
         this.isLoading = false;

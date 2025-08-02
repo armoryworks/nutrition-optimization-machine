@@ -1,5 +1,19 @@
 // File: nom-ui/src/app/household/models/household.model.ts
-// This file now re-exports all household models from separate files
 
-export * from './household.interfaces';
-export * from './household.classes'; 
+import { IHouseholdModel } from './household.model.interface';
+
+export class HouseholdModel implements IHouseholdModel {
+    id: number = 0;
+    name: string = '';
+    description?: string;
+    createdDate: Date = new Date();
+    modifiedDate?: Date;
+    memberCount: number = 0;
+    planCount: number = 0;
+
+    constructor(data?: Partial<IHouseholdModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
+    }
+} 

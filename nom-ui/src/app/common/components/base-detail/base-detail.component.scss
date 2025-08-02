@@ -1,0 +1,46 @@
+.base-detail-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.detail-content {
+  margin-bottom: 16px;
+}
+
+.action-menu-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+mat-card {
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+mat-card-header {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+mat-card-title {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-large);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+mat-card-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-large);
+}
+
+mat-card-content {
+  padding: 0;
+}
+
+mat-card-actions {
+  padding: 16px;
+  gap: 12px;
+} 

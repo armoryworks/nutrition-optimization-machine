@@ -1,0 +1,72 @@
+<div class="nom-page-container" [class.full-canvas]="config?.fullCanvas">
+  <div class="base-page-content" [style.max-width]="config?.maxWidth">
+    <!-- Header -->
+    @if (config?.title) {
+      <div class="base-page-header">
+        <div class="header-content">
+          <h1 class="page-title">{{ config.title }}</h1>
+          @if (config.subtitle) {
+            <p class="page-subtitle">{{ config.subtitle }}</p>
+          }
+        </div>
+        
+        @if (config?.showBackButton || config?.showRefreshButton) {
+          <div class="header-actions">
+            @if (config?.showBackButton) {
+              <button 
+                mat-button 
+                (click)="onBack()"
+                class="back-button">
+                <mat-icon>arrow_back</mat-icon>
+                {{ config.backButtonText || 'Back' }}
+              </button>
+            }
+            
+            @if (config?.showRefreshButton) {
+              <button 
+                mat-button 
+                (click)="onRefresh()"
+                class="refresh-button">
+                <mat-icon>refresh</mat-icon>
+                {{ config.refreshButtonText || 'Refresh' }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>{{ loadingMessage || 'Loading...' }}</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error && !isLoading) {
+      <div class="error-container">
+        <mat-icon color="warn">error</mat-icon>
+        <h3>{{ errorTitle || 'Error' }}</h3>
+        <p>{{ error }}</p>
+        @if (showRetryButton) {
+          <button 
+            mat-raised-button 
+            color="primary" 
+            (click)="onRetry()">
+            <mat-icon>refresh</mat-icon>
+            {{ retryButtonText || 'Try Again' }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!isLoading && !error) {
+      <div class="base-page-body">
+        <ng-content></ng-content>
+      </div>
+    }
+  </div>
+</div> 

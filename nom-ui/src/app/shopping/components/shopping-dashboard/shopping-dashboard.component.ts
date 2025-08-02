@@ -18,6 +18,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
     selector: 'app-shopping-dashboard',
@@ -36,6 +38,7 @@ import { ShoppingListResponseModel } from '../../models/shopping.model';
         MatFormFieldModule,
         MatInputModule,
         ReactiveFormsModule,
+        BasePageComponent,
     ],
     templateUrl: './shopping-dashboard.component.html',
     styleUrls: ['./shopping-dashboard.component.scss']
@@ -46,6 +49,14 @@ export class ShoppingDashboardComponent implements OnInit {
     isLoading = true;
     error: string | null = null;
     searchControl = new FormControl('');
+
+    pageConfig: BasePageConfig = {
+        title: 'Shopping Lists',
+        subtitle: 'Manage your shopping lists and track your purchases',
+        showRefreshButton: true,
+        refreshButtonText: 'Refresh',
+        maxWidth: '1200px',
+    };
 
     constructor(
         private router: Router,
@@ -72,13 +83,18 @@ export class ShoppingDashboardComponent implements OnInit {
         this.isLoading = true;
         this.error = null;
 
-        // TODO: Implement get all shopping lists service method
-        // For now, using mock data
-        setTimeout(() => {
-            this.shoppingLists = [];
-            this.filteredLists = [...this.shoppingLists];
-            this.isLoading = false;
-        }, 1000);
+        this.shoppingService.getShoppingLists().subscribe({
+            next: (shoppingLists) => {
+                this.shoppingLists = shoppingLists;
+                this.filteredLists = [...this.shoppingLists];
+                this.isLoading = false;
+            },
+            error: (error) => {
+                console.error('Error loading shopping lists:', error);
+                this.error = 'Failed to load shopping lists';
+                this.isLoading = false;
+            }
+        });
     }
 
     filterLists(searchTerm: string): void {
@@ -106,11 +122,38 @@ export class ShoppingDashboardComponent implements OnInit {
     }
 
     onDeleteList(listId: number): void {
-        // TODO: Implement delete confirmation dialog
-        this.snackBar.open('Delete functionality not yet implemented', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
+        const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: '400px',
+            data: {
+                title: 'Delete Shopping List',
+                message: 'Are you sure you want to delete this shopping list? This action cannot be undone.',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                confirmColor: 'warn'
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) {
+                this.shoppingService.deleteShoppingList(listId).subscribe({
+                    next: () => {
+                        this.snackBar.open('Shopping list deleted successfully', 'Close', {
+                            duration: 3000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                        this.loadShoppingLists();
+                    },
+                    error: (error) => {
+                        console.error('Error deleting shopping list:', error);
+                        this.snackBar.open('Failed to delete shopping list', 'Close', {
+                            duration: 5000,
+                            horizontalPosition: 'center',
+                            verticalPosition: 'top'
+                        });
+                    }
+                });
+            }
         });
     }
 
@@ -118,9 +161,13 @@ export class ShoppingDashboardComponent implements OnInit {
         this.loadShoppingLists();
     }
 
+    onRetry(): void {
+        this.loadShoppingLists();
+    }
+
     getProgressPercentage(list: ShoppingListResponseModel): number {
-        if (list.itemCount === 0) return 0;
-        return Math.round((list.completedItemCount / list.itemCount) * 100);
+        if (!list.totalItems || list.totalItems === 0) return 0;
+        return Math.round((list.completedItems / list.totalItems) * 100);
     }
 
     getProgressColor(percentage: number): string {

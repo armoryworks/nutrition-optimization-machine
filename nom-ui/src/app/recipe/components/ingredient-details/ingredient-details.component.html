@@ -1,16 +1,14 @@
 @if (ingredient) {
-<mat-card class="nom-card ingredient-details">
-    <mat-card-header class="nom-card__header">
-        <mat-card-title class="nom-card__title">{{
-            ingredient.name
-            }}</mat-card-title>
-        <mat-card-subtitle class="nom-card__subtitle">FDC ID: {{ ingredient.fdcId }}</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content class="nom-card__content">
-        @if (nutritionLabelData) {
+  <app-base-detail
+    [config]="detailConfig"
+    (back)="onBack()">
+
+    <div class="ingredient-details__content">
+      @if (nutritionLabelData) {
         <app-nutrition-label [data]="nutritionLabelData"></app-nutrition-label>
-        } @else {
+      } @else {
         <p>No nutrition data to display.</p>
-        }
-    </mat-card-content>
-</mat-card>   }
+      }
+    </div>
+  </app-base-detail>
+}

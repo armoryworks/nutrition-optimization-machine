@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/curation/components/curation-queue/curation-queue.component.ts
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -15,10 +15,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, takeUntil } from 'rxjs';
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
 import { CurationDecisionRequestModel } from '../../models/curation-decision-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-curation-queue',
@@ -38,17 +40,30 @@ import { NotificationService } from '../../../utilities/services/notification.se
     MatProgressSpinnerModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    BaseListComponent
   ],
   templateUrl: './curation-queue.component.html',
   styleUrls: ['./curation-queue.component.scss']
 })
-export class CurationQueueComponent implements OnInit {
+export class CurationQueueComponent implements OnInit, OnDestroy {
   queueItems: CurationQueueItemModel[] = [];
   isLoading = true;
   selectedItem: CurationQueueItemModel | null = null;
   decisionForm: FormGroup;
   isSubmitting = false;
+  error: string | null = null;
+
+  listConfig: BaseListConfig = {
+    title: 'Curation Queue',
+    subtitle: 'Review and approve submitted content',
+    showSearch: false,
+    showRefreshButton: true,
+    refreshButtonText: 'Refresh',
+    maxWidth: 'none'
+  };
+
+  private destroy$ = new Subject<void>();
 
   // Computed properties for template filtering
   get recipeCount(): number {
@@ -67,8 +82,8 @@ export class CurationQueueComponent implements OnInit {
     private fb: FormBuilder
   ) {
     this.decisionForm = this.fb.group({
-      decisionNotes: ['', [Validators.required, Validators.minLength(10)]],
-      publicNotes: ['', [Validators.maxLength(500)]]
+      decisionNotes: ['', [[Validators.required, Validators.minLength(10)]]],
+      publicNotes: ['', [[Validators.maxLength(500)]]]
     });
   }
 
@@ -84,35 +99,40 @@ export class CurationQueueComponent implements OnInit {
     this.loadCurationQueue();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadCurationQueue(): void {
     console.log('Loading curation queue...');
     this.isLoading = true;
-    this.curationService.getCurationQueue().subscribe({
+    this.error = null;
+
+    this.curationService.getCurationQueue().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (items) => {
         console.log('Curation queue loaded:', items);
         this.queueItems = items;
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading curation queue:', error);
-        console.error('Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          error: error.error
-        });
-
-        if (error.status === 403) {
-          this.notificationService.error('Access denied. You do not have permission to view the curation queue.');
-        } else if (error.status === 401) {
-          this.notificationService.error('Authentication required. Please log in again.');
-        } else {
-          this.notificationService.error('Failed to load curation queue: ' + (error.error?.message || error.message || 'Unknown error'));
-        }
-
+        this.error = 'Failed to load curation queue. Please try again.';
         this.isLoading = false;
+        this.notificationService.error('Failed to load curation queue');
       }
     });
+  }
+
+  onRefresh(): void {
+    this.loadCurationQueue();
+  }
+
+  onRetry(): void {
+    this.error = null;
+    this.loadCurationQueue();
   }
 
   selectItem(item: CurationQueueItemModel): void {
@@ -121,75 +141,96 @@ export class CurationQueueComponent implements OnInit {
   }
 
   approve(): void {
-    if (!this.selectedItem || this.decisionForm.invalid) return;
+    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+      return;
+    }
 
     this.isSubmitting = true;
-    const request: CurationDecisionRequestModel = {
+    this.error = null;
+
+    const decision: CurationDecisionRequestModel = {
       entityId: this.selectedItem.id,
       entityType: this.selectedItem.entityType,
       decisionNotes: this.decisionForm.get('decisionNotes')?.value
     };
 
-    this.curationService.approve(request).subscribe({
+    this.curationService.approve(decision).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: () => {
         this.notificationService.success('Item approved successfully');
+        this.queueItems = this.queueItems.filter(item => item.id !== this.selectedItem!.id);
         this.selectedItem = null;
         this.decisionForm.reset();
-        this.loadCurationQueue();
+        this.isSubmitting = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error approving item:', error);
-        this.notificationService.error('Failed to approve item');
+        this.error = 'Failed to approve item. Please try again.';
         this.isSubmitting = false;
       }
     });
   }
 
   requestRevision(): void {
-    if (!this.selectedItem || this.decisionForm.invalid) return;
+    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+      return;
+    }
 
     this.isSubmitting = true;
-    const request: CurationDecisionRequestModel = {
+    this.error = null;
+
+    const decision: CurationDecisionRequestModel = {
       entityId: this.selectedItem.id,
       entityType: this.selectedItem.entityType,
       decisionNotes: this.decisionForm.get('decisionNotes')?.value
     };
 
-    this.curationService.requestRevision(request).subscribe({
+    this.curationService.requestRevision(decision).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: () => {
         this.notificationService.success('Revision requested successfully');
+        this.queueItems = this.queueItems.filter(item => item.id !== this.selectedItem!.id);
         this.selectedItem = null;
         this.decisionForm.reset();
-        this.loadCurationQueue();
+        this.isSubmitting = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error requesting revision:', error);
-        this.notificationService.error('Failed to request revision');
+        this.error = 'Failed to request revision. Please try again.';
         this.isSubmitting = false;
       }
     });
   }
 
   reject(): void {
-    if (!this.selectedItem || this.decisionForm.invalid) return;
+    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+      return;
+    }
 
     this.isSubmitting = true;
-    const request: CurationDecisionRequestModel = {
+    this.error = null;
+
+    const decision: CurationDecisionRequestModel = {
       entityId: this.selectedItem.id,
       entityType: this.selectedItem.entityType,
       decisionNotes: this.decisionForm.get('decisionNotes')?.value
     };
 
-    this.curationService.reject(request).subscribe({
+    this.curationService.reject(decision).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: () => {
         this.notificationService.success('Item rejected successfully');
+        this.queueItems = this.queueItems.filter(item => item.id !== this.selectedItem!.id);
         this.selectedItem = null;
         this.decisionForm.reset();
-        this.loadCurationQueue();
+        this.isSubmitting = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error rejecting item:', error);
-        this.notificationService.error('Failed to reject item');
+        this.error = 'Failed to reject item. Please try again.';
         this.isSubmitting = false;
       }
     });
@@ -215,46 +256,43 @@ export class CurationQueueComponent implements OnInit {
   }
 
   truncateText(text: string, maxLength: number = 100): string {
-    if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   }
 
-  parseIngredients(ingredientsString: string): Array<{name: string, quantity: string, unit: string}> {
+  parseIngredients(ingredientsString: string): Array<{ name: string, quantity: string, unit: string }> {
     if (!ingredientsString) return [];
-    
-    try {
-      // Try to parse as JSON first
-      const ingredients = JSON.parse(ingredientsString);
-      if (Array.isArray(ingredients)) {
-        return ingredients.map(ing => ({
-          name: ing.name || ing.ingredientName || 'Unknown',
-          quantity: ing.quantity || ing.amount || '0',
-          unit: ing.unit || ing.measurementType || 'g'
-        }));
-      }
-    } catch (e) {
-      // If JSON parsing fails, try to parse as string
-      console.log('Failed to parse ingredients as JSON, trying string parsing');
-    }
 
-    // Fallback: parse as comma-separated string
-    return ingredientsString.split(',').map(item => {
-      const parts = item.trim().split(' ');
-      if (parts.length >= 3) {
-        const quantity = parts[0];
-        const unit = parts[1];
-        const name = parts.slice(2).join(' ');
-        return { name, quantity, unit };
-      } else {
-        return { name: item.trim(), quantity: '0', unit: 'g' };
-      }
-    });
+    try {
+      // Parse the ingredients string - this is a simplified parser
+      // In a real implementation, you'd want more robust parsing
+      const lines = ingredientsString.split('\n').filter(line => line.trim());
+      return lines.map(line => {
+        const parts = line.split(' ');
+        if (parts.length >= 3) {
+          const quantity = parts[0];
+          const unit = parts[1];
+          const name = parts.slice(2).join(' ');
+          return { name, quantity, unit };
+        } else {
+          return { name: line, quantity: '', unit: '' };
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing ingredients:', error);
+      return [];
+    }
   }
 
   getRecipeSteps(item: CurationQueueItemModel): string[] {
-    // For now, return empty array since we need to fetch recipe steps separately
-    // In a real implementation, you might want to add a separate API endpoint
-    // to get recipe details including steps for curation
-    return [];
+    if (!item.instructions) return [];
+
+    try {
+      // Parse the instructions string
+      const lines = item.instructions.split('\n').filter(line => line.trim());
+      return lines.map(line => line.trim());
+    } catch (error) {
+      console.error('Error parsing recipe steps:', error);
+      return [];
+    }
   }
 }

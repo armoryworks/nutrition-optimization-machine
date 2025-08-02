@@ -6,7 +6,6 @@ import { FormArray, FormBuilder, FormGroup, Validators, ReactiveFormsModule } fr
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -15,6 +14,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, take } from 'rxjs/operators';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 export interface IngredientCreateModalData {
     ingredientName: string;
@@ -29,11 +29,11 @@ export interface IngredientCreateModalData {
         MatDialogModule,
         MatProgressSpinnerModule,
         MatIconModule,
-        MatCardModule,
         MatButtonModule,
         MatFormFieldModule,
         MatInputModule,
-        MatSelectModule
+        MatSelectModule,
+        BaseFormComponent
     ],
     templateUrl: './ingredient-create-modal.component.html',
     styleUrls: ['./ingredient-create-modal.component.scss']
@@ -44,6 +44,15 @@ export class IngredientCreateModalComponent implements OnInit {
     isSubmitting = false;
     existingIngredient: IngredientSearchResponseModel | null = null;
     isCheckingDuplicate = false;
+
+    formConfig: BaseFormConfig = {
+        title: 'Create New Ingredient',
+        subtitle: 'Define the core properties and nutritional information for this ingredient.',
+        submitText: 'Create Ingredient',
+        showCancelButton: true,
+        cancelText: 'Cancel',
+        maxWidth: '600px'
+    };
 
     constructor(
         private fb: FormBuilder,

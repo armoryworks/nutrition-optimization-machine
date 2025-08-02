@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatCardModule } from "@angular/material/card";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
@@ -17,6 +16,7 @@ import { Subject, takeUntil } from "rxjs";
 
 import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
 import { RecipeTimelineEventModel, RecipeTimelineEventCreateModel } from "../../models/recipe-timeline-event.model";
+import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
     selector: "app-recipe-timeline-events",
@@ -24,7 +24,6 @@ import { RecipeTimelineEventModel, RecipeTimelineEventCreateModel } from "../../
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
@@ -35,6 +34,7 @@ import { RecipeTimelineEventModel, RecipeTimelineEventCreateModel } from "../../
         MatDatepickerModule,
         MatNativeDateModule,
         MatSelectModule,
+        BaseDetailComponent,
     ],
     templateUrl: "./recipe-timeline-events.component.html",
     styleUrls: ["./recipe-timeline-events.component.scss"],
@@ -63,7 +63,15 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
 
     isLoading = false;
     isSubmitting = false;
+    error: string | null = null;
     private destroy$ = new Subject<void>();
+
+    detailConfig: BaseDetailConfig = {
+        title: 'Recipe Timeline',
+        subtitle: 'Track important events and milestones for this recipe',
+        showBackButton: false,
+        maxWidth: '800px'
+    };
 
     constructor(
         private fb: NonNullableFormBuilder,
@@ -84,6 +92,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
 
     loadTimelineEvents(): void {
         this.isLoading = true;
+        this.error = null;
         this.recipeAdvancedService
             .getRecipeTimelineEvents(this.recipeId)
             .pipe(takeUntil(this.destroy$))
@@ -97,7 +106,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading timeline events:", error);
-                    this.snackBar.open("Failed to load timeline events", "Close", { duration: 3000 });
+                    this.error = "Failed to load timeline events. Please try again.";
                     this.isLoading = false;
                 },
             });
@@ -109,13 +118,13 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
         }
 
         this.isSubmitting = true;
-        const formValue = this.timelineEventForm.value;
+        this.error = null;
         const request: RecipeTimelineEventCreateModel = {
             recipeId: this.recipeId,
-            eventTypeId: formValue.eventTypeId!,
-            eventTitle: formValue.eventTitle!,
-            eventDescription: formValue.eventDescription || undefined,
-            eventDate: formValue.eventDate ? formValue.eventDate.toISOString() : undefined,
+            eventTypeId: this.timelineEventForm.get("eventTypeId")!.value,
+            eventTitle: this.timelineEventForm.get("eventTitle")!.value,
+            eventDescription: this.timelineEventForm.get("eventDescription")!.value || undefined,
+            eventDate: this.timelineEventForm.get("eventDate")!.value || undefined,
         };
 
         this.recipeAdvancedService
@@ -125,33 +134,31 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 next: (timelineEvent) => {
                     this.timelineEvents.unshift(timelineEvent);
                     this.timelineEventForm.reset();
-                    this.snackBar.open("Timeline event created successfully", "Close", { duration: 3000 });
+                    this.snackBar.open("Timeline event added successfully", "Close", { duration: 3000 });
                     this.isSubmitting = false;
                 },
                 error: (error) => {
                     console.error("Error creating timeline event:", error);
-                    this.snackBar.open("Failed to create timeline event", "Close", { duration: 3000 });
+                    this.error = "Failed to create timeline event. Please try again.";
                     this.isSubmitting = false;
                 },
             });
     }
 
     deleteTimelineEvent(eventId: number): void {
-        if (confirm("Are you sure you want to delete this timeline event?")) {
-            this.recipeAdvancedService
-                .deleteTimelineEvent(eventId)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                    next: () => {
-                        this.timelineEvents = this.timelineEvents.filter((event) => event.id !== eventId);
-                        this.snackBar.open("Timeline event deleted successfully", "Close", { duration: 3000 });
-                    },
-                    error: (error) => {
-                        console.error("Error deleting timeline event:", error);
-                        this.snackBar.open("Failed to delete timeline event", "Close", { duration: 3000 });
-                    },
-                });
-        }
+        this.recipeAdvancedService
+            .deleteTimelineEvent(eventId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.timelineEvents = this.timelineEvents.filter(e => e.id !== eventId);
+                    this.snackBar.open("Timeline event deleted successfully", "Close", { duration: 3000 });
+                },
+                error: (error) => {
+                    console.error("Error deleting timeline event:", error);
+                    this.snackBar.open("Failed to delete timeline event", "Close", { duration: 3000 });
+                },
+            });
     }
 
     getEventTypeName(eventTypeId: number): string {
@@ -173,21 +180,23 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
     }
 
     formatDate(dateString: string): string {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 
     formatEventDate(dateString: string | undefined): string {
         if (!dateString) return "No date specified";
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     }
 } 

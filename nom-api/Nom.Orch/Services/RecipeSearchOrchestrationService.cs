@@ -135,6 +135,140 @@ namespace Nom.Orch.Services
             };
         }
 
+        // Advanced search features (from Mealie)
+        public async Task<RecipeSearchResponseModel> FuzzySearchAsync(string query, int page = 1, int pageSize = 20)
+        {
+            _logger.LogInformation("Performing fuzzy search for: {Query}", query);
+
+            var searchModel = new RecipeSearchModel
+            {
+                Query = query,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return await SearchRecipesAsync(searchModel);
+        }
+
+        public async Task<RecipeSearchResponseModel> AdvancedSearchAsync(RecipeAdvancedSearchModel searchModel)
+        {
+            _logger.LogInformation("Performing advanced search");
+
+            var basicSearchModel = new RecipeSearchModel
+            {
+                Query = searchModel.Query,
+                CategoryIds = searchModel.CategoryIds,
+                TagIds = searchModel.TagIds,
+                ToolIds = searchModel.ToolIds,
+                IngredientIds = searchModel.IngredientIds,
+                MinRating = searchModel.MinRating,
+                MaxPrepTime = searchModel.MaxPrepTime,
+                MaxCookTime = searchModel.MaxCookTime,
+                MaxTotalTime = searchModel.MaxTotalTime,
+                IsPublic = searchModel.IsPublic,
+                IsApproved = searchModel.IsApproved,
+                SortBy = searchModel.SortBy,
+                SortDirection = searchModel.SortDirection,
+                Page = searchModel.Page,
+                PageSize = searchModel.PageSize,
+                IncludeIngredients = searchModel.IncludeIngredients,
+                IncludeSteps = searchModel.IncludeSteps,
+                IncludeNutrition = searchModel.IncludeNutrition
+            };
+
+            return await SearchRecipesAsync(basicSearchModel);
+        }
+
+        public async Task<RecipeSuggestionResponseModel> SuggestRecipesAsync(RecipeSuggestionModel suggestionModel)
+        {
+            _logger.LogInformation("Getting recipe suggestions");
+
+            var query = _context.Recipes
+                .Include(r => r.RecipeCategories)
+                .ThenInclude(rc => rc.Category)
+                .Include(r => r.RecipeTags)
+                .ThenInclude(rt => rt.Tag)
+                .Where(r => r.CurationStatus!.Name == "Approved");
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(suggestionModel.Query))
+            {
+                var searchTerm = suggestionModel.Query.ToLower();
+                query = query.Where(r => r.Name.ToLower().Contains(searchTerm) ||
+                                       (r.Description != null && r.Description.ToLower().Contains(searchTerm)));
+            }
+
+            if (suggestionModel.FoodIds != null && suggestionModel.FoodIds.Any())
+            {
+                query = query.Where(r => r.RecipeIngredients!.Any(ri => suggestionModel.FoodIds!.Contains(ri.IngredientId)));
+            }
+
+            if (suggestionModel.ToolIds != null && suggestionModel.ToolIds.Any())
+            {
+                query = query.Where(r => r.RecipeTools!.Any(rt => suggestionModel.ToolIds!.Contains(rt.ToolId)));
+            }
+
+            var recipes = await query
+                .OrderByDescending(r => r.Ratings!.Average(rating => rating.Rating))
+                .ThenByDescending(r => r.CreatedDate)
+                .Take(suggestionModel.Limit)
+                .ToListAsync();
+
+            var suggestions = recipes.Select(r => new RecipeSuggestionResultModel
+            {
+                Id = (int)r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                ImageUrl = r.Image,
+                Rating = r.Ratings?.Any() == true ? r.Ratings.Average(rating => rating.Rating) : null,
+                RatingCount = r.Ratings?.Count ?? 0,
+                Categories = r.RecipeCategories?.Select(rc => rc.Category?.Name ?? "").ToList() ?? new List<string>(),
+                Tags = r.RecipeTags?.Select(rt => rt.Tag?.Name ?? "").ToList() ?? new List<string>()
+            }).ToList();
+
+            return new RecipeSuggestionResponseModel
+            {
+                Suggestions = suggestions,
+                TotalCount = suggestions.Count
+            };
+        }
+
+        public async Task<RecipeSearchResponseModel> SearchByCategoriesAsync(List<long> categoryIds, int page = 1, int pageSize = 20)
+        {
+            var searchModel = new RecipeSearchModel
+            {
+                CategoryIds = categoryIds,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return await SearchRecipesAsync(searchModel);
+        }
+
+        public async Task<RecipeSearchResponseModel> SearchByTagsAsync(List<long> tagIds, int page = 1, int pageSize = 20)
+        {
+            var searchModel = new RecipeSearchModel
+            {
+                TagIds = tagIds,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return await SearchRecipesAsync(searchModel);
+        }
+
+        public async Task<RecipeSearchResponseModel> SearchByToolsAsync(List<long> toolIds, int page = 1, int pageSize = 20)
+        {
+            var searchModel = new RecipeSearchModel
+            {
+                ToolIds = toolIds,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return await SearchRecipesAsync(searchModel);
+        }
+
         private IQueryable<RecipeEntity> ApplySearchFilters(IQueryable<RecipeEntity> query, RecipeSearchModel searchModel)
         {
             // Text search

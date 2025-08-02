@@ -1,0 +1,126 @@
+.meal-plan-rules-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.button-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.add-rule-section {
+  margin-bottom: 32px;
+
+  h3 {
+    margin-bottom: 16px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.rules-section {
+  h3 {
+    margin-bottom: 16px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.no-rules {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--mat-sys-outline);
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rule-card {
+  background-color: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  .rule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .rule-info {
+    flex: 1;
+
+    h4 {
+      margin: 0 0 8px 0;
+      color: var(--mat-sys-on-surface);
+      font-weight: 500;
+    }
+
+    .filter-text {
+      margin: 0;
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 14px;
+      font-style: italic;
+    }
+  }
+}
+
+mat-card {
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+mat-card-header {
+  margin-bottom: 16px;
+}
+
+mat-card-title {
+  color: var(--mat-sys-on-surface);
+}
+
+mat-card-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+} 

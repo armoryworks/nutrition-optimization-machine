@@ -11,7 +11,7 @@ import { ReferenceItemModel } from '../models/reference-item.model';
 export class ReferenceService {
   private readonly apiUrl = '/api/Reference';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   /**
    * Get all measurement types from the reference data
@@ -22,20 +22,8 @@ export class ReferenceService {
 
   /**
    * Get attribute types for person health attributes
-   * This would need to be implemented on the backend first
    */
   getAttributeTypes(): Observable<ReferenceItemModel[]> {
-    // TODO: Implement backend endpoint for attribute types
-    // For now, return mock data
-    return new Observable(observer => {
-      const mockAttributeTypes: ReferenceItemModel[] = [
-        { id: 2001, name: 'Height' },
-        { id: 2002, name: 'Weight' },
-        { id: 2003, name: 'Activity Level' },
-        { id: 2004, name: 'Goal' }
-      ];
-      observer.next(mockAttributeTypes);
-      observer.complete();
-    });
+    return this.http.get<ReferenceItemModel[]>(`${this.apiUrl}/attribute-types`);
   }
 } 

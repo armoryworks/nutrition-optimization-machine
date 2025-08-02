@@ -19,6 +19,10 @@ export class MealPlanService {
 
     constructor(private http: HttpClient) { }
 
+    getMealPlans(): Observable<MealPlanResponseModel[]> {
+        return this.http.get<MealPlanResponseModel[]>(`${this.apiUrl}`);
+    }
+
     createMealPlan(request: MealPlanCreateRequestModel): Observable<MealPlanCreateResponseModel> {
         return this.http.post<MealPlanCreateResponseModel>(`${this.apiUrl}`, request);
     }

@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -19,6 +18,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Observable, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { RecipeSearchService } from '../../services/recipe-search.service';
 import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../../models/recipe-search.model';
+import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
     selector: 'app-recipe-search',
@@ -28,7 +28,6 @@ import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../
         RouterModule,
         FormsModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatSelectModule,
@@ -41,7 +40,8 @@ import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../
         MatExpansionModule,
         MatSliderModule,
         MatCheckboxModule,
-        MatAutocompleteModule
+        MatAutocompleteModule,
+        BaseListComponent
     ],
     templateUrl: './recipe-search.component.html',
     styleUrls: ['./recipe-search.component.scss']
@@ -56,6 +56,16 @@ export class RecipeSearchComponent implements OnInit {
     totalPages = 0;
     hasNextPage = false;
     hasPreviousPage = false;
+    error: string | null = null;
+
+    listConfig: BaseListConfig = {
+        title: 'Recipe Search',
+        subtitle: 'Discover recipes with advanced filtering',
+        showSearch: true,
+        showFilters: true,
+        showPagination: true,
+        maxWidth: '1200px'
+    };
 
     // Filter options
     sortOptions = [
@@ -99,8 +109,8 @@ export class RecipeSearchComponent implements OnInit {
             debounceTime(300),
             distinctUntilChanged(),
             switchMap(query => {
-                if (query && query.length >= 2) {
-                    return this.searchService.getSearchSuggestions(query);
+                if (query && query.trim().length > 2) {
+                    return this.searchService.getSearchSuggestions(query.trim());
                 }
                 return new Observable<string[]>();
             })
@@ -108,29 +118,43 @@ export class RecipeSearchComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.performSearch();
+        // Load initial data
+        this.loadPopularRecipes();
     }
 
     performSearch(): void {
         this.loading = true;
-        const searchModel: RecipeSearchModel = {
-            ...this.searchForm.value,
+        this.error = null;
+
+        const searchParams: RecipeSearchModel = {
+            query: this.searchForm.get('query')?.value || '',
+            minRating: this.searchForm.get('minRating')?.value,
+            maxPrepTime: this.searchForm.get('maxPrepTime')?.value,
+            maxCookTime: this.searchForm.get('maxCookTime')?.value,
+            maxTotalTime: this.searchForm.get('maxTotalTime')?.value,
+            isPublic: this.searchForm.get('isPublic')?.value,
+            isApproved: this.searchForm.get('isApproved')?.value,
+            sortBy: this.searchForm.get('sortBy')?.value,
+            sortDirection: this.searchForm.get('sortDirection')?.value,
+            includeIngredients: this.searchForm.get('includeIngredients')?.value,
+            includeSteps: this.searchForm.get('includeSteps')?.value,
+            includeNutrition: this.searchForm.get('includeNutrition')?.value,
             page: this.currentPage,
             pageSize: this.pageSize
         };
 
-        this.searchService.searchRecipes(searchModel).subscribe({
+        this.searchService.searchRecipes(searchParams).subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.recipes;
+                this.searchResults = response.results;
                 this.totalCount = response.totalCount;
-                this.totalPages = response.totalPages;
-                this.hasNextPage = response.hasNextPage;
-                this.hasPreviousPage = response.hasPreviousPage;
+                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = this.currentPage < this.totalPages;
+                this.hasPreviousPage = this.currentPage > 1;
                 this.loading = false;
             },
             error: (error) => {
-                console.error('Error searching recipes:', error);
-                this.snackBar.open('Error searching recipes', 'Close', { duration: 3000 });
+                console.error('Search error:', error);
+                this.error = 'Failed to search recipes. Please try again.';
                 this.loading = false;
             }
         });
@@ -148,7 +172,7 @@ export class RecipeSearchComponent implements OnInit {
     }
 
     clearFilters(): void {
-        this.searchForm.reset({
+        this.searchForm.patchValue({
             query: '',
             minRating: null,
             maxPrepTime: null,
@@ -162,24 +186,24 @@ export class RecipeSearchComponent implements OnInit {
             includeSteps: false,
             includeNutrition: false
         });
-        this.currentPage = 1;
-        this.performSearch();
     }
 
     loadPopularRecipes(): void {
         this.loading = true;
-        this.searchService.getPopularRecipes(10).subscribe({
+        this.error = null;
+
+        this.searchService.getPopularRecipes().subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.recipes;
+                this.searchResults = response.results;
                 this.totalCount = response.totalCount;
-                this.totalPages = response.totalPages;
-                this.hasNextPage = response.hasNextPage;
-                this.hasPreviousPage = response.hasPreviousPage;
+                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = this.currentPage < this.totalPages;
+                this.hasPreviousPage = this.currentPage > 1;
                 this.loading = false;
             },
             error: (error) => {
                 console.error('Error loading popular recipes:', error);
-                this.snackBar.open('Error loading popular recipes', 'Close', { duration: 3000 });
+                this.error = 'Failed to load popular recipes.';
                 this.loading = false;
             }
         });
@@ -187,18 +211,20 @@ export class RecipeSearchComponent implements OnInit {
 
     loadRecentRecipes(): void {
         this.loading = true;
-        this.searchService.getRecentRecipes(10).subscribe({
+        this.error = null;
+
+        this.searchService.getRecentRecipes().subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.recipes;
+                this.searchResults = response.results;
                 this.totalCount = response.totalCount;
-                this.totalPages = response.totalPages;
-                this.hasNextPage = response.hasNextPage;
-                this.hasPreviousPage = response.hasPreviousPage;
+                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = this.currentPage < this.totalPages;
+                this.hasPreviousPage = this.currentPage > 1;
                 this.loading = false;
             },
             error: (error) => {
                 console.error('Error loading recent recipes:', error);
-                this.snackBar.open('Error loading recent recipes', 'Close', { duration: 3000 });
+                this.error = 'Failed to load recent recipes.';
                 this.loading = false;
             }
         });
@@ -216,7 +242,7 @@ export class RecipeSearchComponent implements OnInit {
     getRatingStars(rating: number): string[] {
         const stars = [];
         const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 >= 0.5;
+        const hasHalfStar = rating % 1 !== 0;
 
         for (let i = 0; i < fullStars; i++) {
             stars.push('star');

@@ -5,6 +5,7 @@ import {
   Output,
   EventEmitter,
   ViewEncapsulation,
+  OnDestroy,
 } from '@angular/core';
 import {
   FormGroup,
@@ -14,12 +15,13 @@ import {
   NonNullableFormBuilder,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { PersonModel } from '../../models/person.model';
 import { MatIconModule } from '@angular/material/icon';
+import { PersonModel } from '../../models/person.model';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-person-edit',
@@ -27,54 +29,95 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatButtonModule, // Assuming you have a button in the template that triggers submitForm
+    BaseFormComponent,
+    BasePageComponent,
   ],
   templateUrl: './person-edit.component.html',
   styleUrls: ['./person-edit.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PersonEditComponent implements OnInit {
+export class PersonEditComponent implements OnInit, OnDestroy {
   @Input() person: PersonModel | null = null;
   @Output() formSubmitted = new EventEmitter<PersonModel>();
-  @Output() skipStep = new EventEmitter<void>(); // If there's a skip option for this step
+  @Output() skipStep = new EventEmitter<void>();
 
   personForm!: FormGroup;
+  isSubmitting = false;
+  isLoading = false;
+  error: string | null = null;
 
-  constructor(private fb: NonNullableFormBuilder) {}
+  pageConfig: BasePageConfig = {
+    title: 'Edit Person',
+    subtitle: 'Update your personal information',
+    showBackButton: true,
+    maxWidth: '600px'
+  };
+
+  formConfig: BaseFormConfig = {
+    title: '',
+    subtitle: '',
+    submitText: 'Save Changes',
+    showCancelButton: true,
+    cancelText: 'Cancel',
+    maxWidth: '100%'
+  };
+
+  private destroy$ = new Subject<void>();
+
+  constructor(private fb: NonNullableFormBuilder) { }
 
   ngOnInit(): void {
     this.personForm = this.fb.group({
-      name: [this.person?.name || '', Validators.required],
+      name: [this.person?.name || '', [Validators.required]],
       // Add other fields as per your PersonModel and FR-1.2
-      // e.g., gender: [this.person?.gender || '', Validators.required],
+      // e.g., gender: [this.person?.gender || '', [Validators.required]],
     });
   }
 
-  // This public method is what the parent (OnboardingWorkflowComponent) will call
-  public submitForm(): void {
-    this.personForm.markAllAsTouched(); // Show validation errors
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onSubmit(): void {
+    this.isSubmitting = true;
+    this.error = null;
+    this.personForm.markAllAsTouched();
 
     if (this.personForm.valid) {
       const updatedPerson: PersonModel = new PersonModel({
-        // Assuming personId is handled by parent or backend on first create
-        id: this.person?.id || 0, // Keep existing ID if present, otherwise 0 for new
+        id: this.person?.id || 0,
         name: this.personForm.get('name')?.value,
         // ... map other form values to PersonModel properties
       });
       this.formSubmitted.emit(updatedPerson);
     } else {
-      this.formSubmitted.error('Form is invalid'); // Optionally emit an error or just do nothing
-      console.error(
-        'Person details form is invalid. Please correct the errors.'
-      );
+      console.error('Person details form is invalid. Please correct the errors.');
+      this.error = 'Please correct the form errors before submitting.';
     }
+    this.isSubmitting = false;
+  }
+
+  onCancel(): void {
+    this.skipStep.emit();
   }
 
   onSkip(): void {
     this.skipStep.emit();
+  }
+
+  onBack(): void {
+    this.skipStep.emit();
+  }
+
+  onRefresh(): void {
+    // Reload person data if needed
+  }
+
+  onRetry(): void {
+    this.error = null;
   }
 }

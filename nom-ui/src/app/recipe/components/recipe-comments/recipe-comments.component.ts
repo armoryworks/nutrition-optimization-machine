@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatCardModule } from "@angular/material/card";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
@@ -12,6 +11,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { Subject, takeUntil } from "rxjs";
 import { RecipeCommentModel, RecipeCommentCreateModel } from "../../models/recipe-comment.model";
 import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
+import { BaseListComponent, BaseListConfig } from "../../../common/components/base-list/base-list.component";
 
 @Component({
     selector: "app-recipe-comments",
@@ -19,13 +19,13 @@ import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
         MatIconModule,
         MatDividerModule,
         MatChipsModule,
+        BaseListComponent,
     ],
     templateUrl: "./recipe-comments.component.html",
     styleUrls: ["./recipe-comments.component.scss"],
@@ -41,7 +41,17 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
 
     isLoading = false;
     isSubmitting = false;
+    error: string | null = null;
     private destroy$ = new Subject<void>();
+
+    listConfig: BaseListConfig = {
+        title: 'Recipe Comments',
+        subtitle: 'Share your thoughts and read what others have to say',
+        showSearch: false,
+        showFilters: false,
+        showPagination: false,
+        maxWidth: '800px'
+    };
 
     constructor(
         private fb: NonNullableFormBuilder,
@@ -62,6 +72,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
 
     loadComments(): void {
         this.isLoading = true;
+        this.error = null;
         this.recipeAdvancedService
             .getRecipeComments(this.recipeId)
             .pipe(takeUntil(this.destroy$))
@@ -72,7 +83,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading comments:", error);
-                    this.snackBar.open("Failed to load comments", "Close", { duration: 3000 });
+                    this.error = "Failed to load comments. Please try again.";
                     this.isLoading = false;
                 },
             });
@@ -84,6 +95,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
         }
 
         this.isSubmitting = true;
+        this.error = null;
         const request: RecipeCommentCreateModel = {
             recipeId: this.recipeId,
             commentText: this.commentForm.get("commentText")!.value,
@@ -102,37 +114,36 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error creating comment:", error);
-                    this.snackBar.open("Failed to add comment", "Close", { duration: 3000 });
+                    this.error = "Failed to post comment. Please try again.";
                     this.isSubmitting = false;
                 },
             });
     }
 
     deleteComment(commentId: number): void {
-        if (confirm("Are you sure you want to delete this comment?")) {
-            this.recipeAdvancedService
-                .deleteComment(commentId)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                    next: () => {
-                        this.comments = this.comments.filter((c) => c.id !== commentId);
-                        this.snackBar.open("Comment deleted successfully", "Close", { duration: 3000 });
-                    },
-                    error: (error) => {
-                        console.error("Error deleting comment:", error);
-                        this.snackBar.open("Failed to delete comment", "Close", { duration: 3000 });
-                    },
-                });
-        }
+        this.recipeAdvancedService
+            .deleteComment(commentId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: () => {
+                    this.comments = this.comments.filter(c => c.id !== commentId);
+                    this.snackBar.open("Comment deleted successfully", "Close", { duration: 3000 });
+                },
+                error: (error) => {
+                    console.error("Error deleting comment:", error);
+                    this.snackBar.open("Failed to delete comment", "Close", { duration: 3000 });
+                },
+            });
     }
 
     formatDate(dateString: string): string {
-        return new Date(dateString).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     }
 } 

@@ -4,6 +4,7 @@ import {
   Output,
   EventEmitter,
   ViewEncapsulation,
+  OnDestroy,
 } from '@angular/core';
 import {
   FormGroup,
@@ -13,14 +14,15 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { finalize } from 'rxjs/operators';
-import { MatCardModule } from '@angular/material/card';
+import { finalize, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PersonService } from '../../services/person.service';
 import { PersonCreateResponseModel } from '../../models/person-create-response.model';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
   selector: 'app-person-creation',
@@ -28,39 +30,62 @@ import { PersonCreateResponseModel } from '../../models/person-create-response.m
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule,
     MatProgressSpinnerModule,
+    BaseFormComponent,
+    BasePageComponent,
   ],
   templateUrl: './person-creation.component.html',
   styleUrls: ['./person-creation.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PersonCreationComponent implements OnInit {
+export class PersonCreationComponent implements OnInit, OnDestroy {
   @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
 
   personForm!: FormGroup;
   isSubmitting: boolean = false;
+  isLoading = false;
   error: string | null = null;
+
+  pageConfig: BasePageConfig = {
+    title: 'Create Your Profile',
+    subtitle: 'Set up your personal profile to get started',
+    showBackButton: false,
+    maxWidth: '600px'
+  };
+
+  formConfig: BaseFormConfig = {
+    title: '',
+    subtitle: '',
+    submitText: 'Create Profile',
+    showCancelButton: false,
+    maxWidth: '100%'
+  };
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private nonNullableFb: NonNullableFormBuilder,
     private personService: PersonService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.initializeForm();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private initializeForm(): void {
     this.personForm = this.nonNullableFb.group({
-      name: new FormControl('', [Validators.required, Validators.minLength(2)]),
+      name: new FormControl('', [[Validators.required, Validators.minLength(2)]]),
     });
   }
 
-  submitPerson(): void {
+  onSubmit(): void {
     if (this.personForm.invalid) {
       this.error = 'Please provide a valid name.';
       return;
@@ -72,18 +97,35 @@ export class PersonCreationComponent implements OnInit {
     const personName = this.personForm.get('name')?.value;
 
     this.personService
-      .upsertPerson({ personName }) // Updated to call the new method
-      .pipe(finalize(() => (this.isSubmitting = false)))
+      .upsertPerson({ personName })
+      .pipe(
+        finalize(() => (this.isSubmitting = false)),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (response) => {
           this.personSubmitted.emit(response);
         },
         error: (err) => {
           console.error('Error creating person:', err);
-          this.error = `Failed to create person: ${
-            err.message || 'Unknown error'
-          }`;
+          this.error = `Failed to create person: ${err.message || 'Unknown error'}`;
         },
       });
+  }
+
+  submitPerson(): void {
+    this.onSubmit();
+  }
+
+  onBack(): void {
+    // Handle back navigation if needed
+  }
+
+  onRefresh(): void {
+    // Reload data if needed
+  }
+
+  onRetry(): void {
+    this.error = null;
   }
 }

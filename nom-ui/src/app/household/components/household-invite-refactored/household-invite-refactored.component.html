@@ -1,0 +1,68 @@
+<app-base-form 
+  [config]="formConfig"
+  [form]="inviteForm"
+  [isSubmitting]="isLoading"
+  (submit)="generateInviteToken()"
+  (cancel)="onBack()">
+  
+  <!-- Form Content -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Token Expiration (Days)</mat-label>
+    <input matInput type="number" formControlName="expiresInDays" min="1" max="30">
+    <mat-hint>How long the invite link should be valid (1-30 days)</mat-hint>
+    @if (inviteForm.get('expiresInDays')?.hasError('required')) {
+      <mat-error>Expiration days is required</mat-error>
+    }
+    @if (inviteForm.get('expiresInDays')?.hasError('min')) {
+      <mat-error>Minimum 1 day</mat-error>
+    }
+    @if (inviteForm.get('expiresInDays')?.hasError('max')) {
+      <mat-error>Maximum 30 days</mat-error>
+    }
+  </mat-form-field>
+
+  <!-- Error Message -->
+  @if (error) {
+    <div class="error-message">
+      <mat-icon color="warn">error</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  <!-- Invite Link Section -->
+  @if (inviteLink) {
+    <div class="invite-section">
+      <mat-divider></mat-divider>
+      <h3>Invite Link Generated</h3>
+      
+      <div class="invite-link-container">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Invite Link</mat-label>
+          <input matInput [value]="inviteLink" readonly>
+          <button mat-icon-button matSuffix (click)="copyInviteLink()" matTooltip="Copy link">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div class="invite-token-container">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Invite Token</mat-label>
+          <input matInput [value]="inviteToken" readonly>
+          <button mat-icon-button matSuffix (click)="copyToken()" matTooltip="Copy token">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div class="instructions">
+        <h4>Instructions:</h4>
+        <ul>
+          <li>Share the invite link with people you want to invite</li>
+          <li>The link will be valid for {{ inviteForm.value.expiresInDays }} days</li>
+          <li>Invitees can click the link to join your household</li>
+        </ul>
+      </div>
+    </div>
+  }
+</app-base-form> 

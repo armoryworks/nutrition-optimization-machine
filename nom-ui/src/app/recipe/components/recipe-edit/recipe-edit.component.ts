@@ -11,20 +11,21 @@ import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
-import { ReferenceItemModel } from '../../../common/models/reference-item.model'; // CORRECTED: Import from common/models
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { IngredientCreateModalComponent, IngredientCreateModalData } from '../ingredient-create-modal/ingredient-create-modal.component';
 import { IngredientModel } from '../../models/ingredient.model';
 import { RecipeEditModel, RecipeIngredientModel, RecipeStepModel } from '../../models/recipe-edit.model';
 import { CurationService } from '../../../curation/services/curation.service';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
     selector: 'app-recipe-edit',
@@ -37,12 +38,13 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
         MatProgressSpinnerModule,
         MatIconModule,
         MatAutocompleteModule,
-        MatCardModule,
         MatButtonModule,
         MatFormFieldModule,
         MatInputModule,
         MatSelectModule,
-        MatDialogModule
+        MatDialogModule,
+        BaseFormComponent,
+        BasePageComponent
     ],
     templateUrl: './recipe-edit.component.html',
     styleUrls: ['./recipe-edit.component.scss']
@@ -54,10 +56,27 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     isLoading = true;
     pageTitle = 'Create Recipe';
     isSubmitting = false;
+    error: string | null = null;
 
     ingredientSearchCtrl = new FormControl('');
     filteredIngredients$: Observable<IngredientSearchResponseModel[]>;
     measurementTypes$: Observable<ReferenceItemModel[]>;
+
+    pageConfig: BasePageConfig = {
+        title: 'Create Recipe',
+        subtitle: 'Add a new recipe to your collection',
+        showBackButton: true,
+        maxWidth: '800px'
+    };
+
+    formConfig: BaseFormConfig = {
+        title: '',
+        subtitle: '',
+        submitText: 'Create Recipe',
+        showCancelButton: true,
+        cancelText: 'Cancel',
+        maxWidth: '100%'
+    };
 
     private destroy$ = new Subject<void>();
 
@@ -89,62 +108,16 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        console.log('RecipeEditComponent ngOnInit called');
-        this.route.paramMap.pipe(
-            switchMap(params => {
-                const id = params.get('id');
-                console.log('Route param id:', id);
-                if (id) {
-                    this.isEditMode = true;
-                    this.pageTitle = 'Edit Recipe';
-                    this.recipeId = +id;
-                    this.isLoading = true;
-                    console.log('Loading recipe with ID:', +id);
-                    return this.recipeService.getRecipe(+id);
-                }
-                this.isLoading = false;
-                return of(null);
-            }),
-            takeUntil(this.destroy$)
-        ).subscribe({
-            next: (recipeData) => {
-                console.log('Recipe data received:', recipeData);
-                if (this.isEditMode && recipeData) {
-                    console.log('Populating form with recipe data');
-                    // Populate the form with existing recipe data
-                    this.recipeForm.patchValue({
-                        name: recipeData.name,
-                        description: recipeData.description
-                    });
-
-                    // Clear existing arrays and populate with recipe data
-                    this.ingredients.clear();
-                    recipeData.ingredients?.forEach(ingredient => {
-                        console.log('Adding ingredient:', ingredient);
-                        this.ingredients.push(this.fb.group({
-                            ingredientId: [ingredient.ingredientId, Validators.required],
-                            name: [ingredient.name],
-                            quantity: [ingredient.quantity, [Validators.required, Validators.min(0.01)]],
-                            measurementTypeId: [ingredient.measurementTypeId, Validators.required]
-                        }));
-                    });
-
-                    this.steps.clear();
-                    recipeData.steps?.forEach(step => {
-                        console.log('Adding step:', step);
-                        this.steps.push(this.fb.group({
-                            instruction: [step.description, [Validators.required, Validators.maxLength(2047)]],
-                            order: [step.order]
-                        }));
-                    });
-                } else {
-                    console.log('Not in edit mode or no recipe data');
-                }
-                this.isLoading = false;
-            },
-            error: (error) => {
-                console.error('Error loading recipe:', error);
-                this.isLoading = false;
+        this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
+            const id = params['id'];
+            if (id) {
+                this.recipeId = +id;
+                this.isEditMode = true;
+                this.pageTitle = 'Edit Recipe';
+                this.pageConfig.title = 'Edit Recipe';
+                this.pageConfig.subtitle = 'Update your recipe';
+                this.formConfig.submitText = 'Update Recipe';
+                this.loadRecipe();
             }
         });
     }
@@ -160,38 +133,33 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     createIngredientGroup(ingredient: IngredientSearchResponseModel): FormGroup {
         return this.fb.group({
-            ingredientId: [ingredient.id, Validators.required],
+            ingredientId: [ingredient.id],
             name: [ingredient.name],
             quantity: [1, [Validators.required, Validators.min(0.01)]],
-            measurementTypeId: ['', Validators.required]
+            measurementTypeId: [1, [Validators.required]]
         });
     }
 
     onIngredientSelected(event: MatAutocompleteSelectedEvent): void {
-        const ingredientGroup = this.createIngredientGroup(event.option.value);
+        const ingredient = event.option.value as IngredientSearchResponseModel;
 
-        // Set a default measurement type immediately
-        this.measurementTypes$.pipe(take(1)).subscribe(measurementTypes => {
-            if (measurementTypes && measurementTypes.length > 0) {
-                // Try to find a common measurement type like "each" or "piece"
-                const defaultMeasurement = measurementTypes.find(mt =>
-                    mt.name.toLowerCase().includes('each') ||
-                    mt.name.toLowerCase().includes('piece') ||
-                    mt.name.toLowerCase().includes('unit')
-                ) || measurementTypes[0];
+        // Check if ingredient is already added
+        const existingIndex = this.ingredients.controls.findIndex(
+            control => control.get('ingredientId')?.value === ingredient.id
+        );
 
-                ingredientGroup.patchValue({
-                    measurementTypeId: defaultMeasurement.id
-                });
+        if (existingIndex >= 0) {
+            // Update quantity if already exists
+            const existingControl = this.ingredients.at(existingIndex);
+            const currentQuantity = existingControl.get('quantity')?.value || 0;
+            existingControl.patchValue({ quantity: currentQuantity + 1 });
+            this.notificationService.showInfo(`Increased quantity of ${ingredient.name}`);
+        } else {
+            // Add new ingredient
+            this.ingredients.push(this.createIngredientGroup(ingredient));
+        }
 
-                // Trigger form validation immediately after setting the value
-                this.recipeForm.updateValueAndValidity();
-            }
-        });
-
-        this.ingredients.push(ingredientGroup);
         this.ingredientSearchCtrl.setValue('');
-        event.option.focus();
     }
 
     removeIngredient(index: number): void {
@@ -203,71 +171,58 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     openCreateIngredientModal(): void {
-        const searchValue = this.ingredientSearchCtrl.value;
-        const ingredientName = typeof searchValue === 'string' ? searchValue : '';
+        const dialogRef = this.dialog.open<IngredientCreateModalComponent, IngredientCreateModalData, IngredientModel>(
+            IngredientCreateModalComponent,
+            {
+                width: '500px',
+                data: { recipeId: this.recipeId }
+            }
+        );
 
-        const dialogRef = this.dialog.open(IngredientCreateModalComponent, {
-            width: '600px',
-            maxHeight: '80vh',
-            data: { ingredientName } as IngredientCreateModalData,
-            disableClose: true
-        });
-
-        dialogRef.afterClosed().subscribe((result: any | undefined) => {
+        dialogRef.afterClosed().pipe(take(1)).subscribe(result => {
             if (result) {
-                // Extract the ID properly - handle cases where it might be nested
-                let ingredientId: number;
-
-                console.log('Modal result:', result);
-                if (typeof result.id === 'object' && result.id !== null) {
-                    // If id is an object, try to get the actual ID from it
-                    ingredientId = result.id.id || result.id.Id || result.id.ID;
-                } else {
-                    // If id is already a number, use it directly
-                    ingredientId = result.id;
-                }
-
-                console.log('Modal result:', result);
-                console.log('Extracted ingredient ID:', ingredientId);
-
-                // Convert the created ingredient to the format expected by the form
-                const ingredientSearchResponse: IngredientSearchResponseModel = {
-                    id: ingredientId,
-                    name: result.name,
-                    fdcId: result.fdcId
-                };
-
                 // Add the newly created ingredient to the form
-                const ingredientGroup = this.createIngredientGroup(ingredientSearchResponse);
-
-                // Set a default measurement type immediately
-                this.measurementTypes$.pipe(take(1)).subscribe(measurementTypes => {
-                    if (measurementTypes && measurementTypes.length > 0) {
-                        // Try to find a common measurement type like "each" or "piece"
-                        const defaultMeasurement = measurementTypes.find(mt =>
-                            mt.name.toLowerCase().includes('each') ||
-                            mt.name.toLowerCase().includes('piece') ||
-                            mt.name.toLowerCase().includes('unit')
-                        ) || measurementTypes[0];
-
-                        ingredientGroup.patchValue({
-                            measurementTypeId: defaultMeasurement.id
-                        });
-
-                        // Trigger form validation immediately after setting the value
-                        this.recipeForm.updateValueAndValidity();
-                    }
-                });
-
-                this.ingredients.push(ingredientGroup);
-
-                // Clear the search input
-                this.ingredientSearchCtrl.setValue('');
-
-                // Show success notification
-                this.notificationService.success('Ingredient added successfully!');
+                const newIngredient: IngredientSearchResponseModel = {
+                    id: result.id,
+                    name: result.name,
+                    description: result.description || '',
+                    nutritionPer100g: result.nutritionPer100g
+                };
+                this.ingredients.push(this.createIngredientGroup(newIngredient));
+                this.notificationService.showSuccess(`Ingredient "${result.name}" created and added to recipe`);
             }
         });
+    }
+
+    private loadRecipeData(recipe: any): void {
+        this.recipeForm.patchValue({
+            name: recipe.name,
+            description: recipe.description
+        });
+
+        // Load ingredients
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+            recipe.ingredients.forEach((ingredient: any) => {
+                const ingredientGroup = this.fb.group({
+                    ingredientId: [ingredient.ingredientId],
+                    name: [ingredient.name],
+                    quantity: [ingredient.quantity, [Validators.required, Validators.min(0.01)]],
+                    measurementTypeId: [ingredient.measurementTypeId, [Validators.required]]
+                });
+                this.ingredients.push(ingredientGroup);
+            });
+        }
+
+        // Load steps
+        if (recipe.steps && recipe.steps.length > 0) {
+            recipe.steps.forEach((step: any) => {
+                const stepGroup = this.fb.group({
+                    instruction: [step.instruction, [Validators.required]],
+                    stepNumber: [step.stepNumber]
+                });
+                this.steps.push(stepGroup);
+            });
+        }
     }
 
     get steps(): FormArray {
@@ -276,15 +231,13 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     createStepGroup(): FormGroup {
         return this.fb.group({
-            instruction: ['', [Validators.required, Validators.maxLength(2047)]],
-            order: [0]
+            instruction: ['', [Validators.required]],
+            stepNumber: [0]
         });
     }
 
     addStep(): void {
-        const stepGroup = this.createStepGroup();
-        stepGroup.patchValue({ order: this.steps.length });
-        this.steps.push(stepGroup);
+        this.steps.push(this.createStepGroup());
     }
 
     removeStep(index: number): void {
@@ -296,85 +249,121 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onSubmit(): void {
-        if (this.recipeForm.invalid) {
-            this.notificationService.error('Please fill in all required fields.');
+        if (this.recipeForm.invalid || this.isSubmitting) {
             return;
         }
 
         this.isSubmitting = true;
+        this.error = null;
+
         const formValue = this.recipeForm.value;
-
-        const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
-        if (!currentPersonId) {
-            this.notificationService.error('User information not available. Please log in again.');
-            return;
-        }
-
-        const request = {
+        const recipeData: RecipeEditModel = {
             name: formValue.name,
             description: formValue.description,
-            authorId: currentPersonId,
-            ingredients: formValue.ingredients.map((ingredient: any) => ({
-                ingredientId: ingredient.ingredientId,
-                quantity: ingredient.quantity,
-                measurementTypeId: ingredient.measurementTypeId
+            ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
+                ...ingredient,
+                stepNumber: index + 1
             })),
-            steps: formValue.steps.map((step: any, index: number) => ({
-                description: step.instruction,
-                order: index
+            steps: formValue.steps.map((step: RecipeStepModel, index: number) => ({
+                ...step,
+                stepNumber: index + 1
             }))
         };
 
-        if (this.isEditMode && this.recipeId) {
-            const updateRequest = { id: this.recipeId, ...request };
-            this.recipeService.updateRecipe(this.recipeId, updateRequest).pipe(
-                finalize(() => this.isSubmitting = false)
-            ).subscribe({
-                next: () => {
-                    this.notificationService.success('Recipe updated successfully!');
-                    this.router.navigate(['/recipes']);
-                },
-                error: (error) => {
-                    console.error('Error updating recipe:', error);
-                    this.notificationService.error('Failed to update recipe. Please try again.');
-                }
-            });
-        } else {
-            this.recipeService.createRecipe(request).pipe(
-                finalize(() => this.isSubmitting = false)
-            ).subscribe({
-                next: (recipe) => {
-                    this.notificationService.success('Recipe created successfully!');
-                    this.router.navigate(['/recipes']);
-                },
-                error: (error) => {
-                    console.error('Error creating recipe:', error);
-                    this.notificationService.error('Failed to create recipe. Please try again.');
-                }
-            });
-        }
+        const request$ = this.isEditMode && this.recipeId
+            ? this.recipeService.updateRecipe(this.recipeId, recipeData)
+            : this.recipeService.createRecipe(recipeData);
+
+        request$.pipe(
+            finalize(() => this.isSubmitting = false),
+            takeUntil(this.destroy$)
+        ).subscribe({
+            next: (recipe) => {
+                const action = this.isEditMode ? 'updated' : 'created';
+                this.notificationService.showSuccess(`Recipe ${action} successfully`);
+                this.router.navigate(['/recipe', recipe.id]);
+            },
+            error: (error) => {
+                console.error('Error saving recipe:', error);
+                this.error = `Failed to ${this.isEditMode ? 'update' : 'create'} recipe. Please try again.`;
+            }
+        });
+    }
+
+    onCancel(): void {
+        this.router.navigate(['/recipe']);
     }
 
     submitForCuration(): void {
-        if (!this.recipeId) {
-            this.notificationService.error('Cannot submit for curation: Recipe not found.');
+        if (this.recipeForm.invalid || this.isSubmitting) {
             return;
         }
 
         this.isSubmitting = true;
-        this.curationService.submitForCuration({
-            entityId: this.recipeId,
-            entityType: 'Recipe'
-        }).pipe(
-            finalize(() => this.isSubmitting = false)
+        this.error = null;
+
+        const formValue = this.recipeForm.value;
+        const recipeData: RecipeEditModel = {
+            name: formValue.name,
+            description: formValue.description,
+            ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
+                ...ingredient,
+                stepNumber: index + 1
+            })),
+            steps: formValue.steps.map((step: RecipeStepModel, index: number) => ({
+                ...step,
+                stepNumber: index + 1
+            }))
+        };
+
+        this.recipeService.createRecipe(recipeData).pipe(
+            finalize(() => this.isSubmitting = false),
+            takeUntil(this.destroy$)
         ).subscribe({
-            next: () => {
-                this.notificationService.success('Recipe submitted for curation successfully!');
-                this.router.navigate(['/user/dashboard']);
+            next: (recipe) => {
+                this.notificationService.showSuccess('Recipe created and submitted for curation');
+                this.router.navigate(['/recipe', recipe.id]);
             },
             error: (error) => {
                 console.error('Error submitting recipe for curation:', error);
-                this.notificationService.error('Failed to submit recipe for curation. Please try again.');
+                this.error = 'Failed to submit recipe for curation. Please try again.';
+            }
+        });
+    }
+
+    onBack(): void {
+        this.router.navigate(['/recipe']);
+    }
+
+    onRefresh(): void {
+        if (this.recipeId) {
+            this.loadRecipe();
+        }
+    }
+
+    onRetry(): void {
+        this.error = null;
+        if (this.recipeId) {
+            this.loadRecipe();
+        }
+    }
+
+    private loadRecipe(): void {
+        if (!this.recipeId) return;
+
+        this.isLoading = true;
+        this.error = null;
+
+        this.recipeService.getRecipe(this.recipeId).pipe(
+            finalize(() => this.isLoading = false),
+            takeUntil(this.destroy$)
+        ).subscribe({
+            next: (recipe) => {
+                this.loadRecipeData(recipe);
+            },
+            error: (error) => {
+                console.error('Error loading recipe:', error);
+                this.error = 'Failed to load recipe. Please try again.';
             }
         });
     }

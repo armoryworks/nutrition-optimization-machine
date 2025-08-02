@@ -1,0 +1,225 @@
+.meal-plan-detail {
+  &__container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  &__header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+
+  &__edit-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__duplicate-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__menu-button {
+    color: var(--mdc-filled-text-field-supporting-text-color);
+  }
+
+  &__info-section {
+    margin-bottom: 24px;
+  }
+
+  &__info-card {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__info-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  &__info-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: var(--mdc-filled-text-field-container-color);
+    margin-top: 4px;
+  }
+
+  &__info-content {
+    flex: 1;
+  }
+
+  &__info-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--mdc-filled-text-field-label-text-color);
+  }
+
+  &__info-subtitle {
+    margin: 8px 0 0 0;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--mdc-filled-text-field-supporting-text-color);
+  }
+
+  &__details-section {
+    margin-bottom: 24px;
+  }
+
+  &__details-card {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    padding: 24px;
+  }
+
+  &__detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__detail-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mdc-filled-text-field-label-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__detail-value {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__meal-type-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__meal-type-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &__date-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--mdc-filled-text-field-label-text-color);
+
+    &.today {
+      color: var(--mdc-filled-text-field-container-color);
+      font-weight: 600;
+    }
+
+    &.past {
+      color: var(--mdc-filled-text-field-supporting-text-color);
+      text-decoration: line-through;
+    }
+  }
+
+  &__today-chip {
+    font-size: 12px;
+    height: 24px;
+  }
+
+  &__description {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--mdc-filled-text-field-label-text-color);
+  }
+
+  &__author {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--mdc-filled-text-field-label-text-color);
+  }
+
+  &__group {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--mdc-filled-text-field-label-text-color);
+  }
+
+  &__actions-section {
+    margin-bottom: 24px;
+  }
+
+  &__actions-card {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__actions-title {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--mdc-filled-text-field-label-text-color);
+  }
+
+  &__actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  &__action-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__delete-button {
+    color: var(--mdc-filled-text-field-error-text-color);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .meal-plan-detail {
+    &__container {
+      padding: 0 12px;
+    }
+
+    &__header-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__details-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    &__actions-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+} 

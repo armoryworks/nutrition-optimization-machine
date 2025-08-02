@@ -16,6 +16,7 @@ import { Router } from "@angular/router";
 import { HouseholdService } from "../../services/household.service";
 import { HouseholdModel } from "../../models/household.model";
 import { ViewEncapsulation } from "@angular/core";
+import { BasePageComponent, BasePageConfig } from "../../../common/components/base-page/base-page.component";
 
 @Component({
     selector: "app-household-dashboard",
@@ -34,6 +35,7 @@ import { ViewEncapsulation } from "@angular/core";
         MatChipsModule,
         MatTooltipModule,
         MatProgressSpinnerModule,
+        BasePageComponent,
     ],
     templateUrl: "./household-dashboard.component.html",
     styleUrls: ["./household-dashboard.component.scss"],
@@ -43,6 +45,14 @@ export class HouseholdDashboardComponent implements OnInit {
     households: HouseholdModel[] = [];
     loading = false;
     error = "";
+
+    pageConfig: BasePageConfig = {
+        title: "Households",
+        subtitle: "Manage your household groups and coordinate with family members",
+        showRefreshButton: true,
+        refreshButtonText: "Refresh",
+        maxWidth: "1200px",
+    };
 
     constructor(
         private householdService: HouseholdService,
@@ -58,18 +68,25 @@ export class HouseholdDashboardComponent implements OnInit {
         this.loading = true;
         this.error = "";
 
-        // TODO: Implement get all households when API endpoint is available
-        // this.householdService.getHouseholds().subscribe({
-        //   next: (households) => {
-        //     this.households = households;
-        //     this.loading = false;
-        //   },
-        //   error: (error) => {
-        //     this.error = "Failed to load households";
-        //     this.loading = false;
-        //     console.error("Error loading households:", error);
-        //   },
-        // });
+        this.householdService.getHouseholds().subscribe({
+            next: (households) => {
+                this.households = households;
+                this.loading = false;
+            },
+            error: (error) => {
+                this.error = "Failed to load households";
+                this.loading = false;
+                console.error("Error loading households:", error);
+            },
+        });
+    }
+
+    onRefresh(): void {
+        this.loadHouseholds();
+    }
+
+    onRetry(): void {
+        this.loadHouseholds();
     }
 
     createHousehold(): void {

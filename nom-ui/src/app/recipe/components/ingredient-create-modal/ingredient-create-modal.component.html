@@ -1,17 +1,17 @@
 <!-- File: nom-ui/src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.html -->
 
-<div class="nom-ingredient-create-modal">
-  <div class="nom-ingredient-create-modal__header">
-    <h2 class="nom-ingredient-create-modal__title">Create New Ingredient</h2>
-    <p class="nom-ingredient-create-modal__subtitle">Define the core properties and nutritional information for this ingredient.</p>
-  </div>
+<app-base-form
+  [config]="formConfig"
+  [form]="ingredientForm"
+  [isSubmitting]="isSubmitting"
+  (submit)="onSubmit()"
+  (cancel)="onCancel()">
 
   @if (isLoading) {
-  <div class="nom-ingredient-create-modal__loading">
-    <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
-  </div>
+    <div class="nom-ingredient-create-modal__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+    </div>
   } @else {
-  <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()" class="nom-ingredient-create-modal__form">
     <div class="nom-ingredient-create-modal__section">
       <h3 class="nom-ingredient-create-modal__section-title">General Information</h3>
       
@@ -20,20 +20,20 @@
         <input matInput type="text" formControlName="name" placeholder="Ingredient Name*">
         <mat-icon matSuffix>info</mat-icon>
         @if (isCheckingDuplicate) {
-        <mat-hint>Checking for duplicates...</mat-hint>
+          <mat-hint>Checking for duplicates...</mat-hint>
         }
       </mat-form-field>
 
       @if (existingIngredient) {
-      <div class="nom-ingredient-create-modal__duplicate-warning">
-        <div class="nom-ingredient-create-modal__duplicate-content">
-          <mat-icon>warning</mat-icon>
-          <span>An ingredient with this name already exists: <strong>{{ existingIngredient.name }}</strong></span>
+        <div class="nom-ingredient-create-modal__duplicate-warning">
+          <div class="nom-ingredient-create-modal__duplicate-content">
+            <mat-icon>warning</mat-icon>
+            <span>An ingredient with this name already exists: <strong>{{ existingIngredient.name }}</strong></span>
+          </div>
+          <button mat-stroked-button type="button" (click)="useExistingIngredient()" class="nom-ingredient-create-modal__use-existing-btn">
+            Use Existing
+          </button>
         </div>
-        <button mat-stroked-button type="button" (click)="useExistingIngredient()" class="nom-ingredient-create-modal__use-existing-btn">
-          Use Existing
-        </button>
-      </div>
       }
 
       <mat-form-field class="nom-ingredient-create-modal__form-field">
@@ -52,63 +52,49 @@
       </div>
 
       @for (nutrient of nutrients.controls; track $index) {
-      <div class="nom-ingredient-create-modal__nutrient-row" [formGroupName]="$index">
-        <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
-          <mat-label>Nutrient</mat-label>
-          <mat-select formControlName="nutrientId">
-            <mat-option value="1008">Energy (kcal)</mat-option>
-            <mat-option value="1003">Protein (g)</mat-option>
-            <mat-option value="1004">Total Fat (g)</mat-option>
-            <mat-option value="1005">Carbohydrates (g)</mat-option>
-            <mat-option value="1079">Fiber (g)</mat-option>
-            <mat-option value="1093">Sodium (mg)</mat-option>
-            <mat-option value="1092">Potassium (mg)</mat-option>
-            <mat-option value="1087">Calcium (mg)</mat-option>
-            <mat-option value="1089">Iron (mg)</mat-option>
-            <mat-option value="1106">Vitamin C (mg)</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="nom-ingredient-create-modal__nutrient-row" [formGroupName]="$index">
+          <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
+            <mat-label>Nutrient</mat-label>
+            <mat-select formControlName="nutrientId">
+              <mat-option value="1008">Energy (kcal)</mat-option>
+              <mat-option value="1003">Protein (g)</mat-option>
+              <mat-option value="1004">Total Fat (g)</mat-option>
+              <mat-option value="1005">Carbohydrates (g)</mat-option>
+              <mat-option value="1079">Fiber (g)</mat-option>
+              <mat-option value="1093">Sodium (mg)</mat-option>
+              <mat-option value="1092">Potassium (mg)</mat-option>
+              <mat-option value="1087">Calcium (mg)</mat-option>
+              <mat-option value="1089">Iron (mg)</mat-option>
+              <mat-option value="1106">Vitamin C (mg)</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
-          <mat-label>Amount</mat-label>
-          <input matInput type="number" formControlName="amount" min="0" step="0.01">
-        </mat-form-field>
+          <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
+            <mat-label>Amount</mat-label>
+            <input matInput type="number" formControlName="amount" min="0" step="0.01">
+          </mat-form-field>
 
-        <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
-          <mat-label>Unit</mat-label>
-          <mat-select formControlName="measurementTypeId">
-            <mat-option value="4003">g (gram)</mat-option>
-            <mat-option value="4004">mg (milligram)</mat-option>
-            <mat-option value="4005">µg (microgram)</mat-option>
-          </mat-select>
-        </mat-form-field>
+          <mat-form-field class="nom-ingredient-create-modal__nutrient-field">
+            <mat-label>Unit</mat-label>
+            <mat-select formControlName="measurementTypeId">
+              <mat-option value="4003">g (gram)</mat-option>
+              <mat-option value="4004">mg (milligram)</mat-option>
+              <mat-option value="4005">µg (microgram)</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-        <button mat-icon-button type="button" (click)="removeNutrient($index)" title="Remove Nutrient"
-          class="nom-ingredient-create-modal__remove-button">
-          <mat-icon>delete_outline</mat-icon>
-        </button>
-      </div>
+          <button mat-icon-button type="button" (click)="removeNutrient($index)" title="Remove Nutrient"
+            class="nom-ingredient-create-modal__remove-button">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
       }
 
       @if (nutrients.length === 0) {
-      <p class="nom-ingredient-create-modal__empty-message">
-        No nutritional information added yet. Click "Add Nutrient" to get started.
-      </p>
+        <p class="nom-ingredient-create-modal__empty-message">
+          No nutritional information added yet. Click "Add Nutrient" to get started.
+        </p>
       }
     </div>
-
-    <div class="nom-ingredient-create-modal__actions">
-      <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-      <button mat-raised-button color="primary" type="submit" [disabled]="ingredientForm.invalid || isSubmitting">
-        @if (isSubmitting) {
-        <mat-spinner diameter="20"></mat-spinner>
-        } @else if (existingIngredient) {
-        Use Existing Ingredient
-        } @else {
-        Create Ingredient
-        }
-      </button>
-    </div>
-  </form>
   }
-</div> 
+</app-base-form> 

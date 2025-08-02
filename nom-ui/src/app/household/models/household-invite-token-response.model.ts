@@ -1,0 +1,18 @@
+// File: nom-ui/src/app/household/models/household-invite-token-response.model.ts
+
+import { IHouseholdInviteTokenResponseModel } from './household-invite-token-response.model.interface';
+
+export class HouseholdInviteTokenResponseModel implements IHouseholdInviteTokenResponseModel {
+    id: number = 0;
+    householdId: number = 0;
+    token: string = '';
+    expiresAt?: Date;
+    createdDate: Date = new Date();
+    usesLeft?: number;
+
+    constructor(data?: Partial<IHouseholdInviteTokenResponseModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
+    }
+} 

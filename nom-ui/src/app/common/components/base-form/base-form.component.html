@@ -1,0 +1,58 @@
+<div class="base-form-container" [style.max-width]="config?.maxWidth">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ config?.title }}</mat-card-title>
+      @if (config?.subtitle) {
+        <mat-card-subtitle>{{ config.subtitle }}</mat-card-subtitle>
+      }
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Form Content -->
+        <div class="form-content">
+          <ng-content></ng-content>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <div class="action-buttons">
+            @if (config?.showCancelButton) {
+              <button 
+                mat-button 
+                type="button"
+                (click)="onCancel()"
+                [disabled]="isSubmitting">
+                <mat-icon>cancel</mat-icon>
+                {{ config?.cancelText || 'Cancel' }}
+              </button>
+            }
+
+            @if (config?.showDeleteButton) {
+              <button 
+                mat-raised-button 
+                color="warn"
+                type="button"
+                (click)="onDelete()"
+                [disabled]="isSubmitting">
+                <mat-icon>delete</mat-icon>
+                {{ config?.deleteText || 'Delete' }}
+              </button>
+            }
+
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="form.invalid || isSubmitting">
+              @if (isSubmitting) {
+                <mat-icon>hourglass_empty</mat-icon>
+              }
+              <span>{{ isSubmitting ? 'Saving...' : (config?.submitText || 'Save') }}</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div> 
