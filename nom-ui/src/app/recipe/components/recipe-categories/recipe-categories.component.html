@@ -1,0 +1,187 @@
+<app-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
+  <div class="recipe-categories">
+    <!-- Search and Create Section -->
+    <div class="recipe-categories__header">
+      <div class="recipe-categories__search">
+        <mat-form-field appearance="outline" class="recipe-categories__search-field">
+          <mat-label>Search categories</mat-label>
+          <input matInput [(ngModel)]="searchTerm" (input)="filterCategories()" placeholder="Search by name or description">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      
+      <div class="recipe-categories__actions">
+        <button mat-raised-button color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid">
+          <mat-icon>add</mat-icon>
+          Create Category
+        </button>
+      </div>
+    </div>
+
+    <!-- Create Category Form -->
+    <mat-card class="recipe-categories__form-card" *ngIf="categoryForm.get('name')?.value">
+      <mat-card-content>
+        <form [formGroup]="categoryForm" class="recipe-categories__form">
+          <div class="recipe-categories__form-row">
+            <mat-form-field appearance="outline" class="recipe-categories__form-field">
+              <mat-label>Category Name</mat-label>
+              <input matInput formControlName="name" placeholder="Enter category name">
+              <mat-error *ngIf="categoryForm.get('name')?.hasError('required')">
+                Category name is required
+              </mat-error>
+              <mat-error *ngIf="categoryForm.get('name')?.hasError('minlength')">
+                Category name must be at least 2 characters
+              </mat-error>
+              <mat-error *ngIf="categoryForm.get('name')?.hasError('maxlength')">
+                Category name must be less than 50 characters
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="recipe-categories__form-field">
+              <mat-label>Icon</mat-label>
+              <mat-select formControlName="icon">
+                <mat-option *ngFor="let icon of getIconOptions()" [value]="icon">
+                  <mat-icon>{{ icon }}</mat-icon>
+                  {{ icon }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="categoryForm.get('icon')?.hasError('required')">
+                Icon is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="recipe-categories__form-field">
+              <mat-label>Color</mat-label>
+              <input matInput formControlName="color" type="color">
+            </mat-form-field>
+          </div>
+
+          <div class="recipe-categories__form-row">
+            <mat-form-field appearance="outline" class="recipe-categories__form-field">
+              <mat-label>Parent Category (Optional)</mat-label>
+              <mat-select formControlName="parentCategoryId">
+                <mat-option [value]="null">None</mat-option>
+                <mat-option *ngFor="let category of allCategories" [value]="category.id">
+                  {{ category.name }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="recipe-categories__form-field">
+            <mat-label>Description (Optional)</mat-label>
+            <textarea matInput formControlName="description" placeholder="Enter category description" rows="2"></textarea>
+            <mat-error *ngIf="categoryForm.get('description')?.hasError('maxlength')">
+              Description must be less than 200 characters
+            </mat-error>
+          </mat-form-field>
+
+          <div class="recipe-categories__form-actions">
+            <button mat-button (click)="categoryForm.reset()">
+              Cancel
+            </button>
+            <button mat-raised-button color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid">
+              Create Category
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="recipe-categories__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading categories...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="recipe-categories__error">
+      <mat-card class="recipe-categories__error-card">
+        <mat-card-content>
+          <div class="recipe-categories__error-content">
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ error }}</p>
+            <button mat-button color="primary" (click)="onRetry()">
+              Try Again
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Available Categories -->
+    <div *ngIf="!loading && !error" class="recipe-categories__content">
+      <mat-card class="recipe-categories__available-card">
+        <mat-card-header>
+          <mat-card-title>Available Categories</mat-card-title>
+          <mat-card-subtitle>Click to add categories to this recipe</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="recipe-categories__available-list">
+            <div 
+              *ngFor="let category of filteredCategories" 
+              class="recipe-categories__available-item"
+              [class.recipe-categories__available-item--selected]="isCategorySelected(category)"
+              (click)="addCategory(category)"
+            >
+              <div class="recipe-categories__category-info">
+                <mat-chip 
+                  [style]="getCategoryStyle(category)"
+                  class="recipe-categories__chip"
+                  [matTooltip]="category.description || category.name"
+                >
+                  <mat-icon class="recipe-categories__chip-icon">{{ category.icon }}</mat-icon>
+                  {{ category.name }}
+                </mat-chip>
+                <div class="recipe-categories__category-details">
+                  <span class="recipe-categories__parent" *ngIf="category.parentCategoryId">
+                    Parent: {{ getParentCategoryName(category) }}
+                  </span>
+                  <span class="recipe-categories__recipe-count">
+                    {{ category.recipeCount }} recipes
+                  </span>
+                </div>
+              </div>
+              <button 
+                mat-icon-button 
+                [matTooltip]="'Delete category'"
+                (click)="deleteCategory(category); $event.stopPropagation()"
+                class="recipe-categories__delete-btn"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Selected Categories -->
+      <mat-card class="recipe-categories__selected-card" *ngIf="categories.length > 0">
+        <mat-card-header>
+          <mat-card-title>Selected Categories</mat-card-title>
+          <mat-card-subtitle>Categories assigned to this recipe</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="recipe-categories__selected-list">
+            <mat-chip 
+              *ngFor="let category of categories" 
+              [style]="getCategoryStyle(category)"
+              class="recipe-categories__chip recipe-categories__chip--selected"
+              [matTooltip]="category.description || category.name"
+            >
+              <mat-icon class="recipe-categories__chip-icon">{{ category.icon }}</mat-icon>
+              {{ category.name }}
+              <button 
+                matChipRemove 
+                (click)="removeCategory(category)"
+                [matTooltip]="'Remove category'"
+              >
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</app-base-page> 

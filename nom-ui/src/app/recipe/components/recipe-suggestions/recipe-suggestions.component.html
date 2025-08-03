@@ -1,0 +1,535 @@
+<div class="recipe-suggestions-container">
+  <div class="header">
+    <h1>Recipe Suggestions</h1>
+    <p class="subtitle">Discover new recipes based on your preferences, available ingredients, and AI-powered recommendations</p>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button 
+      class="nav-tab" 
+      [class.active]="activeTab === 'ingredients'"
+      (click)="setActiveTab('ingredients')">
+      <i class="fas fa-carrot"></i>
+      Ingredients
+    </button>
+    <button 
+      class="nav-tab" 
+      [class.active]="activeTab === 'ai'"
+      (click)="setActiveTab('ai')">
+      <i class="fas fa-robot"></i>
+      AI Suggestions
+    </button>
+    <button 
+      class="nav-tab" 
+      [class.active]="activeTab === 'trending'"
+      (click)="setActiveTab('trending')">
+      <i class="fas fa-fire"></i>
+      Trending
+    </button>
+    <button 
+      class="nav-tab" 
+      [class.active]="activeTab === 'seasonal'"
+      (click)="setActiveTab('seasonal')">
+      <i class="fas fa-leaf"></i>
+      Seasonal
+    </button>
+  </div>
+
+  <!-- Ingredients Tab -->
+  <div *ngIf="activeTab === 'ingredients'" class="tab-content">
+    <div class="filters-section">
+      <form [formGroup]="suggestionForm" class="filters-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="limit">Results Limit</label>
+            <input type="number" id="limit" formControlName="limit" min="1" max="50">
+          </div>
+          <div class="form-group">
+            <label for="maxMissingIngredients">Max Missing Ingredients</label>
+            <input type="number" id="maxMissingIngredients" formControlName="maxMissingIngredients" min="0" max="20">
+          </div>
+          <div class="form-group">
+            <label for="maxMissingTools">Max Missing Tools</label>
+            <input type="number" id="maxMissingTools" formControlName="maxMissingTools" min="0" max="10">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="includeIngredientsOnHand">
+              Include Ingredients on Hand
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="includeToolsOnHand">
+              Include Tools on Hand
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="maxPrepTime">Max Prep Time (minutes)</label>
+            <input type="number" id="maxPrepTime" formControlName="maxPrepTime" min="1" max="480">
+          </div>
+          <div class="form-group">
+            <label for="maxCookTime">Max Cook Time (minutes)</label>
+            <input type="number" id="maxCookTime" formControlName="maxCookTime" min="1" max="480">
+          </div>
+          <div class="form-group">
+            <label for="maxDifficulty">Max Difficulty</label>
+            <select id="maxDifficulty" formControlName="maxDifficulty">
+              <option value="">Any</option>
+              <option value="1">Easy</option>
+              <option value="2">Medium</option>
+              <option value="3">Hard</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dietaryRestrictions">Dietary Restrictions</label>
+            <select id="dietaryRestrictions" formControlName="dietaryRestrictions" multiple>
+              <option *ngFor="let option of dietaryOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cuisines">Cuisines</label>
+            <select id="cuisines" formControlName="cuisines" multiple>
+              <option *ngFor="let option of cuisineOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Mock Ingredients Selection -->
+    <div class="ingredients-section">
+      <h3>Select Available Ingredients</h3>
+      <div class="ingredients-grid">
+        <div 
+          *ngFor="let ingredient of [1,2,3,4,5,6,7,8,9,10]" 
+          class="ingredient-item"
+          [class.selected]="selectedIngredients.includes(ingredient)"
+          (click)="toggleIngredient(ingredient)">
+          <i class="fas fa-carrot"></i>
+          <span>Ingredient {{ingredient}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mock Tools Selection -->
+    <div class="tools-section">
+      <h3>Select Available Tools</h3>
+      <div class="tools-grid">
+        <div 
+          *ngFor="let tool of [1,2,3,4,5]" 
+          class="tool-item"
+          [class.selected]="selectedTools.includes(tool)"
+          (click)="toggleTool(tool)">
+          <i class="fas fa-utensils"></i>
+          <span>Tool {{tool}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="quick-actions">
+      <button class="btn btn-primary" (click)="getQuickSuggestions(30)">
+        <i class="fas fa-clock"></i>
+        Quick Recipes (30 min)
+      </button>
+      <button class="btn btn-success" (click)="getBeginnerSuggestions()">
+        <i class="fas fa-star"></i>
+        Beginner Friendly
+      </button>
+      <button class="btn btn-warning" (click)="getBudgetSuggestions(25)">
+        <i class="fas fa-dollar-sign"></i>
+        Budget Friendly ($25)
+      </button>
+      <button class="btn btn-info" (click)="getDietarySuggestions(['Vegetarian'])">
+        <i class="fas fa-seedling"></i>
+        Vegetarian
+      </button>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-section" *ngIf="suggestions">
+      <div class="results-header">
+        <h3>Recipe Suggestions ({{suggestions.totalCount}} found)</h3>
+        <p class="suggestion-method">{{suggestions.suggestionMethod}}</p>
+      </div>
+
+      <div class="suggestions-grid">
+        <div 
+          *ngFor="let item of suggestions.items" 
+          class="suggestion-card"
+          [class.loading]="loading">
+          <div class="card-header">
+            <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.recipeName" class="recipe-image">
+            <div class="recipe-info">
+              <h4>{{item.recipeName}}</h4>
+              <p *ngIf="item.description" class="description">{{item.description}}</p>
+              <div class="meta-info">
+                <span class="rating">
+                  <i class="fas fa-star"></i>
+                  {{item.rating}} ({{item.ratingCount}})
+                </span>
+                <span class="difficulty" [class]="'difficulty-' + getDifficultyColor(item.difficulty)">
+                  {{item.difficulty}}
+                </span>
+                <span class="cuisine">{{item.cuisine}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="recipe-details">
+              <div class="detail-item">
+                <i class="fas fa-clock"></i>
+                <span>{{item.prepTime}} prep, {{item.cookTime}} cook</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-users"></i>
+                <span>{{item.servings}} servings</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-dollar-sign"></i>
+                <span *ngIf="item.estimatedCost">${{item.estimatedCost}}</span>
+                <span *ngIf="!item.estimatedCost">N/A</span>
+              </div>
+            </div>
+
+            <div class="match-info">
+              <div class="match-score" [class]="'score-' + getMatchScoreColor(item.matchScore)">
+                <span class="score">{{(item.matchScore * 100).toFixed(0)}}%</span>
+                <span class="label">Match</span>
+              </div>
+              <p class="match-reason">{{item.matchReason}}</p>
+            </div>
+
+            <div class="missing-items" *ngIf="item.missingIngredients.length > 0 || item.missingTools.length > 0">
+              <h5>Missing Items:</h5>
+              <div class="missing-ingredients" *ngIf="item.missingIngredients.length > 0">
+                <strong>Ingredients:</strong>
+                <span *ngFor="let ingredient of item.missingIngredients" class="missing-item">{{ingredient}}</span>
+              </div>
+              <div class="missing-tools" *ngIf="item.missingTools.length > 0">
+                <strong>Tools:</strong>
+                <span *ngFor="let tool of item.missingTools" class="missing-item">{{tool}}</span>
+              </div>
+            </div>
+
+            <div class="substitutions" *ngIf="item.substitutions.length > 0">
+              <h5>Suggested Substitutions:</h5>
+              <ul>
+                <li *ngFor="let sub of item.substitutions">{{sub}}</li>
+              </ul>
+            </div>
+
+            <div class="tags">
+              <span *ngFor="let tag of item.tags" class="tag">{{tag}}</span>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-primary" (click)="viewRecipe(item.recipeId)">
+              <i class="fas fa-eye"></i>
+              View Recipe
+            </button>
+            <button class="btn btn-outline-primary" (click)="saveRecipe(item.recipeId)">
+              <i class="fas fa-heart"></i>
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="recommendations" *ngIf="suggestions.recommendations.length > 0">
+        <h4>Recommendations</h4>
+        <ul>
+          <li *ngFor="let rec of suggestions.recommendations">{{rec}}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="loading-spinner" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Finding perfect recipes for you...</span>
+    </div>
+  </div>
+
+  <!-- AI Suggestions Tab -->
+  <div *ngIf="activeTab === 'ai'" class="tab-content">
+    <div class="ai-section">
+      <h3>AI-Powered Recipe Suggestions</h3>
+      <p>Describe what you want to cook and let AI find the perfect recipes for you!</p>
+
+      <form [formGroup]="aiSuggestionForm" class="ai-form">
+        <div class="form-group">
+          <label for="aiDescription">Describe your ideal recipe</label>
+          <textarea 
+            id="aiDescription" 
+            formControlName="description"
+            placeholder="e.g., I want to make a quick vegetarian dinner using tomatoes and pasta, something Italian-inspired but healthy..."
+            rows="4"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="aiServingSize">Serving Size</label>
+            <input type="number" id="aiServingSize" formControlName="servingSize" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label for="aiMaxPrepTime">Max Prep Time (minutes)</label>
+            <input type="number" id="aiMaxPrepTime" formControlName="maxPrepTime" min="1" max="480">
+          </div>
+          <div class="form-group">
+            <label for="aiMaxCookTime">Max Cook Time (minutes)</label>
+            <input type="number" id="aiMaxCookTime" formControlName="maxCookTime" min="1" max="480">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="aiBudgetLimit">Budget Limit ($)</label>
+            <input type="number" id="aiBudgetLimit" formControlName="budgetLimit" min="1" max="500">
+          </div>
+          <div class="form-group">
+            <label for="aiCuisine">Preferred Cuisine</label>
+            <select id="aiCuisine" formControlName="cuisine">
+              <option value="">Any</option>
+              <option *ngFor="let option of cuisineOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="aiMealType">Meal Type</label>
+            <select id="aiMealType" formControlName="mealType">
+              <option value="">Any</option>
+              <option *ngFor="let option of mealTypeOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="aiDifficulty">Difficulty Level</label>
+            <select id="aiDifficulty" formControlName="difficulty">
+              <option value="">Any</option>
+              <option *ngFor="let option of difficultyOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="aiDietaryRestrictions">Dietary Restrictions</label>
+            <select id="aiDietaryRestrictions" formControlName="dietaryRestrictions" multiple>
+              <option *ngFor="let option of dietaryOptions" [value]="option">{{option}}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="includeNutritionalInfo">
+              Include Nutritional Information
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="includeSubstitutions">
+              Include Ingredient Substitutions
+            </label>
+          </div>
+        </div>
+
+        <button 
+          type="button" 
+          class="btn btn-primary btn-lg"
+          [disabled]="aiSuggestionForm.invalid || aiLoading"
+          (click)="generateAISuggestions()">
+          <i class="fas fa-robot" *ngIf="!aiLoading"></i>
+          <i class="fas fa-spinner fa-spin" *ngIf="aiLoading"></i>
+          {{aiLoading ? 'Generating Suggestions...' : 'Generate AI Suggestions'}}
+        </button>
+      </form>
+    </div>
+
+    <!-- AI Results -->
+    <div class="ai-results" *ngIf="aiSuggestions">
+      <div class="results-header">
+        <h3>AI-Generated Suggestions</h3>
+        <div class="ai-reasoning" *ngIf="aiSuggestions.aiReasoning">
+          <h4>AI Reasoning:</h4>
+          <p>{{aiSuggestions.aiReasoning}}</p>
+        </div>
+      </div>
+
+      <div class="suggestions-grid">
+        <div 
+          *ngFor="let item of aiSuggestions.suggestions" 
+          class="suggestion-card ai-card">
+          <div class="card-header">
+            <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.recipeName" class="recipe-image">
+            <div class="recipe-info">
+              <h4>{{item.recipeName}}</h4>
+              <p *ngIf="item.description" class="description">{{item.description}}</p>
+              <div class="meta-info">
+                <span class="rating">
+                  <i class="fas fa-star"></i>
+                  {{item.rating}} ({{item.ratingCount}})
+                </span>
+                <span class="difficulty" [class]="'difficulty-' + getDifficultyColor(item.difficulty)">
+                  {{item.difficulty}}
+                </span>
+                <span class="cuisine">{{item.cuisine}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="recipe-details">
+              <div class="detail-item">
+                <i class="fas fa-clock"></i>
+                <span>{{item.prepTime}} prep, {{item.cookTime}} cook</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-users"></i>
+                <span>{{item.servings}} servings</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-dollar-sign"></i>
+                <span *ngIf="item.estimatedCost">${{item.estimatedCost}}</span>
+                <span *ngIf="!item.estimatedCost">N/A</span>
+              </div>
+            </div>
+
+            <div class="match-info">
+              <div class="match-score" [class]="'score-' + getMatchScoreColor(item.matchScore)">
+                <span class="score">{{(item.matchScore * 100).toFixed(0)}}%</span>
+                <span class="label">AI Match</span>
+              </div>
+              <p class="match-reason">{{item.matchReason}}</p>
+            </div>
+
+            <div class="substitutions" *ngIf="item.substitutions.length > 0">
+              <h5>AI Suggested Substitutions:</h5>
+              <ul>
+                <li *ngFor="let sub of item.substitutions">{{sub}}</li>
+              </ul>
+            </div>
+
+            <div class="nutritional-info" *ngIf="item.nutritionalInfo">
+              <h5>Nutritional Information:</h5>
+              <div class="nutrition-grid">
+                <div *ngFor="let nutrient of item.nutritionalInfo | keyvalue" class="nutrient">
+                  <span class="nutrient-name">{{nutrient.key}}</span>
+                  <span class="nutrient-value">{{nutrient.value}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-primary" (click)="viewRecipe(item.recipeId)">
+              <i class="fas fa-eye"></i>
+              View Recipe
+            </button>
+            <button class="btn btn-outline-primary" (click)="saveRecipe(item.recipeId)">
+              <i class="fas fa-heart"></i>
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-recommendations" *ngIf="aiSuggestions.recommendations.length > 0">
+        <h4>AI Recommendations</h4>
+        <ul>
+          <li *ngFor="let rec of aiSuggestions.recommendations">{{rec}}</li>
+        </ul>
+      </div>
+
+      <div class="ai-substitutions" *ngIf="aiSuggestions.substitutions.length > 0">
+        <h4>General Substitutions</h4>
+        <ul>
+          <li *ngFor="let sub of aiSuggestions.substitutions">{{sub}}</li>
+        </ul>
+      </div>
+
+      <div class="ai-cost" *ngIf="aiSuggestions.estimatedTotalCost">
+        <h4>Estimated Total Cost: ${{aiSuggestions.estimatedTotalCost}}</h4>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trending Tab -->
+  <div *ngIf="activeTab === 'trending'" class="tab-content">
+    <div class="trending-section">
+      <h3>Trending Recipes</h3>
+      <p>Discover what's popular right now in the cooking community</p>
+
+      <div class="trending-grid">
+        <div *ngFor="let recipe of trendingRecipes" class="trending-card">
+          <div class="trending-header">
+            <h4>{{recipe.recipeName}}</h4>
+            <span class="trending-badge">
+              <i class="fas fa-fire"></i>
+              Trending
+            </span>
+          </div>
+          <div class="trending-stats">
+            <div class="stat">
+              <i class="fas fa-eye"></i>
+              <span>{{recipe.viewCount}} views</span>
+            </div>
+            <div class="stat">
+              <i class="fas fa-star"></i>
+              <span>{{recipe.averageRating}} rating</span>
+            </div>
+            <div class="stat">
+              <i class="fas fa-comment"></i>
+              <span>{{recipe.commentCount}} comments</span>
+            </div>
+          </div>
+          <p class="trending-reason">{{recipe.trendingReason}}</p>
+          <div class="trending-factors">
+            <span *ngFor="let factor of recipe.trendingFactors" class="factor">{{factor}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seasonal Tab -->
+  <div *ngIf="activeTab === 'seasonal'" class="tab-content">
+    <div class="seasonal-section">
+      <h3>Seasonal Recipes</h3>
+      <p>Discover recipes perfect for the current season</p>
+
+      <div class="seasonal-grid">
+        <div *ngFor="let recipe of seasonalRecipes" class="seasonal-card">
+          <div class="seasonal-header">
+            <h4>{{recipe.recipeName}}</h4>
+            <span class="season-badge">
+              <i class="fas fa-leaf"></i>
+              {{recipe.season}}
+            </span>
+          </div>
+          <div class="seasonal-score">
+            <span class="score">{{(recipe.seasonalScore * 100).toFixed(0)}}%</span>
+            <span class="label">Seasonal Match</span>
+          </div>
+          <p class="seasonal-reason">{{recipe.seasonalReason}}</p>
+          <div class="seasonal-ingredients">
+            <h5>Seasonal Ingredients:</h5>
+            <span *ngFor="let ingredient of recipe.seasonalIngredients" class="ingredient">{{ingredient}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

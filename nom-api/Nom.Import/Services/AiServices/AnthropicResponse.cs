@@ -1,4 +1,4 @@
-// File: nom-api/Nom.Import/Services/AiServices/AnthropicResponseModels.cs
+// File: nom-api/Nom.Import/Services/AiServices/AnthropicResponse.cs
 
 using System.Text.Json.Serialization;
 
@@ -8,11 +8,5 @@ namespace Nom.Import.Services.AiServices
     {
         [JsonPropertyName("content")]
         public List<AnthropicContent>? Content { get; set; }
-    }
-
-    public class AnthropicContent
-    {
-        [JsonPropertyName("text")]
-        public string? Text { get; set; }
     }
 } 

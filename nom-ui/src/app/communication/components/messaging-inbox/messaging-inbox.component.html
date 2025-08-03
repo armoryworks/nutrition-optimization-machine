@@ -1,0 +1,121 @@
+<app-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
+  <div class="messaging-inbox">
+    <!-- Header Actions -->
+    <div class="messaging-inbox__header">
+      <div class="messaging-inbox__search">
+        <mat-form-field appearance="outline" class="messaging-inbox__search-field">
+          <mat-label>Search messages</mat-label>
+          <input matInput [(ngModel)]="searchTerm" placeholder="Search by participant or message content">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      
+      <div class="messaging-inbox__actions">
+        <button mat-raised-button color="primary" (click)="startNewConversation()">
+          <mat-icon>add</mat-icon>
+          New Conversation
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="messaging-inbox__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading messages...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="messaging-inbox__error">
+      <mat-card class="messaging-inbox__error-card">
+        <mat-card-content>
+          <div class="messaging-inbox__error-content">
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ error }}</p>
+            <button mat-button color="primary" (click)="onRetry()">
+              Try Again
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && messageThreads.length === 0" class="messaging-inbox__empty">
+      <mat-card class="messaging-inbox__empty-card">
+        <mat-card-content>
+          <div class="messaging-inbox__empty-content">
+            <mat-icon>chat_bubble_outline</mat-icon>
+            <h3>No messages yet</h3>
+            <p>Start a conversation to begin messaging with other users.</p>
+            <button mat-raised-button color="primary" (click)="startNewConversation()">
+              Start Conversation
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Message Threads List -->
+    <div *ngIf="!loading && !error && messageThreads.length > 0" class="messaging-inbox__content">
+      <mat-card class="messaging-inbox__threads-card">
+        <mat-card-content>
+          <div class="messaging-inbox__threads">
+            <div 
+              *ngFor="let thread of messageThreads" 
+              class="messaging-inbox__thread"
+              [class.messaging-inbox__thread--unread]="hasUnreadMessages(thread)"
+              (click)="openThread(thread)"
+            >
+              <div class="messaging-inbox__thread-avatar">
+                <div class="messaging-inbox__avatar">
+                  <mat-icon>person</mat-icon>
+                </div>
+                <mat-badge 
+                  *ngIf="hasUnreadMessages(thread)" 
+                  [content]="thread.unreadCount" 
+                  color="accent"
+                  class="messaging-inbox__badge"
+                >
+                </mat-badge>
+              </div>
+
+              <div class="messaging-inbox__thread-content">
+                <div class="messaging-inbox__thread-header">
+                  <h4 class="messaging-inbox__participant">
+                    {{ getParticipantDisplayName(thread) }}
+                  </h4>
+                  <span class="messaging-inbox__timestamp">
+                    {{ getLastActivityDate(thread) }}
+                  </span>
+                </div>
+                
+                <p class="messaging-inbox__preview">
+                  {{ getLastMessagePreview(thread) }}
+                </p>
+              </div>
+
+              <div class="messaging-inbox__thread-actions">
+                <button 
+                  mat-icon-button 
+                  [matTooltip]="'Mark as read'"
+                  (click)="markAsRead(thread); $event.stopPropagation()"
+                  *ngIf="hasUnreadMessages(thread)"
+                >
+                  <mat-icon>mark_email_read</mat-icon>
+                </button>
+                
+                <button 
+                  mat-icon-button 
+                  [matTooltip]="'Delete conversation'"
+                  (click)="deleteThread(thread); $event.stopPropagation()"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</app-base-page>
