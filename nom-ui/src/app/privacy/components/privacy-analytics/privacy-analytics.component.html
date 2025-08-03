@@ -1,0 +1,246 @@
+<nom-base-page
+  [config]="listConfig"
+  [isLoading]="isLoading"
+  [error]="error"
+  (refresh)="onRefresh()"
+  (retry)="onRetry()">
+
+  <div class="privacy-analytics__container">
+    <!-- Analytics Overview -->
+    @if (analytics) {
+      <div class="privacy-analytics__overview">
+        <mat-card class="privacy-analytics__card">
+          <mat-card-header>
+            <mat-card-title>Privacy Compliance Overview</mat-card-title>
+            <mat-card-subtitle>Real-time privacy and compliance metrics</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="privacy-analytics__metrics-grid">
+              <!-- Compliance Score -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <mat-icon>verified</mat-icon>
+                  <span>Compliance Score</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.complianceScore }}%</span>
+                  <mat-chip [color]="getComplianceColor()" selected>
+                    {{ getComplianceStatus() }}
+                  </mat-chip>
+                </div>
+              </div>
+
+              <!-- Risk Score -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <mat-icon>security</mat-icon>
+                  <span>Risk Level</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.riskScore }}%</span>
+                  <mat-chip [color]="getRiskColor()" selected>
+                    {{ getRiskLevel() }}
+                  </mat-chip>
+                </div>
+              </div>
+
+              <!-- Data Processing Activities -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <mat-icon>data_usage</mat-icon>
+                  <span>Processing Activities</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__number">{{ analytics.dataProcessingActivities }}</span>
+                  <span class="privacy-analytics__label">Today</span>
+                </div>
+              </div>
+
+              <!-- User Consent Rate -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <mat-icon>how_to_reg</mat-icon>
+                  <span>Consent Rate</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.userConsentRate }}%</span>
+                  <span class="privacy-analytics__label">Active Users</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Detailed Metrics -->
+      <div class="privacy-analytics__details">
+        <div class="privacy-analytics__details-grid">
+          <!-- Data Subject Rights -->
+          <mat-card class="privacy-analytics__detail-card">
+            <mat-card-header>
+              <mat-card-title>Data Subject Rights</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Export Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataExportRequests }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Deletion Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataDeletionRequests }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Rights Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataSubjectRightsRequests }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Compliance Status -->
+          <mat-card class="privacy-analytics__detail-card">
+            <mat-card-header>
+              <mat-card-title>Compliance Status</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">GDPR Status</span>
+                  <mat-chip [color]="analytics.gdprComplianceStatus === 'Compliant' ? 'accent' : 'warn'" selected>
+                    {{ analytics.gdprComplianceStatus }}
+                  </mat-chip>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Retention Compliance</span>
+                  <mat-chip [color]="analytics.dataRetentionCompliance === 'Compliant' ? 'accent' : 'warn'" selected>
+                    {{ analytics.dataRetentionCompliance }}
+                  </mat-chip>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Last Check</span>
+                  <span class="privacy-analytics__detail-value">{{ formatDate(analytics.lastComplianceCheck) }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Risk Assessment -->
+          <mat-card class="privacy-analytics__detail-card">
+            <mat-card-header>
+              <mat-card-title>Risk Assessment</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Cross-Border Transfers</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.crossBorderTransfers }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Data Breach Incidents</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataBreachIncidents }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">PIAs Completed</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.privacyImpactAssessments }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="privacy-analytics__actions">
+        <button 
+          mat-raised-button 
+          color="primary"
+          (click)="onGenerateComplianceReport()"
+          class="privacy-analytics__action-btn">
+          <mat-icon>assessment</mat-icon>
+          Generate Compliance Report
+        </button>
+        
+        <button 
+          mat-stroked-button 
+          color="accent"
+          (click)="onExportAnalytics()"
+          class="privacy-analytics__action-btn">
+          <mat-icon>download</mat-icon>
+          Export Analytics
+        </button>
+      </div>
+    }
+
+    <!-- Data Processing Logs -->
+    <div class="privacy-analytics__logs">
+      <mat-card class="privacy-analytics__logs-card">
+        <mat-card-header>
+          <mat-card-title>Data Processing Logs</mat-card-title>
+          <mat-card-subtitle>Recent data processing activities</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          @if (processingLogs.length === 0) {
+            <div class="privacy-analytics__empty">
+              <mat-icon class="privacy-analytics__empty-icon">info</mat-icon>
+              <p>No processing logs available</p>
+            </div>
+          } @else {
+            <table mat-table [dataSource]="processingLogs" class="privacy-analytics__table">
+              <!-- Timestamp Column -->
+              <ng-container matColumnDef="timestamp">
+                <th mat-header-cell *matHeaderCellDef>Timestamp</th>
+                <td mat-cell *matCellDef="let log">
+                  <div class="privacy-analytics__timestamp">
+                    <div>{{ formatDate(log.timestamp) }}</div>
+                    <div class="privacy-analytics__time">{{ formatTime(log.timestamp) }}</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Action Type Column -->
+              <ng-container matColumnDef="actionType">
+                <th mat-header-cell *matHeaderCellDef>Action</th>
+                <td mat-cell *matCellDef="let log">
+                  <div class="privacy-analytics__action">
+                    <mat-icon [color]="getActionTypeColor(log.actionType)">
+                      {{ getActionTypeIcon(log.actionType) }}
+                    </mat-icon>
+                    <span>{{ log.actionType }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Actor ID Column -->
+              <ng-container matColumnDef="actorId">
+                <th mat-header-cell *matHeaderCellDef>Actor</th>
+                <td mat-cell *matCellDef="let log">{{ log.actorId }}</td>
+              </ng-container>
+
+              <!-- IP Address Column -->
+              <ng-container matColumnDef="ipAddress">
+                <th mat-header-cell *matHeaderCellDef>IP Address</th>
+                <td mat-cell *matCellDef="let log">{{ log.ipAddress }}</td>
+              </ng-container>
+
+              <!-- Details Column -->
+              <ng-container matColumnDef="details">
+                <th mat-header-cell *matHeaderCellDef>Details</th>
+                <td mat-cell *matCellDef="let log">
+                  <span class="privacy-analytics__details-text" [matTooltip]="log.details">
+                    {{ log.details.length > 50 ? log.details.substring(0, 50) + '...' : log.details }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</nom-base-page> 

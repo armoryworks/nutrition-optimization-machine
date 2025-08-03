@@ -1,0 +1,160 @@
+<nom-base-page
+  [config]="listConfig"
+  [isLoading]="isLoading"
+  [error]="error"
+  (refresh)="onRefresh()"
+  (retry)="onRetry()">
+
+  <div class="recipe-assets__container">
+    <!-- Upload Form (Edit Mode Only) -->
+    @if (isEditMode) {
+      <mat-card class="recipe-assets__upload-card">
+        <mat-card-header>
+          <mat-card-title>Upload New Asset</mat-card-title>
+          <mat-card-subtitle>Add files, images, or documents to this recipe</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <form [formGroup]="assetForm" (ngSubmit)="onSubmit()" class="recipe-assets__form">
+            <div class="recipe-assets__form-row">
+              <mat-form-field appearance="outline" class="recipe-assets__name-field">
+                <mat-label>Asset Name</mat-label>
+                <input matInput formControlName="name" placeholder="Enter asset name">
+                @if (assetForm.get('name')?.hasError('required') && assetForm.get('name')?.touched) {
+                  <mat-error>Asset name is required</mat-error>
+                }
+                @if (assetForm.get('name')?.hasError('maxlength')) {
+                  <mat-error>Asset name cannot exceed 100 characters</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="recipe-assets__icon-field">
+                <mat-label>Icon Type</mat-label>
+                <mat-select formControlName="icon">
+                  @for (option of iconOptions; track option.value) {
+                    <mat-option [value]="option.value">
+                      <mat-icon>{{ option.icon }}</mat-icon>
+                      <span class="recipe-assets__option-text">{{ option.label }}</span>
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="recipe-assets__description-field">
+              <mat-label>Description (Optional)</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe this asset..." rows="2"></textarea>
+              @if (assetForm.get('description')?.hasError('maxlength')) {
+                <mat-error>Description cannot exceed 500 characters</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="recipe-assets__file-upload">
+              <label class="recipe-assets__file-label">
+                <input 
+                  type="file" 
+                  id="fileInput"
+                  (change)="onFileSelected($event)"
+                  class="recipe-assets__file-input"
+                  accept="*/*">
+                <div class="recipe-assets__file-button">
+                  <mat-icon>cloud_upload</mat-icon>
+                  <span>Choose File</span>
+                </div>
+              </label>
+              @if (selectedFile) {
+                <div class="recipe-assets__file-info">
+                  <mat-icon>attach_file</mat-icon>
+                  <span>{{ selectedFile.name }}</span>
+                  <span class="recipe-assets__file-size">({{ getFileSizeDisplay(selectedFile.size) }})</span>
+                </div>
+              }
+            </div>
+
+            <div class="recipe-assets__form-actions">
+              <button 
+                mat-raised-button 
+                color="primary" 
+                type="submit"
+                [disabled]="assetForm.invalid || !selectedFile || isSubmitting"
+                class="recipe-assets__submit-btn">
+                <mat-icon>upload</mat-icon>
+                {{ isSubmitting ? 'Uploading...' : 'Upload Asset' }}
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Assets List -->
+    <div class="recipe-assets__list-section">
+      <h3 class="recipe-assets__section-title">Recipe Assets</h3>
+      
+      @if (isLoading) {
+        <div class="recipe-assets__loading">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading assets...</p>
+        </div>
+      }
+
+      @if (!isLoading && assets.length === 0) {
+        <div class="recipe-assets__empty">
+          <mat-icon class="recipe-assets__empty-icon">folder_open</mat-icon>
+          <p>No assets uploaded yet.</p>
+          @if (isEditMode) {
+            <p>Upload files, images, or documents to share with this recipe.</p>
+          }
+        </div>
+      }
+
+      @if (!isLoading && assets.length > 0) {
+        <mat-list class="recipe-assets__list">
+          @for (asset of assets; track asset.id) {
+            <mat-list-item class="recipe-assets__list-item">
+              <div matListItemIcon class="recipe-assets__item-icon">
+                <mat-icon [matTooltip]="getIconClass(asset.icon)" matTooltipPosition="above">
+                  {{ getIconClass(asset.icon) }}
+                </mat-icon>
+              </div>
+              
+              <div matListItemTitle class="recipe-assets__item-title">
+                {{ asset.name }}
+              </div>
+              
+              <div matListItemLine class="recipe-assets__item-meta">
+                @if (asset.description) {
+                  <span class="recipe-assets__item-description">{{ asset.description }}</span>
+                }
+                <span class="recipe-assets__item-size">{{ getFileSizeDisplay(asset.fileSize) }}</span>
+                <span class="recipe-assets__item-date">{{ formatDate(asset.createdDate) }}</span>
+              </div>
+
+              <div matListItemMeta class="recipe-assets__item-actions">
+                <button 
+                  mat-icon-button 
+                  color="primary"
+                  (click)="onDownloadAsset(asset)"
+                  class="recipe-assets__download-btn"
+                  matTooltip="Download asset">
+                  <mat-icon>download</mat-icon>
+                </button>
+
+                @if (isEditMode) {
+                  <button 
+                    mat-icon-button 
+                    color="warn"
+                    (click)="onDeleteAsset(asset.id)"
+                    class="recipe-assets__delete-btn"
+                    matTooltip="Delete asset">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+    </div>
+  </div>
+</nom-base-page> 
