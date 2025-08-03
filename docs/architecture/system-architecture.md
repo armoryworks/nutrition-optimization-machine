@@ -51,7 +51,7 @@ The Nutritional Optimization Machine (NOM) is a comprehensive nutritional planni
 
 ### Component Architecture
 
-- **Base Components**: Reusable UI patterns (`app-base-page`, `app-base-form`, `app-base-list`, `app-base-detail`)
+- **Base Components**: Reusable UI patterns (`nom-base-page`, `nom-base-form`, `nom-base-list`, `nom-base-detail`)
 - **Domain Components**: Feature-specific components organized by domain
 - **Standalone Components**: All components use Angular 17 standalone architecture
 - **Material 3**: Consistent theming with theme variables, no hardcoded colors

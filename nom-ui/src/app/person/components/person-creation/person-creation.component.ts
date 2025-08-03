@@ -25,7 +25,7 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
-  selector: 'app-person-creation',
+  selector: 'nom-person-creation',
   standalone: true,
   imports: [
     CommonModule,

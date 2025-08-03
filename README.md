@@ -24,6 +24,7 @@ A comprehensive nutrition and meal planning application built with Angular and .
 ### Quick Start
 
 - **[Getting Started Guide](./docs/README.md)** - Documentation index and project overview
+- **[Development Standards](./docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY: Naming conventions and file separation rules**
 - **[Development Conventions](./docs/development/conventions.md)** - Coding standards and patterns
 
 ### Architecture & Development

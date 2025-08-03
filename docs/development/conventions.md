@@ -68,7 +68,7 @@ export class ApiResponseDto {}
 
 The application provides base components to reduce repetition and ensure consistent patterns:
 
-#### Base Page Component (`app-base-page`)
+#### Base Page Component (`nom-base-page`)
 
 **Use for:** Full page layouts with loading/error states
 **When to use:**
@@ -80,7 +80,7 @@ The application provides base components to reduce repetition and ensure consist
 
 ```typescript
 // Example usage
-<app-base-page
+<nom-base-page
   [config]="pageConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -88,10 +88,10 @@ The application provides base components to reduce repetition and ensure consist
   (refresh)="onRefresh()"
   (retry)="onRetry()">
   <!-- Page content here -->
-</app-base-page>
+</nom-base-page>
 ```
 
-#### Base Form Component (`app-base-form`)
+#### Base Form Component (`nom-base-form`)
 
 **Use for:** Create/Edit forms with validation
 **When to use:**
@@ -102,7 +102,7 @@ The application provides base components to reduce repetition and ensure consist
 
 ```typescript
 // Example usage
-<app-base-form
+<nom-base-form
   [config]="formConfig"
   [form]="myForm"
   [isSubmitting]="isSubmitting"
@@ -110,10 +110,10 @@ The application provides base components to reduce repetition and ensure consist
   (cancel)="onCancel()"
   (delete)="onDelete()">
   <!-- Form fields here -->
-</app-base-form>
+</nom-base-form>
 ```
 
-#### Base Detail Component (`app-base-detail`)
+#### Base Detail Component (`nom-base-detail`)
 
 **Use for:** View details with actions
 **When to use:**
@@ -124,15 +124,15 @@ The application provides base components to reduce repetition and ensure consist
 
 ```typescript
 // Example usage
-<app-base-detail
+<nom-base-detail
   [config]="detailConfig"
   (back)="onBack()"
   (edit)="onEdit()">
   <!-- Detail content here -->
-</app-base-detail>
+</nom-base-detail>
 ```
 
-#### Base List Component (`app-base-list`)
+#### Base List Component (`nom-base-list`)
 
 **Use for:** Dashboard/list views with search/filtering
 **When to use:**
@@ -143,7 +143,7 @@ The application provides base components to reduce repetition and ensure consist
 
 ```typescript
 // Example usage
-<app-base-list
+<nom-base-list
   [config]="listConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -153,7 +153,7 @@ The application provides base components to reduce repetition and ensure consist
   (refresh)="onRefresh()"
   (retry)="onRetry()">
   <!-- List content here -->
-</app-base-list>
+</nom-base-list>
 ```
 
 ### Page Layout Classes
@@ -225,7 +225,7 @@ All new components should inherit from the appropriate base component to ensure 
 ```typescript
 // my-page.component.ts
 @Component({
-  selector: "app-my-page",
+  selector: "nom-my-page",
   templateUrl: "./my-page.component.html",
   styleUrls: ["./my-page.component.scss"],
 })
@@ -241,7 +241,7 @@ export class MyPageComponent {
 
 ```html
 <!-- my-page.component.html -->
-<app-base-page
+<nom-base-page
   [config]="pageConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -250,7 +250,7 @@ export class MyPageComponent {
   (retry)="onRetry()"
 >
   <!-- Page content -->
-</app-base-page>
+</nom-base-page>
 ```
 
 #### Form Components
@@ -258,7 +258,7 @@ export class MyPageComponent {
 ```typescript
 // my-form.component.ts
 @Component({
-  selector: "app-my-form",
+  selector: "nom-my-form",
   templateUrl: "./my-form.component.html",
   styleUrls: ["./my-form.component.scss"],
 })
@@ -274,7 +274,7 @@ export class MyFormComponent {
 
 ```html
 <!-- my-form.component.html -->
-<app-base-form
+<nom-base-form
   [config]="formConfig"
   [form]="myForm"
   [isSubmitting]="isSubmitting"
@@ -282,7 +282,7 @@ export class MyFormComponent {
   (cancel)="onCancel()"
 >
   <!-- Form fields -->
-</app-base-form>
+</nom-base-form>
 ```
 
 #### Detail Components
@@ -290,7 +290,7 @@ export class MyFormComponent {
 ```typescript
 // my-detail.component.ts
 @Component({
-  selector: "app-my-detail",
+  selector: "nom-my-detail",
   templateUrl: "./my-detail.component.html",
   styleUrls: ["./my-detail.component.scss"],
 })
@@ -314,9 +314,9 @@ export class MyDetailComponent {
 
 ```html
 <!-- my-detail.component.html -->
-<app-base-detail [config]="detailConfig" (back)="onBack()" (edit)="onEdit()">
+<nom-base-detail [config]="detailConfig" (back)="onBack()" (edit)="onEdit()">
   <!-- Detail content -->
-</app-base-detail>
+</nom-base-detail>
 ```
 
 #### List Components
@@ -324,7 +324,7 @@ export class MyDetailComponent {
 ```typescript
 // my-list.component.ts
 @Component({
-  selector: "app-my-list",
+  selector: "nom-my-list",
   templateUrl: "./my-list.component.html",
   styleUrls: ["./my-list.component.scss"],
 })
@@ -341,7 +341,7 @@ export class MyListComponent {
 
 ```html
 <!-- my-list.component.html -->
-<app-base-list
+<nom-base-list
   [config]="listConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -351,7 +351,7 @@ export class MyListComponent {
   (refresh)="onRefresh()"
 >
   <!-- List content -->
-</app-base-list>
+</nom-base-list>
 ```
 
 ### Benefits of Base Components
@@ -405,7 +405,7 @@ All Angular components MUST have their HTML templates in separate `.html` files.
 
 ```typescript
 @Component({
-  selector: "app-person-edit",
+  selector: "nom-person-edit",
   standalone: true,
   templateUrl: './person-edit.component.html',  // ✅ REQUIRED
   styleUrls: ['./person-edit.component.scss']
@@ -516,7 +516,7 @@ All components MUST use the modern Angular control flow syntax instead of struct
 
 ```typescript
 @Component({
-  selector: "app-person-edit",
+  selector: "nom-person-edit",
   standalone: true,
   imports: [
     CommonModule,
@@ -1695,7 +1695,7 @@ body.dark-theme,
 
 ```scss
 // App-level component styles
-.app-header {
+.nom-header {
   position: fixed;
   top: 0;
   left: 0;

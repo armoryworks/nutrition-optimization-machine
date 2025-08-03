@@ -16,7 +16,7 @@ import { HouseholdService } from '../../services/household.service';
 import { HouseholdInviteTokenCreateRequestModel, HouseholdInviteTokenResponseModel } from '../../models/household-invite-token-create-request.model';
 
 @Component({
-  selector: 'app-household-invite',
+  selector: 'nom-household-invite',
   standalone: true,
   imports: [
     CommonModule,

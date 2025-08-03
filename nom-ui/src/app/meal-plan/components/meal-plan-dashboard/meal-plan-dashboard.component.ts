@@ -23,7 +23,7 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
-    selector: 'app-meal-plan-dashboard',
+    selector: 'nom-meal-plan-dashboard',
     standalone: true,
     imports: [
         CommonModule,

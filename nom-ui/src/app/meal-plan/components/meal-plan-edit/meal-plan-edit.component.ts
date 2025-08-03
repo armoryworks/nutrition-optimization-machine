@@ -18,7 +18,7 @@ import { MealPlanResponseModel, MealPlanUpdateRequestModel } from '../../models/
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
-  selector: 'app-meal-plan-edit',
+  selector: 'nom-meal-plan-edit',
   standalone: true,
   imports: [
     CommonModule,

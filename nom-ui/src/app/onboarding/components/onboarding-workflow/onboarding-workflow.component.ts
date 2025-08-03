@@ -48,7 +48,7 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
 import { OnboardingService } from '../../services/onboarding.service';
 
 @Component({
-  selector: 'app-onboarding-workflow',
+  selector: 'nom-onboarding-workflow',
   standalone: true,
   imports: [
     CommonModule,
@@ -500,16 +500,16 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     }
 
     switch (this.currentStep?.component) {
-      case 'app-person-edit':
+      case 'nom-person-edit':
         this.personEditComponent?.submitForm();
         break;
-      case 'app-person-health-edit':
+      case 'nom-person-health-edit':
         this.personHealthEditComponent?.submitForm();
         break;
-      case 'app-restriction-edit':
+      case 'nom-restriction-edit':
         this.restrictionEditComponent?.submitForm();
         break;
-      case 'app-onboarding-additional-participants':
+      case 'nom-onboarding-additional-participants':
         if (
           this.onboardingAdditionalParticipantsComponent?.currentSubStep ===
           'names'
@@ -527,7 +527,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
           this.nextStepInternal();
         }
         break;
-      case 'app-onboarding-restriction-scope':
+      case 'nom-onboarding-restriction-scope':
         if (
           this.onboardingRestrictionScopeComponent?.currentSubStep ===
           'selectPeople'

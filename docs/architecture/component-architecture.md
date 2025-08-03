@@ -8,14 +8,14 @@ This document outlines the established component architecture patterns in the no
 
 The application uses four core base components to ensure consistency across all UI patterns:
 
-### 1. `app-base-form` - Form Components
+### 1. `nom-base-form` - Form Components
 
 **Purpose**: Standardized form layouts with consistent validation, loading states, and actions.
 
 **Usage Pattern**:
 
 ```html
-<app-base-form
+<nom-base-form
   [config]="formConfig"
   [form]="myForm"
   [isSubmitting]="isSubmitting"
@@ -23,7 +23,7 @@ The application uses four core base components to ensure consistency across all 
   (cancel)="onCancel()"
 >
   <!-- Form fields -->
-</app-base-form>
+</nom-base-form>
 ```
 
 **Configuration**:
@@ -39,14 +39,14 @@ formConfig: BaseFormConfig = {
 };
 ```
 
-### 2. `app-base-page` - Page Components
+### 2. `nom-base-page` - Page Components
 
 **Purpose**: Full page layouts with consistent headers, loading states, error handling, and navigation.
 
 **Usage Pattern**:
 
 ```html
-<app-base-page
+<nom-base-page
   [config]="pageConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -55,7 +55,7 @@ formConfig: BaseFormConfig = {
   (retry)="onRetry()"
 >
   <!-- Page content -->
-</app-base-page>
+</nom-base-page>
 ```
 
 **Configuration**:
@@ -69,21 +69,21 @@ pageConfig: BasePageConfig = {
 };
 ```
 
-### 3. `app-base-detail` - Detail Components
+### 3. `nom-base-detail` - Detail Components
 
 **Purpose**: Detail views with consistent layouts, navigation, and content presentation.
 
 **Usage Pattern**:
 
 ```html
-<app-base-detail
+<nom-base-detail
   [config]="detailConfig"
   [loading]="isLoading"
   [error]="error"
   (back)="onBack()"
 >
   <!-- Detail content -->
-</app-base-detail>
+</nom-base-detail>
 ```
 
 **Configuration**:
@@ -97,14 +97,14 @@ detailConfig: BaseDetailConfig = {
 };
 ```
 
-### 4. `app-base-list` - List Components
+### 4. `nom-base-list` - List Components
 
 **Purpose**: List views with consistent search, filtering, pagination, and item display.
 
 **Usage Pattern**:
 
 ```html
-<app-base-list
+<nom-base-list
   [config]="listConfig"
   [items]="items"
   [loading]="loading"
@@ -115,7 +115,7 @@ detailConfig: BaseDetailConfig = {
   (pageChange)="onPageChange($event)"
 >
   <!-- List content -->
-</app-base-list>
+</nom-base-list>
 ```
 
 **Configuration**:
@@ -159,7 +159,7 @@ listConfig: BaseListConfig = {
 **After Migration**:
 
 ```html
-<app-base-form
+<nom-base-form
   [config]="formConfig"
   [form]="recipeForm"
   [isSubmitting]="isSubmitting"
@@ -167,7 +167,7 @@ listConfig: BaseListConfig = {
   (cancel)="onCancel()"
 >
   <!-- Form fields -->
-</app-base-form>
+</nom-base-form>
 ```
 
 ### Page + Form Component Pattern
@@ -175,7 +175,7 @@ listConfig: BaseListConfig = {
 For full-page forms, use both base components:
 
 ```html
-<app-base-page
+<nom-base-page
   [config]="pageConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -183,7 +183,7 @@ For full-page forms, use both base components:
   (refresh)="onRefresh()"
   (retry)="onRetry()"
 >
-  <app-base-form
+  <nom-base-form
     [config]="formConfig"
     [form]="form"
     [isSubmitting]="isSubmitting"
@@ -191,8 +191,8 @@ For full-page forms, use both base components:
     (cancel)="onCancel()"
   >
     <!-- Form fields -->
-  </app-base-form>
-</app-base-page>
+  </nom-base-form>
+</nom-base-page>
 ```
 
 ### List Component Pattern
@@ -218,7 +218,7 @@ For full-page forms, use both base components:
 **After Migration**:
 
 ```html
-<app-base-list
+<nom-base-list
   [config]="listConfig"
   [items]="items"
   [loading]="loading"
@@ -229,32 +229,32 @@ For full-page forms, use both base components:
   (pageChange)="onPageChange($event)"
 >
   <!-- List content -->
-</app-base-list>
+</nom-base-list>
 ```
 
 ## Migration Guidelines
 
 ### When to Use Each Base Component
 
-1. **Use `app-base-form` when**:
+1. **Use `nom-base-form` when**:
 
    - Component primarily handles form input and submission
    - Need consistent form validation and loading states
    - Component is part of a larger page or modal
 
-2. **Use `app-base-page` when**:
+2. **Use `nom-base-page` when**:
 
    - Component represents a full page layout
    - Need consistent page navigation and error handling
    - Component is the main content area
 
-3. **Use `app-base-detail` when**:
+3. **Use `nom-base-detail` when**:
 
    - Component displays detailed information about a single item
    - Need consistent detail view layout and navigation
    - Component shows read-only or limited interaction content
 
-4. **Use `app-base-list` when**:
+4. **Use `nom-base-list` when**:
    - Component displays a collection of items
    - Need search, filtering, or pagination functionality
    - Component shows multiple items in a structured format

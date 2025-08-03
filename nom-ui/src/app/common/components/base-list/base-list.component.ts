@@ -32,7 +32,7 @@ export interface BaseListConfig {
 }
 
 @Component({
-    selector: 'app-base-list',
+    selector: 'nom-base-list',
     standalone: true,
     imports: [
         CommonModule,

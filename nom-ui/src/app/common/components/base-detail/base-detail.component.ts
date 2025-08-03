@@ -25,7 +25,7 @@ export interface BaseDetailConfig {
 }
 
 @Component({
-    selector: 'app-base-detail',
+    selector: 'nom-base-detail',
     standalone: true,
     imports: [
         CommonModule,

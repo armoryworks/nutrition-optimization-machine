@@ -17,7 +17,7 @@ import { Observable, startWith, map } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
 
 @Component({
-  selector: 'app-societal-restriction',
+  selector: 'nom-societal-restriction',
   standalone: true,
   imports: [
     CommonModule,

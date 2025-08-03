@@ -29,7 +29,7 @@ interface MenuItem {
 }
 
 @Component({
-  selector: 'app-recipe-author-dashboard',
+  selector: 'nom-recipe-author-dashboard',
   standalone: true,
   imports: [
     CommonModule,

@@ -8,21 +8,21 @@ This guide provides quick lookup information for AI tools and developers working
 
 | Component         | Use Case                          | Key Features                                       | Example Usage                                      |
 | ----------------- | --------------------------------- | -------------------------------------------------- | -------------------------------------------------- |
-| `app-base-page`   | Full-page layouts with navigation | Title, actions, loading states, error handling     | Recipe edit, person creation, household management |
-| `app-base-form`   | Form-focused components           | Form validation, submit handling, field management | Ingredient creation, user profile editing          |
-| `app-base-list`   | Data display with search/filter   | Pagination, sorting, item selection                | Recipe search, curation queue, shopping lists      |
-| `app-base-detail` | Single item detailed view         | Item display, related data, actions                | Recipe details, ingredient details, user profiles  |
+| `nom-base-page`   | Full-page layouts with navigation | Title, actions, loading states, error handling     | Recipe edit, person creation, household management |
+| `nom-base-form`   | Form-focused components           | Form validation, submit handling, field management | Ingredient creation, user profile editing          |
+| `nom-base-list`   | Data display with search/filter   | Pagination, sorting, item selection                | Recipe search, curation queue, shopping lists      |
+| `nom-base-detail` | Single item detailed view         | Item display, related data, actions                | Recipe details, ingredient details, user profiles  |
 
 ### Quick Decision Tree
 
 ```
 Is this a full page with navigation?
-├─ Yes → app-base-page
+├─ Yes → nom-base-page
 └─ No → Is this primarily a form?
-    ├─ Yes → app-base-form
+    ├─ Yes → nom-base-form
     └─ No → Is this displaying a list of items?
-        ├─ Yes → app-base-list
-        └─ No → app-base-detail
+        ├─ Yes → nom-base-list
+        └─ No → nom-base-detail
 ```
 
 ## 🚀 Quick Start Templates

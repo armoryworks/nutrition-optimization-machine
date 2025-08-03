@@ -29,7 +29,7 @@ import {
 } from "@app/common/components/base-page";
 
 @Component({
-  selector: "app-my-component",
+  selector: "nom-my-component",
   standalone: true,
   imports: [BasePageComponent], // Include base component
   template: `...`,

@@ -15,7 +15,7 @@ import { HouseholdResponseModel, HouseholdUpdateRequestModel } from '../../model
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
-    selector: 'app-household-edit',
+    selector: 'nom-household-edit',
     standalone: true,
     imports: [
         CommonModule,

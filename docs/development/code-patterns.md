@@ -135,11 +135,11 @@ import {
 } from "@app/common/components/base-page";
 
 @Component({
-  selector: "app-my-page",
+  selector: "nom-my-page",
   standalone: true,
   imports: [BasePageComponent],
   template: `
-    <app-base-page
+    <nom-base-page
       [config]="pageConfig"
       [isLoading]="isLoading"
       [error]="error"
@@ -150,7 +150,7 @@ import {
       <div class="my-page__content">
         <!-- Page content here -->
       </div>
-    </app-base-page>
+    </nom-base-page>
   `,
   styleUrls: ["./my-page.component.scss"],
 })
@@ -238,17 +238,17 @@ import {
 } from "@app/common/components/base-form";
 
 @Component({
-  selector: "app-my-form",
+  selector: "nom-my-form",
   standalone: true,
   imports: [BaseFormComponent],
   template: `
-    <app-base-form
+    <nom-base-form
       [config]="formConfig"
       [form]="form"
       (submit)="onSubmit($event)"
       (cancel)="onCancel()"
     >
-    </app-base-form>
+    </nom-base-form>
   `,
 })
 export class MyFormComponent extends BaseFormComponent implements OnInit {
@@ -322,11 +322,11 @@ import {
 } from "@app/common/components/base-list";
 
 @Component({
-  selector: "app-my-list",
+  selector: "nom-my-list",
   standalone: true,
   imports: [BaseListComponent],
   template: `
-    <app-base-list
+    <nom-base-list
       [config]="listConfig"
       [items]="items"
       [isLoading]="isLoading"
@@ -335,7 +335,7 @@ import {
       (itemSelect)="onItemSelect($event)"
       (refresh)="onRefresh()"
     >
-    </app-base-list>
+    </nom-base-list>
   `,
 })
 export class MyListComponent

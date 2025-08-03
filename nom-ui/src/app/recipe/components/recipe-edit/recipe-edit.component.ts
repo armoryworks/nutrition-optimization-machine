@@ -28,7 +28,7 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
-    selector: 'app-recipe-edit',
+    selector: 'nom-recipe-edit',
     standalone: true,
     imports: [
         CommonModule,

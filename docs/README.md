@@ -12,6 +12,12 @@ Welcome to the NOM (Nutritional Optimization Machine) documentation. This direct
 - **[C#/Entity Framework Patterns](architecture/csharp-entity-framework-patterns.md)** - Comprehensive backend architecture patterns and best practices
 - **[Technical Inference Rules](architecture/technical-inference-rules.md)** - Complete technical specifications derived from codebase analysis
 
+### 📊 Migration & Implementation
+
+- **[Comprehensive Migration Analysis](COMPREHENSIVE_MIGRATION_ANALYSIS.md)** - Complete Mealie to NOM migration analysis (86% complete)
+- **[Development Standards](DEVELOPMENT_STANDARDS.md)** - **MANDATORY**: Naming conventions, file separation, and coding standards
+- **[Enhancement Summary](ENHANCEMENT_SUMMARY.md)** - Complete abstraction and pattern implementation guide
+
 ### 📋 Requirements
 
 - **[Functional Requirements](requirements/functional-requirements.md)** - Detailed functional requirements organized by domain and implementation status
@@ -39,14 +45,16 @@ Welcome to the NOM (Nutritional Optimization Machine) documentation. This direct
 For AI tools like Cursor AI, start with these key documents:
 
 1. **[AI Development Guide](ai-development-guide.md)** - Specific instructions and patterns for AI tools
-2. **[System Architecture](architecture/system-architecture.md)** - Understand the overall technical structure
-3. **[C#/Entity Framework Patterns](architecture/csharp-entity-framework-patterns.md)** - Backend architecture patterns and best practices
-4. **[Technical Inference Rules](architecture/technical-inference-rules.md)** - Complete technical specifications and rules
-5. **[Implementation Status](requirements/implementation-status.md)** - See what's been completed and what remains
-6. **[Functional Requirements](requirements/functional-requirements.md)** - Understand the system's intended functionality
-7. **[Component Architecture](architecture/component-architecture.md)** - Learn the frontend component patterns
-8. **[Component Quick Reference](architecture/component-quick-reference.md)** - Quick lookup guide for base components
-9. **[Conventions](development/conventions.md)** - Follow the established coding standards
+2. **[Development Standards](DEVELOPMENT_STANDARDS.md)** - **MANDATORY**: Naming conventions and file separation rules
+3. **[Comprehensive Migration Analysis](COMPREHENSIVE_MIGRATION_ANALYSIS.md)** - Complete migration status (86% complete)
+4. **[System Architecture](architecture/system-architecture.md)** - Understand the overall technical structure
+5. **[C#/Entity Framework Patterns](architecture/csharp-entity-framework-patterns.md)** - Backend architecture patterns and best practices
+6. **[Technical Inference Rules](architecture/technical-inference-rules.md)** - Complete technical specifications and rules
+7. **[Implementation Status](requirements/implementation-status.md)** - See what's been completed and what remains
+8. **[Functional Requirements](requirements/functional-requirements.md)** - Understand the system's intended functionality
+9. **[Component Architecture](architecture/component-architecture.md)** - Learn the frontend component patterns
+10. **[Component Quick Reference](architecture/component-quick-reference.md)** - Quick lookup guide for base components
+11. **[Conventions](development/conventions.md)** - Follow the established coding standards
 
 ## 📊 Current Project Status
 
@@ -59,6 +67,8 @@ For AI tools like Cursor AI, start with these key documents:
 - All database migrations applied
 - **NEW**: Comprehensive C#/Entity Framework patterns documented
 - **NEW**: Technical inference rules and specifications established
+- **NEW**: Development standards and naming conventions established
+- **NEW**: Complete abstraction and pattern implementation
 
 ### Frontend Status: PARTIALLY COMPLETE 🔄
 
@@ -81,8 +91,10 @@ For AI tools like Cursor AI, start with these key documents:
 - **Recipe Management**: Complete CRUD with ingredient search and modal creation
 - **Curation System**: Admin interface for content review and approval
 - **Data Import**: Quality-filtered ingredient import with AI enhancement
-- **Mealie Integration**: Household, shopping, and meal planning backend
+- **Mealie Integration**: Household, shopping, and meal planning backend (86% complete)
 - **Technical Documentation**: Comprehensive backend architecture patterns and specifications
+- **Development Standards**: Complete naming conventions and file separation rules
+- **Abstraction Patterns**: Complete abstraction and pattern implementation
 
 ### 🔄 In Progress
 
@@ -97,7 +109,7 @@ For AI tools like Cursor AI, start with these key documents:
 - **Framework**: Angular 17 with Standalone Components
 - **UI Library**: Angular Material 3
 - **Styling**: SCSS with BEM methodology
-- **Base Components**: Reusable UI patterns (`app-base-page`, `app-base-form`, `app-base-list`, `app-base-detail`)
+- **Base Components**: Reusable UI patterns (`nom-base-page`, `nom-base-form`, `nom-base-list`, `nom-base-detail`)
 
 ### Backend Architecture
 

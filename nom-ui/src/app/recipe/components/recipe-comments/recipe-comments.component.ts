@@ -14,7 +14,7 @@ import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
 import { BaseListComponent, BaseListConfig } from "../../../common/components/base-list/base-list.component";
 
 @Component({
-    selector: "app-recipe-comments",
+    selector: "nom-recipe-comments",
     standalone: true,
     imports: [
         CommonModule,

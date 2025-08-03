@@ -17,7 +17,7 @@ import { Observable, startWith, map } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
 
 @Component({
-  selector: 'app-personal-preference',
+  selector: 'nom-personal-preference',
   standalone: true,
   imports: [
     CommonModule,

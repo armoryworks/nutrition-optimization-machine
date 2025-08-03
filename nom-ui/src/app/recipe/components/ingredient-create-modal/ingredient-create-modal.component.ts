@@ -21,7 +21,7 @@ export interface IngredientCreateModalData {
 }
 
 @Component({
-    selector: 'app-ingredient-create-modal',
+    selector: 'nom-ingredient-create-modal',
     standalone: true,
     imports: [
         CommonModule,

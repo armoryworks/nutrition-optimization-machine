@@ -12,7 +12,7 @@ export interface ConfirmDialogData {
 }
 
 @Component({
-    selector: 'app-confirm-dialog',
+    selector: 'nom-confirm-dialog',
     standalone: true,
     imports: [CommonModule, MatDialogModule, MatButtonModule],
     template: `

@@ -13,10 +13,10 @@ This guide outlines the development workflow for the Nutrition Optimization Mach
 Use the quick decision tree:
 
 ```
-Is it a form? → Use app-base-form
-Is it a full page? → Use app-base-page
-Is it a detail view? → Use app-base-detail
-Is it a list/collection? → Use app-base-list
+Is it a form? → Use nom-base-form
+Is it a full page? → Use nom-base-page
+Is it a detail view? → Use nom-base-detail
+Is it a list/collection? → Use nom-base-list
 ```
 
 #### Step 2: Generate Component

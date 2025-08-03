@@ -15,7 +15,7 @@ import { ShoppingListResponseModel, ShoppingListUpdateRequestModel } from '../..
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
-  selector: 'app-shopping-edit',
+  selector: 'nom-shopping-edit',
   standalone: true,
   imports: [
     CommonModule,

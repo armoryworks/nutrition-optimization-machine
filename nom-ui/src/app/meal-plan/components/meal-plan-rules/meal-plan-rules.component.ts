@@ -21,7 +21,7 @@ import { MealPlanRuleModel, MealPlanRuleCreateRequestModel, MealPlanRuleResponse
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-meal-plan-rules',
+  selector: 'nom-meal-plan-rules',
   standalone: true,
   imports: [
     CommonModule,

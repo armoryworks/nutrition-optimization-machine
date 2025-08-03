@@ -4,7 +4,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-messaging-inbox',
+  selector: 'nom-messaging-inbox',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './messaging-inbox.component.html',

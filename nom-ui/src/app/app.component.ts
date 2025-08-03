@@ -33,7 +33,7 @@ import { Subscription, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
-  selector: 'app-root',
+  selector: 'nom-root',
   standalone: true,
   imports: [
     CommonModule,

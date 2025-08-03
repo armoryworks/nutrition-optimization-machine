@@ -27,7 +27,7 @@ import { PlanModel, RestrictionModel } from '../../models/plan.model';
 import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum'; // Import RestrictionTypeEnum
 
 @Component({
-  selector: 'app-plan-edit',
+  selector: 'nom-plan-edit',
   standalone: true,
   imports: [
     CommonModule,

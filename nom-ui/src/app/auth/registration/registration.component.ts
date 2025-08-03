@@ -28,7 +28,7 @@ import { NotificationService } from '../../utilities/services/notification.servi
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
 
 @Component({
-  selector: 'app-registration',
+  selector: 'nom-registration',
   standalone: true,
   imports: [
     CommonModule,

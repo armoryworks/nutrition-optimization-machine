@@ -19,7 +19,7 @@ import { RecipeTimelineEventModel, RecipeTimelineEventCreateModel } from "../../
 import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
-    selector: "app-recipe-timeline-events",
+    selector: "nom-recipe-timeline-events",
     standalone: true,
     imports: [
         CommonModule,

@@ -46,25 +46,25 @@
     <mat-card-content class="nom-card__content">
       <!-- Step 1: Invitation Code -->
       @if (currentStep?.id === 'invitationCode') {
-      <app-onboarding-invitation-code
+      <nom-onboarding-invitation-code
         [currentInvitationCode]="onboardingData.planInvitationCode"
         [isLoading]="isLoading"
         [errorMessage]="error"
         (codeSubmitted)="onInvitationCodeSubmitted($event)"
         (noCodeSelected)="onNoInvitationCodeSelected()"
       >
-      </app-onboarding-invitation-code>
+      </nom-onboarding-invitation-code>
       }
       <!-- Step 2: Your Details -->
       @else if (currentStep?.id === 'personDetails') {
-      <app-person-edit
+      <nom-person-edit
         [person]="onboardingData.personDetails"
         (formSubmitted)="onPersonDetailsSubmitted($event)"
-      ></app-person-edit>
+      ></nom-person-edit>
       }
       <!-- Step 3: Additional Participants (Consolidated) -->
       @else if (currentStep?.id === 'additionalParticipants') {
-      <app-onboarding-additional-participants
+      <nom-onboarding-additional-participants
         [hasAdditionalParticipantsInput]="
           onboardingData.hasAdditionalParticipants
         "
@@ -80,11 +80,11 @@
         (participantsDataSubmitted)="onAdditionalParticipantsSubmitted($event)"
         (skipStep)="previousStep()"
       >
-      </app-onboarding-additional-participants>
+      </nom-onboarding-additional-participants>
       }
       <!-- Step 6: Health Attributes (Loops per person) -->
       @else if (currentStep?.id === 'healthAttributes') {
-      <app-person-health-edit
+      <nom-person-health-edit
         [attributes]="
           allPersonsInPlan[currentHealthAttributePersonIndex].attributes || []
         "
@@ -92,22 +92,22 @@
         (formSubmitted)="onHealthAttributesSubmitted($event)"
         (skipStep)="onHealthAttributesSubmitted([])"
       >
-      </app-person-health-edit>
+      </nom-person-health-edit>
       }
       <!-- Step 7: Restriction Scope (Consolidated) -->
       @else if (currentStep?.id === 'restrictionScope') {
-      <app-onboarding-restriction-scope
+      <nom-onboarding-restriction-scope
         [restrictionScopeInput]="onboardingData.currentRestrictionScope"
         [affectedPersonIdsInput]="onboardingData.currentAffectedPersonIds"
         [allPersonsInPlan]="allPersonsInPlan"
         [isLoading]="isLoading"
         (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)"
       >
-      </app-onboarding-restriction-scope>
+      </nom-onboarding-restriction-scope>
       }
       <!-- Steps 9-11: Restriction Edit (Loops per person if Individual Preferences selected) -->
-      @else if (currentStep?.component === 'app-restriction-edit') {
-      <app-restriction-edit
+      @else if (currentStep?.component === 'nom-restriction-edit') {
+      <nom-restriction-edit
         [restrictions]="filteredRestrictionsForCurrentPerson"
         [currentPersonId]="currentRestrictionTargetPersonId"
         [allPersonsInPlan]="allPersonsInPlan"
@@ -119,7 +119,7 @@
         (formSubmitted)="onRestrictionsSubmitted($event)"
         (skipStep)="skipCurrentStep()"
       >
-      </app-restriction-edit>
+      </nom-restriction-edit>
       }
       <!-- Step 12: Individual Preferences -->
       @else if (currentStep?.id === 'applyIndividualPreferences') {

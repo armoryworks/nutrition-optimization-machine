@@ -16,7 +16,7 @@ import { UpdateConsentRequest } from '../../../privacy/models/update-consent.req
 import { ConfirmationDialogComponent } from '../../../common/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
-  selector: 'app-privacy-settings',
+  selector: 'nom-privacy-settings',
   standalone: true,
   imports: [
     CommonModule,

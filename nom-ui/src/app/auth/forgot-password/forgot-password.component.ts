@@ -22,7 +22,7 @@ import { ForgotPassword } from '../models/forgot-password';
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-forgot-password',
+  selector: 'nom-forgot-password',
   standalone: true,
   imports: [
     CommonModule,

@@ -51,7 +51,7 @@ mat-form-field {
   }
 }
 
-.app-header {
+.nom-header {
   position: fixed;
   top: 0;
   left: 0;
@@ -97,7 +97,7 @@ mat-form-field {
 }
 
 // Main Navigation Styles
-.app-main-nav {
+.nom-main-nav {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -136,7 +136,7 @@ mat-form-field {
 }
 
 // Search Styles
-.app-search {
+.nom-search {
   width: 100%;
   max-width: 600px;
   min-width: 300px;
@@ -182,7 +182,7 @@ mat-form-field {
   }
 }
 
-.app-user-menu {
+.nom-user-menu {
   position: relative;
   cursor: pointer;
   display: flex;
@@ -237,7 +237,7 @@ mat-form-field {
     box-sizing: border-box;
     margin-left: 5px;
 
-    .app-user-menu__bar {
+    .nom-user-menu__bar {
       width: 100%;
       height: 3px;
       background-color: var(--mat-sys-on-surface);
@@ -246,15 +246,15 @@ mat-form-field {
     }
 
     &--open {
-      .app-user-menu__bar:nth-child(1) {
+      .nom-user-menu__bar:nth-child(1) {
         transform: translateY(11px) rotate(45deg);
       }
 
-      .app-user-menu__bar:nth-child(2) {
+      .nom-user-menu__bar:nth-child(2) {
         opacity: 0;
       }
 
-      .app-user-menu__bar:nth-child(3) {
+      .nom-user-menu__bar:nth-child(3) {
         transform: translateY(-11px) rotate(-45deg);
       }
     }
@@ -285,7 +285,7 @@ mat-form-field {
       transform: translateY(0);
     }
 
-    &.app-user-menu__login-component {
+    &.nom-user-menu__login-component {
       padding: 0px;
     }
 
@@ -300,7 +300,7 @@ mat-form-field {
     margin: 0;
 
     li {
-      .app-user-menu__link {
+      .nom-user-menu__link {
         display: block;
         padding: 10px 20px;
         text-decoration: none;
@@ -335,7 +335,7 @@ mat-form-field {
   }
 }
 
-.app-sidenav {
+.nom-sidenav {
   position: fixed;
   top: 0;
   right: -250px;
@@ -358,7 +358,7 @@ mat-form-field {
     margin: 0;
 
     li {
-      .app-sidenav__link {
+      .nom-sidenav__link {
         display: block;
         padding: 15px 20px;
         text-decoration: none;
@@ -375,7 +375,7 @@ mat-form-field {
   }
 }
 
-.app-content {
+.nom-content {
   position: fixed;
   top: 72px;
   bottom: 40px;
@@ -388,7 +388,7 @@ mat-form-field {
   background-color: var(--mat-sys-background);
 }
 
-.app-footer {
+.nom-footer {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -404,28 +404,28 @@ mat-form-field {
 }
 
 @media (max-width: vars.$breakpoint-mobile) {
-  .app-header {
+  .nom-header {
     &__left {
       gap: vars.$spacing-medium;
       padding: 0 10px;
     }
 
     &__right {
-      .app-user-menu__burger-menu {
+      .nom-user-menu__burger-menu {
         display: block;
       }
     }
   }
 
-  .app-main-nav {
+  .nom-main-nav {
     display: none; // Hide main nav on mobile, use user menu instead
   }
 
-  .app-search {
+  .nom-search {
     width: 200px; // Smaller search on mobile
   }
 
-  .app-user-menu {
+  .nom-user-menu {
     &__dropdown {
       min-width: 250px;
     }
@@ -433,15 +433,15 @@ mat-form-field {
 }
 
 @media (min-width: vars.$breakpoint-mobile + 1px) {
-  .app-header {
+  .nom-header {
     &__right {
-      .app-user-menu__burger-menu {
+      .nom-user-menu__burger-menu {
         display: none;
       }
     }
   }
 
-  .app-sidenav {
+  .nom-sidenav {
     position: relative;
     right: auto;
     width: 200px;
@@ -451,11 +451,11 @@ mat-form-field {
     flex-shrink: 0;
   }
 
-  .app-content {
+  .nom-content {
     margin-right: 0;
   }
 
-  .app-user-menu {
+  .nom-user-menu {
     &__dropdown {
       min-width: 350px;
     }

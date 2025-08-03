@@ -7,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
-  selector: 'app-onboarding-invitation-code',
+  selector: 'nom-onboarding-invitation-code',
   standalone: true,
   imports: [
     CommonModule,

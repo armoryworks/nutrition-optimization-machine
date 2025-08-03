@@ -15,7 +15,7 @@ import { ShoppingListCategoryService } from '../../services/shopping-list-catego
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
 
 @Component({
-    selector: 'app-shopping-category-management',
+    selector: 'nom-shopping-category-management',
     standalone: true,
     imports: [
         CommonModule,

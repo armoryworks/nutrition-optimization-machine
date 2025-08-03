@@ -1,0 +1,63 @@
+<div class="input-container" [class]="getCssClasses()">
+    <label *ngIf="label" [for]="'input-' + config.id" class="input-label">
+        {{ label }}
+        <span *ngIf="required" class="required-indicator">*</span>
+    </label>
+
+    <div class="input-wrapper">
+        <i *ngIf="showPrefixIcon && prefixIcon" [class]="prefixIcon" class="prefix-icon"></i>
+        
+        <input
+            [id]="'input-' + config.id"
+            [type]="type"
+            [placeholder]="placeholder"
+            [required]="required"
+            [disabled]="disabled"
+            [readonly]="readonly"
+            [autocomplete]="autocomplete"
+            [maxlength]="maxlength"
+            [minlength]="minlength"
+            [pattern]="pattern"
+            [step]="step"
+            [min]="min"
+            [max]="max"
+            [autofocus]="autofocus"
+            [spellcheck]="spellcheck"
+            [autocapitalize]="autocapitalize"
+            [autocorrect]="autocorrect"
+            [tabindex]="tabindex"
+            [formControl]="formControl"
+            [style]="getInputStyles()"
+            (focus)="onFocus($event)"
+            (blur)="onBlur($event)"
+            (click)="onClick($event)"
+            (dblclick)="onDblClick($event)"
+            (keydown)="onKeyDown($event)"
+            (keyup)="onKeyUp($event)"
+            class="input-field">
+
+        <i *ngIf="showSuffixIcon && suffixIcon" [class]="suffixIcon" class="suffix-icon"></i>
+        
+        <button 
+            *ngIf="showClearButton && formControl.value" 
+            type="button" 
+            class="clear-button"
+            (click)="onClear()">
+            ×
+        </button>
+
+        <div *ngIf="loading" class="loading-spinner"></div>
+    </div>
+
+    <div *ngIf="showHint && hint" class="input-hint">
+        {{ hint }}
+    </div>
+
+    <div *ngIf="showError && getErrorMessage()" class="input-error">
+        {{ getErrorMessage() }}
+    </div>
+
+    <div *ngIf="showSuccess && success" class="input-success">
+        {{ success }}
+    </div>
+</div> 

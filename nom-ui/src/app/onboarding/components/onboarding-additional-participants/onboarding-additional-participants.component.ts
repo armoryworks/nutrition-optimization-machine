@@ -16,7 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PersonModel } from '../../../person/models/person.model';
 
 @Component({
-  selector: 'app-onboarding-additional-participants',
+  selector: 'nom-onboarding-additional-participants',
   standalone: true,
   imports: [
     CommonModule,

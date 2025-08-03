@@ -22,7 +22,7 @@ import { SendConfirmationEmail } from '../models/send-confirmation-email';
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-send-confirmation-email',
+  selector: 'nom-send-confirmation-email',
   standalone: true,
   imports: [
     CommonModule,

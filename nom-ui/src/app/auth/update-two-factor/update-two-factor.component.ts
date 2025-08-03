@@ -25,7 +25,7 @@ import { UpdateTwoFactor } from '../models/update-two-factor'; // Import the Upd
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-update-two-factor',
+  selector: 'nom-update-two-factor',
   standalone: true,
   imports: [
     CommonModule,

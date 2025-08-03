@@ -1,8 +1,8 @@
-<header class="app-header">
-  <div class="app-header__left">
+<header class="nom-header">
+  <div class="nom-header__left">
     <!-- Global Recipe Search - Available to all users -->
-    <div class="app-search">
-      <mat-form-field class="app-search__field">
+    <div class="nom-search">
+      <mat-form-field class="nom-search__field">
         <mat-icon matPrefix>search</mat-icon>
         <input matInput 
                placeholder="Search recipes and ingredients..." 
@@ -16,35 +16,35 @@
     </div>
   </div>
 
-  <div class="app-header__center">
+  <div class="nom-header__center">
     <!-- Main Navigation -->
     @if (isLoggedIn$ | async) {
-    <nav class="app-main-nav">
-      <a routerLink="/user/dashboard" class="app-main-nav__link">
+    <nav class="nom-main-nav">
+      <a routerLink="/user/dashboard" class="nom-main-nav__link">
         <mat-icon>dashboard</mat-icon>
         <span>Dashboard</span>
       </a>
-      <a routerLink="/household" class="app-main-nav__link">
+      <a routerLink="/household" class="nom-main-nav__link">
         <mat-icon>home</mat-icon>
         <span>Households</span>
       </a>
-      <a routerLink="/shopping" class="app-main-nav__link">
+      <a routerLink="/shopping" class="nom-main-nav__link">
         <mat-icon>shopping_cart</mat-icon>
         <span>Shopping</span>
       </a>
-      <a routerLink="/meal-plan" class="app-main-nav__link">
+      <a routerLink="/meal-plan" class="nom-main-nav__link">
         <mat-icon>restaurant_menu</mat-icon>
         <span>Meal Plans</span>
       </a>
-      <a routerLink="/messaging" class="app-main-nav__link">
+      <a routerLink="/messaging" class="nom-main-nav__link">
         <mat-icon>message</mat-icon>
         <span>Messages</span>
       </a>
-      <a routerLink="/recipe-search" class="app-main-nav__link">
+      <a routerLink="/recipe-search" class="nom-main-nav__link">
         <mat-icon>search</mat-icon>
         <span>Recipe Search</span>
       </a>
-      <a routerLink="/curated-plans" class="app-main-nav__link">
+      <a routerLink="/curated-plans" class="nom-main-nav__link">
         <mat-icon>schedule</mat-icon>
         <span>Curated Plans</span>
       </a>
@@ -52,51 +52,51 @@
     }
   </div>
 
-  <div class="app-header__right">
-    <button mat-icon-button (click)="toggleTheme()" class="app-header__theme-toggle">
+  <div class="nom-header__right">
+    <button mat-icon-button (click)="toggleTheme()" class="nom-header__theme-toggle">
       <mat-icon>{{ isDarkTheme ? 'dark_mode' : 'light_mode' }}</mat-icon>
     </button>
 
-    <div class="app-user-menu" (click)="toggleUserMenu()">
-      <div class="app-user-menu__icon-container">
-        <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="app-user-menu__user-icon" />
-        <span class="app-user-menu__status-indicator"
-          [class.app-user-menu__status-indicator--logged-in]="isLoggedIn"></span>
+    <div class="nom-user-menu" (click)="toggleUserMenu()">
+      <div class="nom-user-menu__icon-container">
+        <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="nom-user-menu__user-icon" />
+        <span class="nom-user-menu__status-indicator"
+          [class.nom-user-menu__status-indicator--logged-in]="isLoggedIn"></span>
       </div>
     </div>
   </div>
 </header>
 
-<main class="app-content">
+<main class="nom-content">
   @if (isLoggedIn$ | async) {
-  <div class="app-user-menu__dropdown" [class.app-user-menu__dropdown--open]="isUserMenuOpen">
-    <ul class="app-user-menu__logged-in-list">
-      <li><a routerLink="/ingredient-search" class="app-user-menu__link">Ingredient Search</a></li>
-      <li class="app-user-menu__divider"></li>
-      <li><a routerLink="/update-info" class="app-user-menu__link">Update Profile</a></li>
-      <li><a routerLink="/update-two-factor" class="app-user-menu__link">2FA Settings</a></li>
-      <li><a routerLink="/user/privacy-settings" class="app-user-menu__link">Privacy Settings</a></li>
+  <div class="nom-user-menu__dropdown" [class.nom-user-menu__dropdown--open]="isUserMenuOpen">
+    <ul class="nom-user-menu__logged-in-list">
+      <li><a routerLink="/ingredient-search" class="nom-user-menu__link">Ingredient Search</a></li>
+      <li class="nom-user-menu__divider"></li>
+      <li><a routerLink="/update-info" class="nom-user-menu__link">Update Profile</a></li>
+      <li><a routerLink="/update-two-factor" class="nom-user-menu__link">2FA Settings</a></li>
+      <li><a routerLink="/user/privacy-settings" class="nom-user-menu__link">Privacy Settings</a></li>
 
       @if (canManageCuration$ | async) {
-      <li class="app-user-menu__divider"></li>
-      <li><a routerLink="/curation" class="app-user-menu__link">Curation Queue</a></li>
+      <li class="nom-user-menu__divider"></li>
+      <li><a routerLink="/curation" class="nom-user-menu__link">Curation Queue</a></li>
       }
       @if (canManageUserRoles$ | async) {
-      <li><a routerLink="/admin/user-management" class="app-user-menu__link">User Management</a></li>
+      <li><a routerLink="/admin/user-management" class="nom-user-menu__link">User Management</a></li>
       }
 
-      <li class="app-user-menu__divider"></li>
-      <li><a (click)="logout()" class="app-user-menu__link app-user-menu__link--logout">Logout</a></li>
+      <li class="nom-user-menu__divider"></li>
+      <li><a (click)="logout()" class="nom-user-menu__link nom-user-menu__link--logout">Logout</a></li>
     </ul>
   </div>
   } @else {
-  <app-login [class.app-user-menu__dropdown--open]="isUserMenuOpen"
-    class="app-user-menu__dropdown app-user-menu__logged-out-content app-user-menu__login-component"></app-login>
+  <nom-login [class.nom-user-menu__dropdown--open]="isUserMenuOpen"
+    class="nom-user-menu__dropdown nom-user-menu__logged-out-content nom-user-menu__login-component"></nom-login>
   }
   <router-outlet></router-outlet>
 </main>
 
-<footer class="app-footer">
+<footer class="nom-footer">
   <p>Powered by Mealie: <a href="https://github.com/mealie-recipes/mealie"
     target="_blank">https://github.com/mealie-recipes/mealie</a>. A big Thank you to the contributors of that project!</p>
   <p>&copy; {{ currentYear }} {{ title }}. All rights reserved. A big thank you to the contributors of </p>

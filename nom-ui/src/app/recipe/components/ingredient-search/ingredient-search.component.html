@@ -1,5 +1,5 @@
 <!-- File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.html -->
-<app-base-list
+<nom-base-list
   [config]="listConfig"
   [loading]="isLoading"
   [error]="error">
@@ -26,8 +26,8 @@
 
     <!-- Display the details component when an ingredient is selected -->
     @if (selectedIngredient) {
-      <app-ingredient-details [ingredient]="selectedIngredient"></app-ingredient-details>
+      <nom-ingredient-details [ingredient]="selectedIngredient"></nom-ingredient-details>
     }
   </div>
-</app-base-list>
+</nom-base-list>
   

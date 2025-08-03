@@ -8,13 +8,13 @@ This guide provides clear decision trees for common development scenarios that A
 
 ```
 Is this a full page with navigation and actions?
-├─ Yes → app-base-page
+├─ Yes → nom-base-page
 └─ No → Is this primarily a form with fields and validation?
-    ├─ Yes → app-base-form
+    ├─ Yes → nom-base-form
     └─ No → Is this displaying a list of items with search/filter?
-        ├─ Yes → app-base-list
+        ├─ Yes → nom-base-list
         └─ No → Is this showing detailed information about a single item?
-            ├─ Yes → app-base-detail
+            ├─ Yes → nom-base-detail
             └─ No → Consider if this should be a custom component or if you're missing a use case
 ```
 
@@ -254,13 +254,13 @@ Is this a critical operation (save, delete)?
 Is this component already using a base component?
 ├─ Yes → No migration needed
 └─ No → Is this a page-level component with navigation?
-    ├─ Yes → Migrate to app-base-page
+    ├─ Yes → Migrate to nom-base-page
     └─ No → Is this a form component?
-        ├─ Yes → Migrate to app-base-form
+        ├─ Yes → Migrate to nom-base-form
         └─ No → Is this a list component?
-            ├─ Yes → Migrate to app-base-list
+            ├─ Yes → Migrate to nom-base-list
             └─ No → Is this a detail component?
-                ├─ Yes → Migrate to app-base-detail
+                ├─ Yes → Migrate to nom-base-detail
                 └─ No → Keep as standalone component
 ```
 

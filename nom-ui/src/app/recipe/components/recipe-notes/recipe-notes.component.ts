@@ -17,7 +17,7 @@ import { RecipeNoteModel, RecipeNoteCreateModel } from "../../models/recipe-note
 import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
-    selector: "app-recipe-notes",
+    selector: "nom-recipe-notes",
     standalone: true,
     imports: [
         CommonModule,

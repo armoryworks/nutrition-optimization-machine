@@ -24,7 +24,7 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
 import { Subject } from 'rxjs';
 
 @Component({
-  selector: 'app-person-edit',
+  selector: 'nom-person-edit',
   standalone: true,
   imports: [
     CommonModule,

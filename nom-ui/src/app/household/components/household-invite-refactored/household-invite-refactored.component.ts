@@ -12,7 +12,7 @@ import { HouseholdInviteTokenCreateRequestModel, HouseholdInviteTokenResponseMod
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
-    selector: 'app-household-invite-refactored',
+    selector: 'nom-household-invite-refactored',
     standalone: true,
     imports: [
         CommonModule,

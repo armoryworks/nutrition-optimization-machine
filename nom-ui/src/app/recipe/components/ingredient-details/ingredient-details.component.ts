@@ -11,7 +11,7 @@ import { NutritionLabelData } from '../../../nutrient/models/nutrition-label-dat
 import { LabelNutrient } from '../../../nutrient/models/label-nutrient';
 
 @Component({
-  selector: 'app-ingredient-details',
+  selector: 'nom-ingredient-details',
   standalone: true,
   imports: [
     CommonModule,

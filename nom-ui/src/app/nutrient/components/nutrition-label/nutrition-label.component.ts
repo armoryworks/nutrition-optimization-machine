@@ -6,7 +6,7 @@ import { FormatMassPipe } from '../../../common/pipes/format-mass.pipe';
 import { NutritionLabelData } from '../../models/nutrition-label-data';
 
 @Component({
-  selector: 'app-nutrition-label',
+  selector: 'nom-nutrition-label',
   standalone: true,
   // Add the pipe to the imports array
   imports: [CommonModule, FormatMassPipe],

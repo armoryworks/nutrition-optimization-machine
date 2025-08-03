@@ -23,7 +23,7 @@ import { CurrentInfo } from '../models/current-info';
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-update-info',
+  selector: 'nom-update-info',
   standalone: true,
   imports: [
     CommonModule,

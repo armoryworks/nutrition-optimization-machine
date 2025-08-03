@@ -17,7 +17,7 @@ export interface BasePageConfig {
 }
 
 @Component({
-    selector: 'app-base-page',
+    selector: 'nom-base-page',
     standalone: true,
     imports: [
         CommonModule,

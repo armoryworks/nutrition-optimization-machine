@@ -18,7 +18,7 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
 import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 
 @Component({
-  selector: 'app-shopping-detail',
+  selector: 'nom-shopping-detail',
   standalone: true,
   imports: [
     CommonModule,

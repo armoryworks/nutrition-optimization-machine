@@ -17,7 +17,7 @@ import { RecipeShareTokenModel, RecipeShareTokenCreateModel } from "../../models
 import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
-    selector: "app-recipe-share-token",
+    selector: "nom-recipe-share-token",
     standalone: true,
     imports: [
         CommonModule,

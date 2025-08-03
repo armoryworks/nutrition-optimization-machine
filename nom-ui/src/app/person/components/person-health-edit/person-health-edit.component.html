@@ -1,4 +1,4 @@
-<app-base-page
+<nom-base-page
   [config]="pageConfig"
   [isLoading]="isLoading"
   [error]="error"
@@ -6,7 +6,7 @@
   (refresh)="onRefresh()"
   (retry)="onRetry()">
 
-  <app-base-form
+  <nom-base-form
     [config]="formConfig"
     [form]="healthAttributesForm"
     [isSubmitting]="isSubmitting"
@@ -55,5 +55,5 @@
         }
       }
     </div>
-  </app-base-form>
-</app-base-page>
+  </nom-base-form>
+</nom-base-page>

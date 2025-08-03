@@ -15,7 +15,7 @@ import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
 import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
 
 @Component({
-    selector: "app-recipe-rating",
+    selector: "nom-recipe-rating",
     standalone: true,
     imports: [
         CommonModule,

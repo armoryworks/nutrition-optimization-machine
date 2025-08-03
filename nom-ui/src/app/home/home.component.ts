@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 
 @Component({
-  selector: 'app-home',
+  selector: 'nom-home',
   standalone: true,
   imports: [
     CommonModule,

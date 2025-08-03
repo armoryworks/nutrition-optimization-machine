@@ -39,7 +39,7 @@ import { RestrictionTypeEnum } from '../../enums/restriction-type.enum';
 import { JsonParseCommonPipe } from '../../../common/pipes/json-parse-common.pipe';
 
 @Component({
-  selector: 'app-restriction-edit',
+  selector: 'nom-restriction-edit',
   standalone: true,
   imports: [
     CommonModule,

@@ -35,7 +35,7 @@ interface AttributeTypeModel extends ReferenceItemModel {
 }
 
 @Component({
-  selector: 'app-person-health-edit',
+  selector: 'nom-person-health-edit',
   standalone: true,
   imports: [
     CommonModule,

@@ -18,21 +18,21 @@ This guide provides specific instructions and patterns for AI tools like Cursor 
 
 All frontend components should extend one of these base components:
 
-- `app-base-page` - Full-page layouts with navigation
-- `app-base-form` - Form-focused components
-- `app-base-list` - Data display with search/filter
-- `app-base-detail` - Single item detailed view
+- `nom-base-page` - Full-page layouts with navigation
+- `nom-base-form` - Form-focused components
+- `nom-base-list` - Data display with search/filter
+- `nom-base-detail` - Single item detailed view
 
 #### Component Selection Decision Tree
 
 ```
 Is this a full page with navigation?
-├─ Yes → app-base-page
+├─ Yes → nom-base-page
 └─ No → Is this primarily a form?
-    ├─ Yes → app-base-form
+    ├─ Yes → nom-base-form
     └─ No → Is this displaying a list of items?
-        ├─ Yes → app-base-list
-        └─ No → app-base-detail
+        ├─ Yes → nom-base-list
+        └─ No → nom-base-detail
 ```
 
 ### 3. **Development Workflow**
@@ -68,11 +68,11 @@ import { takeUntil } from "rxjs/operators";
 import { Subject } from "rxjs";
 
 @Component({
-  selector: "app-my-page",
+  selector: "nom-my-page",
   standalone: true,
   imports: [BasePageComponent],
   template: `
-    <app-base-page
+    <nom-base-page
       [config]="pageConfig"
       [isLoading]="isLoading"
       [error]="error"
@@ -81,7 +81,7 @@ import { Subject } from "rxjs";
       (retry)="onRetry()"
     >
       <!-- Your page content here -->
-    </app-base-page>
+    </nom-base-page>
   `,
 })
 export class MyPageComponent
@@ -150,17 +150,17 @@ import { Component, OnInit } from "@angular/core";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 
 @Component({
-  selector: "app-my-form",
+  selector: "nom-my-form",
   standalone: true,
   imports: [BaseFormComponent],
   template: `
-    <app-base-form
+    <nom-base-form
       [config]="formConfig"
       [form]="form"
       (submit)="onSubmit($event)"
       (cancel)="onCancel()"
     >
-    </app-base-form>
+    </nom-base-form>
   `,
 })
 export class MyFormComponent extends BaseFormComponent implements OnInit {

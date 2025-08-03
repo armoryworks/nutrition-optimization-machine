@@ -17,7 +17,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { PersonModel } from '../../../person/models/person.model';
 
 @Component({
-  selector: 'app-onboarding-restriction-scope',
+  selector: 'nom-onboarding-restriction-scope',
   standalone: true,
   imports: [
     CommonModule,

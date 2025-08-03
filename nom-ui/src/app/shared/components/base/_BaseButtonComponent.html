@@ -1,0 +1,19 @@
+<button
+    [type]="config.type"
+    [disabled]="isDisabled$ | async"
+    [class]="getButtonClasses()"
+    [attr.aria-label]="config.ariaLabel"
+    [attr.aria-describedby]="config.ariaDescribedBy"
+    (click)="onClick($event)"
+    (focus)="onFocus($event)"
+    (blur)="onBlur($event)"
+    (keydown)="onKeyDown($event)">
+    <ng-container *ngIf="config.showLoading && (isLoading$ | async)">
+        <span class="loading-spinner"></span>
+    </ng-container>
+    <ng-container *ngIf="!config.showLoading || !(isLoading$ | async)">
+        <i *ngIf="config.icon" [class]="config.icon"></i>
+        <span *ngIf="config.text">{{ config.text }}</span>
+        <ng-content></ng-content>
+    </ng-container>
+</button> 

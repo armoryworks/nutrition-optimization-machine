@@ -8,17 +8,17 @@
 
     @switch (restrictionType) { @case
     (RestrictionTypeEnum.SocietalReligiousEthical) {
-    <app-societal-restriction
+    <nom-societal-restriction
       [societalRestrictionForm]="societalRestrictionFormGroup"
-    ></app-societal-restriction>
+    ></nom-societal-restriction>
     } @case (RestrictionTypeEnum.AllergyMedical) {
-    <app-medical-restriction
+    <nom-medical-restriction
       [medicalRestrictionForm]="medicalRestrictionFormGroup"
-    ></app-medical-restriction>
+    ></nom-medical-restriction>
     } @case (RestrictionTypeEnum.PersonalPreference) {
-    <app-personal-preference
+    <nom-personal-preference
       [personalPreferenceForm]="personalPreferenceFormGroup"
-    ></app-personal-preference>
+    ></nom-personal-preference>
     } @default {
     <p class="nom-message-text">
       No restriction type selected or supported for editing.

@@ -18,7 +18,7 @@ export interface BaseFormConfig {
 }
 
 @Component({
-    selector: 'app-base-form',
+    selector: 'nom-base-form',
     standalone: true,
     imports: [
         CommonModule,

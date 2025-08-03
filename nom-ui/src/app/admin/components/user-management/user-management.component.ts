@@ -4,7 +4,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-user-management',
+  selector: 'nom-user-management',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './user-management.component.html',

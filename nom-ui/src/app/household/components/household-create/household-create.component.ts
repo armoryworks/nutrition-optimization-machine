@@ -16,7 +16,7 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
-    selector: 'app-household-create',
+    selector: 'nom-household-create',
     standalone: true,
     imports: [
         CommonModule,

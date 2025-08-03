@@ -23,7 +23,7 @@ import { ResetPassword } from '../models/reset-password';
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-reset-password',
+  selector: 'nom-reset-password',
   standalone: true,
   imports: [
     CommonModule,

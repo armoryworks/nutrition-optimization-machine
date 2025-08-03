@@ -25,7 +25,7 @@ import { IngredientDetailsComponent } from '../ingredient-details/ingredient-det
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
-  selector: 'app-ingredient-search',
+  selector: 'nom-ingredient-search',
   standalone: true,
   imports: [
     CommonModule,

@@ -15,7 +15,7 @@ import { PlanModel } from '../../models/plan.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
-    selector: 'app-curated-plans',
+    selector: 'nom-curated-plans',
     standalone: true,
     imports: [
         CommonModule,
@@ -131,7 +131,7 @@ export class CuratedPlansComponent implements OnInit {
 
 // Simple dialog component for plan name input
 @Component({
-    selector: 'app-plan-name-dialog',
+    selector: 'nom-plan-name-dialog',
     standalone: true,
     imports: [CommonModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule],
     template: `

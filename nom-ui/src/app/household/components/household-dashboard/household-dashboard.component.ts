@@ -19,7 +19,7 @@ import { ViewEncapsulation } from "@angular/core";
 import { BasePageComponent, BasePageConfig } from "../../../common/components/base-page/base-page.component";
 
 @Component({
-    selector: "app-household-dashboard",
+    selector: "nom-household-dashboard",
     standalone: true,
     imports: [
         CommonModule,

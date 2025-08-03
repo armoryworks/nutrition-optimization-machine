@@ -19,7 +19,7 @@ import { RestrictionService } from '../../services/restriction.service';
 
 
 @Component({
-  selector: 'app-medical-restriction',
+  selector: 'nom-medical-restriction',
   standalone: true,
   imports: [
     CommonModule,

@@ -23,7 +23,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
-  selector: 'app-curation-queue',
+  selector: 'nom-curation-queue',
   standalone: true,
   imports: [
     CommonModule,

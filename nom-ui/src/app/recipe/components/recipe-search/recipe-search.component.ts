@@ -21,7 +21,7 @@ import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
-    selector: 'app-recipe-search',
+    selector: 'nom-recipe-search',
     standalone: true,
     imports: [
         CommonModule,

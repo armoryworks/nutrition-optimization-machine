@@ -75,7 +75,7 @@
           </button>
         </div>
         } @else {
-        <app-restriction-edit
+        <nom-restriction-edit
           [restrictionType]="currentRestrictionType"
           [restrictions]="restrictionsForEditComponent"
           [currentPersonId]="currentPersonId"
@@ -84,7 +84,7 @@
           [affectedPersonIds]="[]"
           (formSubmitted)="onRestrictionsSubmitted($event)"
           (skipStep)="currentRestrictionType = null"
-        ></app-restriction-edit>
+        ></nom-restriction-edit>
         }
       </div>
       -->

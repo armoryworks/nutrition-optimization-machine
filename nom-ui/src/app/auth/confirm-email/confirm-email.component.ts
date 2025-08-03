@@ -14,7 +14,7 @@ import { ConfirmEmail } from '../models/confirm-email';
 import { NotificationService } from '../../utilities/services/notification.service';
 
 @Component({
-  selector: 'app-confirm-email',
+  selector: 'nom-confirm-email',
   standalone: true,
   imports: [
     CommonModule,

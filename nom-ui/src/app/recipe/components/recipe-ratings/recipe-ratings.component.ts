@@ -17,7 +17,7 @@ import { RecipeRatingModel } from '../../models/recipe.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
-    selector: 'app-recipe-ratings',
+    selector: 'nom-recipe-ratings',
     standalone: true,
     imports: [
         CommonModule,
