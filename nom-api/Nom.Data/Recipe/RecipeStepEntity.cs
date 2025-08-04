@@ -23,7 +23,7 @@ namespace Nom.Data.Recipe
         public string Summary { get; set; } = string.Empty;
 
         [Required]
-        public byte StepNumber { get; set; } // TINYINT in SQL maps to byte in C#
+        public int StepNumber { get; set; } // TINYINT in SQL maps to byte in C#
 
         [Required]
         [MaxLength(2047)] // Adjusted length

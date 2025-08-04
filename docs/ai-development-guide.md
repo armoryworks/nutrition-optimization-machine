@@ -191,7 +191,7 @@ export class MyFormComponent extends BaseFormComponent implements OnInit {
     if (this.form.valid) {
       this.myService.save(formData).subscribe({
         next: () => {
-          this.notificationService.showSuccess("Saved successfully");
+          this.notificationService.success("Saved successfully");
           this.router.navigate(["/success-route"]);
         },
         error: (error) => {

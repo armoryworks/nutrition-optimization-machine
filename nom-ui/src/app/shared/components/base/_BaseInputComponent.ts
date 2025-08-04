@@ -21,7 +21,7 @@ import { IValidationResult } from '../../interfaces/input/IValidationResult';
         }
     ]
 })
-export abstract class _BaseInputComponent implements ControlValueAccessor, OnInit, OnDestroy {
+export abstract class BaseInputComponent implements ControlValueAccessor, OnInit, OnDestroy {
     @Input() config: IInputConfig = {};
     @Input() value: any;
     @Input() disabled = false;
@@ -150,7 +150,7 @@ export abstract class _BaseInputComponent implements ControlValueAccessor, OnIni
             this.hint = this.config.hint || this.hint;
             this.showError = this.config.showError || this.showError;
             this.error = this.config.error || this.error;
-            this.showSuccess = this.config.showSuccess || this.showSuccess;
+            this.success = this.config.success || this.success;
             this.success = this.config.success || this.success;
             this.loading = this.config.loading || this.loading;
             this.showClearButton = this.config.showClearButton || this.showClearButton;

@@ -236,8 +236,7 @@ namespace Nom.Orch.UtilityServices
             {
                 RecordSecurityEvent(
                     SecurityEventType.ResourceAnomaly,
-                    $"High memory usage detected: {memoryUsage} MB",
-                    severity: SecurityEventSeverity.Medium
+                    $"High memory usage detected: {memoryUsage} MB"
                 );
             }
 
@@ -246,8 +245,7 @@ namespace Nom.Orch.UtilityServices
             {
                 RecordSecurityEvent(
                     SecurityEventType.ResourceAnomaly,
-                    $"High CPU usage detected: {cpuUsage}%",
-                    severity: SecurityEventSeverity.Medium
+                    $"High CPU usage detected: {cpuUsage}%"
                 );
             }
         }
@@ -303,8 +301,7 @@ namespace Nom.Orch.UtilityServices
                 {
                     RecordSecurityEvent(
                         SecurityEventType.TimeBasedAnomaly,
-                        $"Unusual activity during off-hours: {offHourEvents.Count} events",
-                        severity: SecurityEventSeverity.Medium
+                        $"Unusual activity during off-hours: {offHourEvents.Count} events"
                     );
                 }
             }

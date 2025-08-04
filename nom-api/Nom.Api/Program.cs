@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Nom.Api.Authentication;
+using Nom.Api.Middleware;
 using Nom.Data;
 using Nom.Orch;
 using System.Linq;
@@ -65,8 +66,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Use AddIdentity for more control, allowing for custom claims factory registration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders()
-    .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
+    .AddDefaultTokenProviders();
+                    // .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>() // Register our custom claims factory
 
 
 
@@ -140,7 +141,10 @@ builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 // --- END OF CORRECTED CONFIGURATION ---
 
 // Add HttpClient for web scraping
-builder.Services.AddHttpClient<WebScrapingService>();
+// builder.Services.AddHttpClient<WebScrapingService>();
+
+// Add OCR service
+// builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();
 
 // Utility services are automatically registered via AddOrchestrationServices()
 

@@ -3,12 +3,14 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
 import { takeUntil, tap, catchError } from 'rxjs/operators';
+import { _ServiceHealthStatus } from './_ServiceHealthStatus';
+import { _ServiceConfig } from './_ServiceConfig';
 
 /**
  * Abstract base service that should be extended by concrete service implementations
  */
 @Injectable()
-export abstract class _BaseService implements OnDestroy {
+export abstract class BaseService implements OnDestroy {
     protected readonly destroy$ = new Subject<void>();
     protected readonly healthStatus$ = new BehaviorSubject<_ServiceHealthStatus>({
         isHealthy: true,
@@ -191,89 +193,4 @@ export abstract class _BaseService implements OnDestroy {
     ngOnDestroy(): void {
         this.dispose();
     }
-}
-
-/**
- * Service health status interface
- */
-export interface _ServiceHealthStatus {
-    /**
-     * Whether the service is healthy
-     */
-    isHealthy: boolean;
-
-    /**
-     * The service name
-     */
-    serviceName: string;
-
-    /**
-     * The timestamp of the health check
-     */
-    timestamp: Date;
-
-    /**
-     * Any error messages
-     */
-    errors: string[];
-
-    /**
-     * Additional health information
-     */
-    details?: any;
-}
-
-/**
- * Service configuration interface
- */
-export interface _ServiceConfig {
-    /**
-     * The service name
-     */
-    name?: string;
-
-    /**
-     * Whether to enable caching
-     */
-    enableCaching?: boolean;
-
-    /**
-     * Cache duration in milliseconds
-     */
-    cacheDuration?: number;
-
-    /**
-     * Whether to enable logging
-     */
-    enableLogging?: boolean;
-
-    /**
-     * Whether to enable error handling
-     */
-    enableErrorHandling?: boolean;
-
-    /**
-     * Whether to enable retry logic
-     */
-    enableRetry?: boolean;
-
-    /**
-     * Maximum number of retry attempts
-     */
-    maxRetryAttempts?: number;
-
-    /**
-     * Retry delay in milliseconds
-     */
-    retryDelay?: number;
-
-    /**
-     * Whether to enable health checks
-     */
-    enableHealthChecks?: boolean;
-
-    /**
-     * Health check interval in milliseconds
-     */
-    healthCheckInterval?: number;
 } 

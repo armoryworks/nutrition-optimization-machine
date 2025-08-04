@@ -9,5 +9,6 @@ namespace Nom.Orch.Models.Recipe
         public string Description { get; set; } = string.Empty;
         public long AuthorId { get; set; }
         public DateTime CreatedDate { get; set; }
+        public string Message { get; set; } = string.Empty;
     }
 } 

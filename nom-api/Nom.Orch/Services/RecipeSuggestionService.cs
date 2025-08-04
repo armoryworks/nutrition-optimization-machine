@@ -39,10 +39,18 @@ namespace Nom.Orch.Services
 
                 return new RecipeSuggestionResponseModel
                 {
-                    Items = suggestions,
-                    TotalCount = suggestions.Count,
-                    SuggestionMethod = "ingredient_based",
-                    Recommendations = new List<string> { "Try adding more ingredients for better suggestions", "Consider seasonal ingredients for fresher recipes" }
+                    Suggestions = suggestions.Select(s => new RecipeSuggestionResultModel
+                    {
+                        Id = (int)s.RecipeId,
+                        Name = s.RecipeName,
+                        Description = s.Description,
+                        ImageUrl = s.ImageUrl,
+                        Rating = s.Rating,
+                        RatingCount = s.RatingCount,
+                        Categories = s.Categories,
+                        Tags = s.Tags
+                    }).ToList(),
+                    TotalCount = suggestions.Count
                 };
             }
             catch (Exception ex)
@@ -143,10 +151,18 @@ namespace Nom.Orch.Services
 
                 return new RecipeSuggestionResponseModel
                 {
-                    Items = suggestions,
-                    TotalCount = suggestions.Count,
-                    SuggestionMethod = "discovery",
-                    Recommendations = new List<string> { "Try different cuisines", "Explore seasonal ingredients" }
+                    Suggestions = suggestions.Select(s => new RecipeSuggestionResultModel
+                    {
+                        Id = (int)s.RecipeId,
+                        Name = s.RecipeName,
+                        Description = s.Description,
+                        ImageUrl = s.ImageUrl,
+                        Rating = s.Rating,
+                        RatingCount = s.RatingCount,
+                        Categories = s.Categories,
+                        Tags = s.Tags
+                    }).ToList(),
+                    TotalCount = suggestions.Count
                 };
             }
             catch (Exception ex)

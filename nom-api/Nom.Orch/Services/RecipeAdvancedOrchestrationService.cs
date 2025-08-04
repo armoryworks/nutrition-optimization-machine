@@ -401,7 +401,7 @@ namespace Nom.Orch.Services
                 RecipeId = timelineEvent.RecipeId,
                 RecipeName = recipe.Name,
                 EventTypeId = timelineEvent.EventTypeId,
-                EventTypeName = "Timeline Event", // TODO: Get from reference data
+                EventTypeName = timelineEvent.EventType?.Name ?? "Timeline Event",
                 EventTitle = timelineEvent.Title,
                 EventDescription = timelineEvent.Description,
                 EventDate = timelineEvent.EventDate,

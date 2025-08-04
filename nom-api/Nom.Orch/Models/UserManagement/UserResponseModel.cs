@@ -14,6 +14,16 @@ namespace Nom.Orch.Models.UserManagement
         public DateTime CreatedDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         
+        // Additional properties for compatibility
+        public string UserName { get; set; } = string.Empty;
+        public bool EmailConfirmed { get; set; } = false;
+        public string? PhoneNumber { get; set; }
+        public bool PhoneNumberConfirmed { get; set; } = false;
+        public bool TwoFactorEnabled { get; set; } = false;
+        public DateTime? LockoutEnd { get; set; }
+        public bool LockoutEnabled { get; set; } = false;
+        public int AccessFailedCount { get; set; } = 0;
+        
         // User permissions (from Mealie)
         public bool CanInvite { get; set; } = false;
         public bool CanManage { get; set; } = false;

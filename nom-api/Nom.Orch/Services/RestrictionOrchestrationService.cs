@@ -36,35 +36,31 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Placeholder method to get a list of curated ingredients.
-        /// In a real application, this would query a database or external service.
+        /// Gets a list of curated ingredients from the database.
         /// </summary>
         /// <returns>A list of ingredient names.</returns>
         public async Task<List<string>> GetCuratedIngredientsAsync()
         {
-            // TODO: Replace with actual database lookup or configured list.
-            // For now, returning a mock list.
-            return await Task.FromResult(new List<string>
-            {
-                "Onions", "Garlic", "Tomatoes", "Potatoes", "Carrots", "Spinach", "Chicken Breast", "Ground Beef",
-                "Salmon", "Rice", "Pasta", "Bread", "Cheese", "Olive Oil", "Salt", "Black Pepper"
-            });
+            var curatedIngredients = await _dbContext.Ingredients
+                .Where(i => i.CurationStatus.Name == "Curated" == true)
+                .Select(i => i.Name)
+                .ToListAsync();
+
+            return curatedIngredients;
         }
 
         /// <summary>
-        /// Placeholder method to get a list of micronutrients.
-        /// In a real application, this would query a database or external service.
+        /// Gets a list of micronutrients from the database.
         /// </summary>
         /// <returns>A list of micronutrient names.</returns>
         public async Task<List<string>> GetMicronutrientsAsync()
         {
-            // TODO: Replace with actual database lookup or configured list.
-            // For now, returning a mock list.
-            return await Task.FromResult(new List<string>
-            {
-                "Vitamin A", "Vitamin B12", "Vitamin C", "Vitamin D", "Vitamin E", "Vitamin K",
-                "Calcium", "Iron", "Magnesium", "Potassium", "Zinc", "Folate"
-            });
+            var micronutrients = await _dbContext.Nutrients
+                .Where(n => n.IsMicronutrient == true)
+                .Select(n => n.Name)
+                .ToListAsync();
+
+            return micronutrients;
         }
     }
 }

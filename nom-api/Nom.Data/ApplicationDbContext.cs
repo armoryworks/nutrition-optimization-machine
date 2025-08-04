@@ -71,7 +71,7 @@ namespace Nom.Data
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
         public DbSet<RestrictionEntity> Restrictions { get; set; } = default!;
-        
+
         // New Plan entities (from Mealie)
         public DbSet<HouseholdEntity> Households { get; set; } = default!;
         public DbSet<HouseholdPreferenceEntity> HouseholdPreferences { get; set; } = default!;
@@ -100,7 +100,7 @@ namespace Nom.Data
         public DbSet<RecipeEntity> Recipes { get; set; } = default!;
         public DbSet<RecipeIngredientEntity> RecipeIngredients { get; set; } = default!;
         public DbSet<RecipeStepEntity> RecipeSteps { get; set; } = default!;
-        
+
         // New Recipe entities (from Mealie)
         public DbSet<RecipeCommentEntity> RecipeComments { get; set; } = default!;
         public DbSet<RecipeRatingEntity> RecipeRatings { get; set; } = default!;
@@ -139,7 +139,7 @@ namespace Nom.Data
         public DbSet<PantryItemEntity> PantryItems { get; set; } = default!;
         public DbSet<ShoppingPreferenceEntity> ShoppingPreferences { get; set; } = default!;
         public DbSet<ShoppingTripEntity> ShoppingTrips { get; set; } = default!;
-        
+
         // New Shopping entities (from Mealie)
         public DbSet<ShoppingListEntity> ShoppingLists { get; set; } = default!;
         public DbSet<ShoppingListItemEntity> ShoppingListItems { get; set; } = default!;

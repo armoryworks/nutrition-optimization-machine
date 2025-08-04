@@ -2,10 +2,12 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Nom.Data;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
+using Microsoft.EntityFrameworkCore;
 
 namespace Nom.Orch.Services
 {
@@ -75,7 +77,7 @@ namespace Nom.Orch.Services
 
                 // Create recipe in database
                 var recipeEntity = await CreateRecipeFromScrapedDataAsync(scrapedRecipe, request);
-                
+
                 return new RecipeScrapingResponseModel
                 {
                     RecipeId = recipeEntity.Id,
@@ -436,7 +438,7 @@ namespace Nom.Orch.Services
         private void ParseHtmlRecipe(HtmlDocument doc, ScrapedRecipeModel recipe)
         {
             // Basic HTML parsing fallback
-            var titleNode = doc.DocumentNode.SelectSingleNode("//h1") ?? 
+            var titleNode = doc.DocumentNode.SelectSingleNode("//h1") ??
                            doc.DocumentNode.SelectSingleNode("//title");
             if (titleNode != null)
                 recipe.Name = titleNode.InnerText.Trim();
@@ -491,7 +493,7 @@ namespace Nom.Orch.Services
                 RecipeYield = scrapedRecipe.RecipeYield,
                 RecipeYieldQuantity = scrapedRecipe.RecipeYieldQuantity,
                 RecipeServings = scrapedRecipe.RecipeServings,
-                ImageUrl = scrapedRecipe.Image,
+                Image = scrapedRecipe.Image ?? string.Empty,
                 AuthorId = GetCurrentUserId(),
                 CurationStatusId = 1, // Default status
                 Version = 1,
@@ -505,14 +507,34 @@ namespace Nom.Orch.Services
             // Add ingredients
             foreach (var ingredient in scrapedRecipe.Ingredients)
             {
+                // First, find or create the ingredient
+                var ingredientEntity = await _dbContext.Ingredients
+                    .FirstOrDefaultAsync(i => i.Name.Equals(ingredient.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (ingredientEntity == null)
+                {
+                    ingredientEntity = new IngredientEntity
+                    {
+                        Name = ingredient.Name,
+                        CurationStatusId = 1, // Default status
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = GetCurrentPersonId()
+                    };
+                    _dbContext.Ingredients.Add(ingredientEntity);
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                // Find measurement type
+                var measurementType = await _dbContext.MeasurementTypes
+                    .FirstOrDefaultAsync(r => r.ReferenceName == ingredient.Unit);
+
                 var recipeIngredient = new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
-                    IngredientName = ingredient.Name,
-                    Quantity = ingredient.Quantity,
-                    MeasurementUnit = ingredient.Unit,
-                    Notes = ingredient.Notes,
-                    Order = scrapedRecipe.Ingredients.IndexOf(ingredient) + 1
+                    IngredientId = ingredientEntity.Id,
+                    Quantity = ingredient.Quantity ?? 1,
+                    MeasurementTypeId = measurementType?.ReferenceId ?? 1, // Default measurement type
+                    RawLine = ingredient.Notes ?? ingredient.Name
                 };
                 _dbContext.RecipeIngredients.Add(recipeIngredient);
             }
@@ -523,9 +545,9 @@ namespace Nom.Orch.Services
                 var recipeStep = new RecipeStepEntity
                 {
                     RecipeId = recipe.Id,
-                    Instruction = step.Instruction,
-                    ImageUrl = step.Image,
-                    Order = step.Order
+                    Summary = step.Instruction,
+                    Description = step.Instruction,
+                    StepNumber = step.Order ?? 1
                 };
                 _dbContext.RecipeSteps.Add(recipeStep);
             }
@@ -540,7 +562,7 @@ namespace Nom.Orch.Services
             // Implementation for adding tags and categories
             // This would involve creating tag and category entities
             // For now, we'll log the action
-            _logger.LogInformation("Adding tags and categories to recipe {RecipeId}: Tags={Tags}, Categories={Categories}", 
+            _logger.LogInformation("Adding tags and categories to recipe {RecipeId}: Tags={Tags}, Categories={Categories}",
                 recipeId, string.Join(",", tags ?? new List<string>()), string.Join(",", categories ?? new List<string>()));
         }
 
@@ -559,4 +581,4 @@ namespace Nom.Orch.Services
 
         #endregion
     }
-} 
+}

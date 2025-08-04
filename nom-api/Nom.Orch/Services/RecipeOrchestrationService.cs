@@ -31,6 +31,23 @@ namespace Nom.Orch.Services
             return 1; // Default user ID for development
         }
 
+        private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)
+        {
+            var nutrients = await _context.IngredientNutrients
+                .Include(in_ => in_.Nutrient)
+                .Where(in_ => in_.IngredientId == ingredientId)
+                .Select(in_ => new NutrientValueModel
+                {
+                    NutrientId = in_.NutrientId,
+                    NutrientName = in_.Nutrient.Name,
+                    Amount = in_.Amount,
+                                                UnitName = in_.MeasurementType != null ? in_.MeasurementType.Name : string.Empty
+                })
+                .ToListAsync();
+
+            return nutrients;
+        }
+
         public async Task<List<RecipeResponseModel>> GetAllRecipesAsync()
         {
             var recipes = await _context.Recipes
@@ -295,7 +312,7 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
-                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+                Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
 
@@ -316,7 +333,7 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
-                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+                Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
 
@@ -338,7 +355,7 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
-                Nutrients = new List<NutrientValueModel>() // TODO: Load actual nutrients
+                Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
     }

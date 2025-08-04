@@ -133,12 +133,12 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
     // Initialize form controls for each attribute type
     this.attributeTypes.forEach(attrType => {
       const controlName = this.getFormControlName(attrType.name);
-      const existingValue = this.attributes.find(attr => attr.attributeTypeId === attrType.id)?.value || '';
+      const existingValue = this.attributes.find(attr => attr.attributeTypeRefId === attrType.id)?.value || '';
       formControls[controlName] = new FormControl(existingValue);
     });
 
     // Special handling for height attributes
-    const heightAttribute = this.attributes.find(attr => attr.attributeTypeId === this.HEIGHT_ATTRIBUTE_ID);
+    const heightAttribute = this.attributes.find(attr => attr.attributeTypeRefId === this.HEIGHT_ATTRIBUTE_ID);
     if (heightAttribute) {
       const heightInInches = parseInt(heightAttribute.value) || 0;
       const feet = Math.floor(heightInInches / 12);
@@ -183,7 +183,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
 
           attributes.push({
             personId: this.currentPersonId,
-            attributeTypeId: attrType.id,
+            attributeTypeRefId: attrType.id,
             value: processedValue.toString()
           });
         }

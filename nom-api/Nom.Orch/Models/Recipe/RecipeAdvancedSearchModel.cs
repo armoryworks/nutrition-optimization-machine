@@ -14,7 +14,7 @@ namespace Nom.Orch.Models.Recipe
         public List<long>? IngredientIds { get; set; }
         public List<long>? CuisineTypeIds { get; set; }
         public List<long>? HouseholdIds { get; set; }
-        public decimal? MinRating { get; set; }
+        public int? MinRating { get; set; }
         public int? MaxPrepTime { get; set; }
         public int? MaxCookTime { get; set; }
         public int? MaxTotalTime { get; set; }

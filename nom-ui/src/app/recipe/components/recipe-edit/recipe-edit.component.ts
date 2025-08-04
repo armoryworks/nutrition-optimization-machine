@@ -153,7 +153,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             const existingControl = this.ingredients.at(existingIndex);
             const currentQuantity = existingControl.get('quantity')?.value || 0;
             existingControl.patchValue({ quantity: currentQuantity + 1 });
-            this.notificationService.showInfo(`Increased quantity of ${ingredient.name}`);
+            this.notificationService.info(`Increased quantity of ${ingredient.name}`);
         } else {
             // Add new ingredient
             this.ingredients.push(this.createIngredientGroup(ingredient));
@@ -189,7 +189,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                     nutritionPer100g: result.nutritionPer100g
                 };
                 this.ingredients.push(this.createIngredientGroup(newIngredient));
-                this.notificationService.showSuccess(`Ingredient "${result.name}" created and added to recipe`);
+                this.notificationService.success(`Ingredient "${result.name}" created and added to recipe`);
             }
         });
     }
@@ -280,7 +280,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         ).subscribe({
             next: (recipe) => {
                 const action = this.isEditMode ? 'updated' : 'created';
-                this.notificationService.showSuccess(`Recipe ${action} successfully`);
+                this.notificationService.success(`Recipe ${action} successfully`);
                 this.router.navigate(['/recipe', recipe.id]);
             },
             error: (error) => {
@@ -321,7 +321,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             takeUntil(this.destroy$)
         ).subscribe({
             next: (recipe) => {
-                this.notificationService.showSuccess('Recipe created and submitted for curation');
+                this.notificationService.success('Recipe created and submitted for curation');
                 this.router.navigate(['/recipe', recipe.id]);
             },
             error: (error) => {

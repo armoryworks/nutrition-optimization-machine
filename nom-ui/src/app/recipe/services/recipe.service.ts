@@ -87,6 +87,10 @@ export class RecipeService {
     return this.http.post<any>(`${environment.apiUrl}/ingredient`, ingredient);
   }
 
+  updateIngredient(id: number, ingredient: any): Observable<any> {
+    return this.http.put<any>(`${environment.apiUrl}/ingredient/${id}`, ingredient);
+  }
+
   getIngredientDetails(id: number): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}/ingredient/${id}`);
   }

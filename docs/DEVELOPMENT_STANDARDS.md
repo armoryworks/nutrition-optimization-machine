@@ -165,7 +165,7 @@ export class ButtonComponent extends _BaseButtonComponent {
 ```typescript
 // File: shared/services/base/_BaseService.ts
 @Injectable()
-export abstract class _BaseService implements OnDestroy {
+export abstract class BaseService implements OnDestroy {
   abstract getServiceName(): string;
   abstract performInitialization(): Promise<void>;
   abstract performCleanup(): Promise<void>;
@@ -206,7 +206,7 @@ export class EventBusService implements OnDestroy {
   templateUrl: "./_BaseButtonComponent.html",
   styleUrls: ["./_BaseButtonComponent.scss"],
 })
-export abstract class _BaseButtonComponent implements OnInit, OnDestroy {
+export abstract class BaseButtonComponent implements OnInit, OnDestroy {
   abstract getButtonClasses(): string;
 }
 ```

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Nom.Orch.UtilityInterfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,13 +60,16 @@ namespace Nom.Orch.UtilityServices
             {
                 Title = ExtractTitle(html),
                 Description = ExtractDescription(html),
-                Image = ExtractImage(html),
+                ImageUrl = ExtractImage(html),
                 Ingredients = ExtractIngredients(html),
                 Instructions = ExtractInstructions(html),
                 PrepTime = ExtractPrepTime(html),
                 CookTime = ExtractCookTime(html),
                 TotalTime = ExtractTotalTime(html),
-                Yield = ExtractYield(html)
+                Yield = ExtractYield(html),
+                SourceUrl = sourceUrl,
+                IsValid = true,
+                ErrorMessage = string.Empty
             };
 
             // Clean up the data
@@ -356,9 +360,9 @@ namespace Nom.Orch.UtilityServices
                         {
                             var ingredientsJson = ingredientMatch.Groups[1].Value;
                             var ingredientMatches = Regex.Matches(ingredientsJson, @"""([^""]+)""");
-                            foreach (Match ingredientMatch in ingredientMatches)
+                            foreach (Match ingredientMatchItem in ingredientMatches)
                             {
-                                ingredients.Add(ingredientMatch.Groups[1].Value);
+                                ingredients.Add(ingredientMatchItem.Groups[1].Value);
                             }
                         }
                     }
@@ -394,9 +398,9 @@ namespace Nom.Orch.UtilityServices
                         {
                             var instructionsJson = instructionMatch.Groups[1].Value;
                             var instructionMatches = Regex.Matches(instructionsJson, @"""text"":\s*""([^""]+)""");
-                            foreach (Match instructionMatch in instructionMatches)
+                            foreach (Match instructionMatchItem in instructionMatches)
                             {
-                                instructions.Add(instructionMatch.Groups[1].Value);
+                                instructions.Add(instructionMatchItem.Groups[1].Value);
                             }
                         }
                     }
@@ -460,17 +464,6 @@ namespace Nom.Orch.UtilityServices
             }
         }
 
-        public class ScrapedRecipeData
-        {
-            public string Title { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public string Image { get; set; } = string.Empty;
-            public List<string> Ingredients { get; set; } = new List<string>();
-            public List<string> Instructions { get; set; } = new List<string>();
-            public string PrepTime { get; set; } = string.Empty;
-            public string CookTime { get; set; } = string.Empty;
-            public string TotalTime { get; set; } = string.Empty;
-            public string Yield { get; set; } = string.Empty;
-        }
+
     }
 } 

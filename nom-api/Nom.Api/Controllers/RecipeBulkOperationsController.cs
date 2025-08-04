@@ -262,12 +262,12 @@ namespace Nom.Api.Controllers
                     return NotFound(new { message = "Export file not found" });
                 }
 
-                if (!File.Exists(file.FilePath))
+                if (!System.IO.File.Exists(file.FilePath))
                 {
                     return NotFound(new { message = "Export file not found on disk" });
                 }
 
-                var fileBytes = await File.ReadAllBytesAsync(file.FilePath);
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(file.FilePath);
                 return File(fileBytes, file.ContentType, file.FileName);
             }
             catch (Exception ex)

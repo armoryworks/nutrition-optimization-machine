@@ -3,6 +3,7 @@ using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using Nom.Orch.UtilityInterfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,14 +19,14 @@ namespace Nom.Orch.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<RecipeImportOrchestrationService> _logger;
-        private readonly WebScrapingService _webScrapingService;
-        private readonly TesseractOcrService _ocrService;
+        private readonly IWebScrapingService _webScrapingService;
+        private readonly ITesseractOcrService _ocrService;
 
         public RecipeImportOrchestrationService(
             ApplicationDbContext context,
             ILogger<RecipeImportOrchestrationService> logger,
-            WebScrapingService webScrapingService,
-            TesseractOcrService ocrService)
+            IWebScrapingService webScrapingService,
+            ITesseractOcrService ocrService)
         {
             _context = context;
             _logger = logger;
@@ -46,7 +47,7 @@ namespace Nom.Orch.Services
                 {
                     Name = scrapedData.Title,
                     Description = scrapedData.Description,
-                    Image = scrapedData.Image,
+                    Image = scrapedData.ImageUrl,
                     PrepTime = scrapedData.PrepTime,
                     CookTime = scrapedData.CookTime,
                     TotalTime = scrapedData.TotalTime,
@@ -187,7 +188,7 @@ namespace Nom.Orch.Services
                     Url = url,
                     Title = scrapedData.Title,
                     Description = scrapedData.Description,
-                    Image = scrapedData.Image,
+                    Image = scrapedData.ImageUrl,
                     Ingredients = scrapedData.Ingredients,
                     Instructions = scrapedData.Instructions,
                     PrepTime = scrapedData.PrepTime,

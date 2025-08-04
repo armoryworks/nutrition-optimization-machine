@@ -89,10 +89,6 @@ namespace Nom.Data.Recipe
         public decimal? Rating { get; set; }
         
         public DateTime? LastMade { get; set; }
-        
-        public DateTime? DateAdded { get; set; }
-        
-        public DateTime? DateUpdated { get; set; }
 
         // Mealie-specific fields
         [MaxLength(255)]

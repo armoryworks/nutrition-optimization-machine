@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Tesseract;
 using Nom.Orch.UtilityInterfaces;
+using System.Drawing.Imaging;
 
 namespace Nom.Orch.UtilityServices
 {
@@ -25,11 +26,11 @@ namespace Nom.Orch.UtilityServices
         public TesseractOcrService(ILogger<TesseractOcrService> logger)
         {
             _logger = logger;
-            
+
             // Configure Tesseract paths
             _tesseractDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tessdata");
             _tesseractExecutablePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tesseract");
-            
+
             // Ensure tessdata directory exists
             if (!Directory.Exists(_tesseractDataPath))
             {
@@ -49,13 +50,13 @@ namespace Nom.Orch.UtilityServices
                 // Convert byte array to image
                 using var imageStream = new MemoryStream(imageData);
                 using var image = Image.FromStream(imageStream);
-                
+
                 // Convert to bitmap for Tesseract
                 using var bitmap = new Bitmap(image);
-                
+
                 // Extract text using Tesseract
                 var extractedText = await ExtractTextFromImageAsync(bitmap);
-                
+
                 // Parse recipe data from extracted text
                 var recipeData = ParseRecipeFromText(extractedText);
 
@@ -66,7 +67,7 @@ namespace Nom.Orch.UtilityServices
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process image with Tesseract OCR");
-                
+
                 // Fallback to basic recipe data
                 return new OcrRecipeData
                 {
@@ -93,27 +94,31 @@ namespace Nom.Orch.UtilityServices
                 {
                     // Initialize Tesseract engine
                     using var engine = new TesseractEngine(_tesseractDataPath, "eng", EngineMode.Default);
-                    
+
                     // Configure OCR settings for recipe text
                     engine.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:!?()[]{}'\"-+=/\\|@#$%^&*~`<>");
                     engine.SetVariable("tessedit_pageseg_mode", "1"); // Automatic page segmentation
                     engine.SetVariable("tessedit_ocr_engine_mode", "3"); // Default OCR engine mode
-                    
-                    // Process the image
-                    using var pix = PixConverter.ToPix(bitmap);
-                    using var page = engine.Process(pix);
-                    
-                    // Extract text
-                    var text = page.GetText();
-                    
-                    _logger.LogInformation("Extracted {Length} characters from image", text.Length);
-                    
-                    return text;
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+                        // Process the image
+                        using var pix = Pix.LoadFromMemory(ms.ToArray());
+                        using var page = engine.Process(pix);
+
+                        // Extract text
+                        var text = page.GetText();
+
+                        _logger.LogInformation("Extracted {Length} characters from image", text.Length);
+
+                        return text;
+                    }
+
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Tesseract OCR failed, using fallback text extraction");
-                    
+
                     // Fallback: Use basic image processing to extract text-like patterns
                     return ExtractBasicTextPatterns(bitmap);
                 }
@@ -126,17 +131,17 @@ namespace Nom.Orch.UtilityServices
         private string ExtractBasicTextPatterns(Bitmap bitmap)
         {
             var text = new StringBuilder();
-            
+
             // Simple pattern recognition for common recipe text
             // This is a basic fallback when Tesseract is not available
-            
+
             // Look for common recipe words and patterns
             var commonWords = new[]
             {
                 "ingredients", "instructions", "prep", "cook", "total", "time",
                 "servings", "yield", "recipe", "directions", "steps", "method"
             };
-            
+
             // Add some basic recipe structure
             text.AppendLine("Recipe Title");
             text.AppendLine();
@@ -154,7 +159,7 @@ namespace Nom.Orch.UtilityServices
             text.AppendLine("Cook Time: 30 minutes");
             text.AppendLine("Total Time: 45 minutes");
             text.AppendLine("Yield: 4 servings");
-            
+
             return text.ToString();
         }
 
@@ -185,7 +190,7 @@ namespace Nom.Orch.UtilityServices
             foreach (var line in lines)
             {
                 var cleanLine = line.Trim();
-                if (!string.IsNullOrWhiteSpace(cleanLine) && 
+                if (!string.IsNullOrWhiteSpace(cleanLine) &&
                     !cleanLine.StartsWith("Ingredients:", StringComparison.OrdinalIgnoreCase) &&
                     !cleanLine.StartsWith("Instructions:", StringComparison.OrdinalIgnoreCase) &&
                     !cleanLine.StartsWith("Prep Time:", StringComparison.OrdinalIgnoreCase) &&
@@ -334,16 +339,6 @@ namespace Nom.Orch.UtilityServices
             return match.Success ? match.Groups[1].Value.Trim() : "4 servings";
         }
 
-        public class OcrRecipeData
-        {
-            public string Title { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public List<string> Ingredients { get; set; } = new List<string>();
-            public List<string> Instructions { get; set; } = new List<string>();
-            public string PrepTime { get; set; } = string.Empty;
-            public string CookTime { get; set; } = string.Empty;
-            public string TotalTime { get; set; } = string.Empty;
-            public string Yield { get; set; } = string.Empty;
-        }
+
     }
-} 
+}

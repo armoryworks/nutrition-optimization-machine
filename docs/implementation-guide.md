@@ -40,7 +40,7 @@ public class PersonOrchestrationService : IPersonOrchestrationService
 #### After (Using Base Orchestration Service):
 
 ```csharp
-public class _PersonOrchestrationService : _BaseOrchestrationService<PersonEntity, PersonCreateModel, PersonUpdateModel, PersonResponseModel, long>
+public class PersonOrchestrationService : _BaseOrchestrationService<PersonEntity, PersonCreateModel, PersonUpdateModel, PersonResponseModel, long>
 {
     private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
 
@@ -124,10 +124,10 @@ public class _PersonOrchestrationService : _BaseOrchestrationService<PersonEntit
 public static IServiceCollection AddAbstractionServices(this IServiceCollection services)
 {
     // Register the factory
-    services.AddSingleton<_IOrchestrationServiceFactory, _OrchestrationServiceFactory>();
+    services.AddSingleton<IOrchestrationServiceFactory, OrchestrationServiceFactory>();
 
     // Register factory options
-    services.Configure<_OrchestrationServiceFactoryOptions>(options =>
+    services.Configure<OrchestrationServiceFactoryOptions>(options =>
     {
         options.EnableAutoDiscovery = true;
         options.EnableCaching = true;
@@ -149,9 +149,9 @@ public static IServiceCollection AddAbstractionServices(this IServiceCollection 
 ```csharp
 public class PersonController : BaseApiController
 {
-    private readonly _IOrchestrationServiceFactory _serviceFactory;
+    private readonly IOrchestrationServiceFactory _serviceFactory;
 
-    public PersonController(_IOrchestrationServiceFactory serviceFactory)
+    public PersonController(IOrchestrationServiceFactory serviceFactory)
     {
         _serviceFactory = serviceFactory;
     }
@@ -179,7 +179,7 @@ public class PersonController : BaseApiController
 #### Creating Events:
 
 ```csharp
-public class _PersonCreatedEvent : _BaseEvent
+public class PersonCreatedEvent : _BaseEvent
 {
     public override string EventType => "PersonCreated";
     public long PersonId { get; set; }
@@ -195,7 +195,7 @@ public class _PersonCreatedEvent : _BaseEvent
     }
 }
 
-public class _PersonUpdatedEvent : _BaseEvent
+public class PersonUpdatedEvent : _BaseEvent
 {
     public override string EventType => "PersonUpdated";
     public long PersonId { get; set; }
@@ -213,7 +213,7 @@ public class _PersonUpdatedEvent : _BaseEvent
 #### Creating Event Handlers:
 
 ```csharp
-public class _PersonCreatedEventHandler : _BaseEventHandler<_PersonCreatedEvent>
+public class PersonCreatedEventHandler : _BaseEventHandler<_PersonCreatedEvent>
 {
     private readonly ILogger<_PersonCreatedEventHandler> _logger;
     private readonly IEmailService _emailService;
@@ -248,7 +248,7 @@ public class _PersonCreatedEventHandler : _BaseEventHandler<_PersonCreatedEvent>
 #### Using Event Bus:
 
 ```csharp
-public class _PersonOrchestrationService : _BaseOrchestrationService<PersonEntity, PersonCreateModel, PersonUpdateModel, PersonResponseModel, long>
+public class PersonOrchestrationService : _BaseOrchestrationService<PersonEntity, PersonCreateModel, PersonUpdateModel, PersonResponseModel, long>
 {
     private readonly _IEventBus _eventBus;
 
@@ -313,7 +313,7 @@ export class RecipeService {
 @Injectable({
   providedIn: "root",
 })
-export class _RecipeService
+export class RecipeService
   extends _BaseService
   implements _ICrudService<RecipeModel, number>
 {
@@ -552,7 +552,7 @@ export class RecipeNameInputComponent extends _BaseInputComponent {
 @Injectable({
   providedIn: "root",
 })
-export class _ServiceFactory {
+export class ServiceFactory {
   private serviceCache = new Map<string, any>();
 
   constructor(private injector: Injector, private logger: Logger) {}
@@ -640,7 +640,7 @@ builder.Services.AddAbstractionServices();
 builder.Services.AddSingleton<_IEventBus, _EventBus>();
 
 // Add orchestration service factory
-builder.Services.AddSingleton<_IOrchestrationServiceFactory, _OrchestrationServiceFactory>();
+builder.Services.AddSingleton<IOrchestrationServiceFactory, OrchestrationServiceFactory>();
 
 // Register event handlers
 builder.Services.AddScoped<_IEventHandler<_PersonCreatedEvent>, _PersonCreatedEventHandler>();
@@ -659,14 +659,14 @@ var eventBus = app.Services.GetRequiredService<_IEventBus>();
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class _BaseController : ControllerBase
+public class BaseController : ControllerBase
 {
-    protected readonly _IOrchestrationServiceFactory _serviceFactory;
+    protected readonly IOrchestrationServiceFactory _serviceFactory;
     protected readonly _IEventBus _eventBus;
     protected readonly ILogger _logger;
 
     public _BaseController(
-        _IOrchestrationServiceFactory serviceFactory,
+        IOrchestrationServiceFactory serviceFactory,
         _IEventBus eventBus,
         ILogger logger)
     {
@@ -735,7 +735,7 @@ export const appConfig: ApplicationConfig = {
   selector: "nom-base-component",
   template: "",
 })
-export class _BaseComponent implements OnInit, OnDestroy {
+export class BaseComponent implements OnInit, OnDestroy {
   protected destroy$ = new Subject<void>();
 
   constructor(

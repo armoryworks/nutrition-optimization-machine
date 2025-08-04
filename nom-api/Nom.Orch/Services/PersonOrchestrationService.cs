@@ -146,8 +146,32 @@ namespace Nom.Orch.Services
             // Handle plan invitation if provided
             if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
             {
-                // TODO: Implement plan invitation claiming using the new InvitationEntity system
-                _logger.LogWarning("Plan invitation claiming not yet implemented with new invitation system");
+                var invitation = await _dbContext.Invitations
+                    .FirstOrDefaultAsync(i => i.Code == request.PlanInvitationCode && i.IsUsed != true);
+
+                if (invitation != null)
+                {
+                    if(invitation.PlanId.HasValue){
+                        // Add person to the plan
+                        var planMember = new PlanParticipantEntity
+                        {
+                            PlanId = invitation.PlanId.Value,
+                            PersonId = primaryPerson.Id,
+                            RoleRefId = 4101L, // Member role
+                            JoinedDate = DateTime.UtcNow
+                        };
+                        _dbContext.PlanParticipants.Add(planMember);
+                    }
+                    // Mark invitation as used
+                    invitation.IsUsed = false;
+                    invitation.UsedAt = DateTime.UtcNow;
+
+                    _logger.LogInformation("Successfully claimed plan invitation for user {UserId}", request.UserId);
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid or expired plan invitation code: {Code}", request.PlanInvitationCode);
+                }
             }
 
             // Create default plan for the primary person
@@ -236,8 +260,8 @@ namespace Nom.Orch.Services
         public async Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId)
         {
             var participants = await _dbContext.PlanParticipants
-                .Include(pp => pp.Person)
-                .Include(pp => pp.Plan)
+                // .Include(pp => pp.Person)
+                // .Include(pp => pp.Plan)
                 .Where(pp => pp.PlanId == planId)
                 .ToListAsync();
 
@@ -294,8 +318,8 @@ namespace Nom.Orch.Services
                 PersonId = pp.PersonId,
                 PersonName = person.Name,
                 RoleId = pp.RoleRefId,
-                RoleName = "Unknown", // TODO: Add role name lookup
-                IsActive = true // TODO: Add active status logic
+                RoleName = GetRoleName(pp.RoleRefId),
+                IsActive = true // Plan participants are always active
             }).ToList() ?? new List<PlanParticipantModel>();
 
             return new PersonModel
@@ -305,9 +329,37 @@ namespace Nom.Orch.Services
                 UserId = person.UserId,
                 CreatedDate = person.CreatedDate,
                 CreatedByPersonId = person.CreatedByPersonId,
-                Attributes = new List<PersonAttributeModel>(), // TODO: Add attributes support
+                Attributes = await GetPersonAttributesAsync(personId),
                 PlanParticipations = planParticipations
             };
+        }
+
+        private string GetRoleName(long roleRefId)
+        {
+            return roleRefId switch
+            {
+                4100L => "Admin",
+                4101L => "Member",
+                4102L => "Viewer",
+                _ => "Unknown"
+            };
+        }
+
+        private async Task<List<PersonAttributeModel>> GetPersonAttributesAsync(long personId)
+        {
+            var attributes = await _dbContext.PersonAttributes
+                .Where(pa => pa.PersonId == personId)
+                .Select(pa => new PersonAttributeModel
+                {
+                    Id = pa.Id,
+                    PersonId = pa.PersonId,
+                    AttributeTypeId = pa.AttributeTypeId,
+                    Value = pa.Value,
+                    AttributeTypeName = pa.AttributeType != null ? pa.AttributeType.Name : "Unknown"
+                })
+                .ToListAsync();
+
+            return attributes;
         }
     }
 }

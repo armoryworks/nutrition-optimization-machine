@@ -1,10 +1,13 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
 using Nom.Data.Recipe;
 using Nom.Data.Plan;
+using Nom.Data.Shopping;
 
 namespace Nom.Orch.Services
 {
@@ -52,11 +55,11 @@ namespace Nom.Orch.Services
                     items.AddRange(recipeItems);
                 }
 
-                // Get ingredients from meal plans
-                if (request.MealPlanIds.Any())
+                // Get ingredients from plans
+                if (request.PlanIds.Any())
                 {
-                    var mealPlanItems = await GetIngredientsFromMealPlansAsync(request.MealPlanIds, request.ServingSize ?? 1);
-                    items.AddRange(mealPlanItems);
+                    var planItems = await GetIngredientsFromPlansAsync(request.PlanIds, request.ServingSize ?? 1);
+                    items.AddRange(planItems);
                 }
 
                 // Add pantry items if requested
@@ -79,14 +82,14 @@ namespace Nom.Orch.Services
                 // Optimize for budget if requested
                 if (request.OptimizeForBudget)
                 {
-                    await OptimizeForBudgetAsync(items, out var budgetRecommendations);
+                    var budgetRecommendations = await OptimizeForBudgetAsync(items);
                     recommendations.AddRange(budgetRecommendations);
                 }
 
                 // Optimize for nutrition if requested
                 if (request.OptimizeForNutrition)
                 {
-                    await OptimizeForNutritionAsync(items, out var nutritionRecommendations);
+                    var nutritionRecommendations = await OptimizeForNutritionAsync(items);
                     recommendations.AddRange(nutritionRecommendations);
                 }
 
@@ -203,23 +206,25 @@ namespace Nom.Orch.Services
                 var items = shoppingList.Items.Select(i => new SmartShoppingListItemModel
                 {
                     Id = i.Id,
-                    Name = i.IngredientName,
-                    Quantity = i.Quantity,
-                    Unit = i.MeasurementUnit ?? "",
-                    Category = i.CategoryName ?? "Uncategorized",
-                    Notes = i.Notes,
+                    Name = i.Name,
+                    Quantity = i.Quantity ?? 0,
+                    Unit = i.MeasurementType?.Name ?? "",
+                    Category = i.Category?.Name ?? "Uncategorized",
+                    Notes = i.Note,
                     Priority = 1
                 }).ToList();
 
                 // Apply optimizations
                 if (request.OptimizeForBudget)
                 {
-                    await OptimizeForBudgetAsync(items, out _);
+                    var budgetRecommendations = await OptimizeForBudgetAsync(items);
+                    // TODO: Apply budget optimizations to items
                 }
 
                 if (request.OptimizeForNutrition)
                 {
-                    await OptimizeForNutritionAsync(items, out _);
+                    var nutritionRecommendations = await OptimizeForNutritionAsync(items);
+                    // TODO: Apply nutrition optimizations to items
                 }
 
                 // Apply dietary restrictions
@@ -269,10 +274,10 @@ namespace Nom.Orch.Services
                 var substitutionSuggestions = await SuggestSubstitutionsAsync(items.Select(i => new SmartShoppingListItemModel
                 {
                     Id = i.Id,
-                    Name = i.IngredientName,
-                    Quantity = i.Quantity,
-                    Unit = i.MeasurementUnit ?? "",
-                    Category = i.CategoryName ?? "Uncategorized"
+                    Name = i.Name,
+                    Quantity = i.Quantity ?? 0,
+                    Unit = i.MeasurementType?.Name ?? "",
+                    Category = i.Category?.Name ?? "Uncategorized"
                 }).ToList());
 
                 suggestions.AddRange(substitutionSuggestions);
@@ -302,21 +307,21 @@ namespace Nom.Orch.Services
                     .ToListAsync();
 
                 var totalItems = items.Count;
-                var completedItems = items.Count(i => i.IsCompleted);
+                var completedItems = items.Count(i => i.IsChecked);
                 var completionRate = totalItems > 0 ? (decimal)completedItems / totalItems * 100 : 0;
 
-                var categories = items.Select(i => i.CategoryName).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
+                var categories = items.Select(i => i.Category?.Name).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
                 var categoryBreakdown = items
-                    .Where(i => !string.IsNullOrEmpty(i.CategoryName))
-                    .GroupBy(i => i.CategoryName)
-                    .ToDictionary(g => g.Key!, g => g.Count());
+                    .Where(i => i.Category?.Name != null)
+                    .GroupBy(i => i.Category!.Name)
+                    .ToDictionary(g => g.Key, g => g.Count());
 
                 var estimatedTotal = await EstimateShoppingListCostAsync(items.Select(i => new SmartShoppingListItemModel
                 {
-                    Name = i.IngredientName,
-                    Quantity = i.Quantity,
-                    Unit = i.MeasurementUnit ?? "",
-                    Category = i.CategoryName ?? "Uncategorized"
+                    Name = i.Name,
+                    Quantity = i.Quantity ?? 0,
+                    Unit = i.MeasurementType?.Name ?? "",
+                    Category = i.Category?.Name ?? "Uncategorized"
                 }).ToList());
 
                 return new ShoppingListAnalyticsModel
@@ -479,10 +484,10 @@ namespace Nom.Orch.Services
             foreach (var item in items)
             {
                 var nutrition = await GetNutritionalInfoAsync(item);
-                totalCalories += nutrition.GetValueOrDefault("calories", 0);
-                totalProtein += nutrition.GetValueOrDefault("protein", 0.0m);
-                totalCarbs += nutrition.GetValueOrDefault("carbs", 0.0m);
-                totalFat += nutrition.GetValueOrDefault("fat", 0.0m);
+                totalCalories += (int)nutrition.GetValueOrDefault("calories", 0);
+                totalProtein += (int)nutrition.GetValueOrDefault("protein", 0.0m);
+                totalCarbs += (decimal)nutrition.GetValueOrDefault("carbs", 0.0m);
+                totalFat += (decimal)nutrition.GetValueOrDefault("fat", 0.0m);
             }
 
             analysis["totalCalories"] = totalCalories;
@@ -512,11 +517,11 @@ namespace Nom.Orch.Services
                     {
                         items.Add(new SmartShoppingListItemModel
                         {
-                            Name = ingredient.IngredientName,
+                            Name = ingredient.Ingredient.Name,
                             Quantity = ingredient.Quantity * servingSize,
-                            Unit = ingredient.MeasurementUnit ?? "",
-                            Category = CategorizeItem(ingredient.IngredientName),
-                            Notes = ingredient.Notes,
+                            Unit = ingredient.MeasurementType?.Name ?? "",
+                            Category = CategorizeItem(ingredient.Ingredient.Name),
+                            Notes = ingredient.RawLine,
                             RecipeSources = { recipe.Name }
                         });
                     }
@@ -526,35 +531,41 @@ namespace Nom.Orch.Services
             return items;
         }
 
-        private async Task<List<SmartShoppingListItemModel>> GetIngredientsFromMealPlansAsync(List<long> mealPlanIds, int servingSize)
+        private async Task<List<SmartShoppingListItemModel>> GetIngredientsFromPlansAsync(List<long> planIds, int servingSize)
         {
             var items = new List<SmartShoppingListItemModel>();
 
-            foreach (var mealPlanId in mealPlanIds)
+            foreach (var planId in planIds)
             {
-                var mealPlan = await _dbContext.MealPlans
-                    .Include(mp => mp.Entries)
-                    .ThenInclude(mpe => mpe.Recipe)
+                var plan = await _dbContext.Plans
+                    .Include(p => p.Meals)
+                    .ThenInclude(m => m.Recipes)
                     .ThenInclude(r => r.RecipeIngredients)
-                    .FirstOrDefaultAsync(mp => mp.Id == mealPlanId);
+                    .FirstOrDefaultAsync(p => p.Id == planId);
 
-                if (mealPlan != null)
+                if (plan != null)
                 {
-                    foreach (var entry in mealPlan.Entries ?? new List<MealPlanEntryEntity>())
+                    foreach (var meal in plan.Meals ?? new List<MealEntity>())
                     {
-                        if (entry.Recipe?.RecipeIngredients != null)
+                        if (meal.Recipes != null)
                         {
-                            foreach (var ingredient in entry.Recipe.RecipeIngredients)
+                            foreach (var recipe in meal.Recipes)
                             {
-                                items.Add(new SmartShoppingListItemModel
+                                if (recipe.RecipeIngredients != null)
                                 {
-                                    Name = ingredient.IngredientName,
-                                    Quantity = ingredient.Quantity * servingSize,
-                                    Unit = ingredient.MeasurementUnit ?? "",
-                                    Category = CategorizeItem(ingredient.IngredientName),
-                                    Notes = ingredient.Notes,
-                                    RecipeSources = { entry.Recipe.Name }
-                                });
+                                    foreach (var ingredient in recipe.RecipeIngredients)
+                                    {
+                                        items.Add(new SmartShoppingListItemModel
+                                        {
+                                            Name = ingredient.Ingredient.Name,
+                                            Quantity = ingredient.Quantity * servingSize,
+                                            Unit = ingredient.MeasurementType?.Name ?? "",
+                                            Category = CategorizeItem(ingredient.Ingredient.Name),
+                                            Notes = ingredient.RawLine,
+                                            RecipeSources = { recipe.Name }
+                                        });
+                                    }
+                                }
                             }
                         }
                     }
@@ -632,7 +643,7 @@ namespace Nom.Orch.Services
         private void ApplyVeganRestrictions(List<SmartShoppingListItemModel> items, List<string> substitutions)
         {
             ApplyVegetarianRestrictions(items, substitutions);
-            
+
             var dairyItems = items.Where(i => IsDairyItem(i.Name)).ToList();
             foreach (var item in dairyItems)
             {
@@ -679,9 +690,9 @@ namespace Nom.Orch.Services
             }
         }
 
-        private async Task OptimizeForBudgetAsync(List<SmartShoppingListItemModel> items, out List<string> recommendations)
+        private async Task<List<string>> OptimizeForBudgetAsync(List<SmartShoppingListItemModel> items)
         {
-            recommendations = new List<string>();
+            var recommendations = new List<string>();
 
             // Sort items by estimated price
             var sortedItems = items.OrderByDescending(i => i.EstimatedPrice).ToList();
@@ -699,15 +710,17 @@ namespace Nom.Orch.Services
             // Suggest bulk purchases
             var bulkRecommendations = SuggestBulkPurchases(items);
             recommendations.AddRange(bulkRecommendations);
+
+            return recommendations;
         }
 
-        private async Task OptimizeForNutritionAsync(List<SmartShoppingListItemModel> items, out List<string> recommendations)
+        private async Task<List<string>> OptimizeForNutritionAsync(List<SmartShoppingListItemModel> items)
         {
-            recommendations = new List<string>();
+            var recommendations = new List<string>();
 
             // Analyze nutritional balance
             var nutrition = await GetNutritionalAnalysisAsync(items);
-            
+
             if (nutrition.TryGetValue("totalProtein", out var protein) && protein is decimal proteinValue)
             {
                 if (proteinValue < 50)
@@ -727,12 +740,14 @@ namespace Nom.Orch.Services
             // Suggest healthier alternatives
             var healthRecommendations = SuggestHealthierAlternatives(items);
             recommendations.AddRange(healthRecommendations);
+
+            return recommendations;
         }
 
         private string CategorizeItem(string itemName)
         {
             var name = itemName.ToLower();
-            
+            //TODO: Actually make this smart and categorize in a more meaningful way
             if (name.Contains("milk") || name.Contains("cheese") || name.Contains("yogurt") || name.Contains("cream"))
                 return "Dairy";
             if (name.Contains("chicken") || name.Contains("beef") || name.Contains("pork") || name.Contains("fish"))
@@ -743,7 +758,7 @@ namespace Nom.Orch.Services
                 return "Grains";
             if (name.Contains("oil") || name.Contains("sauce") || name.Contains("spice"))
                 return "Pantry";
-            
+
             return "Other";
         }
 
@@ -763,7 +778,7 @@ namespace Nom.Orch.Services
                 Quantity = item1.Quantity + item2.Quantity,
                 Unit = item1.Unit,
                 Category = item1.Category,
-                Notes = string.IsNullOrEmpty(item1.Notes) ? item2.Notes : 
+                Notes = string.IsNullOrEmpty(item1.Notes) ? item2.Notes :
                         string.IsNullOrEmpty(item2.Notes) ? item1.Notes :
                         $"{item1.Notes} | {item2.Notes}",
                 RecipeSources = item1.RecipeSources.Concat(item2.RecipeSources).Distinct().ToList()
@@ -939,7 +954,7 @@ Return the response in JSON format.
             var suggestions = new List<ShoppingListSuggestionModel>();
 
             // Group items by category
-            var categoryGroups = items.GroupBy(i => i.CategoryName).ToList();
+            var categoryGroups = items.GroupBy(i => i.Category.Name ?? "Uncategorized").ToList();
 
             foreach (var group in categoryGroups)
             {
@@ -949,7 +964,7 @@ Return the response in JSON format.
                     {
                         Type = "combination",
                         Description = $"Consider buying {group.Key} items together for better deals",
-                        Items = group.Select(i => i.IngredientName).ToList(),
+                        Items = group.Select(i => i.Name).ToList(),
                         Confidence = 75
                     });
                 }
@@ -958,7 +973,7 @@ Return the response in JSON format.
             return suggestions;
         }
 
-        private async Task<decimal> GetEstimatedPriceAsync(SmartShoppingListItemModel item)
+        private Task<decimal> GetEstimatedPriceAsync(SmartShoppingListItemModel item)
         {
             // This would integrate with a pricing API or database
             // For now, return mock prices
@@ -976,14 +991,14 @@ Return the response in JSON format.
             {
                 if (itemName.Contains(basePrice.Key))
                 {
-                    return basePrice.Value * item.Quantity;
+                    return Task.FromResult(basePrice.Value * item.Quantity);
                 }
             }
 
-            return 5.00m * item.Quantity; // Default price
+            return Task.FromResult(5.00m * item.Quantity); // Default price
         }
 
-        private async Task<Dictionary<string, object>> GetNutritionalInfoAsync(SmartShoppingListItemModel item)
+        private Task<Dictionary<string, object>> GetNutritionalInfoAsync(SmartShoppingListItemModel item)
         {
             // This would integrate with a nutritional database
             // For now, return mock nutritional info
@@ -1012,7 +1027,7 @@ Return the response in JSON format.
                 nutrition["fat"] = 2.0m;
             }
 
-            return nutrition;
+            return Task.FromResult(nutrition);
         }
 
         private string CalculateNutritionalScore(int calories, decimal protein, decimal carbs, decimal fat)
@@ -1122,7 +1137,7 @@ Return the response in JSON format.
             return GetVeganSubstitute(itemName); // Same substitutes for dairy-free
         }
 
-        private async Task<string?> GetCheaperAlternativeAsync(SmartShoppingListItemModel item)
+        private Task<string?> GetCheaperAlternativeAsync(SmartShoppingListItemModel item)
         {
             // This would integrate with a pricing database
             // For now, return mock alternatives
@@ -1138,11 +1153,11 @@ Return the response in JSON format.
             {
                 if (itemLower.Contains(alternative.Key))
                 {
-                    return alternative.Value;
+                    return Task.FromResult<string?>(alternative.Value);
                 }
             }
 
-            return null;
+            return Task.FromResult<string?>(null);
         }
 
         private List<string> SuggestBulkPurchases(List<SmartShoppingListItemModel> items)
@@ -1222,4 +1237,4 @@ Return the response in JSON format.
 
         #endregion
     }
-} 
+}

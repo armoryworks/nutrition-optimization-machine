@@ -170,8 +170,8 @@ namespace Nom.Api.Middleware
             }
 
             // Update counters
-            await _cache.SetAsync(hourlyKey, hourlyCount + 1, TimeSpan.FromHours(1));
-            await _cache.SetAsync(dailyKey, dailyCount + 1, TimeSpan.FromDays(1));
+            _cache.Set(hourlyKey, hourlyCount + 1, TimeSpan.FromHours(1));
+            _cache.Set(dailyKey, dailyCount + 1, TimeSpan.FromDays(1));
 
             return true;
         }

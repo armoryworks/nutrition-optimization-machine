@@ -69,6 +69,11 @@ namespace Nom.Data.Nutrient
         [MaxLength(50)] // FDC nutrient IDs are integers, but stored as string to match general FdcId pattern
         public string? FdcId { get; set; }
 
+        /// <summary>
+        /// Indicates whether this nutrient is a micronutrient (vitamins, minerals) vs macronutrient (protein, carbs, fat).
+        /// </summary>
+        public bool IsMicronutrient { get; set; } = false;
+
         // Navigation properties
         public virtual ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();
         public virtual ICollection<NutrientGuidelineEntity> Guidelines { get; set; } = new List<NutrientGuidelineEntity>();

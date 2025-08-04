@@ -3,6 +3,8 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
 import { takeUntil, filter, tap } from 'rxjs/operators';
+import { _EventBusStatistics } from './_EventBusStatistics';
+import { _EventBusOptions } from './_EventBusOptions';
 
 /**
  * Concrete event bus service implementation for frontend pub-sub pattern
@@ -234,69 +236,4 @@ export class EventBusService implements OnDestroy {
         this.destroy$.complete();
         console.log('[EventBus] Destroyed');
     }
-}
-
-/**
- * Event bus statistics interface
- */
-export interface _EventBusStatistics {
-    /**
-     * Total number of events published
-     */
-    totalEvents: number;
-
-    /**
-     * Total number of subscribers
-     */
-    totalSubscribers: number;
-
-    /**
-     * Event type counts
-     */
-    eventTypeCounts: Map<string, number>;
-
-    /**
-     * Subscriber counts by event type
-     */
-    subscriberCounts: Map<string, number>;
-
-    /**
-     * Number of active event types
-     */
-    activeEventTypes: number;
-
-    /**
-     * Timestamp of the last statistics update
-     */
-    lastUpdated: Date;
-}
-
-/**
- * Event bus options
- */
-export interface _EventBusOptions {
-    /**
-     * Whether to enable logging
-     */
-    enableLogging?: boolean;
-
-    /**
-     * Whether to enable statistics
-     */
-    enableStatistics?: boolean;
-
-    /**
-     * Maximum number of subscribers per event type
-     */
-    maxSubscribersPerEvent?: number;
-
-    /**
-     * Whether to enable error handling
-     */
-    enableErrorHandling?: boolean;
-
-    /**
-     * Whether to enable performance monitoring
-     */
-    enablePerformanceMonitoring?: boolean;
 } 

@@ -11,12 +11,14 @@ namespace Nom.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class RecipeSuggestionController : ControllerBase
+    public class RecipeSuggestionController : BaseApiController
     {
         private readonly IRecipeSuggestionService _recipeSuggestionService;
         private readonly ILogger<RecipeSuggestionController> _logger;
 
-        public RecipeSuggestionController(IRecipeSuggestionService recipeSuggestionService, ILogger<RecipeSuggestionController> logger)
+        public RecipeSuggestionController(
+            IRecipeSuggestionService recipeSuggestionService, 
+            ILogger<RecipeSuggestionController> logger)
         {
             _recipeSuggestionService = recipeSuggestionService;
             _logger = logger;
@@ -75,8 +77,7 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                // TODO: Get actual user ID from authentication
-                var userId = 1L; // Mock user ID
+                var userId = GetCurrentPersonId();
                 _logger.LogInformation("Getting recipe recommendations for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.GetRecipeRecommendationsAsync(userId);
@@ -355,8 +356,7 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                // TODO: Get actual user ID from authentication
-                var userId = 1L; // Mock user ID
+                var userId = GetCurrentPersonId();
                 _logger.LogInformation("Updating suggestion preferences for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.UpdateSuggestionPreferencesAsync(userId, preferences);
@@ -377,8 +377,7 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                // TODO: Get actual user ID from authentication
-                var userId = 1L; // Mock user ID
+                var userId = GetCurrentPersonId();
                 _logger.LogInformation("Getting suggestion preferences for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.GetSuggestionPreferencesAsync(userId);

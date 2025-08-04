@@ -98,7 +98,7 @@ export class HouseholdDetailComponent implements OnInit {
     }
 
     onViewMealPlans(): void {
-        this.router.navigate(['/meal-plan'], { queryParams: { householdId: this.householdId } });
+        this.router.navigate(['/plan'], { queryParams: { householdId: this.householdId } });
     }
 
     onViewShoppingLists(): void {

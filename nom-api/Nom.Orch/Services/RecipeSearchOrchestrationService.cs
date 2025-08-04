@@ -409,8 +409,6 @@ namespace Nom.Orch.Services
                 RatingCount = recipe.Ratings?.Count ?? 0,
                 IsPublic = recipe.CurationStatus?.Name == "Approved",
                 IsApproved = recipe.CurationStatus?.Name == "Approved",
-                CreatedDate = recipe.CreatedDate,
-                LastModifiedDate = recipe.DateUpdated,
                 AuthorId = (int)recipe.AuthorId,
                 AuthorName = recipe.Author?.Name ?? "Unknown",
                 Categories = recipe.RecipeCategories?.Select(rc => rc.Category?.Name ?? "").ToList() ?? new List<string>(),
@@ -439,7 +437,7 @@ namespace Nom.Orch.Services
                     Id = (int)rs.Id,
                     StepNumber = rs.StepNumber,
                     Instructions = rs.Description,
-                    ImageUrl = null // RecipeStepEntity doesn't have ImageUrl
+                    ImageUrl = string.Empty // RecipeStepEntity doesn't have ImageUrl
                 }).ToList();
             }
 
@@ -448,8 +446,8 @@ namespace Nom.Orch.Services
             {
                 // Note: RecipeNutritionEntity stores nutrients by NutrientId, not by specific nutrition fields
                 // This would need to be expanded to map specific nutrients to nutrition values
-                // For now, we'll leave this as null since the nutrition structure is different
-                result.Nutrition = null;
+                // For now, we'll leave this as an empty list since the nutrition structure is different
+                result.Nutrition = new List<RecipeNutritionSearchModel>();
             }
 
             return result;

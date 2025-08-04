@@ -2,6 +2,8 @@
 
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
+import { _ButtonConfig } from './_ButtonConfig';
+import { _ButtonEvents } from './_ButtonEvents';
 
 /**
  * Abstract base button component that should be extended by concrete implementations
@@ -11,7 +13,7 @@ import { BehaviorSubject, Subject } from 'rxjs';
     templateUrl: './_BaseButtonComponent.html',
     styleUrls: ['./_BaseButtonComponent.scss']
 })
-export abstract class _BaseButtonComponent implements OnInit, OnDestroy {
+export abstract class BaseButtonComponent implements OnInit, OnDestroy {
     @Input() config: _ButtonConfig = {};
     @Output() click = new EventEmitter<MouseEvent>();
     @Output() focus = new EventEmitter<FocusEvent>();
@@ -106,104 +108,4 @@ export abstract class _BaseButtonComponent implements OnInit, OnDestroy {
     private updateLoadingState(): void {
         this.isLoading$.next(this.config.loading || false);
     }
-}
-
-/**
- * Button configuration interface
- */
-export interface _ButtonConfig {
-    /**
-     * Button text
-     */
-    text?: string;
-
-    /**
-     * Button icon (CSS class)
-     */
-    icon?: string;
-
-    /**
-     * Button variant
-     */
-    variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'outline';
-
-    /**
-     * Button size
-     */
-    size?: 'small' | 'medium' | 'large';
-
-    /**
-     * Button type
-     */
-    type?: 'button' | 'submit' | 'reset';
-
-    /**
-     * Whether the button is disabled
-     */
-    disabled?: boolean;
-
-    /**
-     * Whether the button is loading
-     */
-    loading?: boolean;
-
-    /**
-     * Whether to show loading spinner
-     */
-    showLoading?: boolean;
-
-    /**
-     * Whether the button takes full width
-     */
-    fullWidth?: boolean;
-
-    /**
-     * Whether the button has rounded corners
-     */
-    rounded?: boolean;
-
-    /**
-     * ARIA label
-     */
-    ariaLabel?: string;
-
-    /**
-     * ARIA described by
-     */
-    ariaDescribedBy?: string;
-
-    /**
-     * Custom CSS classes
-     */
-    customClasses?: string[];
-
-    /**
-     * Custom styles
-     */
-    customStyles?: { [key: string]: string };
-}
-
-/**
- * Button events interface
- */
-export interface _ButtonEvents {
-    /**
-     * Click event
-     */
-    click: MouseEvent;
-
-    /**
-     * Focus event
-     */
-    focus: FocusEvent;
-
-    /**
-     * Blur event
-     */
-    blur: FocusEvent;
-
-    /**
-     * Key down event
-     */
-    keyDown: KeyboardEvent;
 } 

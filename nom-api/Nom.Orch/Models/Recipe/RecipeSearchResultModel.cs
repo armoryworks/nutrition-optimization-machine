@@ -24,8 +24,6 @@ namespace Nom.Orch.Models.Recipe
         public bool IsPublic { get; set; } = true;
         public bool IsApproved { get; set; } = true;
         public int AuthorId { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime? LastModifiedDate { get; set; }
         public List<RecipeIngredientSearchModel> Ingredients { get; set; } = new();
         public List<RecipeStepSearchModel> Steps { get; set; } = new();
         public List<RecipeNutritionSearchModel> Nutrition { get; set; } = new();
