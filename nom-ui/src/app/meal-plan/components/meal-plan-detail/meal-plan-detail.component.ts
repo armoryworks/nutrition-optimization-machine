@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -33,6 +33,7 @@ import { BaseDetailComponent, BaseDetailConfig } from '../../../common/component
     MatMenuModule,
     BaseDetailComponent,
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './meal-plan-detail.component.html',
   styleUrls: ['./meal-plan-detail.component.scss']
 })
@@ -177,9 +178,9 @@ export class MealPlanDetailComponent implements OnInit {
     }
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+  formatDate(date: Date | string): string {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -187,15 +188,15 @@ export class MealPlanDetailComponent implements OnInit {
     });
   }
 
-  isToday(dateString: string): boolean {
+  isToday(date: Date | string): boolean {
     const today = new Date();
-    const planDate = new Date(dateString);
+    const planDate = date instanceof Date ? date : new Date(date);
     return planDate.toDateString() === today.toDateString();
   }
 
-  isPast(dateString: string): boolean {
+  isPast(date: Date | string): boolean {
     const today = new Date();
-    const planDate = new Date(dateString);
+    const planDate = date instanceof Date ? date : new Date(date);
     return planDate < today;
   }
 } 

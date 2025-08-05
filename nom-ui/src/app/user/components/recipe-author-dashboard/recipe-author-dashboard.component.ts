@@ -2,7 +2,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, of, catchError } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { MatDialog } from '@angular/material/dialog';
 
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { CurationService } from '../../../curation/services/curation.service';
@@ -19,6 +20,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
 import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboard-item.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
 import { CurationStatus, canSubmitForCuration } from '../../../recipe/models/curation-status.enum';
+import { ConfirmDialogComponent } from '../../../utilities/components/confirm-dialog/confirm-dialog.component';
 
 interface MenuItem {
   icon: string;
@@ -58,7 +60,9 @@ export class RecipeAuthorDashboardComponent implements OnInit {
     private recipeService: RecipeService,
     private curationService: CurationService,
     private notificationService: NotificationService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router,
+    private dialog: MatDialog
   ) { }
 
   ngOnInit(): void {
@@ -177,23 +181,89 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   }
 
   onEditRecipe(recipeId: number): void {
-    // Placeholder for edit functionality
-    console.log('Edit recipe:', recipeId);
+    this.router.navigate(['/recipes', recipeId, 'edit']);
   }
 
   onEditIngredient(ingredientId: number): void {
-    // Placeholder for edit functionality
-    console.log('Edit ingredient:', ingredientId);
+    this.router.navigate(['/recipes/ingredients', ingredientId, 'edit']);
   }
 
   onDeleteRecipe(recipeId: number): void {
-    // Placeholder for delete functionality
-    console.log('Delete recipe:', recipeId);
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Delete Recipe',
+        message: 'Are you sure you want to delete this recipe? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.recipeService.deleteRecipe(recipeId).subscribe({
+          next: () => {
+            this.notificationService.success('Recipe deleted successfully');
+            // Refresh the recipes list
+            this.recipes$ = this.recipeService.getMyRecipes().pipe(
+              map(recipes => recipes.map(recipe => ({
+                ...recipe,
+                curationStatus: recipe.curationStatus || 'draft'
+              }))),
+              catchError((err: any) => {
+                console.error('Error fetching recipes:', err);
+                this.error = 'Could not load your recipes. Please try again later.';
+                return of([]);
+              })
+            );
+          },
+          error: (error) => {
+            console.error('Error deleting recipe:', error);
+            this.notificationService.error('Failed to delete recipe. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   onDeleteIngredient(ingredientId: number): void {
-    // Placeholder for delete functionality
-    console.log('Delete ingredient:', ingredientId);
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Delete Ingredient',
+        message: 'Are you sure you want to delete this ingredient? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.recipeService.deleteIngredient(ingredientId).subscribe({
+          next: () => {
+            this.notificationService.success('Ingredient deleted successfully');
+            // Refresh the ingredients list
+            this.ingredients$ = this.recipeService.getMyIngredients().pipe(
+              map(ingredients => ingredients.map(ingredient => ({
+                ...ingredient,
+                curationStatus: ingredient.curationStatus || 'draft'
+              }))),
+              catchError((err: any) => {
+                console.error('Error fetching ingredients:', err);
+                this.error = 'Could not load your ingredients. Please try again later.';
+                return of([]);
+              })
+            );
+          },
+          error: (error) => {
+            console.error('Error deleting ingredient:', error);
+            this.notificationService.error('Failed to delete ingredient. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   getRecipeMenuItems(recipe: RecipeDashboardItemModel): MenuItem[] {

@@ -141,7 +141,8 @@ builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
 // --- END OF CORRECTED CONFIGURATION ---
 
 // Add HttpClient for web scraping
-// builder.Services.AddHttpClient<WebScrapingService>();
+builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<Nom.Orch.UtilityServices.WebScrapingService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

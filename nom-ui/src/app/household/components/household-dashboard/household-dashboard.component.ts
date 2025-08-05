@@ -14,7 +14,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { Router } from "@angular/router";
 import { HouseholdService } from "../../services/household.service";
-import { HouseholdModel } from "../../models/household.model";
+import { HouseholdResponseModel } from "../../models/household-response.model";
 import { ViewEncapsulation } from "@angular/core";
 import { BasePageComponent, BasePageConfig } from "../../../common/components/base-page/base-page.component";
 
@@ -42,7 +42,7 @@ import { BasePageComponent, BasePageConfig } from "../../../common/components/ba
     encapsulation: ViewEncapsulation.None,
 })
 export class HouseholdDashboardComponent implements OnInit {
-    households: HouseholdModel[] = [];
+    households: HouseholdResponseModel[] = [];
     loading = false;
     error = "";
 
@@ -93,19 +93,19 @@ export class HouseholdDashboardComponent implements OnInit {
         this.router.navigate(["/household/create"]);
     }
 
-    viewHousehold(household: HouseholdModel): void {
+    viewHousehold(household: HouseholdResponseModel): void {
         if (household.id) {
             this.router.navigate(["/household", household.id]);
         }
     }
 
-    editHousehold(household: HouseholdModel): void {
+    editHousehold(household: HouseholdResponseModel): void {
         if (household.id) {
             this.router.navigate(["/household", household.id, "edit"]);
         }
     }
 
-    inviteMembers(household: HouseholdModel): void {
+    inviteMembers(household: HouseholdResponseModel): void {
         if (household.id) {
             this.router.navigate(["/household", household.id, "invite"]);
         }

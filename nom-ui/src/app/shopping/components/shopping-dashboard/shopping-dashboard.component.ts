@@ -166,8 +166,10 @@ export class ShoppingDashboardComponent implements OnInit {
     }
 
     getProgressPercentage(list: ShoppingListResponseModel): number {
-        if (!list.totalItems || list.totalItems === 0) return 0;
-        return Math.round((list.completedItems / list.totalItems) * 100);
+        const totalItems = (list as any).totalItems || list.itemCount || 0;
+        const completedItems = (list as any).completedItems || list.completedItemCount || 0;
+        if (!list || !totalItems || totalItems === 0) return 0;
+        return Math.round((completedItems / totalItems) * 100);
     }
 
     getProgressColor(percentage: number): string {

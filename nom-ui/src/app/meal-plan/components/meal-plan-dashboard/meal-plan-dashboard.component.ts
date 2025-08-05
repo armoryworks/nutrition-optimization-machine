@@ -14,6 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -39,6 +40,7 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
         MatFormFieldModule,
         MatInputModule,
         MatSelectModule,
+        MatButtonToggleModule,
         ReactiveFormsModule,
         BasePageComponent,
     ],
@@ -229,9 +231,10 @@ export class MealPlanDashboardComponent implements OnInit {
 
     getPlansForDate(date: Date): MealPlanResponseModel[] {
         const dateString = date.toISOString().split('T')[0];
-        return this.filteredPlans.filter(plan =>
-            plan.date === dateString
-        );
+        return this.filteredPlans.filter(plan => {
+            const planDate = plan.date instanceof Date ? plan.date.toISOString().split('T')[0] : plan.date;
+            return planDate === dateString;
+        });
     }
 
     isToday(date: Date): boolean {

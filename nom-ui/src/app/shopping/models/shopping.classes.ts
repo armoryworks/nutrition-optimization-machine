@@ -27,4 +27,7 @@ export class ShoppingListItemTemplate {
     notes?: string;
     categoryId?: number;
     categoryName?: string;
-} 
+}
+
+// Re-export the ShoppingListResponseModel from its dedicated file
+export { ShoppingListResponseModel } from './shopping-list-response.model'; 

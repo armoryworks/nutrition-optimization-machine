@@ -1,0 +1,42 @@
+.shopping-item-dialog {
+  min-width: 500px;
+  max-width: 600px;
+
+  .form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .full-width {
+      flex: 1;
+    }
+
+    .quantity-field {
+      flex: 1;
+    }
+
+    .unit-field {
+      flex: 1;
+    }
+
+    .category-field {
+      flex: 1;
+    }
+
+    .priority-field {
+      flex: 1;
+    }
+  }
+
+  mat-dialog-content {
+    padding: 16px 0;
+  }
+
+  mat-dialog-actions {
+    padding: 16px 0;
+  }
+
+  mat-checkbox {
+    margin-top: 8px;
+  }
+} 

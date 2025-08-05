@@ -1,12 +1,7 @@
 <nom-base-list
   [config]="listConfig"
-  [items]="searchResults"
   [loading]="loading"
-  [error]="error"
-  [totalCount]="totalCount"
-  [currentPage]="currentPage"
-  [pageSize]="pageSize"
-  (pageChange)="onPageChange($event)">
+  [error]="error">
 
   <!-- Search Form -->
   <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="search-form">

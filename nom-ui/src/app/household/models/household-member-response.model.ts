@@ -9,6 +9,9 @@ export class HouseholdMemberResponseModel implements IHouseholdMemberResponseMod
     personName: string = '';
     joinedDate: Date = new Date();
     isOwner: boolean = false;
+    name?: string;
+    email?: string;
+    role?: string;
 
     constructor(data?: Partial<IHouseholdMemberResponseModel>) {
         if (data) {

@@ -88,12 +88,18 @@ export class MealPlanRulesComponent implements OnInit {
     this.isLoading = true;
     this.error = null;
 
-    // TODO: Implement get rules service method when API is available
-    // For now, using mock data
-    setTimeout(() => {
-      this.rules = [];
-      this.isLoading = false;
-    }, 1000);
+    this.mealPlanService.getRules().subscribe({
+      next: (rules) => {
+        this.rules = rules;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading rules:', error);
+        this.error = 'Failed to load meal plan rules';
+        this.isLoading = false;
+        this.snackBar.open('Failed to load meal plan rules', 'Close', { duration: 3000 });
+      }
+    });
   }
 
   onSubmit(): void {
@@ -106,10 +112,13 @@ export class MealPlanRulesComponent implements OnInit {
     const formValue = this.ruleForm.value;
 
     const request: MealPlanRuleCreateRequestModel = {
-      householdId: 1, // TODO: Get from user context
+      householdId: this.getCurrentHouseholdId(),
+      authorId: this.getCurrentUserId(),
+      name: formValue.name || 'Meal Plan Rule',
       dayOfWeekId: formValue.dayOfWeekId,
       mealTypeId: formValue.mealTypeId,
-      queryFilterString: formValue.queryFilterString || undefined
+      queryFilterString: formValue.queryFilterString || undefined,
+      isActive: true
     };
 
     this.mealPlanService.createRule(request).subscribe({
@@ -127,7 +136,12 @@ export class MealPlanRulesComponent implements OnInit {
     });
   }
 
-  onDeleteRule(ruleId: number): void {
+  editRule(rule: MealPlanRuleResponseModel): void {
+    // Navigate to edit rule page
+    this.router.navigate(['/meal-plan/rules', rule.id, 'edit']);
+  }
+
+  deleteRule(rule: MealPlanRuleResponseModel): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
@@ -141,7 +155,7 @@ export class MealPlanRulesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.mealPlanService.deleteRule(ruleId).subscribe({
+        this.mealPlanService.deleteRule(rule.id).subscribe({
           next: () => {
             this.snackBar.open('Rule deleted successfully', 'Close', {
               duration: 3000,
@@ -175,5 +189,17 @@ export class MealPlanRulesComponent implements OnInit {
 
   onBack(): void {
     this.router.navigate(['/meal-plan']);
+  }
+
+  private getCurrentHouseholdId(): number {
+    // TODO: Get from user context service
+    // For now, return a default value
+    return 1;
+  }
+
+  private getCurrentUserId(): number {
+    // TODO: Get from user context service
+    // For now, return a default value
+    return 1;
   }
 } 

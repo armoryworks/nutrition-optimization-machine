@@ -1,6 +1,7 @@
 // File: nom-ui/src/app/shopping/models/shopping-list-response.model.ts
 
-import { IShoppingListResponseModel, IShoppingListItemModel } from './shopping-list-response.model.interface';
+import { IShoppingListResponseModel } from './shopping-list-response.model.interface';
+import { IShoppingListItemModel } from './shopping-list-item.model.interface';
 
 export class ShoppingListResponseModel implements IShoppingListResponseModel {
     id: number = 0;
@@ -12,15 +13,17 @@ export class ShoppingListResponseModel implements IShoppingListResponseModel {
     itemCount: number = 0;
     completedItemCount: number = 0;
     completedCount?: number; // Alias for backward compatibility
+    totalItems: number = 0; // Alias for itemCount
+    completedItems: number = 0; // Alias for completedItemCount
     items: IShoppingListItemModel[] = [];
 
     constructor(data?: Partial<IShoppingListResponseModel>) {
         if (data) {
             Object.assign(this, data);
-            // Set completedCount as alias for completedItemCount
-            if (this.completedItemCount !== undefined && this.completedCount === undefined) {
-                this.completedCount = this.completedItemCount;
-            }
         }
+        // Always set aliases for backward compatibility
+        this.completedCount = this.completedItemCount;
+        this.totalItems = this.itemCount;
+        this.completedItems = this.completedItemCount;
     }
 } 

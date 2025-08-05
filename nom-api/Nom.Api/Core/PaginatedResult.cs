@@ -29,7 +29,7 @@ namespace Nom.Api.Core
         /// <summary>
         /// Gets the total number of pages
         /// </summary>
-        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+        public int TotalPages { get { return (int)Math.Ceiling((double)TotalCount / PageSize); } }
 
         /// <summary>
         /// Gets whether there is a previous page

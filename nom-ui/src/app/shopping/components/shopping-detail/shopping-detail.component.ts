@@ -11,11 +11,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
+import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-item-dialog.component';
 
 @Component({
   selector: 'nom-shopping-detail',
@@ -31,6 +33,7 @@ import { BaseDetailComponent, BaseDetailConfig } from '../../../common/component
     MatDialogModule,
     MatListModule,
     MatMenuModule,
+    MatCheckboxModule,
     BaseDetailComponent,
   ],
   templateUrl: './shopping-detail.component.html',
@@ -132,29 +135,107 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   onAddItem(): void {
-    // TODO: Implement add item functionality
-    this.snackBar.open('Add item functionality coming soon', 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top'
+    // Open dialog to add new item
+    const dialogRef = this.dialog.open(ShoppingItemDialogComponent, {
+      width: '500px',
+      data: {
+        shoppingListId: this.shoppingListId,
+        mode: 'add'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.shoppingService.addShoppingListItem(this.shoppingListId, result).subscribe({
+          next: () => {
+            this.snackBar.open('Item added successfully', 'Close', {
+              duration: 3000,
+              horizontalPosition: 'center',
+              verticalPosition: 'top'
+            });
+            this.loadShoppingList(); // Refresh the list
+          },
+          error: (error) => {
+            console.error('Error adding item:', error);
+            this.snackBar.open('Failed to add item', 'Close', {
+              duration: 5000,
+              horizontalPosition: 'center',
+              verticalPosition: 'top'
+            });
+          }
+        });
+      }
     });
   }
 
   onToggleItemComplete(itemId: number): void {
-    // TODO: Implement toggle item completion
-    this.snackBar.open('Toggle completion functionality coming soon', 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top'
+    if (!this.shoppingList) return;
+
+    const item = this.shoppingList.items?.find(i => i.id === itemId);
+    if (!item) return;
+
+    const updatedItem = {
+      ...item,
+      isCompleted: !item.isCompleted
+    };
+
+    this.shoppingService.updateShoppingListItem(this.shoppingListId, itemId, updatedItem).subscribe({
+      next: () => {
+        this.snackBar.open(
+          updatedItem.isCompleted ? 'Item marked as complete' : 'Item marked as incomplete',
+          'Close',
+          {
+            duration: 2000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top'
+          }
+        );
+        this.loadShoppingList(); // Refresh the list
+      },
+      error: (error) => {
+        console.error('Error updating item:', error);
+        this.snackBar.open('Failed to update item', 'Close', {
+          duration: 5000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      }
     });
   }
 
   onDeleteItem(itemId: number): void {
-    // TODO: Implement delete item
-    this.snackBar.open('Delete item functionality coming soon', 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top'
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Delete Item',
+        message: 'Are you sure you want to delete this item?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmColor: 'warn'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.shoppingService.deleteShoppingListItem(this.shoppingListId, itemId).subscribe({
+          next: () => {
+            this.snackBar.open('Item deleted successfully', 'Close', {
+              duration: 3000,
+              horizontalPosition: 'center',
+              verticalPosition: 'top'
+            });
+            this.loadShoppingList(); // Refresh the list
+          },
+          error: (error) => {
+            console.error('Error deleting item:', error);
+            this.snackBar.open('Failed to delete item', 'Close', {
+              duration: 5000,
+              horizontalPosition: 'center',
+              verticalPosition: 'top'
+            });
+          }
+        });
+      }
     });
   }
 

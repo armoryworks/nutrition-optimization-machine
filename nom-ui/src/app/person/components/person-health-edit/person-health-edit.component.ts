@@ -182,6 +182,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
           }
 
           attributes.push({
+            id: 0, // Will be set by the backend for new attributes
             personId: this.currentPersonId,
             attributeTypeRefId: attrType.id,
             value: processedValue.toString()

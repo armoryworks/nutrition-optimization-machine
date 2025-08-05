@@ -1,4 +1,4 @@
-<app-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
+<nom-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
   <div class="messaging-inbox">
     <!-- Header Actions -->
     <div class="messaging-inbox__header">
@@ -67,16 +67,12 @@
               (click)="openThread(thread)"
             >
               <div class="messaging-inbox__thread-avatar">
-                <div class="messaging-inbox__avatar">
+                <div class="messaging-inbox__avatar" 
+                     [matBadge]="hasUnreadMessages(thread) ? thread.unreadCount : null"
+                     matBadgeColor="accent"
+                     matBadgeSize="small">
                   <mat-icon>person</mat-icon>
                 </div>
-                <mat-badge 
-                  *ngIf="hasUnreadMessages(thread)" 
-                  [content]="thread.unreadCount" 
-                  color="accent"
-                  class="messaging-inbox__badge"
-                >
-                </mat-badge>
               </div>
 
               <div class="messaging-inbox__thread-content">
@@ -118,4 +114,4 @@
       </mat-card>
     </div>
   </div>
-</app-base-page>
+</nom-base-page>

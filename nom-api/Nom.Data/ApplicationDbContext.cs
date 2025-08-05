@@ -84,6 +84,7 @@ namespace Nom.Data
         public DbSet<HouseholdIngredientEntity> HouseholdIngredients { get; set; } = default!;
         public DbSet<HouseholdToolEntity> HouseholdTools { get; set; } = default!;
         public DbSet<HouseholdRecipeEntity> HouseholdRecipes { get; set; } = default!;
+        public DbSet<HouseholdMemberEntity> HouseholdMembers { get; set; } = default!;
         public DbSet<MealPlanEntity> MealPlans { get; set; } = default!;
         public DbSet<MealPlanRuleEntity> MealPlanRules { get; set; } = default!;
         #endregion
@@ -110,10 +111,14 @@ namespace Nom.Data
         public DbSet<RecipeShareTokenEntity> RecipeShareTokens { get; set; } = default!;
         public DbSet<RecipeTagEntity> RecipeTags { get; set; } = default!;
         public DbSet<RecipeCategoryEntity> RecipeCategories { get; set; } = default!;
+        public DbSet<TagEntity> Tags { get; set; } = default!;
+        public DbSet<CategoryEntity> Categories { get; set; } = default!;
         public DbSet<RecipeToolEntity> RecipeTools { get; set; } = default!;
         public DbSet<RecipeNutritionEntity> RecipeNutrition { get; set; } = default!;
         public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;
+        public DbSet<ScrapingReportEntity> ScrapingReports { get; set; } = default!;
+        public DbSet<RecipeBulkOperationProgressEntity> RecipeBulkOperationProgress { get; set; } = default!;
         #endregion
 
         #region Reference
@@ -145,6 +150,7 @@ namespace Nom.Data
         public DbSet<ShoppingListItemEntity> ShoppingListItems { get; set; } = default!;
         public DbSet<ShoppingListLabelEntity> ShoppingListLabels { get; set; } = default!;
         public DbSet<ShoppingListCategoryEntity> ShoppingListCategories { get; set; } = default!;
+        public DbSet<ShoppingListGenerationHistoryEntity> ShoppingListGenerationHistory { get; set; } = default!;
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

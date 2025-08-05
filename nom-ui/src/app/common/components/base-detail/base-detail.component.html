@@ -3,11 +3,11 @@
     <mat-card-header>
       <mat-card-title>{{ config?.title }}</mat-card-title>
       @if (config?.subtitle) {
-        <mat-card-subtitle>{{ config.subtitle }}</mat-card-subtitle>
+        <mat-card-subtitle>{{ config?.subtitle }}</mat-card-subtitle>
       }
       
       <!-- Action Menu -->
-      @if (config?.actions && config.actions.length > 0) {
+      @if (config?.actions && (config?.actions?.length ?? 0) > 0) {
         <button 
           mat-icon-button 
           [matMenuTriggerFor]="menu" 
@@ -16,11 +16,13 @@
         </button>
         
         <mat-menu #menu="matMenu">
-          @for (action of config.actions; track action.label) {
+          @for (action of config?.actions; track action.label) {
             <button 
               mat-menu-item 
               (click)="action.action()"
-              [color]="action.color">
+              [class.mat-warn]="action.color === 'warn'"
+              [class.mat-accent]="action.color === 'accent'"
+              [class.mat-primary]="action.color === 'primary'">
               <mat-icon>{{ action.icon }}</mat-icon>
               <span>{{ action.label }}</span>
             </button>

@@ -7,7 +7,7 @@ namespace Nom.Orch.Models.Recipe
         [Required]
         public required string Name { get; set; }
         public string? Description { get; set; }
-        public List<RecipeIngredientModel> Ingredients { get; set; }
-        public List<RecipeStepModel> Steps { get; set; }
+        public List<RecipeIngredientModel> Ingredients { get; set; } = new List<RecipeIngredientModel>();
+        public List<RecipeStepModel> Steps { get; set; } = new List<RecipeStepModel>();
     }
 }

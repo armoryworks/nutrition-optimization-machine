@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -11,7 +11,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ShoppingService } from '../../services/shopping.service';
-import { ShoppingListResponseModel, ShoppingListUpdateRequestModel } from '../../models/shopping.model';
+import { ShoppingListResponseModel } from '../../models/shopping.model';
+import { ShoppingListUpdateRequest } from '../../models/shopping-list-update-request.model';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
@@ -28,6 +29,7 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     MatProgressSpinnerModule,
     BaseFormComponent,
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './shopping-edit.component.html',
   styleUrls: ['./shopping-edit.component.scss']
 })
@@ -94,10 +96,10 @@ export class ShoppingEditComponent implements OnInit {
     if (this.shoppingForm.valid && this.shoppingList) {
       this.isLoading = true;
 
-      const updateRequest = new ShoppingListUpdateRequestModel({
+      const updateRequest: ShoppingListUpdateRequest = {
         name: this.shoppingForm.value.Name,
         description: this.shoppingForm.value.Description
-      });
+      };
 
       this.shoppingService.updateShoppingList(this.shoppingListId, updateRequest).subscribe({
         next: (response) => {

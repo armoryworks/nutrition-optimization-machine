@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Nom.Data;
+using Nom.Data.Person;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Nom.Api.Authentication
 {
@@ -14,11 +18,15 @@ namespace Nom.Api.Authentication
     /// </summary>
     public class CustomClaimsPrincipalFactory : UserClaimsPrincipalFactory<IdentityUser>
     {
+        private readonly ApplicationDbContext _dbContext;
+
         public CustomClaimsPrincipalFactory(
             UserManager<IdentityUser> userManager,
-            IOptions<IdentityOptions> optionsAccessor)
+            IOptions<IdentityOptions> optionsAccessor,
+            ApplicationDbContext dbContext)
             : base(userManager, optionsAccessor)
         {
+            _dbContext = dbContext;
         }
 
         /// <summary>
@@ -35,14 +43,79 @@ namespace Nom.Api.Authentication
             // Get the default claims from the base implementation (e.g., sub, email, name)
             var identity = await base.GenerateClaimsAsync(user);
 
-            // TODO: Implement custom claims when PersonEntity model is finalized
-            // For now, just return the base claims
+            // Find the associated PersonEntity
+            var person = await _dbContext.Persons
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
 
-            /**can_invite, can_manage, can_manage_household, can_organize, or admin  
-            ** are going to be contextually based on the type of relationship the personentity has to the 
-            ** this will make it so perhaps we have a can_<doathing>_household, can_<doathing>_plan
-            ** plan or household 
-            **/
+            if (person != null)
+            {
+                // Add PersonId claim
+                identity.AddClaim(new Claim("PersonId", person.Id.ToString()));
+
+                // Get household memberships to determine permissions
+                var householdMemberships = await _dbContext.HouseholdMembers
+                    .Where(hm => hm.PersonId == person.Id)
+                    .Include(hm => hm.Household)
+                    .ToListAsync();
+
+                // Get plan participations to determine plan-level permissions
+                var planParticipations = await _dbContext.PlanParticipants
+                    .Where(pp => pp.PersonId == person.Id)
+                    .Include(pp => pp.Plan)
+                    .ToListAsync();
+
+                // Add household-specific permissions
+                foreach (var membership in householdMemberships)
+                {
+                    var householdId = membership.HouseholdId.ToString();
+                    
+                    // Add household membership claim
+                    identity.AddClaim(new Claim("HouseholdMember", householdId));
+
+                    // Add household-specific permissions based on role
+                    if (membership.CanInvite)
+                        identity.AddClaim(new Claim("can_invite_household", householdId));
+                    
+                    if (membership.CanManage)
+                        identity.AddClaim(new Claim("can_manage_household", householdId));
+                    
+                    if (membership.IsAdmin)
+                        identity.AddClaim(new Claim("admin_household", householdId));
+                }
+
+                // Add plan-specific permissions
+                foreach (var participation in planParticipations)
+                {
+                    var planId = participation.PlanId.ToString();
+                    
+                    // Add plan participation claim
+                    identity.AddClaim(new Claim("PlanParticipant", planId));
+
+                    // Add plan-specific permissions based on role
+                    if (participation.CanInvite)
+                        identity.AddClaim(new Claim("can_invite_plan", planId));
+                    
+                    if (participation.CanManage)
+                        identity.AddClaim(new Claim("can_manage_plan", planId));
+                    
+                    if (participation.IsAdmin)
+                        identity.AddClaim(new Claim("admin_plan", planId));
+                }
+
+                // Add global permissions if user has any admin roles
+                if (householdMemberships.Any(hm => hm.IsAdmin) || 
+                    planParticipations.Any(pp => pp.IsAdmin))
+                {
+                    identity.AddClaim(new Claim("admin", "true"));
+                }
+
+                // Add curation permissions if user has any curation roles
+                if (householdMemberships.Any(hm => hm.CanManage) || 
+                    planParticipations.Any(pp => pp.CanManage))
+                {
+                    identity.AddClaim(new Claim("can_manage_curation", "true"));
+                }
+            }
 
             return identity;
         }

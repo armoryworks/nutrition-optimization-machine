@@ -37,9 +37,8 @@ namespace Nom.Orch.UtilityServices
             try
             {
                 // Generate a random 20-byte secret (160 bits)
-                using var rng = new RNGCryptoServiceProvider();
                 var secretBytes = new byte[20];
-                rng.GetBytes(secretBytes);
+                RandomNumberGenerator.Fill(secretBytes);
 
                 // Convert to base32 for compatibility with authenticator apps
                 var secret = ConvertToBase32(secretBytes);

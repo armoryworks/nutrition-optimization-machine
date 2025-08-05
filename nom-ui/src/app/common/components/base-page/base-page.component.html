@@ -4,9 +4,9 @@
     @if (config?.title) {
       <div class="base-page-header">
         <div class="header-content">
-          <h1 class="page-title">{{ config.title }}</h1>
-          @if (config.subtitle) {
-            <p class="page-subtitle">{{ config.subtitle }}</p>
+          <h1 class="page-title">{{ config?.title }}</h1>
+          @if (config?.subtitle) {
+            <p class="page-subtitle">{{ config?.subtitle }}</p>
           }
         </div>
         
@@ -18,7 +18,7 @@
                 (click)="onBack()"
                 class="back-button">
                 <mat-icon>arrow_back</mat-icon>
-                {{ config.backButtonText || 'Back' }}
+                {{ config?.backButtonText || 'Back' }}
               </button>
             }
             
@@ -28,7 +28,7 @@
                 (click)="onRefresh()"
                 class="refresh-button">
                 <mat-icon>refresh</mat-icon>
-                {{ config.refreshButtonText || 'Refresh' }}
+                {{ config?.refreshButtonText || 'Refresh' }}
               </button>
             }
           </div>

@@ -12,12 +12,12 @@ namespace Nom.Orch.Models.Recipe
 
         [Required]
         [MaxLength(511)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [MaxLength(2047)]
         public string? Description { get; set; }
 
-        public List<RecipeIngredientModel> Ingredients { get; set; }
-        public List<RecipeStepModel> Steps { get; set; }
+        public List<RecipeIngredientModel> Ingredients { get; set; } = new List<RecipeIngredientModel>();
+        public List<RecipeStepModel> Steps { get; set; } = new List<RecipeStepModel>();
     }
 }

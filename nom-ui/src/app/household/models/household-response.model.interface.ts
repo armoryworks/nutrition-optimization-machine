@@ -1,5 +1,7 @@
 // File: nom-ui/src/app/household/models/household-response.model.interface.ts
 
+import { IHouseholdMemberResponseModel } from './household-member-response.model.interface';
+
 export interface IHouseholdResponseModel {
     id: number;
     name: string;
@@ -10,4 +12,8 @@ export interface IHouseholdResponseModel {
     planCount: number;
     isOwner: boolean;
     groupId?: number;
+    inviteToken?: string;
+    members?: IHouseholdMemberResponseModel[];
+    recipeCount?: number;
+    shoppingListCount?: number;
 } 

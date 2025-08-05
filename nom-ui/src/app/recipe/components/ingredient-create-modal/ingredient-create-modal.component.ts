@@ -17,7 +17,8 @@ import { debounceTime, distinctUntilChanged, switchMap, take } from 'rxjs/operat
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 export interface IngredientCreateModalData {
-    ingredientName: string;
+    ingredientName?: string;
+    recipeId?: number;
 }
 
 @Component({

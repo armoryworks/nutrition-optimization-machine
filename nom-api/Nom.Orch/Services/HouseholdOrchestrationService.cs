@@ -145,17 +145,63 @@ namespace Nom.Orch.Services
 
         public async Task<HouseholdMemberResponseModel> AddMemberAsync(HouseholdMemberCreateModel model)
         {
-            // This is a placeholder implementation
-            // In a real implementation, you would add the member to the household
-            return new HouseholdMemberResponseModel
+            try
             {
-                Id = 1,
-                HouseholdId = model.HouseholdId,
-                PersonId = model.PersonId,
-                PersonName = "New Member",
-                Role = "Member",
-                JoinedDate = DateTime.UtcNow
-            };
+                // Verify the household exists
+                var household = await _context.Households
+                    .FirstOrDefaultAsync(h => h.Id == model.HouseholdId);
+                
+                if (household == null)
+                {
+                    throw new InvalidOperationException($"Household with ID {model.HouseholdId} not found");
+                }
+
+                // Verify the person exists
+                var person = await _context.Persons
+                    .FirstOrDefaultAsync(p => p.Id == model.PersonId);
+                
+                if (person == null)
+                {
+                    throw new InvalidOperationException($"Person with ID {model.PersonId} not found");
+                }
+
+                // Check if member already exists
+                var existingMember = await _context.HouseholdMembers
+                    .FirstOrDefaultAsync(hm => hm.HouseholdId == model.HouseholdId && hm.PersonId == model.PersonId);
+                
+                if (existingMember != null)
+                {
+                    throw new InvalidOperationException($"Person {person.Name} is already a member of this household");
+                }
+
+                // Create the household member
+                var householdMember = new HouseholdMemberEntity
+                {
+                    HouseholdId = model.HouseholdId,
+                    PersonId = model.PersonId,
+                    Role = model.Role ?? "Member",
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = model.PersonId // Self-created
+                };
+
+                _context.HouseholdMembers.Add(householdMember);
+                await _context.SaveChangesAsync();
+
+                return new HouseholdMemberResponseModel
+                {
+                    Id = householdMember.Id,
+                    HouseholdId = householdMember.HouseholdId,
+                    PersonId = householdMember.PersonId,
+                    PersonName = person.Name,
+                    Role = householdMember.Role,
+                    JoinedDate = householdMember.CreatedDate
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log the error and rethrow
+                throw new InvalidOperationException($"Failed to add member to household: {ex.Message}", ex);
+            }
         }
     }
 } 

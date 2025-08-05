@@ -4,13 +4,15 @@ export interface IShoppingListItemModel {
     id: number;
     shoppingListId: number;
     ingredientId?: number;
-    ingredientName: string;
-    quantity: number;
-    measurementUnit: string;
+    name: string;
+    quantity?: number;
+    measurementUnit?: string;
     notes?: string;
     isCompleted: boolean;
     categoryId?: number;
     categoryName?: string;
+    recipeId?: number;
+    position?: number;
     createdDate: Date;
     modifiedDate?: Date;
 } 

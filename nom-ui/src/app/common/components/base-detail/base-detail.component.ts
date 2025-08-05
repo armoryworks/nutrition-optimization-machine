@@ -40,6 +40,8 @@ export interface BaseDetailConfig {
 })
 export class BaseDetailComponent {
     @Input() config?: BaseDetailConfig;
+    @Input() loading = false;
+    @Input() error: string | null = null;
 
     @Output() back = new EventEmitter<void>();
     @Output() edit = new EventEmitter<void>();

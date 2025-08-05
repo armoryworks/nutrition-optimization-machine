@@ -18,5 +18,11 @@ namespace Nom.Orch.Models.Recipe
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public List<string> Errors { get; set; } = new();
+        public int Progress { get; set; }
+        public int SuccessCount { get; set; }
+        public int ErrorCount { get; set; }
+        public DateTime? EstimatedCompletionTime { get; set; }
+        public string CurrentStep { get; set; } = string.Empty;
+        public List<string> ErrorMessages { get; set; } = new();
     }
 } 

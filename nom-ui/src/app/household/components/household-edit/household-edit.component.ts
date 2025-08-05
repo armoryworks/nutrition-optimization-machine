@@ -11,7 +11,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { HouseholdService } from '../../services/household.service';
-import { HouseholdResponseModel, HouseholdUpdateRequestModel } from '../../models/household.model';
+import { HouseholdResponseModel } from '../../models/household-response.model';
+import { HouseholdUpdateRequestModel } from '../../models/household-update-request.model';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({

@@ -84,24 +84,23 @@ namespace Nom.Api.Middleware
 
         private async Task<bool> ValidateFileUpload(HttpContext context)
         {
-            var request = context.Request;
-
-            // Check content length
-            if (request.ContentLength > MaxArchiveSize)
-            {
-                _logger.LogWarning("File upload too large: {Size} bytes", request.ContentLength);
-                return false;
-            }
-
-            // Enable buffering to read the request body
-            request.EnableBuffering();
-
             try
             {
+                var request = context.Request;
+
                 // Read the request body to analyze file content
                 request.Body.Position = 0;
-                var buffer = new byte[Math.Min(request.ContentLength ?? 0, 1024)]; // Read first 1KB
-                await request.Body.ReadAsync(buffer, 0, buffer.Length);
+                var bufferSize = Math.Min(request.ContentLength ?? 0, 1024); // Read first 1KB
+                var buffer = new byte[bufferSize];
+                
+                // Read exactly the number of bytes we want
+                var bytesRead = 0;
+                var totalBytesRead = 0;
+                while (totalBytesRead < bufferSize && (bytesRead = await request.Body.ReadAsync(buffer, totalBytesRead, (int)(bufferSize - totalBytesRead))) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
+                
                 request.Body.Position = 0;
 
                 // Check for dangerous file signatures
@@ -313,7 +312,14 @@ namespace Nom.Api.Middleware
                 // Read first few bytes to check image signature
                 using var stream = file.OpenReadStream();
                 var buffer = new byte[8];
-                await stream.ReadAsync(buffer, 0, buffer.Length);
+                
+                // Read exactly 8 bytes
+                var bytesRead = 0;
+                var totalBytesRead = 0;
+                while (totalBytesRead < 8 && (bytesRead = await stream.ReadAsync(buffer, totalBytesRead, 8 - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
 
                 // Check for common image signatures
                 var signatures = new[]
@@ -350,7 +356,14 @@ namespace Nom.Api.Middleware
                 // In production, you might want to scan the archive contents
                 using var stream = file.OpenReadStream();
                 var buffer = new byte[4];
-                await stream.ReadAsync(buffer, 0, buffer.Length);
+                
+                // Read exactly 4 bytes
+                var bytesRead = 0;
+                var totalBytesRead = 0;
+                while (totalBytesRead < 4 && (bytesRead = await stream.ReadAsync(buffer, totalBytesRead, 4 - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+                }
 
                 // Check for ZIP signature
                 var zipSignature = new byte[] { 0x50, 0x4B, 0x03, 0x04 };

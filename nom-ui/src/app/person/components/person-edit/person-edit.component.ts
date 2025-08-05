@@ -120,4 +120,8 @@ export class PersonEditComponent implements OnInit, OnDestroy {
   onRetry(): void {
     this.error = null;
   }
+
+  submitForm(): void {
+    this.onSubmit();
+  }
 }

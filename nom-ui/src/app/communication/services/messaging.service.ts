@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { MessageThreadModel } from '../models/message-thread.model';
+import { MessageThreadModel } from '../models/i-message-thread.model';
 import { MessageModel } from '../models/message.model';
 import { SendMessageRequestModel } from '../models/send-message-request.model';
 

@@ -6,4 +6,6 @@ export interface IMealPlanUpdateRequestModel {
     title: string;
     notes?: string;
     recipeId?: number;
+    recipeName?: string;
+    description?: string;
 } 

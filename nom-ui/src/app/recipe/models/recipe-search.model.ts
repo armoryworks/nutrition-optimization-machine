@@ -22,6 +22,7 @@ export interface RecipeSearchModel {
 
 export interface RecipeSearchResponse {
     recipes: RecipeSearchResult[];
+    results: RecipeSearchResult[]; // Alias for recipes
     totalCount: number;
     page: number;
     pageSize: number;
@@ -41,6 +42,7 @@ export interface RecipeSearchResult {
     servings: number;
     averageRating: number;
     ratingCount: number;
+    rating: number; // Alias for averageRating
     isPublic: boolean;
     isApproved: boolean;
     createdDate: Date;

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
@@ -15,6 +15,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatCardModule } from '@angular/material/card';
 import { Observable, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { RecipeSearchService } from '../../services/recipe-search.service';
 import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../../models/recipe-search.model';
@@ -41,8 +42,10 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
         MatSliderModule,
         MatCheckboxModule,
         MatAutocompleteModule,
+        MatCardModule,
         BaseListComponent
     ],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
     templateUrl: './recipe-search.component.html',
     styleUrls: ['./recipe-search.component.scss']
 })
@@ -62,8 +65,6 @@ export class RecipeSearchComponent implements OnInit {
         title: 'Recipe Search',
         subtitle: 'Discover recipes with advanced filtering',
         showSearch: true,
-        showFilters: true,
-        showPagination: true,
         maxWidth: '1200px'
     };
 

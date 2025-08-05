@@ -35,6 +35,7 @@ export class BaseFormComponent {
     @Input() config?: BaseFormConfig;
     @Input() form!: FormGroup;
     @Input() isSubmitting = false;
+    @Input() loading = false;
 
     @Output() submit = new EventEmitter<void>();
     @Output() cancel = new EventEmitter<void>();

@@ -48,15 +48,15 @@ namespace Nom.Api.Middleware
             {
                 _logger.LogWarning("Rate limit exceeded for client {ClientId} on endpoint {Endpoint}", clientId, endpoint);
                 context.Response.StatusCode = 429; // Too Many Requests
-                context.Response.Headers.Add("Retry-After", "60"); // Retry after 1 minute
+                context.Response.Headers.Append("Retry-After", "60"); // Retry after 1 minute
                 await context.Response.WriteAsync("Rate limit exceeded. Please try again later.");
                 return;
             }
 
             // Add rate limit headers to response
-            context.Response.Headers.Add("X-RateLimit-Limit", MaxRequestsPerMinute.ToString());
-            context.Response.Headers.Add("X-RateLimit-Remaining", GetRemainingRequests(clientId).ToString());
-            context.Response.Headers.Add("X-RateLimit-Reset", GetResetTime().ToString());
+            context.Response.Headers.Append("X-RateLimit-Limit", MaxRequestsPerMinute.ToString());
+            context.Response.Headers.Append("X-RateLimit-Remaining", GetRemainingRequests(clientId).ToString());
+            context.Response.Headers.Append("X-RateLimit-Reset", GetResetTime().ToString());
 
             await _next(context);
         }

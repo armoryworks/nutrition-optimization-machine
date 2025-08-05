@@ -7,4 +7,7 @@ export interface IHouseholdMemberResponseModel {
     personName: string;
     joinedDate: Date;
     isOwner: boolean;
+    name?: string;
+    email?: string;
+    role?: string;
 } 

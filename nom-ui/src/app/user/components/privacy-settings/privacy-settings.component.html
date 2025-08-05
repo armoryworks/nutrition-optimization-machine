@@ -40,7 +40,7 @@
                     <p class="privacy-settings__consent-description">{{ consent.description }}</p>
                   </div>
                   <mat-slide-toggle 
-                    [formControlName]="consent.id.toString()"
+                    [formControlName]="consent.name || ''"
                     color="primary"
                     class="privacy-settings__consent-toggle">
                   </mat-slide-toggle>

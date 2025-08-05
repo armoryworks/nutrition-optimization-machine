@@ -243,9 +243,8 @@ namespace Nom.Orch.UtilityServices
         /// </summary>
         public static string GenerateEncryptionKey()
         {
-            using var rng = new RNGCryptoServiceProvider();
             var keyBytes = new byte[32];
-            rng.GetBytes(keyBytes);
+            RandomNumberGenerator.Fill(keyBytes);
             return Convert.ToBase64String(keyBytes);
         }
 
@@ -254,9 +253,8 @@ namespace Nom.Orch.UtilityServices
         /// </summary>
         public static string GenerateInitializationVector()
         {
-            using var rng = new RNGCryptoServiceProvider();
             var ivBytes = new byte[16];
-            rng.GetBytes(ivBytes);
+            RandomNumberGenerator.Fill(ivBytes);
             return Convert.ToBase64String(ivBytes);
         }
 

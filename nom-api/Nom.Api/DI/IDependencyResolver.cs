@@ -42,7 +42,7 @@ namespace Nom.Api.DI
         /// </summary>
         /// <param name="serviceType">The service type</param>
         /// <returns>All resolved services</returns>
-        IEnumerable<object> ResolveAll(Type serviceType);
+        IEnumerable<object?> ResolveAll(Type serviceType);
 
         /// <summary>
         /// Tries to resolve a service of the specified type

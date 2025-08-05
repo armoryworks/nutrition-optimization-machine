@@ -33,5 +33,10 @@ namespace Nom.Data.Plan
 
         [Required]
         public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
+
+
+        public bool IsAdmin { get; set; } = false;
+        public bool CanManage { get; set; } = false;
+        public bool CanInvite { get; set; } = false;
     }
 }

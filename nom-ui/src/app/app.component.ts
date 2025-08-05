@@ -137,11 +137,11 @@ export class AppComponent implements OnInit, OnDestroy {
   loadUserInfo() {
     // Only load user info if user is logged in
     if (this.authManagerService.isLoggedIn()) {
-      this.authService.loadUserInfo().subscribe({
-        next: (userInfo) => {
+      this.authService.getInfo().subscribe({
+        next: (userInfo: any) => {
           console.log('User info loaded:', userInfo);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error loading user info:', error);
         }
       });
@@ -203,9 +203,10 @@ export class AppComponent implements OnInit, OnDestroy {
   onOnboardingComplete(success: boolean): void {
     console.log('Onboarding Workflow completed:', success ? 'Successfully!' : 'With errors.');
     if (success) {
-      alert('Onboarding complete! Redirecting to dashboard (simulated).');
+      this.notificationService.success('Onboarding completed successfully!');
+      this.router.navigate(['/dashboard']);
     } else {
-      alert('There was an issue completing your onboarding. Please try again.');
+      this.notificationService.error('There was an issue completing your onboarding. Please try again.');
     }
   }
 }

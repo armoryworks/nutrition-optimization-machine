@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -34,6 +34,7 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     MatNativeDateModule,
     BaseFormComponent,
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './meal-plan-edit.component.html',
   styleUrls: ['./meal-plan-edit.component.scss']
 })
@@ -113,7 +114,7 @@ export class MealPlanEditComponent implements OnInit {
 
       const updateRequest = new MealPlanUpdateRequestModel({
         recipeName: this.mealPlanForm.value.RecipeName,
-        mealType: this.mealPlanForm.value.MealType,
+        mealTypeId: this.getMealTypeId(this.mealPlanForm.value.MealType),
         date: this.mealPlanForm.value.Date,
         description: this.mealPlanForm.value.Description
       });
@@ -143,5 +144,15 @@ export class MealPlanEditComponent implements OnInit {
 
   onCancel(): void {
     this.router.navigate(['/meal-plan', this.mealPlanId]);
+  }
+
+  private getMealTypeId(mealType: string): number {
+    switch (mealType) {
+      case 'breakfast': return 1;
+      case 'lunch': return 2;
+      case 'dinner': return 3;
+      case 'snack': return 4;
+      default: return 3; // Default to dinner
+    }
   }
 } 

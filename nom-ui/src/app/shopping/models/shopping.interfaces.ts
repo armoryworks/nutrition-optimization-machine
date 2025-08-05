@@ -15,17 +15,6 @@ export interface ShoppingListCreateResponseModel {
     modifiedDate?: Date;
 }
 
-export interface ShoppingListResponseModel {
-    id: number;
-    name: string;
-    description?: string;
-    householdId?: number;
-    groupId?: number;
-    createdDate: Date;
-    modifiedDate?: Date;
-    items: ShoppingListItemResponseModel[];
-}
-
 export interface ShoppingListItemCreateRequestModel {
     shoppingListId: number;
     ingredientId?: number;

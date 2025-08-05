@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -37,6 +37,7 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     IngredientDetailsComponent,
     BaseListComponent,
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './ingredient-search.component.html',
   styleUrls: ['./ingredient-search.component.scss'],
 })
@@ -52,8 +53,6 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
     title: 'Ingredient Search',
     subtitle: 'Search for ingredients to view their nutritional information',
     showSearch: true,
-    showFilters: false,
-    showPagination: false,
     maxWidth: '800px'
   };
 

@@ -73,7 +73,7 @@ namespace Nom.Api.DI
             return ResolveAll(typeof(T)).Cast<T>();
         }
 
-        public IEnumerable<object> ResolveAll(Type serviceType)
+        public IEnumerable<object?> ResolveAll(Type serviceType)
         {
             var stopwatch = Stopwatch.StartNew();
 

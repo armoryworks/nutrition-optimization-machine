@@ -15,5 +15,9 @@ namespace Nom.Orch.Models.Shopping
         public DateTime GeneratedDate { get; set; }
         public long GeneratedByUserId { get; set; }
         public decimal ProcessingTime { get; set; }
+        public int RecipeCount { get; set; }
+        public int ItemCount { get; set; }
+        public decimal EstimatedCost { get; set; }
+        public bool OptimizationApplied { get; set; }
     }
 } 

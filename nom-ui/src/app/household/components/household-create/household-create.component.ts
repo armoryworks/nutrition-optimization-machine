@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { HouseholdService } from '../../services/household.service';
-import { HouseholdCreateRequestModel } from '../../models/household.model';
+import { HouseholdCreateRequestModel } from '../../models/household-create-request.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 

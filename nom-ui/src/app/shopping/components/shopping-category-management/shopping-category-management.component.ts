@@ -41,6 +41,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     isEditing = false;
     editingCategoryId?: number;
     loading = false;
+    isSubmitting = false;
 
     constructor(
         private categoryService: ShoppingListCategoryService,
@@ -72,6 +73,48 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                 this.loading = false;
             }
         });
+    }
+
+    onSubmit(): void {
+        if (this.categoryForm.valid) {
+            this.isSubmitting = true;
+            const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
+
+            if (this.isEditing && this.editingCategoryId) {
+                this.categoryService.updateCategory(this.editingCategoryId, categoryData).subscribe({
+                    next: (category) => {
+                        const index = this.categories.findIndex(c => c.id === category.id);
+                        if (index !== -1) {
+                            this.categories[index] = category;
+                        }
+                        this.categoryForm.reset();
+                        this.isEditing = false;
+                        this.editingCategoryId = undefined;
+                        this.snackBar.open('Category updated successfully', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    },
+                    error: (error) => {
+                        console.error('Error updating category:', error);
+                        this.snackBar.open('Error updating category', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    }
+                });
+            } else {
+                this.categoryService.createCategory(categoryData).subscribe({
+                    next: (category) => {
+                        this.categories.push(category);
+                        this.categoryForm.reset();
+                        this.snackBar.open('Category created successfully', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    },
+                    error: (error) => {
+                        console.error('Error creating category:', error);
+                        this.snackBar.open('Error creating category', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    }
+                });
+            }
+        }
     }
 
     createCategory(): void {
@@ -132,12 +175,12 @@ export class ShoppingCategoryManagementComponent implements OnInit {
         }
     }
 
-    deleteCategory(categoryId: number): void {
+    deleteCategory(category: ShoppingListCategory): void {
         if (confirm('Are you sure you want to delete this category? Items will be moved to uncategorized.')) {
             this.loading = true;
-            this.categoryService.deleteCategory(categoryId).subscribe({
+            this.categoryService.deleteCategory(category.id).subscribe({
                 next: () => {
-                    this.categories = this.categories.filter(c => c.id !== categoryId);
+                    this.categories = this.categories.filter(c => c.id !== category.id);
                     this.snackBar.open('Category deleted successfully', 'Close', { duration: 3000 });
                     this.loading = false;
                 },

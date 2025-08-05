@@ -13,7 +13,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { HouseholdService } from '../../services/household.service';
-import { HouseholdInviteTokenCreateRequestModel, HouseholdInviteTokenResponseModel } from '../../models/household-invite-token-create-request.model';
+import { HouseholdInviteTokenCreateRequestModel } from '../../models/household-invite-token-create-request.model';
+import { HouseholdInviteTokenResponseModel } from '../../models/household-invite-token-response.model';
 
 @Component({
   selector: 'nom-household-invite',
@@ -34,6 +35,72 @@ import { HouseholdInviteTokenCreateRequestModel, HouseholdInviteTokenResponseMod
   styleUrls: ['./household-invite.component.scss']
 })
 export class HouseholdInviteComponent implements OnInit {
+  onSubmit(): void {
+    if (this.inviteForm.valid) {
+      this.generateInviteToken();
+    } else {
+      this.snackBar.open('Please fill in all required fields', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+    }
+  }
+
+  copyLink(): void {
+    if (this.inviteLink) {
+      navigator.clipboard.writeText(this.inviteLink).then(() => {
+        this.snackBar.open('Invite link copied to clipboard', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      }).catch(() => {
+        this.snackBar.open('Failed to copy invite link', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      });
+    } else {
+      this.snackBar.open('No invite link available. Please generate one first.', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+    }
+  }
+
+  shareLink(): void {
+    if (this.inviteLink && navigator.share) {
+      navigator.share({
+        title: 'Join my household',
+        text: 'You\'ve been invited to join my household on NOM',
+        url: this.inviteLink
+      }).then(() => {
+        this.snackBar.open('Invite shared successfully', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      }).catch(() => {
+        this.snackBar.open('Failed to share invite link', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      });
+    } else if (this.inviteLink) {
+      // Fallback to copy if Web Share API is not available
+      this.copyLink();
+    } else {
+      this.snackBar.open('No invite link available. Please generate one first.', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+    }
+  }
   inviteForm: FormGroup;
   householdId: number = 0;
   isLoading = false;

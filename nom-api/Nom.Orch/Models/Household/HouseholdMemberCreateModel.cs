@@ -11,5 +11,7 @@ namespace Nom.Orch.Models.Household
 
         [Required(ErrorMessage = "Person ID is required.")]
         public long PersonId { get; set; }
+        
+        public string? Role { get; set; } = "Member";
     }
 } 

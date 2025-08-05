@@ -12,5 +12,7 @@ export interface IShoppingListResponseModel {
     itemCount: number;
     completedItemCount: number;
     completedCount?: number; // Alias for backward compatibility
+    totalItems?: number; // Alias for itemCount
+    completedItems?: number; // Alias for completedItemCount
     items: IShoppingListItemModel[];
 } 

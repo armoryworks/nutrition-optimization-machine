@@ -9,6 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'; // Import MatDialog and MatDialogModule
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -27,6 +29,8 @@ import { ConfirmationDialogComponent } from '../../../common/components/confirma
     MatDividerModule,
     MatProgressBarModule,
     MatDialogModule, // Add MatDialogModule to imports
+    MatIconModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
@@ -34,7 +38,9 @@ import { ConfirmationDialogComponent } from '../../../common/components/confirma
 })
 export class PrivacySettingsComponent implements OnInit {
   consentForm: FormGroup;
+  privacyForm: FormGroup;
   isLoading = false;
+  isSubmitting = false;
 
   // This would be fetched from a reference data service in a real app
   availableConsents: ConsentModel[] = [
@@ -68,6 +74,7 @@ export class PrivacySettingsComponent implements OnInit {
     private dialog: MatDialog // Inject MatDialog
   ) {
     this.consentForm = this.fb.group({});
+    this.privacyForm = this.fb.group({});
   }
 
   ngOnInit(): void {
@@ -79,6 +86,13 @@ export class PrivacySettingsComponent implements OnInit {
         this.fb.control(consent.isConsented)
       );
     });
+  }
+
+  onSubmit(): void {
+    if (this.privacyForm.invalid) {
+      return;
+    }
+    this.isSubmitting = true;
   }
 
   onConsentSubmit(): void {

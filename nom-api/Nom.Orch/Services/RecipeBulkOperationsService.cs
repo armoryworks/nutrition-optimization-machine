@@ -491,9 +491,39 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<RecipeBulkOperationProgressModel?> GetOperationProgressAsync(long operationId)
         {
-            // Implementation would depend on how progress is tracked
-            // For now, return null as progress tracking is not implemented
-            return null;
+            try
+            {
+                var progress = await _dbContext.RecipeBulkOperationProgress
+                    .FirstOrDefaultAsync(p => p.OperationId == operationId);
+
+                if (progress == null)
+                {
+                    _logger.LogWarning("Bulk operation {OperationId} not found", operationId);
+                    return null;
+                }
+
+                return new RecipeBulkOperationProgressModel
+                {
+                    OperationId = progress.OperationId,
+                    Status = progress.Status,
+                    Progress = progress.Progress,
+                    TotalItems = progress.TotalItems,
+                    ProcessedItems = progress.ProcessedItems,
+                    SuccessCount = progress.SuccessCount,
+                    ErrorCount = progress.ErrorCount,
+                    StartTime = progress.StartTime,
+                    EstimatedCompletionTime = progress.EstimatedCompletionTime,
+                    CurrentStep = progress.CurrentStep,
+                    ErrorMessages = !string.IsNullOrEmpty(progress.ErrorMessages) 
+                        ? progress.ErrorMessages.Split('\n').ToList() 
+                        : new List<string>()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving operation progress for {OperationId}", operationId);
+                return null;
+            }
         }
 
         /// <summary>

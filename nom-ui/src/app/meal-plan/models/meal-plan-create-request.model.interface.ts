@@ -8,4 +8,6 @@ export interface IMealPlanCreateRequestModel {
     title: string;
     notes?: string;
     recipeId?: number;
+    recipeName?: string;
+    description?: string;
 } 

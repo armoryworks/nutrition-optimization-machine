@@ -9,6 +9,7 @@ import {
     ShoppingListItemUpdateRequestModel,
     ShoppingListItemResponseModel,
 } from "../models/shopping.model";
+import { ShoppingListUpdateRequest } from "../models/shopping-list-update-request.model";
 
 @Injectable({
     providedIn: "root",
@@ -30,7 +31,7 @@ export class ShoppingService {
         return this.http.get<ShoppingListResponseModel>(`${this.apiUrl}/${id}`);
     }
 
-    updateShoppingList(id: number, request: ShoppingListCreateRequestModel): Observable<ShoppingListResponseModel> {
+    updateShoppingList(id: number, request: ShoppingListUpdateRequest): Observable<ShoppingListResponseModel> {
         return this.http.put<ShoppingListResponseModel>(`${this.apiUrl}/${id}`, request);
     }
 

@@ -175,7 +175,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             IngredientCreateModalComponent,
             {
                 width: '500px',
-                data: { recipeId: this.recipeId }
+                data: { recipeId: this.recipeId || undefined }
             }
         );
 
@@ -185,8 +185,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 const newIngredient: IngredientSearchResponseModel = {
                     id: result.id,
                     name: result.name,
-                    description: result.description || '',
-                    nutritionPer100g: result.nutritionPer100g
+                    fdcId: result.fdcId,
+                    matchedAlias: result.name
                 };
                 this.ingredients.push(this.createIngredientGroup(newIngredient));
                 this.notificationService.success(`Ingredient "${result.name}" created and added to recipe`);
@@ -258,8 +258,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         const formValue = this.recipeForm.value;
         const recipeData: RecipeEditModel = {
+            id: this.recipeId || 0,
+            authorId: this.userInfoService.getCurrentUserInfoValue()?.personId || 1,
             name: formValue.name,
-            description: formValue.description,
+            description: formValue.description || 'No description provided',
             ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
                 ...ingredient,
                 stepNumber: index + 1
@@ -271,8 +273,15 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         };
 
         const request$ = this.isEditMode && this.recipeId
-            ? this.recipeService.updateRecipe(this.recipeId, recipeData)
-            : this.recipeService.createRecipe(recipeData);
+            ? this.recipeService.updateRecipe(this.recipeId, {
+                name: recipeData.name,
+                description: recipeData.description || 'No description provided'
+            })
+            : this.recipeService.createRecipe({
+                name: recipeData.name,
+                description: recipeData.description || 'No description provided',
+                authorId: recipeData.authorId
+            });
 
         request$.pipe(
             finalize(() => this.isSubmitting = false),
@@ -304,8 +313,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         const formValue = this.recipeForm.value;
         const recipeData: RecipeEditModel = {
+            id: this.recipeId || 0,
+            authorId: this.userInfoService.getCurrentUserInfoValue()?.personId || 1,
             name: formValue.name,
-            description: formValue.description,
+            description: formValue.description || 'No description provided',
             ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
                 ...ingredient,
                 stepNumber: index + 1
@@ -316,7 +327,11 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             }))
         };
 
-        this.recipeService.createRecipe(recipeData).pipe(
+        this.recipeService.createRecipe({
+            name: recipeData.name,
+            description: recipeData.description || 'No description provided',
+            authorId: recipeData.authorId
+        }).pipe(
             finalize(() => this.isSubmitting = false),
             takeUntil(this.destroy$)
         ).subscribe({

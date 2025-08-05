@@ -22,7 +22,7 @@ namespace Nom.Api.Factories
         where TId : struct
     {
         private readonly IServiceProvider _serviceProvider;
-        private DbContext? _dbContext;
+        private DbContext? _localDbContext;
 
         public DefaultRepository(IServiceProvider serviceProvider, ILogger<DefaultRepository<TEntity, TId>> logger)
             : base(null!, logger) // We'll set the DbContext later
@@ -34,11 +34,11 @@ namespace Nom.Api.Factories
         {
             get
             {
-                if (_dbContext == null)
+                if (_localDbContext == null)
                 {
-                    _dbContext = _serviceProvider.GetRequiredService<DbContext>();
+                    _localDbContext = _serviceProvider.GetRequiredService<DbContext>();
                 }
-                return _dbContext.Set<TEntity>();
+                return _localDbContext.Set<TEntity>();
             }
         }
 

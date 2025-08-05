@@ -72,10 +72,10 @@ export class ShoppingCreateComponent implements OnInit {
     if (this.shoppingForm.valid) {
       this.isLoading = true;
 
-      const createRequest = new ShoppingListCreateRequestModel({
+      const createRequest: ShoppingListCreateRequestModel = {
         name: this.shoppingForm.value.Name,
         description: this.shoppingForm.value.Description
-      });
+      };
 
       this.shoppingService.createShoppingList(createRequest).subscribe({
         next: (response) => {

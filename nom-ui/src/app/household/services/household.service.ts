@@ -3,16 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-import {
-    HouseholdCreateRequestModel,
-    HouseholdCreateResponseModel,
-    HouseholdResponseModel,
-    HouseholdUpdateRequestModel,
-    HouseholdInviteTokenCreateRequestModel,
-    HouseholdInviteTokenResponseModel,
-    HouseholdMemberCreateRequestModel,
-    HouseholdMemberResponseModel
-} from '../models/household.model';
+import { HouseholdCreateRequestModel } from '../models/household-create-request.model';
+import { HouseholdCreateResponseModel } from '../models/household-create-response.model';
+import { HouseholdResponseModel } from '../models/household-response.model';
+import { HouseholdUpdateRequestModel } from '../models/household-update-request.model';
+import { HouseholdInviteTokenCreateRequestModel } from '../models/household-invite-token-create-request.model';
+import { HouseholdInviteTokenResponseModel } from '../models/household-invite-token-response.model';
+import { HouseholdMemberCreateRequestModel } from '../models/household-member-create-request.model';
+import { HouseholdMemberResponseModel } from '../models/household-member-response.model';
 
 @Injectable({
     providedIn: 'root'
@@ -48,5 +46,9 @@ export class HouseholdService {
 
     addMember(request: HouseholdMemberCreateRequestModel): Observable<HouseholdMemberResponseModel> {
         return this.http.post<HouseholdMemberResponseModel>(`${this.apiUrl}/member`, request);
+    }
+
+    removeMember(householdId: number, memberId: number): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${householdId}/member/${memberId}`);
     }
 } 

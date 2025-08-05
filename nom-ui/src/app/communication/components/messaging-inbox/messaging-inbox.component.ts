@@ -2,7 +2,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, NonNullableFormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,7 +20,7 @@ import { Router } from '@angular/router';
 import { ViewEncapsulation } from '@angular/core';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { MessagingService } from '../../services/messaging.service';
-import { MessageThreadModel } from '../../models/message-thread.model';
+import { MessageThreadModel } from '../../models/i-message-thread.model';
 import { MessageParticipantModel } from '../../models/i-message-participant.model';
 
 @Component({
@@ -29,6 +29,7 @@ import { MessageParticipantModel } from '../../models/i-message-participant.mode
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -176,6 +177,6 @@ export class MessagingInboxComponent implements OnInit {
   }
 
   hasUnreadMessages(thread: MessageThreadModel): boolean {
-    return thread.unreadCount && thread.unreadCount > 0;
+    return !!(thread.unreadCount && thread.unreadCount > 0);
   }
 }

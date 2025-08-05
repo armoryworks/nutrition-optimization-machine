@@ -4,9 +4,9 @@ export interface IMealPlanRuleResponseModel {
     id: number;
     householdId: number;
     dayOfWeekId: number;
-    dayOfWeek: string;
+    dayOfWeek?: string;
     mealTypeId: number;
-    mealType: string;
+    mealType?: string;
     queryFilterString?: string;
     createdDate: Date;
     modifiedDate?: Date;

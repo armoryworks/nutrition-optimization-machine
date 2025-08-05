@@ -66,14 +66,14 @@ namespace Nom.Orch.UtilityServices
         }
 
         /// <summary>
-        /// Validates a session and updates last activity
+        /// Validates a session
         /// </summary>
         public async Task<bool> ValidateSessionAsync(string sessionId)
         {
             try
             {
                 var sessionKey = $"{SESSION_CACHE_PREFIX}{sessionId}";
-                if (!_cache.TryGetValue(sessionKey, out SessionInfo sessionInfo))
+                if (!_cache.TryGetValue(sessionKey, out SessionInfo? sessionInfo) || sessionInfo == null)
                 {
                     _logger.LogWarning("Session {SessionId} not found", sessionId);
                     return false;
@@ -114,7 +114,7 @@ namespace Nom.Orch.UtilityServices
             try
             {
                 var sessionKey = $"{SESSION_CACHE_PREFIX}{sessionId}";
-                _cache.TryGetValue(sessionKey, out SessionInfo sessionInfo);
+                _cache.TryGetValue(sessionKey, out SessionInfo? sessionInfo);
                 return sessionInfo;
             }
             catch (Exception ex)
@@ -131,8 +131,10 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
+                _logger.LogInformation("Getting user sessions for user {UserId}", userId);
+
                 var userSessionsKey = $"{USER_SESSIONS_PREFIX}{userId}";
-                if (!_cache.TryGetValue(userSessionsKey, out List<string> sessionIds))
+                if (!_cache.TryGetValue(userSessionsKey, out List<string>? sessionIds) || sessionIds == null)
                 {
                     return new List<SessionInfo>();
                 }
@@ -140,18 +142,18 @@ namespace Nom.Orch.UtilityServices
                 var sessions = new List<SessionInfo>();
                 foreach (var sessionId in sessionIds)
                 {
-                    var sessionInfo = GetSessionInfo(sessionId);
-                    if (sessionInfo != null && sessionInfo.IsActive)
+                    var sessionKey = $"{SESSION_CACHE_PREFIX}{sessionId}";
+                    if (_cache.TryGetValue(sessionKey, out SessionInfo? sessionInfo) && sessionInfo != null)
                     {
                         sessions.Add(sessionInfo);
                     }
                 }
 
-                return sessions;
+                return sessions.OrderByDescending(s => s.CreatedAt).ToList();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting sessions for user {UserId}", userId);
+                _logger.LogError(ex, "Error getting user sessions for user {UserId}", userId);
                 return new List<SessionInfo>();
             }
         }
@@ -163,22 +165,25 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
-                var sessionInfo = GetSessionInfo(sessionId);
-                if (sessionInfo == null)
+                _logger.LogInformation("Invalidating session {SessionId}", sessionId);
+
+                var sessionKey = $"{SESSION_CACHE_PREFIX}{sessionId}";
+                if (_cache.TryGetValue(sessionKey, out SessionInfo? sessionInfo) && sessionInfo != null)
                 {
-                    return false;
+                    // Remove from user's session list
+                    var userSessionsKey = $"{USER_SESSIONS_PREFIX}{sessionInfo.UserId}";
+                    if (_cache.TryGetValue(userSessionsKey, out List<string>? userSessions) && userSessions != null)
+                    {
+                        userSessions.Remove(sessionId);
+                        _cache.Set(userSessionsKey, userSessions, TimeSpan.FromHours(24));
+                    }
+
+                    // Remove session from cache
+                    _cache.Remove(sessionKey);
+                    return true;
                 }
 
-                // Mark session as inactive
-                sessionInfo.IsActive = false;
-                var sessionKey = $"{SESSION_CACHE_PREFIX}{sessionId}";
-                _cache.Set(sessionKey, sessionInfo, TimeSpan.FromMinutes(5)); // Keep for 5 minutes for audit
-
-                // Remove from user's active sessions
-                await RemoveUserSessionAsync(sessionInfo.UserId, sessionId);
-
-                _logger.LogInformation("Invalidated session {SessionId} for user {UserId}", sessionId, sessionInfo.UserId);
-                return true;
+                return false;
             }
             catch (Exception ex)
             {
@@ -234,18 +239,35 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
-                var sessions = await GetUserSessionsAsync(userId);
-                var now = DateTime.UtcNow;
+                // Simulate async statistics gathering
+                await Task.Delay(15);
 
-                return new SessionStatistics
+                var activeSessions = await GetUserSessionsAsync(userId);
+                var statistics = new SessionStatistics
                 {
-                    TotalActiveSessions = sessions.Count,
+                    TotalActiveSessions = activeSessions.Count,
                     MaxConcurrentSessions = MAX_CONCURRENT_SESSIONS,
-                    OldestSession = sessions.Any() ? sessions.Min(s => s.CreatedAt) : null,
-                    NewestSession = sessions.Any() ? sessions.Max(s => s.CreatedAt) : null,
-                    SessionsByDevice = sessions.GroupBy(s => s.DeviceInfo).ToDictionary(g => g.Key, g => g.Count()),
-                    SessionsByIp = sessions.GroupBy(s => s.IpAddress).ToDictionary(g => g.Key, g => g.Count())
+                    OldestSession = activeSessions.Min(s => s.CreatedAt),
+                    NewestSession = activeSessions.Max(s => s.CreatedAt)
                 };
+
+                // Group sessions by device and IP
+                foreach (var session in activeSessions)
+                {
+                    if (!string.IsNullOrEmpty(session.DeviceInfo))
+                    {
+                        statistics.SessionsByDevice[session.DeviceInfo] =
+                            statistics.SessionsByDevice.GetValueOrDefault(session.DeviceInfo, 0) + 1;
+                    }
+
+                    if (!string.IsNullOrEmpty(session.IpAddress))
+                    {
+                        statistics.SessionsByIp[session.IpAddress] =
+                            statistics.SessionsByIp.GetValueOrDefault(session.IpAddress, 0) + 1;
+                    }
+                }
+
+                return statistics;
             }
             catch (Exception ex)
             {
@@ -261,14 +283,50 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
-                // This would typically be called by a background service
-                // For now, we'll rely on cache expiration
-                _logger.LogInformation("Session cleanup completed");
-                await Task.CompletedTask;
+                _logger.LogInformation("Cleaning up expired sessions");
+
+                var removedCount = 0;
+                var cacheEntries = ((MemoryCache)_cache).Keys;
+                var expiredSessions = new List<string>();
+
+                foreach (var entry in cacheEntries)
+                {
+                    var key = entry.GetType()?.GetProperty("Key")?.GetValue(entry)?.ToString();
+                    if (key != null && key.StartsWith(SESSION_CACHE_PREFIX))
+                    {
+                        if (_cache.TryGetValue(key, out SessionInfo? sessionInfo) && sessionInfo != null)
+                        {
+                            if (sessionInfo.LastActivity <= DateTime.UtcNow)
+                            {
+                                expiredSessions.Add(key);
+                            }
+                        }
+                    }
+                }
+
+                foreach (var sessionKey in expiredSessions)
+                {
+                    if (_cache.TryGetValue(sessionKey, out SessionInfo? sessionInfo) && sessionInfo != null)
+                    {
+                        // Remove from user's session list
+                        var userSessionsKey = $"{USER_SESSIONS_PREFIX}{sessionInfo.UserId}";
+                        if (_cache.TryGetValue(userSessionsKey, out List<string>? userSessions) && userSessions != null)
+                        {
+                            var sessionId = sessionKey.Replace(SESSION_CACHE_PREFIX, "");
+                            userSessions.Remove(sessionId);
+                            _cache.Set(userSessionsKey, userSessions, TimeSpan.FromHours(24));
+                        }
+
+                        _cache.Remove(sessionKey);
+                        removedCount++;
+                    }
+                }
+
+                _logger.LogInformation("Removed {RemovedCount} expired sessions", removedCount);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during session cleanup");
+                _logger.LogError(ex, "Error cleaning up expired sessions");
             }
         }
 
@@ -279,23 +337,23 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
-                var userSessionsKey = $"{USER_SESSIONS_PREFIX}{userId}";
-                var sessionIds = new List<string>();
+                _logger.LogInformation("Adding session for user {UserId}", userId);
 
-                if (_cache.TryGetValue(userSessionsKey, out List<string> existingSessions))
+                var sessionKey = $"{USER_SESSIONS_PREFIX}{userId}";
+                if (!_cache.TryGetValue(sessionKey, out List<string>? sessionIds) || sessionIds == null)
                 {
-                    sessionIds = existingSessions;
+                    sessionIds = new List<string>();
                 }
 
                 if (!sessionIds.Contains(sessionId))
                 {
                     sessionIds.Add(sessionId);
-                    _cache.Set(userSessionsKey, sessionIds, TimeSpan.FromMinutes(SESSION_TIMEOUT_MINUTES));
+                    _cache.Set(sessionKey, sessionIds, TimeSpan.FromDays(1));
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding session {SessionId} to user {UserId}", sessionId, userId);
+                _logger.LogError(ex, "Error adding session {SessionId} for user {UserId}", sessionId, userId);
             }
         }
 
@@ -306,23 +364,25 @@ namespace Nom.Orch.UtilityServices
         {
             try
             {
+                _logger.LogInformation("Removing session {SessionId} for user {UserId}", sessionId, userId);
+
                 var userSessionsKey = $"{USER_SESSIONS_PREFIX}{userId}";
-                if (_cache.TryGetValue(userSessionsKey, out List<string> sessionIds))
+                if (_cache.TryGetValue(userSessionsKey, out List<string>? sessionIds) && sessionIds != null)
                 {
                     sessionIds.Remove(sessionId);
-                    if (sessionIds.Count > 0)
+                    if (sessionIds.Count == 0)
                     {
-                        _cache.Set(userSessionsKey, sessionIds, TimeSpan.FromMinutes(SESSION_TIMEOUT_MINUTES));
+                        _cache.Remove(userSessionsKey);
                     }
                     else
                     {
-                        _cache.Remove(userSessionsKey);
+                        _cache.Set(userSessionsKey, sessionIds, TimeSpan.FromDays(1));
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error removing session {SessionId} from user {UserId}", sessionId, userId);
+                _logger.LogError(ex, "Error removing session {SessionId} for user {UserId}", sessionId, userId);
             }
         }
 
@@ -347,4 +407,4 @@ namespace Nom.Orch.UtilityServices
             public Dictionary<string, int> SessionsByIp { get; set; } = new Dictionary<string, int>();
         }
     }
-} 
+}
