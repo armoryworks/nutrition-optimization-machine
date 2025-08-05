@@ -1,0 +1,116 @@
+// Onboarding Wizard Component Styles
+
+.nom-page-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.nom-card {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.nom-card__header {
+  padding: 24px 24px 0;
+}
+
+.nom-card__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.nom-card__content {
+  padding: 24px;
+}
+
+.nom-card__progress-bar {
+  margin-bottom: 16px;
+}
+
+.nom-section {
+  margin-bottom: 24px;
+}
+
+.nom-section__heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.nom-instruction-text {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.nom-form {
+  width: 100%;
+}
+
+.nom-form__field {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.nom-form__input {
+  width: 100%;
+}
+
+.nom-form__error {
+  color: #d32f2f;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.form-level-error {
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.nom-message-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.nom-button {
+  min-width: 120px;
+  height: 40px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.nom-button__spinner {
+  margin-right: 8px;
+}
+
+.nom-horizontal-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .nom-page-container {
+    padding: 16px;
+  }
+  
+  .nom-card__header,
+  .nom-card__content {
+    padding: 16px;
+  }
+  
+  .nom-horizontal-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+} 

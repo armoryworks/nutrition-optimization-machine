@@ -81,7 +81,7 @@ export class PrivacySettingsComponent implements OnInit {
     // In a real app, you would first fetch the user's current consent settings
     // and then build the form. For this example, we'll build it with defaults.
     this.availableConsents.forEach((consent) => {
-      this.consentForm.addControl(
+      this.privacyForm.addControl(
         consent.name!,
         this.fb.control(consent.isConsented)
       );

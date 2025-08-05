@@ -231,15 +231,32 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Retrieves the current PersonId from the authenticated user's claims.
+        /// Returns null if the user is in registration phase and doesn't have a PersonId yet.
         /// </summary>
-        public long GetCurrentPersonId()
+        public long? GetCurrentPersonId()
         {
             var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
             if (long.TryParse(personIdClaim, out long personId))
             {
                 return personId;
             }
-            return 0;
+            return null;
+        }
+
+        /// <summary>
+        /// Retrieves the current PersonId from the authenticated user's claims.
+        /// Throws UnauthorizedAccessException if PersonId is not available.
+        /// Use this method only for endpoints that require a complete user profile.
+        /// </summary>
+        public long GetCurrentPersonIdRequired()
+        {
+            var personId = GetCurrentPersonId();
+            if (personId.HasValue)
+            {
+                return personId.Value;
+            }
+
+            throw new UnauthorizedAccessException("PersonId claim is missing, invalid, or could not be parsed from the user's token.");
         }
 
         public async Task<PersonModel> GetPersonByUserIdAsync(string userId)

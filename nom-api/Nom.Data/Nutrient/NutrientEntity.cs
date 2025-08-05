@@ -72,7 +72,7 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Indicates whether this nutrient is a micronutrient (vitamins, minerals) vs macronutrient (protein, carbs, fat).
         /// </summary>
-        public bool IsMicronutrient { get; set; } = false;
+        public bool? IsMicronutrient { get; set; } = false;
 
         // Navigation properties
         public virtual ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();

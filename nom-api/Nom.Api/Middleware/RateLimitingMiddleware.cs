@@ -56,7 +56,7 @@ namespace Nom.Api.Middleware
             // Add rate limit headers to response
             context.Response.Headers.Append("X-RateLimit-Limit", MaxRequestsPerMinute.ToString());
             context.Response.Headers.Append("X-RateLimit-Remaining", GetRemainingRequests(clientId).ToString());
-            context.Response.Headers.Append("X-RateLimit-Reset", GetResetTime().ToString());
+            context.Response.Headers.Append("X-RateLimit-Reset", GetResetTime().ToString("yyyy-MM-ddTHH:mm:ssZ"));
 
             await _next(context);
         }

@@ -60,15 +60,15 @@ export class RegistrationComponent implements OnInit {
     // If router is not used elsewhere, you can remove it. For now, assuming it might be.
     private router: Router, // Kept Router injection if it's used elsewhere
     private authManagerService: AuthManagerService // Inject AuthManagerService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.registrationForm = this.nonNullableFb.group(
       {
         email: ['', [Validators.required, Validators.email]],
+        fullName: ['', Validators.maxLength(100)], // Optional name field
         password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
-        acceptTerms: [false, Validators.requiredTrue],
       },
       { validators: this.passwordMatchValidator }
     );
@@ -103,6 +103,9 @@ export class RegistrationComponent implements OnInit {
 
     this.authService.register(userData).subscribe({
       next: () => {
+        // Set rememberMe to true for auto-login after registration
+        this.authManagerService.rememberMe = true;
+
         const loginCredentials = {
           email: userData.email,
           password: userData.password,
@@ -111,8 +114,9 @@ export class RegistrationComponent implements OnInit {
           rememberMe: true, // Default value for rememberMe
         };
 
-        this.authService.login(loginCredentials).subscribe({
-          next: () => {
+        // Use AuthManagerService.login() instead of AuthService.login() for proper token storage
+        this.authManagerService.login(loginCredentials).subscribe({
+          next: (response) => {
             this.isLoading = false;
             this.notificationService.success(
               'Registration successful! You are now logged in.'

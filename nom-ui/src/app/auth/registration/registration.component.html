@@ -26,6 +26,7 @@
             formControlName="email"
             required
             class="nom-form__input"
+            data-cy="email-input"
           />
           <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
           @if (registrationForm.get('email')?.hasError('required') &&
@@ -40,6 +41,24 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="nom-form__field">
+          <mat-label>Full Name (Optional)</mat-label>
+          <input
+            matInput
+            type="text"
+            formControlName="fullName"
+            class="nom-form__input"
+            data-cy="full-name-input"
+          />
+          <mat-icon matSuffix class="nom-form__icon">person</mat-icon>
+          @if (registrationForm.get('fullName')?.hasError('maxlength') &&
+          registrationForm.get('fullName')?.touched) {
+          <mat-error class="nom-form__error">
+            Name must be less than 100 characters.
+          </mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nom-form__field">
           <mat-label>Password</mat-label>
           <input
             matInput
@@ -47,6 +66,7 @@
             formControlName="password"
             required
             class="nom-form__input"
+            data-cy="password-input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
           @if (registrationForm.get('password')?.hasError('required') &&
@@ -68,6 +88,7 @@
             formControlName="confirmPassword"
             required
             class="nom-form__input"
+            data-cy="confirm-password-input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock_open</mat-icon>
           @if (registrationForm.get('confirmPassword')?.hasError('required') &&
@@ -86,22 +107,7 @@
         </mat-error>
         }
 
-        <mat-checkbox
-          formControlName="acceptTerms"
-          required
-          class="registration__terms-checkbox"
-        >
-          I agree to the
-          <a routerLink="/terms" target="_blank" class="nom-link"
-            >Terms of Service</a
-          >
-        </mat-checkbox>
-        @if (registrationForm.get('acceptTerms')?.hasError('requiredTrue') &&
-        registrationForm.get('acceptTerms')?.touched) {
-        <mat-error class="nom-form__error">
-          You must accept the terms.
-        </mat-error>
-        }
+
 
         <button
           mat-raised-button
@@ -109,6 +115,7 @@
           type="submit"
           [disabled]="registrationForm.invalid || isLoading"
           class="nom-button"
+          data-cy="register-button"
         >
           @if (!isLoading) {
           <span>Register Account</span>

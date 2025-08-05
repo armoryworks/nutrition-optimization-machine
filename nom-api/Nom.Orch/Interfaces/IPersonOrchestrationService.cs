@@ -25,6 +25,17 @@ namespace Nom.Orch.Interfaces
         Task<bool> DeletePersonAsync(long personId);
         Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
 
-        long GetCurrentPersonId();
+        /// <summary>
+        /// Gets the current PersonId from the authenticated user's claims.
+        /// Returns null if the user is in registration phase and doesn't have a PersonId yet.
+        /// </summary>
+        long? GetCurrentPersonId();
+
+        /// <summary>
+        /// Gets the current PersonId from the authenticated user's claims.
+        /// Throws UnauthorizedAccessException if PersonId is not available.
+        /// Use this method only for endpoints that require a complete user profile.
+        /// </summary>
+        long GetCurrentPersonIdRequired();
     }
 }

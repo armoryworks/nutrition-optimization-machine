@@ -1,0 +1,25 @@
+{
+  "name": "nom-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "cypress run",
+    "test:open": "cypress open",
+    "test:e2e": "cypress run --e2e",
+    "test:component": "cypress run --component",
+    "test:auth": "cypress run --spec \"cypress/e2e/auth.cy.js\"",
+    "test:onboarding": "cypress run --spec \"cypress/e2e/onboarding.cy.js\"",
+    "test:recipes": "cypress run --spec \"cypress/e2e/recipes.cy.js\"",
+    "test:api": "cypress run --spec \"cypress/e2e/api.cy.js\"",
+    "test:registration-random": "cypress run --spec \"cypress/e2e/registration-random.cy.js\"",
+    "test:headed": "cypress run --headed",
+    "test:record": "cypress run --record"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "cypress": "^14.5.3"
+  }
+}

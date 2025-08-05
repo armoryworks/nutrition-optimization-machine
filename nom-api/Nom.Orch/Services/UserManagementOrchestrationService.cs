@@ -378,9 +378,12 @@ namespace Nom.Orch.Services
 
         public async Task<UserResponseModel> RegisterUserAsync(RegisterUserRequestModel request)
         {
+            // Use email as username if username is not provided
+            var username = !string.IsNullOrWhiteSpace(request.Username) ? request.Username : request.Email;
+            
             var user = new IdentityUser
             {
-                UserName = request.Username,
+                UserName = username,
                 Email = request.Email,
                 EmailConfirmed = false
             };

@@ -77,11 +77,15 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var userId = GetCurrentPersonId();
+                var userId = GetCurrentPersonIdRequired();
                 _logger.LogInformation("Getting recipe recommendations for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.GetRecipeRecommendationsAsync(userId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -356,11 +360,15 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var userId = GetCurrentPersonId();
+                var userId = GetCurrentPersonIdRequired();
                 _logger.LogInformation("Updating suggestion preferences for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.UpdateSuggestionPreferencesAsync(userId, preferences);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -377,11 +385,15 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var userId = GetCurrentPersonId();
+                var userId = GetCurrentPersonIdRequired();
                 _logger.LogInformation("Getting suggestion preferences for user: {UserId}", userId);
 
                 var result = await _recipeSuggestionService.GetSuggestionPreferencesAsync(userId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {

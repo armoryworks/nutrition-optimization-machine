@@ -27,8 +27,19 @@ export class AuthService {
   constructor(private httpClient: HttpClient) { }
 
   register(userData: RegisterUser): Observable<void> {
+    // Map the frontend model to the API model
+    const apiPayload = {
+      email: userData.email,
+      username: userData.email, // Use email as username
+      password: userData.password,
+      confirmPassword: userData.confirmPassword,
+      fullName: userData.fullName || null,
+      groupToken: null,
+      householdToken: null
+    };
+
     return this.httpClient
-      .post<void>(`${this.apiUrl}/register`, userData)
+      .post<void>(`${this.apiUrl}/register`, apiPayload)
       .pipe(catchError(this.handleError));
   }
 

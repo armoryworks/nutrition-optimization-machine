@@ -51,12 +51,7 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var personId = _personOrchestrationService.GetCurrentPersonId();
-                if (personId == 0)
-                {
-                    return Unauthorized(new { Message = "Could not identify the current user." });
-                }
-
+                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
                 var success = await _privacyOrchestrationService.UpdateConsentAsync(request, personId);
                 if (success)
                 {
@@ -64,6 +59,10 @@ namespace Nom.Api.Controllers
                 }
 
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to update consent settings." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -89,14 +88,13 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var personId = _personOrchestrationService.GetCurrentPersonId();
-                if (personId == 0)
-                {
-                    return Unauthorized(new { Message = "Could not identify the current user." });
-                }
-
+                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
                 var response = await _privacyOrchestrationService.RequestDataExportAsync(request, personId);
                 return Accepted(response);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -122,12 +120,7 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var personId = _personOrchestrationService.GetCurrentPersonId();
-                if (personId == 0)
-                {
-                    return Unauthorized(new { Message = "Could not identify the current user." });
-                }
-
+                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
                 var response = await _privacyOrchestrationService.RequestDataDeletionAsync(request, personId);
                 if (!response.Success)
                 {
@@ -135,6 +128,10 @@ namespace Nom.Api.Controllers
                 }
 
                 return Accepted(response);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {

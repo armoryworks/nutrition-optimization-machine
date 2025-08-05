@@ -35,10 +35,14 @@ namespace Nom.Data.Person
         public virtual ICollection<PersonAttributeEntity> Attributes { get; set; } = new List<PersonAttributeEntity>();
         public virtual ICollection<RestrictionEntity> Restrictions { get; set; } = new List<RestrictionEntity>();
 
-        // User-specific features (from Mealie User entity)
+        // User-specific features (from Mealie User entity) - Not mapped for now
+        [NotMapped]
         public virtual ICollection<RecipeEntity> FavoriteRecipes { get; set; } = new List<RecipeEntity>();
+        [NotMapped]
         public virtual ICollection<RecipeEntity> RatedRecipes { get; set; } = new List<RecipeEntity>();
+        [NotMapped]
         public virtual ICollection<RecipeRatingEntity> RecipeRatings { get; set; } = new List<RecipeRatingEntity>();
+        [NotMapped]
         public virtual ICollection<RecipeEntity> AuthoredRecipes { get; set; } = new List<RecipeEntity>();
     }
 }

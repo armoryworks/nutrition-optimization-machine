@@ -31,7 +31,8 @@ namespace Nom.Api.Authentication
 
         /// <summary>
         /// Overrides the default claim generation to add comprehensive claims including:
-        /// - PersonId (links to PersonEntity)
+        /// - PersonId (links to PersonEntity) - only if Person entity exists
+        /// - RegistrationStatus (indicates user's registration phase)
         /// - User permissions (can_invite, can_manage, can_manage_household, can_organize, admin)
         /// - Group and household information
         /// - Role-based claims
@@ -51,6 +52,9 @@ namespace Nom.Api.Authentication
             {
                 // Add PersonId claim
                 identity.AddClaim(new Claim("PersonId", person.Id.ToString()));
+                
+                // Add registration status claim
+                identity.AddClaim(new Claim("RegistrationStatus", "Complete"));
 
                 // Get household memberships to determine permissions
                 var householdMemberships = await _dbContext.HouseholdMembers
@@ -115,6 +119,12 @@ namespace Nom.Api.Authentication
                 {
                     identity.AddClaim(new Claim("can_manage_curation", "true"));
                 }
+            }
+            else
+            {
+                // User exists but no Person entity yet - this is the registration phase
+                identity.AddClaim(new Claim("RegistrationStatus", "InProgress"));
+                // Note: No PersonId claim is added in this case
             }
 
             return identity;

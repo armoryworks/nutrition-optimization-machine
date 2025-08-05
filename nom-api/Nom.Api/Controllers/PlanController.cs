@@ -41,9 +41,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var plans = await _planOrch.GetMyPlansAsync(authorId);
                 return Ok(plans);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -76,9 +80,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var newAuthorId = GetCurrentPersonId();
+                var newAuthorId = GetCurrentPersonIdRequired();
                 var clonedPlan = await _planOrch.ClonePlanAsync(request.SourcePlanId, newAuthorId, request.NewPlanName);
                 return Ok(clonedPlan);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (ArgumentException ex)
             {
@@ -100,14 +108,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var plan = await _planOrch.CreatePlanAsync(request, authorId);
                 return CreatedAtAction(nameof(GetPlanById), new { id = plan.Id }, plan);
             }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating plan.");
-                return StatusCode(500, "An unexpected error occurred while creating the plan.");
+                _logger.LogError(ex, "Error creating plan");
+                return StatusCode(500, "An error occurred while creating the plan");
             }
         }
 
@@ -116,26 +128,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
-                await _planOrch.UpdatePlanAsync(id, request, authorId);
-                return NoContent();
+                var newAuthorId = GetCurrentPersonIdRequired();
+                await _planOrch.UpdatePlanAsync(id, request, newAuthorId);
+                return Ok();
             }
-            catch (ArgumentException ex)
+            catch (UnauthorizedAccessException)
             {
-                return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating plan {PlanId}.", id);
-                return StatusCode(500, "An unexpected error occurred while updating the plan.");
+                _logger.LogError(ex, "Error updating plan {PlanId}", id);
+                return StatusCode(500, "An error occurred while updating the plan");
             }
         }
 
@@ -144,22 +148,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 await _planOrch.DeletePlanAsync(id, authorId);
-                return NoContent();
+                return Ok();
             }
-            catch (ArgumentException ex)
+            catch (UnauthorizedAccessException)
             {
-                return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting plan {PlanId}.", id);
-                return StatusCode(500, "An unexpected error occurred while deleting the plan.");
+                _logger.LogError(ex, "Error deleting plan {PlanId}", id);
+                return StatusCode(500, "An error occurred while deleting the plan");
             }
         }
 
@@ -168,17 +168,17 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 await _planOrch.SubmitPlanForCurationAsync(id, authorId);
                 return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (ArgumentException ex)
             {
                 return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
             }
             catch (Exception ex)
             {

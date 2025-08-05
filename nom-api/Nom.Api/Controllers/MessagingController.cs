@@ -22,23 +22,23 @@ namespace Nom.Api.Controllers
             _communicationOrch = communicationOrch;
         }
 
-        [HttpPost("messages")]
+        [HttpPost("send")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
             try
             {
-                var senderPersonId = GetCurrentPersonId();
-                var messageId = await _communicationOrch.SendMessageAsync(request, senderPersonId);
-                return Ok(new { MessageId = messageId });
+                var senderPersonId = GetCurrentPersonIdRequired();
+                var message = await _communicationOrch.SendMessageAsync(request, senderPersonId);
+                return Ok(message);
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
             {
-                return Forbid(ex.Message);
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending message from person {PersonId} to thread {ThreadId}", GetCurrentPersonId(), request.ThreadId);
-                return StatusCode(500, "An unexpected error occurred while sending the message.");
+                _logger.LogError(ex, "Error sending message from person {PersonId} to thread {ThreadId}", GetCurrentPersonIdRequired(), request.ThreadId);
+                return StatusCode(500, "An error occurred while sending the message");
             }
         }
     }

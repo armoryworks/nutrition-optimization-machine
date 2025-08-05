@@ -103,4 +103,13 @@ export class RecipeService {
   searchRecipes(query: string): Observable<RecipeModel[]> {
     return this.http.get<RecipeModel[]>(`${this.apiUrl}/search?q=${query}`);
   }
+
+  // Additional methods for backward compatibility
+  getMyRecipes(): Observable<RecipeModel[]> {
+    return this.http.get<RecipeModel[]>(`${this.apiUrl}/my`);
+  }
+
+  deleteIngredient(ingredientId: number): Observable<any> {
+    return this.http.delete<any>(`${environment.apiUrl}/ingredient/${ingredientId}`);
+  }
 }

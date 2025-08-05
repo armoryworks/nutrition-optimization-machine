@@ -31,7 +31,7 @@
               }
             ],
             "styles": ["src/_styles.scss", 
-            "node_modules/@fortawesome/fontawesome-free/css/all.css"],
+            "node_modules/@fortawesome/fontawesome-free/css/all.min.css"],
             "scripts": []
           },
           "configurations": {
@@ -88,7 +88,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": ["src/_styles.scss"],
             "scripts": []
           }
         }

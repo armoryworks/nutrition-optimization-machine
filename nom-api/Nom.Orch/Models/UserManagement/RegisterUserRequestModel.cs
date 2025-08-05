@@ -8,9 +8,8 @@ namespace Nom.Orch.Models.UserManagement
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
         
-        [Required]
-        [MinLength(3)]
-        public string Username { get; set; } = string.Empty;
+        // Username is now optional - will use email if not provided
+        public string? Username { get; set; }
         
         [Required]
         [MinLength(8)]

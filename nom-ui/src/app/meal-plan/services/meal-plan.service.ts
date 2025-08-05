@@ -47,6 +47,10 @@ export class MealPlanService {
         return this.http.get<MealPlanRuleResponseModel>(`${this.apiUrl}/rule/${id}`);
     }
 
+    getRules(): Observable<MealPlanRuleResponseModel[]> {
+        return this.http.get<MealPlanRuleResponseModel[]>(`${this.apiUrl}/rules`);
+    }
+
     deleteRule(id: number): Observable<any> {
         return this.http.delete(`${this.apiUrl}/rule/${id}`);
     }

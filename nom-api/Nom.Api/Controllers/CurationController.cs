@@ -45,13 +45,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorPersonId = GetCurrentPersonId();
+                var authorPersonId = GetCurrentPersonIdRequired();
                 await _curationOrch.SubmitForCurationAsync(request, authorPersonId);
                 return Ok();
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
             {
-                return Forbid(ex.Message);
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -65,9 +65,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var adminPersonId = GetCurrentPersonId();
+                var adminPersonId = GetCurrentPersonIdRequired();
                 await _curationOrch.ApproveAsync(request, adminPersonId);
                 return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -81,9 +85,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var adminPersonId = GetCurrentPersonId();
+                var adminPersonId = GetCurrentPersonIdRequired();
                 await _curationOrch.RequestRevisionAsync(request, adminPersonId);
                 return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -97,9 +105,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var adminPersonId = GetCurrentPersonId();
+                var adminPersonId = GetCurrentPersonIdRequired();
                 await _curationOrch.RejectAsync(request, adminPersonId);
                 return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {

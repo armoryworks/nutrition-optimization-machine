@@ -18,9 +18,10 @@ import { RecipeService } from '../../../recipe/services/recipe.service';
 import { CurationService } from '../../../curation/services/curation.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboard-item.model';
+import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
 import { CurationStatus, canSubmitForCuration } from '../../../recipe/models/curation-status.enum';
-import { ConfirmDialogComponent } from '../../../utilities/components/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 interface MenuItem {
   icon: string;
@@ -136,7 +137,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
           })
         );
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error submitting recipe for curation:', error);
         this.notificationService.error('Failed to submit recipe for curation. Please try again.');
         this.submittingItems.delete(recipeId);
@@ -168,7 +169,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
           })
         );
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error submitting ingredient for curation:', error);
         this.notificationService.error('Failed to submit ingredient for curation. Please try again.');
         this.submittingItems.delete(ingredientId);
@@ -207,7 +208,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
             this.notificationService.success('Recipe deleted successfully');
             // Refresh the recipes list
             this.recipes$ = this.recipeService.getMyRecipes().pipe(
-              map(recipes => recipes.map(recipe => ({
+              map((recipes: RecipeModel[]) => recipes.map((recipe: RecipeModel) => ({
                 ...recipe,
                 curationStatus: recipe.curationStatus || 'draft'
               }))),
@@ -218,7 +219,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
               })
             );
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error deleting recipe:', error);
             this.notificationService.error('Failed to delete recipe. Please try again.');
           }
@@ -257,7 +258,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
               })
             );
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error deleting ingredient:', error);
             this.notificationService.error('Failed to delete ingredient. Please try again.');
           }

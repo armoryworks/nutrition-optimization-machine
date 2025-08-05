@@ -54,11 +54,21 @@ export class AuthManagerService {
     this._rememberMe = localStorage.getItem(this.REMEMBER_ME_KEY) === 'true';
     this.storage = this._rememberMe ? localStorage : sessionStorage;
 
-    this._accessToken = this.storage.getItem(this.TOKEN_KEY) || undefined;
-    const storedExpiration = this.storage.getItem(this.EXPIRATION_KEY);
+    // Check both storage locations for tokens
+    this._accessToken = this.storage.getItem(this.TOKEN_KEY) ||
+      (this.storage === localStorage ? sessionStorage.getItem(this.TOKEN_KEY) : localStorage.getItem(this.TOKEN_KEY)) ||
+      undefined;
+
+    const storedExpiration = this.storage.getItem(this.EXPIRATION_KEY) ||
+      (this.storage === localStorage ? sessionStorage.getItem(this.EXPIRATION_KEY) : localStorage.getItem(this.EXPIRATION_KEY));
     this._tokenExpiration = storedExpiration ? parseInt(storedExpiration, 10) : undefined;
-    this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
-    const storedPersonId = this.storage.getItem(this.PERSON_ID_KEY);
+
+    this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) ||
+      (this.storage === localStorage ? sessionStorage.getItem(this.REFRESH_TOKEN_KEY) : localStorage.getItem(this.REFRESH_TOKEN_KEY)) ||
+      undefined;
+
+    const storedPersonId = this.storage.getItem(this.PERSON_ID_KEY) ||
+      (this.storage === localStorage ? sessionStorage.getItem(this.PERSON_ID_KEY) : localStorage.getItem(this.PERSON_ID_KEY));
     this._personId = storedPersonId ? parseInt(storedPersonId, 10) : undefined;
 
     // Don't call checkUserLoggedInStatus() here to avoid circular dependency
@@ -88,7 +98,10 @@ export class AuthManagerService {
 
   get token(): string | undefined {
     if (!this._accessToken) {
-      this._accessToken = this.storage.getItem(this.TOKEN_KEY) || undefined;
+      // Check current storage first, then fallback to the other storage
+      this._accessToken = this.storage.getItem(this.TOKEN_KEY) ||
+        (this.storage === localStorage ? sessionStorage.getItem(this.TOKEN_KEY) : localStorage.getItem(this.TOKEN_KEY)) ||
+        undefined;
     }
     return this._accessToken;
   }
@@ -104,7 +117,9 @@ export class AuthManagerService {
 
   get tokenExpiration(): number | undefined {
     if (!this._tokenExpiration) {
-      const stored = this.storage.getItem(this.EXPIRATION_KEY);
+      // Check current storage first, then fallback to the other storage
+      const stored = this.storage.getItem(this.EXPIRATION_KEY) ||
+        (this.storage === localStorage ? sessionStorage.getItem(this.EXPIRATION_KEY) : localStorage.getItem(this.EXPIRATION_KEY));
       this._tokenExpiration = stored ? parseInt(stored, 10) : undefined;
     }
     return this._tokenExpiration;
@@ -121,7 +136,9 @@ export class AuthManagerService {
 
   get personId(): number | undefined {
     if (!this._personId) {
-      const stored = this.storage.getItem(this.PERSON_ID_KEY);
+      // Check current storage first, then fallback to the other storage
+      const stored = this.storage.getItem(this.PERSON_ID_KEY) ||
+        (this.storage === localStorage ? sessionStorage.getItem(this.PERSON_ID_KEY) : localStorage.getItem(this.PERSON_ID_KEY));
       this._personId = stored ? parseInt(stored, 10) : undefined;
     }
     return this._personId;
@@ -165,7 +182,10 @@ export class AuthManagerService {
 
   get storedRefreshToken(): string | undefined {
     if (!this._refreshToken) {
-      this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) || undefined;
+      // Check current storage first, then fallback to the other storage
+      this._refreshToken = this.storage.getItem(this.REFRESH_TOKEN_KEY) ||
+        (this.storage === localStorage ? sessionStorage.getItem(this.REFRESH_TOKEN_KEY) : localStorage.getItem(this.REFRESH_TOKEN_KEY)) ||
+        undefined;
     }
     return this._refreshToken;
   }

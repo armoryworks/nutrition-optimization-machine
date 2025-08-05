@@ -89,11 +89,11 @@ export class MealPlanRulesComponent implements OnInit {
     this.error = null;
 
     this.mealPlanService.getRules().subscribe({
-      next: (rules) => {
+      next: (rules: MealPlanRuleResponseModel[]) => {
         this.rules = rules;
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading rules:', error);
         this.error = 'Failed to load meal plan rules';
         this.isLoading = false;

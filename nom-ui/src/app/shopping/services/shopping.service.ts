@@ -50,4 +50,17 @@ export class ShoppingService {
     deleteItem(id: number): Observable<any> {
         return this.http.delete(`${this.apiUrl}/item/${id}`);
     }
+
+    // Wrapper methods for backward compatibility
+    addShoppingListItem(shoppingListId: number, request: ShoppingListItemCreateRequestModel): Observable<ShoppingListItemResponseModel> {
+        return this.addItem(request);
+    }
+
+    updateShoppingListItem(shoppingListId: number, itemId: number, request: ShoppingListItemUpdateRequestModel): Observable<ShoppingListItemResponseModel> {
+        return this.updateItem(itemId, request);
+    }
+
+    deleteShoppingListItem(shoppingListId: number, itemId: number): Observable<any> {
+        return this.deleteItem(itemId);
+    }
 } 

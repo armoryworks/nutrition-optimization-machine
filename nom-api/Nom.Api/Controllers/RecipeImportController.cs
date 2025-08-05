@@ -44,9 +44,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var result = await _importService.ImportFromUrlAsync(url, authorId);
                 return CreatedAtAction(nameof(ImportFromUrl), new { id = result.Id }, result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -62,9 +66,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var results = await _importService.BulkImportFromUrlsAsync(urls, authorId);
                 return Ok(results);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -80,9 +88,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var result = await _importService.ImportFromImageAsync(imageData, authorId);
                 return CreatedAtAction(nameof(ImportFromImage), new { id = result.Id }, result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -98,9 +110,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var result = await _importService.ImportFromHtmlOrJsonAsync(htmlOrJson, authorId);
                 return CreatedAtAction(nameof(ImportFromHtmlOrJson), new { id = result.Id }, result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {
@@ -116,9 +132,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var authorId = GetCurrentPersonId();
+                var authorId = GetCurrentPersonIdRequired();
                 var results = await _importService.ImportFromZipAsync(zipData, authorId);
                 return Ok(results);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("User profile not complete. Please complete registration first.");
             }
             catch (Exception ex)
             {

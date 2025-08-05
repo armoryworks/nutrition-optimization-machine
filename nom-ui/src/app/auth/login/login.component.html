@@ -23,6 +23,7 @@
             formControlName="email"
             required
             class="nom-form__input"
+            data-cy="email-input"
           />
           <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
           @if (loginForm.get('email')?.hasError('required')) {
@@ -42,6 +43,7 @@
             formControlName="password"
             required
             class="nom-form__input"
+            data-cy="password-input"
           />
           <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
           @if (loginForm.get('password')?.hasError('required')) {
@@ -64,6 +66,7 @@
           type="submit"
           [disabled]="loginForm.invalid || isLoading"
           class="nom-button"
+          data-cy="login-button"
         >
           @if (!isLoading) {
           <span>Sign In</span>

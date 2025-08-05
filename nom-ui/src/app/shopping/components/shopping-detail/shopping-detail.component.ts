@@ -14,7 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { ShoppingService } from '../../services/shopping.service';
-import { ShoppingListResponseModel } from '../../models/shopping.model';
+import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-item-dialog.component';
@@ -76,7 +76,7 @@ export class ShoppingDetailComponent implements OnInit {
         this.shoppingList = shoppingList;
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading shopping list:', error);
         this.error = 'Failed to load shopping list details';
         this.isLoading = false;
@@ -121,7 +121,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.router.navigate(['/shopping']);
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error deleting shopping list:', error);
             this.snackBar.open('Failed to delete shopping list', 'Close', {
               duration: 5000,
@@ -155,7 +155,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.loadShoppingList(); // Refresh the list
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error adding item:', error);
             this.snackBar.open('Failed to add item', 'Close', {
               duration: 5000,
@@ -174,8 +174,15 @@ export class ShoppingDetailComponent implements OnInit {
     const item = this.shoppingList.items?.find(i => i.id === itemId);
     if (!item) return;
 
-    const updatedItem = {
-      ...item,
+    const updatedItem: ShoppingListItemUpdateRequestModel = {
+      id: item.id,
+      shoppingListId: item.shoppingListId,
+      ingredientId: item.ingredientId,
+      name: item.name,
+      quantity: item.quantity || 0,
+      measurementUnit: item.measurementUnit || '',
+      notes: item.notes,
+      categoryId: item.categoryId,
       isCompleted: !item.isCompleted
     };
 
@@ -192,7 +199,7 @@ export class ShoppingDetailComponent implements OnInit {
         );
         this.loadShoppingList(); // Refresh the list
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error updating item:', error);
         this.snackBar.open('Failed to update item', 'Close', {
           duration: 5000,
@@ -226,7 +233,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.loadShoppingList(); // Refresh the list
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error deleting item:', error);
             this.snackBar.open('Failed to delete item', 'Close', {
               duration: 5000,

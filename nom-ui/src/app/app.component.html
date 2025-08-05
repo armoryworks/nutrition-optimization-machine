@@ -57,7 +57,7 @@
       <mat-icon>{{ isDarkTheme ? 'dark_mode' : 'light_mode' }}</mat-icon>
     </button>
 
-    <div class="nom-user-menu" (click)="toggleUserMenu()">
+    <div class="nom-user-menu" (click)="toggleUserMenu()" data-cy="user-menu">
       <div class="nom-user-menu__icon-container">
         <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="nom-user-menu__user-icon" />
         <span class="nom-user-menu__status-indicator"
@@ -86,7 +86,7 @@
       }
 
       <li class="nom-user-menu__divider"></li>
-      <li><a (click)="logout()" class="nom-user-menu__link nom-user-menu__link--logout">Logout</a></li>
+      <li><a (click)="logout()" class="nom-user-menu__link nom-user-menu__link--logout" data-cy="logout-button">Logout</a></li>
     </ul>
   </div>
   } @else {
