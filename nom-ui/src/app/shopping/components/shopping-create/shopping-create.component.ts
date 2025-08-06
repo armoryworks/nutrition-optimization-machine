@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,7 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ShoppingService } from '../../services/shopping.service';
-import { ShoppingListCreateRequestModel } from '../../models/shopping.model';
+import { ShoppingListCreateRequestModel } from '../../models/shopping-list-create-request.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
@@ -38,7 +38,7 @@ export class ShoppingCreateComponent implements OnInit {
 
   formConfig: BaseFormConfig = {
     title: 'Create Shopping List',
-    subtitle: 'Create a new shopping list to organize your purchases',
+    subtitle: 'Create a new shopping list to organize your groceries',
     submitText: 'Create Shopping List',
     showCancelButton: true,
     cancelText: 'Cancel',
@@ -46,13 +46,13 @@ export class ShoppingCreateComponent implements OnInit {
   };
 
   constructor(
-    private formBuilder: FormBuilder,
+    private nonNullableFb: NonNullableFormBuilder,
     private shoppingService: ShoppingService,
     private router: Router,
     private snackBar: MatSnackBar,
     private userInfoService: UserInfoService
   ) {
-    this.shoppingForm = this.formBuilder.group({
+    this.shoppingForm = this.nonNullableFb.group({
       Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]],
       GroupId: [null],
@@ -72,10 +72,11 @@ export class ShoppingCreateComponent implements OnInit {
     if (this.shoppingForm.valid) {
       this.isLoading = true;
 
-      const createRequest: ShoppingListCreateRequestModel = {
+      const createRequest = new ShoppingListCreateRequestModel({
         name: this.shoppingForm.value.Name,
-        description: this.shoppingForm.value.Description
-      };
+        description: this.shoppingForm.value.Description,
+        householdId: 1 // Default household ID - you might want to get this from user context
+      });
 
       this.shoppingService.createShoppingList(createRequest).subscribe({
         next: (response) => {

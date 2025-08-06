@@ -2,7 +2,7 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { RecipeService } from '../../services/recipe.service';
 import { Observable, of, Subject } from 'rxjs';
@@ -81,7 +81,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
 
     constructor(
-        private fb: FormBuilder,
+        private nonNullableFb: NonNullableFormBuilder,
         private route: ActivatedRoute,
         public router: Router,
         private recipeService: RecipeService,
@@ -90,11 +90,11 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         private curationService: CurationService,
         private userInfoService: UserInfoService
     ) {
-        this.recipeForm = this.fb.group({
+        this.recipeForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.maxLength(511)]],
             description: ['', [Validators.maxLength(2047)]],
-            ingredients: this.fb.array([]),
-            steps: this.fb.array([])
+            ingredients: this.nonNullableFb.array([]),
+            steps: this.nonNullableFb.array([])
         });
 
         this.filteredIngredients$ = this.ingredientSearchCtrl.valueChanges.pipe(
@@ -118,6 +118,9 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 this.pageConfig.subtitle = 'Update your recipe';
                 this.formConfig.submitText = 'Update Recipe';
                 this.loadRecipe();
+            } else {
+                // For create mode, set loading to false since no data needs to be loaded
+                this.isLoading = false;
             }
         });
     }
@@ -132,7 +135,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     createIngredientGroup(ingredient: IngredientSearchResponseModel): FormGroup {
-        return this.fb.group({
+        return this.nonNullableFb.group({
             ingredientId: [ingredient.id],
             name: [ingredient.name],
             quantity: [1, [Validators.required, Validators.min(0.01)]],
@@ -203,7 +206,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         // Load ingredients
         if (recipe.ingredients && recipe.ingredients.length > 0) {
             recipe.ingredients.forEach((ingredient: any) => {
-                const ingredientGroup = this.fb.group({
+                const ingredientGroup = this.nonNullableFb.group({
                     ingredientId: [ingredient.ingredientId],
                     name: [ingredient.name],
                     quantity: [ingredient.quantity, [Validators.required, Validators.min(0.01)]],
@@ -216,7 +219,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         // Load steps
         if (recipe.steps && recipe.steps.length > 0) {
             recipe.steps.forEach((step: any) => {
-                const stepGroup = this.fb.group({
+                const stepGroup = this.nonNullableFb.group({
                     instruction: [step.instruction, [Validators.required]],
                     stepNumber: [step.stepNumber]
                 });
@@ -230,7 +233,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     createStepGroup(): FormGroup {
-        return this.fb.group({
+        return this.nonNullableFb.group({
             instruction: ['', [Validators.required]],
             stepNumber: [0]
         });
@@ -308,36 +311,26 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             return;
         }
 
+        if (!this.recipeId) {
+            this.error = 'Cannot submit for curation: Recipe not found';
+            return;
+        }
+
         this.isSubmitting = true;
         this.error = null;
 
-        const formValue = this.recipeForm.value;
-        const recipeData: RecipeEditModel = {
-            id: this.recipeId || 0,
-            authorId: this.userInfoService.getCurrentUserInfoValue()?.personId || 1,
-            name: formValue.name,
-            description: formValue.description || 'No description provided',
-            ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
-                ...ingredient,
-                stepNumber: index + 1
-            })),
-            steps: formValue.steps.map((step: RecipeStepModel, index: number) => ({
-                ...step,
-                stepNumber: index + 1
-            }))
+        const request = {
+            entityId: this.recipeId,
+            entityType: 'Recipe' as const
         };
 
-        this.recipeService.createRecipe({
-            name: recipeData.name,
-            description: recipeData.description || 'No description provided',
-            authorId: recipeData.authorId
-        }).pipe(
+        this.curationService.submitForCuration(request).pipe(
             finalize(() => this.isSubmitting = false),
             takeUntil(this.destroy$)
         ).subscribe({
-            next: (recipe) => {
-                this.notificationService.success('Recipe created and submitted for curation');
-                this.router.navigate(['/recipe', recipe.id]);
+            next: () => {
+                this.notificationService.success('Recipe submitted for curation successfully');
+                this.router.navigate(['/recipe', this.recipeId]);
             },
             error: (error) => {
                 console.error('Error submitting recipe for curation:', error);

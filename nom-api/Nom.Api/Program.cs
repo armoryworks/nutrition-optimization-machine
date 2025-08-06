@@ -15,6 +15,13 @@ using Nom.Data;
 using Nom.Orch;
 using System.Linq;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System;
+using Microsoft.Extensions.Logging;
+using Nom.Orch.Models.UserManagement;
+using Nom.Orch.Models.Person;
+using Nom.Orch.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,8 +73,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Use AddIdentity for more control, allowing for custom claims factory registration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
-                    // .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>() // Register our custom claims factory
+    .AddDefaultTokenProviders()
+    .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
 
 
 
@@ -177,7 +184,80 @@ app.UseContainerSecurity(); // Container security middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// This will now use Identity's cookie schemes without conflict.
+// Custom registration endpoint that handles full name and creates PersonEntity
+app.MapPost("api/auth/register-custom", async (
+    [FromBody] RegisterRequest request,
+    UserManager<IdentityUser> userManager,
+    IPersonOrchestrationService personService,
+    ILogger<Program> logger) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+    {
+        return Results.BadRequest(new { message = "Email and password are required." });
+    }
+
+    // Check if user already exists
+    var existingUser = await userManager.FindByEmailAsync(request.Email);
+    if (existingUser != null)
+    {
+        return Results.BadRequest(new { message = "User with this email already exists." });
+    }
+
+    // Create the IdentityUser
+    var user = new IdentityUser
+    {
+        UserName = request.Email,
+        Email = request.Email,
+        EmailConfirmed = true // Auto-confirm for now
+    };
+
+    var result = await userManager.CreateAsync(user, request.Password);
+    if (!result.Succeeded)
+    {
+        return Results.BadRequest(new { message = "Registration failed.", errors = result.Errors });
+    }
+
+    // Create PersonEntity if full name is provided
+    if (!string.IsNullOrWhiteSpace(request.FullName))
+    {
+        try
+        {
+            var personRequest = new PersonCreateModel
+            {
+                PersonName = request.FullName
+            };
+
+            // Temporarily set the user ID in the HTTP context for the service
+            var httpContext = new DefaultHttpContext();
+            httpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(new[]
+                {
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id)
+                })
+            );
+
+            // Create a scoped service provider to get the service with the correct context
+            using var scope = app.Services.CreateScope();
+            var scopedPersonService = scope.ServiceProvider.GetRequiredService<IPersonOrchestrationService>();
+            
+            // Use reflection to set the HttpContextAccessor for this request
+            var httpContextAccessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+            httpContextAccessor.HttpContext = httpContext;
+
+            await scopedPersonService.UpsertPersonAsync(personRequest);
+            logger.LogInformation("Created PersonEntity for user {UserId} with name {FullName}", user.Id, request.FullName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to create PersonEntity for user {UserId}", user.Id);
+            // Don't fail the registration if PersonEntity creation fails
+        }
+    }
+
+    return Results.Ok(new { message = "Registration successful.", userId = user.Id });
+});
+
+// Keep the default Identity endpoints for login, logout, etc.
 app.MapGroup("api/auth")
     .MapIdentityApi<IdentityUser>();
 

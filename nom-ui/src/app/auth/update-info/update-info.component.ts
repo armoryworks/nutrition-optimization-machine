@@ -41,7 +41,7 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class UpdateInfoComponent implements OnInit {
-  updateInfoForm!: FormGroup;
+  updateInfoForm: FormGroup;
   isLoading = false; // For form submission loading
   isInitialLoading = true; // For initial data load loading
 
@@ -52,9 +52,7 @@ export class UpdateInfoComponent implements OnInit {
     private nonNullableFb: NonNullableFormBuilder,
     private authService: AuthService,
     private notificationService: NotificationService // Use NotificationService
-  ) {}
-
-  ngOnInit(): void {
+  ) {
     this.updateInfoForm = this.nonNullableFb.group(
       {
         newEmail: ['', Validators.email],
@@ -63,7 +61,9 @@ export class UpdateInfoComponent implements OnInit {
       },
       { validators: this.updateInfoConditionalValidator }
     );
+  }
 
+  ngOnInit(): void {
     // Load initial user info
     this.loadCurrentUserInfo();
   }
@@ -181,7 +181,7 @@ export class UpdateInfoComponent implements OnInit {
         console.error('Update info error:', error);
         this.notificationService.error(
           error.message ||
-            'An unexpected error occurred during update. Please try again.'
+          'An unexpected error occurred during update. Please try again.'
         );
       },
     });

@@ -65,11 +65,11 @@ namespace Nom.Orch.Services
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully updated person {PersonId}", existingPerson.Id);
-                return new PersonCreateResponseModel 
-                { 
-                    Id = existingPerson.Id, 
-                    Name = existingPerson.Name, 
-                    UserId = existingPerson.UserId 
+                return new PersonCreateResponseModel
+                {
+                    Id = existingPerson.Id,
+                    Name = existingPerson.Name,
+                    UserId = existingPerson.UserId
                 };
             }
 
@@ -84,11 +84,11 @@ namespace Nom.Orch.Services
             await _dbContext.SaveChangesAsync();
 
             _logger.LogInformation("Successfully created person {PersonId}", newPerson.Id);
-            return new PersonCreateResponseModel 
-            { 
-                Id = newPerson.Id, 
-                Name = newPerson.Name, 
-                UserId = newPerson.UserId 
+            return new PersonCreateResponseModel
+            {
+                Id = newPerson.Id,
+                Name = newPerson.Name,
+                UserId = newPerson.UserId
             };
         }
 
@@ -135,7 +135,7 @@ namespace Nom.Orch.Services
         {
             _logger.LogInformation("Completing onboarding for user {UserId}", request.UserId);
 
-            var currentIdentityUserId = request.UserId;
+            var currentIdentityUserId = GetCurrentUserId(); ;
             var primaryPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
 
             if (primaryPerson == null)
@@ -151,7 +151,8 @@ namespace Nom.Orch.Services
 
                 if (invitation != null)
                 {
-                    if(invitation.PlanId.HasValue){
+                    if (invitation.PlanId.HasValue)
+                    {
                         // Add person to the plan
                         var planMember = new PlanParticipantEntity
                         {
@@ -227,6 +228,16 @@ namespace Nom.Orch.Services
                 Success = true,
                 Message = "Onboarding completed successfully"
             };
+        }
+
+        private string? GetCurrentUserId()
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+            return userId;
         }
 
         /// <summary>

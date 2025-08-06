@@ -29,7 +29,6 @@ import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
 
 // Import all child components for ViewChild references
-import { PersonEditComponent } from '../../../person/components/person-edit/person-edit.component';
 import { PersonHealthEditComponent } from '../../../person/components/person-health-edit/person-health-edit.component';
 import { PlanEditComponent } from '../../../plan/components/plan-edit/plan-edit.component';
 import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component';
@@ -62,7 +61,6 @@ import { OnboardingService } from '../../services/onboarding.service';
     MatInputModule,
     MatRadioModule,
     MatSelectModule,
-    PersonEditComponent,
     PersonHealthEditComponent,
     RestrictionEditComponent,
     OnboardingInvitationCodeComponent,
@@ -102,7 +100,6 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     'restrictionScope',
   ];
 
-  @ViewChild(PersonEditComponent) personEditComponent?: PersonEditComponent;
   @ViewChild(PersonHealthEditComponent)
   personHealthEditComponent?: PersonHealthEditComponent;
   @ViewChild(RestrictionEditComponent)
@@ -120,7 +117,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     private onboardingService: OnboardingService,
     private router: Router,
     private activatedRoute: ActivatedRoute
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.workflowSteps = this.onboardingService.workflowSteps;
@@ -138,6 +135,8 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         this.focusOnCurrentStep();
       }
     );
+
+
   }
 
   ngOnDestroy(): void {
@@ -198,7 +197,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     if (
       this.currentStepIndex < firstRestrictionStepIndex ||
       this.currentStepIndex >
-        this.workflowSteps.findIndex((s) => s.id === 'personalPreferences')
+      this.workflowSteps.findIndex((s) => s.id === 'personalPreferences')
     ) {
       this.currentRestrictionPersonIndex = 0;
     }
@@ -216,10 +215,9 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         this.allPersonsInPlan[this.currentHealthAttributePersonIndex];
       return {
         ...currentStepConfig,
-        title: `Health Attributes for ${
-          currentPersonForHealth?.name ||
+        title: `Health Attributes for ${currentPersonForHealth?.name ||
           `Person ${this.currentHealthAttributePersonIndex + 1}`
-        }`,
+          }`,
       };
     }
 
@@ -241,10 +239,9 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         this.allPersonsInPlan[this.currentRestrictionPersonIndex];
       return {
         ...currentStepConfig,
-        title: `${currentStepConfig.title} for ${
-          currentPersonForRestriction?.name ||
+        title: `${currentStepConfig.title} for ${currentPersonForRestriction?.name ||
           `Person ${this.currentRestrictionPersonIndex + 1}`
-        }`,
+          }`,
       };
     }
 
@@ -330,50 +327,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     this.nextStepInternal();
   }
 
-  onPersonDetailsSubmitted(person: PersonModel): void {
-    this.isLoading = true;
-    // *** FIX: Create the correct payload for the service call ***
-    this.personService
-      .upsertPerson({ personName: person.name })
-      .pipe(finalize(() => (this.isLoading = false)))
-      .subscribe({
-        next: (response) => {
-          if (response && response.id) {
-            this._principalPersonId = response.id;
-            const updatedPersonDetails = new PersonModel({
-              id: response.id,
-              name: person.name,
-            });
-            this.onboardingService.updateOnboardingProperty(
-              'personDetails',
-              updatedPersonDetails
-            );
-            this.onboardingService.updateOnboardingProperty(
-              'personId',
-              response.id
-            );
 
-            this.onboardingService.updateOnboardingProperty(
-              'currentAffectedPersonIds',
-              [this._principalPersonId]
-            );
-
-            this.nextStepInternal();
-          } else {
-            this.error =
-              'Failed to create primary person record. Please try again.';
-            this.notificationService.error(this.error);
-          }
-        },
-        error: (err) => {
-          console.error('Error creating person:', err);
-          this.error =
-            'Failed to create your profile: ' +
-            (err.error?.message || err.message);
-          this.notificationService.error(this.error);
-        },
-      });
-  }
 
   onAdditionalParticipantsSubmitted(data: {
     hasAdditionalParticipants: boolean;
@@ -500,9 +454,6 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     }
 
     switch (this.currentStep?.component) {
-      case 'nom-person-edit':
-        this.personEditComponent?.submitForm();
-        break;
       case 'nom-person-health-edit':
         this.personHealthEditComponent?.submitForm();
         break;
@@ -588,9 +539,6 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     );
     const invitationCodeStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'invitationCode'
-    );
-    const personDetailsStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'personDetails'
     );
     const additionalParticipantsStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'additionalParticipants'

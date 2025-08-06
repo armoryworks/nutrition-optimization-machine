@@ -8,6 +8,7 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Nom.Orch.Services
 {
@@ -291,7 +292,7 @@ namespace Nom.Orch.Services
                     .ToListAsync();
 
                 var result = new List<RecipeBulkScrapingResponseModel>();
-                
+
                 foreach (var report in reports)
                 {
                     result.Add(new RecipeBulkScrapingResponseModel
@@ -550,8 +551,8 @@ namespace Nom.Orch.Services
                 RecipeYieldQuantity = scrapedRecipe.RecipeYieldQuantity,
                 RecipeServings = scrapedRecipe.RecipeServings,
                 Image = scrapedRecipe.Image ?? string.Empty,
-                AuthorId = GetCurrentUserId(),
-                CurationStatusId = 1, // Default status
+                AuthorId = GetCurrentPersonId() ?? 1,
+                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                 Version = 1,
                 CreatedDate = DateTime.UtcNow,
                 CreatedByPersonId = GetCurrentPersonId()
@@ -572,7 +573,7 @@ namespace Nom.Orch.Services
                     ingredientEntity = new IngredientEntity
                     {
                         Name = ingredient.Name,
-                        CurationStatusId = 1, // Default status
+                        CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                         CreatedDate = DateTime.UtcNow,
                         CreatedByPersonId = GetCurrentPersonId()
                     };
@@ -631,7 +632,7 @@ namespace Nom.Orch.Services
                             tag = new TagEntity
                             {
                                 Name = tagName,
-                                CurationStatusId = 1, // Default status
+                                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                                 CreatedDate = DateTime.UtcNow,
                                 CreatedByPersonId = GetCurrentPersonId()
                             };
@@ -663,7 +664,7 @@ namespace Nom.Orch.Services
                             category = new CategoryEntity
                             {
                                 Name = categoryName,
-                                CurationStatusId = 1, // Default status
+                                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                                 CreatedDate = DateTime.UtcNow,
                                 CreatedByPersonId = GetCurrentPersonId()
                             };
@@ -692,17 +693,24 @@ namespace Nom.Orch.Services
             }
         }
 
-        private long GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            // Implementation to get current user ID from context
-            // This would typically come from the JWT token or user context
-            return 1; // Default for now
+            var userId = _httpContextAccessor.HttpContext?.User?.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+            return userId;
         }
 
-        private long GetCurrentPersonId()
+        private long? GetCurrentPersonId()
         {
-            // Implementation to get current person ID from context
-            return 1; // Default for now
+            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
+            {
+                return personId;
+            }
+            return null;
         }
 
         #endregion

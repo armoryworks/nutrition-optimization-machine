@@ -60,9 +60,7 @@ export class RegistrationComponent implements OnInit {
     // If router is not used elsewhere, you can remove it. For now, assuming it might be.
     private router: Router, // Kept Router injection if it's used elsewhere
     private authManagerService: AuthManagerService // Inject AuthManagerService
-  ) { }
-
-  ngOnInit(): void {
+  ) {
     this.registrationForm = this.nonNullableFb.group(
       {
         email: ['', [Validators.required, Validators.email]],
@@ -72,6 +70,10 @@ export class RegistrationComponent implements OnInit {
       },
       { validators: this.passwordMatchValidator }
     );
+  }
+
+  ngOnInit(): void {
+    // Form is already initialized in constructor, no additional initialization needed
   }
 
   // Custom validator for password matching (applied to the FormGroup)

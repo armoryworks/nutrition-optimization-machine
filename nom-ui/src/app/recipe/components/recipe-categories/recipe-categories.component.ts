@@ -1,95 +1,86 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatSelectModule } from '@angular/material/select';
-import { ViewEncapsulation } from '@angular/core';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
-import { RecipeCategoriesService } from '../../services/recipe-categories.service';
-import { RecipeCategoryModel } from '../../models/i-recipe-category.model';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeCategoryModel, RecipeCategoryCreateRequestModel, RecipeCategoryResponseModel } from '../../models/recipe-category.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: 'nom-recipe-categories',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatIconModule,
-        MatButtonModule,
-        MatChipsModule,
-        MatTooltipModule,
-        MatDialogModule,
-        MatAutocompleteModule,
-        MatSelectModule,
-        BasePageComponent,
-    ],
-    templateUrl: './recipe-categories.component.html',
-    styleUrls: ['./recipe-categories.component.scss'],
-    encapsulation: ViewEncapsulation.None,
+  selector: 'nom-recipe-categories',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatSelectModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-categories.component.html',
+  styleUrls: ['./recipe-categories.component.scss']
 })
 export class RecipeCategoriesComponent implements OnInit {
-    @Input() recipeId?: number;
-    @Input() categories: RecipeCategoryModel[] = [];
-    @Output() categoriesChange = new EventEmitter<RecipeCategoryModel[]>();
+  categories: RecipeCategoryResponseModel[] = [];
+  isLoading = false;
+  error: string | null = null;
+  categoryForm: FormGroup;
+  isAddingCategory = false;
 
-    allCategories: RecipeCategoryModel[] = [];
-    loading = false;
-    error = '';
-    searchTerm = '';
-    filteredCategories: RecipeCategoryModel[] = [];
-
-    categoryForm: FormGroup;
-
-    pageConfig: BasePageConfig = {
-        title: 'Recipe Categories',
-        subtitle: 'Organize recipes with categories',
-        showRefreshButton: true,
-        refreshButtonText: 'Refresh',
-        maxWidth: '800px',
-    };
-
-    constructor(
-        private recipeCategoriesService: RecipeCategoriesService,
-        private dialog: MatDialog,
-        private fb: NonNullableFormBuilder
-    ) {
-        this.categoryForm = this.fb.group({
-            name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-            description: ['', [Validators.maxLength(200)]],
-            icon: ['restaurant', [Validators.required]],
-            color: ['#1976d2', [Validators.required]],
-            parentCategoryId: [null]
-        });
-    }
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.categoryForm = this.nonNullableFb.group({
+      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      icon: ['', [Validators.required]],
+      color: ['#1976d2', [Validators.required]],
+      parentCategoryId: [null],
+      description: ['', [Validators.maxLength(200)]]
+    });
+  }
 
     ngOnInit(): void {
         this.loadAllCategories();
     }
 
     loadAllCategories(): void {
-        this.loading = true;
-        this.error = '';
+        this.isLoading = true;
+        this.error = null;
 
-        this.recipeCategoriesService.getAllCategories().subscribe({
+        this.recipeService.getAllCategories().subscribe({
             next: (categories) => {
-                this.allCategories = categories;
-                this.filteredCategories = categories;
+                this.categories = categories;
                 this.loading = false;
             },
             error: (error) => {
                 this.error = 'Failed to load categories';
-                this.loading = false;
+                this.isLoading = false;
                 console.error('Error loading categories:', error);
             },
         });

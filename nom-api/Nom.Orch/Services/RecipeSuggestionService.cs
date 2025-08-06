@@ -37,7 +37,7 @@ namespace Nom.Orch.Services
                     .Include(r => r.RecipeTools)
                     .Include(r => r.RecipeCategories)
                     .Include(r => r.RecipeTags)
-                    .Where(r => r.AuthorId == (query.UserId ?? 0) || r.CurationStatusId == 2)
+                    .Where(r => r.AuthorId == (query.UserId ?? 0) || r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .ToListAsync();
 
                 var suggestions = new List<RecipeSuggestionResponseItemModel>();
@@ -109,7 +109,7 @@ namespace Nom.Orch.Services
                     .Include(r => r.RecipeIngredients)
                     .Include(r => r.RecipeCategories)
                     .Include(r => r.RecipeTags)
-                    .Where(r => r.CurationStatusId == 2); // Public recipes
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated); // Public recipes
 
                 // Apply filters
                 if (request.MaxPrepTime.HasValue)
@@ -176,7 +176,7 @@ namespace Nom.Orch.Services
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeIngredients)
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2) // Public recipes
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated) // Public recipes
                     .ToListAsync();
 
                 var relevantRecipes = recipes.Where(r => 
@@ -268,7 +268,7 @@ namespace Nom.Orch.Services
                 // Get trending recipes in user's preferred categories
                 var trendingRecipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && userCategories.Any(c => r.RecipeCategories.Any(rc => rc.Category != null && rc.Category.Name == c)))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && userCategories.Any(c => r.RecipeCategories.Any(rc => rc.Category != null && rc.Category.Name == c)))
                     .OrderByDescending(r => r.Rating)
                     .Take(5)
                     .ToListAsync();
@@ -309,7 +309,7 @@ namespace Nom.Orch.Services
                 var similarRecipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
                     .Include(r => r.RecipeTags)
-                    .Where(r => r.Id != recipeId && r.CurationStatusId == 2)
+                    .Where(r => r.Id != recipeId && r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .ToListAsync();
 
                 var similarities = new List<RecipeSimilarityModel>();
@@ -376,7 +376,7 @@ namespace Nom.Orch.Services
             try
             {
                 var trendingRecipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .OrderByDescending(r => r.Rating)
                     .ThenByDescending(r => r.Ratings.Count)
                     .Take(limit)
@@ -409,7 +409,7 @@ namespace Nom.Orch.Services
                 var currentSeason = season ?? GetCurrentSeason();
                 var seasonalRecipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeCategories.Any(c => c.Category != null && c.Category.Name.Contains(currentSeason, StringComparison.OrdinalIgnoreCase)))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeCategories.Any(c => c.Category != null && c.Category.Name.Contains(currentSeason, StringComparison.OrdinalIgnoreCase)))
                     .Take(10)
                     .ToListAsync();
 
@@ -448,7 +448,7 @@ namespace Nom.Orch.Services
             {
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeCategories.Any(c => c.Category != null && c.Category.Name.Contains(mealType, StringComparison.OrdinalIgnoreCase)))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeCategories.Any(c => c.Category != null && c.Category.Name.Contains(mealType, StringComparison.OrdinalIgnoreCase)))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -494,7 +494,7 @@ namespace Nom.Orch.Services
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
                     .Include(r => r.RecipeTags)
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .ToListAsync();
 
                 var filteredRecipes = recipes.Where(r => 
@@ -543,7 +543,7 @@ namespace Nom.Orch.Services
             try
             {
                 var totalRecipes = await _context.Recipes.CountAsync();
-                var publicRecipes = await _context.Recipes.CountAsync(r => r.CurationStatusId == 2); // Public recipes
+                var publicRecipes = await _context.Recipes.CountAsync(r => r.CurationStatusId == (long)CurationStatusEnum.Curated); // Public recipes
                 var averageRating = await _context.Recipes.Where(r => r.Rating.HasValue).AverageAsync(r => r.Rating.Value);
 
                 return new RecipeSuggestionAnalyticsModel
@@ -733,7 +733,7 @@ namespace Nom.Orch.Services
             {
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && cuisines.Any(c => r.RecipeTypes.Any(rt => rt.Name.Contains(c, StringComparison.OrdinalIgnoreCase))))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && cuisines.Any(c => r.RecipeTypes.Any(rt => rt.Name.Contains(c, StringComparison.OrdinalIgnoreCase))))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -777,7 +777,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2 && (r.PrepTimeMinutes + r.CookTimeMinutes) <= maxTimeMinutes)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && (r.PrepTimeMinutes + r.CookTimeMinutes) <= maxTimeMinutes)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -823,7 +823,7 @@ namespace Nom.Orch.Services
                 // Note: EstimatedCost is not in the current RecipeEntity model
                 // This would need to be added to the model or calculated from ingredients
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -867,7 +867,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeTypes.Any(rt => rt.Name == "Easy"))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeTypes.Any(rt => rt.Name == "Easy"))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -911,7 +911,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeTypes.Any(rt => rt.Name == "Hard"))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeTypes.Any(rt => rt.Name == "Hard"))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -956,7 +956,7 @@ namespace Nom.Orch.Services
             {
                 // This would implement nutritional filtering based on preferences
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1002,7 +1002,7 @@ namespace Nom.Orch.Services
                 // Note: CookingMethod is not in the current RecipeEntity model
                 // This would need to be added to the model or derived from recipe types
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1046,7 +1046,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2 && r.Servings == servingSize)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.Servings == servingSize)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1092,7 +1092,7 @@ namespace Nom.Orch.Services
                 // Note: RequiredEquipment is not in the current RecipeEntity model
                 // This would need to be added to the model or derived from recipe tools
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1137,7 +1137,7 @@ namespace Nom.Orch.Services
             {
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeIngredients)
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeIngredients.Any(i => i.Ingredient != null && seasonalIngredients.Any(si => i.Ingredient.Name.Contains(si, StringComparison.OrdinalIgnoreCase))))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeIngredients.Any(i => i.Ingredient != null && seasonalIngredients.Any(si => i.Ingredient.Name.Contains(si, StringComparison.OrdinalIgnoreCase))))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1181,7 +1181,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2 && r.Rating >= minRating)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.Rating >= minRating)
                     .OrderByDescending(r => r.Rating)
                     .Take(query.Limit)
                     .ToListAsync();
@@ -1226,7 +1226,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .OrderByDescending(r => r.Ratings.Count)
                     .Take(query.Limit)
                     .ToListAsync();
@@ -1271,7 +1271,7 @@ namespace Nom.Orch.Services
             try
             {
                 var recipes = await _context.Recipes
-                    .Where(r => r.CurationStatusId == 2)
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .OrderByDescending(r => r.CreatedDate)
                     .Take(query.Limit)
                     .ToListAsync();
@@ -1332,7 +1332,7 @@ namespace Nom.Orch.Services
 
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeCategories.Any(c => c.Category != null && favoriteCategories.Contains(c.Category.Name)))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeCategories.Any(c => c.Category != null && favoriteCategories.Contains(c.Category.Name)))
                     .Take(query.Limit)
                     .ToListAsync();
 
@@ -1392,7 +1392,7 @@ namespace Nom.Orch.Services
 
                 var recipes = await _context.Recipes
                     .Include(r => r.RecipeCategories)
-                    .Where(r => r.CurationStatusId == 2 && r.RecipeCategories.Any(c => c.Category != null && recentCategories.Contains(c.Category.Name)))
+                    .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated && r.RecipeCategories.Any(c => c.Category != null && recentCategories.Contains(c.Category.Name)))
                     .Take(query.Limit)
                     .ToListAsync();
 

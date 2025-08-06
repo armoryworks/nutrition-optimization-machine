@@ -1,20 +1,23 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSliderModule } from '@angular/material/slider';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeRatingModel } from '../../models/recipe.model';
-import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { RecipeRatingModel, RecipeRatingCreateRequestModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
     selector: 'nom-recipe-ratings',
@@ -23,14 +26,16 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
         CommonModule,
         ReactiveFormsModule,
         MatCardModule,
-        MatButtonModule,
-        MatIconModule,
         MatFormFieldModule,
         MatInputModule,
+        MatButtonModule,
+        MatIconModule,
         MatProgressSpinnerModule,
-        MatDividerModule,
         MatChipsModule,
-        MatSliderModule,
+        MatDividerModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
     ],
     templateUrl: './recipe-ratings.component.html',
     styleUrls: ['./recipe-ratings.component.scss']
@@ -38,7 +43,7 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
 export class RecipeRatingsComponent implements OnInit {
     @Input() recipeId: number = 0;
 
-    ratings: RecipeRatingModel[] = [];
+    ratings: RecipeRatingResponseModel[] = [];
     userRating: RecipeRatingModel | null = null;
     averageRating: number = 0;
     isLoading = false;
@@ -47,13 +52,14 @@ export class RecipeRatingsComponent implements OnInit {
 
     constructor(
         private recipeService: RecipeService,
-        private formBuilder: FormBuilder,
+        private router: Router,
+        private nonNullableFb: NonNullableFormBuilder,
         private snackBar: MatSnackBar,
-        private userInfoService: UserInfoService
+        private dialog: MatDialog
     ) {
-        this.ratingForm = this.formBuilder.group({
+        this.ratingForm = this.nonNullableFb.group({
             rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
-            comment: ['', [Validators.maxLength(500)]]
+            comment: ['', [Validators.maxLength(1000)]]
         });
     }
 

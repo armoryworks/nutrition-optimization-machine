@@ -1,19 +1,26 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ViewEncapsulation } from '@angular/core';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { RecipeTagsService } from '../../services/recipe-tags.service';
-import { RecipeTagModel } from '../../models/i-recipe-tag.model';
+import { RecipeTagModel, RecipeTagCreateRequestModel, RecipeTagResponseModel } from '../../models/recipe-tag.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
     selector: 'nom-recipe-tags',
@@ -24,11 +31,15 @@ import { RecipeTagModel } from '../../models/i-recipe-tag.model';
         MatCardModule,
         MatFormFieldModule,
         MatInputModule,
-        MatIconModule,
         MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
         MatChipsModule,
-        MatTooltipModule,
+        MatDividerModule,
         MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+        MatTooltipModule,
         MatAutocompleteModule,
         BasePageComponent,
     ],
@@ -48,6 +59,7 @@ export class RecipeTagsComponent implements OnInit {
     filteredTags: RecipeTagModel[] = [];
 
     tagForm: FormGroup;
+    isAddingTag = false;
 
     pageConfig: BasePageConfig = {
         title: 'Recipe Tags',
@@ -59,13 +71,15 @@ export class RecipeTagsComponent implements OnInit {
 
     constructor(
         private recipeTagsService: RecipeTagsService,
-        private dialog: MatDialog,
-        private fb: NonNullableFormBuilder
+        private router: Router,
+        private nonNullableFb: NonNullableFormBuilder,
+        private snackBar: MatSnackBar,
+        private dialog: MatDialog
     ) {
-        this.tagForm = this.fb.group({
+        this.tagForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-            description: ['', [Validators.maxLength(200)]],
-            color: ['#1976d2', [Validators.required]]
+            color: ['#1976d2', [Validators.required]],
+            description: ['', [Validators.maxLength(200)]]
         });
     }
 

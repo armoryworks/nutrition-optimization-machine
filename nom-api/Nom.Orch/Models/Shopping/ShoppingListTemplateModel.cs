@@ -12,8 +12,6 @@ namespace Nom.Orch.Models.Shopping
         public List<string> Categories { get; set; } = new();
         public List<string> Tags { get; set; } = new();
         public bool IsPublic { get; set; }
-        public long CreatedByUserId { get; set; }
-        public DateTime CreatedDate { get; set; }
         public int UsageCount { get; set; }
     }
-} 
+}

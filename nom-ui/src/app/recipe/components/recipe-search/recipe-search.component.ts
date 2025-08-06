@@ -1,24 +1,29 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { Observable, of } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatSliderModule } from '@angular/material/slider';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatCardModule } from '@angular/material/card';
-import { Observable, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
-import { RecipeSearchService } from '../../services/recipe-search.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { RecipeService } from '../../services/recipe.service';
 import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../../models/recipe-search.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
@@ -26,53 +31,62 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     standalone: true,
     imports: [
         CommonModule,
-        RouterModule,
-        FormsModule,
         ReactiveFormsModule,
+        RouterModule,
+        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
-        MatSelectModule,
         MatButtonModule,
         MatIconModule,
-        MatChipsModule,
-        MatPaginatorModule,
         MatProgressSpinnerModule,
-        MatSnackBarModule,
-        MatExpansionModule,
-        MatSliderModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatSelectModule,
         MatCheckboxModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
         MatAutocompleteModule,
-        MatCardModule,
-        BaseListComponent
+        MatExpansionModule,
+        MatPaginatorModule,
+        BaseListComponent,
     ],
-    schemas: [CUSTOM_ELEMENTS_SCHEMA],
     templateUrl: './recipe-search.component.html',
     styleUrls: ['./recipe-search.component.scss']
 })
 export class RecipeSearchComponent implements OnInit {
-    searchForm: FormGroup;
     searchResults: RecipeSearchResult[] = [];
-    loading = false;
-    totalCount = 0;
+    isLoading = false;
+    error: string | null = null;
+    searchForm: FormGroup;
+    isSearching = false;
+
+    // Pagination properties
     currentPage = 1;
-    pageSize = 20;
+    pageSize = 10;
+    totalCount = 0;
     totalPages = 0;
     hasNextPage = false;
     hasPreviousPage = false;
-    error: string | null = null;
 
+    // Search suggestions
+    searchSuggestions$: Observable<string[]> = of([]);
+
+    // Configuration
     listConfig: BaseListConfig = {
         title: 'Recipe Search',
-        subtitle: 'Discover recipes with advanced filtering',
+        subtitle: 'Find recipes by name, ingredients, or criteria',
         showSearch: true,
-        maxWidth: '1200px'
+        showCreateButton: false,
+        showRefreshButton: true,
+        refreshButtonText: 'Clear Search'
     };
 
-    // Filter options
+    // Options for dropdowns
     sortOptions = [
-        { value: 'name', label: 'Name' },
+        { value: 'relevance', label: 'Relevance' },
         { value: 'rating', label: 'Rating' },
-        { value: 'date', label: 'Date Created' },
+        { value: 'name', label: 'Name' },
         { value: 'prepTime', label: 'Prep Time' },
         { value: 'cookTime', label: 'Cook Time' }
     ];
@@ -82,40 +96,24 @@ export class RecipeSearchComponent implements OnInit {
         { value: 'desc', label: 'Descending' }
     ];
 
-    // Autocomplete suggestions
-    searchSuggestions$: Observable<string[]> = new Observable();
-
     constructor(
-        private searchService: RecipeSearchService,
-        private fb: FormBuilder,
-        private snackBar: MatSnackBar
+        private recipeService: RecipeService,
+        private router: Router,
+        private nonNullableFb: NonNullableFormBuilder,
+        private snackBar: MatSnackBar,
+        private dialog: MatDialog
     ) {
-        this.searchForm = this.fb.group({
+        this.searchForm = this.nonNullableFb.group({
             query: [''],
             minRating: [null],
             maxPrepTime: [null],
             maxCookTime: [null],
-            maxTotalTime: [null],
-            isPublic: [true],
-            isApproved: [true],
-            sortBy: ['date'],
+            sortBy: ['relevance'],
             sortDirection: ['desc'],
-            includeIngredients: [true],
-            includeSteps: [false],
-            includeNutrition: [false]
+            isPublic: [false],
+            isApproved: [false],
+            includeIngredients: [false]
         });
-
-        // Setup autocomplete
-        this.searchSuggestions$ = this.searchForm.get('query')!.valueChanges.pipe(
-            debounceTime(300),
-            distinctUntilChanged(),
-            switchMap(query => {
-                if (query && query.trim().length > 2) {
-                    return this.searchService.getSearchSuggestions(query.trim());
-                }
-                return new Observable<string[]>();
-            })
-        );
     }
 
     ngOnInit(): void {
@@ -124,7 +122,7 @@ export class RecipeSearchComponent implements OnInit {
     }
 
     performSearch(): void {
-        this.loading = true;
+        this.isLoading = true;
         this.error = null;
 
         const searchParams: RecipeSearchModel = {
@@ -144,19 +142,19 @@ export class RecipeSearchComponent implements OnInit {
             pageSize: this.pageSize
         };
 
-        this.searchService.searchRecipes(searchParams).subscribe({
+        this.recipeService.searchRecipesAdvanced(searchParams).subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.results;
+                this.searchResults = response.results || response.recipes || [];
                 this.totalCount = response.totalCount;
-                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
-                this.hasNextPage = this.currentPage < this.totalPages;
-                this.hasPreviousPage = this.currentPage > 1;
-                this.loading = false;
+                this.totalPages = response.totalPages || Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = response.hasNextPage;
+                this.hasPreviousPage = response.hasPreviousPage;
+                this.isLoading = false;
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error('Search error:', error);
                 this.error = 'Failed to search recipes. Please try again.';
-                this.loading = false;
+                this.isLoading = false;
             }
         });
     }
@@ -190,43 +188,43 @@ export class RecipeSearchComponent implements OnInit {
     }
 
     loadPopularRecipes(): void {
-        this.loading = true;
+        this.isLoading = true;
         this.error = null;
 
-        this.searchService.getPopularRecipes().subscribe({
+        this.recipeService.getPopularRecipes(this.currentPage, this.pageSize).subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.results;
+                this.searchResults = response.results || response.recipes || [];
                 this.totalCount = response.totalCount;
-                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
-                this.hasNextPage = this.currentPage < this.totalPages;
-                this.hasPreviousPage = this.currentPage > 1;
-                this.loading = false;
+                this.totalPages = response.totalPages || Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = response.hasNextPage;
+                this.hasPreviousPage = response.hasPreviousPage;
+                this.isLoading = false;
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error('Error loading popular recipes:', error);
                 this.error = 'Failed to load popular recipes.';
-                this.loading = false;
+                this.isLoading = false;
             }
         });
     }
 
     loadRecentRecipes(): void {
-        this.loading = true;
+        this.isLoading = true;
         this.error = null;
 
-        this.searchService.getRecentRecipes().subscribe({
+        this.recipeService.getRecentRecipes(this.currentPage, this.pageSize).subscribe({
             next: (response: RecipeSearchResponse) => {
-                this.searchResults = response.results;
+                this.searchResults = response.results || response.recipes || [];
                 this.totalCount = response.totalCount;
-                this.totalPages = Math.ceil(this.totalCount / this.pageSize);
-                this.hasNextPage = this.currentPage < this.totalPages;
-                this.hasPreviousPage = this.currentPage > 1;
-                this.loading = false;
+                this.totalPages = response.totalPages || Math.ceil(this.totalCount / this.pageSize);
+                this.hasNextPage = response.hasNextPage;
+                this.hasPreviousPage = response.hasPreviousPage;
+                this.isLoading = false;
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error('Error loading recent recipes:', error);
                 this.error = 'Failed to load recent recipes.';
-                this.loading = false;
+                this.isLoading = false;
             }
         });
     }
@@ -257,4 +255,6 @@ export class RecipeSearchComponent implements OnInit {
         }
         return stars;
     }
+
+
 } 

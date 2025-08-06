@@ -41,7 +41,7 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class ResetPasswordComponent implements OnInit {
-  resetPasswordForm!: FormGroup;
+  resetPasswordForm: FormGroup;
   isLoading = false;
   email: string = '';
   resetCode: string = '';
@@ -52,29 +52,38 @@ export class ResetPasswordComponent implements OnInit {
     private notificationService: NotificationService, // Use NotificationService
     private route: ActivatedRoute,
     private router: Router // Inject Router for navigation
-  ) {}
+  ) {
+    // Initialize form with default values
+    this.resetPasswordForm = this.nonNullableFb.group(
+      {
+        email: ['', [Validators.required, Validators.email]],
+        resetCode: ['', Validators.required],
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmNewPassword: ['', Validators.required],
+      },
+      // Apply the custom validator to the FormGroup
+      { validators: this.passwordMatchValidator }
+    );
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       this.email = params['email'] || '';
       this.resetCode = params['code'] || '';
 
-      this.resetPasswordForm = this.nonNullableFb.group(
-        {
-          email: [
-            { value: this.email, disabled: this.email !== '' },
-            [Validators.required, Validators.email],
-          ],
-          resetCode: [
-            { value: this.resetCode, disabled: this.resetCode !== '' },
-            Validators.required,
-          ],
-          newPassword: ['', [Validators.required, Validators.minLength(8)]],
-          confirmNewPassword: ['', Validators.required],
-        },
-        // Apply the custom validator to the FormGroup
-        { validators: this.passwordMatchValidator }
-      );
+      // Update form values and disabled state based on route parameters
+      this.resetPasswordForm.patchValue({
+        email: this.email,
+        resetCode: this.resetCode,
+      });
+
+      // Disable fields if they have values from route parameters
+      if (this.email) {
+        this.resetPasswordForm.get('email')?.disable();
+      }
+      if (this.resetCode) {
+        this.resetPasswordForm.get('resetCode')?.disable();
+      }
     });
   }
 
@@ -148,7 +157,7 @@ export class ResetPasswordComponent implements OnInit {
         // The error.message is already processed by the AuthService's handleError
         this.notificationService.error(
           error.message ||
-            'An unexpected error occurred during password reset. Please try again.'
+          'An unexpected error occurred during password reset. Please try again.'
         );
       },
     });

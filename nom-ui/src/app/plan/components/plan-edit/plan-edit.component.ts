@@ -51,7 +51,7 @@ export class PlanEditComponent implements OnInit {
   @Output() formSubmitted = new EventEmitter<PlanModel>();
   @Output() back = new EventEmitter<void>();
 
-  planForm!: FormGroup;
+  planForm: FormGroup;
 
   // Track the type of restriction being edited to pass to RestrictionEditComponent
   currentRestrictionType: RestrictionTypeEnum | null = null;
@@ -62,16 +62,25 @@ export class PlanEditComponent implements OnInit {
   // Expose enum to template
   public RestrictionTypeEnum = RestrictionTypeEnum;
 
-  constructor(private fb: NonNullableFormBuilder) { }
-
-  ngOnInit(): void {
+  constructor(private fb: NonNullableFormBuilder) {
     this.planForm = this.fb.group({
-      name: new FormControl(this.plan?.name || '', Validators.required),
-      description: new FormControl(this.plan?.description || ''),
-      invitationCode: new FormControl(this.plan?.invitationCode || ''),
+      name: new FormControl('', Validators.required),
+      description: new FormControl(''),
+      invitationCode: new FormControl(''),
       // No longer managing restrictions or participants directly here,
       // but will collect them from child components if needed
     });
+  }
+
+  ngOnInit(): void {
+    // Update form values based on input plan
+    if (this.plan) {
+      this.planForm.patchValue({
+        name: this.plan.name || '',
+        description: this.plan.description || '',
+        invitationCode: this.plan.invitationCode || '',
+      });
+    }
 
     // Initialize tempRestrictions with any existing restrictions from the input plan
     if (this.plan?.restrictions) {

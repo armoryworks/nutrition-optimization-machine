@@ -13,40 +13,41 @@
     (submit)="onSubmit()"
     (cancel)="onCancel()">
 
-    <div class="nom-recipe-edit__section">
-      <h3 class="nom-recipe-edit__section-title">General Information</h3>
-      <mat-form-field class="nom-recipe-edit__form-field">
-        <mat-label>Recipe Name</mat-label>
-        <input matInput formControlName="name" placeholder="e.g., Classic Lasagna">
-      </mat-form-field>
-      <mat-form-field class="nom-recipe-edit__form-field">
-        <mat-label>Description</mat-label>
-        <textarea matInput formControlName="description" rows="4"
-          placeholder="A short summary of the recipe..."></textarea>
-      </mat-form-field>
-    </div>
-
-    <div class="nom-recipe-edit__section">
-      <div class="nom-recipe-edit__section-header">
-        <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
-      </div>
-      <div class="nom-ingredient-search">
-        <mat-form-field class="nom-ingredient-search__form-field">
-          <mat-label>Add an Ingredient</mat-label>
-          <input matInput type="text" placeholder="Start typing to search..."
-            [formControl]="ingredientSearchCtrl" [matAutocomplete]="auto">
-          <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onIngredientSelected($event)"
-            [displayWith]="displayIngredient">
-            @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
-            <mat-option [value]="ingredient">{{ ingredient.name }}</mat-option>
-            }
-          </mat-autocomplete>
+    <div [formGroup]="recipeForm">
+      <div class="nom-recipe-edit__section">
+        <h3 class="nom-recipe-edit__section-title">General Information</h3>
+        <mat-form-field class="nom-recipe-edit__form-field">
+          <mat-label>Recipe Name</mat-label>
+          <input matInput formControlName="name" placeholder="e.g., Classic Lasagna">
         </mat-form-field>
-        <button mat-stroked-button type="button" (click)="openCreateIngredientModal()">
-          Create New Ingredient
-        </button>
+        <mat-form-field class="nom-recipe-edit__form-field">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="4"
+            placeholder="A short summary of the recipe..."></textarea>
+        </mat-form-field>
       </div>
-      <div class="nom-ingredient-list" formArrayName="ingredients">
+
+      <div class="nom-recipe-edit__section">
+        <div class="nom-recipe-edit__section-header">
+          <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
+        </div>
+        <div class="nom-ingredient-search">
+          <mat-form-field class="nom-ingredient-search__form-field">
+            <mat-label>Add an Ingredient</mat-label>
+            <input matInput type="text" placeholder="Start typing to search..."
+              [formControl]="ingredientSearchCtrl" [matAutocomplete]="auto">
+            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onIngredientSelected($event)"
+              [displayWith]="displayIngredient">
+              @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
+              <mat-option [value]="ingredient">{{ ingredient.name }}</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <button mat-stroked-button type="button" (click)="openCreateIngredientModal()">
+            Create New Ingredient
+          </button>
+        </div>
+        <div class="nom-ingredient-list" formArrayName="ingredients">
         @for (ingredient of ingredients.controls; track i; let i = $index) {
         <div [formGroupName]="i" class="nom-ingredient-list__item">
           <span class="nom-ingredient-list__item-name">{{ ingredient.get('name')?.value }}</span>
@@ -116,5 +117,6 @@
       </button>
     </div>
 
+    </div>
   </nom-base-form>
 </nom-base-page>

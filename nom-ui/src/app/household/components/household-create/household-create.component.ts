@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -46,13 +46,13 @@ export class HouseholdCreateComponent implements OnInit {
     };
 
     constructor(
-        private formBuilder: FormBuilder,
+        private nonNullableFb: NonNullableFormBuilder,
         private householdService: HouseholdService,
         private router: Router,
         private snackBar: MatSnackBar,
         private userInfoService: UserInfoService
     ) {
-        this.householdForm = this.formBuilder.group({
+        this.householdForm = this.nonNullableFb.group({
             Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
             Description: ['', [Validators.maxLength(500)]],
             GroupId: [null],

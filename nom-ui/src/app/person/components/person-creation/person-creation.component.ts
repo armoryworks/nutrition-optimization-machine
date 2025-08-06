@@ -43,7 +43,7 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
 export class PersonCreationComponent implements OnInit, OnDestroy {
   @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
 
-  personForm!: FormGroup;
+  personForm: FormGroup;
   isSubmitting: boolean = false;
   isLoading = false;
   error: string | null = null;
@@ -68,21 +68,20 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   constructor(
     private nonNullableFb: NonNullableFormBuilder,
     private personService: PersonService
-  ) { }
+  ) {
+    // Always initialize the form group with default/empty values
+    this.personForm = this.nonNullableFb.group({
+      name: new FormControl('', [Validators.required, Validators.minLength(2)]),
+    });
+  }
 
   ngOnInit(): void {
-    this.initializeForm();
+    // Form is already initialized in constructor, no additional initialization needed
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private initializeForm(): void {
-    this.personForm = this.nonNullableFb.group({
-      name: new FormControl('', [[Validators.required, Validators.minLength(2)]]),
-    });
   }
 
   onSubmit(): void {

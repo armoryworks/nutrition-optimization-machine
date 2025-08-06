@@ -15,6 +15,7 @@ import {
   RecipeRatingCreateModel,
   RecipeRatingUpdateModel
 } from '../models/recipe.model';
+import { RecipeSearchModel, RecipeSearchResponse } from '../models/recipe-search.model';
 
 @Injectable({
   providedIn: 'root'
@@ -102,6 +103,21 @@ export class RecipeService {
   // Recipe search
   searchRecipes(query: string): Observable<RecipeModel[]> {
     return this.http.get<RecipeModel[]>(`${this.apiUrl}/search?q=${query}`);
+  }
+
+  // Advanced recipe search with pagination
+  searchRecipesAdvanced(searchParams: RecipeSearchModel): Observable<RecipeSearchResponse> {
+    return this.http.post<RecipeSearchResponse>(`${this.apiUrl}/search`, searchParams);
+  }
+
+  // Get popular recipes
+  getPopularRecipes(page: number = 1, pageSize: number = 10): Observable<RecipeSearchResponse> {
+    return this.http.get<RecipeSearchResponse>(`${this.apiUrl}/popular?page=${page}&pageSize=${pageSize}`);
+  }
+
+  // Get recent recipes  
+  getRecentRecipes(page: number = 1, pageSize: number = 10): Observable<RecipeSearchResponse> {
+    return this.http.get<RecipeSearchResponse>(`${this.apiUrl}/recent?page=${page}&pageSize=${pageSize}`);
   }
 
   // Additional methods for backward compatibility

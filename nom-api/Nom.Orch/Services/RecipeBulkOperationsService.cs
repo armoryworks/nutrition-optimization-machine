@@ -6,6 +6,7 @@ using Nom.Data;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
+using System.Security.Claims;
 
 namespace Nom.Orch.Services
 {
@@ -514,8 +515,8 @@ namespace Nom.Orch.Services
                     StartTime = progress.StartTime,
                     EstimatedCompletionTime = progress.EstimatedCompletionTime,
                     CurrentStep = progress.CurrentStep,
-                    ErrorMessages = !string.IsNullOrEmpty(progress.ErrorMessages) 
-                        ? progress.ErrorMessages.Split('\n').ToList() 
+                    ErrorMessages = !string.IsNullOrEmpty(progress.ErrorMessages)
+                        ? progress.ErrorMessages.Split('\n').ToList()
                         : new List<string>()
                 };
             }
@@ -686,8 +687,8 @@ namespace Nom.Orch.Services
                             RecipeYieldQuantity = recipeElement.GetProperty("recipeYieldQuantity").GetDecimal(),
                             RecipeServings = recipeElement.GetProperty("recipeServings").GetDecimal(),
                             Rating = recipeElement.GetProperty("rating").GetDecimal(),
-                            AuthorId = GetCurrentUserId(),
-                            CurationStatusId = 1,
+                            AuthorId = GetCurrentPersonId() ?? 1,
+                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
                             Version = 1,
                             CreatedDate = DateTime.UtcNow,
                             CreatedByPersonId = GetCurrentPersonId()
@@ -741,8 +742,8 @@ namespace Nom.Orch.Services
                             CookTime = fields.Length > 5 ? fields[5] : null,
                             TotalTime = fields.Length > 6 ? fields[6] : null,
                             Rating = fields.Length > 7 && decimal.TryParse(fields[7], out var rating) ? rating : null,
-                            AuthorId = GetCurrentUserId(),
-                            CurationStatusId = 1,
+                            AuthorId = GetCurrentPersonId() ?? 1,
+                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
                             Version = 1,
                             CreatedDate = DateTime.UtcNow,
                             CreatedByPersonId = GetCurrentPersonId()
@@ -832,16 +833,24 @@ namespace Nom.Orch.Services
             };
         }
 
-        private long GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            // Implementation to get current user ID from context
-            return 1; // Default for now
+            var userId = _httpContextAccessor.HttpContext?.User?.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+            return userId;
         }
 
-        private long GetCurrentPersonId()
+        private long? GetCurrentPersonId()
         {
-            // Implementation to get current person ID from context
-            return 1; // Default for now
+            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
+            {
+                return personId;
+            }
+            return null;
         }
 
         #endregion

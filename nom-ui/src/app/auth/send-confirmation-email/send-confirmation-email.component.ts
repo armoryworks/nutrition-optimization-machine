@@ -41,19 +41,21 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class SendConfirmationEmailComponent implements OnInit {
-  sendConfirmationEmailForm!: FormGroup;
+  sendConfirmationEmailForm: FormGroup;
   isLoading = false;
 
   constructor(
     private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
     private authService: AuthService,
     private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
-  ) {}
-
-  ngOnInit(): void {
+  ) {
     this.sendConfirmationEmailForm = this.nonNullableFb.group({
       email: ['', [Validators.required, Validators.email]],
     });
+  }
+
+  ngOnInit(): void {
+    // Component initialization - no form initialization needed here
   }
 
   /**

@@ -20,15 +20,20 @@ namespace Nom.Orch.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        private long GetCurrentUserId()
+        private string GetCurrentUserId()
         {
             // This is a simplified implementation - in a real app, you'd get this from JWT token or session
-            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("UserId")?.Value;
-            if (long.TryParse(userIdClaim, out var userId))
+            return _httpContextAccessor.HttpContext.User.FindFirst("UserId")?.Value.ToString();
+        }
+
+        private long? GetCurrentPersonId()
+        {
+            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
             {
-                return userId;
+                return personId;
             }
-            return 1; // Default user ID for development
+            return null;
         }
 
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)
@@ -41,7 +46,7 @@ namespace Nom.Orch.Services
                     NutrientId = in_.NutrientId,
                     NutrientName = in_.Nutrient.Name,
                     Amount = in_.Amount,
-                                                UnitName = in_.MeasurementType != null ? in_.MeasurementType.Name : string.Empty
+                    UnitName = in_.MeasurementType != null ? in_.MeasurementType.Name : string.Empty
                 })
                 .ToListAsync();
 
@@ -78,8 +83,7 @@ namespace Nom.Orch.Services
                 Name = model.Name,
                 Description = model.Description,
                 AuthorId = model.AuthorId,
-                CreatedDate = DateTime.UtcNow,
-                LastModifiedDate = DateTime.UtcNow
+                CurationStatusId = (long)CurationStatusEnum.NonCurated
             };
 
             _context.Recipes.Add(recipe);
@@ -90,8 +94,7 @@ namespace Nom.Orch.Services
                 Id = recipe.Id,
                 Name = recipe.Name,
                 Description = recipe.Description ?? string.Empty,
-                AuthorId = recipe.AuthorId,
-                CreatedDate = recipe.CreatedDate
+                AuthorId = recipe.AuthorId
             };
         }
 
@@ -165,7 +168,7 @@ namespace Nom.Orch.Services
             var comment = new RecipeCommentEntity
             {
                 RecipeId = model.RecipeId,
-                AuthorId = GetCurrentUserId(), // Use current user instead of model.AuthorId
+                AuthorId = GetCurrentPersonId() ?? 1, // Use current user instead of model.AuthorId
                 Comment = model.Comment,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
@@ -223,7 +226,7 @@ namespace Nom.Orch.Services
             var rating = new RecipeRatingEntity
             {
                 RecipeId = model.RecipeId,
-                RaterId = GetCurrentUserId(), // Use current user instead of model.AuthorId
+                RaterId = GetCurrentPersonId() ?? 1, // Use current user instead of model.AuthorId
                 Rating = model.Rating,
                 DateRated = DateTime.UtcNow
             };

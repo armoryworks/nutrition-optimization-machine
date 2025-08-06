@@ -7,7 +7,7 @@ namespace Nom.Data.Recipe
     public class ScrapingReportEntity : BaseEntity
     {
         [Required]
-        public long UserId { get; set; }
+        public string UserId { get; set; }
 
         [Required]
         [MaxLength(50)]

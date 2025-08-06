@@ -46,8 +46,8 @@ namespace Nom.Import.Services
                 var exportDirectory = Path.Combine(_importSettings.SourceDirectory, "exports");
                 Directory.CreateDirectory(exportDirectory);
 
-                var csvFilePath = Path.Combine(exportDirectory, $"ingredients_for_ai_enhancement_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-                
+                var csvFilePath = Path.Combine(exportDirectory, $"ingredients_for_ai_enhancement_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
+
                 _logger.LogInformation("Exporting ingredients to CSV: {FilePath}", csvFilePath);
 
                 // Query ingredients from database
@@ -66,11 +66,11 @@ namespace Nom.Import.Services
                 // Write to CSV
                 using var writer = new StreamWriter(csvFilePath);
                 using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-                
+
                 await csv.WriteRecordsAsync(ingredients, cancellationToken);
 
                 _logger.LogInformation("Successfully exported {Count} ingredients to CSV", ingredients.Count);
-                
+
                 return csvFilePath;
             }
             catch (Exception ex)
@@ -94,7 +94,7 @@ namespace Nom.Import.Services
                 Directory.CreateDirectory(exportDirectory);
 
                 var csvFilePath = Path.Combine(exportDirectory, $"sample_ingredients_for_ai_enhancement_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-                
+
                 _logger.LogInformation("Exporting sample ingredients to CSV: {FilePath}", csvFilePath);
 
                 // Query a sample of ingredients from database
@@ -114,11 +114,11 @@ namespace Nom.Import.Services
                 // Write to CSV
                 using var writer = new StreamWriter(csvFilePath);
                 using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-                
+
                 await csv.WriteRecordsAsync(ingredients, cancellationToken);
 
                 _logger.LogInformation("Successfully exported {Count} sample ingredients to CSV", ingredients.Count);
-                
+
                 return csvFilePath;
             }
             catch (Exception ex)
@@ -128,4 +128,4 @@ namespace Nom.Import.Services
             }
         }
     }
-} 
+}

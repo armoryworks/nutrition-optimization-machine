@@ -54,7 +54,7 @@ namespace Nom.Orch.Services
                     RecipeYield = scrapedData.Yield,
                     SourceUrl = url,
                     AuthorId = authorId,
-                    CurationStatusId = 1, // Default to pending
+                    CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                     Version = 1
                 };
 
@@ -117,7 +117,7 @@ namespace Nom.Orch.Services
                     Name = ocrData.Title,
                     Description = ocrData.Description,
                     AuthorId = authorId,
-                    CurationStatusId = 1, // Default to pending
+                    CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                     Version = 1,
                     IsOcrRecipe = true
                 };
@@ -153,7 +153,7 @@ namespace Nom.Orch.Services
                     Name = parsedData.Title,
                     Description = parsedData.Description,
                     AuthorId = authorId,
-                    CurationStatusId = 1, // Default to pending
+                    CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                     Version = 1
                 };
 
@@ -228,7 +228,7 @@ namespace Nom.Orch.Services
                         Name = recipeData.Title,
                         Description = recipeData.Description,
                         AuthorId = authorId,
-                        CurationStatusId = 1, // Default to pending
+                        CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
                         Version = 1
                     };
 

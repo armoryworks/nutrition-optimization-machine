@@ -1,6 +1,6 @@
 <nom-base-list
   [config]="listConfig"
-  [loading]="loading"
+  [isLoading]="isLoading"
   [error]="error">
 
   <!-- Search Form -->
@@ -18,7 +18,7 @@
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
-      <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading">
         <mat-icon>search</mat-icon>
         Search
       </button>
@@ -91,12 +91,12 @@
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <button mat-stroked-button (click)="loadPopularRecipes()" [disabled]="loading">
+      <button mat-stroked-button (click)="loadPopularRecipes()" [disabled]="isLoading">
         <mat-icon>trending_up</mat-icon>
         Popular Recipes
       </button>
 
-      <button mat-stroked-button (click)="loadRecentRecipes()" [disabled]="loading">
+      <button mat-stroked-button (click)="loadRecentRecipes()" [disabled]="isLoading">
         <mat-icon>schedule</mat-icon>
         Recent Recipes
       </button>
@@ -154,7 +154,7 @@
           </mat-card>
         }
       </div>
-    } @else if (!loading) {
+    } @else if (!isLoading) {
       <div class="no-results">
         <mat-icon>search_off</mat-icon>
         <p>No recipes found matching your criteria.</p>

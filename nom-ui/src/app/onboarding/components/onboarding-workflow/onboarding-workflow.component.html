@@ -55,13 +55,7 @@
       >
       </nom-onboarding-invitation-code>
       }
-      <!-- Step 2: Your Details -->
-      @else if (currentStep?.id === 'personDetails') {
-      <nom-person-edit
-        [person]="onboardingData.personDetails"
-        (formSubmitted)="onPersonDetailsSubmitted($event)"
-      ></nom-person-edit>
-      }
+
       <!-- Step 3: Additional Participants (Consolidated) -->
       @else if (currentStep?.id === 'additionalParticipants') {
       <nom-onboarding-additional-participants

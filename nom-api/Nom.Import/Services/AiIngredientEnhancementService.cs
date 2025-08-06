@@ -79,8 +79,8 @@ namespace Nom.Import.Services
         /// </summary>
         private async Task<string> ExtractIngredientsToCsvAsync(CancellationToken cancellationToken)
         {
-            var csvFilePath = Path.Combine(_tempDirectory, $"ingredients_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-            
+            var csvFilePath = Path.Combine(_tempDirectory, $"ingredients_{DateTime.Utc:yyyyMMdd_HHmmss}.csv");
+
             _logger.LogInformation("Extracting ingredients to CSV: {FilePath}", csvFilePath);
 
             // Query ingredients from database
@@ -99,7 +99,7 @@ namespace Nom.Import.Services
             // Write to CSV
             using var writer = new StreamWriter(csvFilePath);
             using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-            
+
             await csv.WriteRecordsAsync(ingredients, cancellationToken);
 
             _logger.LogInformation("Extracted {Count} ingredients to CSV", ingredients.Count);
@@ -118,7 +118,7 @@ namespace Nom.Import.Services
             // Read the CSV file
             using var reader = new StreamReader(csvFilePath);
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            
+
             var ingredients = csv.GetRecords<IngredientExportModel>().ToList();
 
             // Process in batches to avoid overwhelming the AI service
@@ -129,7 +129,7 @@ namespace Nom.Import.Services
                 var enhancedBatch = await ProcessBatchWithAiAsync(batch, cancellationToken);
                 enhancedData.AddRange(enhancedBatch);
 
-                _logger.LogInformation("Processed batch {BatchNumber}/{TotalBatches}", 
+                _logger.LogInformation("Processed batch {BatchNumber}/{TotalBatches}",
                     (i / batchSize) + 1, (ingredients.Count + batchSize - 1) / batchSize);
 
                 // Add delay between batches to respect rate limits
@@ -146,7 +146,7 @@ namespace Nom.Import.Services
         /// Processes a batch of ingredients with AI.
         /// </summary>
         private async Task<List<EnhancedIngredientModel>> ProcessBatchWithAiAsync(
-            List<IngredientExportModel> batch, 
+            List<IngredientExportModel> batch,
             CancellationToken cancellationToken)
         {
             var enhancedBatch = new List<EnhancedIngredientModel>();
@@ -180,13 +180,13 @@ namespace Nom.Import.Services
         /// Enhances a single ingredient using AI.
         /// </summary>
         private async Task<EnhancedIngredientModel> EnhanceSingleIngredientAsync(
-            IngredientExportModel ingredient, 
+            IngredientExportModel ingredient,
             CancellationToken cancellationToken)
         {
             var prompt = CreateEnhancementPrompt(ingredient);
-            
+
             var response = await _aiService.ProcessPromptAsync(prompt, cancellationToken);
-            
+
             return ParseAiResponse(ingredient.Id, ingredient.Name, response);
         }
 
@@ -199,12 +199,12 @@ namespace Nom.Import.Services
             {
                 var prompt = customPrompt ?? CreateEnhancementPrompt(ingredient);
                 var aiResponse = await _aiService.ProcessPromptAsync(prompt, CancellationToken.None);
-                
+
                 return ParseAiResponse(ingredient.Id, ingredient.Name, aiResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error enhancing ingredient {IngredientId}: {IngredientName}", 
+                _logger.LogError(ex, "Error enhancing ingredient {IngredientId}: {IngredientName}",
                     ingredient.Id, ingredient.Name);
                 return new EnhancedIngredientModel
                 {
@@ -270,7 +270,7 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
                 cleanResponse = cleanResponse.Trim();
 
                 var response = JsonSerializer.Deserialize<AiEnhancementResponse>(cleanResponse);
-                
+
                 return new EnhancedIngredientModel
                 {
                     Id = ingredientId,
@@ -291,7 +291,7 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
         /// Updates the database with enhanced ingredient data.
         /// </summary>
         private async Task UpdateDatabaseWithEnhancedDataAsync(
-            List<EnhancedIngredientModel> enhancedData, 
+            List<EnhancedIngredientModel> enhancedData,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Updating database with enhanced ingredient data...");
@@ -315,17 +315,17 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
                     }
 
                     // Update name if enabled and different
-                    if (_importSettings.AiEnhancement.UpdateNames && 
+                    if (_importSettings.AiEnhancement.UpdateNames &&
                         !string.Equals(ingredient.Name, enhanced.EnhancedName, StringComparison.OrdinalIgnoreCase))
                     {
                         ingredient.Name = enhanced.EnhancedName;
                         updatedCount++;
-                        _logger.LogDebug("Updated name for ingredient {Id}: {Original} -> {Enhanced}", 
+                        _logger.LogDebug("Updated name for ingredient {Id}: {Original} -> {Enhanced}",
                             ingredient.Id, enhanced.OriginalName, enhanced.EnhancedName);
                     }
 
                     // Update description if enabled and different
-                    if (_importSettings.AiEnhancement.UpdateDescriptions && 
+                    if (_importSettings.AiEnhancement.UpdateDescriptions &&
                         !string.Equals(ingredient.Description ?? "", enhanced.EnhancedDescription, StringComparison.OrdinalIgnoreCase))
                     {
                         ingredient.Description = enhanced.EnhancedDescription;
@@ -340,7 +340,7 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
                             continue;
 
                         // Check if alias already exists
-                        var existingAlias = ingredient.Aliases.FirstOrDefault(a => 
+                        var existingAlias = ingredient.Aliases.FirstOrDefault(a =>
                             string.Equals(a.AliasName, aliasName, StringComparison.OrdinalIgnoreCase));
 
                         if (existingAlias == null)
@@ -367,7 +367,7 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
             // Save changes to database
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Database update completed: {UpdatedCount} ingredients updated, {AliasCount} aliases added", 
+            _logger.LogInformation("Database update completed: {UpdatedCount} ingredients updated, {AliasCount} aliases added",
                 updatedCount, aliasCount);
         }
 
@@ -419,4 +419,4 @@ Respond with ONLY a JSON object containing enhancedName, enhancedDescription, an
     }
 
     #endregion
-} 
+}

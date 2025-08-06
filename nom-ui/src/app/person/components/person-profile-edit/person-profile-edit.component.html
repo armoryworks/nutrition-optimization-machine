@@ -1,0 +1,31 @@
+<nom-base-page [config]="pageConfig">
+  <nom-base-form [config]="formConfig" [form]="personForm" (formSubmitted)="onSubmit()" (formCancelled)="onCancel()">
+    <div class="nom-form__content">
+      @if (isInitialLoading) {
+      <div class="nom-loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p class="nom-loading-text">Loading your profile...</p>
+      </div>
+      } @else {
+      <mat-form-field appearance="outline" class="nom-form__field">
+        <mat-label>Your Name</mat-label>
+        <input matInput 
+               formControlName="name" 
+               placeholder="Enter your name"
+               class="nom-form__input"
+               required>
+        <mat-icon matPrefix>person</mat-icon>
+        @if (personForm.get('name')?.invalid && personForm.get('name')?.touched) {
+        <mat-error>
+          @if (personForm.get('name')?.errors?.['required']) {
+          Name is required.
+          } @else if (personForm.get('name')?.errors?.['minlength']) {
+          Name must be at least 2 characters long.
+          }
+        </mat-error>
+        }
+      </mat-form-field>
+      }
+    </div>
+  </nom-base-form>
+</nom-base-page> 

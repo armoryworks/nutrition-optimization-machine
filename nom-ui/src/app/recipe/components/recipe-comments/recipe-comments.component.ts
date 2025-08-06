@@ -1,63 +1,64 @@
-import { Component, Input, OnInit, OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatButtonModule } from "@angular/material/button";
-import { MatIconModule } from "@angular/material/icon";
-import { MatDividerModule } from "@angular/material/divider";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatSnackBar } from "@angular/material/snack-bar";
-import { Subject, takeUntil } from "rxjs";
-import { RecipeCommentModel, RecipeCommentCreateModel } from "../../models/recipe-comment.model";
-import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
-import { BaseListComponent, BaseListConfig } from "../../../common/components/base-list/base-list.component";
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeCommentModel, RecipeCommentCreateRequestModel, RecipeCommentResponseModel } from '../../models/recipe-comment.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: "nom-recipe-comments",
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatDividerModule,
-        MatChipsModule,
-        BaseListComponent,
-    ],
-    templateUrl: "./recipe-comments.component.html",
-    styleUrls: ["./recipe-comments.component.scss"],
+  selector: 'nom-recipe-comments',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-comments.component.html',
+  styleUrls: ['./recipe-comments.component.scss']
 })
-export class RecipeCommentsComponent implements OnInit, OnDestroy {
-    @Input() recipeId: number = 0;
+export class RecipeCommentsComponent implements OnInit {
+  comments: RecipeCommentResponseModel[] = [];
+  isLoading = false;
+  error: string | null = null;
+  commentForm: FormGroup;
+  isAddingComment = false;
 
-    comments: RecipeCommentModel[] = [];
-    commentForm = this.fb.group({
-        commentText: ["", [Validators.required, Validators.maxLength(2047)]],
-        title: ["", [Validators.maxLength(511)]],
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.commentForm = this.nonNullableFb.group({
+      title: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+      commentText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
     });
-
-    isLoading = false;
-    isSubmitting = false;
-    error: string | null = null;
-    private destroy$ = new Subject<void>();
-
-    listConfig: BaseListConfig = {
-        title: 'Recipe Comments',
-        subtitle: 'Share your thoughts and read what others have to say',
-        showSearch: false,
-        showFilters: false,
-        showPagination: false,
-        maxWidth: '800px'
-    };
-
-    constructor(
-        private fb: NonNullableFormBuilder,
-        private recipeAdvancedService: RecipeAdvancedService,
-        private snackBar: MatSnackBar
-    ) { }
+  }
 
     ngOnInit(): void {
         if (this.recipeId) {

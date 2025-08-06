@@ -1,65 +1,64 @@
-import { Component, Input, OnInit, OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatButtonModule } from "@angular/material/button";
-import { MatIconModule } from "@angular/material/icon";
-import { MatDividerModule } from "@angular/material/divider";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatSnackBar } from "@angular/material/snack-bar";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { Subject, takeUntil } from "rxjs";
-import { RecipeRatingModel, RecipeRatingCreateModel } from "../../models/recipe-rating.model";
-import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
-import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeRatingModel, RecipeRatingCreateRequestModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: "nom-recipe-rating",
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatDividerModule,
-        MatChipsModule,
-        MatTooltipModule,
-        BaseDetailComponent,
-    ],
-    templateUrl: "./recipe-rating.component.html",
-    styleUrls: ["./recipe-rating.component.scss"],
+  selector: 'nom-recipe-rating',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-rating.component.html',
+  styleUrls: ['./recipe-rating.component.scss']
 })
-export class RecipeRatingComponent implements OnInit, OnDestroy {
-    @Input() recipeId: number = 0;
+export class RecipeRatingComponent implements OnInit {
+  rating: RecipeRatingResponseModel | null = null;
+  isLoading = false;
+  error: string | null = null;
+  ratingForm: FormGroup;
+  isSubmittingRating = false;
 
-    userRating: RecipeRatingModel | null = null;
-    averageRating: number = 0;
-    totalRatings: number = 0;
-    ratingForm = this.fb.group({
-        rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
-        reviewText: ["", [Validators.maxLength(2047)]],
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.ratingForm = this.nonNullableFb.group({
+      rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
+      reviewText: ['', [Validators.maxLength(1000)]]
     });
-
-    isLoading = false;
-    isSubmitting = false;
-    error: string | null = null;
-    private destroy$ = new Subject<void>();
-
-    detailConfig: BaseDetailConfig = {
-        title: 'Recipe Rating',
-        subtitle: 'Rate this recipe and share your thoughts',
-        showBackButton: false,
-        maxWidth: '800px'
-    };
-
-    constructor(
-        private fb: NonNullableFormBuilder,
-        private recipeAdvancedService: RecipeAdvancedService,
-        private snackBar: MatSnackBar
-    ) { }
+  }
 
     ngOnInit(): void {
         if (this.recipeId) {

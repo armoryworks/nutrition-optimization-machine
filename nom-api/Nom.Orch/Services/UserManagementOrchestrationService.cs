@@ -1,17 +1,24 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http; // Added for DefaultHttpContext
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Nom.Data;
+using Nom.Data.Person;
+using Nom.Data.Plan;
+using Nom.Data.Reference;
 using Nom.Orch.Interfaces;
+using Nom.Orch.Models.Person;
+using Nom.Orch.Models.Privacy;
 using Nom.Orch.Models.UserManagement;
 using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Generic; // Added for List
-using System.Linq; // Added for Select, FirstOrDefault
-using Microsoft.EntityFrameworkCore; // Added for ToListAsync
-using Nom.Data;
-using Microsoft.IdentityModel.Tokens; // Added for JwtSecurityToken, SigningCredentials, JwtRegisteredClaimNames
-using System.IdentityModel.Tokens.Jwt; // Added for JwtSecurityTokenHandler
-using System.Text; // Added for Encoding
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
 
 namespace Nom.Orch.Services
 {
@@ -20,15 +27,21 @@ namespace Nom.Orch.Services
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<UserManagementOrchestrationService> _logger;
         private readonly ApplicationDbContext _context;
+        private readonly IPersonOrchestrationService _personOrchestrationService;
+        private readonly IConfiguration _configuration;
 
         public UserManagementOrchestrationService(
             UserManager<IdentityUser> userManager, 
             ILogger<UserManagementOrchestrationService> logger,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IPersonOrchestrationService personOrchestrationService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _logger = logger;
             _context = context;
+            _personOrchestrationService = personOrchestrationService;
+            _configuration = configuration;
         }
 
         public async Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request)
@@ -392,6 +405,46 @@ namespace Nom.Orch.Services
             if (!result.Succeeded)
             {
                 throw new Exception($"Failed to register user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+            // Create person entity if FullName is provided
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+            {
+                try
+                {
+                    // Temporarily set the user context for person creation
+                    var httpContext = new DefaultHttpContext();
+                    httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, user.Id)
+                    }));
+                    
+                    // Create a temporary service scope to handle the person creation
+                    // This is a workaround since we can't easily inject HttpContextAccessor here
+                    var personCreateModel = new PersonCreateModel
+                    {
+                        PersonName = request.FullName
+                    };
+                    
+                    // We'll need to handle this differently since we can't easily access the HttpContext here
+                    // For now, we'll create the person directly in the database
+                    var newPerson = new PersonEntity
+                    {
+                        Name = request.FullName,
+                        UserId = user.Id,
+                        CreatedByPersonId = 1L // System person
+                    };
+
+                    _context.Persons.Add(newPerson);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Created person {PersonId} for user {UserId} during registration", newPerson.Id, user.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to create person for user {UserId} during registration", user.Id);
+                    // Don't fail the registration if person creation fails
+                }
             }
 
             return await GetUserByIdAsync(user.Id);

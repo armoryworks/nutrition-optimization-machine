@@ -6,12 +6,12 @@ import {
   EventEmitter,
   ViewEncapsulation,
   OnDestroy,
+  OnChanges,
+  SimpleChanges,
 } from '@angular/core';
 import {
   FormGroup,
-  FormControl,
   Validators,
-  ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -28,7 +28,6 @@ import { Subject } from 'rxjs';
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -39,12 +38,12 @@ import { Subject } from 'rxjs';
   styleUrls: ['./person-edit.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PersonEditComponent implements OnInit, OnDestroy {
+export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
   @Input() person: PersonModel | null = null;
   @Output() formSubmitted = new EventEmitter<PersonModel>();
   @Output() skipStep = new EventEmitter<void>();
 
-  personForm!: FormGroup;
+  personForm: FormGroup;
   isSubmitting = false;
   isLoading = false;
   error: string | null = null;
@@ -53,7 +52,7 @@ export class PersonEditComponent implements OnInit, OnDestroy {
     title: 'Edit Person',
     subtitle: 'Update your personal information',
     showBackButton: true,
-    maxWidth: '600px'
+    maxWidth: '600px',
   };
 
   formConfig: BaseFormConfig = {
@@ -62,19 +61,35 @@ export class PersonEditComponent implements OnInit, OnDestroy {
     submitText: 'Save Changes',
     showCancelButton: true,
     cancelText: 'Cancel',
-    maxWidth: '100%'
+    maxWidth: '100%',
   };
 
   private destroy$ = new Subject<void>();
 
-  constructor(private fb: NonNullableFormBuilder) { }
+  constructor(private fb: NonNullableFormBuilder) {
+    // Always initialize the form group with default/empty values
+    this.personForm = this.fb.group({
+      name: ['', [Validators.required]],
+      // Add other fields as needed
+    });
+  }
 
   ngOnInit(): void {
-    this.personForm = this.fb.group({
-      name: [this.person?.name || '', [Validators.required]],
-      // Add other fields as per your PersonModel and FR-1.2
-      // e.g., gender: [this.person?.gender || '', [Validators.required]],
-    });
+    if (this.person) {
+      this.personForm.patchValue({
+        name: this.person.name || '',
+        // Add other fields as needed
+      });
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['person'] && this.person) {
+      this.personForm.patchValue({
+        name: this.person.name || '',
+        // Add other fields as needed
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -102,7 +117,7 @@ export class PersonEditComponent implements OnInit, OnDestroy {
   }
 
   onCancel(): void {
-    this.skipStep.emit();
+    // Handle cancel action if needed
   }
 
   onSkip(): void {
@@ -110,11 +125,11 @@ export class PersonEditComponent implements OnInit, OnDestroy {
   }
 
   onBack(): void {
-    this.skipStep.emit();
+    // Handle back navigation if needed
   }
 
   onRefresh(): void {
-    // Reload person data if needed
+    // Reload data if needed
   }
 
   onRetry(): void {

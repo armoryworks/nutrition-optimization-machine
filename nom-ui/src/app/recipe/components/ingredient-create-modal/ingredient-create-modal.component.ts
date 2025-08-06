@@ -1,24 +1,27 @@
 // File: nom-ui/src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.ts
 
-import { Component, EventEmitter, Input, OnInit, Output, Inject } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
 import { RecipeService } from '../../services/recipe.service';
-import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
-import { Observable, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, take } from 'rxjs/operators';
+import { IngredientModel } from '../../models/ingredient.model';
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 export interface IngredientCreateModalData {
-    ingredientName?: string;
     recipeId?: number;
+    ingredientName?: string;
 }
 
 @Component({
@@ -28,13 +31,14 @@ export interface IngredientCreateModalData {
         CommonModule,
         ReactiveFormsModule,
         MatDialogModule,
-        MatProgressSpinnerModule,
-        MatIconModule,
-        MatButtonModule,
+        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
         MatSelectModule,
-        BaseFormComponent
+        BaseFormComponent,
     ],
     templateUrl: './ingredient-create-modal.component.html',
     styleUrls: ['./ingredient-create-modal.component.scss']
@@ -43,12 +47,14 @@ export class IngredientCreateModalComponent implements OnInit {
     ingredientForm: FormGroup;
     isLoading = false;
     isSubmitting = false;
-    existingIngredient: IngredientSearchResponseModel | null = null;
     isCheckingDuplicate = false;
+    existingIngredient: IngredientModel | null = null;
+    measurementTypes: ReferenceItemModel[] = [];
+    private fb: NonNullableFormBuilder;
 
     formConfig: BaseFormConfig = {
-        title: 'Create New Ingredient',
-        subtitle: 'Define the core properties and nutritional information for this ingredient.',
+        title: 'Create Ingredient',
+        subtitle: 'Add a new ingredient to the database',
         submitText: 'Create Ingredient',
         showCancelButton: true,
         cancelText: 'Cancel',
@@ -56,19 +62,18 @@ export class IngredientCreateModalComponent implements OnInit {
     };
 
     constructor(
-        private fb: FormBuilder,
-        private dialogRef: MatDialogRef<IngredientCreateModalComponent>,
+        private nonNullableFb: NonNullableFormBuilder,
         private recipeService: RecipeService,
-        @Inject(MAT_DIALOG_DATA) public data: IngredientCreateModalData
+        private dialogRef: MatDialogRef<IngredientCreateModalComponent>,
+        @Inject(MAT_DIALOG_DATA) public data: IngredientCreateModalData,
+        private snackBar: MatSnackBar
     ) {
-        this.ingredientForm = this.fb.group({
-            name: ['', [Validators.required, Validators.maxLength(2047)]],
-            description: ['', [Validators.maxLength(4095)]],
-            nutrients: this.fb.array([])
+        this.fb = this.nonNullableFb;
+        this.ingredientForm = this.nonNullableFb.group({
+            name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+            description: ['', [Validators.maxLength(2047)]],
+            nutrients: this.nonNullableFb.array([])
         });
-
-        // Set up duplicate checking
-        this.setupDuplicateChecking();
     }
 
     ngOnInit(): void {
@@ -78,6 +83,9 @@ export class IngredientCreateModalComponent implements OnInit {
                 name: this.data.ingredientName
             });
         }
+
+        // Setup duplicate checking
+        this.setupDuplicateChecking();
     }
 
     private setupDuplicateChecking(): void {

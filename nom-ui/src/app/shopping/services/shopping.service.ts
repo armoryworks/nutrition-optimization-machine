@@ -10,12 +10,14 @@ import {
     ShoppingListItemResponseModel,
 } from "../models/shopping.model";
 import { ShoppingListUpdateRequest } from "../models/shopping-list-update-request.model";
+import { ShoppingListCategory, ShoppingListCategoryCreate } from "../models/shopping-list-category.model";
 
 @Injectable({
     providedIn: "root",
 })
 export class ShoppingService {
     private readonly apiUrl = "/api/ShoppingList";
+    private readonly categoryApiUrl = "/api/ShoppingListCategory";
 
     constructor(private http: HttpClient) { }
 
@@ -62,5 +64,22 @@ export class ShoppingService {
 
     deleteShoppingListItem(shoppingListId: number, itemId: number): Observable<any> {
         return this.deleteItem(itemId);
+    }
+
+    // Category management methods
+    getCategories(): Observable<ShoppingListCategory[]> {
+        return this.http.get<ShoppingListCategory[]>(`${this.categoryApiUrl}`);
+    }
+
+    createCategory(request: ShoppingListCategoryCreate): Observable<ShoppingListCategory> {
+        return this.http.post<ShoppingListCategory>(`${this.categoryApiUrl}`, request);
+    }
+
+    updateCategory(id: number, request: ShoppingListCategoryCreate): Observable<ShoppingListCategory> {
+        return this.http.put<ShoppingListCategory>(`${this.categoryApiUrl}/${id}`, request);
+    }
+
+    deleteCategory(id: number): Observable<any> {
+        return this.http.delete(`${this.categoryApiUrl}/${id}`);
     }
 } 

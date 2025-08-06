@@ -39,7 +39,7 @@ export class AuthService {
     };
 
     return this.httpClient
-      .post<void>(`${this.apiUrl}/register`, apiPayload)
+      .post<void>(`${this.apiUrl}/register-custom`, apiPayload)
       .pipe(catchError(this.handleError));
   }
 

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -59,13 +59,13 @@ export class MealPlanCreateComponent implements OnInit {
   };
 
   constructor(
-    private formBuilder: FormBuilder,
+    private nonNullableFb: NonNullableFormBuilder,
     private mealPlanService: MealPlanService,
     private router: Router,
     private snackBar: MatSnackBar,
     private userInfoService: UserInfoService
   ) {
-    this.mealPlanForm = this.formBuilder.group({
+    this.mealPlanForm = this.nonNullableFb.group({
       RecipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       MealType: ['dinner', [Validators.required]],
       Date: [new Date(), [Validators.required]],

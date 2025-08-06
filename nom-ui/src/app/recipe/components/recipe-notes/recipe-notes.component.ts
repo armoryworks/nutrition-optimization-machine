@@ -1,68 +1,64 @@
-import { Component, Input, OnInit, OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatButtonModule } from "@angular/material/button";
-import { MatIconModule } from "@angular/material/icon";
-import { MatDividerModule } from "@angular/material/divider";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatSnackBar } from "@angular/material/snack-bar";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { MatCheckboxModule } from "@angular/material/checkbox";
-import { Subject, takeUntil } from "rxjs";
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 
-import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
-import { RecipeNoteModel, RecipeNoteCreateModel } from "../../models/recipe-note.model";
-import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeNoteModel, RecipeNoteCreateRequestModel, RecipeNoteResponseModel } from '../../models/recipe-note.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: "nom-recipe-notes",
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatDividerModule,
-        MatChipsModule,
-        MatTooltipModule,
-        MatCheckboxModule,
-        BaseDetailComponent,
-    ],
-    templateUrl: "./recipe-notes.component.html",
-    styleUrls: ["./recipe-notes.component.scss"],
+  selector: 'nom-recipe-notes',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-notes.component.html',
+  styleUrls: ['./recipe-notes.component.scss']
 })
-export class RecipeNotesComponent implements OnInit, OnDestroy {
-    @Input() recipeId: number = 0;
+export class RecipeNotesComponent implements OnInit {
+  notes: RecipeNoteResponseModel[] = [];
+  isLoading = false;
+  error: string | null = null;
+  noteForm: FormGroup;
+  isAddingNote = false;
 
-    notes: RecipeNoteModel[] = [];
-    noteForm = this.fb.group({
-        noteTitle: ["", [Validators.required, Validators.maxLength(511)]],
-        noteText: ["", [Validators.maxLength(2047)]],
-        isPublic: [false],
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.noteForm = this.nonNullableFb.group({
+      noteTitle: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+      noteText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
     });
-
-    isLoading = false;
-    isSubmitting = false;
-    editingNoteId: number | null = null;
-    error: string | null = null;
-    private destroy$ = new Subject<void>();
-
-    detailConfig: BaseDetailConfig = {
-        title: 'Recipe Notes',
-        subtitle: 'Add personal notes and observations about this recipe',
-        showBackButton: false,
-        maxWidth: '800px'
-    };
-
-    constructor(
-        private fb: NonNullableFormBuilder,
-        private recipeAdvancedService: RecipeAdvancedService,
-        private snackBar: MatSnackBar
-    ) { }
+  }
 
     ngOnInit(): void {
         if (this.recipeId) {

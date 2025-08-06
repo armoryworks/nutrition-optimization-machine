@@ -2,7 +2,8 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,6 +22,21 @@ import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
 import { CurationDecisionRequestModel } from '../../models/curation-decision-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
+// Using inline interfaces instead of missing models
+interface CurationFeedbackModel {
+  id?: number;
+  feedback: string;
+  rating?: number;
+}
+interface CurationFeedbackCreateRequestModel {
+  feedback: string;
+  rating?: number;
+}
+interface CurationFeedbackResponseModel extends CurationFeedbackModel {
+  id: number;
+  createdAt: Date;
+}
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'nom-curation-queue',
@@ -79,11 +95,11 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private fb: FormBuilder
+    private fb: NonNullableFormBuilder
   ) {
     this.decisionForm = this.fb.group({
-      decisionNotes: ['', [[Validators.required, Validators.minLength(10)]]],
-      publicNotes: ['', [[Validators.maxLength(500)]]]
+      decisionNotes: ['', [Validators.required, Validators.minLength(10)]],
+      publicNotes: ['', [Validators.maxLength(500)]]
     });
   }
 

@@ -45,7 +45,7 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
+  loginForm: FormGroup;
   isLoading = false;
 
   constructor(
@@ -53,14 +53,16 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private authManager: AuthManagerService,
     private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
-  ) { }
-
-  ngOnInit(): void {
+  ) {
     this.loginForm = this.nonNullableFb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
       rememberMe: [false],
     });
+  }
+
+  ngOnInit(): void {
+    // Component initialization - no form initialization needed here
   }
 
   /**

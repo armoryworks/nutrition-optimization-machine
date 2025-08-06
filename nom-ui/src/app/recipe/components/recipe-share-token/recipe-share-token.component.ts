@@ -1,66 +1,66 @@
-import { Component, Input, OnInit, OnDestroy } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatButtonModule } from "@angular/material/button";
-import { MatIconModule } from "@angular/material/icon";
-import { MatDividerModule } from "@angular/material/divider";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatSnackBar } from "@angular/material/snack-bar";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { MatSelectModule } from "@angular/material/select";
-import { Subject, takeUntil } from "rxjs";
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 
-import { RecipeAdvancedService } from "../../services/recipe-advanced.service";
-import { RecipeShareTokenModel, RecipeShareTokenCreateModel } from "../../models/recipe-share-token.model";
-import { BaseDetailComponent, BaseDetailConfig } from "../../../common/components/base-detail/base-detail.component";
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeShareTokenModel, RecipeShareTokenCreateRequestModel, RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: "nom-recipe-share-token",
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatDividerModule,
-        MatChipsModule,
-        MatTooltipModule,
-        MatSelectModule,
-        BaseDetailComponent,
-    ],
-    templateUrl: "./recipe-share-token.component.html",
-    styleUrls: ["./recipe-share-token.component.scss"],
+  selector: 'nom-recipe-share-token',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatSelectModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-share-token.component.html',
+  styleUrls: ['./recipe-share-token.component.scss']
 })
-export class RecipeShareTokenComponent implements OnInit, OnDestroy {
-    @Input() recipeId: number = 0;
+export class RecipeShareTokenComponent implements OnInit {
+  shareTokens: RecipeShareTokenResponseModel[] = [];
+  isLoading = false;
+  error: string | null = null;
+  shareTokenForm: FormGroup;
+  isAddingShareToken = false;
 
-    shareTokens: RecipeShareTokenModel[] = [];
-    shareTokenForm = this.fb.group({
-        shareName: ["", [Validators.maxLength(511)]],
-        isPublic: [false],
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.shareTokenForm = this.nonNullableFb.group({
+      shareName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      isPublic: [false, [Validators.required]]
     });
-
-    isLoading = false;
-    isSubmitting = false;
-    error: string | null = null;
-    private destroy$ = new Subject<void>();
-
-    detailConfig: BaseDetailConfig = {
-        title: 'Share Recipe',
-        subtitle: 'Create share tokens to allow others to view this recipe',
-        showBackButton: false,
-        maxWidth: '800px'
-    };
-
-    constructor(
-        private fb: NonNullableFormBuilder,
-        private recipeAdvancedService: RecipeAdvancedService,
-        private snackBar: MatSnackBar
-    ) { }
+  }
 
     ngOnInit(): void {
         if (this.recipeId) {

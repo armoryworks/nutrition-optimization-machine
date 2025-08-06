@@ -1,17 +1,40 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
 import { OnboardingCompleteRequestModel } from '../../onboarding/models/onboarding-complete-request.model';
 import { ApiResponseCommonModel } from '../../common/models/api-response-common.model';
 import { PersonCreateModel } from '../models/person-create.model';
 import { PersonCreateResponseModel } from '../models/person-create-response.model';
+import { PersonModel } from '../models/person.model';
+
 @Injectable({
   providedIn: 'root',
 })
 export class PersonService {
   private readonly apiUrl = '/api/Person';
+  private readonly userInfoUrl = '/api/UserInfo';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
+
+  /**
+   * Gets the current person details for the authenticated user.
+   * This is used during onboarding to get the person created during registration.
+   */
+  getCurrentPerson(): Observable<PersonModel | null> {
+    return this.http.get<any>(`${this.userInfoUrl}/current`).pipe(
+      tap(response => console.log('Current user info response:', response)),
+      map(response => {
+        if (response.status === 'Complete' && response.personId) {
+          // Return a PersonModel with the person ID and name
+          return new PersonModel({
+            id: response.personId,
+            name: response.userName || response.email || 'Unknown'
+          });
+        }
+        return null;
+      })
+    );
+  }
 
   /**
    * Creates a new person record or updates an existing one for the authenticated user.

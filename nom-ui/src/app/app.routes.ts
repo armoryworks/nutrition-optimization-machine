@@ -12,6 +12,7 @@ import { HomeComponent } from './home/home.component';
 import { OnboardingWorkflowComponent } from './onboarding/components/onboarding-workflow/onboarding-workflow.component';
 import { PrivacySettingsComponent } from './user/components/privacy-settings/privacy-settings.component';
 import { IngredientSearchComponent } from './recipe/components/ingredient-search/ingredient-search.component';
+import { PersonProfileEditComponent } from './person/components/person-profile-edit/person-profile-edit.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -24,6 +25,7 @@ export const routes: Routes = [
   { path: 'send-confirmation', component: SendConfirmationEmailComponent },
   { path: 'update-info', component: UpdateInfoComponent, canActivate: [AuthGuard] },
   { path: 'update-two-factor', component: UpdateTwoFactorComponent, canActivate: [AuthGuard] },
+  { path: 'edit-profile', component: PersonProfileEditComponent, canActivate: [AuthGuard] },
   {
     path: 'onboarding',
     redirectTo: 'onboarding/invitationCode',

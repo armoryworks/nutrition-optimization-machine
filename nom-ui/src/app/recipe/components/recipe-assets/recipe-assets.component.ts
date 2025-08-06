@@ -1,92 +1,67 @@
-import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
-import { MatListItemModule } from '@angular/material/list-item';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
-import { RecipeAssetsService } from '../../services/recipe-assets.service';
-import { RecipeAssetModel } from '../../models/i-recipe-asset.model';
-import { Inject } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeAssetModel, RecipeAssetCreateRequestModel, RecipeAssetResponseModel } from '../../models/recipe-asset.model';
+import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-    selector: 'nom-recipe-assets',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSelectModule,
-        MatDialogModule,
-        MatSnackBarModule,
-        MatProgressSpinnerModule,
-        MatTooltipModule,
-        MatChipsModule,
-        MatDividerModule,
-        MatListModule,
-        MatListItemModule,
-        BasePageComponent
-    ],
-    templateUrl: './recipe-assets.component.html',
-    styleUrls: ['./recipe-assets.component.scss']
+  selector: 'nom-recipe-assets',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatSelectModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+  ],
+  templateUrl: './recipe-assets.component.html',
+  styleUrls: ['./recipe-assets.component.scss']
 })
 export class RecipeAssetsComponent implements OnInit {
-    @Input() recipeId: number = 0;
-    @Input() isEditMode: boolean = false;
-    @Output() assetsChanged = new EventEmitter<RecipeAssetModel[]>();
+  assets: RecipeAssetResponseModel[] = [];
+  isLoading = false;
+  error: string | null = null;
+  assetForm: FormGroup;
+  isAddingAsset = false;
 
-    assets: RecipeAssetModel[] = [];
-    isLoading = false;
-    isSubmitting = false;
-    error: string | null = null;
-    selectedFile: File | null = null;
-    assetForm: FormGroup;
-
-    listConfig: BasePageConfig = {
-        title: 'Recipe Assets',
-        subtitle: 'Manage recipe files and attachments',
-        showSearch: false,
-        showRefreshButton: true,
-        refreshButtonText: 'Refresh',
-        maxWidth: 'none'
-    };
-
-    iconOptions = [
-        { value: 'file', label: 'File', icon: 'description' },
-        { value: 'pdf', label: 'PDF', icon: 'picture_as_pdf' },
-        { value: 'image', label: 'Image', icon: 'image' },
-        { value: 'code', label: 'Code', icon: 'code' },
-        { value: 'recipe', label: 'Recipe', icon: 'restaurant' }
-    ];
-
-    constructor(
-        private recipeAssetsService: RecipeAssetsService,
-        private formBuilder: FormBuilder,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) {
-        this.assetForm = this.formBuilder.group({
-            name: ['', [Validators.required, Validators.maxLength(100)]],
-            icon: ['file', [Validators.required]],
-            description: ['', [Validators.maxLength(500)]]
-        });
-    }
+  constructor(
+    private recipeService: RecipeService,
+    private router: Router,
+    private nonNullableFb: NonNullableFormBuilder,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {
+    this.assetForm = this.nonNullableFb.group({
+      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      icon: ['', [Validators.required]],
+      description: ['', [Validators.maxLength(500)]]
+    });
+  }
 
     ngOnInit(): void {
         if (this.recipeId) {

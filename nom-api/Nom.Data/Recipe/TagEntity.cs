@@ -23,7 +23,7 @@ namespace Nom.Data.Recipe
         public string? Color { get; set; } // Hex color code
         public string? Icon { get; set; } // Icon identifier
 
-        public long CurationStatusId { get; set; } = 1; // Default status
+        public long CurationStatusId { get; set; } = 9000L; // Default to NonCurated
 
         // Navigation properties
         public virtual ICollection<RecipeTagEntity> RecipeTags { get; set; } = new List<RecipeTagEntity>();

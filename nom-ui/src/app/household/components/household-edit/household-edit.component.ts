@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -48,13 +48,13 @@ export class HouseholdEditComponent implements OnInit {
     };
 
     constructor(
-        private formBuilder: FormBuilder,
+        private nonNullableFb: NonNullableFormBuilder,
         private householdService: HouseholdService,
         private route: ActivatedRoute,
         private router: Router,
         private snackBar: MatSnackBar
     ) {
-        this.householdForm = this.formBuilder.group({
+        this.householdForm = this.nonNullableFb.group({
             Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
             Description: ['', [Validators.maxLength(500)]]
         });

@@ -1,28 +1,53 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { RecipeScrapingService, RecipeScrapingRequest, ScrapedRecipe } from '../../services/recipe-scraping.service';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeScrapingModel, RecipeScrapingRequestModel, RecipeScrapingResponseModel } from '../../models/recipe-scraping.model';
 
 @Component({
     selector: 'nom-recipe-scraping',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatCheckboxModule,
+    ],
     templateUrl: './recipe-scraping.component.html',
     styleUrls: ['./recipe-scraping.component.scss']
 })
 export class RecipeScrapingComponent implements OnInit {
     scrapingForm: FormGroup;
     isLoading = false;
+    isScraping = false;
     error: string | null = null;
-    scrapedRecipe: ScrapedRecipe | null = null;
+    scrapedRecipe: RecipeScrapingModel | null = null;
     showPreview = false;
 
     constructor(
-        private formBuilder: FormBuilder,
-        private recipeScrapingService: RecipeScrapingService,
-        private router: Router
+        private recipeService: RecipeService,
+        private router: Router,
+        private nonNullableFb: NonNullableFormBuilder,
+        private snackBar: MatSnackBar
     ) {
-        this.scrapingForm = this.formBuilder.group({
+        this.scrapingForm = this.nonNullableFb.group({
             url: ['', [Validators.required, Validators.pattern('https?://.+')]],
-            importKeywordsAsTags: [false],
+            importKeywordsAsTags: [true],
             stayInEditMode: [false]
         });
     }
@@ -49,7 +74,7 @@ export class RecipeScrapingComponent implements OnInit {
                 useOpenAI: false
             };
 
-            this.scrapedRecipe = await this.recipeScrapingService.testScrapeRecipe(request).toPromise();
+            this.scrapedRecipe = await this.recipeService.testScrapeRecipe(request).toPromise();
             this.showPreview = true;
         } catch (error: any) {
             this.error = error.error?.message || 'Failed to test scrape recipe';
@@ -71,13 +96,13 @@ export class RecipeScrapingComponent implements OnInit {
         this.error = null;
 
         try {
-            const request: RecipeScrapingRequest = {
+            const request: RecipeScrapingRequestModel = {
                 url: this.scrapingForm.get('url')?.value,
                 importKeywordsAsTags: this.scrapingForm.get('importKeywordsAsTags')?.value,
                 stayInEditMode: this.scrapingForm.get('stayInEditMode')?.value
             };
 
-            const response = await this.recipeScrapingService.scrapeRecipeFromUrl(request).toPromise();
+            const response = await this.recipeService.scrapeRecipeFromUrl(request).toPromise();
 
             if (response.success) {
                 // Navigate to the created recipe

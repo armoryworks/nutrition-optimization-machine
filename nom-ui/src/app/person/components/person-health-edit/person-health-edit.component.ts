@@ -88,7 +88,10 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   constructor(
     private fb: NonNullableFormBuilder,
     private referenceService: ReferenceService
-  ) { }
+  ) {
+    // Initialize the form with empty controls to prevent formControlName errors
+    this.healthAttributesForm = this.fb.group({});
+  }
 
   ngOnInit(): void {
     this.loadAttributeTypes();

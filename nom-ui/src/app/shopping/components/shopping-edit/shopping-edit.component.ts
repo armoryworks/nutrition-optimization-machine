@@ -1,6 +1,6 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -49,13 +49,13 @@ export class ShoppingEditComponent implements OnInit {
   };
 
   constructor(
-    private formBuilder: FormBuilder,
+    private nonNullableFb: NonNullableFormBuilder,
     private shoppingService: ShoppingService,
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar
   ) {
-    this.shoppingForm = this.formBuilder.group({
+    this.shoppingForm = this.nonNullableFb.group({
       Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]]
     });

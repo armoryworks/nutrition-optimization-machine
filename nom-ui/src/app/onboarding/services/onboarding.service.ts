@@ -25,13 +25,6 @@ export class OnboardingService {
       dataProperty: 'planInvitationCode',
     },
     {
-      id: 'personDetails',
-      title: 'Your Details',
-      component: 'nom-person-edit',
-      required: true,
-      dataProperty: 'personDetails',
-    },
-    {
       id: 'additionalParticipants',
       title: 'Additional Participants',
       component: 'nom-onboarding-additional-participants',

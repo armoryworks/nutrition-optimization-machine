@@ -8,6 +8,7 @@ using Nom.Orch.Models.Shopping;
 using Nom.Data.Recipe;
 using Nom.Data.Plan;
 using Nom.Data.Shopping;
+using System.Security.Claims;
 
 namespace Nom.Orch.Services
 {
@@ -370,8 +371,6 @@ namespace Nom.Orch.Services
                     Categories = { "Produce", "Dairy", "Meat", "Pantry" },
                     Tags = { "weekly", "essentials" },
                     IsPublic = true,
-                    CreatedByUserId = 1,
-                    CreatedDate = DateTime.UtcNow,
                     UsageCount = 0
                 });
 
@@ -383,8 +382,6 @@ namespace Nom.Orch.Services
                     Categories = { "Produce", "Dairy", "Grains", "Legumes" },
                     Tags = { "vegetarian", "healthy" },
                     IsPublic = true,
-                    CreatedByUserId = 1,
-                    CreatedDate = DateTime.UtcNow,
                     UsageCount = 0
                 });
 
@@ -415,19 +412,15 @@ namespace Nom.Orch.Services
                     Categories = string.Join(",", request.Categories),
                     Tags = string.Join(",", request.Tags),
                     IsPublic = request.IsPublic,
-                    CreatedByUserId = currentUserId,
-                    CreatedDate = DateTime.UtcNow,
                     UsageCount = 0
                 };
 
                 // In a real implementation, this would save to the actual template table
                 await _dbContext.Database.ExecuteSqlRawAsync(
                     $"INSERT INTO shopping_list_templates (id, name, description, categories, tags, is_public, created_by_user_id, created_date, usage_count) " +
-                    $"VALUES ({template.Id}, '{template.Name}', '{template.Description}', '{template.Categories}', '{template.Tags}', {template.IsPublic}, {template.CreatedByUserId}, '{template.CreatedDate:yyyy-MM-dd HH:mm:ss}', {template.UsageCount})");
+                    $"VALUES ({template.Id}, '{template.Name}', '{template.Description}', '{template.Categories}', '{template.Tags}', {template.IsPublic}, {GetCurrentUserId}, '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}', {template.UsageCount})");
 
                 request.Id = template.Id;
-                request.CreatedDate = template.CreatedDate;
-                request.CreatedByUserId = currentUserId;
 
                 return request;
             }
@@ -1343,16 +1336,24 @@ Return the response in JSON format.
             return suggestions;
         }
 
-        private long GetCurrentUserId()
+        private string GetCurrentUserId()
         {
-            // Implementation to get current user ID from context
-            return 1; // Default for now
+            var userId = _httpContextAccessor.HttpContext?.User?.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+            return userId;
         }
 
-        private long GetCurrentPersonId()
+        private long? GetCurrentPersonId()
         {
-            // Implementation to get current person ID from context
-            return 1; // Default for now
+            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            if (long.TryParse(personIdClaim, out long personId))
+            {
+                return personId;
+            }
+            return null;
         }
 
         #endregion
