@@ -160,6 +160,23 @@ builder.Services.AddHttpClient<Nom.Orch.UtilityServices.WebScrapingService>();
 
 builder.Services.AddOrchestrationServices();
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("Database", tags: new[] { "ready" })
+    .AddCheck("Application", () => 
+    {
+        // Simple application health check
+        return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Application is running");
+    }, tags: new[] { "live" });
+
+// Optionally add Redis health check if Redis connection string is configured
+var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection");
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    builder.Services.AddHealthChecks()
+        .AddRedis(redisConnectionString, "Redis", tags: new[] { "ready" });
+}
+
 var app = builder.Build();
 
 // --- Configure the HTTP request pipeline. ---
@@ -175,6 +192,7 @@ app.UseRouting();
 app.UseCors(corsPolicyName);
 
 // Add security middleware in order
+app.UseSecurityHeaders(); // Add security headers first
 app.UseMiddleware<AuditLoggingMiddleware>();
 // app.UseMiddleware<InputValidationMiddleware>(); // Temporarily disabled for testing
 app.UseMiddleware<RateLimitingMiddleware>();
@@ -269,5 +287,27 @@ app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager)
 
 // Your API controllers will use JWT Bearer authentication via explicit attributes.
 app.MapControllers();
+
+// Map health check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds
+            })
+        };
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+    }
+});
 
 app.Run();
