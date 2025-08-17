@@ -23,7 +23,7 @@ describe('RegistrationComponent', () => {
     beforeEach(async () => {
         const authServiceSpy = jasmine.createSpyObj('AuthService', ['register', 'login']);
         const authManagerServiceSpy = jasmine.createSpyObj('AuthManagerService', ['login'], {
-            rememberMe: false
+            rememberMe: true
         });
         const notificationServiceSpy = jasmine.createSpyObj('NotificationService', ['success', 'error', 'warning']);
 
