@@ -1,0 +1,51 @@
+name: Test Backend (.NET)
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["nom-api/**"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["nom-api/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nom_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore nom-api/nom-api.sln
+
+      - name: Build
+        run: dotnet build nom-api/nom-api.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test nom-api/nom-api.sln --no-build --verbosity normal --configuration Release --collect:"XPlat Code Coverage"
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./nom-api/**/coverage.cobertura.xml
+          flags: backend
+          name: backend-coverage

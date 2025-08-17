@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  # NOM Backend API
+  nom-api:
+    container_name: nom_api
+    build:
+      context: ./nom-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      - ConnectionStrings__NomConnection=Host=postgres;Database=nom;Username=nom;Password=${POSTGRES_PASSWORD}
+      - JWT__SecretKey=${JWT_SECRET_KEY}
+      - JWT__Issuer=NOMApi
+      - JWT__Audience=NOMAngular
+      - JWT__ExpirationMinutes=1440
+      - AllowedOrigins=${ALLOWED_ORIGINS}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nom-network
+    volumes:
+      - nom_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # NOM Frontend
+  nom-ui:
+    container_name: nom_ui
+    build:
+      context: ./nom-ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${UI_PORT:-80}:80"
+    depends_on:
+      - nom-api
+    networks:
+      - nom-network
+
+  # PostgreSQL Database
+  postgres:
+    container_name: nom_postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nom}
+      POSTGRES_USER: ${POSTGRES_USER:-nom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nom-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nom} -d ${POSTGRES_DB:-nom}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (for session management)
+  redis:
+    container_name: nom_redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - nom-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  nom_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  nom-network:
+    driver: bridge

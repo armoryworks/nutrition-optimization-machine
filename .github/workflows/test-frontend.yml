@@ -1,0 +1,48 @@
+name: Test Frontend (Angular)
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["nom-ui/**"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["nom-ui/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: nom-ui/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd nom-ui
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd nom-ui
+          npm run lint
+
+      - name: Run unit tests
+        run: |
+          cd nom-ui
+          npm run test:ci
+
+      - name: Run E2E tests
+        run: |
+          cd nom-ui
+          npm run e2e:ci
+
+      - name: Build for production
+        run: |
+          cd nom-ui
+          npm run build -- --configuration production
