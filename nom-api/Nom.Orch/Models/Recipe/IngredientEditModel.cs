@@ -10,6 +10,7 @@ namespace Nom.Orch.Models.Recipe
         public required string Name { get; set; }
         public string? Description { get; set; }
         public long? AuthorId { get; set; }
+        public string? CurationStatus { get; set; }
         public List<NutrientValueModel> Nutrients { get; set; } = new List<NutrientValueModel>();
     }
 }

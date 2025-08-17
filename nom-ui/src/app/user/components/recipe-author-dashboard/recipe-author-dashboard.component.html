@@ -10,7 +10,7 @@
                     <mat-icon>add</mat-icon>
                     <span>Create Recipe</span>
                 </button>
-                <button mat-stroked-button routerLink="/recipes/ingredients/new" class="nom-dashboard__action-button">
+                <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__action-button">
                     <mat-icon>eco</mat-icon>
                     <span>Create Ingredient</span>
                 </button>
@@ -62,9 +62,9 @@
                     <div class="nom-dashboard__section-header">
                         <div class="nom-dashboard__section-title-group">
                             <h2 class="nom-dashboard__section-title">My Recipes</h2>
-                            <p class="nom-dashboard__section-subtitle">Your created recipes</p>
+                            <p class="nom-dashboard__section-subtitle">Your custom recipes</p>
                         </div>
-                        <button mat-stroked-button routerLink="/recipes/new" class="nom-dashboard__section-action">
+                        <button mat-stroked-button (click)="navigateToNewRecipe()" class="nom-dashboard__action-button">
                             <mat-icon>add</mat-icon>
                             <span>New Recipe</span>
                         </button>
@@ -146,7 +146,7 @@
                             <h2 class="nom-dashboard__section-title">My Ingredients</h2>
                             <p class="nom-dashboard__section-subtitle">Your custom ingredients</p>
                         </div>
-                        <button mat-stroked-button routerLink="/recipes/ingredients/new" class="nom-dashboard__section-action">
+                        <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__section-action">
                             <mat-icon>add</mat-icon>
                             <span>New Ingredient</span>
                         </button>
@@ -207,7 +207,7 @@
                             <mat-icon class="nom-dashboard__empty-icon">eco</mat-icon>
                             <h3>No ingredients yet</h3>
                             <p>Create custom ingredients to enhance your recipes</p>
-                            <button mat-raised-button routerLink="/recipes/ingredients/new" class="nom-dashboard__empty-action">
+                            <button mat-raised-button (click)="navigateToNewIngredient()" class="nom-dashboard__empty-action">
                                 <mat-icon>add</mat-icon>
                                 Create Your First Ingredient
                             </button>

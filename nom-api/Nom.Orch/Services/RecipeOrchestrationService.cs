@@ -59,6 +59,7 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
+                .Include(r => r.CurationStatus)
                 .ToListAsync();
 
             return recipes.Select(r => new RecipeResponseModel
@@ -72,7 +73,35 @@ namespace Nom.Orch.Services
                 CommentCount = r.Comments?.Count ?? 0,
                 RatingCount = r.Ratings?.Count ?? 0,
                 CreatedDate = r.CreatedDate,
-                ModifiedDate = r.LastModifiedDate
+                ModifiedDate = r.LastModifiedDate,
+                CurationStatus = r.CurationStatus?.Name ?? "Draft"
+            }).ToList();
+        }
+
+        public async Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId)
+        {
+            var recipes = await _context.Recipes
+                .Include(r => r.Author)
+                .Include(r => r.Comments)
+                .Include(r => r.Ratings)
+                .Include(r => r.CurationStatus)
+                .Where(r => r.AuthorId == personId)
+                .OrderBy(r => r.Name)
+                .ToListAsync();
+
+            return recipes.Select(r => new RecipeResponseModel
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description ?? string.Empty,
+                AuthorId = r.AuthorId,
+                AuthorName = r.Author?.Name ?? "Unknown",
+                Rating = r.Rating ?? 0,
+                CommentCount = r.Comments?.Count ?? 0,
+                RatingCount = r.Ratings?.Count ?? 0,
+                CreatedDate = r.CreatedDate,
+                ModifiedDate = r.LastModifiedDate,
+                CurationStatus = r.CurationStatus?.Name ?? "Draft"
             }).ToList();
         }
 
@@ -304,6 +333,7 @@ namespace Nom.Orch.Services
         public async Task<IngredientEditModel?> GetIngredientForEditAsync(long ingredientId)
         {
             var ingredient = await _context.Ingredients
+                .Include(i => i.CurationStatus)
                 .FirstOrDefaultAsync(i => i.Id == ingredientId);
 
             if (ingredient == null)
@@ -315,16 +345,24 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
+                CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
 
         public async Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model)
         {
+            var currentPersonId = GetCurrentPersonId();
+            
             var ingredient = new IngredientEntity
             {
                 Name = model.Name,
-                Description = model.Description
+                Description = model.Description,
+                FdcDataType = "Custom", // Set default FDC data type
+                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Set default curation status
+                CreatedDate = DateTime.UtcNow, // Set creation date
+                CreatedByPersonId = currentPersonId, // Set creator
+                AuthorId = currentPersonId // Set author
             };
 
             _context.Ingredients.Add(ingredient);
@@ -336,13 +374,16 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
+                CurationStatus = "NonCurated",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
         }
 
         public async Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model)
         {
-            var ingredient = await _context.Ingredients.FindAsync(model.Id);
+            var ingredient = await _context.Ingredients
+                .Include(i => i.CurationStatus)
+                .FirstOrDefaultAsync(i => i.Id == model.Id);
             if (ingredient == null)
                 throw new ArgumentException("Ingredient not found");
 
@@ -358,8 +399,34 @@ namespace Nom.Orch.Services
                 Name = ingredient.Name,
                 Description = ingredient.Description,
                 AuthorId = ingredient.CreatedByPersonId,
+                CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
+        }
+
+        public async Task<List<IngredientEditModel>> GetMyIngredientsAsync(long personId)
+        {
+            var ingredients = await _context.Ingredients
+                .Where(i => i.CreatedByPersonId == personId)
+                .Include(i => i.CurationStatus)
+                .OrderBy(i => i.Name)
+                .ToListAsync();
+
+            var result = new List<IngredientEditModel>();
+            foreach (var ingredient in ingredients)
+            {
+                result.Add(new IngredientEditModel
+                {
+                    Id = ingredient.Id,
+                    Name = ingredient.Name,
+                    Description = ingredient.Description,
+                    AuthorId = ingredient.CreatedByPersonId,
+                    CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
+                    Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
+                });
+            }
+
+            return result;
         }
     }
 }

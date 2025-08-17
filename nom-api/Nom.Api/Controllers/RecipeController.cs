@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using System;
 
 namespace Nom.Api.Controllers
 {
@@ -30,6 +31,30 @@ namespace Nom.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Failed to retrieve recipes", error = ex.Message });
+            }
+        }
+
+        [HttpGet("my")]
+        public async Task<ActionResult<List<RecipeResponseModel>>> GetMyRecipes()
+        {
+            try
+            {
+                var personId = GetCurrentPersonId();
+                if (!personId.HasValue)
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                var recipes = await _recipeService.GetMyRecipesAsync(personId.Value);
+                return Ok(recipes);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve your recipes", error = ex.Message });
             }
         }
 

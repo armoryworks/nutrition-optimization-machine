@@ -14,5 +14,6 @@ namespace Nom.Orch.Models.Recipe
         public int RatingCount { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        public string? CurationStatus { get; set; }
     }
 } 

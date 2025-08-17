@@ -9,9 +9,12 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic; // Added for List<object>
 
 namespace Nom.Api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     [Authorize]
     public class IngredientsController : BaseApiController
     {
@@ -22,6 +25,51 @@ namespace Nom.Api.Controllers
         {
             _logger = logger;
             _recipeOrch = recipeOrch;
+        }
+
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyIngredients()
+        {
+            try
+            {
+                var personId = GetCurrentPersonId();
+                if (!personId.HasValue)
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                var ingredients = await _recipeOrch.GetMyIngredientsAsync(personId.Value);
+                return Ok(ingredients);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving ingredients for user {PersonId}", GetCurrentPersonId());
+                return StatusCode(500, "An unexpected error occurred while retrieving your ingredients.");
+            }
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchIngredients([FromQuery] string q)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(q))
+                {
+                    return BadRequest("Search query is required");
+                }
+
+                // For now, return empty results - implement search logic later
+                return Ok(new List<object>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching ingredients");
+                return StatusCode(500, "An unexpected error occurred while searching ingredients.");
+            }
         }
 
         [HttpGet("{id:long}")]

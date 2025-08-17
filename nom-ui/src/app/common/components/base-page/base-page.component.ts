@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,6 +30,7 @@ export interface BasePageConfig {
 })
 export class BasePageComponent {
     @Input() config?: BasePageConfig;
+    @Input() backButtonText?: string; // Separate input for back button text
     @Input() isLoading = false;
     @Input() error: string | null = null;
     @Input() loadingMessage = 'Loading...';
@@ -37,15 +38,37 @@ export class BasePageComponent {
     @Input() showRetryButton = true;
     @Input() retryButtonText = 'Try Again';
 
+    @Output() back = new EventEmitter<void>();
+    @Output() refresh = new EventEmitter<void>();
+    @Output() retry = new EventEmitter<void>();
+
+    ngOnInit(): void {
+        console.log('BasePageComponent - ngOnInit - backButtonText:', this.backButtonText);
+        console.log('BasePageComponent - ngOnInit - config:', this.config);
+    }
+
+    ngOnChanges(changes: any): void {
+        console.log('BasePageComponent - ngOnChanges:', changes);
+        if (changes['backButtonText']) {
+            console.log('BasePageComponent - backButtonText changed:', {
+                previousValue: changes['backButtonText'].previousValue,
+                currentValue: changes['backButtonText'].currentValue
+            });
+        }
+    }
+
     onBack(): void {
-        // This will be overridden by parent components
+        console.log('BasePageComponent - onBack called, emitting back event');
+        this.back.emit();
     }
 
     onRefresh(): void {
-        // This will be overridden by parent components
+        console.log('BasePageComponent - onRefresh called, emitting refresh event');
+        this.refresh.emit();
     }
 
     onRetry(): void {
-        // This will be overridden by parent components
+        console.log('BasePageComponent - onRetry called, emitting retry event');
+        this.retry.emit();
     }
 } 

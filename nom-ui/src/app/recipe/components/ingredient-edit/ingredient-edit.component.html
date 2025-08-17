@@ -1,81 +1,119 @@
 <nom-base-page
   [config]="pageConfig"
+  [backButtonText]="backButtonText"
   [isLoading]="isLoading"
   [error]="error"
   (back)="onBack()"
   (refresh)="onRefresh()"
   (retry)="onRetry()">
 
-  <nom-base-form
-    [config]="formConfig"
-    [form]="ingredientForm"
-    [isSubmitting]="isSubmitting"
-    (submit)="onSubmit()"
-    (cancel)="onCancel()">
-
-    <div class="nom-ingredient-edit__section">
-      <h3 class="nom-ingredient-edit__section-title">General Information</h3>
-      <mat-form-field class="nom-ingredient-edit__form-field">
-        <mat-label>Ingredient Name</mat-label>
-        <input matInput formControlName="name" placeholder="e.g., All-Purpose Flour">
-      </mat-form-field>
-
-      <mat-form-field class="nom-ingredient-edit__form-field">
-        <mat-label>Description (Optional)</mat-label>
-        <textarea matInput formControlName="description" rows="3"
-          placeholder="A brief description of the ingredient..."></textarea>
-      </mat-form-field>
-    </div>
-
-    <div class="nom-ingredient-edit__section">
-      <div class="nom-ingredient-edit__section-header">
-        <h3 class="nom-ingredient-edit__section-title">Nutritional Information (per 100g)</h3>
-        <button mat-stroked-button type="button" (click)="addNutrient()">
-          <mat-icon>add</mat-icon>
-          Add Nutrient
-        </button>
-      </div>
-
-      <div formArrayName="nutrients">
-        @for (nutrient of nutrients.controls; track i; let i = $index) {
-        <div [formGroupName]="i" class="nom-ingredient-edit__nutrient-row">
-          <mat-form-field class="nom-ingredient-edit__nutrient-field">
-            <mat-label>Nutrient</mat-label>
-            <mat-select formControlName="nutrientId">
-              <mat-option value="5006">Protein</mat-option>
-              <mat-option value="5003">Carbohydrates</mat-option>
-              <mat-option value="5000">Fat</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field class="nom-ingredient-edit__nutrient-field">
-            <mat-label>Amount</mat-label>
-            <input matInput type="number" formControlName="amount">
-          </mat-form-field>
-
-          <mat-form-field class="nom-ingredient-edit__nutrient-field">
-            <mat-label>Unit</mat-label>
-            <mat-select formControlName="measurementTypeId">
-              <mat-option value="4003">g (gram)</mat-option>
-              <mat-option value="4004">mg (milligram)</mat-option>
-              <mat-option value="4005">µg (microgram)</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <button mat-icon-button type="button" (click)="removeNutrient(i)" title="Remove Nutrient"
-            class="nom-ingredient-edit__remove-button">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
-        </div>
+  <div class="base-form-container" style="max-width: 600px;">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>{{ formConfig.title }}</mat-card-title>
+        @if (formConfig.subtitle) {
+          <mat-card-subtitle>{{ formConfig.subtitle }}</mat-card-subtitle>
         }
-      </div>
+      </mat-card-header>
 
-      @if (nutrients.length === 0) {
-      <p class="nom-ingredient-edit__empty-message">
-        No nutritional information added yet. Click "Add Nutrient" to get started.
-      </p>
-      }
-    </div>
+      <mat-card-content>
+        <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
+          <!-- Form Content -->
+          <div class="form-content">
+            <div class="nom-ingredient-edit__section">
+              <h3 class="nom-ingredient-edit__section-title">General Information</h3>
+              <mat-form-field class="nom-ingredient-edit__form-field">
+                <mat-label>Ingredient Name</mat-label>
+                <input matInput formControlName="name" placeholder="e.g., All-Purpose Flour">
+              </mat-form-field>
 
-  </nom-base-form>
+              <mat-form-field class="nom-ingredient-edit__form-field">
+                <mat-label>Description (Optional)</mat-label>
+                <textarea matInput formControlName="description" rows="3"
+                  placeholder="A brief description of the ingredient..."></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="nom-ingredient-edit__section">
+              <div class="nom-ingredient-edit__section-header">
+                <h3 class="nom-ingredient-edit__section-title">Nutritional Information (per 100g)</h3>
+                <button mat-stroked-button type="button" (click)="addNutrient()">
+                  <mat-icon>add</mat-icon>
+                  Add Nutrient
+                </button>
+              </div>
+
+              <div formArrayName="nutrients">
+                @for (nutrient of nutrients.controls; track i; let i = $index) {
+                <div [formGroupName]="i" class="nom-ingredient-edit__nutrient-row">
+                  <mat-form-field class="nom-ingredient-edit__nutrient-field">
+                    <mat-label>Nutrient</mat-label>
+                    <mat-select formControlName="nutrientId">
+                      <mat-option value="5006">Protein</mat-option>
+                      <mat-option value="5003">Carbohydrates</mat-option>
+                      <mat-option value="5000">Fat</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field class="nom-ingredient-edit__nutrient-field">
+                    <mat-label>Amount</mat-label>
+                    <input matInput type="number" formControlName="amount">
+                  </mat-form-field>
+
+                  <mat-form-field class="nom-ingredient-edit__nutrient-field">
+                    <mat-label>Unit</mat-label>
+                    <mat-select formControlName="measurementTypeId">
+                      <mat-option value="4003">g (gram)</mat-option>
+                      <mat-option value="4004">mg (milligram)</mat-option>
+                      <mat-option value="4005">µg (microgram)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <button mat-icon-button type="button" (click)="removeNutrient(i)" title="Remove Nutrient"
+                    class="nom-ingredient-edit__remove-button">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+                }
+              </div>
+
+              @if (nutrients.length === 0) {
+              <p class="nom-ingredient-edit__empty-message">
+                No nutritional information added yet. Click "Add Nutrient" to get started.
+              </p>
+              }
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <div class="action-buttons">
+              @if (formConfig.showCancelButton) {
+                <button 
+                  mat-button 
+                  type="button"
+                  (click)="onCancel()"
+                  [disabled]="isSubmitting">
+                  <mat-icon>cancel</mat-icon>
+                  {{ formConfig.cancelText || 'Cancel' }}
+                </button>
+              }
+
+              <button 
+                mat-raised-button 
+                color="primary" 
+                type="submit"
+                [disabled]="ingredientForm.invalid || isSubmitting">
+                @if (isSubmitting) {
+                  <mat-icon>hourglass_empty</mat-icon>
+                }
+                <span>{{ isSubmitting ? 'Saving...' : (formConfig.submitText || 'Save') }}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
 </nom-base-page>

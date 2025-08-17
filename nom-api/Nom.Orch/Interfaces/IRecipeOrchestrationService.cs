@@ -9,6 +9,7 @@ namespace Nom.Orch.Interfaces
     public interface IRecipeOrchestrationService
     {
         Task<List<RecipeResponseModel>> GetAllRecipesAsync();
+        Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId);
         Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model);
         Task<RecipeResponseModel?> GetRecipeAsync(long id);
         Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model);
@@ -29,5 +30,6 @@ namespace Nom.Orch.Interfaces
         Task<IngredientEditModel?> GetIngredientForEditAsync(long ingredientId);
         Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model);
         Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model);
+        Task<List<IngredientEditModel>> GetMyIngredientsAsync(long personId);
     }
 }

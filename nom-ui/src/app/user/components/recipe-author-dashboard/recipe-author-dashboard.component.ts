@@ -182,11 +182,21 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   }
 
   onEditRecipe(recipeId: number): void {
-    this.router.navigate(['/recipes', recipeId, 'edit']);
+    this.router.navigate(['/recipes', recipeId, 'edit'], {
+      queryParams: {
+        returnTo: '/user/dashboard',
+        returnToTitle: 'Dashboard'
+      }
+    });
   }
 
   onEditIngredient(ingredientId: number): void {
-    this.router.navigate(['/recipes/ingredients', ingredientId, 'edit']);
+    this.router.navigate(['/recipes/ingredients', ingredientId, 'edit'], {
+      queryParams: {
+        returnTo: '/user/dashboard',
+        returnToTitle: 'Dashboard'
+      }
+    });
   }
 
   onDeleteRecipe(recipeId: number): void {
@@ -269,7 +279,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
 
   getRecipeMenuItems(recipe: RecipeDashboardItemModel): MenuItem[] {
     const items: MenuItem[] = [
-      { icon: 'edit', label: 'Edit Recipe', action: () => this.onEditRecipe(recipe.id), routerLink: ['/recipes', recipe.id, 'edit'] }
+      { icon: 'edit', label: 'Edit Recipe', action: () => this.onEditRecipe(recipe.id) }
     ];
     if (canSubmitForCuration(recipe.curationStatus)) {
       items.push({
@@ -285,7 +295,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
 
   getIngredientMenuItems(ingredient: RecipeDashboardItemModel): MenuItem[] {
     const items: MenuItem[] = [
-      { icon: 'edit', label: 'Edit Ingredient', action: () => this.onEditIngredient(ingredient.id), routerLink: ['/recipes/ingredients', ingredient.id, 'edit'] }
+      { icon: 'edit', label: 'Edit Ingredient', action: () => this.onEditIngredient(ingredient.id) }
     ];
     if (canSubmitForCuration(ingredient.curationStatus)) {
       items.push({
@@ -297,5 +307,24 @@ export class RecipeAuthorDashboardComponent implements OnInit {
     }
     items.push({ icon: 'delete', label: 'Delete Ingredient', action: () => this.onDeleteIngredient(ingredient.id) });
     return items;
+  }
+
+  // Navigation methods for proper back navigation
+  navigateToNewIngredient(): void {
+    this.router.navigate(['/recipes/ingredients/new'], {
+      queryParams: {
+        returnTo: '/user/dashboard',
+        returnToTitle: 'Dashboard'
+      }
+    });
+  }
+
+  navigateToNewRecipe(): void {
+    this.router.navigate(['/recipes/new'], {
+      queryParams: {
+        returnTo: '/user/dashboard',
+        returnToTitle: 'Dashboard'
+      }
+    });
   }
 }

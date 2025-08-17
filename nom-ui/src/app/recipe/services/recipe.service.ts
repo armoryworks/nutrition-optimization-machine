@@ -30,7 +30,7 @@ export class RecipeService {
   }
 
   getMyIngredients(): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/ingredient/my`);
+    return this.http.get<any[]>(`${environment.apiUrl}/ingredients/my`);
   }
 
   getRecipe(id: number): Observable<RecipeModel> {
@@ -81,19 +81,19 @@ export class RecipeService {
 
   // Ingredient methods
   searchIngredients(query: string): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/ingredient/search?q=${query}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/ingredients/search?q=${query}`);
   }
 
   createIngredient(ingredient: any): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/ingredient`, ingredient);
+    return this.http.post<any>(`${environment.apiUrl}/ingredients`, ingredient);
   }
 
   updateIngredient(id: number, ingredient: any): Observable<any> {
-    return this.http.put<any>(`${environment.apiUrl}/ingredient/${id}`, ingredient);
+    return this.http.put<any>(`${environment.apiUrl}/ingredients/${id}`, ingredient);
   }
 
   getIngredientDetails(id: number): Observable<any> {
-    return this.http.get<any>(`${environment.apiUrl}/ingredient/${id}`);
+    return this.http.get<any>(`${environment.apiUrl}/ingredients/${id}`);
   }
 
   getMeasurementTypes(): Observable<any[]> {
@@ -126,6 +126,6 @@ export class RecipeService {
   }
 
   deleteIngredient(ingredientId: number): Observable<any> {
-    return this.http.delete<any>(`${environment.apiUrl}/ingredient/${ingredientId}`);
+    return this.http.delete<any>(`${environment.apiUrl}/ingredients/${ingredientId}`);
   }
 }

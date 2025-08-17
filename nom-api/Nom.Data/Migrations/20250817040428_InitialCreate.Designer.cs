@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250806060349_InitialCreate")]
+    [Migration("20250817040428_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2964,8 +2964,9 @@ namespace Nom.Data.Migrations
                     b.Property<int>("TotalUrls")
                         .HasColumnType("integer");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

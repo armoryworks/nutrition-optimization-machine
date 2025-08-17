@@ -2961,8 +2961,9 @@ namespace Nom.Data.Migrations
                     b.Property<int>("TotalUrls")
                         .HasColumnType("integer");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
