@@ -10,11 +10,7 @@
     </mat-card-header>
 
     @if (isLoading || isSubmitting) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
+    <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
     } @if (error && !submitMessage) {
     <mat-card-content class="nom-card__content">
       <div class="nom-form__error form-level-error nom-message-text mb-4">
@@ -23,20 +19,12 @@
     </mat-card-content>
     } @else if (submitMessage) {
     <mat-card-content class="nom-card__content">
-      <div
-        class="text-center p-4 rounded-md"
-        [ngClass]="{
+      <div class="text-center p-4 rounded-md" [ngClass]="{
           'bg-green-100 text-green-700': submitMessage.includes('successfully'),
           'bg-red-100 text-red-700': !submitMessage.includes('successfully')
-        }"
-      >
+        }">
         <p class="nom-message-text font-semibold">{{ submitMessage }}</p>
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="onCompletionRedirect()"
-          class="nom-button mt-4"
-        >
+        <button mat-raised-button color="primary" (click)="onCompletionRedirect()" class="nom-button mt-4">
           Go to Dashboard
         </button>
       </div>
@@ -46,73 +34,48 @@
     <mat-card-content class="nom-card__content">
       <!-- Step 1: Invitation Code -->
       @if (currentStep?.id === 'invitationCode') {
-      <nom-onboarding-invitation-code
-        [currentInvitationCode]="onboardingData.planInvitationCode"
-        [isLoading]="isLoading"
-        [errorMessage]="error"
-        (codeSubmitted)="onInvitationCodeSubmitted($event)"
-        (noCodeSelected)="onNoInvitationCodeSelected()"
-      >
+      <nom-onboarding-invitation-code [currentInvitationCode]="onboardingData.planInvitationCode"
+        [isLoading]="isLoading" [errorMessage]="error" (codeSubmitted)="onInvitationCodeSubmitted($event)"
+        (noCodeSelected)="onNoInvitationCodeSelected()">
       </nom-onboarding-invitation-code>
       }
 
       <!-- Step 3: Additional Participants (Consolidated) -->
       @else if (currentStep?.id === 'additionalParticipants') {
-      <nom-onboarding-additional-participants
-        [hasAdditionalParticipantsInput]="
+      <nom-onboarding-additional-participants [hasAdditionalParticipantsInput]="
           onboardingData.hasAdditionalParticipants
-        "
-        [numberOfAdditionalParticipantsInput]="
+        " [numberOfAdditionalParticipantsInput]="
           onboardingData.numberOfAdditionalParticipants
-        "
-        [additionalParticipantDetailsInput]="
+        " [additionalParticipantDetailsInput]="
           onboardingData.additionalParticipantDetails
-        "
-        [principalPersonId]="onboardingData.personId"
-        [isLoading]="isLoading"
+        " [principalPersonId]="onboardingData.personId" [isLoading]="isLoading"
         [allCurrentPersonsInPlan]="allPersonsInPlan"
-        (participantsDataSubmitted)="onAdditionalParticipantsSubmitted($event)"
-        (skipStep)="previousStep()"
-      >
+        (participantsDataSubmitted)="onAdditionalParticipantsSubmitted($event)" (skipStep)="previousStep()">
       </nom-onboarding-additional-participants>
       }
       <!-- Step 6: Health Attributes (Loops per person) -->
       @else if (currentStep?.id === 'healthAttributes') {
-      <nom-person-health-edit
-        [attributes]="
+      <nom-person-health-edit [attributes]="
           allPersonsInPlan[currentHealthAttributePersonIndex].attributes || []
-        "
-        [currentPersonId]="currentHealthAttributesTargetPersonId"
-        (formSubmitted)="onHealthAttributesSubmitted($event)"
-        (skipStep)="onHealthAttributesSubmitted([])"
-      >
+        " [currentPersonId]="currentHealthAttributesTargetPersonId"
+        (formSubmitted)="onHealthAttributesSubmitted($event)" (skipStep)="onHealthAttributesSubmitted([])">
       </nom-person-health-edit>
       }
       <!-- Step 7: Restriction Scope (Consolidated) -->
       @else if (currentStep?.id === 'restrictionScope') {
-      <nom-onboarding-restriction-scope
-        [restrictionScopeInput]="onboardingData.currentRestrictionScope"
-        [affectedPersonIdsInput]="onboardingData.currentAffectedPersonIds"
-        [allPersonsInPlan]="allPersonsInPlan"
-        [isLoading]="isLoading"
-        (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)"
-      >
+      <nom-onboarding-restriction-scope [restrictionScopeInput]="onboardingData.currentRestrictionScope"
+        [affectedPersonIdsInput]="onboardingData.currentAffectedPersonIds" [allPersonsInPlan]="allPersonsInPlan"
+        [isLoading]="isLoading" (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)">
       </nom-onboarding-restriction-scope>
       }
       <!-- Steps 9-11: Restriction Edit (Loops per person if Individual Preferences selected) -->
       @else if (currentStep?.component === 'nom-restriction-edit') {
-      <nom-restriction-edit
-        [restrictions]="filteredRestrictionsForCurrentPerson"
-        [currentPersonId]="currentRestrictionTargetPersonId"
-        [allPersonsInPlan]="allPersonsInPlan"
-        [restrictionType]="currentStep.restrictionType"
-        [appliesToEntirePlan]="
+      <nom-restriction-edit [restrictions]="filteredRestrictionsForCurrentPerson"
+        [currentPersonId]="currentRestrictionTargetPersonId" [allPersonsInPlan]="allPersonsInPlan"
+        [restrictionType]="currentStep?.restrictionType" [appliesToEntirePlan]="
           onboardingData.currentRestrictionScope === 'plan'
-        "
-        [affectedPersonIds]="onboardingData.currentAffectedPersonIds || []"
-        (formSubmitted)="onRestrictionsSubmitted($event)"
-        (skipStep)="skipCurrentStep()"
-      >
+        " [affectedPersonIds]="onboardingData.currentAffectedPersonIds || []"
+        (formSubmitted)="onRestrictionsSubmitted($event)" (skipStep)="skipCurrentStep()">
       </nom-restriction-edit>
       }
       <!-- Step 12: Individual Preferences -->
@@ -124,20 +87,11 @@
           participating on the plan?
         </p>
         <div class="nom-horizontal-group flex-wrap justify-center my-4">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="onIndividualPreferencesAnswer(true)"
-            class="nom-button mr-2"
-          >
+          <button mat-raised-button color="primary" (click)="onIndividualPreferencesAnswer(true)"
+            class="nom-button mr-2">
             Yes
           </button>
-          <button
-            mat-raised-button
-            color="accent"
-            (click)="onIndividualPreferencesAnswer(false)"
-            class="nom-button"
-          >
+          <button mat-raised-button color="accent" (click)="onIndividualPreferencesAnswer(false)" class="nom-button">
             No
           </button>
         </div>
@@ -221,45 +175,28 @@
       }
     </mat-card-content>
 
-    @if (!submitMessage && currentStep?.id) {
-    <mat-card-actions
-      class="nom-card__footer flex justify-between items-center px-6 py-4"
-    >
+    @if (!submitMessage && !!currentStep && currentStep.id) {
+    <mat-card-actions class="nom-card__footer flex justify-between items-center px-6 py-4">
       @if(currentStepIndex > 0){
-      <button
-        mat-button
-        color="accent"
-        (click)="previousStep()"
-        [disabled]="currentStepIndex === 0 || isLoading || isSubmitting"
-        class="nom-button"
-      >
+      <button mat-button color="accent" (click)="previousStep()"
+        [disabled]="currentStepIndex === 0 || isLoading || isSubmitting" class="nom-button">
         Previous
       </button>
-      } @if(NO_FLOW_STEPS.indexOf(currentStep?.id) < 0){ @if (isSkippable()) {
-      <button
-        mat-stroked-button
-        (click)="skipCurrentStep()"
-        [disabled]="isLoading || isSubmitting"
-        class="nom-button"
-      >
+      } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) { <button mat-stroked-button
+        (click)="skipCurrentStep()" [disabled]="isLoading || isSubmitting" class="nom-button">
         Skip
-      </button>
-      }
-
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="triggerChildComponentSubmission()"
-        [disabled]="isLoading || isSubmitting"
-        class="nom-button"
-      >
-        @if (!isSubmitting) {
-        <span>{{ isSubmitStep() ? 'Submit Onboarding' : 'Next' }}</span>
-        } @else {
-        <mat-spinner diameter="20" class="nom-button__spinner"></mat-spinner>
+        </button>
         }
-      </button>
-      }
+
+        <button mat-raised-button color="primary" (click)="triggerChildComponentSubmission()"
+          [disabled]="isLoading || isSubmitting" class="nom-button">
+          @if (!isSubmitting) {
+          <span>{{ isSubmitStep() ? 'Submit Onboarding' : 'Next' }}</span>
+          } @else {
+          <mat-spinner diameter="20" class="nom-button__spinner"></mat-spinner>
+          }
+        </button>
+        }
     </mat-card-actions>
     }
   </mat-card>

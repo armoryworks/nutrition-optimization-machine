@@ -3,14 +3,14 @@
 import { IShoppingListItemResponseModel } from './shopping-list-item-response.model.interface';
 
 export class ShoppingListItemResponseModel implements IShoppingListItemResponseModel {
-    id: number = 0;
-    shoppingListId: number = 0;
+    id = 0;
+    shoppingListId = 0;
     ingredientId?: number;
-    ingredientName: string = '';
-    quantity: number = 0;
-    measurementUnit: string = '';
+    ingredientName = '';
+    quantity = 0;
+    measurementUnit = '';
     notes?: string;
-    isCompleted: boolean = false;
+    isCompleted = false;
     categoryId?: number;
     categoryName?: string;
     createdDate: Date = new Date();

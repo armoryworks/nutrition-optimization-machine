@@ -37,21 +37,21 @@ export class BaseFormComponent {
     @Input() isSubmitting = false;
     @Input() loading = false;
 
-    @Output() submit = new EventEmitter<void>();
-    @Output() cancel = new EventEmitter<void>();
-    @Output() delete = new EventEmitter<void>();
+    @Output() formSubmit = new EventEmitter<void>();
+    @Output() formCancel = new EventEmitter<void>();
+    @Output() formDelete = new EventEmitter<void>();
 
     onSubmit(): void {
         if (this.form.valid && !this.isSubmitting) {
-            this.submit.emit();
+            this.formSubmit.emit();
         }
     }
 
     onCancel(): void {
-        this.cancel.emit();
+        this.formCancel.emit();
     }
 
     onDelete(): void {
-        this.delete.emit();
+        this.formDelete.emit();
     }
 } 

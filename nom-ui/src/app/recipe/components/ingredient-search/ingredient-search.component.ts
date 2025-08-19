@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.ts
 
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,6 +42,8 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
   styleUrls: ['./ingredient-search.component.scss'],
 })
 export class IngredientSearchComponent implements OnInit, OnDestroy {
+  private recipeService = inject(RecipeService);
+
   searchControl = new FormControl('');
   filteredIngredients$: Observable<IngredientSearchResponseModel[]> | undefined;
   selectedIngredient: IngredientModel | null = null;
@@ -56,7 +58,6 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
     maxWidth: '800px'
   };
 
-  constructor(private recipeService: RecipeService) { }
 
   ngOnInit(): void {
     this.filteredIngredients$ = this.searchControl.valueChanges.pipe(
@@ -74,7 +75,7 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
               return of([]);
             })
           );
-          retObs.subscribe((data) => {
+          retObs.subscribe(() => {
             this.isLoading = false;
           });
           return retObs;

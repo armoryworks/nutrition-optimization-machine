@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -48,19 +48,19 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
   styleUrls: ['./registration.component.scss'], // Assuming .scss
   encapsulation: ViewEncapsulation.None,
 })
-export class RegistrationComponent implements OnInit {
+export class RegistrationComponent {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+  private router = inject(Router);
+  private authManagerService = inject(AuthManagerService);
+
   registrationForm!: FormGroup;
   isLoading = false;
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
-    private authService: AuthService,
-    private notificationService: NotificationService,
-    // Router is no longer injected if only navigation from onSubmit is removed.
-    // If router is not used elsewhere, you can remove it. For now, assuming it might be.
-    private router: Router, // Kept Router injection if it's used elsewhere
-    private authManagerService: AuthManagerService // Inject AuthManagerService
-  ) {
+
+
+  constructor() {
     this.registrationForm = this.nonNullableFb.group(
       {
         email: ['', [Validators.required, Validators.email]],
@@ -72,9 +72,7 @@ export class RegistrationComponent implements OnInit {
     );
   }
 
-  ngOnInit(): void {
-    // Form is already initialized in constructor, no additional initialization needed
-  }
+
 
   // Custom validator for password matching (applied to the FormGroup)
   passwordMatchValidator(control: AbstractControl) {
@@ -118,7 +116,7 @@ export class RegistrationComponent implements OnInit {
 
         // Use AuthManagerService.login() instead of AuthService.login() for proper token storage
         this.authManagerService.login(loginCredentials).subscribe({
-          next: (response) => {
+          next: () => {
             this.isLoading = false;
             this.notificationService.success(
               'Registration successful! You are now logged in.'

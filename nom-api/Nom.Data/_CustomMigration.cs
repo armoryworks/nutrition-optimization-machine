@@ -120,6 +120,7 @@ namespace Nom.Data
         private const long FeedbackEntityTypeRecipeId = 9100L;
         private const long FeedbackEntityTypeIngredientId = 9101L;
 
+        private const long FeedbackTypeApprovalId = 9199L; // Generic "Approval" reference for backward compatibility
         private const long FeedbackTypeApprovalPrivateId = 9200L;
         private const long FeedbackTypeApprovalPublicId = 9201L;
         private const long FeedbackTypeRevisionRequestId = 9202L;
@@ -696,12 +697,13 @@ namespace Nom.Data
                 columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
+                    { FeedbackTypeApprovalId, "Approval", "Generic approval feedback for backward compatibility.", DateTime.UtcNow, SystemPersonId },
                     { FeedbackTypeApprovalPrivateId, "Approval (Private)", "Notes for the author upon approval, not publicly visible.", DateTime.UtcNow, SystemPersonId },
                     { FeedbackTypeApprovalPublicId, "Approval (Public)", "Notes that are publicly visible on the curated content.", DateTime.UtcNow, SystemPersonId },
                     { FeedbackTypeRevisionRequestId, "Revision Request", "Feedback asking the author to make changes.", DateTime.UtcNow, SystemPersonId },
                     { FeedbackTypeRejectionId, "Rejection", "Notes explaining why the content was rejected.", DateTime.UtcNow, SystemPersonId }
                 });
-            foreach (long id in new[] { FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId })
+            foreach (long id in new[] { FeedbackTypeApprovalId, FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId })
             {
                 migrationBuilder.InsertData(schema: "reference", table: "ReferenceIndex", columns: new[] { "ReferenceId", "GroupId" }, values: new object[] { id, groupId });
             }
@@ -709,7 +711,7 @@ namespace Nom.Data
 
         public static void RemoveFeedbackTypes(MigrationBuilder migrationBuilder)
         {
-            long[] ids = new[] { FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId };
+            long[] ids = new[] { FeedbackTypeApprovalId, FeedbackTypeApprovalPrivateId, FeedbackTypeApprovalPublicId, FeedbackTypeRevisionRequestId, FeedbackTypeRejectionId };
             foreach (long id in ids) { migrationBuilder.DeleteData(schema: "reference", table: "ReferenceIndex", keyColumns: new[] { "ReferenceId", "GroupId" }, keyValues: new object[] { id, (long)ReferenceDiscriminatorEnum.FeedbackType }); }
             migrationBuilder.DeleteData(schema: "reference", table: "Reference", keyColumn: "Id", keyValues: ids.Cast<object>().ToArray());
         }

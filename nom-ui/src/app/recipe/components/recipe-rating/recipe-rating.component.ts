@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,49 +16,51 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeRatingModel, RecipeRatingCreateRequestModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeRatingResponseModel } from '../../models/recipe-rating.model';
+
 
 @Component({
-  selector: 'nom-recipe-rating',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-rating.component.html',
-  styleUrls: ['./recipe-rating.component.scss']
+    selector: 'nom-recipe-rating',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-rating.component.html',
+    styleUrls: ['./recipe-rating.component.scss']
 })
-export class RecipeRatingComponent implements OnInit {
-  rating: RecipeRatingResponseModel | null = null;
-  isLoading = false;
-  error: string | null = null;
-  ratingForm: FormGroup;
-  isSubmittingRating = false;
+export class RecipeRatingComponent implements OnInit, OnDestroy {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.ratingForm = this.nonNullableFb.group({
-      rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
-      reviewText: ['', [Validators.maxLength(1000)]]
-    });
-  }
+    rating: RecipeRatingResponseModel | null = null;
+    isLoading = false;
+    error: string | null = null;
+    ratingForm: FormGroup;
+    isSubmittingRating = false;
+
+
+
+    constructor() {
+        this.ratingForm = this.nonNullableFb.group({
+            rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
+            reviewText: ['', [Validators.maxLength(1000)]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {
@@ -89,7 +91,7 @@ export class RecipeRatingComponent implements OnInit {
                     });
                 }
             },
-            error: (error) => {
+            error: () => {
                 // User hasn't rated yet, which is fine
                 console.log("User has not rated this recipe yet");
             },
@@ -101,8 +103,8 @@ export class RecipeRatingComponent implements OnInit {
                 this.totalRatings = response.totalRatings;
                 this.isLoading = false;
             },
-            error: (error) => {
-                console.error("Error loading average rating:", error);
+            error: () => {
+                console.error("Error loading average rating");
                 this.error = "Failed to load rating data. Please try again.";
                 this.isLoading = false;
             },
@@ -133,8 +135,8 @@ export class RecipeRatingComponent implements OnInit {
                     // Reload average rating
                     this.loadRatingData();
                 },
-                error: (error) => {
-                    console.error("Error submitting rating:", error);
+                error: () => {
+                    console.error("Error submitting rating");
                     this.error = "Failed to submit rating. Please try again.";
                     this.isSubmitting = false;
                 },
@@ -165,8 +167,8 @@ export class RecipeRatingComponent implements OnInit {
                     // Reload average rating
                     this.loadRatingData();
                 },
-                error: (error) => {
-                    console.error("Error updating rating:", error);
+                error: () => {
+                    console.error("Error updating rating");
                     this.error = "Failed to update rating. Please try again.";
                     this.isSubmitting = false;
                 },
@@ -192,8 +194,8 @@ export class RecipeRatingComponent implements OnInit {
                     // Reload average rating
                     this.loadRatingData();
                 },
-                error: (error) => {
-                    console.error("Error deleting rating:", error);
+                error: () => {
+                    console.error("Error deleting rating");
                     this.error = "Failed to delete rating. Please try again.";
                     this.isSubmitting = false;
                 },

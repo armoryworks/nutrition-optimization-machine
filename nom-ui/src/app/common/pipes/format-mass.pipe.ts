@@ -1,4 +1,4 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 
 @Pipe({
@@ -6,8 +6,11 @@ import { DecimalPipe } from '@angular/common';
   standalone: true,
 })
 export class FormatMassPipe implements PipeTransform {
-  // Inject the built-in DecimalPipe for number formatting
-  constructor(private decimalPipe: DecimalPipe) {}
+  private decimalPipe = inject(DecimalPipe);
+
+
+
+
 
   transform(value: number, unitName: string): string {
     const massUnits = ['kg', 'g', 'mg', 'µg', 'mcg'];

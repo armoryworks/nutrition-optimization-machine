@@ -65,6 +65,10 @@
               class="messaging-inbox__thread"
               [class.messaging-inbox__thread--unread]="hasUnreadMessages(thread)"
               (click)="openThread(thread)"
+              (keyup.enter)="openThread(thread)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'Open conversation with ' + getParticipantDisplayName(thread)"
             >
               <div class="messaging-inbox__thread-avatar">
                 <div class="messaging-inbox__avatar" 

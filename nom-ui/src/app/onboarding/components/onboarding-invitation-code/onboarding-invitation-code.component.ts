@@ -1,6 +1,6 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,15 +22,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 })
 export class OnboardingInvitationCodeComponent implements OnInit {
   @Input() currentInvitationCode: string | null = null;
-  @Input() isLoading: boolean = false;
+  @Input() isLoading = false;
   @Input() errorMessage: string | null = null;
 
   @Output() codeSubmitted = new EventEmitter<string>();
   @Output() noCodeSelected = new EventEmitter<void>();
 
   invitationCodeFormControl = new FormControl<string | null>(null);
-
-  constructor() {}
 
   ngOnInit(): void {
     // Initialize form control with existing data if available (e.g., from session storage)

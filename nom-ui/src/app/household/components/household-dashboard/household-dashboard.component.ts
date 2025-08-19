@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, NonNullableFormBuilder } from "@angular/forms";
 import { MatCardModule } from "@angular/material/card";
@@ -42,6 +42,10 @@ import { BasePageComponent, BasePageConfig } from "../../../common/components/ba
     encapsulation: ViewEncapsulation.None,
 })
 export class HouseholdDashboardComponent implements OnInit {
+    private householdService = inject(HouseholdService);
+    private router = inject(Router);
+    private fb = inject(NonNullableFormBuilder);
+
     households: HouseholdResponseModel[] = [];
     loading = false;
     error = "";
@@ -54,11 +58,7 @@ export class HouseholdDashboardComponent implements OnInit {
         maxWidth: "1200px",
     };
 
-    constructor(
-        private householdService: HouseholdService,
-        private router: Router,
-        private fb: NonNullableFormBuilder
-    ) { }
+
 
     ngOnInit(): void {
         this.loadHouseholds();

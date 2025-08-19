@@ -1,4 +1,5 @@
-import { BaseCommonModel } from '../../common/models/_base-common.model';
+import { IngredientModel } from './ingredient.model';
+import { RecipeStepModel } from './recipe-step.model';
 
 export interface RecipeModel {
     id: number;
@@ -11,8 +12,8 @@ export interface RecipeModel {
     ratingCount: number;
     createdDate: Date;
     modifiedDate?: Date;
-    ingredients?: any[];
-    steps?: any[];
+    ingredients?: IngredientModel[];
+    steps?: RecipeStepModel[];
     isCurated?: boolean;
     curationStatus: string;
 }

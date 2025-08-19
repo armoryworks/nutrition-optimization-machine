@@ -13,6 +13,7 @@ Welcome to the NOM (Nutritional Optimization Machine) documentation. This direct
 - **[Technical Inference Rules](architecture/technical-inference-rules.md)** - Complete technical specifications derived from codebase analysis
 
 ### 📊 Migration & Implementation
+- **[Linting Progress](LINTING_PROGRESS_README.md)** - Current status and progress tracking for Angular linting cleanup (86% complete)
 
 - **[Comprehensive Migration Analysis](COMPREHENSIVE_MIGRATION_ANALYSIS.md)** - Complete Mealie to NOM migration analysis (86% complete)
 - **[Development Standards](DEVELOPMENT_STANDARDS.md)** - **MANDATORY**: Naming conventions, file separation, and coding standards

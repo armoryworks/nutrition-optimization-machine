@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -19,7 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AuthService } from '../auth.service';
-import { LoginResponse } from '../models/login-response';
+
 import { LoginUser } from '../models/login-user';
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
 import { NotificationService } from '../../utilities/services/notification.service';
@@ -44,16 +44,18 @@ import { NotificationService } from '../../utilities/services/notification.servi
   styleUrls: ['./login.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private authManager = inject(AuthManagerService);
+  private notificationService = inject(NotificationService);
+
   loginForm: FormGroup;
   isLoading = false;
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
-    private authService: AuthService,
-    private authManager: AuthManagerService,
-    private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
-  ) {
+
+
+  constructor() {
     this.loginForm = this.nonNullableFb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
@@ -61,9 +63,7 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    // Component initialization - no form initialization needed here
-  }
+
 
   /**
    * Handles the login form submission.
@@ -85,20 +85,18 @@ export class LoginComponent implements OnInit {
 
     // Use AuthManagerService.login() instead of AuthService.login()
     this.authManager.login(credentials).subscribe({
-      next: (response: LoginResponse) => {
+      next: () => {
         this.isLoading = false;
         // Success notification is handled by AuthManagerService
         // Optionally, navigate to a dashboard or home page after successful login
         // this.router.navigate(['/dashboard']);
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         this.isLoading = false;
         console.error('Login error:', error);
         // The error.message is already processed by the AuthManagerService
-        this.notificationService.error(
-          error.message ||
-          'An unexpected error occurred during login. Please try again.'
-        );
+        const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'An unexpected error occurred during login. Please try again.';
+        this.notificationService.error(errorMessage);
       },
     });
   }

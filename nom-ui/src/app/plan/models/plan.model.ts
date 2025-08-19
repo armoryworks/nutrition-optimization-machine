@@ -1,5 +1,4 @@
-import { PersonModel } from '../../person/models/person.model'; // Adjust path as needed
-import { RestrictionModel as RestrictionModelBase } from '../../restriction/models/restriction.model';
+
 
 /**
  * Interface representing the structure of a nutritional plan.

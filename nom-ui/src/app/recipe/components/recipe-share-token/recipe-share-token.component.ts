@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,50 +17,51 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeShareTokenModel, RecipeShareTokenCreateRequestModel, RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
 
 @Component({
-  selector: 'nom-recipe-share-token',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSelectModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-share-token.component.html',
-  styleUrls: ['./recipe-share-token.component.scss']
+    selector: 'nom-recipe-share-token',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatSelectModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-share-token.component.html',
+    styleUrls: ['./recipe-share-token.component.scss']
 })
-export class RecipeShareTokenComponent implements OnInit {
-  shareTokens: RecipeShareTokenResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  shareTokenForm: FormGroup;
-  isAddingShareToken = false;
+export class RecipeShareTokenComponent implements OnInit, OnDestroy {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.shareTokenForm = this.nonNullableFb.group({
-      shareName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      isPublic: [false, [Validators.required]]
-    });
-  }
+    shareTokens: RecipeShareTokenResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    shareTokenForm: FormGroup;
+    isAddingShareToken = false;
+
+
+
+    constructor() {
+        this.shareTokenForm = this.nonNullableFb.group({
+            shareName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+            isPublic: [false, [Validators.required]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {
@@ -159,4 +160,7 @@ export class RecipeShareTokenComponent implements OnInit {
     getShareUrl(shareToken: string): string {
         return `${window.location.origin}/recipe/shared/${shareToken}`;
     }
-} 
+    trackByShareTokenId(index: number, shareToken: RecipeShareTokenResponseModel): number {
+        return shareToken.id;
+    }
+}

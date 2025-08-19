@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { RecipeSuggestionService, RecipeSuggestionQuery, AIRecipeSuggestionRequest, RecipeSuggestionResponse, AIRecipeSuggestionResponse, RecipeRecommendation } from '../../services/recipe-suggestion.service';
@@ -9,6 +9,9 @@ import { RecipeSuggestionService, RecipeSuggestionQuery, AIRecipeSuggestionReque
     styleUrls: ['./recipe-suggestions.component.scss']
 })
 export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
+    private fb = inject(FormBuilder);
+    private recipeSuggestionService = inject(RecipeSuggestionService);
+
     private destroy$ = new Subject<void>();
 
     // Forms
@@ -19,8 +22,8 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     suggestions: RecipeSuggestionResponse | null = null;
     aiSuggestions: AIRecipeSuggestionResponse | null = null;
     recommendations: RecipeRecommendation[] = [];
-    trendingRecipes: any[] = [];
-    seasonalRecipes: any[] = [];
+    trendingRecipes: RecipeRecommendation[] = [];
+    seasonalRecipes: RecipeRecommendation[] = [];
 
     // UI State
     loading = false;
@@ -35,10 +38,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     mealTypeOptions = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
     dietaryOptions = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Keto', 'Paleo', 'Low-Carb'];
 
-    constructor(
-        private fb: FormBuilder,
-        private recipeSuggestionService: RecipeSuggestionService
-    ) {
+    constructor() {
         this.suggestionForm = this.fb.group({
             limit: [10, [Validators.min(1), Validators.max(50)]],
             maxMissingIngredients: [5, [Validators.min(0), Validators.max(20)]],

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -17,9 +17,11 @@ export interface RecipeAssetCreateData {
     providedIn: 'root'
 })
 export class RecipeAssetsService {
+    private http = inject(HttpClient);
+
     private readonly baseUrl = `${environment.apiUrl}/recipe`;
 
-    constructor(private http: HttpClient) { }
+
 
     getRecipeAssets(recipeId: number): Observable<RecipeAssetModel[]> {
         return this.http.get<RecipeAssetModel[]>(`${this.baseUrl}/${recipeId}/assets`);
@@ -70,13 +72,17 @@ export class RecipeAssetsService {
             reportProgress: true,
             observe: 'events'
         }).pipe(
-            map((event: HttpEvent<any>) => {
+            map((event: HttpEvent<unknown>) => {
                 switch (event.type) {
-                    case HttpEventType.UploadProgress:
-                        const progress = Math.round(100 * event.loaded / (event.total || 1));
+                    case HttpEventType.UploadProgress: {
+                        const uploadEvent = event as { loaded: number; total?: number };
+                        const progress = Math.round(100 * uploadEvent.loaded / (uploadEvent.total || 1));
                         return { progress };
-                    case HttpEventType.Response:
-                        return { progress: 100, asset: event.body };
+                    }
+                    case HttpEventType.Response: {
+                        const responseEvent = event as { body: RecipeAssetModel };
+                        return { progress: 100, asset: responseEvent.body };
+                    }
                     default:
                         return { progress: 0 };
                 }

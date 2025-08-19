@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -81,9 +81,11 @@ export interface ScrapedStep {
     providedIn: 'root'
 })
 export class RecipeScrapingService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = `${environment.apiUrl}/RecipeScraping`;
 
-    constructor(private http: HttpClient) { }
+
 
     /**
      * Test recipe scraping from a URL

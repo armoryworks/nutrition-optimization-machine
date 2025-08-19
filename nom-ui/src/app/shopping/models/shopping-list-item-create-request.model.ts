@@ -3,11 +3,11 @@
 import { IShoppingListItemCreateRequestModel } from './shopping-list-item-create-request.model.interface';
 
 export class ShoppingListItemCreateRequestModel implements IShoppingListItemCreateRequestModel {
-    shoppingListId: number = 0;
+    shoppingListId = 0;
     ingredientId?: number;
-    ingredientName: string = '';
-    quantity: number = 0;
-    measurementUnit: string = '';
+    ingredientName = '';
+    quantity = 0;
+    measurementUnit = '';
     notes?: string;
     categoryId?: number;
 

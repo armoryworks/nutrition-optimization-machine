@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -39,9 +39,15 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   styleUrls: ['./meal-plan-edit.component.scss']
 })
 export class MealPlanEditComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private mealPlanService = inject(MealPlanService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+
   mealPlanForm: FormGroup;
   isLoading = false;
-  mealPlanId: number = 0;
+  mealPlanId = 0;
   mealPlan: MealPlanResponseModel | null = null;
 
   mealTypes = [
@@ -60,13 +66,9 @@ export class MealPlanEditComponent implements OnInit {
     maxWidth: '600px',
   };
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private mealPlanService: MealPlanService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
+
+
+  constructor() {
     this.mealPlanForm = this.nonNullableFb.group({
       RecipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       MealType: ['dinner', [Validators.required]],
@@ -120,7 +122,7 @@ export class MealPlanEditComponent implements OnInit {
       });
 
       this.mealPlanService.updateMealPlan(this.mealPlanId, updateRequest).subscribe({
-        next: (response) => {
+        next: () => {
           this.isLoading = false;
           this.snackBar.open('Meal plan updated successfully!', 'Close', {
             duration: 3000,

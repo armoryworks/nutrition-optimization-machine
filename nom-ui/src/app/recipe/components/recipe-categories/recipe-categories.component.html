@@ -123,6 +123,10 @@
               class="recipe-categories__available-item"
               [class.recipe-categories__available-item--selected]="isCategorySelected(category)"
               (click)="addCategory(category)"
+              (keyup.enter)="addCategory(category)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'Add category: ' + category.name"
             >
               <div class="recipe-categories__category-info">
                 <mat-chip 

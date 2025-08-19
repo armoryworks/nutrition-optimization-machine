@@ -11,7 +11,7 @@
     <ng-container *ngIf="config.showLoading && (isLoading$ | async)">
         <span class="loading-spinner"></span>
     </ng-container>
-    <ng-container *ngIf="!config.showLoading || !(isLoading$ | async)">
+    <ng-container *ngIf="!config.showLoading || (isLoading$ | async) === false">
         <i *ngIf="config.icon" [class]="config.icon"></i>
         <span *ngIf="config.text">{{ config.text }}</span>
         <ng-content></ng-content>

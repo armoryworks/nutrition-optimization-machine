@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,7 +17,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanRuleModel, MealPlanRuleCreateRequestModel, MealPlanRuleResponseModel } from '../../models/meal-plan-rule.model';
+import { MealPlanRuleCreateRequestModel, MealPlanRuleResponseModel } from '../../models/meal-plan-rule.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -43,6 +43,12 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
   styleUrls: ['./meal-plan-rules.component.scss']
 })
 export class MealPlanRulesComponent implements OnInit {
+  private mealPlanService = inject(MealPlanService);
+  private router = inject(Router);
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+
   rules: MealPlanRuleResponseModel[] = [];
   isLoading = false;
   error: string | null = null;
@@ -66,13 +72,9 @@ export class MealPlanRulesComponent implements OnInit {
     { id: 7, name: 'Sunday' }
   ];
 
-  constructor(
-    private mealPlanService: MealPlanService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
+
+
+  constructor() {
     this.ruleForm = this.nonNullableFb.group({
       dayOfWeekId: ['', [Validators.required]],
       mealTypeId: ['', [Validators.required]],
@@ -93,7 +95,7 @@ export class MealPlanRulesComponent implements OnInit {
         this.rules = rules;
         this.isLoading = false;
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Error loading rules:', error);
         this.error = 'Failed to load meal plan rules';
         this.isLoading = false;
@@ -122,7 +124,7 @@ export class MealPlanRulesComponent implements OnInit {
     };
 
     this.mealPlanService.createRule(request).subscribe({
-      next: (response) => {
+      next: () => {
         this.snackBar.open('Rule created successfully!', 'Close', { duration: 3000 });
         this.ruleForm.reset();
         this.isAddingRule = false;

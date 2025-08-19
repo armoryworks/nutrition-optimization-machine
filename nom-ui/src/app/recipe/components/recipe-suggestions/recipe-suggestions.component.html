@@ -115,7 +115,11 @@
           *ngFor="let ingredient of [1,2,3,4,5,6,7,8,9,10]" 
           class="ingredient-item"
           [class.selected]="selectedIngredients.includes(ingredient)"
-          (click)="toggleIngredient(ingredient)">
+          (click)="toggleIngredient(ingredient)"
+          (keyup.enter)="toggleIngredient(ingredient)"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Select ingredient ' + ingredient">
           <i class="fas fa-carrot"></i>
           <span>Ingredient {{ingredient}}</span>
         </div>
@@ -130,7 +134,11 @@
           *ngFor="let tool of [1,2,3,4,5]" 
           class="tool-item"
           [class.selected]="selectedTools.includes(tool)"
-          (click)="toggleTool(tool)">
+          (click)="toggleTool(tool)"
+          (keyup.enter)="toggleTool(tool)"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="'Select tool ' + tool">
           <i class="fas fa-utensils"></i>
           <span>Tool {{tool}}</span>
         </div>

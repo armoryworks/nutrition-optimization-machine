@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, delay, tap } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { RegisterUser } from './models/register-user';
 import { LoginUser } from './models/login-user';
 import { ForgotPassword } from './models/forgot-password';
@@ -22,9 +22,11 @@ import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
   providedIn: 'root',
 })
 export class AuthService {
+  private httpClient = inject(HttpClient);
+
   private readonly apiUrl = '/api/auth';
 
-  constructor(private httpClient: HttpClient) { }
+
 
   register(userData: RegisterUser): Observable<void> {
     // Map the frontend model to the API model
@@ -61,7 +63,7 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
-  resetPassword(resetData: ResetPassword): Observable<any> {
+  resetPassword(resetData: ResetPassword): Observable<void> {
     return this.httpClient
       .post<void>(`${this.apiUrl}/resetPassword`, resetData)
       .pipe(catchError(this.handleError));
@@ -93,8 +95,8 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
-  confirmEmail(data: ConfirmEmail): Observable<any> {
-    var confirmParams: HttpParams = new HttpParams();
+  confirmEmail(data: ConfirmEmail): Observable<unknown> {
+    const confirmParams: HttpParams = new HttpParams();
     confirmParams.append('userId', data.userId);
     confirmParams.append('code', data.code);
     if (data.changedEmail) {
@@ -133,7 +135,7 @@ export class AuthService {
 
           // Iterate over the keys of the 'errors' object (e.g., "DuplicateUserName")
           for (const key in validationErrors) {
-            if (validationErrors.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(validationErrors, key)) {
               const errorArray = validationErrors[key];
               // Each key's value is an array of error messages
               if (Array.isArray(errorArray)) {

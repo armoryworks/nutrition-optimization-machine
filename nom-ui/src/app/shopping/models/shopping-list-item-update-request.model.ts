@@ -3,11 +3,11 @@
 import { IShoppingListItemUpdateRequestModel } from './shopping-list-item-update-request.model.interface';
 
 export class ShoppingListItemUpdateRequestModel implements IShoppingListItemUpdateRequestModel {
-    ingredientName: string = '';
-    quantity: number = 0;
-    measurementUnit: string = '';
+    ingredientName = '';
+    quantity = 0;
+    measurementUnit = '';
     notes?: string;
-    isCompleted: boolean = false;
+    isCompleted = false;
     categoryId?: number;
 
     constructor(data?: Partial<IShoppingListItemUpdateRequestModel>) {

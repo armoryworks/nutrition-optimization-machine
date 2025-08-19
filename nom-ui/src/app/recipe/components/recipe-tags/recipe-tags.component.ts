@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,8 +19,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ViewEncapsulation } from '@angular/core';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { RecipeTagsService } from '../../services/recipe-tags.service';
-import { RecipeTagModel, RecipeTagCreateRequestModel, RecipeTagResponseModel } from '../../models/recipe-tag.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeTagModel } from '../../models/recipe-tag.model';
 
 @Component({
     selector: 'nom-recipe-tags',
@@ -48,6 +47,12 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
     encapsulation: ViewEncapsulation.None,
 })
 export class RecipeTagsComponent implements OnInit {
+    private recipeTagsService = inject(RecipeTagsService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     @Input() recipeId?: number;
     @Input() tags: RecipeTagModel[] = [];
     @Output() tagsChange = new EventEmitter<RecipeTagModel[]>();
@@ -69,13 +74,7 @@ export class RecipeTagsComponent implements OnInit {
         maxWidth: '800px',
     };
 
-    constructor(
-        private recipeTagsService: RecipeTagsService,
-        private router: Router,
-        private nonNullableFb: NonNullableFormBuilder,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) {
+    constructor() {
         this.tagForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
             color: ['#1976d2', [Validators.required]],
@@ -173,7 +172,7 @@ export class RecipeTagsComponent implements OnInit {
         }
     }
 
-    getTagStyle(tag: RecipeTagModel): { [key: string]: string } {
+    getTagStyle(tag: RecipeTagModel): Record<string, string> {
         return {
             'background-color': tag.color || '#1976d2',
             'color': this.getContrastColor(tag.color || '#1976d2')

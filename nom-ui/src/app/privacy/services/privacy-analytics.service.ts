@@ -1,16 +1,18 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { PrivacyAnalyticsModel, DataProcessingLogModel } from '../models/i-privacy-analytics.model';
+import { PrivacyAnalyticsModel, DataProcessingLogModel, ComplianceMetricModel } from '../models/i-privacy-analytics.model';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PrivacyAnalyticsService {
+    private http = inject(HttpClient);
+
     private readonly baseUrl = `${environment.apiUrl}/privacy`;
 
-    constructor(private http: HttpClient) { }
+
 
     getPrivacyAnalytics(): Observable<PrivacyAnalyticsModel> {
         return this.http.get<PrivacyAnalyticsModel>(`${this.baseUrl}/analytics`);
@@ -20,8 +22,8 @@ export class PrivacyAnalyticsService {
         return this.http.get<DataProcessingLogModel[]>(`${this.baseUrl}/processing-logs`);
     }
 
-    generateComplianceReport(): Observable<any> {
-        return this.http.post(`${this.baseUrl}/compliance-report`, {});
+    generateComplianceReport(): Observable<ComplianceMetricModel> {
+        return this.http.post<ComplianceMetricModel>(`${this.baseUrl}/compliance-report`, {});
     }
 
     exportAnalytics(): Observable<Blob> {
@@ -30,28 +32,28 @@ export class PrivacyAnalyticsService {
         });
     }
 
-    getPrivacyImpactAssessment(): Observable<any> {
-        return this.http.get(`${this.baseUrl}/privacy-impact-assessment`);
+    getPrivacyImpactAssessment(): Observable<PrivacyAnalyticsModel> {
+        return this.http.get<PrivacyAnalyticsModel>(`${this.baseUrl}/privacy-impact-assessment`);
     }
 
-    getDataBreachIncidents(): Observable<any[]> {
-        return this.http.get<any[]>(`${this.baseUrl}/data-breach-incidents`);
+    getDataBreachIncidents(): Observable<DataProcessingLogModel[]> {
+        return this.http.get<DataProcessingLogModel[]>(`${this.baseUrl}/data-breach-incidents`);
     }
 
-    getCrossBorderTransfers(): Observable<any[]> {
-        return this.http.get<any[]>(`${this.baseUrl}/cross-border-transfers`);
+    getCrossBorderTransfers(): Observable<DataProcessingLogModel[]> {
+        return this.http.get<DataProcessingLogModel[]>(`${this.baseUrl}/cross-border-transfers`);
     }
 
-    getDataRetentionMetrics(): Observable<any> {
+    getDataRetentionMetrics(): Observable<PrivacyAnalyticsModel> {
         return this.http.get(`${this.baseUrl}/data-retention-metrics`);
     }
 
-    getConsentAnalytics(): Observable<any> {
-        return this.http.get(`${this.baseUrl}/consent-analytics`);
+    getConsentAnalytics(): Observable<PrivacyAnalyticsModel> {
+        return this.http.get<PrivacyAnalyticsModel>(`${this.baseUrl}/consent-analytics`);
     }
 
-    getDataSubjectRightsMetrics(): Observable<any> {
-        return this.http.get(`${this.baseUrl}/data-subject-rights-metrics`);
+    getDataSubjectRightsMetrics(): Observable<PrivacyAnalyticsModel> {
+        return this.http.get<PrivacyAnalyticsModel>(`${this.baseUrl}/data-subject-rights-metrics`);
     }
 
     generatePrivacyReport(startDate: string, endDate: string): Observable<Blob> {
@@ -63,11 +65,11 @@ export class PrivacyAnalyticsService {
         });
     }
 
-    getRiskAssessment(): Observable<any> {
-        return this.http.get(`${this.baseUrl}/risk-assessment`);
+    getRiskAssessment(): Observable<RiskFactorModel[]> {
+        return this.http.get<RiskFactorModel[]>(`${this.baseUrl}/risk-assessment`);
     }
 
-    getComplianceMetrics(): Observable<any> {
-        return this.http.get(`${this.baseUrl}/compliance-metrics`);
+    getComplianceMetrics(): Observable<ComplianceMetricModel> {
+        return this.http.get<ComplianceMetricModel>(`${this.baseUrl}/compliance-metrics`);
     }
 } 

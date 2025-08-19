@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -41,14 +41,16 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class ForgotPasswordComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+
   forgotPasswordForm!: FormGroup;
   isLoading = false;
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
-    private authService: AuthService,
-    private notificationService: NotificationService // Use NotificationService
-  ) {}
+
+
+
 
   ngOnInit(): void {
     this.forgotPasswordForm = this.nonNullableFb.group({
@@ -71,7 +73,7 @@ export class ForgotPasswordComponent implements OnInit {
     const data: ForgotPassword = this.forgotPasswordForm.getRawValue();
 
     this.authService.forgotPassword(data).subscribe({
-      next: (response) => {
+      next: () => {
         this.isLoading = false;
         this.notificationService.success(
           'Password reset link sent. Please check your inbox!'

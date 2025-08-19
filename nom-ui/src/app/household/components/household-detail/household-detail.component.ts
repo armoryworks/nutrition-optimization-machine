@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -37,10 +37,16 @@ import { BaseDetailComponent, BaseDetailConfig } from '../../../common/component
     styleUrls: ['./household-detail.component.scss']
 })
 export class HouseholdDetailComponent implements OnInit {
+    private route = inject(ActivatedRoute);
+    private router = inject(Router);
+    private householdService = inject(HouseholdService);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     household: HouseholdResponseModel | null = null;
     isLoading = true;
     error: string | null = null;
-    householdId: number = 0;
+    householdId = 0;
 
     detailConfig: BaseDetailConfig = {
         title: 'Household Details',
@@ -49,13 +55,7 @@ export class HouseholdDetailComponent implements OnInit {
         maxWidth: '800px',
     };
 
-    constructor(
-        private route: ActivatedRoute,
-        private router: Router,
-        private householdService: HouseholdService,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) { }
+
 
     ngOnInit(): void {
         this.route.params.subscribe(params => {

@@ -3,11 +3,11 @@
 import { IHouseholdCreateResponseModel } from './household-create-response.model.interface';
 
 export class HouseholdCreateResponseModel implements IHouseholdCreateResponseModel {
-    id: number = 0;
-    name: string = '';
+    id = 0;
+    name = '';
     description?: string;
     createdDate: Date = new Date();
-    inviteToken: string = '';
+    inviteToken = '';
 
     constructor(data?: Partial<IHouseholdCreateResponseModel>) {
         if (data) {

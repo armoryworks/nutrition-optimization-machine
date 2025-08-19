@@ -26,15 +26,15 @@
     @for (condition of allergyMedicalConditions; track condition.id) {
     <mat-checkbox
       [checked]="
-        isMultiSelectOptionSelected('allergyMedicalConditionIds', condition.id)
+        isMultiSelectOptionSelected('allergyMedicalConditionIds', condition.id.toString())
       "
-      (change)="
-        onCheckboxChange(
-          'allergyMedicalConditionIds',
-          condition.id,
-          $event.checked
-        )
-      "
+              (change)="
+          onCheckboxChange(
+            'allergyMedicalConditionIds',
+            condition.id.toString(),
+            $event.checked
+          )
+        "
       class="nom-checkbox"
     >
       {{ condition.name }}

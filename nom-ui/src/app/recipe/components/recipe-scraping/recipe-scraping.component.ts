@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeScrapingModel, RecipeScrapingRequestModel, RecipeScrapingResponseModel } from '../../models/recipe-scraping.model';
+import { RecipeScrapingModel, RecipeScrapingRequestModel } from '../../models/recipe-scraping.model';
 
 @Component({
     selector: 'nom-recipe-scraping',
@@ -31,7 +31,12 @@ import { RecipeScrapingModel, RecipeScrapingRequestModel, RecipeScrapingResponse
     templateUrl: './recipe-scraping.component.html',
     styleUrls: ['./recipe-scraping.component.scss']
 })
-export class RecipeScrapingComponent implements OnInit {
+export class RecipeScrapingComponent {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+
     scrapingForm: FormGroup;
     isLoading = false;
     isScraping = false;
@@ -39,12 +44,7 @@ export class RecipeScrapingComponent implements OnInit {
     scrapedRecipe: RecipeScrapingModel | null = null;
     showPreview = false;
 
-    constructor(
-        private recipeService: RecipeService,
-        private router: Router,
-        private nonNullableFb: NonNullableFormBuilder,
-        private snackBar: MatSnackBar
-    ) {
+    constructor() {
         this.scrapingForm = this.nonNullableFb.group({
             url: ['', [Validators.required, Validators.pattern('https?://.+')]],
             importKeywordsAsTags: [true],
@@ -52,9 +52,7 @@ export class RecipeScrapingComponent implements OnInit {
         });
     }
 
-    ngOnInit(): void {
-        // Component initialization
-    }
+
 
     /**
      * Test scrape recipe from URL
@@ -76,8 +74,8 @@ export class RecipeScrapingComponent implements OnInit {
 
             this.scrapedRecipe = await this.recipeService.testScrapeRecipe(request).toPromise();
             this.showPreview = true;
-        } catch (error: any) {
-            this.error = error.error?.message || 'Failed to test scrape recipe';
+        } catch (error: unknown) {
+            this.error = (error as { error?: { message?: string } })?.error?.message || 'Failed to test scrape recipe';
             console.error('Error testing recipe scraping:', error);
         } finally {
             this.isLoading = false;
@@ -110,8 +108,8 @@ export class RecipeScrapingComponent implements OnInit {
             } else {
                 this.error = response.error || 'Failed to create recipe';
             }
-        } catch (error: any) {
-            this.error = error.error?.message || 'Failed to create recipe';
+        } catch (error: unknown) {
+            this.error = (error as { error?: { message?: string } })?.error?.message || 'Failed to create recipe';
             console.error('Error creating recipe:', error);
         } finally {
             this.isLoading = false;

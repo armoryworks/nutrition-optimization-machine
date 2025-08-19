@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -40,10 +40,16 @@ import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-it
   styleUrls: ['./shopping-detail.component.scss']
 })
 export class ShoppingDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private shoppingService = inject(ShoppingService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+
   shoppingList: ShoppingListResponseModel | null = null;
   isLoading = true;
   error: string | null = null;
-  shoppingListId: number = 0;
+  shoppingListId = 0;
 
   detailConfig: BaseDetailConfig = {
     title: 'Shopping List Details',
@@ -52,13 +58,6 @@ export class ShoppingDetailComponent implements OnInit {
     maxWidth: '800px',
   };
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private shoppingService: ShoppingService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) { }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -76,7 +75,7 @@ export class ShoppingDetailComponent implements OnInit {
         this.shoppingList = shoppingList;
         this.isLoading = false;
       },
-      error: (error: any) => {
+      error: (error: Error | string | unknown) => {
         console.error('Error loading shopping list:', error);
         this.error = 'Failed to load shopping list details';
         this.isLoading = false;
@@ -121,7 +120,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.router.navigate(['/shopping']);
           },
-          error: (error: any) => {
+          error: (error: Error | string | unknown) => {
             console.error('Error deleting shopping list:', error);
             this.snackBar.open('Failed to delete shopping list', 'Close', {
               duration: 5000,
@@ -155,7 +154,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.loadShoppingList(); // Refresh the list
           },
-          error: (error: any) => {
+          error: (error: Error | string | unknown) => {
             console.error('Error adding item:', error);
             this.snackBar.open('Failed to add item', 'Close', {
               duration: 5000,
@@ -199,7 +198,7 @@ export class ShoppingDetailComponent implements OnInit {
         );
         this.loadShoppingList(); // Refresh the list
       },
-      error: (error: any) => {
+      error: (error: Error | string | unknown) => {
         console.error('Error updating item:', error);
         this.snackBar.open('Failed to update item', 'Close', {
           duration: 5000,
@@ -233,7 +232,7 @@ export class ShoppingDetailComponent implements OnInit {
             });
             this.loadShoppingList(); // Refresh the list
           },
-          error: (error: any) => {
+          error: (error: Error | string | unknown) => {
             console.error('Error deleting item:', error);
             this.snackBar.open('Failed to delete item', 'Close', {
               duration: 5000,

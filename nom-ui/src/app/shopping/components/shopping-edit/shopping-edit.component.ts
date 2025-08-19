@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -34,9 +34,15 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   styleUrls: ['./shopping-edit.component.scss']
 })
 export class ShoppingEditComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private shoppingService = inject(ShoppingService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+
   shoppingForm: FormGroup;
   isLoading = false;
-  shoppingListId: number = 0;
+  shoppingListId = 0;
   shoppingList: ShoppingListResponseModel | null = null;
 
   formConfig: BaseFormConfig = {
@@ -48,13 +54,9 @@ export class ShoppingEditComponent implements OnInit {
     maxWidth: '600px',
   };
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private shoppingService: ShoppingService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
+
+
+  constructor() {
     this.shoppingForm = this.nonNullableFb.group({
       Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]]
@@ -102,7 +104,7 @@ export class ShoppingEditComponent implements OnInit {
       };
 
       this.shoppingService.updateShoppingList(this.shoppingListId, updateRequest).subscribe({
-        next: (response) => {
+        next: () => {
           this.isLoading = false;
           this.snackBar.open('Shopping list updated successfully!', 'Close', {
             duration: 3000,

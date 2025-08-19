@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/communication/components/messaging-inbox/messaging-inbox.component.ts
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -21,7 +21,7 @@ import { ViewEncapsulation } from '@angular/core';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
-import { MessageParticipantModel } from '../../models/i-message-participant.model';
+
 
 @Component({
   selector: 'nom-messaging-inbox',
@@ -50,6 +50,10 @@ import { MessageParticipantModel } from '../../models/i-message-participant.mode
   encapsulation: ViewEncapsulation.None,
 })
 export class MessagingInboxComponent implements OnInit {
+  private messagingService = inject(MessagingService);
+  private router = inject(Router);
+  private fb = inject(NonNullableFormBuilder);
+
   messageThreads: MessageThreadModel[] = [];
   loading = false;
   error = '';
@@ -64,12 +68,6 @@ export class MessagingInboxComponent implements OnInit {
   };
 
   displayedColumns: string[] = ['participant', 'lastMessage', 'unreadCount', 'lastActivity', 'actions'];
-
-  constructor(
-    private messagingService: MessagingService,
-    private router: Router,
-    private fb: NonNullableFormBuilder
-  ) { }
 
   ngOnInit(): void {
     this.loadMessageThreads();

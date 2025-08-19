@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { RecipeCommentModel, RecipeCommentCreateModel } from "../models/recipe-comment.model";
@@ -11,9 +11,9 @@ import { RecipeNoteModel, RecipeNoteCreateModel } from "../models/recipe-note.mo
     providedIn: "root",
 })
 export class RecipeAdvancedService {
-    private readonly apiUrl = "/api/RecipeAdvanced";
+    private http = inject(HttpClient);
 
-    constructor(private http: HttpClient) { }
+    private readonly apiUrl = "/api/RecipeAdvanced";
 
     // Comments
     createComment(request: RecipeCommentCreateModel): Observable<RecipeCommentModel> {
@@ -24,7 +24,7 @@ export class RecipeAdvancedService {
         return this.http.get<RecipeCommentModel[]>(`${this.apiUrl}/recipes/${recipeId}/comments`);
     }
 
-    deleteComment(commentId: number): Observable<any> {
+    deleteComment(commentId: number): Observable<void> {
         return this.http.delete(`${this.apiUrl}/comments/${commentId}`);
     }
 
@@ -41,11 +41,11 @@ export class RecipeAdvancedService {
         return this.http.get<{ averageRating: number }>(`${this.apiUrl}/recipes/${recipeId}/ratings/average`);
     }
 
-    updateRating(ratingId: number, request: RecipeRatingCreateModel): Observable<any> {
-        return this.http.put(`${this.apiUrl}/ratings/${ratingId}`, request);
+    updateRating(ratingId: number, request: RecipeRatingCreateModel): Observable<RecipeRatingModel> {
+        return this.http.put<RecipeRatingModel>(`${this.apiUrl}/ratings/${ratingId}`, request);
     }
 
-    deleteRating(ratingId: number): Observable<any> {
+    deleteRating(ratingId: number): Observable<void> {
         return this.http.delete(`${this.apiUrl}/ratings/${ratingId}`);
     }
 
@@ -58,7 +58,7 @@ export class RecipeAdvancedService {
         return this.http.get<RecipeShareTokenModel[]>(`${this.apiUrl}/recipes/${recipeId}/share-tokens`);
     }
 
-    deleteShareToken(shareTokenId: number): Observable<any> {
+    deleteShareToken(shareTokenId: number): Observable<void> {
         return this.http.delete(`${this.apiUrl}/share-tokens/${shareTokenId}`);
     }
 
@@ -75,7 +75,7 @@ export class RecipeAdvancedService {
         return this.http.get<RecipeTimelineEventModel[]>(`${this.apiUrl}/recipes/${recipeId}/timeline-events`);
     }
 
-    deleteTimelineEvent(eventId: number): Observable<any> {
+    deleteTimelineEvent(eventId: number): Observable<void> {
         return this.http.delete(`${this.apiUrl}/timeline-events/${eventId}`);
     }
 
@@ -88,16 +88,16 @@ export class RecipeAdvancedService {
         return this.http.get<RecipeNoteModel[]>(`${this.apiUrl}/recipes/${recipeId}/notes`);
     }
 
-    updateNote(noteId: number, request: RecipeNoteCreateModel): Observable<any> {
-        return this.http.put(`${this.apiUrl}/notes/${noteId}`, request);
+    updateNote(noteId: number, request: RecipeNoteCreateModel): Observable<RecipeNoteModel> {
+        return this.http.put<RecipeNoteModel>(`${this.apiUrl}/notes/${noteId}`, request);
     }
 
-    deleteNote(noteId: number): Observable<any> {
+    deleteNote(noteId: number): Observable<void> {
         return this.http.delete(`${this.apiUrl}/notes/${noteId}`);
     }
 
     // Recipe Actions
-    markRecipeAsMade(recipeId: number): Observable<any> {
+    markRecipeAsMade(recipeId: number): Observable<void> {
         return this.http.post(`${this.apiUrl}/recipes/${recipeId}/mark-as-made`, {});
     }
 

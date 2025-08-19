@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -36,6 +36,9 @@ import { RestrictionService } from '../../services/restriction.service';
   styleUrls: ['./medical-restriction.component.scss'],
 })
 export class MedicalRestrictionComponent implements OnInit {
+  private fb = inject(NonNullableFormBuilder);
+  private restrictionService = inject(RestrictionService);
+
   @Input() medicalRestrictionForm!: FormGroup; // Input FormGroup for this section
 
   // FormControls for autocomplete inputs
@@ -112,10 +115,6 @@ export class MedicalRestrictionComponent implements OnInit {
     'Zinc',
   ];
 
-  constructor(
-    private fb: NonNullableFormBuilder,
-    private restrictionService: RestrictionService
-  ) {}
 
   ngOnInit(): void {
     if (!this.medicalRestrictionForm) {
@@ -157,7 +156,7 @@ export class MedicalRestrictionComponent implements OnInit {
     );
   }
 
-  public addChip(event: any, formArrayName: string): void {
+  public addChip(event: { input?: HTMLInputElement | null; value?: string }, formArrayName: string): void {
     const input = event.input;
     const value = (event.value || '').trim();
     if (value) {
@@ -183,20 +182,20 @@ export class MedicalRestrictionComponent implements OnInit {
     }
   }
 
-  public onMultiSelectChange(formControlName: string, event: any): void {
+  public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
     const selectedValues = event.value;
     const formArray = this.medicalRestrictionForm.get(
       formControlName
     ) as FormArray;
     formArray.clear();
-    selectedValues.forEach((value: any) => {
+    selectedValues.forEach((value: string) => {
       formArray.push(this.fb.control(value));
     });
   }
 
   public onCheckboxChange(
     formControlName: string,
-    value: any,
+    value: string,
     isChecked: boolean
   ): void {
     const formArray = this.medicalRestrictionForm.get(
@@ -216,7 +215,7 @@ export class MedicalRestrictionComponent implements OnInit {
 
   public isMultiSelectOptionSelected(
     formControlName: string,
-    optionValue: any
+    optionValue: string
   ): boolean {
     const formArray = this.medicalRestrictionForm.get(
       formControlName

@@ -3,7 +3,7 @@
 import { IHouseholdCreateRequestModel } from './household-create-request.model.interface';
 
 export class HouseholdCreateRequestModel implements IHouseholdCreateRequestModel {
-    name: string = '';
+    name = '';
     description?: string;
 
     constructor(data?: Partial<IHouseholdCreateRequestModel>) {

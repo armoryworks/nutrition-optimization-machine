@@ -1,31 +1,17 @@
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-} from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
   FormArray,
   NonNullableFormBuilder,
   ReactiveFormsModule,
-  Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatRadioModule } from '@angular/material/radio';
-import { Observable, of, startWith, map } from 'rxjs';
 
 // Import new child restriction components
 import { SocietalRestrictionComponent } from '../societal-restriction/societal-restriction.component';
@@ -36,7 +22,7 @@ import { RestrictionModel } from '../../models/restriction.model';
 import { RestrictionService } from '../../services/restriction.service';
 import { PersonModel } from '../../../person/models/person.model';
 import { RestrictionTypeEnum } from '../../enums/restriction-type.enum';
-import { JsonParseCommonPipe } from '../../../common/pipes/json-parse-common.pipe';
+
 
 @Component({
   selector: 'nom-restriction-edit',
@@ -59,13 +45,16 @@ import { JsonParseCommonPipe } from '../../../common/pipes/json-parse-common.pip
   encapsulation: ViewEncapsulation.None,
 })
 export class RestrictionEditComponent implements OnInit {
+  private fb = inject(NonNullableFormBuilder);
+  private restrictionService = inject(RestrictionService);
+
   @Input() restrictions: RestrictionModel[] = [];
-  @Input() currentPersonId: number = 0;
+  @Input() currentPersonId = 0;
   @Input() allPersonsInPlan: PersonModel[] = [];
-  @Input() restrictionType: RestrictionTypeEnum | null = null;
+  @Input() restrictionType: RestrictionTypeEnum | undefined = undefined;
   // NEW: Input for whether the restriction applies to the entire plan,
   // this is now managed by OnboardingWorkflowComponent
-  @Input() appliesToEntirePlan: boolean = false;
+  @Input() appliesToEntirePlan = false;
   // NEW: Input for explicitly affected person IDs (if appliesToEntirePlan is false)
   @Input() affectedPersonIds: number[] = [];
 
@@ -77,10 +66,7 @@ export class RestrictionEditComponent implements OnInit {
   // Expose the enum to the template
   public RestrictionTypeEnum = RestrictionTypeEnum;
 
-  constructor(
-    private fb: NonNullableFormBuilder,
-    private restrictionService: RestrictionService
-  ) {}
+
 
   ngOnInit(): void {
     this.restrictionForm = this.fb.group({
@@ -140,7 +126,7 @@ export class RestrictionEditComponent implements OnInit {
 
         // Patch the relevant nested FormGroup
         switch (this.restrictionType) {
-          case RestrictionTypeEnum.SocietalReligiousEthical:
+          case RestrictionTypeEnum.SocietalReligiousEthical: {
             const societalGroup = this.restrictionForm.get(
               'societalRestrictionForm'
             ) as FormGroup;
@@ -160,7 +146,8 @@ export class RestrictionEditComponent implements OnInit {
               fastingSchedules: res.fastingSchedules,
             });
             break;
-          case RestrictionTypeEnum.AllergyMedical:
+          }
+          case RestrictionTypeEnum.AllergyMedical: {
             const medicalGroup = this.restrictionForm.get(
               'medicalRestrictionForm'
             ) as FormGroup;
@@ -195,7 +182,8 @@ export class RestrictionEditComponent implements OnInit {
               prescriptionInteractions: res.prescriptionInteractions,
             });
             break;
-          case RestrictionTypeEnum.PersonalPreference:
+          }
+          case RestrictionTypeEnum.PersonalPreference: {
             const personalGroup = this.restrictionForm.get(
               'personalPreferenceForm'
             ) as FormGroup;
@@ -218,6 +206,7 @@ export class RestrictionEditComponent implements OnInit {
               )
             );
             break;
+          }
         }
       }
     });
@@ -253,7 +242,12 @@ export class RestrictionEditComponent implements OnInit {
   public submitForm(): void {
     // Mark the relevant nested form group as touched to trigger validation messages
     let formGroupToValidate: FormGroup | null = null;
-    let submittedFormValue: any = {};
+    let submittedFormValue: Partial<Pick<RestrictionModel,
+      'societalReligiousEthicalTypeIds' | 'mandatoryInclusions' | 'fastingSchedules' |
+      'allergyMedicalIngredientIds' | 'allergyMedicalConditionIds' | 'gastrointestinalConditions' |
+      'kidneyDiseaseNutrientRestrictions' | 'vitaminMineralDeficiencies' | 'prescriptionInteractions' |
+      'personalPreferenceSpiceLevel' | 'dislikedIngredients' | 'dislikedTextures' | 'preferredCookingMethods'
+    >> = {};
 
     switch (this.restrictionType) {
       case RestrictionTypeEnum.SocietalReligiousEthical:

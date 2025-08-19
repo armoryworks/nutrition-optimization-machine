@@ -1,18 +1,21 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ShoppingList } from '../models/shopping-list.model';
 import { ShoppingListCreateRequest } from '../models/shopping-list-create-request.model';
 import { ShoppingListUpdateRequest } from '../models/shopping-list-update-request.model';
+import { ShoppingListItemCreateRequestModel } from '../models/shopping-list-item-create-request.model';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ShoppingListService {
+    private http = inject(HttpClient);
+
     private apiUrl = `${environment.apiUrl}/api/shopping-lists`;
 
-    constructor(private http: HttpClient) { }
+
 
     // Get all shopping lists
     getAllShoppingLists(): Observable<ShoppingList[]> {
@@ -55,7 +58,7 @@ export class ShoppingListService {
     }
 
     // Add items to shopping list
-    addItemsToShoppingList(id: number, items: any[]): Observable<ShoppingList> {
+    addItemsToShoppingList(id: number, items: ShoppingListItemCreateRequestModel[]): Observable<ShoppingList> {
         return this.http.post<ShoppingList>(`${this.apiUrl}/${id}/items`, { items });
     }
 

@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/common/services/reference.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ReferenceItemModel } from '../models/reference-item.model';
@@ -9,9 +9,9 @@ import { ReferenceItemModel } from '../models/reference-item.model';
   providedIn: 'root'
 })
 export class ReferenceService {
-  private readonly apiUrl = '/api/Reference';
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) { }
+  private readonly apiUrl = '/api/Reference';
 
   /**
    * Get all measurement types from the reference data

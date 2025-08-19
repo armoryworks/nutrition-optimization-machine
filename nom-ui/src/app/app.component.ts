@@ -1,13 +1,6 @@
 // File: nom-ui/src/app/app.component.ts
 
-import {
-  Component,
-  OnInit,
-  ViewEncapsulation,
-  Inject,
-  PLATFORM_ID,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, PLATFORM_ID, OnDestroy, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   RouterOutlet,
@@ -30,7 +23,7 @@ import { AuthService } from './auth/auth.service';
 import { NotificationService } from './utilities/services/notification.service';
 import { UserInfoService } from './utilities/services/user-info.service';
 import { Subscription, Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 
 @Component({
   selector: 'nom-root',
@@ -54,13 +47,21 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private platformId = inject(PLATFORM_ID);
+  private notificationService = inject(NotificationService);
+  private configService = inject(NomConfigService);
+  private authManagerService = inject(AuthManagerService);
+  private authService = inject(AuthService);
+  private userInfoService = inject(UserInfoService);
+  private router = inject(Router);
+
   title = 'NOM - Nutrition Optimization Machine';
-  isMenuOpen: boolean = false;
-  isLoggedIn: boolean = false;
-  isUserMenuOpen: boolean = false;
-  isDarkTheme: boolean = false;
+  isMenuOpen = false;
+  isLoggedIn = false;
+  isUserMenuOpen = false;
+  isDarkTheme = false;
   currentYear: number = new Date().getFullYear();
-  searchQuery: string = '';
+  searchQuery = '';
 
   // Observables for reactive UI updates
   isLoggedIn$: Observable<boolean>;
@@ -69,15 +70,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private subscriptions: Subscription = new Subscription();
 
-  constructor(
-    @Inject(PLATFORM_ID) private platformId: Object,
-    private notificationService: NotificationService,
-    private configService: NomConfigService,
-    private authManagerService: AuthManagerService,
-    private authService: AuthService,
-    private userInfoService: UserInfoService,
-    private router: Router
-  ) {
+  constructor() {
     // Initialize observables from the AuthManagerService
     this.isLoggedIn$ = this.authManagerService.userLogin;
     this.canManageCuration$ = this.authManagerService.canManageCuration$;
@@ -138,10 +131,10 @@ export class AppComponent implements OnInit, OnDestroy {
     // Only load user info if user is logged in
     if (this.authManagerService.isLoggedIn()) {
       this.authService.getInfo().subscribe({
-        next: (userInfo: any) => {
+        next: (userInfo: unknown) => {
           console.log('User info loaded:', userInfo);
         },
-        error: (error: any) => {
+        error: (error: unknown) => {
           console.error('Error loading user info:', error);
         }
       });
@@ -159,9 +152,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.applyThemeClass();
   }
 
-  onSearchInput(event: any): void {
+  onSearchInput(event: Event): void {
     // Handle search input with debouncing
-    const query = event.target.value;
+    const target = event.target as HTMLInputElement;
+    const query = target.value;
     if (query.length >= 2) {
       // Implement debounced search here if needed
       console.log('Search query:', query);
@@ -193,9 +187,10 @@ export class AppComponent implements OnInit, OnDestroy {
         this.authManagerService.logout();
         this.notificationService.success('Logged Out Successfully');
       },
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error('Logout error:', error);
-        this.notificationService.error(error.message || 'Failed to log out. Please try again.');
+        const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Failed to log out. Please try again.';
+        this.notificationService.error(errorMessage);
       },
     });
   }

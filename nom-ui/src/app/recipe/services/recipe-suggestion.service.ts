@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -60,7 +60,7 @@ export interface RecipeSuggestionResponseItem {
     matchScore: number;
     matchReason: string;
     substitutions: string[];
-    nutritionalInfo?: Record<string, any>;
+    nutritionalInfo?: Record<string, number>;
     estimatedCost?: number;
     isPublic: boolean;
     authorName: string;
@@ -72,7 +72,7 @@ export interface RecipeSuggestionResponse {
     totalCount: number;
     suggestionMethod: string;
     recommendations: string[];
-    analytics?: Record<string, any>;
+    analytics?: Record<string, number | string>;
 }
 
 export interface AIRecipeSuggestionResponse {
@@ -83,7 +83,7 @@ export interface AIRecipeSuggestionResponse {
     substitutions: string[];
     errors: string[];
     aiReasoning?: string;
-    nutritionalAnalysis?: Record<string, any>;
+    nutritionalAnalysis?: Record<string, number>;
     estimatedTotalCost?: number;
 }
 
@@ -94,7 +94,7 @@ export interface RecipeRecommendation {
     confidence: number;
     reason: string;
     similarRecipes: string[];
-    userBehaviorData?: Record<string, any>;
+    userBehaviorData?: Record<string, number | string | boolean>;
 }
 
 export interface RecipeDiscoveryRequest {
@@ -161,9 +161,11 @@ export interface RecipeSuggestionAnalytics {
     providedIn: 'root'
 })
 export class RecipeSuggestionService {
+    private http = inject(HttpClient);
+
     private readonly baseUrl = `${environment.apiUrl}/api/recipesuggestion`;
 
-    constructor(private http: HttpClient) { }
+
 
     /**
      * Get recipe suggestions based on available ingredients and tools
@@ -223,7 +225,7 @@ export class RecipeSuggestionService {
     /**
      * Get similar recipes to a given recipe
      */
-    getSimilarRecipes(recipeId: number, limit: number = 10): Observable<RecipeSimilarity[]> {
+    getSimilarRecipes(recipeId: number, limit = 10): Observable<RecipeSimilarity[]> {
         const params = new HttpParams().set('limit', limit.toString());
         return this.http.get<RecipeSimilarity[]>(`${this.baseUrl}/similar/${recipeId}`, { params });
     }
@@ -231,7 +233,7 @@ export class RecipeSuggestionService {
     /**
      * Get trending recipes
      */
-    getTrendingRecipes(limit: number = 10): Observable<RecipeTrending[]> {
+    getTrendingRecipes(limit = 10): Observable<RecipeTrending[]> {
         const params = new HttpParams().set('limit', limit.toString());
         return this.http.get<RecipeTrending[]>(`${this.baseUrl}/trending`, { params });
     }
@@ -411,14 +413,14 @@ export class RecipeSuggestionService {
     /**
      * Update recipe suggestion preferences
      */
-    updateSuggestionPreferences(preferences: Record<string, any>): Observable<boolean> {
+    updateSuggestionPreferences(preferences: Record<string, number | string | boolean>): Observable<boolean> {
         return this.http.put<boolean>(`${this.baseUrl}/preferences`, preferences);
     }
 
     /**
      * Get recipe suggestion preferences
      */
-    getSuggestionPreferences(): Observable<Record<string, any>> {
-        return this.http.get<Record<string, any>>(`${this.baseUrl}/preferences`);
+    getSuggestionPreferences(): Observable<Record<string, number | string | boolean>> {
+        return this.http.get<Record<string, number | string | boolean>>(`${this.baseUrl}/preferences`);
     }
 } 

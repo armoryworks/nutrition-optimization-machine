@@ -33,8 +33,8 @@
           type="submit"
           [disabled]="shareTokenForm.invalid || isSubmitting"
           class="recipe-share-token__submit-btn">
-          <mat-icon @if (!isSubmitting)>add</mat-icon>
-          <mat-icon @if (isSubmitting) class="recipe-share-token__loading">hourglass_empty</mat-icon>
+          <mat-icon *ngIf="!isSubmitting">add</mat-icon>
+          <mat-icon *ngIf="isSubmitting" class="recipe-share-token__loading">hourglass_empty</mat-icon>
           {{ isSubmitting ? 'Creating...' : 'Create Share Token' }}
         </button>
       </div>
@@ -46,63 +46,57 @@
     <div class="recipe-share-token__tokens-section">
       <h3 class="recipe-share-token__section-title">Active Share Tokens</h3>
       
-      @if (shareTokens.length === 0 && !isLoading) {
-        <div class="recipe-share-token__empty">
-          <mat-icon class="recipe-share-token__empty-icon">share</mat-icon>
-          <p>No share tokens created yet</p>
-        </div>
-      }
+             <div *ngIf="shareTokens.length === 0 && !isLoading" class="recipe-share-token__empty">
+         <mat-icon class="recipe-share-token__empty-icon">share</mat-icon>
+         <p>No share tokens created yet</p>
+       </div>
 
-      @if (shareTokens.length > 0) {
-        <div class="recipe-share-token__tokens-list">
-          @for (shareToken of shareTokens; track shareToken.id) {
-            <div class="recipe-share-token__token-item">
-              <div class="recipe-share-token__token-info">
-                <div class="recipe-share-token__token-header">
-                  <h4 class="recipe-share-token__token-name">
-                    {{ shareToken.shareName || 'Unnamed Share' }}
-                  </h4>
-                  <mat-chip-set class="recipe-share-token__token-chips">
-                    <mat-chip 
-                      [color]="shareToken.isPublic ? 'accent' : 'primary'" 
-                      class="recipe-share-token__token-chip">
-                      {{ shareToken.isPublic ? 'Public' : 'Private' }}
-                    </mat-chip>
-                  </mat-chip-set>
-                </div>
-                
-                <div class="recipe-share-token__token-details">
-                  <p class="recipe-share-token__token-url">
-                    <strong>Share URL:</strong> 
-                    <span class="recipe-share-token__token-text">{{ getShareUrl(shareToken.shareToken) }}</span>
-                  </p>
-                  <p class="recipe-share-token__token-date">
-                    <strong>Created:</strong> {{ formatDate(shareToken.createdDate) }}
-                  </p>
-                </div>
-              </div>
+             <div *ngIf="shareTokens.length > 0" class="recipe-share-token__tokens-list">
+         <div *ngFor="let shareToken of shareTokens; trackBy: trackByShareTokenId" class="recipe-share-token__token-item">
+           <div class="recipe-share-token__token-info">
+             <div class="recipe-share-token__token-header">
+               <h4 class="recipe-share-token__token-name">
+                 {{ shareToken.shareName || 'Unnamed Share' }}
+               </h4>
+               <mat-chip-set class="recipe-share-token__token-chips">
+                 <mat-chip 
+                   [color]="shareToken.isPublic ? 'accent' : 'primary'" 
+                   class="recipe-share-token__token-chip">
+                   {{ shareToken.isPublic ? 'Public' : 'Private' }}
+                 </mat-chip>
+               </mat-chip-set>
+             </div>
+             
+             <div class="recipe-share-token__token-details">
+               <p class="recipe-share-token__token-url">
+                 <strong>Share URL:</strong> 
+                 <span class="recipe-share-token__token-text">{{ getShareUrl(shareToken.shareToken) }}</span>
+               </p>
+               <p class="recipe-share-token__token-date">
+                 <strong>Created:</strong> {{ formatDate(shareToken.createdDate) }}
+               </p>
+             </div>
+           </div>
 
-              <div class="recipe-share-token__token-actions">
-                <button 
-                  mat-icon-button 
-                  matTooltip="Copy share URL"
-                  (click)="copyShareToken(shareToken.shareToken)"
-                  class="recipe-share-token__copy-btn">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-                <button 
-                  mat-icon-button 
-                  color="warn"
-                  (click)="deleteShareToken(shareToken.id)"
-                  class="recipe-share-token__delete-btn"
-                  matTooltip="Delete share token">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </div>
-          }
-        </div>
-      }
+           <div class="recipe-share-token__token-actions">
+             <button 
+               mat-icon-button 
+               matTooltip="Copy share URL"
+               (click)="copyShareToken(shareToken.shareToken)"
+               class="recipe-share-token__copy-btn">
+               <mat-icon>content_copy</mat-icon>
+             </button>
+             <button 
+               mat-icon-button 
+               color="warn"
+               (click)="deleteShareToken(shareToken.id)"
+               class="recipe-share-token__delete-btn"
+               matTooltip="Delete share token">
+               <mat-icon>delete</mat-icon>
+             </button>
+           </div>
+         </div>
+       </div>
     </div>
   </div>
 </nom-base-detail> 

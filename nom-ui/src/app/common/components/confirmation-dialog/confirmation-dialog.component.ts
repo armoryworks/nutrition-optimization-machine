@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/common/components/confirmation-dialog/confirmation-dialog.component.ts
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -23,15 +23,19 @@ export interface ConfirmationDialogData {
   templateUrl: './confirmation-dialog.component.html',
 })
 export class ConfirmationDialogComponent {
+  dialogRef = inject<MatDialogRef<ConfirmationDialogComponent>>(MatDialogRef);
+  data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
+
   title: string;
   message: string;
   confirmButtonText: string;
   cancelButtonText: string;
 
-  constructor(
-    public dialogRef: MatDialogRef<ConfirmationDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ConfirmationDialogData
-  ) {
+
+
+  constructor() {
+    const data = this.data;
+
     this.title = data.title;
     this.message = data.message;
     this.confirmButtonText = data.confirmButtonText || 'Confirm';

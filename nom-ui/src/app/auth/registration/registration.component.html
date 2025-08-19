@@ -131,9 +131,7 @@
     <mat-card-actions class="nom-card__footer">
       <p class="nom-prompt-text">
         Already have an account?
-        <span class="nom-link" (click)="openUserMenuFromFooter()"
-          >Login Here</span
-        >
+        <span class="nom-link" (click)="openUserMenuFromFooter()" (keyup.enter)="openUserMenuFromFooter()" tabindex="0" role="button" aria-label="Login here">Login Here</span>
       </p>
     </mat-card-actions>
   </mat-card>

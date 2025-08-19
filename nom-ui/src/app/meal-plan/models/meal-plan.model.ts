@@ -5,18 +5,15 @@ import { IMealPlanResponseModel } from './meal-plan-response.model.interface';
 import { IMealPlanCreateRequestModel } from './meal-plan-create-request.model.interface';
 import { IMealPlanCreateResponseModel } from './meal-plan-create-response.model.interface';
 import { IMealPlanUpdateRequestModel } from './meal-plan-update-request.model.interface';
-import { IMealPlanRuleModel } from './meal-plan-rule.model.interface';
-import { IMealPlanRuleCreateRequestModel } from './meal-plan-rule-create-request.model.interface';
-import { IMealPlanRuleCreateResponseModel } from './meal-plan-rule-create-response.model.interface';
-import { IMealPlanRuleResponseModel } from './meal-plan-rule-response.model.interface';
+
 
 export class MealPlanModel implements IMealPlanModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
+    id = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
     createdDate: Date = new Date();
@@ -30,13 +27,13 @@ export class MealPlanModel implements IMealPlanModel {
 }
 
 export class MealPlanResponseModel implements IMealPlanResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
+    id = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    mealType: string = '';
-    title: string = '';
+    mealTypeId = 0;
+    mealType = '';
+    title = '';
     notes?: string;
     description?: string;
     recipeId?: number;
@@ -54,11 +51,11 @@ export class MealPlanResponseModel implements IMealPlanResponseModel {
 }
 
 export class MealPlanCreateRequestModel implements IMealPlanCreateRequestModel {
-    householdId: number = 0;
-    authorId: number = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
 
@@ -70,12 +67,12 @@ export class MealPlanCreateRequestModel implements IMealPlanCreateRequestModel {
 }
 
 export class MealPlanCreateResponseModel implements IMealPlanCreateResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
+    id = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
     createdDate: Date = new Date();
@@ -88,12 +85,12 @@ export class MealPlanCreateResponseModel implements IMealPlanCreateResponseModel
 }
 
 export class MealPlanUpdateRequestModel implements IMealPlanUpdateRequestModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
+    id = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
 

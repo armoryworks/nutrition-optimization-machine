@@ -35,20 +35,20 @@ export interface IBaseService {
     /**
      * Handles errors in a standardized way
      */
-    handleError(error: any, context?: string): void;
+    handleError(error: Error | string | unknown, context?: string): void;
 
     /**
      * Logs information in a standardized way
      */
-    logInfo(message: string, data?: any): void;
+    logInfo(message: string, data?: unknown): void;
 
     /**
      * Logs warnings in a standardized way
      */
-    logWarning(message: string, data?: any): void;
+    logWarning(message: string, data?: unknown): void;
 
     /**
      * Logs errors in a standardized way
      */
-    logError(message: string, error?: any): void;
+    logError(message: string, error?: Error | string | unknown): void;
 } 

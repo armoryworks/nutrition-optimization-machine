@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MessageThreadModel } from '../models/i-message-thread.model';
@@ -9,9 +9,11 @@ import { SendMessageRequestModel } from '../models/send-message-request.model';
     providedIn: 'root'
 })
 export class MessagingService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = 'api/messaging';
 
-    constructor(private http: HttpClient) { }
+
 
     getMessageThreads(): Observable<MessageThreadModel[]> {
         return this.http.get<MessageThreadModel[]>(`${this.apiUrl}/threads`);

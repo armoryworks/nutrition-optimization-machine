@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.ts
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -20,8 +20,26 @@ import { NotificationService } from '../../../utilities/services/notification.se
 import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboard-item.model';
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
-import { CurationStatus, canSubmitForCuration } from '../../../recipe/models/curation-status.enum';
+import { canSubmitForCuration, CurationStatus } from '../../../recipe/models/curation-status.enum';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+
+// Helper function to convert curation status ID to status string
+function getCurationStatusFromId(statusId: number): string {
+  switch (statusId) {
+    case CurationStatus.NonCurated:
+      return 'NonCurated';
+    case CurationStatus.PendingCuration:
+      return 'PendingCuration';
+    case CurationStatus.RequiresRevision:
+      return 'RequiresRevision';
+    case CurationStatus.Curated:
+      return 'Curated';
+    case CurationStatus.Rejected:
+      return 'Rejected';
+    default:
+      return 'NonCurated';
+  }
+}
 
 interface MenuItem {
   icon: string;
@@ -49,22 +67,22 @@ interface MenuItem {
   styleUrls: ['./recipe-author-dashboard.component.scss']
 })
 export class RecipeAuthorDashboardComponent implements OnInit {
+  private recipeService = inject(RecipeService);
+  private curationService = inject(CurationService);
+  private notificationService = inject(NotificationService);
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+
   recipes$!: Observable<RecipeDashboardItemModel[]>;
   ingredients$!: Observable<RecipeDashboardItemModel[]>;
   recipesCount$!: Observable<number>;
   ingredientsCount$!: Observable<number>;
   pendingCurationCount$!: Observable<number>;
   error: string | null = null;
-  submittingItems: Set<number> = new Set();
+  submittingItems = new Set<number>();
 
-  constructor(
-    private recipeService: RecipeService,
-    private curationService: CurationService,
-    private notificationService: NotificationService,
-    private snackBar: MatSnackBar,
-    private router: Router,
-    private dialog: MatDialog
-  ) { }
+
 
   ngOnInit(): void {
     this.recipes$ = this.recipeService.getRecipes().pipe(
@@ -72,7 +90,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         ...recipe,
         curationStatus: recipe.curationStatus || 'draft'
       }))),
-      catchError((err: any) => {
+      catchError((err: Error | string | unknown) => {
         console.error('Error fetching recipes:', err);
         this.error = 'Could not load your recipes. Please try again later.';
         return of([]);
@@ -82,9 +100,9 @@ export class RecipeAuthorDashboardComponent implements OnInit {
     this.ingredients$ = this.recipeService.getMyIngredients().pipe(
       map(ingredients => ingredients.map(ingredient => ({
         ...ingredient,
-        curationStatus: ingredient.curationStatus || 'draft'
+        curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
       }))),
-      catchError((err: any) => {
+      catchError((err: Error | string | unknown) => {
         console.error('Error fetching ingredients:', err);
         this.error = 'Could not load your ingredients. Please try again later.';
         return of([]);
@@ -130,14 +148,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
             ...recipe,
             curationStatus: recipe.curationStatus || 'draft'
           }))),
-          catchError((err: any) => {
+          catchError((err: Error | string | unknown) => {
             console.error('Error fetching recipes:', err);
             this.error = 'Could not load your recipes. Please try again later.';
             return of([]);
           })
         );
       },
-      error: (error: any) => {
+      error: (error: Error | string | unknown) => {
         console.error('Error submitting recipe for curation:', error);
         this.notificationService.error('Failed to submit recipe for curation. Please try again.');
         this.submittingItems.delete(recipeId);
@@ -160,16 +178,16 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         this.ingredients$ = this.recipeService.getMyIngredients().pipe(
           map(ingredients => ingredients.map(ingredient => ({
             ...ingredient,
-            curationStatus: ingredient.curationStatus || 'draft'
+            curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
           }))),
-          catchError((err: any) => {
+          catchError((err: Error | string | unknown) => {
             console.error('Error fetching ingredients:', err);
             this.error = 'Could not load your ingredients. Please try again later.';
             return of([]);
           })
         );
       },
-      error: (error: any) => {
+      error: (error: Error | string | unknown) => {
         console.error('Error submitting ingredient for curation:', error);
         this.notificationService.error('Failed to submit ingredient for curation. Please try again.');
         this.submittingItems.delete(ingredientId);
@@ -222,14 +240,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
                 ...recipe,
                 curationStatus: recipe.curationStatus || 'draft'
               }))),
-              catchError((err: any) => {
+              catchError((err: Error | string | unknown) => {
                 console.error('Error fetching recipes:', err);
                 this.error = 'Could not load your recipes. Please try again later.';
                 return of([]);
               })
             );
           },
-          error: (error: any) => {
+          error: (error: Error | string | unknown) => {
             console.error('Error deleting recipe:', error);
             this.notificationService.error('Failed to delete recipe. Please try again.');
           }
@@ -259,16 +277,16 @@ export class RecipeAuthorDashboardComponent implements OnInit {
             this.ingredients$ = this.recipeService.getMyIngredients().pipe(
               map(ingredients => ingredients.map(ingredient => ({
                 ...ingredient,
-                curationStatus: ingredient.curationStatus || 'draft'
+                curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
               }))),
-              catchError((err: any) => {
+              catchError((err: Error | string | unknown) => {
                 console.error('Error fetching ingredients:', err);
                 this.error = 'Could not load your ingredients. Please try again later.';
                 return of([]);
               })
             );
           },
-          error: (error: any) => {
+          error: (error: Error | string | unknown) => {
             console.error('Error deleting ingredient:', error);
             this.notificationService.error('Failed to delete ingredient. Please try again.');
           }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { QuestionAnswerSubmission } from '../models/question-answer-submission.model';
@@ -7,19 +7,19 @@ import { QuestionAnswerSubmission } from '../models/question-answer-submission.m
   providedIn: 'root',
 })
 export class QuestionService {
+  private http = inject(HttpClient);
+
   private baseUrl = '/api/questions';
 
-  constructor(private http: HttpClient) {}
-
-  getOnboardingQuestions(): Observable<any> {
+  getOnboardingQuestions(): Observable<QuestionAnswerSubmission[]> {
     return this.http.get(`${this.baseUrl}/onboarding`);
   }
 
   submitOnboardingAnswers(
     personId: number,
     submission: QuestionAnswerSubmission
-  ): Observable<any> {
-    return this.http.post(
+  ): Observable<{ success: boolean; message?: string }> {
+    return this.http.post<{ success: boolean; message?: string }>(
       `${this.baseUrl}/onboarding?personId=${personId}`,
       submission
     );

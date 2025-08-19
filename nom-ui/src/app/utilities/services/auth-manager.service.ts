@@ -1,15 +1,13 @@
 // File: nom-ui/src/app/utilities/services/auth-manager.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Subject, Observable, throwError, of } from 'rxjs';
 import { Router } from '@angular/router';
 import {
   tap,
   catchError,
   switchMap,
-  finalize,
   filter,
-  take,
 } from 'rxjs/operators';
 import { NotificationService } from '../../utilities/services/notification.service';
 import { EventBusService } from './event-bus.service';
@@ -22,6 +20,12 @@ import { LoginUser } from '../../auth/models/login-user';
   providedIn: 'root',
 })
 export class AuthManagerService {
+  private router = inject(Router);
+  private notificationService = inject(NotificationService);
+  private eventBus = inject(EventBusService);
+  private userInfoService = inject(UserInfoService);
+  private authService = inject(AuthService);
+
   public userLogin: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   public openUserMenuSignal: Subject<void> = new Subject<void>();
 
@@ -40,17 +44,13 @@ export class AuthManagerService {
   private _accessToken?: string;
   private _refreshToken?: string;
   private _tokenExpiration?: number;
-  private _rememberMe: boolean = false;
+  private _rememberMe = false;
   private _personId?: number;
   private storage!: Storage;
 
-  constructor(
-    private router: Router,
-    private notificationService: NotificationService,
-    private eventBus: EventBusService,
-    private userInfoService: UserInfoService,
-    private authService: AuthService
-  ) {
+
+
+  constructor() {
     this._rememberMe = localStorage.getItem(this.REMEMBER_ME_KEY) === 'true';
     this.storage = this._rememberMe ? localStorage : sessionStorage;
 
@@ -78,7 +78,9 @@ export class AuthManagerService {
     this.eventBus.events$.pipe(
       filter(event => event.type === 'user:info-updated')
     ).subscribe((event) => {
-      this.updateClaimsFromUserInfo(event.data);
+      if (event.data) {
+        this.updateClaimsFromUserInfo(event.data as { claims?: { type: string }[]; PersonId?: number });
+      }
     });
   }
 
@@ -231,7 +233,7 @@ export class AuthManagerService {
     this._canManageUserRoles.next(false);
   }
 
-  private updateClaimsFromUserInfo(userInfo: any): void {
+  private updateClaimsFromUserInfo(userInfo: { claims?: { type: string }[]; PersonId?: number }): void {
     console.log('Updating claims from user info:', userInfo);
     if (userInfo && userInfo.claims) {
       // Set personId from user info
@@ -239,8 +241,8 @@ export class AuthManagerService {
         this.personId = userInfo.PersonId;
       }
 
-      const canCure = userInfo.claims.some((claim: any) => claim.type === 'CanManageCuration');
-      const canManageRoles = userInfo.claims.some((claim: any) => claim.type === 'CanManageUserRoles');
+      const canCure = userInfo.claims.some((claim: { type: string }) => claim.type === 'CanManageCuration');
+      const canManageRoles = userInfo.claims.some((claim: { type: string }) => claim.type === 'CanManageUserRoles');
 
       console.log('Claims found:', {
         canManageCuration: canCure,

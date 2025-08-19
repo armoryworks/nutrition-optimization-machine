@@ -1,16 +1,16 @@
 import { IShoppingListCategoryModel } from './shopping-list-category.model.interface';
 
 export class ShoppingListCategory implements IShoppingListCategoryModel {
-    id: number = 0;
-    householdId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    name = '';
     description?: string;
-    sortOrder: number = 0;
+    sortOrder = 0;
     color?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
-    listCount: number = 0; // Number of lists in this category
-    itemCount: number = 0; // Alias for listCount
+    listCount = 0; // Number of lists in this category
+    itemCount = 0; // Alias for listCount
 
     constructor(data?: Partial<IShoppingListCategoryModel>) {
         if (data) {
@@ -20,10 +20,10 @@ export class ShoppingListCategory implements IShoppingListCategoryModel {
 }
 
 export class ShoppingListCategoryCreate {
-    householdId: number = 0;
-    name: string = '';
+    householdId = 0;
+    name = '';
     description?: string;
-    sortOrder: number = 0;
+    sortOrder = 0;
     color?: string;
 
     constructor(data?: Partial<ShoppingListCategoryCreate>) {

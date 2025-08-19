@@ -3,7 +3,7 @@
 import { IHouseholdInviteTokenCreateRequestModel } from './household-invite-token-create-request.interface';
 
 export class HouseholdInviteTokenCreateRequestModel implements IHouseholdInviteTokenCreateRequestModel {
-    householdId: number = 0;
+    householdId = 0;
     expiresAt?: Date;
 
     constructor(data?: Partial<IHouseholdInviteTokenCreateRequestModel>) {

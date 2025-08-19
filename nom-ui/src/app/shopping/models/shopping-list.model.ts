@@ -3,14 +3,14 @@
 import { IShoppingListModel } from './shopping-list.model.interface';
 
 export class ShoppingListModel implements IShoppingListModel {
-    id: number = 0;
-    householdId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    name = '';
     description?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
-    itemCount: number = 0;
-    completedItemCount: number = 0;
+    itemCount = 0;
+    completedItemCount = 0;
 
     constructor(data?: Partial<IShoppingListModel>) {
         if (data) {

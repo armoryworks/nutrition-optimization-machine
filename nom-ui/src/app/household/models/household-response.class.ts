@@ -3,14 +3,14 @@
 import { IHouseholdResponseModel } from './household-response.interface';
 
 export class HouseholdResponseModel implements IHouseholdResponseModel {
-    id: number = 0;
-    name: string = '';
+    id = 0;
+    name = '';
     description?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
-    memberCount: number = 0;
-    planCount: number = 0;
-    isOwner: boolean = false;
+    memberCount = 0;
+    planCount = 0;
+    isOwner = false;
     groupId?: number;
 
     constructor(data?: Partial<IHouseholdResponseModel>) {

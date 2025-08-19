@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -44,6 +44,11 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
     styleUrls: ['./shopping-dashboard.component.scss']
 })
 export class ShoppingDashboardComponent implements OnInit {
+    private router = inject(Router);
+    private shoppingService = inject(ShoppingService);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     shoppingLists: ShoppingListResponseModel[] = [];
     filteredLists: ShoppingListResponseModel[] = [];
     isLoading = true;
@@ -58,12 +63,7 @@ export class ShoppingDashboardComponent implements OnInit {
         maxWidth: '1200px',
     };
 
-    constructor(
-        private router: Router,
-        private shoppingService: ShoppingService,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) { }
+
 
     ngOnInit(): void {
         this.loadShoppingLists();
@@ -166,8 +166,8 @@ export class ShoppingDashboardComponent implements OnInit {
     }
 
     getProgressPercentage(list: ShoppingListResponseModel): number {
-        const totalItems = (list as any).totalItems || list.itemCount || 0;
-        const completedItems = (list as any).completedItems || list.completedItemCount || 0;
+        const totalItems = (list as { totalItems?: number }).totalItems || list.itemCount || 0;
+        const completedItems = (list as { completedItems?: number }).completedItems || list.completedItemCount || 0;
         if (!list || !totalItems || totalItems === 0) return 0;
         return Math.round((completedItems / totalItems) * 100);
     }

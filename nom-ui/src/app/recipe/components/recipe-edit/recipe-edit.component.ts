@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -18,10 +18,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
+import { RecipeModel } from '../../models/recipe.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { IngredientCreateModalComponent, IngredientCreateModalData } from '../ingredient-create-modal/ingredient-create-modal.component';
 import { IngredientModel } from '../../models/ingredient.model';
-import { RecipeEditModel, RecipeIngredientModel, RecipeStepModel } from '../../models/recipe-edit.model';
+import { RecipeEditModel, RecipeIngredientModel } from '../../models/recipe-edit.model';
+import { RecipeStepModel } from '../../models/recipe-step.model';
 import { CurationService } from '../../../curation/services/curation.service';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
@@ -50,6 +52,15 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
     styleUrls: ['./recipe-edit.component.scss']
 })
 export class RecipeEditComponent implements OnInit, OnDestroy {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private route = inject(ActivatedRoute);
+    router = inject(Router);
+    private recipeService = inject(RecipeService);
+    private notificationService = inject(NotificationService);
+    private dialog = inject(MatDialog);
+    private curationService = inject(CurationService);
+    private userInfoService = inject(UserInfoService);
+
     recipeForm: FormGroup;
     isEditMode = false;
     recipeId: number | null = null;
@@ -80,16 +91,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     private destroy$ = new Subject<void>();
 
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private route: ActivatedRoute,
-        public router: Router,
-        private recipeService: RecipeService,
-        private notificationService: NotificationService,
-        private dialog: MatDialog,
-        private curationService: CurationService,
-        private userInfoService: UserInfoService
-    ) {
+    constructor() {
         this.recipeForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.maxLength(511)]],
             description: ['', [Validators.maxLength(2047)]],
@@ -197,7 +199,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         });
     }
 
-    private loadRecipeData(recipe: any): void {
+    private loadRecipeData(recipe: RecipeModel): void {
         this.recipeForm.patchValue({
             name: recipe.name,
             description: recipe.description
@@ -205,12 +207,12 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         // Load ingredients
         if (recipe.ingredients && recipe.ingredients.length > 0) {
-            recipe.ingredients.forEach((ingredient: any) => {
+            recipe.ingredients.forEach((ingredient: IngredientModel) => {
                 const ingredientGroup = this.nonNullableFb.group({
-                    ingredientId: [ingredient.ingredientId],
+                    ingredientId: [ingredient.id],
                     name: [ingredient.name],
-                    quantity: [ingredient.quantity, [Validators.required, Validators.min(0.01)]],
-                    measurementTypeId: [ingredient.measurementTypeId, [Validators.required]]
+                    quantity: [1, [Validators.required, Validators.min(0.01)]], // Default quantity
+                    measurementTypeId: [1, [Validators.required]] // Default measurement type
                 });
                 this.ingredients.push(ingredientGroup);
             });
@@ -218,10 +220,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         // Load steps
         if (recipe.steps && recipe.steps.length > 0) {
-            recipe.steps.forEach((step: any) => {
+            recipe.steps.forEach((step: RecipeStepModel, index: number) => {
                 const stepGroup = this.nonNullableFb.group({
-                    instruction: [step.instruction, [Validators.required]],
-                    stepNumber: [step.stepNumber]
+                    instruction: [step.description, [Validators.required]],
+                    stepNumber: [index] // Use array index as step number
                 });
                 this.steps.push(stepGroup);
             });
@@ -277,13 +279,17 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         const request$ = this.isEditMode && this.recipeId
             ? this.recipeService.updateRecipe(this.recipeId, {
+                id: this.recipeId,
                 name: recipeData.name,
-                description: recipeData.description || 'No description provided'
+                description: recipeData.description || 'No description provided',
+                ingredients: recipeData.ingredients,
+                steps: recipeData.steps
             })
             : this.recipeService.createRecipe({
                 name: recipeData.name,
                 description: recipeData.description || 'No description provided',
-                authorId: recipeData.authorId
+                steps: recipeData.steps,
+                ingredients: recipeData.ingredients
             });
 
         request$.pipe(

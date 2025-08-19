@@ -1,29 +1,29 @@
 export class ShoppingListCategory {
-    id: number = 0;
-    name: string = '';
+    id = 0;
+    name = '';
     description?: string;
-    householdId: number = 0;
-    sortOrder: number = 0;
+    householdId = 0;
+    sortOrder = 0;
     color?: string;
-    listCount: number = 0;
+    listCount = 0;
 }
 
 export class ShoppingListTemplate {
-    id: number = 0;
-    name: string = '';
+    id = 0;
+    name = '';
     description?: string;
-    householdId: number = 0;
+    householdId = 0;
     items: ShoppingListItemTemplate[] = [];
     createdDate: Date = new Date();
     modifiedDate?: Date;
 }
 
 export class ShoppingListItemTemplate {
-    id: number = 0;
-    templateId: number = 0;
-    name: string = '';
-    quantity: number = 1;
-    measurementUnit: string = '';
+    id = 0;
+    templateId = 0;
+    name = '';
+    quantity = 1;
+    measurementUnit = '';
     notes?: string;
     categoryId?: number;
     categoryName?: string;

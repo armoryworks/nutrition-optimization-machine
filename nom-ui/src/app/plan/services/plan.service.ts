@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PlanModel } from '../models/plan.model';
@@ -7,9 +7,11 @@ import { PlanModel } from '../models/plan.model';
     providedIn: 'root'
 })
 export class PlanService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = `/api/Plan`;
 
-    constructor(private http: HttpClient) { }
+
 
     getCuratedPlans(): Observable<PlanModel[]> {
         return this.http.get<PlanModel[]>(`${this.apiUrl}/curated`);
@@ -30,11 +32,11 @@ export class PlanService {
         });
     }
 
-    createPlan(plan: any): Observable<PlanModel> {
+    createPlan(plan: Partial<PlanModel>): Observable<PlanModel> {
         return this.http.post<PlanModel>(`${this.apiUrl}`, plan);
     }
 
-    updatePlan(id: number, plan: any): Observable<void> {
+    updatePlan(id: number, plan: Partial<PlanModel>): Observable<void> {
         return this.http.put<void>(`${this.apiUrl}/${id}`, plan);
     }
 

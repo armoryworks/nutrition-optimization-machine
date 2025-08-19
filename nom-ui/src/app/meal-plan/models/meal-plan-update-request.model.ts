@@ -4,8 +4,8 @@ import { IMealPlanUpdateRequestModel } from './meal-plan-update-request.model.in
 
 export class MealPlanUpdateRequestModel implements IMealPlanUpdateRequestModel {
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
 

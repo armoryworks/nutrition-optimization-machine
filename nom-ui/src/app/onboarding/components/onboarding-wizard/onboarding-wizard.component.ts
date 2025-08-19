@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,6 +9,20 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
+
+interface OnboardingQuestion {
+    id: string;
+    text: string;
+    type: 'text' | 'radio' | 'checkbox' | 'number';
+    options?: string[];
+    required?: boolean;
+}
+
+interface OnboardingAnswer {
+    questionIndex: number;
+    question: OnboardingQuestion;
+    answer: string | number | boolean;
+}
 
 @Component({
     selector: 'nom-onboarding-wizard',
@@ -28,20 +42,20 @@ import { MatCardModule } from '@angular/material/card';
     templateUrl: './onboarding-wizard.component.html',
     styleUrls: ['./onboarding-wizard.component.scss'],
 })
-export class OnboardingWizardComponent implements OnInit {
-    @Input() questions: any[] = [];
-    @Input() isLoading: boolean = false;
-    @Input() isSubmitting: boolean = false;
+export class OnboardingWizardComponent implements OnInit, OnChanges {
+    @Input() questions: OnboardingQuestion[] = [];
+    @Input() isLoading = false;
+    @Input() isSubmitting = false;
     @Input() error: string | null = null;
     @Input() submitMessage: string | null = null;
 
-    @Output() answerSubmitted = new EventEmitter<any>();
+    @Output() answerSubmitted = new EventEmitter<OnboardingAnswer>();
     @Output() previousQuestion = new EventEmitter<void>();
     @Output() nextQuestion = new EventEmitter<void>();
     @Output() goToDashboard = new EventEmitter<void>();
 
-    currentQuestionIndex: number = 0;
-    currentQuestion: any = null;
+    currentQuestionIndex = 0;
+    currentQuestion: OnboardingQuestion | null = null;
     currentAnswerForm: FormGroup;
 
     constructor() {
@@ -73,7 +87,7 @@ export class OnboardingWizardComponent implements OnInit {
         }
     }
 
-    onAnswerChange(value: any): void {
+    onAnswerChange(value: string | number | boolean): void {
         this.currentAnswerForm.patchValue({
             answer: value
         });

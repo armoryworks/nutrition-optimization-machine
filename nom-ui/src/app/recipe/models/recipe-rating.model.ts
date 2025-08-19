@@ -47,4 +47,19 @@ export class RecipeRatingCreateModel implements IRecipeRatingCreateModel {
         this.rating = data.rating || 0;
         this.reviewText = data.reviewText;
     }
+}
+
+export interface IRecipeRatingUpdateModel {
+    rating: number;
+    reviewText?: string;
+}
+
+export class RecipeRatingUpdateModel implements IRecipeRatingUpdateModel {
+    rating: number;
+    reviewText?: string;
+
+    constructor(data: Partial<IRecipeRatingUpdateModel> = {}) {
+        this.rating = data.rating || 0;
+        this.reviewText = data.reviewText;
+    }
 } 

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -33,6 +33,9 @@ import { RestrictionService } from '../../services/restriction.service';
   styleUrls: ['./personal-preference.component.scss'],
 })
 export class PersonalPreferenceComponent implements OnInit {
+  private fb = inject(NonNullableFormBuilder);
+  private restrictionService = inject(RestrictionService);
+
   @Input() personalPreferenceForm!: FormGroup; // Input FormGroup for this section
 
   // FormControls for autocomplete inputs
@@ -92,10 +95,6 @@ export class PersonalPreferenceComponent implements OnInit {
     'Zucchini',
   ];
 
-  constructor(
-    private fb: NonNullableFormBuilder,
-    private restrictionService: RestrictionService
-  ) {}
 
   ngOnInit(): void {
     if (!this.personalPreferenceForm) {
@@ -133,7 +132,7 @@ export class PersonalPreferenceComponent implements OnInit {
     );
   }
 
-  public addChip(event: any, formArrayName: string): void {
+  public addChip(event: { input?: HTMLInputElement | null; value?: string }, formArrayName: string): void {
     const input = event.input;
     const value = (event.value || '').trim();
     if (value) {
@@ -159,13 +158,13 @@ export class PersonalPreferenceComponent implements OnInit {
     }
   }
 
-  public onMultiSelectChange(formControlName: string, event: any): void {
+  public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
     const selectedValues = event.value;
     const formArray = this.personalPreferenceForm.get(
       formControlName
     ) as FormArray;
     formArray.clear();
-    selectedValues.forEach((value: any) => {
+    selectedValues.forEach((value: string) => {
       formArray.push(this.fb.control(value));
     });
   }

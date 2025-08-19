@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -33,6 +33,12 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   styleUrls: ['./shopping-create.component.scss']
 })
 export class ShoppingCreateComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private shoppingService = inject(ShoppingService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private userInfoService = inject(UserInfoService);
+
   shoppingForm: FormGroup;
   isLoading = false;
 
@@ -45,13 +51,9 @@ export class ShoppingCreateComponent implements OnInit {
     maxWidth: '600px',
   };
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private shoppingService: ShoppingService,
-    private router: Router,
-    private snackBar: MatSnackBar,
-    private userInfoService: UserInfoService
-  ) {
+
+
+  constructor() {
     this.shoppingForm = this.nonNullableFb.group({
       Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]],

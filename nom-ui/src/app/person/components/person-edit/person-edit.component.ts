@@ -1,14 +1,4 @@
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  OnDestroy,
-  OnChanges,
-  SimpleChanges,
-} from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -39,6 +29,8 @@ import { Subject } from 'rxjs';
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
+  private fb = inject(NonNullableFormBuilder);
+
   @Input() person: PersonModel | null = null;
   @Output() formSubmitted = new EventEmitter<PersonModel>();
   @Output() skipStep = new EventEmitter<void>();
@@ -66,7 +58,9 @@ export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private fb: NonNullableFormBuilder) {
+
+
+  constructor() {
     // Always initialize the form group with default/empty values
     this.personForm = this.fb.group({
       name: ['', [Validators.required]],

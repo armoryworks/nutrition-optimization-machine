@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,49 +16,51 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeCommentModel, RecipeCommentCreateRequestModel, RecipeCommentResponseModel } from '../../models/recipe-comment.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeCommentResponseModel } from '../../models/recipe-comment.model';
+
 
 @Component({
-  selector: 'nom-recipe-comments',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-comments.component.html',
-  styleUrls: ['./recipe-comments.component.scss']
+    selector: 'nom-recipe-comments',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-comments.component.html',
+    styleUrls: ['./recipe-comments.component.scss']
 })
-export class RecipeCommentsComponent implements OnInit {
-  comments: RecipeCommentResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  commentForm: FormGroup;
-  isAddingComment = false;
+export class RecipeCommentsComponent implements OnInit, OnDestroy {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.commentForm = this.nonNullableFb.group({
-      title: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
-      commentText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
-    });
-  }
+    comments: RecipeCommentResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    commentForm: FormGroup;
+    isAddingComment = false;
+
+
+
+    constructor() {
+        this.commentForm = this.nonNullableFb.group({
+            title: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+            commentText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {

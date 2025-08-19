@@ -127,6 +127,53 @@ src/app/
     └── Interfaces/
 ```
 
+## Desktop UI Viewport Standards
+
+### **Desktop UI Must Fit Standard Viewport**
+
+**All desktop-targeted user interfaces MUST fit within 1800x850px viewport at 100% zoom without scrolling.**
+
+#### **Viewport Requirements**
+
+```scss
+✅correct: .main-container {
+  height: calc(100vh - 120px); // Account for compact header
+  overflow: hidden;
+}
+
+❌forbidden: .main-container {
+  height: 1200px; // Fixed height that may cause scrolling
+  overflow: scroll; // Allows scrolling
+}
+```
+
+#### **Compact Header Pattern (Required for Desktop Interfaces)**
+
+```scss
+✅correct: .compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  // Title, subtitle, and controls on same horizontal line
+}
+
+❌forbidden: .tall-header {
+  padding: 2rem 0;
+  // Title, subtitle, and controls stacked vertically
+}
+```
+
+#### **Target Specifications**
+
+- **Resolution**: 1080p (1920x1080)
+- **Browser**: Maximized window
+- **Effective Viewport**: ~1800x850px
+- **Zoom**: 100%
+- **Scrolling**: NONE allowed on primary workflows
+- **Header Height**: Maximum 25% of previous height (75% reduction target)
+- **Header Layout**: Title, subtitle, and controls on single horizontal line
+
 ## Angular Selector Standards
 
 ### **Component Selector Prefix**

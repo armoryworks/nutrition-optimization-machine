@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 import { IngredientModel } from '../../models/ingredient.model';
-import { NutrientValueModel } from '../../../nutrient/models/nutrient-value.model';
+
 import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 
 // Import the new label component and its data model
@@ -95,7 +95,7 @@ export class IngredientDetailsComponent {
    * This is a simplified calculation based on FDA guidelines.
    */
   private calculateDailyValue(nutrientName: string, amount: number): number {
-    const dailyValues: { [key: string]: number } = {
+    const dailyValues: Record<string, number> = {
       'Total Fat': 78, // g
       'Saturated Fat': 20, // g
       'Trans Fat': 2, // g

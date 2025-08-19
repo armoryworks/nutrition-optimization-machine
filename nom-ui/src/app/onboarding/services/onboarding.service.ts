@@ -3,6 +3,9 @@ import { OnboardingCompleteRequestModel } from '../models/onboarding-complete-re
 import { PersonModel } from '../../person/models/person.model';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { RestrictionTypeEnum } from '../../restriction/enums/restriction-type.enum';
+import { OnboardingWorkflowStep } from '../models/onboarding-workflow-step';
+
+
 
 @Injectable({
   providedIn: 'root',
@@ -16,26 +19,26 @@ export class OnboardingService {
   public onboardingData$: Observable<OnboardingCompleteRequestModel>;
 
   // Define the workflow steps here as it's part of the global workflow state
-  public workflowSteps = [
+  public workflowSteps: OnboardingWorkflowStep[] = [
     {
       id: 'invitationCode',
       title: 'Invitation Code',
       component: 'ui-only-invitation-code',
-      required: false,
+      isRequired: false,
       dataProperty: 'planInvitationCode',
     },
     {
       id: 'additionalParticipants',
       title: 'Additional Participants',
       component: 'nom-onboarding-additional-participants',
-      required: true,
+      isRequired: true,
       dataProperty: null,
     },
     {
       id: 'healthAttributes',
       title: 'Health Attributes',
       component: 'nom-person-health-edit',
-      required: false,
+      isRequired: false,
       dataProperty: 'attributes',
     },
     // Consolidated restriction scope steps into one
@@ -43,35 +46,35 @@ export class OnboardingService {
       id: 'restrictionScope',
       title: 'Restriction Scope',
       component: 'nom-onboarding-restriction-scope',
-      required: true,
+      isRequired: true,
       dataProperty: null,
     }, // Data handled internally then emitted
     {
       id: 'societalRestrictions',
       title: 'Dietary Practices',
       component: 'nom-restriction-edit',
-      required: false,
+      isRequired: false,
       restrictionType: RestrictionTypeEnum.SocietalReligiousEthical,
     },
     {
       id: 'medicalRestrictions',
       title: 'Medical Restrictions',
       component: 'nom-restriction-edit',
-      required: false,
+      isRequired: false,
       restrictionType: RestrictionTypeEnum.AllergyMedical,
     },
     {
       id: 'personalPreferences',
       title: 'Personal Preferences',
       component: 'nom-restriction-edit',
-      required: false,
+      isRequired: false,
       restrictionType: RestrictionTypeEnum.PersonalPreference,
     },
     {
       id: 'applyIndividualPreferences',
       title: 'Individual Preferences',
       component: 'ui-only-yes-no',
-      required: true,
+      isRequired: true,
       dataProperty: 'applyIndividualPreferencesToEachPerson',
       condition: (data: OnboardingCompleteRequestModel) =>
         data.hasAdditionalParticipants === true &&
@@ -81,7 +84,7 @@ export class OnboardingService {
       id: 'summary',
       title: 'Review & Submit',
       component: 'ui-only-summary',
-      required: true,
+      isRequired: true,
       dataProperty: null,
     },
   ];
@@ -196,7 +199,7 @@ export class OnboardingService {
   public updateOnboardingProperty<
     K extends keyof OnboardingCompleteRequestModel
   >(propertyName: K, value: OnboardingCompleteRequestModel[K]): void {
-    (this._onboardingData as any)[propertyName] = value;
+    (this._onboardingData as OnboardingCompleteRequestModel)[propertyName] = value;
     this.saveOnboardingData(); // Save immediately after update
   }
 }

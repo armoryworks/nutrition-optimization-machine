@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -40,23 +40,23 @@ import { NotificationService } from '../../utilities/services/notification.servi
   styleUrls: ['./send-confirmation-email.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class SendConfirmationEmailComponent implements OnInit {
+export class SendConfirmationEmailComponent {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+
   sendConfirmationEmailForm: FormGroup;
   isLoading = false;
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
-    private authService: AuthService,
-    private notificationService: NotificationService // Use NotificationService instead of MatSnackBar
-  ) {
+
+
+  constructor() {
     this.sendConfirmationEmailForm = this.nonNullableFb.group({
       email: ['', [Validators.required, Validators.email]],
     });
   }
 
-  ngOnInit(): void {
-    // Component initialization - no form initialization needed here
-  }
+
 
   /**
    * Handles the form submission to send a confirmation email.
@@ -74,7 +74,7 @@ export class SendConfirmationEmailComponent implements OnInit {
       this.sendConfirmationEmailForm.getRawValue();
 
     this.authService.sendConfirmationEmail(data).subscribe({
-      next: (response) => {
+      next: () => {
         this.isLoading = false;
         this.notificationService.success(
           'Confirmation email sent. Please check your inbox!'

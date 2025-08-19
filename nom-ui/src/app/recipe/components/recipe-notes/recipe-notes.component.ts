@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,49 +16,48 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeNoteModel, RecipeNoteCreateRequestModel, RecipeNoteResponseModel } from '../../models/recipe-note.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
 
 @Component({
-  selector: 'nom-recipe-notes',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-notes.component.html',
-  styleUrls: ['./recipe-notes.component.scss']
+    selector: 'nom-recipe-notes',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-notes.component.html',
+    styleUrls: ['./recipe-notes.component.scss']
 })
-export class RecipeNotesComponent implements OnInit {
-  notes: RecipeNoteResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  noteForm: FormGroup;
-  isAddingNote = false;
+export class RecipeNotesComponent implements OnInit, OnDestroy {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.noteForm = this.nonNullableFb.group({
-      noteTitle: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
-      noteText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
-    });
-  }
+    notes: RecipeNoteResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    noteForm: FormGroup;
+    isAddingNote = false;
+
+    constructor() {
+        this.noteForm = this.nonNullableFb.group({
+            noteTitle: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+            noteText: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2047)]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {

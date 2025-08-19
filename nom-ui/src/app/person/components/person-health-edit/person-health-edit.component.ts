@@ -1,12 +1,4 @@
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, OnDestroy, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -31,7 +23,7 @@ interface AttributeTypeModel extends ReferenceItemModel {
   unit?: string;
   icon?: string;
   class?: string;
-  options?: Array<{ value: string; label: string }>;
+  options?: { value: string; label: string }[];
 }
 
 @Component({
@@ -52,12 +44,15 @@ interface AttributeTypeModel extends ReferenceItemModel {
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonHealthEditComponent implements OnInit, OnDestroy {
+  private fb = inject(NonNullableFormBuilder);
+  private referenceService = inject(ReferenceService);
+
   public readonly HEIGHT_ATTRIBUTE_ID = 2000;
   public readonly HEIGHT_IN_FEET_NAME = 'HeightInFeet';
   public readonly HEIGHT_IN_INCHES_NAME = 'HeightInInches';
 
   @Input() attributes: PersonAttributeModel[] = [];
-  @Input() currentPersonId: number = 0;
+  @Input() currentPersonId = 0;
   @Output() formSubmitted = new EventEmitter<PersonAttributeModel[]>();
   @Output() skipStep = new EventEmitter<void>();
 
@@ -85,10 +80,9 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private fb: NonNullableFormBuilder,
-    private referenceService: ReferenceService
-  ) {
+
+
+  constructor() {
     // Initialize the form with empty controls to prevent formControlName errors
     this.healthAttributesForm = this.fb.group({});
   }
@@ -131,7 +125,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   private initializeForm(): void {
-    const formControls: { [key: string]: FormControl } = {};
+    const formControls: Record<string, FormControl> = {};
 
     // Initialize form controls for each attribute type
     this.attributeTypes.forEach(attrType => {
@@ -226,7 +220,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   private getUnitForAttribute(attributeName: string): string {
-    const unitMap: { [key: string]: string } = {
+    const unitMap: Record<string, string> = {
       'Height': 'inches',
       'Weight': 'lbs',
       'Age': 'years',
@@ -239,7 +233,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   private getIconForAttribute(attributeName: string): string {
-    const iconMap: { [key: string]: string } = {
+    const iconMap: Record<string, string> = {
       'Height': 'fa-ruler-vertical',
       'Weight': 'fa-weight',
       'Age': 'fa-birthday-cake',
@@ -252,7 +246,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   private getClassForAttribute(attributeName: string): string {
-    const classMap: { [key: string]: string } = {
+    const classMap: Record<string, string> = {
       'Height': 'height-field',
       'Weight': 'weight-field',
       'Age': 'age-field'
@@ -260,8 +254,8 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
     return classMap[attributeName] || '';
   }
 
-  private getOptionsForAttribute(attributeName: string): Array<{ value: string; label: string }> | undefined {
-    const optionsMap: { [key: string]: Array<{ value: string; label: string }> } = {
+  private getOptionsForAttribute(attributeName: string): { value: string; label: string }[] | undefined {
+    const optionsMap: Record<string, { value: string; label: string }[]> = {
       'Activity Level': [
         { value: 'sedentary', label: 'Sedentary (Little or no exercise)' },
         { value: 'lightly_active', label: 'Lightly Active (Light exercise/sports 1-3 days/week)' },

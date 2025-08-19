@@ -3,12 +3,12 @@
 import { IMealPlanCreateResponseModel } from './meal-plan-create-response.model.interface';
 
 export class MealPlanCreateResponseModel implements IMealPlanCreateResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
+    id = 0;
+    householdId = 0;
+    authorId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
-    title: string = '';
+    mealTypeId = 0;
+    title = '';
     notes?: string;
     recipeId?: number;
     createdDate: Date = new Date();

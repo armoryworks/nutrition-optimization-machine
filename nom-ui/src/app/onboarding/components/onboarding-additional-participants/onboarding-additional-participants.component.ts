@@ -30,13 +30,12 @@ import { PersonModel } from '../../../person/models/person.model';
   styleUrls: ['./onboarding-additional-participants.component.scss'],
 })
 export class OnboardingAdditionalParticipantsComponent
-  implements OnInit, OnChanges
-{
+  implements OnInit, OnChanges {
   @Input() hasAdditionalParticipantsInput: boolean | null = null;
   @Input() numberOfAdditionalParticipantsInput: number | null = null;
   @Input() additionalParticipantDetailsInput: PersonModel[] = [];
   @Input() principalPersonId: number | null = null; // Used for generating unique temp IDs
-  @Input() isLoading: boolean = false;
+  @Input() isLoading = false;
   @Input() allCurrentPersonsInPlan: PersonModel[] = []; // Full list of persons for temp ID generation
 
   @Output() participantsDataSubmitted = new EventEmitter<{
@@ -57,8 +56,6 @@ export class OnboardingAdditionalParticipantsComponent
   ]);
   internalAdditionalParticipantDetails: PersonModel[] = [];
 
-  constructor() {}
-
   ngOnInit(): void {
     this.initializeFromInputs();
   }
@@ -68,13 +65,13 @@ export class OnboardingAdditionalParticipantsComponent
     if (
       (changes['hasAdditionalParticipantsInput'] &&
         changes['hasAdditionalParticipantsInput'].currentValue !==
-          this.internalHasAdditionalParticipants) ||
+        this.internalHasAdditionalParticipants) ||
       (changes['numberOfAdditionalParticipantsInput'] &&
         changes['numberOfAdditionalParticipantsInput'].currentValue !==
-          this.numberOfAdditionalParticipantsControl.value) ||
+        this.numberOfAdditionalParticipantsControl.value) ||
       (changes['additionalParticipantDetailsInput'] &&
         changes['additionalParticipantDetailsInput'].currentValue !==
-          this.internalAdditionalParticipantDetails)
+        this.internalAdditionalParticipantDetails)
     ) {
       this.initializeFromInputs();
     }

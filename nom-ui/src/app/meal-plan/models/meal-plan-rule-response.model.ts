@@ -3,12 +3,12 @@
 import { IMealPlanRuleResponseModel } from './meal-plan-rule-response.model.interface';
 
 export class MealPlanRuleResponseModel implements IMealPlanRuleResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    dayOfWeekId: number = 0;
-    dayOfWeek: string = '';
-    mealTypeId: number = 0;
-    mealType: string = '';
+    id = 0;
+    householdId = 0;
+    dayOfWeekId = 0;
+    dayOfWeek = '';
+    mealTypeId = 0;
+    mealType = '';
     queryFilterString?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;

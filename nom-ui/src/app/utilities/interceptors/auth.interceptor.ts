@@ -7,22 +7,22 @@ import {
   HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, switchMap, filter, take, tap } from 'rxjs/operators';
+import { catchError, switchMap, filter, take } from 'rxjs/operators';
 import { AuthManagerService } from '../services/auth-manager.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(
+  private refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(
     null
   );
 
   private authManager = inject(AuthManagerService);
 
   intercept(
-    request: HttpRequest<any>,
+    request: HttpRequest<unknown>,
     next: HttpHandler
-  ): Observable<HttpEvent<any>> {
+  ): Observable<HttpEvent<unknown>> {
     // 1. Add access token to outgoing requests
     const accessToken = this.authManager.token;
     if (accessToken) {
@@ -36,7 +36,7 @@ export class AuthInterceptor implements HttpInterceptor {
           // Check if it's an API request that requires authentication
           // You might have specific patterns for authenticated API routes
           // e.g., if (!request.url.includes('/api/auth/')) { ... }
-          return this.handle401Error(request, next, error);
+          return this.handle401Error(request, next);
         } else {
           // For other errors, just re-throw
           return throwError(() => error);
@@ -45,7 +45,7 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 
-  private addToken(request: HttpRequest<any>, token: string): HttpRequest<any> {
+  private addToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
     return request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,
@@ -54,10 +54,9 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private handle401Error(
-    request: HttpRequest<any>,
-    next: HttpHandler,
-    error: HttpErrorResponse
-  ): Observable<HttpEvent<any>> {
+    request: HttpRequest<unknown>,
+    next: HttpHandler
+  ): Observable<HttpEvent<unknown>> {
     if (this.isRefreshing) {
       // If token refresh is already in progress, queue this request
       return this.refreshTokenSubject.pipe(
@@ -77,7 +76,7 @@ export class AuthInterceptor implements HttpInterceptor {
           this.refreshTokenSubject.next(newToken); // Emit new token to queued requests
           return next.handle(this.addToken(request, newToken)); // Retry original request with new token
         }),
-        catchError((refreshError: any) => {
+        catchError((refreshError: unknown) => {
           this.isRefreshing = false;
           // Refresh token failed or no refresh token, logout the user
           console.error('Token refresh failed. Logging out...', refreshError);

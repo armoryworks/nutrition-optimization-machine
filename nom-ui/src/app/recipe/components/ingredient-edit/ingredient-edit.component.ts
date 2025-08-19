@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/ingredient-edit/ingredient-edit.component.ts
 
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -49,22 +49,30 @@ interface FormConfig {
   styleUrls: ['./ingredient-edit.component.scss']
 })
 export class IngredientEditComponent implements OnInit, OnDestroy {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private ingredientService = inject(RecipeService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private location = inject(Location);
+  private snackBar = inject(MatSnackBar);
+  private cdr = inject(ChangeDetectorRef);
+
   ingredientForm: FormGroup;
   isLoading = false;
   isSubmitting = false;
   isEditMode = false;
-  ingredientId: number = 0;
+  ingredientId = 0;
   ingredient: IngredientModel | null = null;
   measurementTypes: ReferenceItemModel[] = [];
   error: string | null = null;
   private destroy$ = new Subject<void>();
 
   // Back navigation properties
-  private referringPage: string = '/recipes';
-  private referringPageTitle: string = 'Recipes';
+  private referringPage = '/recipes';
+  private referringPageTitle = 'Recipes';
 
   // Explicit back button text property
-  backButtonText: string = 'Back to Recipes';
+  backButtonText = 'Back to Recipes';
 
   formConfig: FormConfig = {
     title: 'Create New Ingredient',
@@ -83,15 +91,9 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
     refreshButtonText: 'Refresh'
   };
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private ingredientService: RecipeService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private location: Location,
-    private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
-  ) {
+
+
+  constructor() {
     this.ingredientForm = this.nonNullableFb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
       description: ['', [Validators.maxLength(2047)]],
@@ -141,8 +143,8 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
         }
         this.isLoading = false;
       },
-      error: (error: any) => {
-        console.error('Error loading ingredient:', error);
+      error: () => {
+        console.error('Error loading ingredient');
         this.error = 'Failed to load ingredient. Please try again.';
         this.isLoading = false;
       }
@@ -193,15 +195,15 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
       : this.ingredientService.createIngredient(formValue);
 
     request$.pipe(takeUntil(this.destroy$)).subscribe({
-      next: (ingredient: IngredientModel) => {
+      next: () => {
         const action = this.isEditMode ? 'updated' : 'created';
         this.snackBar.open(`Ingredient ${action} successfully!`, 'Close', { duration: 3000 });
 
         // Navigate back to referring page after successful save
         this.navigateBack();
       },
-      error: (error: any) => {
-        console.error('Error saving ingredient:', error);
+      error: () => {
+        console.error('Error saving ingredient');
         this.error = `Failed to ${this.isEditMode ? 'update' : 'create'} ingredient. Please try again.`;
         this.isSubmitting = false;
       }
@@ -276,7 +278,7 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
 
   private getPageTitleFromPath(path: string): string {
     // Map common paths to readable titles
-    const pathTitles: { [key: string]: string } = {
+    const pathTitles: Record<string, string> = {
       '/user/dashboard': 'Dashboard',
       '/recipes': 'Recipes',
       '/recipes/ingredients': 'Ingredients',
@@ -313,8 +315,8 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
           this.ingredientForm.patchValue(ingredientData);
           this.isLoading = false;
         },
-        error: (error: any) => {
-          console.error('Error loading ingredient:', error);
+        error: () => {
+          console.error('Error loading ingredient');
           this.error = 'Failed to load ingredient. Please try again.';
           this.isLoading = false;
         }

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import {
     FormGroup,
     Validators,
@@ -43,6 +43,10 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
     encapsulation: ViewEncapsulation.None,
 })
 export class PersonProfileEditComponent implements OnInit {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private personService = inject(PersonService);
+    private notificationService = inject(NotificationService);
+
     personForm: FormGroup;
     isLoading = false;
     isInitialLoading = true;
@@ -64,11 +68,7 @@ export class PersonProfileEditComponent implements OnInit {
         maxWidth: '100%'
     };
 
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private personService: PersonService,
-        private notificationService: NotificationService
-    ) {
+    constructor() {
         // Initialize the form group
         this.personForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2)]],

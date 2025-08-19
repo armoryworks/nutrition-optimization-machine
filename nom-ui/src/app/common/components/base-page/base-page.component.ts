@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
@@ -28,7 +28,7 @@ export interface BasePageConfig {
     templateUrl: './base-page.component.html',
     styleUrls: ['./base-page.component.scss']
 })
-export class BasePageComponent {
+export class BasePageComponent implements OnInit, OnChanges {
     @Input() config?: BasePageConfig;
     @Input() backButtonText?: string; // Separate input for back button text
     @Input() isLoading = false;
@@ -47,7 +47,7 @@ export class BasePageComponent {
         console.log('BasePageComponent - ngOnInit - config:', this.config);
     }
 
-    ngOnChanges(changes: any): void {
+    ngOnChanges(changes: Record<string, { previousValue: unknown; currentValue: unknown }>): void {
         console.log('BasePageComponent - ngOnChanges:', changes);
         if (changes['backButtonText']) {
             console.log('BasePageComponent - backButtonText changed:', {

@@ -1,11 +1,4 @@
-import {
-  Component,
-  OnInit,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, OnDestroy, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -41,10 +34,13 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonCreationComponent implements OnInit, OnDestroy {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private personService = inject(PersonService);
+
   @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
 
   personForm: FormGroup;
-  isSubmitting: boolean = false;
+  isSubmitting = false;
   isLoading = false;
   error: string | null = null;
 
@@ -65,19 +61,16 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private personService: PersonService
-  ) {
+
+
+  constructor() {
     // Always initialize the form group with default/empty values
     this.personForm = this.nonNullableFb.group({
       name: new FormControl('', [Validators.required, Validators.minLength(2)]),
     });
   }
 
-  ngOnInit(): void {
-    // Form is already initialized in constructor, no additional initialization needed
-  }
+
 
   ngOnDestroy(): void {
     this.destroy$.next();

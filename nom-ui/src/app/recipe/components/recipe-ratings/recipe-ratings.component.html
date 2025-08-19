@@ -26,13 +26,18 @@
     
     <form [formGroup]="ratingForm" (ngSubmit)="onSubmit()" class="recipe-ratings__form">
       <div class="recipe-ratings__rating-input">
-        <label class="recipe-ratings__rating-label">Your Rating:</label>
-        <div class="recipe-ratings__stars">
+        <div class="recipe-ratings__rating-label">Your Rating:</div>
+        <div class="recipe-ratings__stars" role="radiogroup" aria-label="Recipe rating from 1 to 5 stars">
           @for (star of [1,2,3,4,5]; track star) {
             <mat-icon 
               [class]="getStarClass(star)"
               class="recipe-ratings__star recipe-ratings__star--clickable"
-              (click)="setRating(star)">
+              (click)="setRating(star)"
+              role="radio"
+              [attr.aria-checked]="ratingForm.get('rating')?.value === star"
+              tabindex="0"
+              (keyup.enter)="setRating(star)"
+              (keyup.space)="setRating(star)">
               star
             </mat-icon>
           }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, map } from 'rxjs';
 import { OnboardingCompleteRequestModel } from '../../onboarding/models/onboarding-complete-request.model';
@@ -7,21 +7,28 @@ import { PersonCreateModel } from '../models/person-create.model';
 import { PersonCreateResponseModel } from '../models/person-create-response.model';
 import { PersonModel } from '../models/person.model';
 
+interface UserInfoResponse {
+  status: string;
+  personId: number;
+  userName?: string;
+  email?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class PersonService {
+  private http = inject(HttpClient);
+
   private readonly apiUrl = '/api/Person';
   private readonly userInfoUrl = '/api/UserInfo';
-
-  constructor(private http: HttpClient) { }
 
   /**
    * Gets the current person details for the authenticated user.
    * This is used during onboarding to get the person created during registration.
    */
   getCurrentPerson(): Observable<PersonModel | null> {
-    return this.http.get<any>(`${this.userInfoUrl}/current`).pipe(
+    return this.http.get<UserInfoResponse>(`${this.userInfoUrl}/current`).pipe(
       tap(response => console.log('Current user info response:', response)),
       map(response => {
         if (response.status === 'Complete' && response.personId) {
@@ -130,7 +137,7 @@ export class PersonService {
         apiPayload
       )
       .pipe(
-        tap((response: any) =>
+        tap((response) =>
           console.log('Onboarding complete submission response:', response)
         )
       );

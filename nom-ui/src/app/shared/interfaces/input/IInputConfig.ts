@@ -147,7 +147,7 @@ export interface IInputConfig {
     /**
      * Custom styles
      */
-    styles?: { [key: string]: string };
+    styles?: Record<string, string>;
 
     /**
      * Whether to enable auto-focus

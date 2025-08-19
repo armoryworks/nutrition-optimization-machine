@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/shared/services/base/_BaseService.ts
 
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
 import { takeUntil, tap, catchError } from 'rxjs/operators';
 import { _ServiceHealthStatus } from './_ServiceHealthStatus';
@@ -11,6 +11,8 @@ import { _ServiceConfig } from './_ServiceConfig';
  */
 @Injectable()
 export abstract class BaseService implements OnDestroy {
+    protected readonly config = inject(_ServiceConfig) ?? {};
+
     protected readonly destroy$ = new Subject<void>();
     protected readonly healthStatus$ = new BehaviorSubject<_ServiceHealthStatus>({
         isHealthy: true,
@@ -21,9 +23,7 @@ export abstract class BaseService implements OnDestroy {
 
     public readonly isInitialized = new BehaviorSubject<boolean>(false);
 
-    constructor(
-        protected readonly config: _ServiceConfig = {}
-    ) {
+    constructor() {
         this.initialize();
     }
 
@@ -93,7 +93,7 @@ export abstract class BaseService implements OnDestroy {
     /**
      * Handles errors in a standardized way
      */
-    handleError(error: any, context?: string): void {
+    handleError(error: Error | string | unknown, context?: string): void {
         const errorMessage = context ? `${context}: ${error?.message || error}` : error?.message || error;
         this.logError(errorMessage, error);
         this.updateHealthStatus(false, [errorMessage]);
@@ -102,7 +102,7 @@ export abstract class BaseService implements OnDestroy {
     /**
      * Logs information in a standardized way
      */
-    logInfo(message: string, data?: any): void {
+    logInfo(message: string, data?: unknown): void {
         if (this.config.enableLogging !== false) {
             console.log(`[${this.getServiceName()}] INFO: ${message}`, data || '');
         }
@@ -111,7 +111,7 @@ export abstract class BaseService implements OnDestroy {
     /**
      * Logs warnings in a standardized way
      */
-    logWarning(message: string, data?: any): void {
+    logWarning(message: string, data?: unknown): void {
         if (this.config.enableLogging !== false) {
             console.warn(`[${this.getServiceName()}] WARNING: ${message}`, data || '');
         }
@@ -120,7 +120,7 @@ export abstract class BaseService implements OnDestroy {
     /**
      * Logs errors in a standardized way
      */
-    logError(message: string, error?: any): void {
+    logError(message: string, error?: Error | string | unknown): void {
         if (this.config.enableLogging !== false) {
             console.error(`[${this.getServiceName()}] ERROR: ${message}`, error || '');
         }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -26,8 +26,14 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     styleUrls: ['./household-invite-refactored.component.scss']
 })
 export class HouseholdInviteRefactoredComponent implements OnInit {
+    private route = inject(ActivatedRoute);
+    private router = inject(Router);
+    private householdService = inject(HouseholdService);
+    private fb = inject(FormBuilder);
+    private snackBar = inject(MatSnackBar);
+
     inviteForm: FormGroup;
-    householdId: number = 0;
+    householdId = 0;
     isLoading = false;
     inviteToken: string | null = null;
     inviteLink: string | null = null;
@@ -42,13 +48,7 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
         maxWidth: '600px'
     };
 
-    constructor(
-        private route: ActivatedRoute,
-        private router: Router,
-        private householdService: HouseholdService,
-        private fb: FormBuilder,
-        private snackBar: MatSnackBar
-    ) {
+    constructor() {
         this.inviteForm = this.fb.group({
             expiresInDays: [7, [Validators.required, Validators.min(1), Validators.max(30)]]
         });

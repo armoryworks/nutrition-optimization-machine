@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -36,23 +36,21 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
     styleUrls: ['./household-invite.component.scss']
 })
 export class HouseholdInviteComponent implements OnInit {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private householdService = inject(HouseholdService);
+    private router = inject(Router);
+    private route = inject(ActivatedRoute);
+    private snackBar = inject(MatSnackBar);
+    private userInfoService = inject(UserInfoService);
+
     inviteForm: FormGroup;
     isLoading = false;
-    householdId: number = 0;
+    householdId = 0;
     error: string | null = null;
     inviteToken: string | null = null;
     inviteLink: string | null = null;
 
-    // Removed formConfig since BaseFormConfig is not imported
-
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private householdService: HouseholdService,
-        private router: Router,
-        private route: ActivatedRoute,
-        private snackBar: MatSnackBar,
-        private userInfoService: UserInfoService
-    ) {
+    constructor() {
         this.inviteForm = this.nonNullableFb.group({
             expiresInDays: [7, [Validators.required, Validators.min(1), Validators.max(30)]]
         });

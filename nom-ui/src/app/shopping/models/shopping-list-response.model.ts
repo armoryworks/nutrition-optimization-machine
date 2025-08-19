@@ -4,17 +4,17 @@ import { IShoppingListResponseModel } from './shopping-list-response.model.inter
 import { IShoppingListItemModel } from './shopping-list-item.model.interface';
 
 export class ShoppingListResponseModel implements IShoppingListResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    name = '';
     description?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
-    itemCount: number = 0;
-    completedItemCount: number = 0;
+    itemCount = 0;
+    completedItemCount = 0;
     completedCount?: number; // Alias for backward compatibility
-    totalItems: number = 0; // Alias for itemCount
-    completedItems: number = 0; // Alias for completedItemCount
+    totalItems = 0; // Alias for itemCount
+    completedItems = 0; // Alias for completedItemCount
     items: IShoppingListItemModel[] = [];
 
     constructor(data?: Partial<IShoppingListResponseModel>) {

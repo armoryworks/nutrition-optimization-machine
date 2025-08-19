@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -41,6 +41,10 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class UpdateInfoComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+
   updateInfoForm: FormGroup;
   isLoading = false; // For form submission loading
   isInitialLoading = true; // For initial data load loading
@@ -48,11 +52,9 @@ export class UpdateInfoComponent implements OnInit {
   currentEmail: string | null = null;
   isEmailConfirmed: boolean | null = null;
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private authService: AuthService,
-    private notificationService: NotificationService // Use NotificationService
-  ) {
+
+
+  constructor() {
     this.updateInfoForm = this.nonNullableFb.group(
       {
         newEmail: ['', Validators.email],

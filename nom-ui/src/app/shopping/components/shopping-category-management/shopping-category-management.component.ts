@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,7 +17,6 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
     selector: 'nom-shopping-category-management',
@@ -41,6 +40,12 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
     styleUrls: ['./shopping-category-management.component.scss']
 })
 export class ShoppingCategoryManagementComponent implements OnInit {
+    private shoppingService = inject(ShoppingService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     categories: ShoppingListCategory[] = [];
     isLoading = false;
     error: string | null = null;
@@ -50,13 +55,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     isSubmitting = false;
     loading = false;
 
-    constructor(
-        private shoppingService: ShoppingService,
-        private router: Router,
-        private nonNullableFb: NonNullableFormBuilder,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) {
+    constructor() {
         this.categoryForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
             description: ['', [Validators.maxLength(200)]]
@@ -76,7 +75,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                 this.isLoading = false;
                 this.loading = false;
             },
-            error: (error: any) => {
+            error: (error: Error | string | unknown) => {
                 console.error('Error loading categories:', error);
                 this.snackBar.open('Error loading categories', 'Close', { duration: 3000 });
                 this.isLoading = false;
@@ -99,7 +98,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                     this.isAddingCategory = false;
                     this.isSubmitting = false;
                 },
-                error: (error: any) => {
+                error: (error: Error | string | unknown) => {
                     console.error('Error creating category:', error);
                     this.snackBar.open('Error creating category', 'Close', { duration: 3000 });
                     this.isAddingCategory = false;
@@ -123,7 +122,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                     this.isLoading = false;
                     this.loading = false;
                 },
-                error: (error: any) => {
+                error: (error: Error | string | unknown) => {
                     console.error('Error creating category:', error);
                     this.snackBar.open('Error creating category', 'Close', { duration: 3000 });
                     this.isLoading = false;
@@ -163,7 +162,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                     this.isLoading = false;
                     this.loading = false;
                 },
-                error: (error: any) => {
+                error: (error: Error | string | unknown) => {
                     console.error('Error updating category:', error);
                     this.snackBar.open('Error updating category', 'Close', { duration: 3000 });
                     this.isLoading = false;
@@ -184,7 +183,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
                     this.isLoading = false;
                     this.loading = false;
                 },
-                error: (error: any) => {
+                error: (error: Error | string | unknown) => {
                     console.error('Error deleting category:', error);
                     this.snackBar.open('Error deleting category', 'Close', { duration: 3000 });
                     this.isLoading = false;

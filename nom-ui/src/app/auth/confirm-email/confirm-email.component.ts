@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'; // Import ActivatedRoute and Router
 
@@ -30,16 +30,18 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class ConfirmEmailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+  private router = inject(Router);
+
   isLoading = true;
   confirmationStatus: 'pending' | 'success' | 'failure' = 'pending';
-  confirmationMessage: string = 'Confirming your email address...';
+  confirmationMessage = 'Confirming your email address...';
 
-  constructor(
-    private route: ActivatedRoute, // To access query parameters
-    private authService: AuthService,
-    private notificationService: NotificationService, // Use NotificationService
-    private router: Router // To redirect after confirmation
-  ) {}
+
+
+
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
@@ -62,28 +64,18 @@ export class ConfirmEmailComponent implements OnInit {
         changedEmail: changedEmail || undefined, // Only include if present
       };
 
-      this.authService.confirmEmail(confirmationData).subscribe({
-        next: (response) => {
+      this.authService.confirmEmail(confirmationData).subscribe(
+        () => {
           this.isLoading = false;
-          // Assuming AuthService.confirmEmail returns an object with success/message (Observable<any>)
-          if (response && response.success) {
-            this.confirmationStatus = 'success';
-            this.confirmationMessage =
-              response.message || 'Your email has been successfully confirmed!';
-            this.notificationService.success(this.confirmationMessage);
-            // Optionally redirect after a delay
-            setTimeout(() => {
-              this.router.navigate(['/login']);
-            }, 3000);
-          } else {
-            this.confirmationStatus = 'failure';
-            this.confirmationMessage =
-              response?.message ||
-              'Email confirmation failed. The link might be invalid or expired.';
-            this.notificationService.error(this.confirmationMessage);
-          }
+          this.confirmationStatus = 'success';
+          this.confirmationMessage = 'Your email has been successfully confirmed!';
+          this.notificationService.success(this.confirmationMessage);
+          // Optionally redirect after a delay
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 3000);
         },
-        error: (error) => {
+        (error) => {
           this.isLoading = false;
           this.confirmationStatus = 'failure';
           console.error('Email confirmation error:', error);
@@ -92,8 +84,8 @@ export class ConfirmEmailComponent implements OnInit {
             error.message ||
             'An unexpected error occurred during email confirmation.';
           this.notificationService.error(this.confirmationMessage);
-        },
-      });
+        }
+      );
     });
   }
 }

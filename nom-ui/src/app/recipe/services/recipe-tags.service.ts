@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RecipeTagModel } from '../models/i-recipe-tag.model';
@@ -7,9 +7,11 @@ import { RecipeTagModel } from '../models/i-recipe-tag.model';
     providedIn: 'root'
 })
 export class RecipeTagsService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = 'api/recipe/tags';
 
-    constructor(private http: HttpClient) { }
+
 
     getAllTags(): Observable<RecipeTagModel[]> {
         return this.http.get<RecipeTagModel[]>(`${this.apiUrl}`);
@@ -49,7 +51,7 @@ export class RecipeTagsService {
         });
     }
 
-    getPopularTags(limit: number = 10): Observable<RecipeTagModel[]> {
+    getPopularTags(limit = 10): Observable<RecipeTagModel[]> {
         return this.http.get<RecipeTagModel[]>(`${this.apiUrl}/popular`, {
             params: { limit: limit.toString() }
         });

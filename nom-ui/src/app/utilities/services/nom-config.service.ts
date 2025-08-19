@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { ReplaySubject, throwError } from 'rxjs'; // Added 'throwError'
 import { catchError, take } from 'rxjs/operators'; // Added 'catchError'
 import { NomConfig } from '../models/nom-config';
@@ -12,6 +12,8 @@ import { NomConfig } from '../models/nom-config';
   providedIn: 'root',
 })
 export class NomConfigService {
+  private injector = inject(Injector);
+
   /**
    * Holds the application configuration object.
    */
@@ -32,11 +34,13 @@ export class NomConfigService {
    */
   settingsLoaded: ReplaySubject<void> = new ReplaySubject<void>(1);
 
+
+
   /**
    * Constructor for NomConfigService.
    * @param injector - Angular injector for dynamically resolving dependencies.
    */
-  constructor(private injector: Injector) {
+  constructor() {
     this._config = new NomConfig();
   }
 

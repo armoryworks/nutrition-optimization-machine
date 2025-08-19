@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 
 export interface AppEvent {
     type: string;
-    data?: any;
+    data?: unknown;
 }
 
 @Injectable({
@@ -30,7 +30,7 @@ export class EventBusService {
         this.emit({ type: 'auth:claims-loaded' });
     }
 
-    emitUserInfoUpdated(userInfo: any): void {
+    emitUserInfoUpdated(userInfo: unknown): void {
         this.emit({ type: 'user:info-updated', data: userInfo });
     }
 } 

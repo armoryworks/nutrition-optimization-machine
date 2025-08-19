@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -16,9 +16,11 @@ import { HouseholdMemberResponseModel } from '../models/household-member-respons
     providedIn: 'root'
 })
 export class HouseholdService {
+    private http = inject(HttpClient);
+
     private apiUrl = `${environment.apiUrl}/household`;
 
-    constructor(private http: HttpClient) { }
+
 
     getHouseholds(): Observable<HouseholdResponseModel[]> {
         return this.http.get<HouseholdResponseModel[]>(this.apiUrl);

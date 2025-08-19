@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -80,7 +80,7 @@ export class CuratedPlansComponent implements OnInit {
             if (result) {
                 this.cloningPlanId = planId;
                 this.planService.clonePlan(planId, result).subscribe({
-                    next: (clonedPlan) => {
+                    next: () => {
                         this.notificationService.success('Plan cloned successfully!');
                         this.cloningPlanId = null;
                         // Optionally navigate to the cloned plan
@@ -152,9 +152,14 @@ export class CuratedPlansComponent implements OnInit {
   `
 })
 export class PlanNameDialogComponent {
-    planName: string = '';
+    dialogRef = inject(MatDialog);
+    data = inject(MAT_DIALOG_DATA);
 
-    constructor(public dialogRef: MatDialog, @Inject(MAT_DIALOG_DATA) public data: any) {
+    planName = '';
+
+    constructor() {
+        const data = this.data;
+
         this.planName = data.defaultValue || '';
     }
 } 

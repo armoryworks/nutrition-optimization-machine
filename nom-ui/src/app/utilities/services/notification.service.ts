@@ -1,11 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotificationService {
-  constructor(private snackBar: MatSnackBar) { }
+  private snackBar = inject(MatSnackBar);
+
+
 
   /**
    * Displays a success notification.
@@ -15,8 +17,8 @@ export class NotificationService {
    */
   success(
     message: string,
-    duration: number = 3000,
-    action: string = 'Close'
+    duration = 3000,
+    action = 'Close'
   ): void {
     const config: MatSnackBarConfig = {
       duration: duration,
@@ -35,8 +37,8 @@ export class NotificationService {
    */
   info(
     message: string,
-    duration: number = 3000,
-    action: string = 'Close'
+    duration = 3000,
+    action = 'Close'
   ): void {
     const config: MatSnackBarConfig = {
       duration: duration,
@@ -55,8 +57,8 @@ export class NotificationService {
    */
   warning(
     message: string,
-    duration: number = 5000,
-    action: string = 'Close'
+    duration = 5000,
+    action = 'Close'
   ): void {
     const config: MatSnackBarConfig = {
       duration: duration,
@@ -75,8 +77,8 @@ export class NotificationService {
    */
   error(
     message: string,
-    duration: number = 5000,
-    action: string = 'Close'
+    duration = 5000,
+    action = 'Close'
   ): void {
     const config: MatSnackBarConfig = {
       duration: duration,

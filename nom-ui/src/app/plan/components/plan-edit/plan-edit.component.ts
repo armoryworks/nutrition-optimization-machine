@@ -1,11 +1,4 @@
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-} from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,7 +12,6 @@ import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
   Validators,
-  FormArray,
 } from '@angular/forms';
 
 import { PersonModel } from '../../../person/models/person.model';
@@ -44,9 +36,11 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
   encapsulation: ViewEncapsulation.None,
 })
 export class PlanEditComponent implements OnInit {
-  @Input() plan: PlanModel | null = null;
+  private fb = inject(NonNullableFormBuilder);
+
+  @Input() plan: PlanModel | undefined = undefined;
   @Input() allPersonsInPlan: PersonModel[] = []; // Assuming PersonModel is available
-  @Input() currentPersonId: number = 0; // Assuming currentPersonId is passed for individual restrictions
+  @Input() currentPersonId = 0; // Assuming currentPersonId is passed for individual restrictions
 
   @Output() formSubmitted = new EventEmitter<PlanModel>();
   @Output() back = new EventEmitter<void>();
@@ -54,7 +48,7 @@ export class PlanEditComponent implements OnInit {
   planForm: FormGroup;
 
   // Track the type of restriction being edited to pass to RestrictionEditComponent
-  currentRestrictionType: RestrictionTypeEnum | null = null;
+  currentRestrictionType: RestrictionTypeEnum | undefined = undefined;
 
   // Temporary list to hold restrictions before final submission
   tempRestrictions: RestrictionModel[] = [];
@@ -62,7 +56,9 @@ export class PlanEditComponent implements OnInit {
   // Expose enum to template
   public RestrictionTypeEnum = RestrictionTypeEnum;
 
-  constructor(private fb: NonNullableFormBuilder) {
+
+
+  constructor() {
     this.planForm = this.fb.group({
       name: new FormControl('', Validators.required),
       description: new FormControl(''),

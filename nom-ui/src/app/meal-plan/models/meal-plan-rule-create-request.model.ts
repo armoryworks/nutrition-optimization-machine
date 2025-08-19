@@ -3,9 +3,9 @@
 import { IMealPlanRuleCreateRequestModel } from './meal-plan-rule-create-request.model.interface';
 
 export class MealPlanRuleCreateRequestModel implements IMealPlanRuleCreateRequestModel {
-    householdId: number = 0;
-    dayOfWeekId: number = 0;
-    mealTypeId: number = 0;
+    householdId = 0;
+    dayOfWeekId = 0;
+    mealTypeId = 0;
     queryFilterString?: string;
 
     constructor(data?: Partial<IMealPlanRuleCreateRequestModel>) {

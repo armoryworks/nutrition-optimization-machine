@@ -10,7 +10,7 @@ export interface IInputEvents {
     /**
      * Fired when the input value changes
      */
-    valueChange?: EventEmitter<any>;
+    valueChange?: EventEmitter<string | number>;
 
     /**
      * Fired when the input is focused

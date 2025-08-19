@@ -1,14 +1,6 @@
 // File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
 
-import {
-  Component,
-  OnInit,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  ViewChild,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, ViewChild, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,10 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import {
-  FormControl,
-  Validators,
   ReactiveFormsModule,
-  FormArray,
 } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
 import { MatRadioModule } from '@angular/material/radio';
@@ -30,7 +19,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 // Import all child components for ViewChild references
 import { PersonHealthEditComponent } from '../../../person/components/person-health-edit/person-health-edit.component';
-import { PlanEditComponent } from '../../../plan/components/plan-edit/plan-edit.component';
 import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component';
 import { OnboardingInvitationCodeComponent } from '../onboarding-invitation-code/onboarding-invitation-code.component';
 import { OnboardingAdditionalParticipantsComponent } from '../onboarding-additional-participants/onboarding-additional-participants.component';
@@ -43,8 +31,10 @@ import { RestrictionModel } from '../../../restriction/models/restriction.model'
 import { OnboardingCompleteRequestModel } from '../../models/onboarding-complete-request.model';
 import { PersonService } from '../../../person/services/person.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
-import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum';
+
 import { OnboardingService } from '../../services/onboarding.service';
+import { OnboardingWorkflowStep } from '../../models/onboarding-workflow-step';
+
 
 @Component({
   selector: 'nom-onboarding-workflow',
@@ -72,21 +62,27 @@ import { OnboardingService } from '../../services/onboarding.service';
   encapsulation: ViewEncapsulation.None,
 })
 export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
+  private personService = inject(PersonService);
+  private notificationService = inject(NotificationService);
+  private onboardingService = inject(OnboardingService);
+  private router = inject(Router);
+  private activatedRoute = inject(ActivatedRoute);
+
   private _principalPersonId: number | null = null;
 
   @Output() onboardingComplete = new EventEmitter<boolean>();
 
-  currentStepIndex: number = 0;
-  isLoading: boolean = false;
-  isSubmitting: boolean = false;
+  currentStepIndex = 0;
+  isLoading = false;
+  isSubmitting = false;
   error: string | null = null;
   submitMessage: string | null = null;
 
   onboardingData!: OnboardingCompleteRequestModel;
-  workflowSteps: any[] = [];
+  workflowSteps: OnboardingWorkflowStep[] = [];
 
-  currentHealthAttributePersonIndex: number = 0;
-  currentRestrictionPersonIndex: number = 0;
+  currentHealthAttributePersonIndex = 0;
+  currentRestrictionPersonIndex = 0;
 
   allPersonsInPlan: PersonModel[] = [];
 
@@ -100,6 +96,15 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     'restrictionScope',
   ];
 
+  // Step indices for navigation logic
+  private invitationCodeStepIndex = 0;
+  private additionalParticipantsStepIndex = 1;
+  private healthAttributesStepIndex = 2;
+  private restrictionScopeStepIndex = 3;
+  private firstRestrictionStepIndex = 4;
+  private lastRestrictionStepIndex = 6;
+  private summaryStepIndex = 8;
+
   @ViewChild(PersonHealthEditComponent)
   personHealthEditComponent?: PersonHealthEditComponent;
   @ViewChild(RestrictionEditComponent)
@@ -111,13 +116,6 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   @ViewChild(OnboardingRestrictionScopeComponent)
   onboardingRestrictionScopeComponent?: OnboardingRestrictionScopeComponent;
 
-  constructor(
-    private personService: PersonService,
-    private notificationService: NotificationService,
-    private onboardingService: OnboardingService,
-    private router: Router,
-    private activatedRoute: ActivatedRoute
-  ) { }
 
   ngOnInit(): void {
     this.workflowSteps = this.onboardingService.workflowSteps;
@@ -203,7 +201,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     }
   }
 
-  get currentStep(): any {
+  get currentStep(): OnboardingWorkflowStep | undefined {
     const currentStepConfig = this.workflowSteps[this.currentStepIndex];
 
     if (
@@ -260,9 +258,10 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     // FIX: The logic here was inverted. It should be skippable (via main button)
     // ONLY IF it's NOT in the NO_FLOW_STEPS list.
     return (
-      !this.currentStep?.required &&
+      !this.currentStep?.isRequired &&
       this.currentStep?.id !== 'summary' &&
-      !this.NO_FLOW_STEPS.includes(this.currentStep?.id)
+      !!this.currentStep?.id &&
+      !this.NO_FLOW_STEPS.includes(this.currentStep.id)
     );
   }
 
@@ -537,20 +536,11 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     const summaryStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'summary'
     );
-    const invitationCodeStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'invitationCode'
-    );
-    const additionalParticipantsStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'additionalParticipants'
-    );
-    const restrictionScopeStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'restrictionScope'
-    );
 
     // Handle special jumps or loops FIRST
     // Jump from Invitation Code (Step 1) to Health Attributes (Step 6)
     if (
-      this.currentStep.id === 'invitationCode' &&
+      this.currentStep?.id === 'invitationCode' &&
       this.onboardingData.planInvitationCode
     ) {
       this.currentStepIndex = healthAttributesStepIndex;
@@ -560,7 +550,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
 
     // Handle "No Additional Participants" path from Step 3 (Additional Participants component)
     if (
-      this.currentStep.id === 'additionalParticipants' &&
+      this.currentStep?.id === 'additionalParticipants' &&
       this.onboardingData.hasAdditionalParticipants === false
     ) {
       this.currentStepIndex = summaryStepIndex;
@@ -570,7 +560,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
 
     // Handle looping for Health Attributes (Step 6)
     if (
-      this.currentStep.id === 'healthAttributes' &&
+      this.currentStep?.id === 'healthAttributes' &&
       this.allPersonsInPlan.length > 0
     ) {
       if (
@@ -604,8 +594,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         if (
           this.onboardingData.hasAdditionalParticipants &&
           this.workflowSteps[applyIndividualPreferencesStepIndex].condition!(
-            this.onboardingData,
-            this
+            this.onboardingData
           )
         ) {
           nextStepIndexCandidate = applyIndividualPreferencesStepIndex;
@@ -620,7 +609,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       const nextStepConfig = this.workflowSteps[nextStepIndexCandidate];
 
       if (nextStepConfig.condition) {
-        if (!nextStepConfig.condition!(this.onboardingData, this)) {
+        if (!nextStepConfig.condition!(this.onboardingData)) {
           nextStepIndexCandidate++;
         } else {
           break;
@@ -637,57 +626,31 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   previousStep(): void {
     this.error = null;
 
-    const healthAttributesStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'healthAttributes'
-    );
-    const firstRestrictionStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'societalRestrictions'
-    );
-    const lastRestrictionStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'personalPreferences'
-    );
-    const applyIndividualPreferencesStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'applyIndividualPreferences'
-    );
-    const restrictionScopeStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'restrictionScope'
-    );
-    const additionalParticipantsStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'additionalParticipants'
-    );
-    const personDetailsStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'personDetails'
-    );
-    const invitationCodeStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'invitationCode'
-    );
-    const summaryStepIndex = this.workflowSteps.findIndex(
-      (s) => s.id === 'summary'
-    );
+
 
     // Handle going back from Summary when 'No Additional Participants' was selected
     if (
-      this.currentStep.id === 'summary' &&
+      this.currentStep?.id === 'summary' &&
       this.onboardingData.hasAdditionalParticipants === false
     ) {
-      this.currentStepIndex = additionalParticipantsStepIndex;
+      this.currentStepIndex = this.additionalParticipantsStepIndex;
       this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
     // Handle going back from Apply Individual Preferences (Step 12)
-    if (this.currentStep.id === 'applyIndividualPreferences') {
-      this.currentStepIndex = lastRestrictionStepIndex;
+    if (this.currentStep?.id === 'applyIndividualPreferences') {
+      this.currentStepIndex = this.lastRestrictionStepIndex;
       this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
     // Handle going back within Restriction loop (Steps 9-11)
     if (
-      this.currentStepIndex >= firstRestrictionStepIndex &&
-      this.currentStepIndex <= lastRestrictionStepIndex
+      this.currentStepIndex >= this.firstRestrictionStepIndex &&
+      this.currentStepIndex <= this.lastRestrictionStepIndex
     ) {
-      if (this.currentStepIndex === firstRestrictionStepIndex) {
+      if (this.currentStepIndex === this.firstRestrictionStepIndex) {
         // If at the first restriction step for a person in loop
         if (
           this.onboardingData.hasAdditionalParticipants &&
@@ -695,9 +658,9 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
           this.currentRestrictionPersonIndex > 0
         ) {
           this.currentRestrictionPersonIndex--;
-          this.currentStepIndex = lastRestrictionStepIndex;
+          this.currentStepIndex = this.lastRestrictionStepIndex;
         } else {
-          this.currentStepIndex = restrictionScopeStepIndex;
+          this.currentStepIndex = this.restrictionScopeStepIndex;
         }
         this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
@@ -709,16 +672,16 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     }
 
     // Handle going back within Health Attributes loop (Step 6)
-    if (this.currentStepIndex === healthAttributesStepIndex) {
+    if (this.currentStepIndex === this.healthAttributesStepIndex) {
       if (this.currentHealthAttributePersonIndex > 0) {
         this.currentHealthAttributePersonIndex--;
-        this.navigateToStep(this.workflowSteps[healthAttributesStepIndex].id);
+        this.navigateToStep(this.workflowSteps[this.healthAttributesStepIndex].id);
         return;
       } else {
         if (this.onboardingData.planInvitationCode) {
-          this.currentStepIndex = invitationCodeStepIndex;
+          this.currentStepIndex = this.invitationCodeStepIndex;
         } else {
-          this.currentStepIndex = additionalParticipantsStepIndex;
+          this.currentStepIndex = this.additionalParticipantsStepIndex;
         }
         this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
@@ -734,8 +697,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         this.currentStepIndex > 0 &&
         this.workflowSteps[this.currentStepIndex].condition &&
         !this.workflowSteps[this.currentStepIndex].condition!(
-          this.onboardingData,
-          this
+          this.onboardingData
         )
       ) {
         this.currentStepIndex--;
@@ -747,7 +709,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   skipCurrentStep(): void {
     if (
       this.currentStep &&
-      !this.currentStep.required &&
+      !this.currentStep.isRequired &&
       !this.NO_FLOW_STEPS.includes(this.currentStep?.id) // Corrected logic here
     ) {
       const dataProp = this.currentStep.dataProperty;
@@ -760,15 +722,15 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
           if (personToUpdate) {
             personToUpdate.attributes = [];
           }
-        } else if (Array.isArray((this.onboardingData as any)[dataProp])) {
+        } else if (Array.isArray((this.onboardingData as unknown as Record<string, unknown>)[dataProp])) {
           this.onboardingService.updateOnboardingProperty(
             dataProp as keyof OnboardingCompleteRequestModel,
-            [] as any
+            [] as OnboardingCompleteRequestModel[keyof OnboardingCompleteRequestModel]
           );
         } else {
           this.onboardingService.updateOnboardingProperty(
             dataProp as keyof OnboardingCompleteRequestModel,
-            null as any
+            null as OnboardingCompleteRequestModel[keyof OnboardingCompleteRequestModel]
           );
         }
       }
@@ -801,11 +763,13 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
           if (
             response &&
             response.data &&
-            typeof response.data.newPersonId === 'number'
+            typeof response.data === 'object' &&
+            response.data !== null &&
+            'newPersonId' in response.data
           ) {
             this.onboardingService.updateOnboardingProperty(
               'personId',
-              response.data.newPersonId
+              (response.data as { newPersonId: number }).newPersonId
             );
           }
           this.onboardingService.clearOnboardingData();

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   HttpInterceptor,
   HttpRequest,
@@ -10,12 +10,14 @@ import { NomConfigService } from '../services/nom-config.service';
 
 @Injectable()
 export class ApiInteractionInterceptor implements HttpInterceptor {
-  constructor(private configService: NomConfigService) {}
+  private configService = inject(NomConfigService);
+
+
 
   intercept(
-    req: HttpRequest<any>,
+    req: HttpRequest<unknown>,
     next: HttpHandler
-  ): Observable<HttpEvent<any>> {
+  ): Observable<HttpEvent<unknown>> {
     if (
       this.configService?.config?.serverUri &&
       !req.url.startsWith('http://') &&

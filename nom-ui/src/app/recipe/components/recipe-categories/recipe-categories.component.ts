@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,53 +17,55 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeCategoryModel, RecipeCategoryCreateRequestModel, RecipeCategoryResponseModel } from '../../models/recipe-category.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/recipe-category.model';
+
 
 @Component({
-  selector: 'nom-recipe-categories',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSelectModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-categories.component.html',
-  styleUrls: ['./recipe-categories.component.scss']
+    selector: 'nom-recipe-categories',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatSelectModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-categories.component.html',
+    styleUrls: ['./recipe-categories.component.scss']
 })
 export class RecipeCategoriesComponent implements OnInit {
-  categories: RecipeCategoryResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  categoryForm: FormGroup;
-  isAddingCategory = false;
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.categoryForm = this.nonNullableFb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      icon: ['', [Validators.required]],
-      color: ['#1976d2', [Validators.required]],
-      parentCategoryId: [null],
-      description: ['', [Validators.maxLength(200)]]
-    });
-  }
+    categories: RecipeCategoryResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    categoryForm: FormGroup;
+    isAddingCategory = false;
+
+
+
+    constructor() {
+        this.categoryForm = this.nonNullableFb.group({
+            name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+            icon: ['', [Validators.required]],
+            color: ['#1976d2', [Validators.required]],
+            parentCategoryId: [null],
+            description: ['', [Validators.maxLength(200)]]
+        });
+    }
 
     ngOnInit(): void {
         this.loadAllCategories();
@@ -158,7 +160,7 @@ export class RecipeCategoriesComponent implements OnInit {
         }
     }
 
-    getCategoryStyle(category: RecipeCategoryModel): { [key: string]: string } {
+    getCategoryStyle(category: RecipeCategoryModel): Record<string, string> {
         return {
             'background-color': category.color || '#1976d2',
             'color': this.getContrastColor(category.color || '#1976d2')

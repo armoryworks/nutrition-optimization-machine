@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -8,9 +8,11 @@ import { ShoppingListCategory, ShoppingListCategoryCreate, ShoppingListBulkOpera
     providedIn: 'root'
 })
 export class ShoppingListCategoryService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = `${environment.apiUrl}/ShoppingListCategory`;
 
-    constructor(private http: HttpClient) { }
+
 
     getAllCategories(): Observable<ShoppingListCategory[]> {
         return this.http.get<ShoppingListCategory[]>(this.apiUrl);

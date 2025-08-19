@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -33,6 +33,12 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     styleUrls: ['./household-create.component.scss']
 })
 export class HouseholdCreateComponent implements OnInit {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private householdService = inject(HouseholdService);
+    private router = inject(Router);
+    private snackBar = inject(MatSnackBar);
+    private userInfoService = inject(UserInfoService);
+
     householdForm: FormGroup;
     isLoading = false;
 
@@ -45,13 +51,7 @@ export class HouseholdCreateComponent implements OnInit {
         maxWidth: '600px',
     };
 
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private householdService: HouseholdService,
-        private router: Router,
-        private snackBar: MatSnackBar,
-        private userInfoService: UserInfoService
-    ) {
+    constructor() {
         this.householdForm = this.nonNullableFb.group({
             Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
             Description: ['', [Validators.maxLength(500)]],

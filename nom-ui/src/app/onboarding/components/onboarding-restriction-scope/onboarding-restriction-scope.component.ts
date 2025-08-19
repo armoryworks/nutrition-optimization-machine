@@ -35,7 +35,7 @@ export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
   @Input() restrictionScopeInput: 'plan' | 'specific' | null = null;
   @Input() affectedPersonIdsInput: number[] | null = null;
   @Input() allPersonsInPlan: PersonModel[] = [];
-  @Input() isLoading: boolean = false; // To disable buttons when parent is loading
+  @Input() isLoading = false; // To disable buttons when parent is loading
 
   @Output() scopeSubmitted = new EventEmitter<{
     appliesToEntirePlan: boolean;
@@ -54,8 +54,6 @@ export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
     null,
     Validators.required
   );
-
-  constructor() {}
 
   ngOnInit(): void {
     this.initializeFromInputs();

@@ -6,15 +6,15 @@ import { IMealPlanRuleCreateResponseModel } from './meal-plan-rule-create-respon
 import { IMealPlanRuleResponseModel } from './meal-plan-rule-response.model.interface';
 
 export class MealPlanRuleModel implements IMealPlanRuleModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    authorId = 0;
+    name = '';
     description?: string;
-    dayOfWeekId: number = 0;
-    mealTypeId: number = 0;
+    dayOfWeekId = 0;
+    mealTypeId = 0;
     queryFilterString?: string;
-    isActive: boolean = true;
+    isActive = true;
     createdDate: Date = new Date();
     modifiedDate?: Date;
 
@@ -26,14 +26,14 @@ export class MealPlanRuleModel implements IMealPlanRuleModel {
 }
 
 export class MealPlanRuleCreateRequestModel implements IMealPlanRuleCreateRequestModel {
-    householdId: number = 0;
-    authorId: number = 0;
-    name: string = '';
+    householdId = 0;
+    authorId = 0;
+    name = '';
     description?: string;
-    dayOfWeekId: number = 0;
-    mealTypeId: number = 0;
+    dayOfWeekId = 0;
+    mealTypeId = 0;
     queryFilterString?: string;
-    isActive: boolean = true;
+    isActive = true;
 
     constructor(data?: Partial<IMealPlanRuleCreateRequestModel>) {
         if (data) {
@@ -43,15 +43,15 @@ export class MealPlanRuleCreateRequestModel implements IMealPlanRuleCreateReques
 }
 
 export class MealPlanRuleCreateResponseModel implements IMealPlanRuleCreateResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    authorId = 0;
+    name = '';
     description?: string;
-    dayOfWeekId: number = 0;
-    mealTypeId: number = 0;
+    dayOfWeekId = 0;
+    mealTypeId = 0;
     queryFilterString?: string;
-    isActive: boolean = true;
+    isActive = true;
     createdDate: Date = new Date();
 
     constructor(data?: Partial<IMealPlanRuleCreateResponseModel>) {
@@ -62,19 +62,19 @@ export class MealPlanRuleCreateResponseModel implements IMealPlanRuleCreateRespo
 }
 
 export class MealPlanRuleResponseModel implements IMealPlanRuleResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    authorId: number = 0;
-    name: string = '';
+    id = 0;
+    householdId = 0;
+    authorId = 0;
+    name = '';
     description?: string;
-    dayOfWeekId: number = 0;
+    dayOfWeekId = 0;
     dayOfWeek?: string;
     dayOfWeekName?: string;
-    mealTypeId: number = 0;
+    mealTypeId = 0;
     mealType?: string;
     mealTypeName?: string;
     queryFilterString?: string;
-    isActive: boolean = true;
+    isActive = true;
     createdDate: Date = new Date();
     modifiedDate?: Date;
 

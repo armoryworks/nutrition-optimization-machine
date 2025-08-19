@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import {
@@ -15,9 +15,11 @@ import {
     providedIn: "root",
 })
 export class MealPlanService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = "/api/MealPlan";
 
-    constructor(private http: HttpClient) { }
+
 
     getMealPlans(): Observable<MealPlanResponseModel[]> {
         return this.http.get<MealPlanResponseModel[]>(`${this.apiUrl}`);
@@ -35,8 +37,8 @@ export class MealPlanService {
         return this.http.put<MealPlanResponseModel>(`${this.apiUrl}/${id}`, request);
     }
 
-    deleteMealPlan(id: number): Observable<any> {
-        return this.http.delete(`${this.apiUrl}/${id}`);
+    deleteMealPlan(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
     createRule(request: MealPlanRuleCreateRequestModel): Observable<MealPlanRuleCreateResponseModel> {
@@ -51,7 +53,7 @@ export class MealPlanService {
         return this.http.get<MealPlanRuleResponseModel[]>(`${this.apiUrl}/rules`);
     }
 
-    deleteRule(id: number): Observable<any> {
-        return this.http.delete(`${this.apiUrl}/rule/${id}`);
+    deleteRule(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/rule/${id}`);
     }
 } 

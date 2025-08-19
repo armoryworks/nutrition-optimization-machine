@@ -3,14 +3,14 @@
 import { IShoppingListItemModel } from './shopping-list-item.model.interface';
 
 export class ShoppingListItemModel implements IShoppingListItemModel {
-    id: number = 0;
-    shoppingListId: number = 0;
+    id = 0;
+    shoppingListId = 0;
     ingredientId?: number;
-    ingredientName: string = '';
-    quantity: number = 0;
-    measurementUnit: string = '';
+    ingredientName = '';
+    quantity = 0;
+    measurementUnit = '';
     notes?: string;
-    isCompleted: boolean = false;
+    isCompleted = false;
     categoryId?: number;
     categoryName?: string;
     createdDate: Date = new Date();

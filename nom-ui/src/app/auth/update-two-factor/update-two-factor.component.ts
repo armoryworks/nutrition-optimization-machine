@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -45,6 +45,10 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class UpdateTwoFactorComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+
   twoFactorForm!: FormGroup;
   isLoading = false; // For form submission
 
@@ -59,13 +63,11 @@ export class UpdateTwoFactorComponent implements OnInit {
   };
 
   sharedKeyToDisplay: string | null = null; // For display and QR code
-  recoveryCodesToDisplay: string[] = []; // For displaying new recovery codes
+  recoveryCodesToDisplay: string[] = [];
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private authService: AuthService,
-    private notificationService: NotificationService
-  ) {}
+  // For displaying new recovery codes
+
+
 
   ngOnInit(): void {
     this.twoFactorForm = this.nonNullableFb.group(
@@ -79,7 +81,7 @@ export class UpdateTwoFactorComponent implements OnInit {
     );
 
     // Watch for changes in enable2fa toggle to adjust validation
-    this.twoFactorForm.get('enable2fa')?.valueChanges.subscribe((value) => {
+    this.twoFactorForm.get('enable2fa')?.valueChanges.subscribe(() => {
       this.twoFactorForm.get('password')?.updateValueAndValidity();
       this.twoFactorForm.get('twoFactorCode')?.updateValueAndValidity();
     });
@@ -130,7 +132,7 @@ export class UpdateTwoFactorComponent implements OnInit {
   generateOtpAuthUri(
     sharedKey: string,
     email: string,
-    issuer: string = 'NutritionOptimizationMachine'
+    issuer = 'NutritionOptimizationMachine'
   ): string {
     const encodedIssuer = encodeURIComponent(issuer);
     const encodedEmail = encodeURIComponent(email);

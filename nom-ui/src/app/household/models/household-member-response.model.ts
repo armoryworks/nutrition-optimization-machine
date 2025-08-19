@@ -3,12 +3,12 @@
 import { IHouseholdMemberResponseModel } from './household-member-response.model.interface';
 
 export class HouseholdMemberResponseModel implements IHouseholdMemberResponseModel {
-    id: number = 0;
-    householdId: number = 0;
-    personId: number = 0;
-    personName: string = '';
+    id = 0;
+    householdId = 0;
+    personId = 0;
+    personName = '';
     joinedDate: Date = new Date();
-    isOwner: boolean = false;
+    isOwner = false;
     name?: string;
     email?: string;
     role?: string;

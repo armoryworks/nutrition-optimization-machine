@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -11,7 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 export interface ShoppingItemDialogData {
     shoppingListId: number;
     mode: 'add' | 'edit';
-    item?: any;
+    item?: ShoppingItemFormData;
 }
 
 export interface ShoppingItemFormData {
@@ -41,6 +41,10 @@ export interface ShoppingItemFormData {
     styleUrls: ['./shopping-item-dialog.component.scss']
 })
 export class ShoppingItemDialogComponent implements OnInit {
+    private fb = inject(FormBuilder);
+    private dialogRef = inject<MatDialogRef<ShoppingItemDialogComponent>>(MatDialogRef);
+    data = inject<ShoppingItemDialogData>(MAT_DIALOG_DATA);
+
     itemForm: FormGroup;
     isSubmitting = false;
 
@@ -79,11 +83,7 @@ export class ShoppingItemDialogComponent implements OnInit {
         { value: 'high', label: 'High' }
     ];
 
-    constructor(
-        private fb: FormBuilder,
-        private dialogRef: MatDialogRef<ShoppingItemDialogComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: ShoppingItemDialogData
-    ) {
+    constructor() {
         this.itemForm = this.fb.group({
             name: ['', [Validators.required, Validators.maxLength(255)]],
             description: ['', [Validators.maxLength(1000)]],

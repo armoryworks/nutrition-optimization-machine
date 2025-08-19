@@ -10,11 +10,11 @@ import { Pipe, PipeTransform } from '@angular/core';
 })
 export class JsonParseCommonPipe implements PipeTransform {
   // Renamed class
-  transform(value: string | null | undefined): any {
+  transform(value: string | null | undefined): unknown {
     if (typeof value === 'string' && value.trim() !== '') {
       try {
         return JSON.parse(value);
-      } catch (e) {
+      } catch {
         // console.error('Error parsing JSON string in jsonParseCommonPipe:', value, e); // Log for debugging if needed
         return null;
       }

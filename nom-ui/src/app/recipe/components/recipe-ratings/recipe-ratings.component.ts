@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,8 +16,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeRatingModel, RecipeRatingCreateRequestModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeRatingModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
 
 @Component({
     selector: 'nom-recipe-ratings',
@@ -41,22 +40,22 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
     styleUrls: ['./recipe-ratings.component.scss']
 })
 export class RecipeRatingsComponent implements OnInit {
-    @Input() recipeId: number = 0;
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
+    @Input() recipeId = 0;
 
     ratings: RecipeRatingResponseModel[] = [];
     userRating: RecipeRatingModel | null = null;
-    averageRating: number = 0;
+    averageRating = 0;
     isLoading = false;
     isSubmitting = false;
     ratingForm: FormGroup;
 
-    constructor(
-        private recipeService: RecipeService,
-        private router: Router,
-        private nonNullableFb: NonNullableFormBuilder,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) {
+    constructor() {
         this.ratingForm = this.nonNullableFb.group({
             rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
             comment: ['', [Validators.maxLength(1000)]]

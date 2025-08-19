@@ -27,5 +27,5 @@ export interface ServiceHealthStatus {
     /**
      * Additional health information
      */
-    details?: any;
+    details?: Record<string, unknown>;
 } 

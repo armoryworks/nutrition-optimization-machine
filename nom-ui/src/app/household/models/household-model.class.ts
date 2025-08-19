@@ -3,13 +3,13 @@
 import { IHouseholdModel } from './household-model.interface';
 
 export class HouseholdModel implements IHouseholdModel {
-    id: number = 0;
-    name: string = '';
+    id = 0;
+    name = '';
     description?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
-    memberCount: number = 0;
-    planCount: number = 0;
+    memberCount = 0;
+    planCount = 0;
 
     constructor(data?: Partial<IHouseholdModel>) {
         if (data) {

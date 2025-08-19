@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -23,7 +23,6 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeSearchModel, RecipeSearchResponse, RecipeSearchResult } from '../../models/recipe-search.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
@@ -55,6 +54,12 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     styleUrls: ['./recipe-search.component.scss']
 })
 export class RecipeSearchComponent implements OnInit {
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     searchResults: RecipeSearchResult[] = [];
     isLoading = false;
     error: string | null = null;
@@ -96,13 +101,7 @@ export class RecipeSearchComponent implements OnInit {
         { value: 'desc', label: 'Descending' }
     ];
 
-    constructor(
-        private recipeService: RecipeService,
-        private router: Router,
-        private nonNullableFb: NonNullableFormBuilder,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) {
+    constructor() {
         this.searchForm = this.nonNullableFb.group({
             query: [''],
             minRating: [null],
@@ -151,7 +150,7 @@ export class RecipeSearchComponent implements OnInit {
                 this.hasPreviousPage = response.hasPreviousPage;
                 this.isLoading = false;
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
                 console.error('Search error:', error);
                 this.error = 'Failed to search recipes. Please try again.';
                 this.isLoading = false;
@@ -200,7 +199,7 @@ export class RecipeSearchComponent implements OnInit {
                 this.hasPreviousPage = response.hasPreviousPage;
                 this.isLoading = false;
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
                 console.error('Error loading popular recipes:', error);
                 this.error = 'Failed to load popular recipes.';
                 this.isLoading = false;
@@ -221,7 +220,7 @@ export class RecipeSearchComponent implements OnInit {
                 this.hasPreviousPage = response.hasPreviousPage;
                 this.isLoading = false;
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
                 console.error('Error loading recent recipes:', error);
                 this.error = 'Failed to load recent recipes.';
                 this.isLoading = false;

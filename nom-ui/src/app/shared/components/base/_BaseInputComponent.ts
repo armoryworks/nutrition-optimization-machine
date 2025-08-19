@@ -23,7 +23,7 @@ import { IValidationResult } from '../../interfaces/input/IValidationResult';
 })
 export abstract class BaseInputComponent implements ControlValueAccessor, OnInit, OnDestroy {
     @Input() config: IInputConfig = {};
-    @Input() value: any;
+    @Input() value: string | number = '';
     @Input() disabled = false;
     @Input() readonly = false;
     @Input() required = false;
@@ -52,27 +52,27 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
     @Input() min?: number;
     @Input() max?: number;
     @Input() cssClasses = '';
-    @Input() styles: { [key: string]: string } = {};
+    @Input() styles: Record<string, string> = {};
     @Input() autofocus = false;
     @Input() spellcheck = false;
     @Input() autocapitalize: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters' = 'off';
     @Input() autocorrect: 'on' | 'off' = 'off';
     @Input() tabindex?: number;
 
-    @Output() valueChange = new EventEmitter<any>();
-    @Output() focus = new EventEmitter<FocusEvent>();
-    @Output() blur = new EventEmitter<FocusEvent>();
-    @Output() click = new EventEmitter<MouseEvent>();
-    @Output() dblclick = new EventEmitter<MouseEvent>();
-    @Output() keydown = new EventEmitter<KeyboardEvent>();
-    @Output() keyup = new EventEmitter<KeyboardEvent>();
+    @Output() valueChange = new EventEmitter<string | number>();
+    @Output() inputFocus = new EventEmitter<FocusEvent>();
+    @Output() inputBlur = new EventEmitter<FocusEvent>();
+    @Output() inputClick = new EventEmitter<MouseEvent>();
+    @Output() inputDblclick = new EventEmitter<MouseEvent>();
+    @Output() inputKeydown = new EventEmitter<KeyboardEvent>();
+    @Output() inputKeyup = new EventEmitter<KeyboardEvent>();
     @Output() clear = new EventEmitter<void>();
     @Output() validation = new EventEmitter<IValidationResult>();
 
     protected destroy$ = new Subject<void>();
     protected formControl = new FormControl();
-    protected onChange: (value: any) => void = () => { };
-    protected onTouched: () => void = () => { };
+    protected onChange: (value: string | number) => void = () => { /* Override in concrete implementations */ };
+    protected onTouched: () => void = () => { /* Override in concrete implementations */ };
 
     ngOnInit(): void {
         this.initializeFormControl();
@@ -178,7 +178,7 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
     /**
      * Validates the input value
      */
-    protected validateValue(value: any): void {
+    protected validateValue(value: string | number): void {
         const errors: string[] = [];
         const warnings: string[] = [];
 
@@ -274,7 +274,7 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
      * Handles focus event
      */
     onFocus(event: FocusEvent): void {
-        this.focus.emit(event);
+        this.inputFocus.emit(event);
         this.onTouched();
     }
 
@@ -282,7 +282,7 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
      * Handles blur event
      */
     onBlur(event: FocusEvent): void {
-        this.blur.emit(event);
+        this.inputBlur.emit(event);
         this.validateValue(this.formControl.value);
     }
 
@@ -290,36 +290,36 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
      * Handles click event
      */
     onClick(event: MouseEvent): void {
-        this.click.emit(event);
+        this.inputClick.emit(event);
     }
 
     /**
      * Handles double click event
      */
     onDblClick(event: MouseEvent): void {
-        this.dblclick.emit(event);
+        this.inputDblclick.emit(event);
     }
 
     /**
      * Handles key down event
      */
     onKeyDown(event: KeyboardEvent): void {
-        this.keydown.emit(event);
+        this.inputKeydown.emit(event);
     }
 
     /**
      * Handles key up event
      */
     onKeyUp(event: KeyboardEvent): void {
-        this.keyup.emit(event);
+        this.inputKeyup.emit(event);
     }
 
     // ControlValueAccessor implementation
-    writeValue(value: any): void {
+    writeValue(value: string | number): void {
         this.formControl.setValue(value);
     }
 
-    registerOnChange(fn: (value: any) => void): void {
+    registerOnChange(fn: (value: string | number) => void): void {
         this.onChange = fn;
     }
 
@@ -340,5 +340,5 @@ export abstract class BaseInputComponent implements ControlValueAccessor, OnInit
     /**
      * Gets input styles - to be implemented by concrete classes
      */
-    abstract getInputStyles(): { [key: string]: string };
+    abstract getInputStyles(): Record<string, string>;
 } 

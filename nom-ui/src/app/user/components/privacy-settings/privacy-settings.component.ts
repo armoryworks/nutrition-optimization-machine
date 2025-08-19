@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.ts
 
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -37,6 +37,11 @@ import { ConfirmationDialogComponent } from '../../../common/components/confirma
   encapsulation: ViewEncapsulation.None,
 })
 export class PrivacySettingsComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private privacyService = inject(PrivacyService);
+  private notificationService = inject(NotificationService);
+  private dialog = inject(MatDialog);
+
   consentForm: FormGroup;
   privacyForm: FormGroup;
   isLoading = false;
@@ -67,12 +72,9 @@ export class PrivacySettingsComponent implements OnInit {
     },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private privacyService: PrivacyService,
-    private notificationService: NotificationService,
-    private dialog: MatDialog // Inject MatDialog
-  ) {
+
+
+  constructor() {
     this.consentForm = this.fb.group({});
     this.privacyForm = this.fb.group({});
   }

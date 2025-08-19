@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/curation/services/curation.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SubmitForCurationRequestModel } from '../models/submit-for-curation-request.model';
@@ -11,9 +11,9 @@ import { CurationQueueItemModel } from '../models/curation-queue-item.model';
   providedIn: 'root'
 })
 export class CurationService {
-  private readonly apiUrl = `api/Curation`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) { }
+  private readonly apiUrl = `api/Curation`;
 
   getCurationQueue(): Observable<CurationQueueItemModel[]> {
     return this.http.get<CurationQueueItemModel[]>(`${this.apiUrl}/queue`);

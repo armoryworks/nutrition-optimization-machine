@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -38,10 +38,16 @@ import { BaseDetailComponent, BaseDetailConfig } from '../../../common/component
   styleUrls: ['./meal-plan-detail.component.scss']
 })
 export class MealPlanDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private mealPlanService = inject(MealPlanService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+
   mealPlan: MealPlanResponseModel | null = null;
   isLoading = true;
   error: string | null = null;
-  mealPlanId: number = 0;
+  mealPlanId = 0;
 
   detailConfig: BaseDetailConfig = {
     title: 'Meal Plan Details',
@@ -50,13 +56,7 @@ export class MealPlanDetailComponent implements OnInit {
     maxWidth: '800px',
   };
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private mealPlanService: MealPlanService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) { }
+
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {

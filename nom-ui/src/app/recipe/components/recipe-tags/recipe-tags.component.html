@@ -98,6 +98,10 @@
               class="recipe-tags__available-item"
               [class.recipe-tags__available-item--selected]="isTagSelected(tag)"
               (click)="addTag(tag)"
+              (keyup.enter)="addTag(tag)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'Add tag: ' + tag.name"
             >
               <mat-chip 
                 [style]="getTagStyle(tag)"

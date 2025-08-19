@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -41,18 +41,20 @@ import { NotificationService } from '../../utilities/services/notification.servi
   encapsulation: ViewEncapsulation.None,
 })
 export class ResetPasswordComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
   resetPasswordForm: FormGroup;
   isLoading = false;
-  email: string = '';
-  resetCode: string = '';
+  email = '';
+  resetCode = '';
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder, // Use NonNullableFormBuilder
-    private authService: AuthService,
-    private notificationService: NotificationService, // Use NotificationService
-    private route: ActivatedRoute,
-    private router: Router // Inject Router for navigation
-  ) {
+
+
+  constructor() {
     // Initialize form with default values
     this.resetPasswordForm = this.nonNullableFb.group(
       {
@@ -95,7 +97,7 @@ export class ResetPasswordComponent implements OnInit {
    */
   passwordMatchValidator = (
     control: AbstractControl
-  ): { [key: string]: boolean } | null => {
+  ): Record<string, boolean> | null => {
     const newPassword = control.get('newPassword')?.value;
     const confirmNewPassword = control.get('confirmNewPassword')?.value;
 
@@ -131,27 +133,16 @@ export class ResetPasswordComponent implements OnInit {
       newPassword: formData.newPassword,
     };
 
-    this.authService.resetPassword(resetData).subscribe({
-      next: (response: any) => {
-        // response type is 'any' as per AuthService, assuming it has .success and .message
+    this.authService.resetPassword(resetData).subscribe(
+      () => {
         this.isLoading = false;
-        if (response && response.success) {
-          // Check for success property from backend
-          this.notificationService.success(
-            response.message || 'Your password has been reset successfully!'
-          );
-          this.resetPasswordForm.reset(); // Clear the form
-          this.resetPasswordForm.setErrors(null); // Clear form-level errors after reset
-          // Optionally redirect to login page after successful password reset
-          this.router.navigate(['/login']);
-        } else {
-          // Handle cases where backend indicates failure but doesn't throw an HTTP error
-          this.notificationService.error(
-            response?.message || 'Password reset failed. Please try again.'
-          );
-        }
+        this.notificationService.success('Your password has been reset successfully!');
+        this.resetPasswordForm.reset(); // Clear the form
+        this.resetPasswordForm.setErrors(null); // Clear form-level errors after reset
+        // Optionally redirect to login page after successful password reset
+        this.router.navigate(['/login']);
       },
-      error: (error) => {
+      (error) => {
         this.isLoading = false;
         console.error('Password reset error:', error);
         // The error.message is already processed by the AuthService's handleError
@@ -159,7 +150,7 @@ export class ResetPasswordComponent implements OnInit {
           error.message ||
           'An unexpected error occurred during password reset. Please try again.'
         );
-      },
-    });
+      }
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, filter } from 'rxjs/operators';
@@ -21,13 +21,13 @@ export interface UserInfo {
     providedIn: 'root'
 })
 export class UserInfoService {
+    private http = inject(HttpClient);
+    private eventBus = inject(EventBusService);
+
     private readonly apiUrl = 'api/UserInfo';
     private currentUserInfo = new BehaviorSubject<UserInfo | null>(null);
 
-    constructor(
-        private http: HttpClient,
-        private eventBus: EventBusService
-    ) {
+    constructor() {
         // Listen to authentication events
         this.eventBus.events$.pipe(
             filter(event => event.type === 'auth:claims-loaded')

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,6 +38,10 @@ import { DataProcessingLogModel } from '../../models/i-data-processing-log.model
     styleUrls: ['./privacy-analytics.component.scss']
 })
 export class PrivacyAnalyticsComponent implements OnInit {
+    private privacyAnalyticsService = inject(PrivacyAnalyticsService);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     analytics: PrivacyAnalyticsModel | null = null;
     processingLogs: DataProcessingLogModel[] = [];
     isLoading = false;
@@ -54,11 +58,7 @@ export class PrivacyAnalyticsComponent implements OnInit {
 
     displayedColumns: string[] = ['timestamp', 'actionType', 'actorId', 'ipAddress', 'details'];
 
-    constructor(
-        private privacyAnalyticsService: PrivacyAnalyticsService,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) { }
+
 
     ngOnInit(): void {
         this.loadPrivacyAnalytics();
@@ -175,7 +175,7 @@ export class PrivacyAnalyticsComponent implements OnInit {
 
     onGenerateComplianceReport(): void {
         this.privacyAnalyticsService.generateComplianceReport().subscribe({
-            next: (report) => {
+            next: () => {
                 this.snackBar.open('Compliance report generated successfully', 'Close', { duration: 3000 });
                 // Handle report download or display
             },

@@ -72,5 +72,5 @@ export interface ButtonConfig {
     /**
      * Custom styles
      */
-    customStyles?: { [key: string]: string };
+    customStyles?: Record<string, string>;
 } 

@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.ts
 
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -44,6 +44,12 @@ export interface IngredientCreateModalData {
     styleUrls: ['./ingredient-create-modal.component.scss']
 })
 export class IngredientCreateModalComponent implements OnInit {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private recipeService = inject(RecipeService);
+    private dialogRef = inject<MatDialogRef<IngredientCreateModalComponent>>(MatDialogRef);
+    data = inject<IngredientCreateModalData>(MAT_DIALOG_DATA);
+    private snackBar = inject(MatSnackBar);
+
     ingredientForm: FormGroup;
     isLoading = false;
     isSubmitting = false;
@@ -61,13 +67,7 @@ export class IngredientCreateModalComponent implements OnInit {
         maxWidth: '600px'
     };
 
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private recipeService: RecipeService,
-        private dialogRef: MatDialogRef<IngredientCreateModalComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: IngredientCreateModalData,
-        private snackBar: MatSnackBar
-    ) {
+    constructor() {
         this.fb = this.nonNullableFb;
         this.ingredientForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],

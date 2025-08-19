@@ -20,5 +20,5 @@ export interface IValidationResult {
     /**
      * The current value
      */
-    value: any;
+    value: string | number;
 } 

@@ -1,16 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
-import { RestrictionModel } from '../models/restriction.model'; // Assuming you might fetch restrictions later
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RestrictionService {
+  private http = inject(HttpClient);
+
   private apiUrl = '/api/Restriction';
 
-  constructor(private http: HttpClient) {}
+
 
   /**
    * Fetches a list of curated ingredients for multi-select.

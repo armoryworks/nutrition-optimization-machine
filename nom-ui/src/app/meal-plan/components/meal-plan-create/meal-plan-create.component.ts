@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -39,6 +39,12 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   styleUrls: ['./meal-plan-create.component.scss']
 })
 export class MealPlanCreateComponent implements OnInit {
+  private nonNullableFb = inject(NonNullableFormBuilder);
+  private mealPlanService = inject(MealPlanService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private userInfoService = inject(UserInfoService);
+
   mealPlanForm: FormGroup;
   isLoading = false;
 
@@ -58,13 +64,9 @@ export class MealPlanCreateComponent implements OnInit {
     maxWidth: '600px',
   };
 
-  constructor(
-    private nonNullableFb: NonNullableFormBuilder,
-    private mealPlanService: MealPlanService,
-    private router: Router,
-    private snackBar: MatSnackBar,
-    private userInfoService: UserInfoService
-  ) {
+
+
+  constructor() {
     this.mealPlanForm = this.nonNullableFb.group({
       RecipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       MealType: ['dinner', [Validators.required]],

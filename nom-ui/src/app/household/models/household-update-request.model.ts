@@ -3,7 +3,7 @@
 import { IHouseholdUpdateRequestModel } from './household-update-request.model.interface';
 
 export class HouseholdUpdateRequestModel implements IHouseholdUpdateRequestModel {
-    name: string = '';
+    name = '';
     description?: string;
 
     constructor(data?: Partial<IHouseholdUpdateRequestModel>) {

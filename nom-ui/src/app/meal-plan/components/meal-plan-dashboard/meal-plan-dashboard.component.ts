@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -48,6 +48,11 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
     styleUrls: ['./meal-plan-dashboard.component.scss']
 })
 export class MealPlanDashboardComponent implements OnInit {
+    private router = inject(Router);
+    private mealPlanService = inject(MealPlanService);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
     mealPlans: MealPlanResponseModel[] = [];
     filteredPlans: MealPlanResponseModel[] = [];
     isLoading = true;
@@ -64,12 +69,7 @@ export class MealPlanDashboardComponent implements OnInit {
         maxWidth: '1200px',
     };
 
-    constructor(
-        private router: Router,
-        private mealPlanService: MealPlanService,
-        private snackBar: MatSnackBar,
-        private dialog: MatDialog
-    ) { }
+
 
     ngOnInit(): void {
         this.loadMealPlans();

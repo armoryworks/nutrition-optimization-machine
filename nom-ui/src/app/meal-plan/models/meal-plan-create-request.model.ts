@@ -3,11 +3,11 @@
 import { IMealPlanCreateRequestModel } from './meal-plan-create-request.model.interface';
 
 export class MealPlanCreateRequestModel implements IMealPlanCreateRequestModel {
-    householdId: number = 0;
+    householdId = 0;
     date: Date = new Date();
-    mealTypeId: number = 0;
+    mealTypeId = 0;
     mealType?: string;
-    title: string = '';
+    title = '';
     notes?: string;
     recipeId?: number;
 

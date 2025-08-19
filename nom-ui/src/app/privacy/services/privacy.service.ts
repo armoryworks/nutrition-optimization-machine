@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/privacy/services/privacy.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiResponseCommonModel } from '../../common/models/api-response-common.model';
@@ -13,9 +13,11 @@ import { DataDeletionRequest } from '../models/data-deletion.request';
   providedIn: 'root',
 })
 export class PrivacyService {
-  private apiUrl = '/api/privacy'; // Base URL for the privacy controller
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = '/api/privacy';
+
+  // Base URL for the privacy controller
 
   /**
    * Updates the user's consent settings.

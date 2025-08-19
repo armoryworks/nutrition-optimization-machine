@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -33,9 +33,15 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     styleUrls: ['./household-edit.component.scss']
 })
 export class HouseholdEditComponent implements OnInit {
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private householdService = inject(HouseholdService);
+    private route = inject(ActivatedRoute);
+    private router = inject(Router);
+    private snackBar = inject(MatSnackBar);
+
     householdForm: FormGroup;
     isLoading = false;
-    householdId: number = 0;
+    householdId = 0;
     household: HouseholdResponseModel | null = null;
 
     formConfig: BaseFormConfig = {
@@ -47,13 +53,7 @@ export class HouseholdEditComponent implements OnInit {
         maxWidth: '600px',
     };
 
-    constructor(
-        private nonNullableFb: NonNullableFormBuilder,
-        private householdService: HouseholdService,
-        private route: ActivatedRoute,
-        private router: Router,
-        private snackBar: MatSnackBar
-    ) {
+    constructor() {
         this.householdForm = this.nonNullableFb.group({
             Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
             Description: ['', [Validators.maxLength(500)]]
@@ -101,7 +101,7 @@ export class HouseholdEditComponent implements OnInit {
             });
 
             this.householdService.updateHousehold(this.householdId, updateRequest).subscribe({
-                next: (response) => {
+                next: () => {
                     this.isLoading = false;
                     this.snackBar.open('Household updated successfully!', 'Close', {
                         duration: 3000,

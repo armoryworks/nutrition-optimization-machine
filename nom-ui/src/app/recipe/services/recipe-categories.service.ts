@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RecipeCategoryModel } from '../models/i-recipe-category.model';
@@ -7,9 +7,11 @@ import { RecipeCategoryModel } from '../models/i-recipe-category.model';
     providedIn: 'root'
 })
 export class RecipeCategoriesService {
+    private http = inject(HttpClient);
+
     private readonly apiUrl = 'api/recipe/categories';
 
-    constructor(private http: HttpClient) { }
+
 
     getAllCategories(): Observable<RecipeCategoryModel[]> {
         return this.http.get<RecipeCategoryModel[]>(`${this.apiUrl}`);
@@ -49,7 +51,7 @@ export class RecipeCategoriesService {
         });
     }
 
-    getPopularCategories(limit: number = 10): Observable<RecipeCategoryModel[]> {
+    getPopularCategories(limit = 10): Observable<RecipeCategoryModel[]> {
         return this.http.get<RecipeCategoryModel[]>(`${this.apiUrl}/popular`, {
             params: { limit: limit.toString() }
         });

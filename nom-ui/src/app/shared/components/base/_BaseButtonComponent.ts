@@ -3,7 +3,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { _ButtonConfig } from './_ButtonConfig';
-import { _ButtonEvents } from './_ButtonEvents';
+
 
 /**
  * Abstract base button component that should be extended by concrete implementations
@@ -15,10 +15,10 @@ import { _ButtonEvents } from './_ButtonEvents';
 })
 export abstract class BaseButtonComponent implements OnInit, OnDestroy {
     @Input() config: _ButtonConfig = {};
-    @Output() click = new EventEmitter<MouseEvent>();
-    @Output() focus = new EventEmitter<FocusEvent>();
-    @Output() blur = new EventEmitter<FocusEvent>();
-    @Output() keyDown = new EventEmitter<KeyboardEvent>();
+    @Output() buttonClick = new EventEmitter<MouseEvent>();
+    @Output() buttonFocus = new EventEmitter<FocusEvent>();
+    @Output() buttonBlur = new EventEmitter<FocusEvent>();
+    @Output() buttonKeyDown = new EventEmitter<KeyboardEvent>();
 
     protected readonly isDisabled$ = new BehaviorSubject<boolean>(false);
     protected readonly isLoading$ = new BehaviorSubject<boolean>(false);
@@ -42,7 +42,7 @@ export abstract class BaseButtonComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.click.emit(event);
+        this.buttonClick.emit(event);
 
         if (this.config.showLoading) {
             this.setLoading(true);
@@ -53,26 +53,26 @@ export abstract class BaseButtonComponent implements OnInit, OnDestroy {
      * Handles button focus
      */
     onFocus(event: FocusEvent): void {
-        this.focus.emit(event);
+        this.buttonFocus.emit(event);
     }
 
     /**
      * Handles button blur
      */
     onBlur(event: FocusEvent): void {
-        this.blur.emit(event);
+        this.buttonBlur.emit(event);
     }
 
     /**
      * Handles key down events
      */
     onKeyDown(event: KeyboardEvent): void {
-        this.keyDown.emit(event);
+        this.buttonKeyDown.emit(event);
 
         // Handle Enter and Space keys
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            this.onClick(event as any);
+            this.onClick(event as MouseEvent);
         }
     }
 

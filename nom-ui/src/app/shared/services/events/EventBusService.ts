@@ -1,10 +1,9 @@
 // File: nom-ui/src/app/shared/services/events/EventBusService.ts
 
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
-import { takeUntil, filter, tap } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { _EventBusStatistics } from './_EventBusStatistics';
-import { _EventBusOptions } from './_EventBusOptions';
 
 /**
  * Concrete event bus service implementation for frontend pub-sub pattern
@@ -14,8 +13,8 @@ import { _EventBusOptions } from './_EventBusOptions';
 })
 export class EventBusService implements OnDestroy {
     private readonly destroy$ = new Subject<void>();
-    private readonly events$ = new Subject<any>();
-    private readonly subscribers = new Map<string, Set<(event: any) => void>>();
+    private readonly events$ = new Subject<{ type: string; data: unknown }>();
+    private readonly subscribers = new Map<string, Set<(event: unknown) => void>>();
     private readonly statistics = {
         totalEvents: 0,
         totalSubscribers: 0,
@@ -52,7 +51,7 @@ export class EventBusService implements OnDestroy {
         }
 
         const eventSubscribers = this.subscribers.get(eventType)!;
-        eventSubscribers.add(handler as any);
+        eventSubscribers.add(handler as (event: unknown) => void);
 
         this.statistics.totalSubscribers++;
         this.statistics.subscriberCounts.set(
@@ -69,7 +68,7 @@ export class EventBusService implements OnDestroy {
     unsubscribe<T>(eventType: string, handler: (event: T) => void): void {
         const eventSubscribers = this.subscribers.get(eventType);
         if (eventSubscribers) {
-            eventSubscribers.delete(handler as any);
+            eventSubscribers.delete(handler as (event: unknown) => void);
 
             this.statistics.totalSubscribers--;
             const currentCount = this.statistics.subscriberCounts.get(eventType) || 0;
@@ -144,7 +143,7 @@ export class EventBusService implements OnDestroy {
     /**
      * Gets all subscribers for an event type
      */
-    getSubscribers(eventType: string): ((event: any) => void)[] {
+    getSubscribers(eventType: string): ((event: unknown) => void)[] {
         const eventSubscribers = this.subscribers.get(eventType);
         return eventSubscribers ? Array.from(eventSubscribers) : [];
     }
@@ -218,7 +217,7 @@ export class EventBusService implements OnDestroy {
     /**
      * Gets the event type from an event object
      */
-    private getEventType(event: any): string {
+    private getEventType(event: unknown): string {
         if (typeof event === 'string') {
             return event;
         }

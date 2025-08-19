@@ -397,6 +397,513 @@ export class MyListComponent {
 - [ ] Update component decorators to use `templateUrl`
 - [ ] Test all conditional rendering and iteration
 
+### Desktop UI Viewport Requirements
+
+**CRITICAL: Desktop UI Must Fit Standard Viewport Without Scrolling**
+
+All desktop-targeted user interfaces MUST be designed to fit within a **1800x850px viewport** at 100% zoom without requiring horizontal or vertical scrolling.
+
+**Viewport Specifications:**
+
+- **Target Resolution**: 1080p (1920x1080)
+- **Browser Window**: Maximized browser window
+- **Effective Viewport**: ~1800x850px (accounting for browser UI, taskbar, etc.)
+- **Zoom Level**: 100%
+- **Scroll Requirement**: NO horizontal or vertical scrolling allowed
+
+**Implementation Requirements:**
+
+```scss
+// Use viewport-relative units for height constraints
+.main-container {
+  height: calc(100vh - 120px); // Account for compact navigation header
+  overflow: hidden; // Prevent scrolling
+}
+
+// Ensure content fits within boundaries
+.content-area {
+  max-height: calc(100vh - 180px);
+  overflow-y: auto; // Only if absolutely necessary
+}
+
+// Compact Header Pattern (Recommended for Desktop Interfaces)
+.compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+
+  .header-title-section {
+    flex-shrink: 0;
+    // Title and subtitle on same vertical line
+  }
+
+  .header-center-section {
+    flex: 1;
+    // Stats, progress, or other dynamic content
+  }
+
+  .header-actions-section {
+    flex-shrink: 0;
+    // Action buttons and controls
+  }
+}
+```
+
+**Design Principles:**
+
+1. **Compact Layouts**: Use efficient spacing and padding
+2. **Smart Information Hierarchy**: Prioritize most important content
+3. **Responsive Grid Systems**: Utilize available space effectively
+4. **Collapsible Sections**: Use accordions/expandable areas when needed
+5. **Optimized Typography**: Use appropriate font sizes for space efficiency
+6. **Horizontal Information Density**: Place title, subtitle, and controls on same horizontal line when possible
+7. **Eliminate Vertical Waste**: Reduce header height by 75% through compact design patterns
+
+**Testing Requirements:**
+
+- Test on 1080p monitor at 100% zoom
+- Test with browser maximized
+- Verify no scrollbars appear on primary workflows
+- Ensure all interactive elements are accessible
+- Verify header height is optimized (target: 25% of previous height)
+- Confirm title, subtitle, and controls fit on single horizontal line
+
+### Compact Header Pattern (Desktop Interfaces)
+
+**CRITICAL: Use Compact Headers for Desktop Interfaces**
+
+All desktop interfaces MUST use compact header patterns that place title, subtitle, and controls on the same horizontal line.
+
+**Compact Header Requirements:**
+
+- **Height Reduction**: Target 75% reduction in header height
+- **Horizontal Layout**: Title, subtitle, and controls on single line
+- **Space Efficiency**: Eliminate vertical waste in header sections
+- **Information Density**: Maximize information per vertical pixel
+
+**Implementation Pattern:**
+
+```scss
+.interface-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  gap: 1rem;
+
+  .header-title-section {
+    flex-shrink: 0;
+    // Title + subtitle vertically stacked
+  }
+
+  .header-center-section {
+    flex: 1;
+    // Dynamic content (stats, progress, etc.)
+  }
+
+  .header-actions-section {
+    flex-shrink: 0;
+    // Action buttons and controls
+  }
+}
+```
+
+**Examples of Interfaces Requiring Compact Headers:**
+
+- Curation Queue ✅ (Completed) - Uses Base-List Integration Pattern
+- Recipe Management 🔄 (TODO: Implement compact header)
+- User Management 🔄 (TODO: Implement compact header)
+- Household Management 🔄 (TODO: Implement compact header)
+- Dashboard 🔄 (TODO: Implement compact header)
+- Recipe Search 🔄 (TODO: Implement compact header)
+- Meal Plan Management 🔄 (TODO: Implement compact header)
+- Shopping Lists 🔄 (TODO: Implement compact header)
+- Profile Management 🔄 (TODO: Implement compact header)
+
+**TODO: Compact Header Implementation Priority**
+
+1. **Phase 1 (Critical Admin)**: Recipe Management, User Management, Household Management
+2. **Phase 2 (Content)**: Recipe Search, Meal Plan Management, Shopping Lists
+3. **Phase 3 (User-facing)**: Dashboard, Profile Management
+
+**Implementation Strategy:**
+
+**For List Interfaces (extending BaseListComponent):**
+
+- ✅ **Use Base-List Integration Pattern** (like Curation Queue)
+- ✅ **Extend BaseListConfig** with stats, progress, custom actions
+- ✅ **Eliminate duplicate headers** by integrating into base-list
+
+**For Other Interfaces:**
+
+- 🔄 **Use Direct Component Implementation Pattern**
+- 🔄 **Create custom compact header layouts**
+- 🔄 **Follow the same three-section structure**
+
+### **Base-List Integration Pattern (Recommended for List Interfaces)**
+
+**When to Use:**
+
+- Interface extends `BaseListComponent`
+- Has list-like functionality (search, pagination, etc.)
+- Needs stats, progress, or custom actions
+
+**Implementation Steps:**
+
+1. **Extend BaseListConfig** with required properties
+2. **Remove duplicate header** from component template
+3. **Update listConfig** when data changes
+4. **Use base-list header** for all title/subtitle/controls
+
+**Example Configuration:**
+
+```typescript
+listConfig: BaseListConfig = {
+  title: "Interface Title",
+  subtitle: "Interface description",
+  showStats: true,
+  stats: [{ label: "Count", value: 0, type: "pending" }],
+  showProgress: true,
+  progressText: "Current status",
+  progressValue: 0,
+  progressTotal: 0,
+  showCustomActions: true,
+  customActions: [
+    {
+      label: "Action",
+      icon: "icon_name",
+      color: "primary",
+      action: () => this.performAction(),
+    },
+  ],
+  showLastUpdated: true,
+  lastUpdated: new Date(),
+};
+```
+
+**Benefits:**
+
+- ✅ **No duplicate headers** - Single source of truth
+- ✅ **Consistent styling** - Uses base-list component styles
+- ✅ **Reusable pattern** - Can be applied to other list interfaces
+- ✅ **Better maintainability** - Centralized header logic
+- ✅ **Space efficiency** - Eliminates vertical waste
+
+### **Control Buttons Pattern (Curation Interfaces)**
+
+**When to Use:**
+
+- Curation and review interfaces
+- Interfaces with primary action buttons
+- Need for always-visible controls
+
+**Implementation:**
+
+```typescript
+listConfig: BaseListConfig = {
+  // ... other config
+  showControlButtons: true,
+  controlButtons: [
+    {
+      label: "Approve",
+      icon: "check_circle",
+      color: "primary",
+      disabled: !this.selectedItem || this.form.invalid,
+      action: () => this.approve(),
+    },
+    {
+      label: "Request Revision",
+      icon: "edit",
+      color: "accent",
+      disabled: !this.selectedItem || this.form.invalid,
+      action: () => this.requestRevision(),
+    },
+  ],
+};
+```
+
+**Layout Pattern:**
+
+- **Control buttons** (Approve, Request Revision, Reject, Cancel) positioned **left** of navigation buttons
+- **Navigation buttons** (Previous, Next) positioned **right** of control buttons
+- **Same horizontal line** for all action buttons
+- **Refresh section** with timestamp **left** of refresh button for compact display
+- **Accordion content** with fixed maximum height of 250px for scrollable sections
+- **Single-line titles** combining action and item name: "Review [EntityType] - [ItemName]"
+- **Horizontal form fields** with 50/50 width split for side-by-side input areas
+- **Header action integration** with control menu and navigation buttons in review headers
+
+**Benefits:**
+
+- ✅ **Always visible** - Controls never hidden by scrolling
+- ✅ **Quick access** - Primary actions in header
+- ✅ **Context-aware** - Automatically disabled when invalid
+- ✅ **Consistent layout** - Same position across interfaces
+- ✅ **Logical grouping** - Control actions grouped with navigation actions
+
+### **Compact Header Stats Pattern (List Interfaces)**
+
+**When to Use:**
+
+- List interfaces with statistics and progress information
+- Need to maximize horizontal space usage
+- Want to reduce vertical header height
+
+**Implementation:**
+
+```typescript
+listConfig: BaseListConfig = {
+  // ... other config
+  showStats: true,
+  stats: [
+    { label: "Pending", value: 5, type: "pending" },
+    { label: "Recipes", value: 3, type: "recipe" },
+    { label: "Ingredients", value: 2, type: "ingredient" },
+  ],
+  showProgress: true,
+  progressText: "Reviewing item 1 of 5",
+};
+```
+
+**Layout Pattern:**
+
+- **Stats badges** and **progress text** on the same horizontal line
+- **Center-aligned** within the header center section
+- **Responsive wrapping** on smaller screens
+- **Proper spacing** between elements (1rem gap)
+
+**Benefits:**
+
+- ✅ **Space efficient** - Reduces header height by 50%
+- ✅ **Better information density** - More data in less space
+- ✅ **Improved scanability** - Related information grouped together
+- ✅ **Responsive design** - Adapts to different screen sizes
+
+### **Accordion Content Pattern (Content Organization)**
+
+**When to Use:**
+
+- Content-heavy interfaces
+- Multiple information sections
+- Need to reduce vertical space
+
+**Implementation:**
+
+```html
+<mat-accordion>
+  <mat-expansion-panel>
+    <mat-expansion-panel-header>
+      <mat-panel-title>Section Title</mat-panel-title>
+    </mat-expansion-panel-header>
+    <!-- Section content -->
+  </mat-expansion-panel>
+</mat-accordion>
+```
+
+**Scrollable Content Pattern:**
+
+```scss
+// Make accordion content scrollable with fixed maximum height
+::ng-deep .mat-mdc-expansion-panel-content {
+  .mat-mdc-expansion-panel-body {
+    max-height: 250px; // Fixed height limit to prevent unnecessary empty space
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-container-low);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--mat-sys-outline);
+      }
+    }
+  }
+}
+```
+
+**Benefits:**
+
+- ✅ **Space efficient** - Reduces vertical scrolling
+- ✅ **Better organization** - Groups related information
+- ✅ **Improved scanability** - Users can focus on relevant sections
+- ✅ **Consistent styling** - Material Design 3 accordion theming
+- ✅ **Scrollable content** - Long content contained within viewport constraints
+- ✅ **Custom scrollbars** - Consistent with Material Design 3 theming
+
+### **Horizontal Form Fields Pattern (Space Efficiency)**
+
+**When to Use:**
+
+- Multiple related form fields that can share horizontal space
+- Need to reduce vertical form height
+- Fields have similar importance and usage patterns
+
+**Implementation:**
+
+```html
+<div class="form-fields-row">
+  <mat-form-field appearance="outline" class="form-field form-field--half">
+    <mat-label>First Field</mat-label>
+    <textarea matInput formControlName="field1" rows="3"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="form-field form-field--half">
+    <mat-label>Second Field</mat-label>
+    <textarea matInput formControlName="field2" rows="3"></textarea>
+  </mat-form-field>
+</div>
+```
+
+**CSS Pattern:**
+
+```scss
+.form-fields-row {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+
+  @include mixins.breakpoint(mobile) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.form-field--half {
+  flex: 1;
+  min-width: 0;
+}
+```
+
+**Benefits:**
+
+- ✅ **Space efficient** - Reduces vertical form height
+- ✅ **Better organization** - Related fields grouped horizontally
+- ✅ **Responsive** - Stacks vertically on mobile devices
+- ✅ **Equal width distribution** - Each field gets 50% of available width
+
+### **Header Action Integration Pattern (Review Interfaces)**
+
+**When to Use:**
+
+- Review/curation interfaces with multiple action types
+- Need to consolidate control buttons and navigation in header
+- Want to maintain clean, organized header layout
+
+**Implementation:**
+
+```html
+<mat-card-header class="review-header">
+  <mat-card-title>Review {{ entityType }} - {{ entityName }}</mat-card-title>
+
+  <div class="review-header__actions">
+    <!-- Control Buttons Context Menu -->
+    <button
+      mat-icon-button
+      [matMenuTriggerFor]="controlMenu"
+      class="control-menu-trigger"
+      aria-label="Open control menu"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+
+    <mat-menu #controlMenu="matMenu" class="control-menu">
+      <button mat-menu-item (click)="approve()">
+        <mat-icon>check_circle</mat-icon>
+        <span>Approve</span>
+      </button>
+      <button mat-menu-item (click)="requestRevision()">
+        <mat-icon>edit</mat-icon>
+        <span>Request Revision</span>
+      </button>
+      <button mat-menu-item (click)="reject()">
+        <mat-icon>cancel</mat-icon>
+        <span>Reject</span>
+      </button>
+      <button mat-menu-item (click)="cancel()">
+        <mat-icon>close</mat-icon>
+        <span>Cancel</span>
+      </button>
+    </mat-menu>
+
+    <!-- Navigation Buttons -->
+    <div class="review-header__navigation">
+      <button mat-icon-button (click)="previous()">
+        <mat-icon>keyboard_arrow_up</mat-icon>
+      </button>
+      <span class="navigation-counter">1 of 5</span>
+      <button mat-icon-button (click)="next()">
+        <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+    </div>
+  </div>
+</mat-card-header>
+```
+
+**CSS Pattern:**
+
+```scss
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  mat-card-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .review-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
+
+    .control-menu-trigger {
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      color: var(--mat-sys-on-surface-variant);
+
+      &:hover {
+        color: var(--mat-sys-on-surface);
+        background-color: var(--mat-sys-surface-container);
+      }
+    }
+
+    .review-header__navigation {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+  }
+}
+```
+
+**Benefits:**
+
+- ✅ **Clean header layout** - Actions organized in logical groups
+- ✅ **Space efficient** - Control buttons consolidated in context menu
+- ✅ **Better UX** - Related actions grouped together
+- ✅ **Responsive design** - Adapts to different screen sizes
+- ✅ **Material Design 3** - Consistent with design system
+
 ### Angular Component Structure
 
 **CRITICAL: Component HTML Must Be in Separate Files**

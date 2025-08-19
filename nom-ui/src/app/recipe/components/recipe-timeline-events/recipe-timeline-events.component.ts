@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,54 +19,58 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeTimelineEventModel, RecipeTimelineEventCreateRequestModel, RecipeTimelineEventResponseModel } from '../../models/recipe-timeline-event.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
+import { RecipeAdvancedService } from '../../services/recipe-advanced.service';
 
 @Component({
-  selector: 'nom-recipe-timeline-events',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-timeline-events.component.html',
-  styleUrls: ['./recipe-timeline-events.component.scss']
+    selector: 'nom-recipe-timeline-events',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatSelectModule,
+        MatDatepickerModule,
+        MatNativeDateModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-timeline-events.component.html',
+    styleUrls: ['./recipe-timeline-events.component.scss']
 })
-export class RecipeTimelineEventsComponent implements OnInit {
-  events: RecipeTimelineEventResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  eventForm: FormGroup;
-  isAddingEvent = false;
+export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
+    @Input() recipeId!: number;
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.eventForm = this.nonNullableFb.group({
-      eventTypeId: ['', [Validators.required]],
-      eventTitle: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
-      eventDescription: ['', [Validators.maxLength(2047)]],
-      eventDate: [new Date(), [Validators.required]]
-    });
-  }
+    timelineEvents: RecipeTimelineEventResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    timelineEventForm: FormGroup;
+    isSubmitting = false;
+    destroy$ = new Subject<void>();
+
+    private recipeService = inject(RecipeService);
+    private recipeAdvancedService = inject(RecipeAdvancedService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
+
+    constructor() {
+        this.timelineEventForm = this.nonNullableFb.group({
+            eventTypeId: ['', [Validators.required]],
+            eventTitle: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
+            eventDescription: ['', [Validators.maxLength(2047)]],
+            eventDate: [new Date(), [Validators.required]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {

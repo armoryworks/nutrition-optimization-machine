@@ -3,8 +3,8 @@
 import { IShoppingListCreateRequestModel } from './shopping-list-create-request.model.interface';
 
 export class ShoppingListCreateRequestModel implements IShoppingListCreateRequestModel {
-    householdId: number = 0;
-    name: string = '';
+    householdId = 0;
+    name = '';
     description?: string;
 
     constructor(data?: Partial<IShoppingListCreateRequestModel>) {

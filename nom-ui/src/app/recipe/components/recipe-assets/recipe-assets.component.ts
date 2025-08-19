@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,51 +17,53 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeAssetModel, RecipeAssetCreateRequestModel, RecipeAssetResponseModel } from '../../models/recipe-asset.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { RecipeAssetModel, RecipeAssetResponseModel } from '../../models/recipe-asset.model';
+
 
 @Component({
-  selector: 'nom-recipe-assets',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSelectModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-  ],
-  templateUrl: './recipe-assets.component.html',
-  styleUrls: ['./recipe-assets.component.scss']
+    selector: 'nom-recipe-assets',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatChipsModule,
+        MatDividerModule,
+        MatSelectModule,
+        MatDialogModule,
+        MatListModule,
+        MatMenuModule,
+    ],
+    templateUrl: './recipe-assets.component.html',
+    styleUrls: ['./recipe-assets.component.scss']
 })
 export class RecipeAssetsComponent implements OnInit {
-  assets: RecipeAssetResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
-  assetForm: FormGroup;
-  isAddingAsset = false;
+    private recipeService = inject(RecipeService);
+    private router = inject(Router);
+    private nonNullableFb = inject(NonNullableFormBuilder);
+    private snackBar = inject(MatSnackBar);
+    private dialog = inject(MatDialog);
 
-  constructor(
-    private recipeService: RecipeService,
-    private router: Router,
-    private nonNullableFb: NonNullableFormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.assetForm = this.nonNullableFb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      icon: ['', [Validators.required]],
-      description: ['', [Validators.maxLength(500)]]
-    });
-  }
+    assets: RecipeAssetResponseModel[] = [];
+    isLoading = false;
+    error: string | null = null;
+    assetForm: FormGroup;
+    isAddingAsset = false;
+
+
+
+    constructor() {
+        this.assetForm = this.nonNullableFb.group({
+            name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+            icon: ['', [Validators.required]],
+            description: ['', [Validators.maxLength(500)]]
+        });
+    }
 
     ngOnInit(): void {
         if (this.recipeId) {
@@ -95,8 +97,8 @@ export class RecipeAssetsComponent implements OnInit {
         this.loadAssets();
     }
 
-    onFileSelected(event: any): void {
-        const file = event.target.files[0];
+    onFileSelected(event: Event): void {
+        const file = (event.target as HTMLInputElement).files?.[0];
         if (file) {
             this.selectedFile = file;
             // Auto-set name if not already set
@@ -220,5 +222,7 @@ export class RecipeAssetsComponent implements OnInit {
     imports: [CommonModule, MatDialogModule, MatButtonModule]
 })
 export class ConfirmDeleteDialogComponent {
-    constructor(@Inject(MAT_DIALOG_DATA) public data: { message: string }) { }
+    data = inject({ message: string });
+
+
 } 

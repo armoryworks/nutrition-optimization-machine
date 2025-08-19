@@ -1,5 +1,12 @@
 import { BaseCommonModel } from '../../common/models/_base-common.model';
 
+interface PersonAttributeData {
+  id?: number;
+  personId?: number;
+  attributeTypeRefId?: number;
+  value?: string;
+}
+
 /**
  * Model representing a Person's Attribute (e.g., height, weight, activity level).
  */
@@ -9,7 +16,7 @@ export class PersonAttributeModel implements BaseCommonModel {
   attributeTypeRefId: number; // Reference to the type of attribute (e.g., from Reference Data)
   value: string; // Stored as string for flexibility (e.g., "180cm", "75kg", "Active")
 
-  constructor(data: any = {}) {
+  constructor(data: PersonAttributeData = {}) {
     this.id = data.id || 0;
     this.personId = data.personId || 0;
     this.attributeTypeRefId = data.attributeTypeRefId || 0;
