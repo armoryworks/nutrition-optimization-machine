@@ -1,0 +1,230 @@
+<!-- Unified Ingredient Form Component - Works in both Modal and Page contexts -->
+
+@if (isModal) {
+  <!-- Modal Context: Use BaseFormComponent -->
+  <nom-base-form
+    [config]="formConfig"
+    [form]="ingredientForm"
+    [isSubmitting]="isSubmitting"
+    (submit)="onSubmit()"
+    (cancel)="onCancel()">
+
+    <div [formGroup]="ingredientForm">
+      @if (isLoading) {
+        <div class="nom-ingredient-form__loading">
+          <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+        </div>
+      } @else {
+        <!-- General Information Section -->
+        <div class="nom-ingredient-form__section">
+          <h3 class="nom-ingredient-form__section-title">General Information</h3>
+          
+          <mat-form-field class="nom-ingredient-form__form-field">
+            <mat-label>Ingredient Name*</mat-label>
+            <input matInput type="text" formControlName="name" placeholder="Ingredient Name*">
+            <mat-icon matSuffix>info</mat-icon>
+            @if (isCheckingDuplicate) {
+              <mat-hint>Checking for duplicates...</mat-hint>
+            }
+          </mat-form-field>
+
+          @if (existingIngredient && showDuplicateChecking) {
+            <div class="nom-ingredient-form__duplicate-warning">
+              <div class="nom-ingredient-form__duplicate-content">
+                <mat-icon>warning</mat-icon>
+                <span>An ingredient with this name already exists: <strong>{{ existingIngredient.name }}</strong></span>
+              </div>
+              <button mat-stroked-button type="button" (click)="useExistingIngredient()" class="nom-ingredient-form__use-existing-btn">
+                Use Existing
+              </button>
+            </div>
+          }
+
+          <mat-form-field class="nom-ingredient-form__form-field">
+            <mat-label>Description (Optional)</mat-label>
+            <textarea matInput formControlName="description" placeholder="Description (Optional)" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+
+        <!-- Nutritional Information Section -->
+        <div class="nom-ingredient-form__section">
+          <div class="nom-ingredient-form__section-header">
+            <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
+            <button mat-stroked-button type="button" (click)="addNutrient()" class="nom-ingredient-form__add-button">
+              <mat-icon>add</mat-icon>
+              Add Nutrient
+            </button>
+          </div>
+
+          <div formArrayName="nutrients">
+            @for (nutrient of nutrients.controls; track $index) {
+              <div class="nom-ingredient-form__nutrient-row" [formGroupName]="$index">
+                <mat-form-field class="nom-ingredient-form__nutrient-field">
+                  <mat-label>Nutrient</mat-label>
+                  <mat-select formControlName="nutrientId">
+                    <mat-option value="1008">Energy (kcal)</mat-option>
+                    <mat-option value="1003">Protein (g)</mat-option>
+                    <mat-option value="1004">Total Fat (g)</mat-option>
+                    <mat-option value="1005">Carbohydrates (g)</mat-option>
+                    <mat-option value="1079">Fiber (g)</mat-option>
+                    <mat-option value="1093">Sodium (mg)</mat-option>
+                    <mat-option value="1092">Potassium (mg)</mat-option>
+                    <mat-option value="1087">Calcium (mg)</mat-option>
+                    <mat-option value="1089">Iron (mg)</mat-option>
+                    <mat-option value="1106">Vitamin C (mg)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field class="nom-ingredient-form__nutrient-field">
+                  <mat-label>Amount</mat-label>
+                  <input matInput type="number" formControlName="amount" min="0" step="0.01">
+                </mat-form-field>
+
+                <mat-form-field class="nom-ingredient-form__nutrient-field">
+                  <mat-label>Unit</mat-label>
+                  <mat-select formControlName="measurementTypeId">
+                    <mat-option value="4003">g (gram)</mat-option>
+                    <mat-option value="4004">mg (milligram)</mat-option>
+                    <mat-option value="4005">µg (microgram)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <button mat-icon-button type="button" (click)="removeNutrient($index)" title="Remove Nutrient"
+                  class="nom-ingredient-form__remove-button">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            }
+
+            @if (nutrients.length === 0) {
+              <p class="nom-ingredient-form__empty-message">
+                No nutritional information added yet. Click "Add Nutrient" to get started.
+              </p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </nom-base-form>
+} @else {
+  <!-- Page Context: Use BasePageComponent -->
+  <nom-base-page
+    [config]="pageConfig"
+    [isLoading]="isLoading"
+    [error]="error"
+    (back)="onBack()"
+    (refresh)="onRefresh()"
+    (retry)="onRetry()">
+
+    <div class="base-form-container" style="max-width: 600px;">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>{{ formConfig.title }}</mat-card-title>
+          @if (formConfig.subtitle) {
+            <mat-card-subtitle>{{ formConfig.subtitle }}</mat-card-subtitle>
+          }
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
+            <!-- Form Content -->
+            <div class="form-content">
+              <!-- General Information Section -->
+              <div class="nom-ingredient-form__section">
+                <h3 class="nom-ingredient-form__section-title">General Information</h3>
+                <mat-form-field class="nom-ingredient-form__form-field">
+                  <mat-label>Ingredient Name</mat-label>
+                  <input matInput type="text" formControlName="name" placeholder="e.g., All-Purpose Flour">
+                </mat-form-field>
+
+                <mat-form-field class="nom-ingredient-form__form-field">
+                  <mat-label>Description (Optional)</mat-label>
+                  <textarea matInput formControlName="description" rows="3"
+                    placeholder="A brief description of the ingredient..."></textarea>
+                </mat-form-field>
+              </div>
+
+              <!-- Nutritional Information Section -->
+              <div class="nom-ingredient-form__section">
+                <div class="nom-ingredient-form__section-header">
+                  <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
+                  <button mat-stroked-button type="button" (click)="addNutrient()">
+                    <mat-icon>add</mat-icon>
+                    Add Nutrient
+                  </button>
+                </div>
+
+                <div formArrayName="nutrients">
+                  @for (nutrient of nutrients.controls; track i; let i = $index) {
+                    <div [formGroupName]="i" class="nom-ingredient-form__nutrient-row">
+                      <mat-form-field class="nom-ingredient-form__nutrient-field">
+                        <mat-label>Nutrient</mat-label>
+                        <mat-select formControlName="nutrientId">
+                          <mat-option value="5006">Protein</mat-option>
+                          <mat-option value="5003">Carbohydrates</mat-option>
+                          <mat-option value="5000">Fat</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+
+                      <mat-form-field class="nom-ingredient-form__nutrient-field">
+                        <mat-label>Amount</mat-label>
+                        <input matInput type="number" formControlName="amount">
+                      </mat-form-field>
+
+                      <mat-form-field class="nom-ingredient-form__nutrient-field">
+                        <mat-label>Unit</mat-label>
+                        <mat-select formControlName="measurementTypeId">
+                          <mat-option value="4003">g (gram)</mat-option>
+                          <mat-option value="4004">mg (milligram)</mat-option>
+                          <mat-option value="4005">µg (microgram)</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+
+                      <button mat-icon-button type="button" (click)="removeNutrient(i)" title="Remove Nutrient"
+                        class="nom-ingredient-form__remove-button">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                @if (nutrients.length === 0) {
+                  <p class="nom-ingredient-form__empty-message">
+                    No nutritional information added yet. Click "Add Nutrient" to get started.
+                  </p>
+                }
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+              <div class="action-buttons">
+                @if (formConfig.showCancelButton) {
+                  <button 
+                    mat-button 
+                    type="button"
+                    (click)="onCancel()"
+                    [disabled]="isSubmitting">
+                    <mat-icon>cancel</mat-icon>
+                    {{ formConfig.cancelText || 'Cancel' }}
+                  </button>
+                }
+
+                <button 
+                  mat-raised-button 
+                  color="primary" 
+                  type="submit"
+                  [disabled]="ingredientForm.invalid || isSubmitting">
+                  @if (isSubmitting) {
+                    <mat-icon>hourglass_empty</mat-icon>
+                  }
+                  <span>{{ isSubmitting ? 'Saving...' : (formConfig.submitText || 'Save') }}</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </nom-base-page>
+}

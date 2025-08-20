@@ -1,0 +1,169 @@
+// Unified Ingredient Form Component Styles
+// Works for both modal and page contexts
+
+.nom-ingredient-form {
+  &__loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  &__form-field {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  &__section {
+    background-color: var(--mat-sys-surface-container);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--mat-sys-outline-variant);
+    margin-bottom: 1.5rem;
+  }
+
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  &__section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__nutrient-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--mat-sys-surface-container-low);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    margin-bottom: 0.75rem;
+
+    &:hover {
+      background-color: var(--mat-sys-surface-container);
+      border-color: var(--mat-sys-outline);
+    }
+  }
+
+  &__nutrient-field {
+    width: 100%;
+  }
+
+  &__remove-button {
+    color: var(--mat-sys-error);
+  }
+
+  &__empty-message {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: var(--mat-sys-on-surface-variant);
+    border: 1px dashed var(--mat-sys-outline-variant);
+    border-radius: 8px;
+    background-color: var(--mat-sys-surface-container-low);
+  }
+
+  &__add-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--mat-sys-primary);
+    border-color: var(--mat-sys-primary);
+  }
+
+  // Duplicate warning styles (for modal context)
+  &__duplicate-warning {
+    background-color: var(--mat-sys-error-container);
+    border: 1px solid var(--mat-sys-error);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  &__duplicate-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--mat-sys-on-error-container);
+
+    mat-icon {
+      color: var(--mat-sys-error);
+    }
+
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  &__use-existing-btn {
+    color: var(--mat-sys-primary);
+    border-color: var(--mat-sys-primary);
+    white-space: nowrap;
+  }
+}
+
+// Form actions for page context
+.form-actions {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  align-items: center;
+}
+
+// Base form container styles
+.base-form-container {
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+// Form content styles
+.form-content {
+  margin-bottom: 1rem;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .nom-ingredient-form {
+    &__nutrient-row {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    &__section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    &__duplicate-warning {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+}
