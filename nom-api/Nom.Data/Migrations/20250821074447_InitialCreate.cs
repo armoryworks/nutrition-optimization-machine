@@ -41,6 +41,9 @@ namespace Nom.Data.Migrations
                 name: "person");
 
             migrationBuilder.EnsureSchema(
+                name: "measurement");
+
+            migrationBuilder.EnsureSchema(
                 name: "communication");
 
             migrationBuilder.EnsureSchema(
@@ -2746,6 +2749,114 @@ namespace Nom.Data.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Measurement",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Symbol = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    MeasurementCategoryId = table.Column<long>(type: "bigint", nullable: false),
+                    IsBaseUnit = table.Column<bool>(type: "boolean", nullable: false),
+                    BaseUnitConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    MeasurementType = table.Column<string>(type: "character varying(21)", maxLength: 21, nullable: false),
+                    IngredientId = table.Column<long>(type: "bigint", nullable: true),
+                    TypicalQuantity = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    IsPreferredUnit = table.Column<bool>(type: "boolean", nullable: true),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: true),
+                    StandardAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    IsStandardUnit = table.Column<bool>(type: "boolean", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Measurement", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Measurement_Ingredient_IngredientId",
+                        column: x => x.IngredientId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Measurement_Nutrient_NutrientId",
+                        column: x => x.NutrientId,
+                        principalSchema: "nutrient",
+                        principalTable: "Nutrient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MeasurementCategory",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    BaseUnitId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MeasurementCategory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MeasurementCategory_Measurement_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MeasurementConversion",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FromMeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ToMeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
+                    Offset = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    Formula = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsDirectConversion = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MeasurementConversion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MeasurementConversion_Measurement_FromMeasurementId",
+                        column: x => x.FromMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MeasurementConversion_Measurement_ToMeasurementId",
+                        column: x => x.ToMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 schema: "auth",
@@ -3130,6 +3241,42 @@ namespace Nom.Data.Migrations
                 schema: "plan",
                 table: "MealPlanRule",
                 column: "MealTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_IngredientId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_MeasurementCategoryId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "MeasurementCategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_NutrientId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "NutrientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MeasurementCategory_BaseUnitId",
+                schema: "measurement",
+                table: "MeasurementCategory",
+                column: "BaseUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MeasurementConversion_FromMeasurementId",
+                schema: "measurement",
+                table: "MeasurementConversion",
+                column: "FromMeasurementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MeasurementConversion_ToMeasurementId",
+                schema: "measurement",
+                table: "MeasurementConversion",
+                column: "ToMeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Message_MessageThreadId",
@@ -3666,6 +3813,16 @@ namespace Nom.Data.Migrations
                 schema: "privacy",
                 table: "UserConsent",
                 column: "PersonId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Measurement_MeasurementCategory_MeasurementCategoryId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "MeasurementCategoryId",
+                principalSchema: "measurement",
+                principalTable: "MeasurementCategory",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
             migrationBuilder.ApplyCustomUpOperations();
         }
 
@@ -3673,6 +3830,41 @@ namespace Nom.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         { 
             migrationBuilder.ApplyCustomDownOperations();
+            migrationBuilder.DropForeignKey(
+                name: "FK_Ingredient_Person_AuthorId",
+                schema: "recipe",
+                table: "Ingredient");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Ingredient_Reference_CurationStatusId",
+                schema: "recipe",
+                table: "Ingredient");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Ingredient_Reference_LabelId",
+                schema: "recipe",
+                table: "Ingredient");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Nutrient_Reference_DefaultMeasurementTypeId",
+                schema: "nutrient",
+                table: "Nutrient");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Measurement_Ingredient_IngredientId",
+                schema: "measurement",
+                table: "Measurement");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Measurement_Nutrient_NutrientId",
+                schema: "measurement",
+                table: "Measurement");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Measurement_MeasurementCategory_MeasurementCategoryId",
+                schema: "measurement",
+                table: "Measurement");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
                 schema: "auth");
@@ -3776,6 +3968,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "MealPlanRule",
                 schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "MeasurementConversion",
+                schema: "measurement");
 
             migrationBuilder.DropTable(
                 name: "Message",
@@ -3930,10 +4126,6 @@ namespace Nom.Data.Migrations
                 schema: "recipe");
 
             migrationBuilder.DropTable(
-                name: "Nutrient",
-                schema: "nutrient");
-
-            migrationBuilder.DropTable(
                 name: "Meal",
                 schema: "plan");
 
@@ -3948,10 +4140,6 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "ShoppingList",
                 schema: "shopping");
-
-            migrationBuilder.DropTable(
-                name: "Ingredient",
-                schema: "recipe");
 
             migrationBuilder.DropTable(
                 name: "Recipe",
@@ -3976,6 +4164,22 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "Reference",
                 schema: "reference");
+
+            migrationBuilder.DropTable(
+                name: "Ingredient",
+                schema: "recipe");
+
+            migrationBuilder.DropTable(
+                name: "Nutrient",
+                schema: "nutrient");
+
+            migrationBuilder.DropTable(
+                name: "MeasurementCategory",
+                schema: "measurement");
+
+            migrationBuilder.DropTable(
+                name: "Measurement",
+                schema: "measurement");
         }
     }
 }

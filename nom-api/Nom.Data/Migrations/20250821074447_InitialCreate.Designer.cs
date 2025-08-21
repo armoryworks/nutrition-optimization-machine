@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250817040428_InitialCreate")]
+    [Migration("20250821074447_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -449,6 +449,152 @@ namespace Nom.Data.Migrations
                     b.HasIndex("FeedbackTypeId");
 
                     b.ToTable("CurationFeedback", "curation");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementCategoryEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("BaseUnitId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BaseUnitId");
+
+                    b.ToTable("MeasurementCategory", "measurement");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementConversionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("ConversionFactor")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Formula")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("FromMeasurementId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDirectConversion")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Offset")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long>("ToMeasurementId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromMeasurementId");
+
+                    b.HasIndex("ToMeasurementId");
+
+                    b.ToTable("MeasurementConversion", "measurement");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("BaseUnitConversionFactor")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsBaseUnit")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("MeasurementCategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MeasurementType")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeasurementCategoryId");
+
+                    b.ToTable("Measurement", "measurement");
+
+                    b.HasDiscriminator<string>("MeasurementType").HasValue("MeasurementEntity");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
@@ -3573,6 +3719,55 @@ namespace Nom.Data.Migrations
                     b.ToTable("shopping_trip_meal_index", "shopping");
                 });
 
+            modelBuilder.Entity("Nom.Data.Measurement.BaseMeasurementEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
+
+                    b.ToTable("Measurement", "measurement");
+
+                    b.HasDiscriminator().HasValue("Base");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.IngredientMeasurementEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
+
+                    b.Property<long>("IngredientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPreferredUnit")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("TypicalQuantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("Measurement", "measurement");
+
+                    b.HasDiscriminator().HasValue("Ingredient");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.NutrientMeasurementEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
+
+                    b.Property<bool>("IsStandardUnit")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("NutrientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal?>("StandardAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasIndex("NutrientId");
+
+                    b.ToTable("Measurement", "measurement");
+
+                    b.HasDiscriminator().HasValue("Nutrient");
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.CuisineTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3837,6 +4032,47 @@ namespace Nom.Data.Migrations
                     b.Navigation("EntityType");
 
                     b.Navigation("FeedbackType");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementCategoryEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Measurement.BaseMeasurementEntity", "BaseUnit")
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BaseUnit");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementConversionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "FromMeasurement")
+                        .WithMany()
+                        .HasForeignKey("FromMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "ToMeasurement")
+                        .WithMany()
+                        .HasForeignKey("ToMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromMeasurement");
+
+                    b.Navigation("ToMeasurement");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Measurement.MeasurementCategoryEntity", "Category")
+                        .WithMany("Measurements")
+                        .HasForeignKey("MeasurementCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
@@ -4973,11 +5209,38 @@ namespace Nom.Data.Migrations
                         .HasConstraintName("FK_ShoppingTripMealIndex_ShoppingTripEntity_ShoppingTripId");
                 });
 
+            modelBuilder.Entity("Nom.Data.Measurement.IngredientMeasurementEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.NutrientMeasurementEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
+                        .WithMany()
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Nutrient");
+                });
+
             modelBuilder.Entity("Nom.Data.Communication.MessageThreadEntity", b =>
                 {
                     b.Navigation("Messages");
 
                     b.Navigation("Participants");
+                });
+
+            modelBuilder.Entity("Nom.Data.Measurement.MeasurementCategoryEntity", b =>
+                {
+                    b.Navigation("Measurements");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>

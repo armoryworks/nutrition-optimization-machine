@@ -14,6 +14,7 @@ using Nom.Data.Privacy;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
 using Nom.Data.Shopping;
+using Nom.Data.Measurement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -138,6 +139,14 @@ namespace Nom.Data
         public DbSet<CurationStatusTypeViewEntity> CurationStatusTypes { get; set; } = default!; // NEW
         public DbSet<FeedbackEntityTypeViewEntity> FeedbackEntityTypes { get; set; } = default!; // NEW
         public DbSet<FeedbackTypeViewEntity> FeedbackTypes { get; set; } = default!;             // NEW
+        #endregion
+
+        #region Measurement
+        public DbSet<BaseMeasurementEntity> Measurements { get; set; } = default!;
+        public DbSet<MeasurementCategoryEntity> MeasurementCategories { get; set; } = default!;
+        public DbSet<MeasurementConversionEntity> MeasurementConversions { get; set; } = default!;
+        public DbSet<IngredientMeasurementEntity> IngredientMeasurements { get; set; } = default!;
+        public DbSet<NutrientMeasurementEntity> NutrientMeasurements { get; set; } = default!;
         #endregion
 
         #region Shopping
@@ -524,6 +533,62 @@ namespace Nom.Data
 
                 entity.HasOne(m => m.MessageThread).WithMany(t => t.Messages).HasForeignKey(m => m.MessageThreadId);
                 entity.HasOne(m => m.SenderPerson).WithMany().HasForeignKey(m => m.SenderPersonId);
+            });
+            #endregion
+
+            #region Measurement Namespace Fluent API Configurations
+            modelBuilder.Entity<MeasurementEntity>(entity =>
+            {
+                entity.ToTable("Measurement", schema: "measurement");
+                entity.HasDiscriminator<string>("MeasurementType")
+                    .HasValue<BaseMeasurementEntity>("Base")
+                    .HasValue<IngredientMeasurementEntity>("Ingredient")
+                    .HasValue<NutrientMeasurementEntity>("Nutrient");
+            });
+
+            modelBuilder.Entity<MeasurementCategoryEntity>(entity =>
+            {
+                entity.ToTable("MeasurementCategory", schema: "measurement");
+                
+                entity.HasOne(mc => mc.BaseUnit)
+                    .WithMany()
+                    .HasForeignKey(mc => mc.BaseUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<MeasurementConversionEntity>(entity =>
+            {
+                entity.ToTable("MeasurementConversion", schema: "measurement");
+                
+                entity.HasOne(mc => mc.FromMeasurement)
+                    .WithMany()
+                    .HasForeignKey(mc => mc.FromMeasurementId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasOne(mc => mc.ToMeasurement)
+                    .WithMany()
+                    .HasForeignKey(mc => mc.ToMeasurementId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<IngredientMeasurementEntity>(entity =>
+            {
+                entity.ToTable("Measurement", schema: "measurement");
+                
+                entity.HasOne(im => im.Ingredient)
+                    .WithMany()
+                    .HasForeignKey(im => im.IngredientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<NutrientMeasurementEntity>(entity =>
+            {
+                entity.ToTable("Measurement", schema: "measurement");
+                
+                entity.HasOne(nm => nm.Nutrient)
+                    .WithMany()
+                    .HasForeignKey(nm => nm.NutrientId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
             #endregion
         }
