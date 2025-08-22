@@ -1,144 +1,137 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
-
-import { RecipeService } from '../../services/recipe.service';
-import { RecipeAssetModel, RecipeAssetResponseModel } from '../../models/recipe-asset.model';
-
+import { MatIconModule } from '@angular/material/icon';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Subject, takeUntil } from 'rxjs';
+import { RecipeAssetsService } from '../../services/recipe-assets.service';
+import { ConfigurationService } from '../../../common/services/configuration.service';
 
 @Component({
-    selector: 'nom-recipe-assets',
+    selector: 'app-recipe-assets',
     standalone: true,
     imports: [
         CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatChipsModule,
-        MatDividerModule,
         MatSelectModule,
+        MatIconModule,
         MatDialogModule,
-        MatListModule,
-        MatMenuModule,
+        MatSnackBarModule,
+        MatProgressBarModule
     ],
     templateUrl: './recipe-assets.component.html',
     styleUrls: ['./recipe-assets.component.scss']
 })
-export class RecipeAssetsComponent implements OnInit {
-    private recipeService = inject(RecipeService);
-    private router = inject(Router);
-    private nonNullableFb = inject(NonNullableFormBuilder);
+export class RecipeAssetsComponent implements OnInit, OnDestroy {
+    private fb = inject(FormBuilder);
+    private recipeAssetsService = inject(RecipeAssetsService);
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
+    private configurationService = inject(ConfigurationService);
 
-    assets: RecipeAssetResponseModel[] = [];
-    isLoading = false;
-    error: string | null = null;
+    assets: any[] = [];
     assetForm: FormGroup;
-    isAddingAsset = false;
+    selectedFile: File | null = null;
+    isSubmitting = false;
+    uploadProgress = 0;
 
+    // Icon options for assets
+    iconOptions = [
+        { value: 'image', icon: 'image', label: 'Image' },
+        { value: 'video', icon: 'video_library', label: 'Video' },
+        { value: 'document', icon: 'description', label: 'Document' },
+        { value: 'audio', icon: 'audiotrack', label: 'Audio' },
+        { value: 'file', icon: 'insert_drive_file', label: 'File' }
+    ];
 
+    private destroy$ = new Subject<void>();
 
     constructor() {
-        this.assetForm = this.nonNullableFb.group({
-            name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-            icon: ['', [Validators.required]],
-            description: ['', [Validators.maxLength(500)]]
+        this.assetForm = this.fb.group({
+            name: ['', [Validators.required, Validators.maxLength(100)]],
+            description: ['', [Validators.maxLength(500)]],
+            icon: ['file', Validators.required]
         });
     }
 
     ngOnInit(): void {
-        if (this.recipeId) {
-            this.loadAssets();
-        }
-    }
-
-    loadAssets(): void {
-        this.isLoading = true;
-        this.error = null;
-
-        this.recipeAssetsService.getRecipeAssets(this.recipeId).subscribe({
-            next: (assets) => {
-                this.assets = assets;
-                this.isLoading = false;
-            },
-            error: (error) => {
-                console.error('Error loading recipe assets:', error);
-                this.error = 'Failed to load recipe assets';
-                this.isLoading = false;
-                this.snackBar.open('Failed to load recipe assets', 'Close', { duration: 3000 });
-            }
-        });
-    }
-
-    onRefresh(): void {
         this.loadAssets();
     }
 
-    onRetry(): void {
-        this.loadAssets();
+    ngOnDestroy(): void {
+        this.destroy$.next();
+        this.destroy$.complete();
     }
 
-    onFileSelected(event: Event): void {
-        const file = (event.target as HTMLInputElement).files?.[0];
+    private loadAssets(): void {
+        this.recipeAssetsService.getRecipeAssets()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (assets) => {
+                    this.assets = assets;
+                },
+                error: (error) => {
+                    console.error('Error loading assets:', error);
+                    this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
+                }
+            });
+    }
+
+    onFileSelected(event: any): void {
+        const file = event.target.files[0];
         if (file) {
-            this.selectedFile = file;
-            // Auto-set name if not already set
-            if (!this.assetForm.get('name')?.value) {
-                this.assetForm.patchValue({ name: file.name });
+            // Validate file type and size
+            if (!this.configurationService.isFileTypeAllowed(file.name, 'image')) {
+                this.snackBar.open('Invalid file type. Please select an image file.', 'Close', { duration: 3000 });
+                return;
             }
+
+            if (!this.configurationService.isFileSizeAllowed(file.size)) {
+                this.snackBar.open('File size too large. Maximum size is 10MB.', 'Close', { duration: 3000 });
+                return;
+            }
+
+            this.selectedFile = file;
+            this.assetForm.patchValue({ name: file.name });
         }
     }
 
     onSubmit(): void {
-        if (this.assetForm.invalid || !this.selectedFile) {
-            return;
+        if (this.assetForm.valid && this.selectedFile) {
+            this.isSubmitting = true;
+            this.uploadProgress = 0;
+
+            const formData = new FormData();
+            formData.append('file', this.selectedFile);
+            formData.append('name', this.assetForm.get('name')?.value);
+            formData.append('description', this.assetForm.get('description')?.value);
+            formData.append('icon', this.assetForm.get('icon')?.value);
+
+            this.recipeAssetsService.uploadAsset(formData)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (newAsset) => {
+                        this.assets.push(newAsset);
+                        this.resetForm();
+                        this.snackBar.open('Asset uploaded successfully', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    },
+                    error: (error) => {
+                        console.error('Error uploading asset:', error);
+                        this.snackBar.open('Failed to upload asset', 'Close', { duration: 3000 });
+                        this.isSubmitting = false;
+                    }
+                });
         }
-
-        this.isSubmitting = true;
-        const formData = this.assetForm.value;
-
-        const assetData = {
-            name: formData.name,
-            icon: formData.icon,
-            description: formData.description,
-            fileName: this.selectedFile.name,
-            fileSize: this.selectedFile.size,
-            mimeType: this.selectedFile.type
-        };
-
-        this.recipeAssetsService.createRecipeAsset(this.recipeId, assetData, this.selectedFile).subscribe({
-            next: (newAsset) => {
-                this.assets.push(newAsset);
-                this.assetsChanged.emit(this.assets);
-                this.resetForm();
-                this.snackBar.open('Asset uploaded successfully', 'Close', { duration: 3000 });
-                this.isSubmitting = false;
-            },
-            error: (error) => {
-                console.error('Error uploading asset:', error);
-                this.snackBar.open('Failed to upload asset', 'Close', { duration: 3000 });
-                this.isSubmitting = false;
-            }
-        });
     }
 
     onDeleteAsset(assetId: number): void {
@@ -152,7 +145,6 @@ export class RecipeAssetsComponent implements OnInit {
                 this.recipeAssetsService.deleteRecipeAsset(assetId).subscribe({
                     next: () => {
                         this.assets = this.assets.filter(asset => asset.id !== assetId);
-                        this.assetsChanged.emit(this.assets);
                         this.snackBar.open('Asset deleted successfully', 'Close', { duration: 3000 });
                     },
                     error: (error) => {
@@ -164,7 +156,7 @@ export class RecipeAssetsComponent implements OnInit {
         });
     }
 
-    onDownloadAsset(asset: RecipeAssetModel): void {
+    onDownloadAsset(asset: any): void {
         this.recipeAssetsService.downloadAsset(asset.id).subscribe({
             next: (blob) => {
                 const url = window.URL.createObjectURL(blob);
@@ -189,7 +181,7 @@ export class RecipeAssetsComponent implements OnInit {
     getFileSizeDisplay(bytes: number): string {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const sizes = this.configurationService.getFileSizeUnits();
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
@@ -223,6 +215,4 @@ export class RecipeAssetsComponent implements OnInit {
 })
 export class ConfirmDeleteDialogComponent {
     data = inject({ message: string });
-
-
 } 

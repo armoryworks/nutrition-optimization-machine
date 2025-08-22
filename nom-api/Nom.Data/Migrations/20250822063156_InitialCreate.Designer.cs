@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250822053353_InitialCreate")]
+    [Migration("20250822063156_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -3827,6 +3827,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(1002L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.DayOfWeekTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6015L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.FeedbackEntityTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3869,6 +3876,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(3000L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.PersonActivityLevelTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6004L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.PlanInvitationRoleViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3883,6 +3897,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(5000L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.RecipeDifficultyTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6003L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.RecipeTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3895,6 +3916,20 @@ namespace Nom.Data.Migrations
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
                     b.HasDiscriminator().HasValue(2000L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.ShoppingCategoryTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6001L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.ShoppingPriorityTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6000L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.ShoppingStatusTypeViewEntity", b =>

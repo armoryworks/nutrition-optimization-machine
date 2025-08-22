@@ -1,0 +1,42 @@
+.reference-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__label {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  &__field {
+    width: 100%;
+    
+    .mat-mdc-form-field {
+      width: 100%;
+    }
+  }
+
+  &__description {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+    line-height: 16px;
+    margin-top: 4px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+    border-left: 3px solid #1976d2;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .reference-selector {
+    &__field {
+      .mat-mdc-form-field {
+        font-size: 16px; // Prevent zoom on iOS
+      }
+    }
+  }
+}

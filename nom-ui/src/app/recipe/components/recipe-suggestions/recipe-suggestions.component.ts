@@ -1,42 +1,71 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
-import { RecipeSuggestionService, RecipeSuggestionQuery, AIRecipeSuggestionRequest, RecipeSuggestionResponse, AIRecipeSuggestionResponse, RecipeRecommendation } from '../../services/recipe-suggestion.service';
+import { RecipeSuggestionService } from '../../services/recipe-suggestion.service';
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeReferenceService } from '../../services/recipe-reference.service';
+import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
 @Component({
-    selector: 'nom-recipe-suggestions',
+    selector: 'app-recipe-suggestions',
+    standalone: true,
+    imports: [
+        CommonModule,
+        ReactiveFormsModule,
+        MatTabsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatSelectModule,
+        MatCheckboxModule,
+        MatChipsModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatCardModule,
+        MatTooltipModule
+    ],
     templateUrl: './recipe-suggestions.component.html',
     styleUrls: ['./recipe-suggestions.component.scss']
 })
 export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private recipeSuggestionService = inject(RecipeSuggestionService);
+    private recipeService = inject(RecipeService);
+    private recipeReferenceService = inject(RecipeReferenceService);
 
-    private destroy$ = new Subject<void>();
-
-    // Forms
     suggestionForm: FormGroup;
     aiSuggestionForm: FormGroup;
-
-    // Data
-    suggestions: RecipeSuggestionResponse | null = null;
-    aiSuggestions: AIRecipeSuggestionResponse | null = null;
-    recommendations: RecipeRecommendation[] = [];
-    trendingRecipes: RecipeRecommendation[] = [];
-    seasonalRecipes: RecipeRecommendation[] = [];
-
-    // UI State
+    suggestions: any[] = [];
+    trendingRecipes: any[] = [];
+    seasonalRecipes: any[] = [];
     loading = false;
     aiLoading = false;
     activeTab = 'ingredients';
     selectedIngredients: number[] = [];
     selectedTools: number[] = [];
 
-    // Filter options
-    difficultyOptions = ['Easy', 'Medium', 'Hard'];
-    cuisineOptions = ['Italian', 'Mexican', 'Asian', 'American', 'Mediterranean', 'Indian', 'French', 'Thai'];
-    mealTypeOptions = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Dessert'];
-    dietaryOptions = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Keto', 'Paleo', 'Low-Carb'];
+    // Reference data loaded dynamically
+    difficulties: any[] = [];
+    cuisines: any[] = [];
+    mealTypes: any[] = [];
+    dietaryOptions: any[] = [];
+
+    // Make constants available in template
+    readonly REFERENCE_IDS = REFERENCE_IDS;
+
+    private destroy$ = new Subject<void>();
 
     constructor() {
         this.suggestionForm = this.fb.group({
@@ -77,6 +106,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.loadReferenceData();
         this.loadRecommendations();
         this.loadTrendingRecipes();
         this.loadSeasonalRecipes();
@@ -98,6 +128,18 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    private loadReferenceData(): void {
+        // Load all recipe reference data in bulk for performance
+        this.recipeReferenceService.getRecipeReferencesBulk()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(({ difficulties, cuisines, mealTypes, dietaryOptions }) => {
+                this.difficulties = difficulties;
+                this.cuisines = cuisines;
+                this.mealTypes = mealTypes;
+                this.dietaryOptions = dietaryOptions;
+            });
     }
 
     /**
@@ -134,13 +176,13 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
         }
 
         this.aiLoading = true;
-        const request: AIRecipeSuggestionRequest = this.aiSuggestionForm.value;
+        const query = this.aiSuggestionForm.value;
 
-        this.recipeSuggestionService.generateAIRecipeSuggestions(request)
+        this.recipeSuggestionService.generateAISuggestions(query)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
-                    this.aiSuggestions = response;
+                    this.suggestions = response;
                     this.aiLoading = false;
                 },
                 error: (error) => {
@@ -151,30 +193,14 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Load recipe recommendations
-     */
-    loadRecommendations(): void {
-        this.recipeSuggestionService.getRecipeRecommendations()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (recommendations) => {
-                    this.recommendations = recommendations;
-                },
-                error: (error) => {
-                    console.error('Error loading recommendations:', error);
-                }
-            });
-    }
-
-    /**
      * Load trending recipes
      */
-    loadTrendingRecipes(): void {
-        this.recipeSuggestionService.getTrendingRecipes(10)
+    private loadTrendingRecipes(): void {
+        this.recipeService.getTrendingRecipes()
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (trending) => {
-                    this.trendingRecipes = trending;
+                next: (recipes) => {
+                    this.trendingRecipes = recipes;
                 },
                 error: (error) => {
                     console.error('Error loading trending recipes:', error);
@@ -185,15 +211,31 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     /**
      * Load seasonal recipes
      */
-    loadSeasonalRecipes(): void {
-        this.recipeSuggestionService.getSeasonalRecipes()
+    private loadSeasonalRecipes(): void {
+        this.recipeService.getSeasonalRecipes()
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (seasonal) => {
-                    this.seasonalRecipes = seasonal;
+                next: (recipes) => {
+                    this.seasonalRecipes = recipes;
                 },
                 error: (error) => {
                     console.error('Error loading seasonal recipes:', error);
+                }
+            });
+    }
+
+    /**
+     * Load recommendations based on user preferences
+     */
+    private loadRecommendations(): void {
+        this.recipeService.getRecommendations()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (recipes) => {
+                    this.suggestions = recipes;
+                },
+                error: (error) => {
+                    console.error('Error loading recommendations:', error);
                 }
             });
     }
@@ -208,7 +250,6 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
         } else {
             this.selectedIngredients.push(ingredientId);
         }
-        this.getSuggestions();
     }
 
     /**
@@ -221,176 +262,213 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
         } else {
             this.selectedTools.push(toolId);
         }
-        this.getSuggestions();
     }
 
     /**
-     * Change active tab
+     * Check if ingredient is selected
      */
-    setActiveTab(tab: string): void {
-        this.activeTab = tab;
+    isIngredientSelected(ingredientId: number): boolean {
+        return this.selectedIngredients.includes(ingredientId);
     }
 
     /**
-     * Get meal type suggestions
+     * Check if tool is selected
      */
-    getMealTypeSuggestions(mealType: string): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getMealTypeSuggestions(mealType, query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting meal type suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    isToolSelected(toolId: number): boolean {
+        return this.selectedTools.includes(toolId);
     }
 
     /**
-     * Get dietary suggestions
+     * Get selected ingredients count
      */
-    getDietarySuggestions(dietaryRestrictions: string[]): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getDietarySuggestions(dietaryRestrictions, query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting dietary suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    getSelectedIngredientsCount(): number {
+        return this.selectedIngredients.length;
     }
 
     /**
-     * Get quick recipe suggestions
+     * Get selected tools count
      */
-    getQuickSuggestions(maxTime: number): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getQuickRecipeSuggestions(maxTime, query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting quick suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    getSelectedToolsCount(): number {
+        return this.selectedTools.length;
     }
 
     /**
-     * Get budget recipe suggestions
+     * Clear all selections
      */
-    getBudgetSuggestions(maxBudget: number): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getBudgetRecipeSuggestions(maxBudget, query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting budget suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    clearSelections(): void {
+        this.selectedIngredients = [];
+        this.selectedTools = [];
     }
 
     /**
-     * Get beginner recipe suggestions
+     * Get suggestions count
      */
-    getBeginnerSuggestions(): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getBeginnerRecipeSuggestions(query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting beginner suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    getSuggestionsCount(): number {
+        return this.suggestions.length;
     }
 
     /**
-     * Get advanced recipe suggestions
+     * Get trending recipes count
      */
-    getAdvancedSuggestions(): void {
-        this.loading = true;
-        const query: RecipeSuggestionQuery = this.suggestionForm.value;
-
-        this.recipeSuggestionService.getAdvancedRecipeSuggestions(query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
-                },
-                error: (error) => {
-                    console.error('Error getting advanced suggestions:', error);
-                    this.loading = false;
-                }
-            });
+    getTrendingRecipesCount(): number {
+        return this.trendingRecipes.length;
     }
 
     /**
-     * View recipe details
+     * Get seasonal recipes count
      */
-    viewRecipe(recipeId: number): void {
-        // TODO: Navigate to recipe details page
-        console.log('Viewing recipe:', recipeId);
+    getSeasonalRecipesCount(): number {
+        return this.seasonalRecipes.length;
     }
 
     /**
-     * Save recipe to favorites
+     * Check if suggestions are loading
      */
-    saveRecipe(recipeId: number): void {
-        // TODO: Save recipe to favorites
-        console.log('Saving recipe:', recipeId);
+    get isLoadingSuggestions(): boolean {
+        return this.loading;
     }
 
     /**
-     * Get match score color
+     * Check if AI suggestions are loading
      */
-    getMatchScoreColor(score: number): string {
-        if (score >= 0.9) return 'success';
-        if (score >= 0.7) return 'warning';
-        return 'danger';
+    get isLoadingAISuggestions(): boolean {
+        return this.aiLoading;
     }
 
     /**
-     * Get difficulty color
+     * Check if any suggestions are available
      */
-    getDifficultyColor(difficulty: string): string {
-        switch (difficulty.toLowerCase()) {
-            case 'easy': return 'success';
-            case 'medium': return 'warning';
-            case 'hard': return 'danger';
-            default: return 'secondary';
-        }
+    get hasSuggestions(): boolean {
+        return this.suggestions.length > 0;
+    }
+
+    /**
+     * Check if any trending recipes are available
+     */
+    get hasTrendingRecipes(): boolean {
+        return this.trendingRecipes.length > 0;
+    }
+
+    /**
+     * Check if any seasonal recipes are available
+     */
+    get hasSeasonalRecipes(): boolean {
+        return this.seasonalRecipes.length > 0;
+    }
+
+    /**
+     * Check if any ingredients are selected
+     */
+    get hasSelectedIngredients(): boolean {
+        return this.selectedIngredients.length > 0;
+    }
+
+    /**
+     * Check if any tools are selected
+     */
+    get hasSelectedTools(): boolean {
+        return this.selectedTools.length > 0;
+    }
+
+    /**
+     * Check if form is valid
+     */
+    get isFormValid(): boolean {
+        return this.suggestionForm.valid;
+    }
+
+    /**
+     * Check if AI form is valid
+     */
+    get isAIFormValid(): boolean {
+        return this.aiSuggestionForm.valid;
+    }
+
+    /**
+     * Get form errors
+     */
+    getFormErrors(): any {
+        return this.suggestionForm.errors;
+    }
+
+    /**
+     * Get AI form errors
+     */
+    getAIFormErrors(): any {
+        return this.aiSuggestionForm.errors;
+    }
+
+    /**
+     * Reset suggestion form
+     */
+    resetSuggestionForm(): void {
+        this.suggestionForm.reset({
+            limit: 10,
+            maxMissingIngredients: 5,
+            maxMissingTools: 5,
+            includeIngredientsOnHand: true,
+            includeToolsOnHand: true,
+            queryFilter: '',
+            maxPrepTime: null,
+            maxCookTime: null,
+            maxDifficulty: null,
+            includePublicRecipes: true,
+            includePrivateRecipes: false,
+            categories: [],
+            tags: [],
+            dietaryRestrictions: [],
+            cuisines: []
+        });
+    }
+
+    /**
+     * Reset AI suggestion form
+     */
+    resetAISuggestionForm(): void {
+        this.aiSuggestionForm.reset({
+            description: '',
+            availableIngredients: [],
+            availableTools: [],
+            preferences: [],
+            dietaryRestrictions: [],
+            dislikedIngredients: [],
+            servingSize: 4,
+            maxPrepTime: 30,
+            maxCookTime: 60,
+            budgetLimit: 50,
+            cuisine: '',
+            mealType: '',
+            difficulty: '',
+            includeNutritionalInfo: true,
+            includeSubstitutions: true
+        });
+    }
+
+    /**
+     * Get difficulty options for display
+     */
+    getDifficultyOptions(): any[] {
+        return this.difficulties;
+    }
+
+    /**
+     * Get cuisine options for display
+     */
+    getCuisineOptions(): any[] {
+        return this.cuisines;
+    }
+
+    /**
+     * Get meal type options for display
+     */
+    getMealTypeOptions(): any[] {
+        return this.mealTypes;
+    }
+
+    /**
+     * Get dietary options for display
+     */
+    getDietaryOptions(): any[] {
+        return this.dietaryOptions;
     }
 } 

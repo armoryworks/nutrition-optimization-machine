@@ -36,6 +36,22 @@ namespace Nom.Data.Reference
         PlanInvitationRole = 4000,
 
         // Privacy & Compliance (5000-5999)
-        PrivacyConsentType = 5000
+        PrivacyConsentType = 5000,
+
+        // UI Data Conversion Reference Groups (6000-6999)
+        ShoppingPriorityType = 6000,           // For shopping priority levels (Low, Medium, High)
+        ShoppingCategoryType = 6001,           // For shopping categories (Produce, Dairy, Meat, etc.)
+        RecipeDifficultyType = 6003,           // For recipe difficulty levels (Easy, Medium, Hard)
+        PersonActivityLevelType = 6004,        // For person activity levels (Sedentary, Active, etc.)
+        PersonDietaryRestrictionType = 6005,   // For dietary restrictions (None, Vegetarian, Vegan, etc.)
+        PersonHealthGoalType = 6006,           // For health goals (Weight Loss, Maintenance, etc.)
+        AllergyType = 6007,                    // For allergy types (Peanuts, Tree Nuts, etc.)
+        MedicalConditionType = 6008,           // For medical conditions (Celiac Disease, Diabetes, etc.)
+        SocietalRestrictionType = 6009,        // For religious/ethical restrictions (Kosher, Halal, etc.)
+        PersonalPreferenceType = 6010,         // For personal preferences (Spice levels, textures, etc.)
+        SortOptionType = 6013,                 // For search/sort options (relevance, rating, name, etc.)
+        SortDirectionType = 6014,              // For sort directions (asc, desc)
+        DayOfWeekType = 6015,                  // For days of week (Monday, Tuesday, etc.)
+        RecipeDietaryOptionType = 6016         // For recipe dietary options (Vegetarian, Vegan, etc.)
     }
 }

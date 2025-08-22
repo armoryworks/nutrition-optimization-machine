@@ -1,22 +1,16 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { MatDividerModule } from '@angular/material/divider';
+import { BaseDetailComponent } from '../../../common/components/base-detail/base-detail.component';
+import { BaseDetailConfig } from '../../../common/models/base-detail.model';
 import { IngredientModel } from '../../models/ingredient.model';
-
-import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
-
-// Import the new label component and its data model
-import { NutritionLabelComponent } from '../../../nutrient/components/nutrition-label/nutrition-label.component';
-import { NutritionLabelData } from '../../../nutrient/models/nutrition-label-data';
-import { LabelNutrient } from '../../../nutrient/models/label-nutrient';
+import { NutritionLabelData, LabelNutrient } from '../../../common/models/nutrition-label.model';
+import { ConfigurationService } from '../../../common/services/configuration.service';
 
 @Component({
-  selector: 'nom-ingredient-details',
+  selector: 'app-ingredient-details',
   standalone: true,
   imports: [
     CommonModule,
-    MatDividerModule,
-    NutritionLabelComponent,
     BaseDetailComponent,
   ],
   providers: [DecimalPipe],
@@ -24,6 +18,8 @@ import { LabelNutrient } from '../../../nutrient/models/label-nutrient';
   styleUrls: ['./ingredient-details.component.scss'],
 })
 export class IngredientDetailsComponent {
+  private configurationService = inject(ConfigurationService);
+
   // This property will hold the formatted data for the label component
   public nutritionLabelData: NutritionLabelData | null = null;
 
@@ -68,8 +64,8 @@ export class IngredientDetailsComponent {
    * Transforms the IngredientModel into the NutritionLabelData structure.
    */
   private mapToLabelData(ingredient: IngredientModel): NutritionLabelData {
-    const boldNutrients = ['Total Fat', 'Cholesterol', 'Sodium', 'Total Carbohydrate', 'Protein'];
-    const indentedNutrients = ['Saturated Fat', 'Trans Fat', 'Dietary Fiber', 'Total Sugars', 'Includes Added Sugars'];
+    const boldNutrients = this.configurationService.BOLD_NUTRIENTS;
+    const indentedNutrients = this.configurationService.INDENTED_NUTRIENTS;
 
     const nutrients: LabelNutrient[] = ingredient.nutrients.map(nutrient => ({
       name: nutrient.nutrientName,
@@ -95,23 +91,7 @@ export class IngredientDetailsComponent {
    * This is a simplified calculation based on FDA guidelines.
    */
   private calculateDailyValue(nutrientName: string, amount: number): number {
-    const dailyValues: Record<string, number> = {
-      'Total Fat': 78, // g
-      'Saturated Fat': 20, // g
-      'Trans Fat': 2, // g
-      'Cholesterol': 300, // mg
-      'Sodium': 2300, // mg
-      'Total Carbohydrate': 275, // g
-      'Dietary Fiber': 28, // g
-      'Total Sugars': 50, // g
-      'Protein': 50, // g
-      'Vitamin D': 20, // mcg
-      'Calcium': 1300, // mg
-      'Iron': 18, // mg
-      'Potassium': 4700, // mg
-    };
-
-    const dailyValue = dailyValues[nutrientName];
+    const dailyValue = this.configurationService.getFDADailyValue(nutrientName);
     if (!dailyValue) return 0;
 
     return Math.round((amount / dailyValue) * 100);

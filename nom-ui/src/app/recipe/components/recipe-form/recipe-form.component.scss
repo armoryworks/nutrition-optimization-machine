@@ -1,0 +1,189 @@
+.recipe-form {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+
+  &__header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e0e0e0;
+
+    h2 {
+      margin: 0 0 8px 0;
+      color: #333;
+      font-size: 32px;
+      font-weight: 500;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #666;
+      font-size: 16px;
+    }
+  }
+
+  &__content {
+    .form-section {
+      margin-bottom: 32px;
+      padding: 24px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+
+      h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        font-size: 20px;
+        font-weight: 500;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #dee2e6;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+
+        .form-field {
+          flex: 1;
+          min-width: 250px;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+
+  button {
+    min-width: 120px;
+  }
+}
+
+.selected-options {
+  margin-top: 32px;
+  padding: 20px;
+  background: #e8f5e8;
+  border-radius: 8px;
+  border: 1px solid #c8e6c9;
+
+  h4 {
+    margin: 0 0 16px 0;
+    color: #2e7d32;
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+
+    .option-item {
+      padding: 8px 12px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #c8e6c9;
+      font-size: 14px;
+
+      strong {
+        color: #2e7d32;
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Spinning animation for submit button
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .recipe-form {
+    padding: 16px;
+
+    &__header {
+      h2 {
+        font-size: 28px;
+      }
+    }
+
+    &__content {
+      .form-section {
+        padding: 16px;
+
+        .form-row {
+          flex-direction: column;
+
+          .form-field {
+            min-width: auto;
+          }
+        }
+      }
+    }
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      min-width: auto;
+    }
+  }
+
+  .selected-options {
+    .options-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .recipe-form {
+    padding: 12px;
+
+    &__header {
+      h2 {
+        font-size: 24px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+      }
+    }
+
+    &__content {
+      .form-section {
+        padding: 12px;
+
+        h3 {
+          font-size: 18px;
+        }
+      }
+    }
+  }
+}

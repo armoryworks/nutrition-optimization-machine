@@ -49,24 +49,21 @@
       </div>
 
       <div class="form-row">
-        <mat-form-field appearance="outline" class="category-field">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option value="">No Category</mat-option>
-            <mat-option *ngFor="let category of categories" [value]="category">
-              {{ category }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <app-reference-selector
+          [discriminatorId]="REFERENCE_IDS.SHOPPING_CATEGORY_TYPE"
+          [control]="itemForm.get('categoryId')!"
+          label="Category"
+          placeholder="Select category"
+          class="category-field">
+        </app-reference-selector>
 
-        <mat-form-field appearance="outline" class="priority-field">
-          <mat-label>Priority</mat-label>
-          <mat-select formControlName="priority">
-            <mat-option *ngFor="let priority of priorities" [value]="priority.value">
-              {{ priority.label }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <app-reference-selector
+          [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
+          [control]="itemForm.get('priorityId')!"
+          label="Priority"
+          placeholder="Select priority"
+          class="priority-field">
+        </app-reference-selector>
       </div>
 
       <div class="form-row">

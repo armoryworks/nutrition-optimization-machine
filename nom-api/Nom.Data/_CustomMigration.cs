@@ -99,6 +99,60 @@ namespace Nom.Data
         private const long RecipeEventTypeAddedToPlanId = 10009L;
         private const long RecipeEventTypeExportedId = 10010L;
 
+        // --- UI Data Conversion Reference IDs (11000-11999 series) ---
+        // Shopping Priority Types
+        private const long ShoppingPriorityLowId = 11000L;
+        private const long ShoppingPriorityMediumId = 11001L;
+        private const long ShoppingPriorityHighId = 11002L;
+
+        // Shopping Category Types
+        private const long ShoppingCategoryProduceId = 11010L;
+        private const long ShoppingCategoryDairyId = 11011L;
+        private const long ShoppingCategoryMeatId = 11012L;
+        private const long ShoppingCategoryPantryId = 11013L;
+        private const long ShoppingCategoryFrozenId = 11014L;
+        private const long ShoppingCategoryBeveragesId = 11015L;
+        private const long ShoppingCategorySnacksId = 11016L;
+        private const long ShoppingCategoryHouseholdId = 11017L;
+        private const long ShoppingCategoryOtherId = 11018L;
+
+        // Recipe Difficulty Types
+        private const long RecipeDifficultyEasyId = 11020L;
+        private const long RecipeDifficultyMediumId = 11021L;
+        private const long RecipeDifficultyHardId = 11022L;
+
+        // Person Activity Level Types
+        private const long PersonActivityLevelSedentaryId = 11030L;
+        private const long PersonActivityLevelLightlyActiveId = 11031L;
+        private const long PersonActivityLevelModeratelyActiveId = 11032L;
+        private const long PersonActivityLevelVeryActiveId = 11033L;
+        private const long PersonActivityLevelExtremelyActiveId = 11034L;
+
+        // Person Dietary Restriction Types
+        private const long PersonDietaryRestrictionNoneId = 11040L;
+        private const long PersonDietaryRestrictionVegetarianId = 11041L;
+        private const long PersonDietaryRestrictionVeganId = 11042L;
+        private const long PersonDietaryRestrictionGlutenFreeId = 11043L;
+        private const long PersonDietaryRestrictionDairyFreeId = 11044L;
+        private const long PersonDietaryRestrictionKetoId = 11045L;
+        private const long PersonDietaryRestrictionPaleoId = 11046L;
+
+        // Person Health Goal Types
+        private const long PersonHealthGoalWeightLossId = 11050L;
+        private const long PersonHealthGoalWeightGainId = 11051L;
+        private const long PersonHealthGoalMaintenanceId = 11052L;
+        private const long PersonHealthGoalMuscleGainId = 11053L;
+        private const long PersonHealthGoalGeneralHealthId = 11054L;
+
+        // Day of Week Types
+        private const long DayOfWeekMondayId = 11060L;
+        private const long DayOfWeekTuesdayId = 11061L;
+        private const long DayOfWeekWednesdayId = 11062L;
+        private const long DayOfWeekThursdayId = 11063L;
+        private const long DayOfWeekFridayId = 11064L;
+        private const long DayOfWeekSaturdayId = 11065L;
+        private const long DayOfWeekSundayId = 11066L;
+
         // Recipe Status Types (10100-10199)
         private const long RecipeStatusTypeDraftId = 10101L;
         private const long RecipeStatusTypePublishedId = 10102L;
@@ -159,6 +213,13 @@ namespace Nom.Data
             AddRecipeCommentTypes(migrationBuilder);
             AddRecipeNoteTypes(migrationBuilder);
 
+            // UI Data Conversion Seeding
+            AddShoppingPriorityTypes(migrationBuilder);
+            AddShoppingCategoryTypes(migrationBuilder);
+            AddRecipeDifficultyTypes(migrationBuilder);
+            AddPersonActivityLevelTypes(migrationBuilder);
+            AddDayOfWeekTypes(migrationBuilder);
+
             AddNutrientTypes(migrationBuilder);
             AddNutrientGuidelines(migrationBuilder);
 
@@ -177,6 +238,13 @@ namespace Nom.Data
             RemoveRecipeShareTokenTypes(migrationBuilder);
             RemoveRecipeStatusTypes(migrationBuilder);
             RemoveRecipeEventTypes(migrationBuilder);
+
+            // UI Data Conversion Removal
+            RemoveDayOfWeekTypes(migrationBuilder);
+            RemovePersonActivityLevelTypes(migrationBuilder);
+            RemoveRecipeDifficultyTypes(migrationBuilder);
+            RemoveShoppingCategoryTypes(migrationBuilder);
+            RemoveShoppingPriorityTypes(migrationBuilder);
 
             RemoveFeedbackTypes(migrationBuilder);
             RemoveFeedbackEntityTypes(migrationBuilder);
@@ -249,7 +317,23 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.RecipeStatusType, "Recipe Status Types", "Statuses for recipe lifecycle (draft, published, archived).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.RecipeShareTokenType, "Recipe Share Token Types", "Types of sharing tokens for recipes.", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.RecipeCommentType, "Recipe Comment Types", "Types of comments that can be made on recipes.", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.RecipeNoteType, "Recipe Note Types", "Types of notes that can be added to recipes.", DateTime.UtcNow, SystemPersonId }
+                    { (long)ReferenceDiscriminatorEnum.RecipeNoteType, "Recipe Note Types", "Types of notes that can be added to recipes.", DateTime.UtcNow, SystemPersonId },
+
+                    // UI Data Conversion Reference Groups (6000-6999)
+                    { (long)ReferenceDiscriminatorEnum.ShoppingPriorityType, "Shopping Priority Types", "Priority levels for shopping items (Low, Medium, High).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.ShoppingCategoryType, "Shopping Category Types", "Categories for organizing shopping items (Produce, Dairy, Meat, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeDifficultyType, "Recipe Difficulty Types", "Difficulty levels for recipes (Easy, Medium, Hard).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonActivityLevelType, "Person Activity Level Types", "Activity levels for persons (Sedentary, Lightly Active, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType, "Person Dietary Restriction Types", "Dietary restrictions for persons (None, Vegetarian, Vegan, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonHealthGoalType, "Person Health Goal Types", "Health goals for persons (Weight Loss, Maintenance, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.AllergyType, "Allergy Types", "Types of allergies (Peanuts, Tree Nuts, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.MedicalConditionType, "Medical Condition Types", "Medical conditions (Celiac Disease, Diabetes, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.SocietalRestrictionType, "Societal Restriction Types", "Religious/ethical restrictions (Kosher, Halal, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonalPreferenceType, "Personal Preference Types", "Personal preferences (Spice levels, textures, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.SortOptionType, "Sort Option Types", "Search/sort options (relevance, rating, name, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.SortDirectionType, "Sort Direction Types", "Sort directions (ascending, descending).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.DayOfWeekType, "Day of Week Types", "Days of the week (Monday, Tuesday, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.RecipeDietaryOptionType, "Recipe Dietary Option Types", "Dietary options for recipes (Vegetarian, Vegan, etc.).", DateTime.UtcNow, SystemPersonId }
                 });
         }
 
@@ -279,7 +363,23 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.RecipeStatusType,
                     (long)ReferenceDiscriminatorEnum.RecipeShareTokenType,
                     (long)ReferenceDiscriminatorEnum.RecipeCommentType,
-                    (long)ReferenceDiscriminatorEnum.RecipeNoteType
+                    (long)ReferenceDiscriminatorEnum.RecipeNoteType,
+
+                    // UI Data Conversion Reference Groups (6000-6999)
+                    (long)ReferenceDiscriminatorEnum.ShoppingPriorityType,
+                    (long)ReferenceDiscriminatorEnum.ShoppingCategoryType,
+                    (long)ReferenceDiscriminatorEnum.RecipeDifficultyType,
+                    (long)ReferenceDiscriminatorEnum.PersonActivityLevelType,
+                    (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType,
+                    (long)ReferenceDiscriminatorEnum.PersonHealthGoalType,
+                    (long)ReferenceDiscriminatorEnum.AllergyType,
+                    (long)ReferenceDiscriminatorEnum.MedicalConditionType,
+                    (long)ReferenceDiscriminatorEnum.SocietalRestrictionType,
+                    (long)ReferenceDiscriminatorEnum.PersonalPreferenceType,
+                    (long)ReferenceDiscriminatorEnum.SortOptionType,
+                    (long)ReferenceDiscriminatorEnum.SortDirectionType,
+                    (long)ReferenceDiscriminatorEnum.DayOfWeekType,
+                    (long)ReferenceDiscriminatorEnum.RecipeDietaryOptionType
                 });
         }
 
@@ -1243,6 +1343,272 @@ namespace Nom.Data
         public static void DropReferenceGroupView(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"DROP VIEW IF EXISTS reference.""ReferenceGroupView"";");
+        }
+
+        // UI Data Conversion Seeding Methods
+
+        public static void AddShoppingPriorityTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingPriorityType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { ShoppingPriorityLowId, "Low", "Low priority shopping item", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingPriorityMediumId, "Medium", "Medium priority shopping item", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingPriorityHighId, "High", "High priority shopping item", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] priorityIds = new long[] { ShoppingPriorityLowId, ShoppingPriorityMediumId, ShoppingPriorityHighId };
+            foreach (long id in priorityIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void AddShoppingCategoryTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingCategoryType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { ShoppingCategoryProduceId, "Produce", "Fresh fruits and vegetables", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryDairyId, "Dairy", "Milk, cheese, yogurt, and other dairy products", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryMeatId, "Meat", "Fresh meat, poultry, and fish", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryPantryId, "Pantry", "Dry goods, canned foods, and staples", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryFrozenId, "Frozen", "Frozen foods and ice cream", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryBeveragesId, "Beverages", "Drinks, juices, and sodas", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategorySnacksId, "Snacks", "Chips, crackers, and other snack foods", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryHouseholdId, "Household", "Cleaning supplies and household items", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingCategoryOtherId, "Other", "Miscellaneous items not in other categories", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] categoryIds = new long[] {
+                ShoppingCategoryProduceId, ShoppingCategoryDairyId, ShoppingCategoryMeatId, ShoppingCategoryPantryId,
+                ShoppingCategoryFrozenId, ShoppingCategoryBeveragesId, ShoppingCategorySnacksId, ShoppingCategoryHouseholdId,
+                ShoppingCategoryOtherId
+            };
+            foreach (long id in categoryIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void AddRecipeDifficultyTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeDifficultyType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeDifficultyEasyId, "Easy", "Simple recipe suitable for beginners", DateTime.UtcNow, SystemPersonId },
+                    { RecipeDifficultyMediumId, "Medium", "Moderate difficulty recipe", DateTime.UtcNow, SystemPersonId },
+                    { RecipeDifficultyHardId, "Hard", "Complex recipe for experienced cooks", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] difficultyIds = new long[] { RecipeDifficultyEasyId, RecipeDifficultyMediumId, RecipeDifficultyHardId };
+            foreach (long id in difficultyIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void AddPersonActivityLevelTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonActivityLevelType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { PersonActivityLevelSedentaryId, "Sedentary", "Little or no exercise", DateTime.UtcNow, SystemPersonId },
+                    { PersonActivityLevelLightlyActiveId, "Lightly Active", "Light exercise/sports 1-3 days/week", DateTime.UtcNow, SystemPersonId },
+                    { PersonActivityLevelModeratelyActiveId, "Moderately Active", "Moderate exercise/sports 3-5 days/week", DateTime.UtcNow, SystemPersonId },
+                    { PersonActivityLevelVeryActiveId, "Very Active", "Hard exercise/sports 6-7 days a week", DateTime.UtcNow, SystemPersonId },
+                    { PersonActivityLevelExtremelyActiveId, "Extremely Active", "Very hard exercise/sports & physical job", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] activityLevelIds = new long[] {
+                PersonActivityLevelSedentaryId, PersonActivityLevelLightlyActiveId, PersonActivityLevelModeratelyActiveId,
+                PersonActivityLevelVeryActiveId, PersonActivityLevelExtremelyActiveId
+            };
+            foreach (long id in activityLevelIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void AddDayOfWeekTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.DayOfWeekType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { DayOfWeekMondayId, "Monday", "First day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekTuesdayId, "Tuesday", "Second day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekWednesdayId, "Wednesday", "Third day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekThursdayId, "Thursday", "Fourth day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekFridayId, "Friday", "Fifth day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekSaturdayId, "Saturday", "Sixth day of the week", DateTime.UtcNow, SystemPersonId },
+                    { DayOfWeekSundayId, "Sunday", "Seventh day of the week", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] dayOfWeekIds = new long[] {
+                DayOfWeekMondayId, DayOfWeekTuesdayId, DayOfWeekWednesdayId, DayOfWeekThursdayId,
+                DayOfWeekFridayId, DayOfWeekSaturdayId, DayOfWeekSundayId
+            };
+            foreach (long id in dayOfWeekIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        // UI Data Conversion Removal Methods
+
+        public static void RemoveShoppingPriorityTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingPriorityType;
+            long[] priorityIds = new long[] { ShoppingPriorityLowId, ShoppingPriorityMediumId, ShoppingPriorityHighId };
+            
+            foreach (long id in priorityIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: priorityIds.Cast<object>().ToArray());
+        }
+
+        public static void RemoveShoppingCategoryTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingCategoryType;
+            long[] categoryIds = new long[] {
+                ShoppingCategoryProduceId, ShoppingCategoryDairyId, ShoppingCategoryMeatId, ShoppingCategoryPantryId,
+                ShoppingCategoryFrozenId, ShoppingCategoryBeveragesId, ShoppingCategorySnacksId, ShoppingCategoryHouseholdId,
+                ShoppingCategoryOtherId
+            };
+            
+            foreach (long id in categoryIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: categoryIds.Cast<object>().ToArray());
+        }
+
+        public static void RemoveRecipeDifficultyTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeDifficultyType;
+            long[] difficultyIds = new long[] { RecipeDifficultyEasyId, RecipeDifficultyMediumId, RecipeDifficultyHardId };
+            
+            foreach (long id in difficultyIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: difficultyIds.Cast<object>().ToArray());
+        }
+
+        public static void RemovePersonActivityLevelTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonActivityLevelType;
+            long[] activityLevelIds = new long[] {
+                PersonActivityLevelSedentaryId, PersonActivityLevelLightlyActiveId, PersonActivityLevelModeratelyActiveId,
+                PersonActivityLevelVeryActiveId, PersonActivityLevelExtremelyActiveId
+            };
+            
+            foreach (long id in activityLevelIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: activityLevelIds.Cast<object>().ToArray());
+        }
+
+        public static void RemoveDayOfWeekTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.DayOfWeekType;
+            long[] dayOfWeekIds = new long[] {
+                DayOfWeekMondayId, DayOfWeekTuesdayId, DayOfWeekWednesdayId, DayOfWeekThursdayId,
+                DayOfWeekFridayId, DayOfWeekSaturdayId, DayOfWeekSundayId
+            };
+            
+            foreach (long id in dayOfWeekIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: dayOfWeekIds.Cast<object>().ToArray());
         }
     }
 #pragma warning restore CS8625

@@ -254,7 +254,12 @@ namespace Nom.Data
                 .HasValue<PrivacyConsentTypeViewEntity>((long)ReferenceDiscriminatorEnum.PrivacyConsentType)
                 .HasValue<CurationStatusTypeViewEntity>((long)ReferenceDiscriminatorEnum.CurationStatusType)       // NEW
                 .HasValue<FeedbackEntityTypeViewEntity>((long)ReferenceDiscriminatorEnum.FeedbackEntityType) // NEW
-                .HasValue<FeedbackTypeViewEntity>((long)ReferenceDiscriminatorEnum.FeedbackType);             // NEW
+                .HasValue<FeedbackTypeViewEntity>((long)ReferenceDiscriminatorEnum.FeedbackType)             // NEW
+                .HasValue<ShoppingPriorityTypeViewEntity>((long)ReferenceDiscriminatorEnum.ShoppingPriorityType)
+                .HasValue<ShoppingCategoryTypeViewEntity>((long)ReferenceDiscriminatorEnum.ShoppingCategoryType)
+                .HasValue<RecipeDifficultyTypeViewEntity>((long)ReferenceDiscriminatorEnum.RecipeDifficultyType)
+                .HasValue<PersonActivityLevelTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonActivityLevelType)
+                .HasValue<DayOfWeekTypeViewEntity>((long)ReferenceDiscriminatorEnum.DayOfWeekType);
             #endregion
 
             #region Plan Namespace Fluent API Configurations

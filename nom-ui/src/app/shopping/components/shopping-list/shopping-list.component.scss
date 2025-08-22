@@ -1,0 +1,252 @@
+.shopping-list {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e0e0e0;
+
+    h2 {
+      margin: 0;
+      color: #333;
+      font-size: 28px;
+      font-weight: 500;
+    }
+  }
+
+  &__filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    flex-wrap: wrap;
+
+    .filter-field {
+      min-width: 200px;
+      flex: 1;
+    }
+
+    button {
+      align-self: flex-end;
+      margin-bottom: 8px;
+    }
+  }
+
+  &__items {
+    margin-bottom: 24px;
+  }
+
+  &__summary {
+    display: flex;
+    gap: 24px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    flex-wrap: wrap;
+
+    .summary-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+      }
+    }
+  }
+}
+
+.shopping-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &.priority-high {
+    border-left: 4px solid #f44336;
+    background: linear-gradient(135deg, #fff 0%, #ffebee 100%);
+  }
+
+  &.priority-medium {
+    border-left: 4px solid #ff9800;
+    background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
+  }
+
+  &.priority-low {
+    border-left: 4px solid #4caf50;
+    background: linear-gradient(135deg, #fff 0%, #e8f5e8 100%);
+  }
+
+  &__content {
+    flex: 1;
+    margin-right: 16px;
+  }
+
+  &__name {
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  &__details {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .category-badge,
+    .priority-badge {
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .quantity {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+}
+
+.no-items {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #ccc;
+  }
+
+  p {
+    margin: 8px 0;
+    font-size: 16px;
+
+    &:first-of-type {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .shopping-list {
+    padding: 16px;
+
+    &__header {
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+
+      h2 {
+        text-align: center;
+      }
+    }
+
+    &__filters {
+      flex-direction: column;
+
+      .filter-field {
+        min-width: auto;
+      }
+    }
+
+    &__summary {
+      justify-content: center;
+
+      .summary-stat {
+        min-width: 100px;
+      }
+    }
+  }
+
+  .shopping-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+
+    &__content {
+      margin-right: 0;
+    }
+
+    &__actions {
+      justify-content: center;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .shopping-list {
+    padding: 12px;
+
+    &__header h2 {
+      font-size: 24px;
+    }
+  }
+
+  .shopping-item {
+    padding: 12px 16px;
+
+    &__name {
+      font-size: 16px;
+    }
+
+    &__details {
+      gap: 8px;
+
+      .category-badge,
+      .priority-badge {
+        padding: 3px 8px;
+        font-size: 11px;
+      }
+    }
+  }
+}

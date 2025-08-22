@@ -1,5 +1,6 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { ConfigurationService } from '../services/configuration.service';
 
 @Pipe({
   name: 'formatMass',
@@ -7,13 +8,10 @@ import { DecimalPipe } from '@angular/common';
 })
 export class FormatMassPipe implements PipeTransform {
   private decimalPipe = inject(DecimalPipe);
-
-
-
-
+  private configurationService = inject(ConfigurationService);
 
   transform(value: number, unitName: string): string {
-    const massUnits = ['kg', 'g', 'mg', 'µg', 'mcg'];
+    const massUnits = this.configurationService.getMassUnits();
 
     // If the unit is not a mass unit we handle, return it as is.
     if (!massUnits.includes(unitName)) {

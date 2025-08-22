@@ -1,100 +1,59 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
-import {
-  FormGroup,
-  FormControl,
-  FormArray,
-  ReactiveFormsModule,
-  NonNullableFormBuilder,
-} from '@angular/forms';
+import { Component, OnInit, Input, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { Observable, startWith, map } from 'rxjs';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, takeUntil, startWith, map, Observable } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
 @Component({
-  selector: 'nom-personal-preference',
+  selector: 'app-personal-preference',
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatButtonModule,
     MatSelectModule,
+    MatCheckboxModule,
     MatChipsModule,
     MatIconModule,
     MatAutocompleteModule,
+    MatTooltipModule
   ],
   templateUrl: './personal-preference.component.html',
-  styleUrls: ['./personal-preference.component.scss'],
+  styleUrls: ['./personal-preference.component.scss']
 })
-export class PersonalPreferenceComponent implements OnInit {
-  private fb = inject(NonNullableFormBuilder);
+export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
   private restrictionService = inject(RestrictionService);
+  private referenceDataService = inject(ReferenceDataService);
 
-  @Input() personalPreferenceForm!: FormGroup; // Input FormGroup for this section
+  @Input() personalPreferenceForm!: FormGroup;
 
   // FormControls for autocomplete inputs
   public ingredientSearchControl = new FormControl<string>('');
   public filteredCuratedIngredients!: Observable<string[]>;
 
-  // Options for select dropdowns
-  public spiceLevelOptions = ['Mild', 'Medium', 'Spicy', 'Very Spicy'];
-  public texturesDislikedOptions = [
-    'Creamy',
-    'Crunchy',
-    'Smooth',
-    'Chewy',
-    'Crispy',
-    'Soggy',
-    'Slimy',
-    'Gritty',
-  ];
-  public preferredCookingMethodsOptions = [
-    'Baked',
-    'Grilled',
-    'Fried',
-    'Steamed',
-    'Roasted',
-    'Raw',
-    'Sautéed',
-    'Boiled',
-  ];
+  // Reference data loaded dynamically
+  public spiceLevelOptions: any[] = [];
+  public texturesDislikedOptions: any[] = [];
+  public preferredCookingMethodsOptions: any[] = [];
 
-  private allCuratedIngredients: string[] = [
-    'Apple',
-    'Banana',
-    'Carrot',
-    'Dill',
-    'Eggplant',
-    'Fennel',
-    'Garlic',
-    'Ginger',
-    'Honey',
-    'Ice Cream',
-    'Jalapeno',
-    'Kale',
-    'Lemon',
-    'Mango',
-    'Nutmeg',
-    'Orange',
-    'Pomegranate',
-    'Quinoa',
-    'Radish',
-    'Spinach',
-    'Tomato',
-    'Ugli Fruit',
-    'Vanilla',
-    'Watermelon',
-    'Xylitol',
-    'Yam',
-    'Zucchini',
-  ];
+  // Make constants available in template
+  readonly REFERENCE_IDS = REFERENCE_IDS;
 
+  private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     if (!this.personalPreferenceForm) {
@@ -109,19 +68,51 @@ export class PersonalPreferenceComponent implements OnInit {
       });
     }
 
-    this.filteredCuratedIngredients =
-      this.ingredientSearchControl.valueChanges.pipe(
-        startWith(''),
-        map((value) =>
-          value
-            ? this._filter(value, this.allCuratedIngredients)
-            : this.allCuratedIngredients
-        )
-      );
+    this.loadReferenceData();
+    this.setupIngredientSearch();
+  }
 
-    // Fetch real data (mocked for now)
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private loadReferenceData(): void {
+    // Load spice level options
+    this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.SPICE_LEVEL_TYPE)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(options => {
+        this.spiceLevelOptions = options;
+      });
+
+    // Load texture options
+    this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.TEXTURE_TYPE)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(options => {
+        this.texturesDislikedOptions = options;
+      });
+
+    // Load cooking method options
+    this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.COOKING_METHOD_TYPE)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(options => {
+        this.preferredCookingMethodsOptions = options;
+      });
+  }
+
+  private setupIngredientSearch(): void {
+    // Fetch real data from service
     this.restrictionService.getCuratedIngredients().subscribe((data) => {
-      if (data && data.length > 0) this.allCuratedIngredients = data;
+      if (data && data.length > 0) {
+        this.filteredCuratedIngredients = this.ingredientSearchControl.valueChanges.pipe(
+          startWith(''),
+          map((value) =>
+            value
+              ? this._filter(value, data)
+              : data
+          )
+        );
+      }
     });
   }
 
@@ -139,46 +130,59 @@ export class PersonalPreferenceComponent implements OnInit {
       const formArray = this.personalPreferenceForm.get(
         formArrayName
       ) as FormArray;
-      if (!formArray.value.includes(value)) {
-        formArray.push(this.fb.control(value));
+      formArray.push(this.fb.control(value));
+      if (input) {
+        input.value = '';
       }
-    }
-    if (input) {
-      input.value = '';
     }
   }
 
-  public removeChip(chip: string, formArrayName: string): void {
+  public removeChip(index: number, formArrayName: string): void {
     const formArray = this.personalPreferenceForm.get(
       formArrayName
     ) as FormArray;
-    const index = formArray.value.indexOf(chip);
-    if (index >= 0) {
-      formArray.removeAt(index);
+    formArray.removeAt(index);
+  }
+
+  public getFormArray(formArrayName: string): FormArray {
+    return this.personalPreferenceForm.get(formArrayName) as FormArray;
+  }
+
+  public onSubmit(): void {
+    if (this.personalPreferenceForm.valid) {
+      console.log('Form submitted:', this.personalPreferenceForm.value);
+      // TODO: Implement form submission logic
     }
   }
 
-  public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
-    const selectedValues = event.value;
-    const formArray = this.personalPreferenceForm.get(
-      formControlName
-    ) as FormArray;
-    formArray.clear();
-    selectedValues.forEach((value: string) => {
-      formArray.push(this.fb.control(value));
-    });
+  public onReset(): void {
+    this.personalPreferenceForm.reset();
   }
 
-  // Getters for FormArrays
-  get dislikedIngredientsArray(): FormArray {
-    return this.personalPreferenceForm.get('dislikedIngredients') as FormArray;
+  public getSpiceLevelOptions(): any[] {
+    return this.spiceLevelOptions;
   }
-  get dislikedTexturesArray(): FormArray {
-    return this.personalPreferenceForm.get('dislikedTextures') as FormArray;
+
+  public getTextureOptions(): any[] {
+    return this.texturesDislikedOptions;
   }
-  get preferredCookingMethodsArray(): FormArray {
-    return this.personalPreferenceForm.get(
-      'preferredCookingMethods'
-    ) as FormArray;
+
+  public getCookingMethodOptions(): any[] {
+    return this.preferredCookingMethodsOptions;
+  }
+
+  public getSpiceLevelName(id: number): string {
+    const option = this.spiceLevelOptions.find(o => o.referenceId === id);
+    return option?.referenceName || 'Unknown';
+  }
+
+  public getTextureName(id: number): string {
+    const option = this.texturesDislikedOptions.find(o => o.referenceId === id);
+    return option?.referenceName || 'Unknown';
+  }
+
+  public getCookingMethodName(id: number): string {
+    const option = this.preferredCookingMethodsOptions.find(o => o.referenceId === id);
+    return option?.referenceName || 'Unknown';
   }
 }

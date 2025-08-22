@@ -22,6 +22,55 @@ namespace Nom.Api.Controllers
             _referenceOrch = referenceOrch;
         }
 
+        /// <summary>
+        /// Gets all references for a specific reference group.
+        /// </summary>
+        /// <param name="discriminatorId">The discriminator ID for the reference group</param>
+        /// <returns>List of references for the specified group</returns>
+        [HttpGet("{discriminatorId}/all")]
+        [ProducesResponseType(typeof(List<Nom.Data.Reference.GroupedReferenceViewEntity>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetReferencesByGroup(long discriminatorId)
+        {
+            try
+            {
+                var references = await _referenceOrch.GetReferencesByGroupAsync(discriminatorId);
+                return Ok(references);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving references for group {DiscriminatorId}", discriminatorId);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving references." });
+            }
+        }
 
+        /// <summary>
+        /// Gets multiple reference groups in one call for performance.
+        /// </summary>
+        /// <param name="discriminatorIds">Array of discriminator IDs</param>
+        /// <returns>Dictionary of discriminator ID to references mapping</returns>
+        [HttpPost("bulk")]
+        [ProducesResponseType(typeof(Dictionary<long, List<Nom.Data.Reference.GroupedReferenceViewEntity>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetReferencesBulk([FromBody] long[] discriminatorIds)
+        {
+            try
+            {
+                if (discriminatorIds == null || discriminatorIds.Length == 0)
+                {
+                    return BadRequest(new { message = "Discriminator IDs array cannot be null or empty." });
+                }
+
+                var references = await _referenceOrch.GetReferencesBulkAsync(discriminatorIds);
+                return Ok(references);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving references in bulk for groups {DiscriminatorIds}", string.Join(",", discriminatorIds));
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving references in bulk." });
+            }
+        }
     }
 }
