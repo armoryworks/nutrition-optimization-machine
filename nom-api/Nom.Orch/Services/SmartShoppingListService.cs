@@ -209,7 +209,7 @@ namespace Nom.Orch.Services
                     Id = i.Id,
                     Name = i.Name,
                     Quantity = i.Quantity ?? 0,
-                    Unit = i.MeasurementType?.Name ?? "",
+                    Unit = i.Measurement?.Name ?? "",
                     Category = i.Category?.Name ?? "Uncategorized",
                     Notes = i.Note,
                     Priority = 1
@@ -277,7 +277,7 @@ namespace Nom.Orch.Services
                     Id = i.Id,
                     Name = i.Name,
                     Quantity = i.Quantity ?? 0,
-                    Unit = i.MeasurementType?.Name ?? "",
+                    Unit = i.Measurement?.Name ?? "",
                     Category = i.Category?.Name ?? "Uncategorized"
                 }).ToList());
 
@@ -321,7 +321,7 @@ namespace Nom.Orch.Services
                 {
                     Name = i.Name,
                     Quantity = i.Quantity ?? 0,
-                    Unit = i.MeasurementType?.Name ?? "",
+                    Unit = i.Measurement?.Name ?? "",
                     Category = i.Category?.Name ?? "Uncategorized"
                 }).ToList());
 
@@ -603,7 +603,7 @@ namespace Nom.Orch.Services
                         {
                             Name = ingredient.Ingredient.Name,
                             Quantity = ingredient.Quantity * servingSize,
-                            Unit = ingredient.MeasurementType?.Name ?? "",
+                            Unit = ingredient.Measurement?.Name ?? "",
                             Category = CategorizeItem(ingredient.Ingredient.Name),
                             Notes = ingredient.RawLine,
                             RecipeSources = { recipe.Name }
@@ -643,7 +643,7 @@ namespace Nom.Orch.Services
                                         {
                                             Name = ingredient.Ingredient.Name,
                                             Quantity = ingredient.Quantity * servingSize,
-                                            Unit = ingredient.MeasurementType?.Name ?? "",
+                                            Unit = ingredient.Measurement?.Name ?? "",
                                             Category = CategorizeItem(ingredient.Ingredient.Name),
                                             Notes = ingredient.RawLine,
                                             RecipeSources = { recipe.Name }

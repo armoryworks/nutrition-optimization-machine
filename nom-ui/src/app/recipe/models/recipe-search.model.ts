@@ -61,7 +61,7 @@ export interface RecipeIngredientSearch {
     id: number;
     name: string;
     quantity?: number;
-    measurementType?: string;
+    measurement?: string;
     notes?: string;
 }
 

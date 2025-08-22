@@ -101,9 +101,7 @@ export class RecipeService {
     return this.http.delete<void>(`${environment.apiUrl}/ingredients/${id}`);
   }
 
-  getMeasurementTypes(): Observable<ReferenceItemModel[]> {
-    return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/measurement-types`);
-  }
+
 
   // Recipe search
   searchRecipes(query: string): Observable<RecipeModel[]> {

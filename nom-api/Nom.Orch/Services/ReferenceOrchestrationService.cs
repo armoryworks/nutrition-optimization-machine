@@ -22,18 +22,6 @@ namespace Nom.Orch.Services
             _logger = logger;
         }
 
-        public async Task<List<ReferenceItemModel>> GetMeasurementTypesAsync()
-        {
-            var measurementTypes = await _db.MeasurementTypes
-                .OrderBy(x => x.ReferenceName)
-                .Select(x => new ReferenceItemModel
-                {
-                    Id = x.ReferenceId,
-                    Name = x.ReferenceName
-                })
-                .ToListAsync();
 
-            return measurementTypes;
-        }
     }
 }

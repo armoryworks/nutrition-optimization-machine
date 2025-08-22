@@ -456,7 +456,7 @@ namespace Nom.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long>("BaseUnitId")
+                    b.Property<long?>("BaseUnitId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("CreatedByPersonId")
@@ -624,7 +624,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("MeasurementTypeId")
+                    b.Property<long>("MeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("NutrientId")
@@ -632,7 +632,7 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.HasIndex("NutrientId");
 
@@ -656,7 +656,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("DefaultMeasurementTypeId")
+                    b.Property<long>("DefaultMeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Description")
@@ -689,7 +689,7 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DefaultMeasurementTypeId");
+                    b.HasIndex("DefaultMeasurementId");
 
                     b.HasIndex("FdcId")
                         .IsUnique()
@@ -697,7 +697,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("ParentNutrientId");
 
-                    b.HasIndex("Name", "DefaultMeasurementTypeId")
+                    b.HasIndex("Name", "DefaultMeasurementId")
                         .IsUnique()
                         .HasFilter("\"FdcId\" IS NOT NULL");
 
@@ -730,7 +730,7 @@ namespace Nom.Data.Migrations
                     b.Property<decimal?>("MaxAmount")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<long>("MeasurementTypeId")
+                    b.Property<long>("MeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal?>("MinAmount")
@@ -749,7 +749,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("GoalTypeId");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.HasIndex("NutrientId");
 
@@ -997,14 +997,14 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long?>("MeasurementId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal?>("MeasurementMaximum")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("MeasurementMinimum")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<long?>("MeasurementTypeId")
-                        .HasColumnType("bigint");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1023,7 +1023,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("IngredientId");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.HasIndex("NutrientId");
 
@@ -2568,7 +2568,7 @@ namespace Nom.Data.Migrations
                     b.Property<decimal?>("ServingQuantity")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<long?>("ServingQuantityMeasurementTypeId")
+                    b.Property<long?>("ServingQuantityMeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("Servings")
@@ -2605,7 +2605,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("ParentRecipeId");
 
-                    b.HasIndex("ServingQuantityMeasurementTypeId");
+                    b.HasIndex("ServingQuantityMeasurementId");
 
                     b.ToTable("Recipe", "recipe");
                 });
@@ -2639,7 +2639,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("MeasurementTypeId")
+                    b.Property<long>("MeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("Quantity")
@@ -2655,7 +2655,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("IngredientId");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.ToTable("RecipeIngredient", "recipe");
                 });
@@ -3293,7 +3293,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("MeasurementTypeId")
+                    b.Property<long>("MeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Notes")
@@ -3319,7 +3319,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("ItemStatusTypeId");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.HasIndex("PlanId");
 
@@ -3516,7 +3516,7 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("LastModifiedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long?>("MeasurementTypeId")
+                    b.Property<long?>("MeasurementId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")
@@ -3545,7 +3545,7 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("IngredientId");
 
-                    b.HasIndex("MeasurementTypeId");
+                    b.HasIndex("MeasurementId");
 
                     b.HasIndex("RecipeId");
 
@@ -3729,16 +3729,33 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
 
+                    b.Property<long?>("DefaultMeasurementId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPreferred")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsPreferredUnit")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long?>("PreferredMeasurementId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal?>("TypicalQuantity")
                         .HasColumnType("decimal(18,4)");
 
+                    b.HasIndex("DefaultMeasurementId");
+
                     b.HasIndex("IngredientId");
+
+                    b.HasIndex("PreferredMeasurementId");
 
                     b.ToTable("Measurement", "measurement");
 
@@ -3749,8 +3766,15 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
 
+                    b.Property<long?>("DefaultMeasurementId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("IsStandardUnit")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<long>("NutrientId")
                         .HasColumnType("bigint");
@@ -3758,9 +3782,30 @@ namespace Nom.Data.Migrations
                     b.Property<decimal?>("StandardAmount")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal?>("StandardDailyValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("StandardDailyValueUnit")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("StandardMeasurementId")
+                        .HasColumnType("bigint");
+
+                    b.HasIndex("DefaultMeasurementId");
+
                     b.HasIndex("NutrientId");
 
-                    b.ToTable("Measurement", "measurement");
+                    b.HasIndex("StandardMeasurementId");
+
+                    b.ToTable("Measurement", "measurement", t =>
+                        {
+                            t.Property("DefaultMeasurementId")
+                                .HasColumnName("NutrientMeasurementEntity_DefaultMeasurementId");
+
+                            t.Property("Notes")
+                                .HasColumnName("NutrientMeasurementEntity_Notes");
+                        });
 
                     b.HasDiscriminator().HasValue("Nutrient");
                 });
@@ -3812,13 +3857,6 @@ namespace Nom.Data.Migrations
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
                     b.HasDiscriminator().HasValue(1L);
-                });
-
-            modelBuilder.Entity("Nom.Data.Reference.MeasurementTypeViewEntity", b =>
-                {
-                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
-
-                    b.HasDiscriminator().HasValue(2L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.NutrientTypeViewEntity", b =>
@@ -4036,8 +4074,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Measurement.BaseMeasurementEntity", "BaseUnit")
                         .WithMany()
                         .HasForeignKey("BaseUnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("BaseUnit");
                 });
@@ -4080,9 +4117,9 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId")
+                        .HasForeignKey("MeasurementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -4094,16 +4131,16 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("Ingredient");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Nutrient");
                 });
 
             modelBuilder.Entity("Nom.Data.Nutrient.NutrientEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "DefaultMeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
                         .WithMany()
-                        .HasForeignKey("DefaultMeasurementTypeId")
+                        .HasForeignKey("DefaultMeasurementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -4112,7 +4149,7 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("ParentNutrientId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("DefaultMeasurementType");
+                    b.Navigation("DefaultMeasurement");
 
                     b.Navigation("ParentNutrient");
                 });
@@ -4125,9 +4162,9 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId")
+                        .HasForeignKey("MeasurementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -4139,7 +4176,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("GoalType");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Nutrient");
                 });
@@ -4228,9 +4265,9 @@ namespace Nom.Data.Migrations
                         .WithMany()
                         .HasForeignKey("IngredientId");
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId");
+                        .HasForeignKey("MeasurementId");
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany()
@@ -4244,7 +4281,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("Ingredient");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Nutrient");
 
@@ -4784,9 +4821,9 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("ParentRecipeId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "ServingQuantityMeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "ServingQuantityMeasurement")
                         .WithMany()
-                        .HasForeignKey("ServingQuantityMeasurementTypeId")
+                        .HasForeignKey("ServingQuantityMeasurementId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Author");
@@ -4795,7 +4832,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("ParentRecipe");
 
-                    b.Navigation("ServingQuantityMeasurementType");
+                    b.Navigation("ServingQuantityMeasurement");
                 });
 
             modelBuilder.Entity("Nom.Data.Recipe.RecipeIngredientEntity", b =>
@@ -4810,9 +4847,9 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId")
+                        .HasForeignKey("MeasurementId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -4824,7 +4861,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("Ingredient");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Recipe");
                 });
@@ -5008,9 +5045,9 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId")
+                        .HasForeignKey("MeasurementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -5028,7 +5065,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("ItemStatusType");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Plan");
 
@@ -5083,9 +5120,9 @@ namespace Nom.Data.Migrations
                         .WithMany()
                         .HasForeignKey("IngredientId");
 
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MeasurementType")
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementTypeId");
+                        .HasForeignKey("MeasurementId");
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
@@ -5101,7 +5138,7 @@ namespace Nom.Data.Migrations
 
                     b.Navigation("Ingredient");
 
-                    b.Navigation("MeasurementType");
+                    b.Navigation("Measurement");
 
                     b.Navigation("Recipe");
 
@@ -5208,24 +5245,48 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Measurement.IngredientMeasurementEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
+                        .WithMany()
+                        .HasForeignKey("DefaultMeasurementId");
+
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "PreferredMeasurement")
+                        .WithMany()
+                        .HasForeignKey("PreferredMeasurementId");
+
+                    b.Navigation("DefaultMeasurement");
+
                     b.Navigation("Ingredient");
+
+                    b.Navigation("PreferredMeasurement");
                 });
 
             modelBuilder.Entity("Nom.Data.Measurement.NutrientMeasurementEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
+                        .WithMany()
+                        .HasForeignKey("DefaultMeasurementId");
+
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany()
                         .HasForeignKey("NutrientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Nom.Data.Measurement.MeasurementEntity", "StandardMeasurement")
+                        .WithMany()
+                        .HasForeignKey("StandardMeasurementId");
+
+                    b.Navigation("DefaultMeasurement");
+
                     b.Navigation("Nutrient");
+
+                    b.Navigation("StandardMeasurement");
                 });
 
             modelBuilder.Entity("Nom.Data.Communication.MessageThreadEntity", b =>

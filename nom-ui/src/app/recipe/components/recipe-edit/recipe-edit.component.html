@@ -58,11 +58,11 @@
             </mat-form-field>
             <mat-form-field appearance="outline" class="nom-ingredient-list__unit-field">
               <mat-label>Unit</mat-label>
-              <mat-select formControlName="measurementTypeId">
-                @for (unit of measurementTypes$ | async; track unit.id) {
-                <mat-option [value]="unit.id">{{ unit.name }}</mat-option>
-                }
-              </mat-select>         
+                              <mat-select formControlName="measurementId">
+                    @for (unit of measurements$ | async; track unit.id) {
+                        <mat-option [value]="unit.id">{{ unit.name }}</mat-option>
+                    }
+                </mat-select>         
             </mat-form-field>
           </div>
           <button mat-icon-button type="button" (click)="removeIngredient(i)"

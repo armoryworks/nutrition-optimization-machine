@@ -1,23 +1,41 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Nom.Orch.Models.Measurement
 {
     /// <summary>
-    /// Model representing an ingredient-specific measurement in the API layer.
+    /// Model for ingredient-specific measurement preferences and defaults.
     /// </summary>
     public class IngredientMeasurementModel
     {
         public long Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string Symbol { get; set; } = string.Empty;
-        public long CategoryId { get; set; }
-        public string CategoryName { get; set; } = string.Empty;
-        public bool IsBaseUnit { get; set; }
-        public decimal? BaseUnitConversionFactor { get; set; }
+        
+        [Required]
         public long IngredientId { get; set; }
+        
+        [Required]
         public string IngredientName { get; set; } = string.Empty;
-        public decimal? TypicalQuantity { get; set; }
-        public bool IsPreferredUnit { get; set; }
+        
+        [Required]
+        public long PreferredMeasurementId { get; set; }
+        
+        [Required]
+        public string PreferredMeasurementName { get; set; } = string.Empty;
+        
+        [Required]
+        public string PreferredMeasurementSymbol { get; set; } = string.Empty;
+        
+        public long? DefaultMeasurementId { get; set; }
+        
+        public string? DefaultMeasurementName { get; set; }
+        
+        public string? DefaultMeasurementSymbol { get; set; }
+        
+        public bool IsPreferred { get; set; }
+        
+        public string? Notes { get; set; }
+        
         public DateTime CreatedDate { get; set; }
+        
         public DateTime? LastModifiedDate { get; set; }
     }
 }

@@ -21,5 +21,20 @@ namespace Nom.Data.Measurement
         public decimal? TypicalQuantity { get; set; }
 
         public bool IsPreferredUnit { get; set; } = false;
+
+        public long? PreferredMeasurementId { get; set; }
+
+        [ForeignKey(nameof(PreferredMeasurementId))]
+        public virtual MeasurementEntity? PreferredMeasurement { get; set; }
+
+        public long? DefaultMeasurementId { get; set; }
+
+        [ForeignKey(nameof(DefaultMeasurementId))]
+        public virtual MeasurementEntity? DefaultMeasurement { get; set; }
+
+        public bool IsPreferred { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
     }
 }

@@ -3,7 +3,7 @@
 export interface RecipeIngredientModel {
     ingredientId: number;
     quantity: number;
-    measurementTypeId: number;
+    measurementId: number;
     // The name is included here for display purposes on the frontend,
     // but may not be needed in the final request payload to the backend.
     name?: string;

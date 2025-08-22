@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Reference; // Required for MeasurementType navigation property
+using Nom.Data.Reference; // Required for GoalType navigation property
+using Nom.Data.Measurement; // Required for Measurement navigation property
 using System; // For DateTime
 
 namespace Nom.Data.Nutrient
@@ -38,16 +39,16 @@ namespace Nom.Data.Nutrient
         public virtual ReferenceEntity GoalType { get; set; } = default!;
 
         /// <summary>
-        /// Foreign key to the Reference.Reference table (with MeasurementType discriminator),
+        /// Foreign key to the Measurement.Measurement table,
         /// indicating the unit of measurement for the guideline amounts (e.g., "mg", "g", "mcg", "kcal").
         /// </summary>
-        public long MeasurementTypeId { get; set; }
+        public long MeasurementId { get; set; }
 
         /// <summary>
-        /// Navigation property to the associated ReferenceEntity representing the measurement type.
+        /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity MeasurementType { get; set; } = default!;
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity Measurement { get; set; } = default!;
 
         /// <summary>
         /// The minimum recommended or allowed amount for the nutrient (e.g., EAR, or lower bound of AMDR).

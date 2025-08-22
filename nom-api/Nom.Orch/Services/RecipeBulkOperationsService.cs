@@ -92,7 +92,7 @@ namespace Nom.Orch.Services
                         {
                             ri.Ingredient.Name,
                             ri.Quantity,
-                            ReferenceName = ri.MeasurementType.Name,
+                            ReferenceName = ri.Measurement.Name,
                             ri.RawLine
                         }),
                         Steps = r.RecipeSteps?.Select(rs => new

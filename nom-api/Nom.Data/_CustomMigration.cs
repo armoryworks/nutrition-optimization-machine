@@ -18,47 +18,7 @@ namespace Nom.Data
         private const long PlanInvitationRoleAdminId = 4100L;
         private const long PlanInvitationRoleMemberId = 4101L;
 
-        // --- Reference Data IDs (Measurement Types) ---
-        private const long MeasurementTypeUnknownId = 4000L;
-        private const long MeasurementTypeToTasteId = 4001L;
-        private const long MeasurementTypeEachId = 4002L;
-        private const long MeasurementTypeGramId = 4003L; // g
-        private const long MeasurementTypeMilligramId = 4004L; // mg
-        private const long MeasurementTypeMicrogramId = 4005L; // µg
-        private const long MeasurementTypeKcalId = 4006L; // kcal
-        private const long MeasurementTypeKilogramId = 4007L; // kg
-        private const long MeasurementTypeLiterId = 4008L; // l
-        private const long MeasurementTypeMilliliterId = 4009L; // ml
-        private const long MeasurementTypeTeaspoonId = 4010L; // tsp
-        private const long MeasurementTypeTablespoonId = 4011L; // tbsp
-        private const long MeasurementTypeCupId = 4012L; // cup
-        private const long MeasurementTypeOunceId = 4013L; // oz
-        private const long MeasurementTypePoundId = 4014L; // lb
-        private const long MeasurementTypePintId = 4015L; // pint
-        private const long MeasurementTypeQuartId = 4016L; // quart
-        private const long MeasurementTypeGallonId = 4017L; // gallon
-        private const long MeasurementTypeMcgId = 4018L; // mcg (as seen in PDFs for Vitamin A, D, etc.)
-        private const long MeasurementTypeFluidOunceId = 4031L; // fl oz (explicitly separate from weight oz)
-        private const long MeasurementTypeCloveId = 4032L; // clove (e.g., of garlic)
-        private const long MeasurementTypeSprigId = 4033L; // sprig
-        private const long MeasurementTypeSliceId = 4034L; // slice
-        private const long MeasurementTypeCanId = 4035L; // can
-        private const long MeasurementTypePackageId = 4036L; // package
-        private const long MeasurementTypeBottleId = 4037L; // bottle
-        private const long MeasurementTypeHeadId = 4038L; // head (e.g., of lettuce)
-        private const long MeasurementTypePieceId = 4039L; // piece
-        private const long MeasurementTypeLeafId = 4040L; // leaf
-        private const long MeasurementTypeStalkId = 4041L; // stalk
-        private const long MeasurementTypePinchId = 4042L; // pinch
-        private const long MeasurementTypeDashId = 4043L; // dash
-        private const long MeasurementTypeSplashId = 4044L; // splash
-        private const long MeasurementTypeIUId = 4045L; // International Unit
-        private const long MeasurementTypeKjId = 4046L; // Kilojoule
-        private const long MeasurementTypeMcgReId = 4047L; // Microgram Retinol Equivalent (for Vitamin A)
-        private const long MeasurementTypeMgAteId = 4048L; // Milligram Alpha-Tocopherol Equivalent (for Vitamin E)
-        private const long MeasurementTypeUmolTeId = 4049L; // Micromole Tocopherol Equivalent (for Vitamin E)
-        private const long MeasurementTypePhId = 4050L; // pH
-        private const long MeasurementTypeSpGrId = 4051L; // Specific Gravity
+
 
         // --- Nutrient IDs (Derived from DRVs and RDIs) ---
         private const long NutrientFatId = 5000L;
@@ -272,7 +232,7 @@ namespace Nom.Data
                 values: new object[,]
                 {
                     { (long)ReferenceDiscriminatorEnum.MealType, "Meal Types", "Categories for meals like breakfast, lunch, dinner.", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.MeasurementType, "Measurement Types", "Units of measurement for ingredients and quantities.", DateTime.UtcNow, SystemPersonId },
+
                     { (long)ReferenceDiscriminatorEnum.RecipeType, "Recipe Types", "Categorization of recipes (e.g., appetizer, main course, dessert).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.ShoppingStatusType, "Shopping Status Types", "Statuses for shopping trips (e.g., planned, completed, canceled).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.ItemStatusType, "Item Status Types", "Statuses for pantry items (e.g., on list, in pantry, used, expired).", DateTime.UtcNow, SystemPersonId },
@@ -302,7 +262,7 @@ namespace Nom.Data
                 keyValues: new object[]
                 {
                     (long)ReferenceDiscriminatorEnum.MealType,
-                    (long)ReferenceDiscriminatorEnum.MeasurementType,
+    
                     (long)ReferenceDiscriminatorEnum.RecipeType,
                     (long)ReferenceDiscriminatorEnum.ShoppingStatusType,
                     (long)ReferenceDiscriminatorEnum.ItemStatusType,
@@ -427,117 +387,143 @@ namespace Nom.Data
 
         public static void AddMeasurementTypes(MigrationBuilder migrationBuilder)
         {
-            long measurementGroupId = (long)ReferenceDiscriminatorEnum.MeasurementType;
+            // Ensure measurement schema exists
+            migrationBuilder.EnsureSchema(name: "measurement");
 
+            // Create measurement categories
             migrationBuilder.InsertData(
-                schema: "reference",
-                table: "Reference",
+                schema: "measurement",
+                table: "MeasurementCategory",
                 columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    { MeasurementTypeUnknownId, "unknown", "Used when the measurement unit cannot be determined.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeToTasteId, "to taste", "Indicates an ingredient quantity determined by preference.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeEachId, "each", "Used when quantity refers to individual items.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeGramId, "g", "Gram", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMilligramId, "mg", "Milligram", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMicrogramId, "µg", "Microgram (scientific symbol)", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMcgId, "mcg", "Microgram (common abbreviation, as seen in FDA docs)", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeKilogramId, "kg", "Kilogram", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeLiterId, "l", "Liter", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMilliliterId, "ml", "Milliliter", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeTeaspoonId, "tsp", "Teaspoon", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeTablespoonId, "tbsp", "Tablespoon", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeCupId, "cup", "Cup", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeOunceId, "oz", "Ounce", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePoundId, "lb", "Pound", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePintId, "pint", "Pint", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeQuartId, "quart", "Quart", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeGallonId, "gallon", "Gallon", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeKcalId, "kcal", "Kilocalorie (energy unit)", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeFluidOunceId, "fl oz", "Fluid Ounce", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeCloveId, "clove", "Unit for garlic cloves, etc.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeSprigId, "sprig", "Unit for herbs like rosemary, thyme.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeSliceId, "slice", "Unit for sliced items like bread, cheese.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeCanId, "can", "Unit for canned goods.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePackageId, "package", "Unit for packaged goods.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeBottleId, "bottle", "Unit for bottled liquids.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeHeadId, "head", "Unit for items like lettuce, cabbage.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePieceId, "piece", "Generic unit for a piece of something.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeLeafId, "leaf", "Unit for leafy items like lettuce, spinach.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeStalkId, "stalk", "Unit for items like celery, rhubarb.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePinchId, "pinch", "A very small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeDashId, "dash", "A small, unmeasured amount.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeSplashId, "splash", "A small, unmeasured amount of liquid.", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeIUId, "IU", "International Unit (biological activity).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeKjId, "kJ", "Kilojoule (energy unit, scientific).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMcgReId, "mcg_RE", "Microgram Retinol Equivalent (Vitamin A).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeMgAteId, "mg_ATE", "Milligram Alpha-Tocopherol Equivalent (Vitamin E).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeUmolTeId, "umol_TE", "Micromole Tocopherol Equivalent (Vitamin E).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypePhId, "pH", "pH scale (acidity/alkalinity).", DateTime.UtcNow, SystemPersonId },
-                    { MeasurementTypeSpGrId, "SP_GR", "Specific Gravity (ratio).", DateTime.UtcNow, SystemPersonId }
+                    { 1L, "Mass", "Units of mass/weight measurement", DateTime.UtcNow, SystemPersonId },
+                    { 2L, "Volume", "Units of volume/capacity measurement", DateTime.UtcNow, SystemPersonId },
+                    { 3L, "Count", "Units for counting items", DateTime.UtcNow, SystemPersonId },
+                    { 4L, "Temperature", "Units of temperature measurement", DateTime.UtcNow, SystemPersonId },
+                    { 5L, "Energy", "Units of energy measurement", DateTime.UtcNow, SystemPersonId }
                 });
 
-            long[] measurementTypeIds = new long[] {
-                MeasurementTypeUnknownId, MeasurementTypeToTasteId, MeasurementTypeEachId,
-                MeasurementTypeGramId, MeasurementTypeMilligramId, MeasurementTypeMicrogramId,
-                MeasurementTypeMcgId,
-                MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
-                MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
-                MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId,
-                MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
-                MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
-                MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
-                MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
-                MeasurementTypeDashId, MeasurementTypeSplashId,
-                MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
-                MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
-                MeasurementTypeSpGrId
-            };
+            // Create base measurements for each category
+            migrationBuilder.InsertData(
+                schema: "measurement",
+                table: "Measurement",
+                columns: new[] { "Id", "Name", "Description", "Symbol", "MeasurementCategoryId", "IsBaseUnit", "BaseUnitConversionFactor", "MeasurementType", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 1L, "Gram", "Base unit of mass in metric system", "g", 1L, true, 1.0m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 2L, "Milliliter", "Base unit of volume in metric system", "ml", 2L, true, 1.0m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 3L, "Piece", "Base unit for counting items", "pc", 3L, true, 1.0m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 4L, "Celsius", "Base unit of temperature in metric system", "°C", 4L, true, 1.0m, "Base", DateTime.UtcNow, SystemPersonId }
+                });
 
-            foreach (long id in measurementTypeIds)
-            {
-                migrationBuilder.InsertData(
-                    schema: "reference",
-                    table: "ReferenceIndex",
-                    columns: new[] { "ReferenceId", "GroupId" },
-                    values: new object[] { id, measurementGroupId });
-            }
+            // Update categories with base unit references
+            migrationBuilder.Sql(@"
+                UPDATE measurement.""MeasurementCategory"" 
+                SET ""BaseUnitId"" = 1 
+                WHERE ""Id"" = 1;
+                
+                UPDATE measurement.""MeasurementCategory"" 
+                SET ""BaseUnitId"" = 2 
+                WHERE ""Id"" = 2;
+                
+                UPDATE measurement.""MeasurementCategory"" 
+                SET ""BaseUnitId"" = 3 
+                WHERE ""Id"" = 3;
+                
+                UPDATE measurement.""MeasurementCategory"" 
+                SET ""BaseUnitId"" = 4 
+                WHERE ""Id"" = 4;
+            ");
+
+            // Create common measurement units
+            migrationBuilder.InsertData(
+                schema: "measurement",
+                table: "Measurement",
+                columns: new[] { "Id", "Name", "Description", "Symbol", "MeasurementCategoryId", "IsBaseUnit", "BaseUnitConversionFactor", "MeasurementType", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    // Mass units
+                    { 5L, "Kilogram", "1000 grams", "kg", 1L, false, 1000.0m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 6L, "Pound", "Imperial unit of mass", "lb", 1L, false, 453.592m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 7L, "Ounce", "Imperial unit of mass", "oz", 1L, false, 28.3495m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 8L, "Milligram", "0.001 grams", "mg", 1L, false, 0.001m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 9L, "Microgram", "0.000001 grams", "µg", 1L, false, 0.000001m, "Base", DateTime.UtcNow, SystemPersonId },
+
+                    // Volume units
+                    { 10L, "Liter", "1000 milliliters", "L", 2L, false, 1000.0m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 11L, "Cup", "US customary unit of volume", "cup", 2L, false, 236.588m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 12L, "Tablespoon", "US customary unit of volume", "tbsp", 2L, false, 14.7868m, "Base", DateTime.UtcNow, SystemPersonId },
+                    { 13L, "Teaspoon", "US customary unit of volume", "tsp", 2L, false, 4.92892m, "Base", DateTime.UtcNow, SystemPersonId },
+
+                    // Count units
+                    { 14L, "Dozen", "12 pieces", "doz", 3L, false, 12.0m, "Base", DateTime.UtcNow, SystemPersonId },
+
+                    // Temperature units
+                    { 15L, "Fahrenheit", "Imperial unit of temperature", "°F", 4L, false, 1.0m, "Base", DateTime.UtcNow, SystemPersonId },
+
+                    // Energy units (new category)
+                    { 16L, "Kilocalorie", "Unit of energy", "kcal", 5L, false, 1.0m, "Base", DateTime.UtcNow, SystemPersonId }
+                });
+
+            // Create conversion rules
+            migrationBuilder.InsertData(
+                schema: "measurement",
+                table: "MeasurementConversion",
+                columns: new[] { "Id", "FromMeasurementId", "ToMeasurementId", "ConversionFactor", "IsDirectConversion", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    // Mass conversions
+                    { 1L, 1L, 5L, 0.001m, true, DateTime.UtcNow, SystemPersonId }, // Gram to Kilogram
+                    { 2L, 1L, 6L, 0.00220462m, true, DateTime.UtcNow, SystemPersonId }, // Gram to Pound
+                    { 3L, 1L, 7L, 0.035274m, true, DateTime.UtcNow, SystemPersonId }, // Gram to Ounce
+
+                    // Volume conversions
+                    { 4L, 2L, 8L, 0.001m, true, DateTime.UtcNow, SystemPersonId }, // Milliliter to Liter
+                    { 5L, 2L, 9L, 0.00422675m, true, DateTime.UtcNow, SystemPersonId }, // Milliliter to Cup
+                    { 6L, 2L, 10L, 0.067628m, true, DateTime.UtcNow, SystemPersonId }, // Milliliter to Tablespoon
+                    { 7L, 2L, 11L, 0.202884m, true, DateTime.UtcNow, SystemPersonId }, // Milliliter to Teaspoon
+
+                    // Count conversions
+                    { 8L, 3L, 12L, 0.0833333m, true, DateTime.UtcNow, SystemPersonId }, // Piece to Dozen
+
+                    // Temperature conversions (Fahrenheit to Celsius)
+                    { 9L, 13L, 4L, 0.555556m, true, DateTime.UtcNow, SystemPersonId }, // Fahrenheit to Celsius
+
+                    // Energy conversions
+                    { 16L, 16L, 16L, 1.0m, true, DateTime.UtcNow, SystemPersonId } // Kilocalorie to Kilocalorie
+                });
+
+            // Add offset for temperature conversion
+            migrationBuilder.Sql(@"
+                UPDATE measurement.""MeasurementConversion"" 
+                SET ""Offset"" = -17.7778, ""Formula"" = '(°F - 32) × 5/9'
+                WHERE ""Id"" = 9;
+            ");
         }
 
         public static void RemoveMeasurementTypes(MigrationBuilder migrationBuilder)
         {
-            long measurementGroupId = (long)ReferenceDiscriminatorEnum.MeasurementType;
-            long[] measurementTypeIds = new long[] {
-                MeasurementTypeUnknownId, MeasurementTypeToTasteId, MeasurementTypeEachId,
-                MeasurementTypeGramId, MeasurementTypeMilligramId, MeasurementTypeMicrogramId,
-                MeasurementTypeMcgId,
-                MeasurementTypeKilogramId, MeasurementTypeLiterId, MeasurementTypeMilliliterId,
-                MeasurementTypeTeaspoonId, MeasurementTypeTablespoonId, MeasurementTypeCupId,
-                MeasurementTypeOunceId, MeasurementTypePoundId, MeasurementTypePintId,
-                MeasurementTypeQuartId, MeasurementTypeGallonId, MeasurementTypeKcalId,
-                MeasurementTypeFluidOunceId, MeasurementTypeCloveId, MeasurementTypeSprigId,
-                MeasurementTypeSliceId, MeasurementTypeCanId, MeasurementTypePackageId,
-                MeasurementTypeBottleId, MeasurementTypeHeadId, MeasurementTypePieceId,
-                MeasurementTypeLeafId, MeasurementTypeStalkId, MeasurementTypePinchId,
-                MeasurementTypeDashId, MeasurementTypeSplashId,
-                MeasurementTypeIUId, MeasurementTypeKjId, MeasurementTypeMcgReId,
-                MeasurementTypeMgAteId, MeasurementTypeUmolTeId, MeasurementTypePhId,
-                MeasurementTypeSpGrId
-            };
-            foreach (long id in measurementTypeIds)
-            {
-                migrationBuilder.DeleteData(
-                    schema: "reference",
-                    table: "ReferenceIndex",
-                    keyColumns: new[] { "ReferenceId", "GroupId" },
-                    keyValues: new object[] { id, measurementGroupId });
-            }
+            // Remove conversion rules first (due to foreign key constraints)
             migrationBuilder.DeleteData(
-                schema: "reference",
-                table: "Reference",
+                schema: "measurement",
+                table: "MeasurementConversion",
                 keyColumn: "Id",
-                keyValues: measurementTypeIds.Cast<object>().ToArray());
+                keyValues: new object[] { 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L });
+
+            // Remove measurements (both base and common units)
+            migrationBuilder.DeleteData(
+                schema: "measurement",
+                table: "Measurement",
+                keyColumn: "Id",
+                keyValues: new object[] { 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L });
+
+            // Remove measurement categories
+            migrationBuilder.DeleteData(
+                schema: "measurement",
+                table: "MeasurementCategory",
+                keyColumn: "Id",
+                keyValues: new object[] { 1L, 2L, 3L, 4L, 5L });
         }
 
         public static void AddGoalTypes(MigrationBuilder migrationBuilder)
@@ -722,54 +708,54 @@ namespace Nom.Data
             migrationBuilder.InsertData(
                 schema: "nutrient",
                 table: "Nutrient",
-                columns: new[] { "Id", "Name", "Description", "DefaultMeasurementTypeId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
+                columns: new[] { "Id", "Name", "Description", "DefaultMeasurementId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
                 values: new object[,]
                 {
-                    { NutrientFatId, "Fat", "Total fat content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientTotalCarbohydratesId, "Total Carbohydrates", "Total carbohydrate content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientProteinId, "Protein", "Protein content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientCholesterolId, "Cholesterol", "Cholesterol content.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientSodiumId, "Sodium", "Sodium content.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientCaloriesFDCId, "Calories", "Energy content of food. Often referred to as 'Energy' in FDC API.", MeasurementTypeKcalId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminAId, "Vitamin A", "Vitamin A, Retinol Activity Equivalents (RAE).", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminCId, "Vitamin C", "Ascorbic acid.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminDId, "Vitamin D", "Vitamin D.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminEId, "Vitamin E", "Vitamin E, alpha-tocopherol equivalents.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminKId, "Vitamin K", "Vitamin K.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientThiaminId, "Thiamin", "Vitamin B1.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientRiboflavinId, "Riboflavin", "Vitamin B2.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientNiacinId, "Niacin", "Vitamin B3, Niacin Equivalents (NE).", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminB6Id, "Vitamin B6", "Pyridoxine.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientFolateId, "Folate", "Folate, Dietary Folate Equivalents (DFE).", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientVitaminB12Id, "Vitamin B12", "Cobalamin.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientBiotinId, "Biotin", "Vitamin B7.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientPantothenicAcidId, "Pantothenic Acid", "Vitamin B5.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientCholineId, "Choline", "Choline.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientCalciumId, "Calcium", "Calcium.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientIronId, "Iron", "Iron.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientPhosphorusId, "Phosphorus", "Phosphorus.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientIodineId, "Iodine", "Iodine.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientMagnesiumId, "Magnesium", "Magnesium.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientZincId, "Zinc", "Zinc.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientSeleniumId, "Selenium", "Selenium.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientCopperId, "Copper", "Copper.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientManganeseId, "Manganese", "Manganese.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientChromiumId, "Chromium", "Chromium.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientMolybdenumId, "Molybdenum", "Molybdenum.", MeasurementTypeMcgId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientChlorideId, "Chloride", "Chloride.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null },
-                    { NutrientPotassiumId, "Potassium", "Potassium.", MeasurementTypeMilligramId, DateTime.UtcNow, SystemPersonId, null }
+                    { NutrientFatId, "Fat", "Total fat content.", 1L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientTotalCarbohydratesId, "Total Carbohydrates", "Total carbohydrate content.", 1L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientProteinId, "Protein", "Protein content.", 1L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientCholesterolId, "Cholesterol", "Cholesterol content.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientSodiumId, "Sodium", "Sodium content.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientCaloriesFDCId, "Calories", "Energy content of food. Often referred to as 'Energy' in FDC API.", 16L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminAId, "Vitamin A", "Vitamin A, Retinol Activity Equivalents (RAE).", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminCId, "Vitamin C", "Ascorbic acid.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminDId, "Vitamin D", "Vitamin D.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminEId, "Vitamin E", "Vitamin E, alpha-tocopherol equivalents.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminKId, "Vitamin K", "Vitamin K.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientThiaminId, "Thiamin", "Vitamin B1.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientRiboflavinId, "Riboflavin", "Vitamin B2.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientNiacinId, "Niacin", "Vitamin B3, Niacin Equivalents (NE).", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminB6Id, "Vitamin B6", "Pyridoxine.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientFolateId, "Folate", "Folate, Dietary Folate Equivalents (DFE).", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientVitaminB12Id, "Vitamin B12", "Cobalamin.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientBiotinId, "Biotin", "Vitamin B7.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientPantothenicAcidId, "Pantothenic Acid", "Vitamin B5.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientCholineId, "Choline", "Choline.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientCalciumId, "Calcium", "Calcium.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientIronId, "Iron", "Iron.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientPhosphorusId, "Phosphorus", "Phosphorus.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientIodineId, "Iodine", "Iodine.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientMagnesiumId, "Magnesium", "Magnesium.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientZincId, "Zinc", "Zinc.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientSeleniumId, "Selenium", "Selenium.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientCopperId, "Copper", "Copper.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientManganeseId, "Manganese", "Manganese.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientChromiumId, "Chromium", "Chromium.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientMolybdenumId, "Molybdenum", "Molybdenum.", 9L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientChlorideId, "Chloride", "Chloride.", 8L, DateTime.UtcNow, SystemPersonId, null },
+                    { NutrientPotassiumId, "Potassium", "Potassium.", 8L, DateTime.UtcNow, SystemPersonId, null }
                 });
 
             // Now, insert child nutrients, linking them to their parents
             migrationBuilder.InsertData(
                 schema: "nutrient",
                 table: "Nutrient",
-                columns: new[] { "Id", "Name", "Description", "DefaultMeasurementTypeId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
+                columns: new[] { "Id", "Name", "Description", "DefaultMeasurementId", "CreatedDate", "CreatedByPersonId", "ParentNutrientId" },
                 values: new object[,]
                 {
-                    { NutrientSaturatedFatId, "Saturated Fat", "Saturated fatty acids.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientFatId },
-                    { NutrientDietaryFiberId, "Dietary Fiber", "Dietary fiber content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId },
-                    { NutrientAddedSugarsId, "Added Sugars", "Added sugars content.", MeasurementTypeGramId, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId }
+                    { NutrientSaturatedFatId, "Saturated Fat", "Saturated fatty acids.", 1L, DateTime.UtcNow, SystemPersonId, NutrientFatId },
+                    { NutrientDietaryFiberId, "Dietary Fiber", "Dietary fiber content.", 1L, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId },
+                    { NutrientAddedSugarsId, "Added Sugars", "Added sugars content.", 1L, DateTime.UtcNow, SystemPersonId, NutrientTotalCarbohydratesId }
                 });
         }
 
@@ -800,144 +786,144 @@ namespace Nom.Data
             migrationBuilder.InsertData(
                 schema: "nutrient",
                 table: "NutrientGuideline",
-                columns: new[] { "Id", "NutrientId", "GoalTypeId", "MeasurementTypeId", "MinAmount", "MaxAmount", "RecommendedAmount", "Notes", "CreatedDate", "CreatedByPersonId" },
+                columns: new[] { "Id", "NutrientId", "GoalTypeId", "MeasurementId", "MinAmount", "MaxAmount", "RecommendedAmount", "Notes", "CreatedDate", "CreatedByPersonId" },
                 values: new object[,]
                 {
-                    { GetNextGuidelineId(), NutrientFatId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 20.0m, "DRV for Saturated Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 275.0m, "DRV for Total Carbohydrates based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 2300.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Protein based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFatId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 30.0m, "DRV for Fat.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 95.0m, "DRV for Total Carbohydrates.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFatId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 39.0m, "DRV for Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 10.0m, "DRV for Saturated Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 150.0m, "DRV for Total Carbohydrates based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 1500.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 14.0m, "DRV for Dietary Fiber based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 13.0m, "DRV for Protein based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeChildren1Through3YearsId, MeasurementTypeGramId, null, null, 25.0m, "DRV for Added Sugars based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFatId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 275.0m, "DRV for Total Carbohydrates based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 2300.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 900.0m, "RDI for Vitamin A (RAE).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 90.0m, "RDI for Vitamin C.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1300.0m, "RDI for Calcium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIronId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 18.0m, "RDI for Iron.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 20.0m, "RDI for Vitamin D.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 15.0m, "RDI for Vitamin E (alpha-tocopherol).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 120.0m, "RDI for Vitamin K.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1.2m, "RDI for Thiamin (Vitamin B1).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1.3m, "RDI for Riboflavin (Vitamin B2).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 16.0m, "RDI for Niacin (NE).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1.7m, "RDI for Vitamin B6.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 400.0m, "RDI for Folate (DFE).", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 2.4m, "RDI for Vitamin B12.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 30.0m, "RDI for Biotin.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 5.0m, "RDI for Pantothenic Acid.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 1250.0m, "RDI for Phosphorus.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 150.0m, "RDI for Iodine.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 420.0m, "RDI for Magnesium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientZincId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 11.0m, "RDI for Zinc.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 55.0m, "RDI for Selenium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 0.9m, "RDI for Copper.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 2.3m, "RDI for Manganese.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 35.0m, "RDI for Chromium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMcgId, null, null, 45.0m, "RDI for Molybdenum.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 2300.0m, "RDI for Chloride.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 4700.0m, "RDI for Potassium.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeAdultsAndChildren4PlusId, MeasurementTypeMilligramId, null, null, 550.0m, "RDI for Choline.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 500.0m, "RDI for Vitamin A (RAE) for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 50.0m, "RDI for Vitamin C for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 260.0m, "RDI for Calcium for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIronId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 11.0m, "RDI for Iron for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 10.0m, "RDI for Vitamin D for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 5.0m, "RDI for Vitamin E for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 2.5m, "RDI for Vitamin K for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 0.3m, "RDI for Thiamin (Vitamin B1) for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 0.4m, "RDI for Riboflavin (Vitamin B2) for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 4.0m, "RDI for Niacin (NE) for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 0.3m, "RDI for Vitamin B6 for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 80.0m, "RDI for Folate (DFE) for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 0.5m, "RDI for Vitamin B12 for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 6.0m, "RDI for Biotin for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 1.8m, "RDI for Pantothenic Acid for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 275.0m, "RDI for Phosphorus for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 130.0m, "RDI for Iodine for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 75.0m, "RDI for Magnesium for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientZincId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 3.0m, "RDI for Zinc for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 20.0m, "RDI for Selenium for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 0.2m, "RDI for Copper for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 0.6m, "RDI for Manganese for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 5.5m, "RDI for Chromium for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMcgId, null, null, 3.0m, "RDI for Molybdenum for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 570.0m, "RDI for Chloride for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 700.0m, "RDI for Potassium for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeMilligramId, null, null, 150.0m, "RDI for Choline for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeInfantsThrough12MonthsId, MeasurementTypeGramId, null, null, 11.0m, "RDI for Protein for infants.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 300.0m, "RDI for Vitamin A (RAE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 15.0m, "RDI for Vitamin C for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 700.0m, "RDI for Calcium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIronId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 7.0m, "RDI for Iron for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 15.0m, "RDI for Vitamin D for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 6.0m, "RDI for Vitamin E for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 30.0m, "RDI for Vitamin K for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 0.5m, "RDI for Thiamin (Vitamin B1) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 0.5m, "RDI for Riboflavin (Vitamin B2) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 6.0m, "RDI for Niacin (NE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 0.5m, "RDI for Vitamin B6 for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 150.0m, "RDI for Folate (DFE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 0.9m, "RDI for Vitamin B12 for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 8.0m, "RDI for Biotin for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 2.0m, "RDI for Pantothenic Acid for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 460.0m, "RDI for Phosphorus for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 90.0m, "RDI for Iodine for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 80.0m, "RDI for Magnesium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientZincId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 3.0m, "RDI for Zinc for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 20.0m, "RDI for Selenium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 0.3m, "RDI for Copper for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 1.2m, "RDI for Manganese for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 11.0m, "RDI for Chromium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMcgId, null, null, 17.0m, "RDI for Molybdenum for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 1500.0m, "RDI for Chloride for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 3000.0m, "RDI for Potassium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeChildren1Through3YearsId, MeasurementTypeMilligramId, null, null, 200.0m, "RDI for Choline for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 1300.0m, "RDI for Vitamin A (RAE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 120.0m, "RDI for Vitamin C for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1300.0m, "RDI for Calcium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIronId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 27.0m, "RDI for Iron for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 15.0m, "RDI for Vitamin D for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 19.0m, "RDI for Vitamin E for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 90.0m, "RDI for Vitamin K for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1.4m, "RDI for Thiamin (Vitamin B1) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1.6m, "RDI for Riboflavin (Vitamin B2) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 18.0m, "RDI for Niacin (NE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 2.0m, "RDI for Vitamin B6 for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientFolateId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 600.0m, "RDI for Folate (DFE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 2.8m, "RDI for Vitamin B12 for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 35.0m, "RDI for Biotin for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 7.0m, "RDI for Pantothenic Acid for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1250.0m, "RDI for Phosphorus for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientIodineId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 290.0m, "RDI for Iodine for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 400.0m, "RDI for Magnesium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientZincId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 13.0m, "RDI for Zinc for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 70.0m, "RDI for Selenium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCopperId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 1.3m, "RDI for Copper for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 2.6m, "RDI for Manganese for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 45.0m, "RDI for Chromium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMcgId, null, null, 50.0m, "RDI for Molybdenum for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 2300.0m, "RDI for Chloride for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 5100.0m, "RDI for Potassium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientCholineId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeMilligramId, null, null, 550.0m, "RDI for Choline for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
-                    { GetNextGuidelineId(), NutrientProteinId, GoalTypePregnantAndLactatingWomenId, MeasurementTypeGramId, null, null, 71.0m, "RDI for Protein for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId }
+                    { GetNextGuidelineId(), NutrientFatId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 20.0m, "DRV for Saturated Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 275.0m, "DRV for Total Carbohydrates based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 2300.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 50.0m, "DRV for Protein based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeAdultsAndChildren4PlusId, 1L, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFatId, GoalTypeInfantsThrough12MonthsId, 1L, null, null, 30.0m, "DRV for Fat.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeInfantsThrough12MonthsId, 1L, null, null, 95.0m, "DRV for Total Carbohydrates.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFatId, GoalTypeChildren1Through3YearsId, 1L, null, null, 39.0m, "DRV for Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSaturatedFatId, GoalTypeChildren1Through3YearsId, 1L, null, null, 10.0m, "DRV for Saturated Fat based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypeChildren1Through3YearsId, 8L, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypeChildren1Through3YearsId, 1L, null, null, 150.0m, "DRV for Total Carbohydrates based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypeChildren1Through3YearsId, 8L, null, null, 1500.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypeChildren1Through3YearsId, 1L, null, null, 14.0m, "DRV for Dietary Fiber based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeChildren1Through3YearsId, 1L, null, null, 13.0m, "DRV for Protein based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypeChildren1Through3YearsId, 1L, null, null, 25.0m, "DRV for Added Sugars based on 1,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFatId, GoalTypePregnantAndLactatingWomenId, 1L, null, null, 78.0m, "DRV for Fat based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholesterolId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 300.0m, "DRV for Cholesterol.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientTotalCarbohydratesId, GoalTypePregnantAndLactatingWomenId, 1L, null, null, 275.0m, "DRV for Total Carbohydrates based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSodiumId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 2300.0m, "DRV for Sodium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientDietaryFiberId, GoalTypePregnantAndLactatingWomenId, 1L, null, null, 28.0m, "DRV for Dietary Fiber based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientAddedSugarsId, GoalTypePregnantAndLactatingWomenId, 1L, null, null, 50.0m, "DRV for Added Sugars based on 2,000 kcal diet.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 900.0m, "RDI for Vitamin A (RAE).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 90.0m, "RDI for Vitamin C.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 1300.0m, "RDI for Calcium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIronId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 18.0m, "RDI for Iron.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 20.0m, "RDI for Vitamin D.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 15.0m, "RDI for Vitamin E (alpha-tocopherol).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 120.0m, "RDI for Vitamin K.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 1.2m, "RDI for Thiamin (Vitamin B1).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 1.3m, "RDI for Riboflavin (Vitamin B2).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 16.0m, "RDI for Niacin (NE).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 1.7m, "RDI for Vitamin B6.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 400.0m, "RDI for Folate (DFE).", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 2.4m, "RDI for Vitamin B12.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 30.0m, "RDI for Biotin.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 5.0m, "RDI for Pantothenic Acid.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 1250.0m, "RDI for Phosphorus.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 150.0m, "RDI for Iodine.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 420.0m, "RDI for Magnesium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientZincId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 11.0m, "RDI for Zinc.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 55.0m, "RDI for Selenium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 0.9m, "RDI for Copper.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 2.3m, "RDI for Manganese.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 35.0m, "RDI for Chromium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeAdultsAndChildren4PlusId, 9L, null, null, 45.0m, "RDI for Molybdenum.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 2300.0m, "RDI for Chloride.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 4700.0m, "RDI for Potassium.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeAdultsAndChildren4PlusId, 8L, null, null, 550.0m, "RDI for Choline.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 500.0m, "RDI for Vitamin A (RAE) for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 50.0m, "RDI for Vitamin C for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 260.0m, "RDI for Calcium for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIronId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 11.0m, "RDI for Iron for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 10.0m, "RDI for Vitamin D for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 5.0m, "RDI for Vitamin C for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 2.5m, "RDI for Vitamin K for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 0.3m, "RDI for Thiamin (Vitamin B1) for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 0.4m, "RDI for Riboflavin (Vitamin B2) for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 4.0m, "RDI for Niacin (NE) for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 0.3m, "RDI for Vitamin B6 for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 80.0m, "RDI for Folate (DFE) for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 0.5m, "RDI for Vitamin B12 for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 6.0m, "RDI for Biotin for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 1.8m, "RDI for Pantothenic Acid for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 275.0m, "RDI for Phosphorus for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 130.0m, "RDI for Iodine for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 75.0m, "RDI for Magnesium for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientZincId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 3.0m, "RDI for Zinc for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 20.0m, "RDI for Selenium for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 0.2m, "RDI for Copper for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 0.6m, "RDI for Manganese for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 5.5m, "RDI for Chromium for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeInfantsThrough12MonthsId, 9L, null, null, 3.0m, "RDI for Molybdenum for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 570.0m, "RDI for Chloride for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 700.0m, "RDI for Potassium for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeInfantsThrough12MonthsId, 8L, null, null, 150.0m, "RDI for Choline for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientProteinId, GoalTypeInfantsThrough12MonthsId, 1L, null, null, 11.0m, "RDI for Protein for infants.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypeChildren1Through3YearsId, 9L, null, null, 300.0m, "RDI for Vitamin A (RAE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypeChildren1Through3YearsId, 8L, null, null, 15.0m, "RDI for Vitamin C for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypeChildren1Through3YearsId, 8L, null, null, 700.0m, "RDI for Calcium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIronId, GoalTypeChildren1Through3YearsId, 8L, null, null, 7.0m, "RDI for Iron for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypeChildren1Through3YearsId, 9L, null, null, 15.0m, "RDI for Vitamin D for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypeChildren1Through3YearsId, 8L, null, null, 6.0m, "RDI for Vitamin E for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypeChildren1Through3YearsId, 9L, null, null, 30.0m, "RDI for Vitamin K for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypeChildren1Through3YearsId, 8L, null, null, 0.5m, "RDI for Thiamin (Vitamin B1) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypeChildren1Through3YearsId, 8L, null, null, 0.5m, "RDI for Riboflavin (Vitamin B2) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypeChildren1Through3YearsId, 8L, null, null, 6.0m, "RDI for Niacin (NE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypeChildren1Through3YearsId, 8L, null, null, 0.5m, "RDI for Vitamin B6 for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFolateId, GoalTypeChildren1Through3YearsId, 9L, null, null, 150.0m, "RDI for Folate (DFE) for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypeChildren1Through3YearsId, 9L, null, null, 0.9m, "RDI for Vitamin B12 for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypeChildren1Through3YearsId, 9L, null, null, 8.0m, "RDI for Biotin for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypeChildren1Through3YearsId, 8L, null, null, 2.0m, "RDI for Pantothenic Acid for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypeChildren1Through3YearsId, 8L, null, null, 460.0m, "RDI for Phosphorus for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIodineId, GoalTypeChildren1Through3YearsId, 9L, null, null, 90.0m, "RDI for Iodine for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypeChildren1Through3YearsId, 8L, null, null, 80.0m, "RDI for Magnesium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientZincId, GoalTypeChildren1Through3YearsId, 8L, null, null, 3.0m, "RDI for Zinc for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypeChildren1Through3YearsId, 9L, null, null, 20.0m, "RDI for Selenium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCopperId, GoalTypeChildren1Through3YearsId, 8L, null, null, 0.3m, "RDI for Copper for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypeChildren1Through3YearsId, 8L, null, null, 1.2m, "RDI for Manganese for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypeChildren1Through3YearsId, 9L, null, null, 11.0m, "RDI for Chromium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypeChildren1Through3YearsId, 9L, null, null, 17.0m, "RDI for Molybdenum for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypeChildren1Through3YearsId, 8L, null, null, 1500.0m, "RDI for Chloride for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypeChildren1Through3YearsId, 8L, null, null, 3000.0m, "RDI for Potassium for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholineId, GoalTypeChildren1Through3YearsId, 8L, null, null, 200.0m, "RDI for Choline for children 1-3 years.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminAId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 1300.0m, "RDI for Vitamin A (RAE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminCId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 120.0m, "RDI for Vitamin C for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCalciumId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 1300.0m, "RDI for Calcium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIronId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 27.0m, "RDI for Iron for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminDId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 15.0m, "RDI for Vitamin D for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminEId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 19.0m, "RDI for Vitamin E for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminKId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 90.0m, "RDI for Vitamin K for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientThiaminId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 1.4m, "RDI for Thiamin (Vitamin B1) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientRiboflavinId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 1.6m, "RDI for Riboflavin (Vitamin B2) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientNiacinId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 18.0m, "RDI for Niacin (NE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB6Id, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 2.0m, "RDI for Vitamin B6 for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientFolateId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 600.0m, "RDI for Folate (DFE) for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientVitaminB12Id, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 2.8m, "RDI for Vitamin B12 for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientBiotinId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 35.0m, "RDI for Biotin for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPantothenicAcidId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 7.0m, "RDI for Pantothenic Acid for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPhosphorusId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 1250.0m, "RDI for Phosphorus for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientIodineId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 290.0m, "RDI for Iodine for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMagnesiumId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 400.0m, "RDI for Magnesium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientZincId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 13.0m, "RDI for Zinc for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientSeleniumId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 70.0m, "RDI for Selenium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCopperId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 1.3m, "RDI for Copper for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientManganeseId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 2.6m, "RDI for Manganese for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChromiumId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 45.0m, "RDI for Chromium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientMolybdenumId, GoalTypePregnantAndLactatingWomenId, 9L, null, null, 50.0m, "RDI for Molybdenum for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientChlorideId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 2300.0m, "RDI for Chloride for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientPotassiumId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 5100.0m, "RDI for Potassium for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientCholineId, GoalTypePregnantAndLactatingWomenId, 8L, null, null, 550.0m, "RDI for Choline for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId },
+                    { GetNextGuidelineId(), NutrientProteinId, GoalTypePregnantAndLactatingWomenId, 1L, null, null, 71.0m, "RDI for Protein for pregnant/lactating women.", DateTime.UtcNow, SystemPersonId }
                 });
         }
 

@@ -7,6 +7,7 @@ using Nom.Data.Audit;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
+using Nom.Data.Measurement;
 
 namespace Nom.Data.Shopping
 {
@@ -28,9 +29,9 @@ namespace Nom.Data.Shopping
         [Column(TypeName = "decimal(18,4)")]
         public decimal? Quantity { get; set; }
 
-        public long? MeasurementTypeId { get; set; }
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity? MeasurementType { get; set; }
+        public long? MeasurementId { get; set; }
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity? Measurement { get; set; }
 
         public long? IngredientId { get; set; }
         [ForeignKey(nameof(IngredientId))]

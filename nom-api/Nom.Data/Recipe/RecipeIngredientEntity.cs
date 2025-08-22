@@ -1,6 +1,7 @@
 // Nom.Data/Recipe/RecipeIngredientEntity.cs
 using Nom.Data.Audit; // Assuming BaseEntity is in Nom.Data.Audit namespace
-using Nom.Data.Reference; // For MeasurementType
+using Nom.Data.Reference; // For other references
+using Nom.Data.Measurement; // For Measurement
 using System.Collections.Generic; // Not strictly needed for this entity but often included
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations; // For MaxLength
@@ -47,17 +48,17 @@ namespace Nom.Data.Recipe
         public decimal Quantity { get; set; }
 
         /// <summary>
-        /// Foreign key to the Reference.Reference table, indicating the unit of measurement
+        /// Foreign key to the Measurement.Measurement table, indicating the unit of measurement
         /// for the quantity (e.g., "cup", "gram", "each").
         /// </summary>
         [Required]
-        public long MeasurementTypeId { get; set; }
+        public long MeasurementId { get; set; }
 
         /// <summary>
-        /// Navigation property to the associated MeasurementType ReferenceEntity.
+        /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity? MeasurementType { get; set; }
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity? Measurement { get; set; }
 
         /// <summary>
         /// The original raw text line of the ingredient as it appeared in the source recipe (e.g., "1 1/2 cups all-purpose flour").

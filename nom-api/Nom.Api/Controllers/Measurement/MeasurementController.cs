@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Nom.Api.Controllers;
 using Nom.Orch.Interfaces.Measurement;
 using Nom.Orch.Models.Measurement;
+using Nom.Orch.Services.Measurement;
 
 namespace Nom.Api.Controllers.Measurement
 {
@@ -92,6 +93,52 @@ namespace Nom.Api.Controllers.Measurement
             {
                 _logger.LogError(ex, "Error converting measurement {Value} from {FromId} to {ToId}", value, fromId, toId);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while converting the measurement." });
+            }
+        }
+
+        /// <summary>
+        /// Bulk converts multiple measurement values efficiently.
+        /// </summary>
+        [HttpPost("bulk-convert")]
+        [ProducesResponseType(typeof(List<decimal>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> BulkConvertMeasurements([FromBody] List<BulkConversionRequest> requests)
+        {
+            try
+            {
+                if (requests == null || !requests.Any())
+                {
+                    return BadRequest(new { message = "At least one conversion request is required." });
+                }
+
+                var conversions = requests.Select(r => (r.FromId, r.ToId, r.Value)).ToList();
+                var results = await _measurementOrchestrationService.BulkConvertMeasurementsAsync(conversions);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in bulk conversion of {Count} measurements", requests?.Count ?? 0);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while performing bulk conversion." });
+            }
+        }
+
+        /// <summary>
+        /// Gets performance statistics for the measurement system.
+        /// </summary>
+        [HttpGet("performance-stats")]
+        [ProducesResponseType(typeof(MeasurementPerformanceStats), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPerformanceStats()
+        {
+            try
+            {
+                // This would require injecting IMeasurementPerformanceMonitor into the controller
+                // For now, we'll return a placeholder
+                return Ok(new { message = "Performance monitoring endpoint - implementation pending" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving performance statistics");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving performance statistics." });
             }
         }
 
@@ -253,6 +300,25 @@ namespace Nom.Api.Controllers.Measurement
             {
                 _logger.LogError(ex, "Error deleting measurement {Id}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while deleting the measurement." });
+            }
+        }
+
+        /// <summary>
+        /// Gets all measurements.
+        /// </summary>
+        [HttpGet("all")]
+        [ProducesResponseType(typeof(List<MeasurementModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllMeasurements()
+        {
+            try
+            {
+                var measurements = await _measurementOrchestrationService.GetAllMeasurementsAsync();
+                return Ok(measurements);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all measurements");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurements." });
             }
         }
 

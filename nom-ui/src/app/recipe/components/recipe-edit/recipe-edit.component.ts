@@ -71,7 +71,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     ingredientSearchCtrl = new FormControl('');
     filteredIngredients$: Observable<IngredientSearchResponseModel[]>;
-    measurementTypes$: Observable<ReferenceItemModel[]>;
+    measurements$: Observable<any[]>;
 
     pageConfig: BasePageConfig = {
         title: 'Create Recipe',
@@ -106,7 +106,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             switchMap(value => (value && typeof value === 'string' && value.length > 1) ? this.recipeService.searchIngredients(value) : of([]))
         );
 
-        this.measurementTypes$ = this.recipeService.getMeasurementTypes();
+        // TODO: Replace with measurement service call
+        this.measurements$ = of([]);
     }
 
     ngOnInit(): void {
@@ -141,7 +142,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             ingredientId: [ingredient.id],
             name: [ingredient.name],
             quantity: [1, [Validators.required, Validators.min(0.01)]],
-            measurementTypeId: [1, [Validators.required]]
+            measurementId: [1, [Validators.required]]
         });
     }
 
@@ -212,7 +213,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                     ingredientId: [ingredient.id],
                     name: [ingredient.name],
                     quantity: [1, [Validators.required, Validators.min(0.01)]], // Default quantity
-                    measurementTypeId: [1, [Validators.required]] // Default measurement type
+                    measurementId: [1, [Validators.required]] // Default measurement
                 });
                 this.ingredients.push(ingredientGroup);
             });

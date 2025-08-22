@@ -73,7 +73,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   isCheckingDuplicate = false;
   existingIngredient: IngredientModel | null = null;
-  measurementTypes: ReferenceItemModel[] = [];
+  measurements: any[] = [];
   error: string | null = null;
   private destroy$ = new Subject<void>();
 
@@ -188,12 +188,12 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
   }
 
   private loadMeasurementTypes(): void {
-    // Load measurement types from reference data
-    // This could be enhanced to load from a service
-    this.measurementTypes = [
-      { id: 4003, name: 'g (gram)' },
-      { id: 4004, name: 'mg (milligram)' },
-      { id: 4005, name: 'µg (microgram)' }
+    // Load measurements from the new measurement system
+    // This should be enhanced to load from the measurement service
+    this.measurements = [
+      { id: 1, name: 'Gram', symbol: 'g' },
+      { id: 2, name: 'Milligram', symbol: 'mg' },
+      { id: 3, name: 'Microgram', symbol: 'µg' }
     ];
   }
 
@@ -208,7 +208,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
       this.nutrients.push(this.nonNullableFb.group({
         nutrientId: [nutrient.nutrientId || '', Validators.required],
         amount: [nutrient.amount || 0, [Validators.required, Validators.min(0)]],
-        measurementTypeId: [nutrient.measurementTypeId || '4003', Validators.required]
+        measurementId: [nutrient.measurementId || 1, Validators.required]
       }));
     });
   }
@@ -221,7 +221,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
     return this.nonNullableFb.group({
       nutrientId: ['', Validators.required],
       amount: [0, [Validators.required, Validators.min(0)]],
-      measurementTypeId: ['4003', Validators.required]
+      measurementId: [1, Validators.required]
     });
   }
 

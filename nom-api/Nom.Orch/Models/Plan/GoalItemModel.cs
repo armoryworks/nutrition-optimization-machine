@@ -12,7 +12,7 @@ namespace Nom.Orch.Models.Plan
         public string? IngredientName { get; set; }
         public string? NutrientName { get; set; }
         public string? TimeframeType { get; set; }
-        public string? MeasurementType { get; set; }
+        public string? Measurement { get; set; }
         public decimal? MeasurementMinimum { get; set; }
         public decimal? MeasurementMaximum { get; set; }
     }

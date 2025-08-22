@@ -154,6 +154,8 @@ builder.Services.AddHttpClient<Nom.Orch.UtilityServices.WebScrapingService>();
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();
 
+
+
 // Utility services are automatically registered via AddOrchestrationServices()
 
 // Security services are automatically registered via AddOrchestrationServices()
@@ -309,5 +311,7 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
         await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
     }
 });
+
+
 
 app.Run();

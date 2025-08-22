@@ -8,6 +8,6 @@ namespace Nom.Orch.Interfaces
 {
     public interface IReferenceOrchestrationService
     {
-        Task<List<ReferenceItemModel>> GetMeasurementTypesAsync();
+
     }
 }

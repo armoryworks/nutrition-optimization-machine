@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Recipe; // Required for Ingredient navigation property
-using Nom.Data.Reference; // Required for MeasurementType navigation property
+using Nom.Data.Measurement; // Required for Measurement navigation property
 
 namespace Nom.Data.Nutrient
 {
@@ -47,16 +47,16 @@ namespace Nom.Data.Nutrient
         public decimal Amount { get; set; }
 
         /// <summary>
-        /// Foreign key to the Reference.Reference table, indicating the unit of measurement
+        /// Foreign key to the Measurement.Measurement table, indicating the unit of measurement
         /// for the amount (e.g., "mg", "g", "kcal").
         /// </summary>
-        public long MeasurementTypeId { get; set; }
+        public long MeasurementId { get; set; }
 
         /// <summary>
-        /// Navigation property to the associated MeasurementType ReferenceEntity.
+        /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity? MeasurementType { get; set; } // Nullable if 'unknown' is allowed for type 0
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity? Measurement { get; set; } // Nullable if 'unknown' is allowed for type 0
 
         /// <summary>
         /// The FoodData Central (FDC) ID for the specific nutrient, if this data originated from FDC.

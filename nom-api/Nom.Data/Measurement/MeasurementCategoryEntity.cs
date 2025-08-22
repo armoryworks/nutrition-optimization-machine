@@ -19,11 +19,10 @@ namespace Nom.Data.Measurement
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        [Required]
-        public long BaseUnitId { get; set; }
+        public long? BaseUnitId { get; set; }
 
         [ForeignKey(nameof(BaseUnitId))]
-        public virtual BaseMeasurementEntity BaseUnit { get; set; } = default!;
+        public virtual BaseMeasurementEntity? BaseUnit { get; set; }
 
         /// <summary>
         /// Navigation property to a collection of MeasurementEntity instances

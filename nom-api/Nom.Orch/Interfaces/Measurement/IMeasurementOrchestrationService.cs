@@ -11,6 +11,8 @@ namespace Nom.Orch.Interfaces.Measurement
         /// Gets all measurements for a specific category.
         /// </summary>
         Task<List<MeasurementModel>> GetMeasurementsByCategoryAsync(long categoryId);
+        Task<List<MeasurementModel>> GetAllMeasurementsAsync();
+        Task<Dictionary<long, List<MeasurementConversionModel>>> GetBulkConversionsAsync(List<(long FromId, long ToId)> conversionRequests);
 
         /// <summary>
         /// Gets a measurement by its ID.
@@ -21,6 +23,11 @@ namespace Nom.Orch.Interfaces.Measurement
         /// Converts a value from one measurement unit to another.
         /// </summary>
         Task<decimal> ConvertMeasurementAsync(long fromId, long toId, decimal value);
+
+        /// <summary>
+        /// Bulk converts multiple measurement values efficiently.
+        /// </summary>
+        Task<List<decimal>> BulkConvertMeasurementsAsync(List<(long fromId, long toId, decimal value)> conversions);
 
         /// <summary>
         /// Gets conversion paths between two measurement units.
@@ -66,5 +73,35 @@ namespace Nom.Orch.Interfaces.Measurement
         /// Gets a measurement category by its ID.
         /// </summary>
         Task<MeasurementCategoryModel?> GetCategoryByIdAsync(long id);
+
+        /// <summary>
+        /// Creates a new ingredient-specific measurement.
+        /// </summary>
+        Task<IngredientMeasurementModel> CreateIngredientMeasurementAsync(CreateIngredientMeasurementRequest request);
+
+        /// <summary>
+        /// Updates an existing ingredient-specific measurement.
+        /// </summary>
+        Task<IngredientMeasurementModel> UpdateIngredientMeasurementAsync(long id, UpdateIngredientMeasurementRequest request);
+
+        /// <summary>
+        /// Deletes an ingredient-specific measurement.
+        /// </summary>
+        Task<bool> DeleteIngredientMeasurementAsync(long id);
+
+        /// <summary>
+        /// Creates a new nutrient-specific measurement.
+        /// </summary>
+        Task<NutrientMeasurementModel> CreateNutrientMeasurementAsync(CreateNutrientMeasurementRequest request);
+
+        /// <summary>
+        /// Updates an existing nutrient-specific measurement.
+        /// </summary>
+        Task<NutrientMeasurementModel> UpdateNutrientMeasurementAsync(long id, UpdateNutrientMeasurementRequest request);
+
+        /// <summary>
+        /// Deletes a nutrient-specific measurement.
+        /// </summary>
+        Task<bool> DeleteNutrientMeasurementAsync(long id);
     }
 }

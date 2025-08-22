@@ -8,6 +8,7 @@ using Nom.Data.Audit;
 using Nom.Data.Person;
 using Nom.Data.Plan;
 using Nom.Data.Reference;
+using Nom.Data.Measurement;
 
 namespace Nom.Data.Recipe
 {
@@ -52,9 +53,9 @@ namespace Nom.Data.Recipe
         [Column(TypeName = "decimal(18,2)")]
         public decimal? ServingQuantity { get; set; }
 
-        public long? ServingQuantityMeasurementTypeId { get; set; }
-        [ForeignKey(nameof(ServingQuantityMeasurementTypeId))]
-        public virtual ReferenceEntity? ServingQuantityMeasurementType { get; set; }
+        public long? ServingQuantityMeasurementId { get; set; }
+        [ForeignKey(nameof(ServingQuantityMeasurementId))]
+        public virtual MeasurementEntity? ServingQuantityMeasurement { get; set; }
 
         // Curation and versioning
         [Required]

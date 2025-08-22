@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Reference; // For MeasurementType reference
+using Nom.Data.Reference; // For other references
+using Nom.Data.Measurement; // For Measurement reference
 
 namespace Nom.Data.Nutrient
 {
@@ -32,17 +33,17 @@ namespace Nom.Data.Nutrient
         public decimal? Rank { get; set; }
 
         /// <summary>
-        /// Foreign key to the Reference.Reference table, indicating the default measurement unit for this nutrient (e.g., "g", "mg", "mcg").
+        /// Foreign key to the Measurement.Measurement table, indicating the default measurement unit for this nutrient (e.g., "g", "mg", "mcg").
         /// This is the unit in which the nutrient amount is typically expressed.
         /// Corresponds to BIGINT NOT NULL.
         /// </summary>
-        public long DefaultMeasurementTypeId { get; set; }
+        public long DefaultMeasurementId { get; set; }
 
         /// <summary>
-        /// Navigation property to the associated default MeasurementType.
+        /// Navigation property to the associated default MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(DefaultMeasurementTypeId))]
-        public virtual ReferenceEntity DefaultMeasurementType { get; set; } = default!;
+        [ForeignKey(nameof(DefaultMeasurementId))]
+        public virtual MeasurementEntity DefaultMeasurement { get; set; } = default!;
 
         /// <summary>
         /// Foreign key to a parent NutrientEntity, if this nutrient is a component of another (e.g., "Saturated Fat" is a child of "Fat").

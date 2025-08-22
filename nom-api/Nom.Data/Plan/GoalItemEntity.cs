@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Reference; // For TimeframeType, MeasurementType
+using Nom.Data.Reference; // For TimeframeType
+using Nom.Data.Measurement; // For Measurement
 using Nom.Data.Recipe; // For IngredientEntity
 using Nom.Data.Nutrient; // For NutrientEntity
 
@@ -42,9 +43,9 @@ namespace Nom.Data.Plan
         [ForeignKey(nameof(TimeframeTypeId))]
         public virtual ReferenceEntity? TimeframeType { get; set; } // e.g., Daily, Weekly, Monthly
 
-        public long? MeasurementTypeId { get; set; } // NULLable in SQL
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity? MeasurementType { get; set; } // e.g., grams, calories, count
+        public long? MeasurementId { get; set; } // NULLable in SQL
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity? Measurement { get; set; } // e.g., grams, calories, count
 
         [Column(TypeName = "decimal(18,2)")] // Ensure proper decimal mapping
         public decimal? MeasurementMinimum { get; set; } // DECIMAL NULL in SQL

@@ -8,7 +8,6 @@ namespace Nom.Data.Reference
 
         // Core System Reference Groups (1-999)
         MealType = 1,
-        MeasurementType = 2,
         RecipeType = 3,
         ShoppingStatusType = 4,
         ItemStatusType = 5,

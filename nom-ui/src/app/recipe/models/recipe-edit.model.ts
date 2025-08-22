@@ -13,7 +13,7 @@ export interface RecipeIngredientModel {
     ingredientId: number;
     name: string;
     quantity: number;
-    measurementTypeId: number;
+    measurementId: number;
 }
 
 export interface RecipeStepModel {

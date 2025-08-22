@@ -2,7 +2,7 @@
 
 using System.Text;
 using System.Text.Json;
-using Nom.Import.Services.Interfaces;
+using Nom.Import.Services;
 
 namespace Nom.Import.Services.AiServices
 {
@@ -17,6 +17,11 @@ namespace Nom.Import.Services.AiServices
             _httpClient = httpClient;
             _model = model;
             _baseUrl = baseUrl;
+        }
+
+        public async Task<string> EnhanceIngredientAsync(string prompt)
+        {
+            return await GetResponseAsync(prompt);
         }
 
         public async Task<string> GetResponseAsync(string prompt)

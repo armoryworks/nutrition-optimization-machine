@@ -125,7 +125,7 @@ namespace Nom.Data
         #region Reference
         public DbSet<GroupEntity> Groups { get; set; } = default!;
         public DbSet<ReferenceEntity> References { get; set; } = default!;
-        public DbSet<MeasurementTypeViewEntity> MeasurementTypes { get; set; } = default!;
+
         public DbSet<MealTypeViewEntity> MealTypes { get; set; } = default!;
         public DbSet<RecipeTypeViewEntity> RecipeTypes { get; set; } = default!;
         public DbSet<ShoppingStatusTypeViewEntity> ShoppingStatusTypes { get; set; } = default!;
@@ -241,7 +241,7 @@ namespace Nom.Data
                 .ToView("ReferenceGroupView", "reference")
                 .HasNoKey()
                 .HasDiscriminator<long>(g => g.GroupId)
-                .HasValue<MeasurementTypeViewEntity>((long)ReferenceDiscriminatorEnum.MeasurementType)
+
                 .HasValue<MealTypeViewEntity>((long)ReferenceDiscriminatorEnum.MealType)
                 .HasValue<RecipeTypeViewEntity>((long)ReferenceDiscriminatorEnum.RecipeType)
                 .HasValue<ShoppingStatusTypeViewEntity>((long)ReferenceDiscriminatorEnum.ShoppingStatusType)
@@ -361,9 +361,9 @@ namespace Nom.Data
             {
                 entity.ToTable("Recipe", schema: "recipe");
 
-                entity.HasOne(r => r.ServingQuantityMeasurementType)
+                entity.HasOne(r => r.ServingQuantityMeasurement)
                       .WithMany()
-                      .HasForeignKey(r => r.ServingQuantityMeasurementTypeId)
+                      .HasForeignKey(r => r.ServingQuantityMeasurementId)
                       .IsRequired(false)
                       .OnDelete(DeleteBehavior.Restrict);
 
@@ -434,7 +434,7 @@ namespace Nom.Data
                 entity.HasKey(e => new { e.RecipeId, e.IngredientId });
                 entity.HasOne(e => e.Recipe).WithMany(r => r.RecipeIngredients).HasForeignKey(e => e.RecipeId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(e => e.Ingredient).WithMany().HasForeignKey(e => e.IngredientId).OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(e => e.MeasurementType).WithMany().HasForeignKey(e => e.MeasurementTypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Measurement).WithMany().HasForeignKey(e => e.MeasurementId).OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<RecipeStepEntity>(entity =>
@@ -457,7 +457,7 @@ namespace Nom.Data
 
             modelBuilder.Entity<NutrientEntity>(entity =>
             {
-                entity.HasIndex(e => new { e.Name, e.DefaultMeasurementTypeId }).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
+                entity.HasIndex(e => new { e.Name, e.DefaultMeasurementId }).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
                 entity.HasIndex(e => e.FdcId).IsUnique().HasFilter("\"FdcId\" IS NOT NULL");
             });
 

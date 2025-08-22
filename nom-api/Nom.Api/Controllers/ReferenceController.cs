@@ -22,19 +22,6 @@ namespace Nom.Api.Controllers
             _referenceOrch = referenceOrch;
         }
 
-        [HttpGet("measurement-types")]
-        public async Task<IActionResult> GetMeasurementTypes()
-        {
-            try
-            {
-                var measurementTypes = await _referenceOrch.GetMeasurementTypesAsync();
-                return Ok(measurementTypes);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement types.");
-                return StatusCode(500, "An unexpected error occurred while retrieving measurement types.");
-            }
-        }
+
     }
 }

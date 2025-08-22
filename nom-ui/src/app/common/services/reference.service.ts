@@ -13,12 +13,7 @@ export class ReferenceService {
 
   private readonly apiUrl = '/api/Reference';
 
-  /**
-   * Get all measurement types from the reference data
-   */
-  getMeasurementTypes(): Observable<ReferenceItemModel[]> {
-    return this.http.get<ReferenceItemModel[]>(`${this.apiUrl}/measurement-types`);
-  }
+
 
   /**
    * Get attribute types for person health attributes

@@ -8,7 +8,7 @@ namespace Nom.Orch.Models.Recipe
         public string Name { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public string MeasurementUnit { get; set; } = string.Empty;
-        public string MeasurementType { get; set; } = string.Empty;
+        public string Measurement { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Notes { get; set; }
     }

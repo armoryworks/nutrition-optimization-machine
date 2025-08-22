@@ -46,7 +46,7 @@ namespace Nom.Orch.Services
                     NutrientId = in_.NutrientId,
                     NutrientName = in_.Nutrient.Name,
                     Amount = in_.Amount,
-                    UnitName = in_.MeasurementType != null ? in_.MeasurementType.Name : string.Empty
+                    UnitName = in_.Measurement != null ? in_.Measurement.Name : string.Empty
                 })
                 .ToListAsync();
 

@@ -377,7 +377,7 @@ namespace Nom.Orch.Services
                     .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Ingredient)
                     .Include(r => r.RecipeIngredients)
-                    .ThenInclude(ri => ri.MeasurementType);
+                    .ThenInclude(ri => ri.Measurement);
             }
 
             if (searchModel.IncludeSteps)
@@ -424,7 +424,7 @@ namespace Nom.Orch.Services
                     Id = (int)ri.Id,
                     Name = ri.Ingredient?.Name ?? "Unknown",
                     Quantity = ri.Quantity,
-                    MeasurementType = ri.MeasurementType?.Name,
+                    Measurement = ri.Measurement?.Name,
                     Notes = ri.RawLine
                 }).ToList();
             }

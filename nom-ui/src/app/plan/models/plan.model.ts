@@ -46,7 +46,7 @@ export interface GoalItemModel {
   ingredientName?: string;
   nutrientName?: string;
   timeframeType?: string;
-  measurementType?: string;
+  measurement?: string;
   measurementMinimum?: number;
   measurementMaximum?: number;
 }

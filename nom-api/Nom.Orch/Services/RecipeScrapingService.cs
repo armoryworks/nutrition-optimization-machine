@@ -581,16 +581,17 @@ namespace Nom.Orch.Services
                     await _dbContext.SaveChangesAsync();
                 }
 
-                // Find measurement type
-                var measurementType = await _dbContext.MeasurementTypes
-                    .FirstOrDefaultAsync(r => r.ReferenceName == ingredient.Unit);
+                // Find measurement
+                var measurement = await _dbContext.Measurements
+                    .Where(m => ingredient.Unit != null && m.Name.ToLower() == ingredient.Unit.ToLower())
+                    .FirstOrDefaultAsync();
 
                 var recipeIngredient = new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
                     IngredientId = ingredientEntity.Id,
                     Quantity = ingredient.Quantity ?? 1,
-                    MeasurementTypeId = measurementType?.ReferenceId ?? 1, // Default measurement type
+                    MeasurementId = measurement?.Id ?? 1, // Default measurement
                     RawLine = ingredient.Notes ?? ingredient.Name
                 };
                 _dbContext.RecipeIngredients.Add(recipeIngredient);

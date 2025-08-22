@@ -15,3 +15,4 @@ namespace Nom.Data.Measurement
         // This concrete class allows direct instantiation for basic measurements
     }
 }
+

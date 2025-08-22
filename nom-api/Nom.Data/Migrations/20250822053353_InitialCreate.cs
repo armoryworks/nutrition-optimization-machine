@@ -410,44 +410,6 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Nutrient",
-                schema: "nutrient",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(1023)", maxLength: 1023, nullable: true),
-                    Rank = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    DefaultMeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    ParentNutrientId = table.Column<long>(type: "bigint", nullable: true),
-                    FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    IsMicronutrient = table.Column<bool>(type: "boolean", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Nutrient", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Nutrient_Nutrient_ParentNutrientId",
-                        column: x => x.ParentNutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Nutrient_Reference_DefaultMeasurementTypeId",
-                        column: x => x.DefaultMeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ReferenceIndex",
                 schema: "reference",
                 columns: table => new
@@ -753,51 +715,6 @@ namespace Nom.Data.Migrations
                         column: x => x.HouseholdId,
                         principalSchema: "plan",
                         principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "NutrientGuideline",
-                schema: "nutrient",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    NutrientId = table.Column<long>(type: "bigint", nullable: false),
-                    GoalTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    MinAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    MaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    RecommendedAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    Notes = table.Column<string>(type: "text", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_NutrientGuideline", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_NutrientGuideline_Nutrient_NutrientId",
-                        column: x => x.NutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_NutrientGuideline_Reference_GoalTypeId",
-                        column: x => x.GoalTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_NutrientGuideline_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1114,94 +1031,6 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Recipe",
-                schema: "recipe",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    TotalTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PrepTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    CookTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PerformTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    RecipeYield = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    RecipeYieldQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    RecipeServings = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    PrepTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
-                    CookTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
-                    Servings = table.Column<long>(type: "bigint", nullable: true),
-                    ServingQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    ServingQuantityMeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    CurationStatusId = table.Column<long>(type: "bigint", nullable: false),
-                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
-                    DateSubmittedForCuration = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DateCurationCompleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Version = table.Column<long>(type: "bigint", nullable: false),
-                    ParentRecipeId = table.Column<long>(type: "bigint", nullable: true),
-                    SourceUrl = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    SourceSite = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Rating = table.Column<decimal>(type: "numeric(3,2)", nullable: true),
-                    LastMade = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Image = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    OrgUrl = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    IsOcrRecipe = table.Column<bool>(type: "boolean", nullable: true),
-                    NameNormalized = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: true),
-                    DescriptionNormalized = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
-                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Recipe", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Recipe_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Recipe_Household_HouseholdEntityId",
-                        column: x => x.HouseholdEntityId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Recipe_Person_AuthorId",
-                        column: x => x.AuthorId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Recipe_Recipe_ParentRecipeId",
-                        column: x => x.ParentRecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Recipe_Reference_CurationStatusId",
-                        column: x => x.CurationStatusId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Recipe_Reference_ServingQuantityMeasurementTypeId",
-                        column: x => x.ServingQuantityMeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ShoppingList",
                 schema: "shopping",
                 columns: table => new
@@ -1430,49 +1259,6 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "IngredientNutrient",
-                schema: "nutrient",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    IngredientId = table.Column<long>(type: "bigint", nullable: false),
-                    NutrientId = table.Column<long>(type: "bigint", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IngredientNutrient", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_IngredientNutrient_Ingredient_IngredientId",
-                        column: x => x.IngredientId,
-                        principalSchema: "recipe",
-                        principalTable: "Ingredient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_IngredientNutrient_Nutrient_NutrientId",
-                        column: x => x.NutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_IngredientNutrient_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Goal",
                 schema: "plan",
                 columns: table => new
@@ -1642,6 +1428,662 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ShoppingListLabel",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ShoppingListId = table.Column<long>(type: "bigint", nullable: false),
+                    LabelId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingListLabel", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShoppingListLabel_Reference_LabelId",
+                        column: x => x.LabelId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ShoppingListLabel_ShoppingList_ShoppingListId",
+                        column: x => x.ShoppingListId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingList",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "shopping_trip_meal_index",
+                schema: "shopping",
+                columns: table => new
+                {
+                    ShoppingTripId = table.Column<long>(type: "bigint", nullable: false),
+                    MealId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_shopping_trip_meal_index", x => new { x.ShoppingTripId, x.MealId });
+                    table.ForeignKey(
+                        name: "FK_ShoppingTripMealIndex_MealEntity_MealId",
+                        column: x => x.MealId,
+                        principalSchema: "plan",
+                        principalTable: "Meal",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ShoppingTripMealIndex_ShoppingTripEntity_ShoppingTripId",
+                        column: x => x.ShoppingTripId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingTrip",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GoalItem",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GoalId = table.Column<long>(type: "bigint", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
+                    IsQuantifiable = table.Column<bool>(type: "boolean", nullable: false),
+                    IngredientId = table.Column<long>(type: "bigint", nullable: true),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: true),
+                    TimeframeTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    MeasurementMinimum = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    MeasurementMaximum = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GoalItem", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GoalItem_Goal_GoalId",
+                        column: x => x.GoalId,
+                        principalSchema: "plan",
+                        principalTable: "Goal",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GoalItem_Ingredient_IngredientId",
+                        column: x => x.IngredientId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_GoalItem_Reference_TimeframeTypeId",
+                        column: x => x.TimeframeTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdCookbookRecipe",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdCookbookId = table.Column<long>(type: "bigint", nullable: false),
+                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdCookbookRecipe", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdCookbookRecipe_HouseholdCookbook_HouseholdCookbook~",
+                        column: x => x.HouseholdCookbookId,
+                        principalSchema: "plan",
+                        principalTable: "HouseholdCookbook",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdRecipe",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdRecipe", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdRecipe_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdRecipeAction",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
+                    ActorId = table.Column<long>(type: "bigint", nullable: false),
+                    ActionType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    ActionDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdRecipeAction", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdRecipeAction_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_HouseholdRecipeAction_Person_ActorId",
+                        column: x => x.ActorId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "IngredientNutrient",
+                schema: "nutrient",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IngredientId = table.Column<long>(type: "bigint", nullable: false),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IngredientNutrient", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_IngredientNutrient_Ingredient_IngredientId",
+                        column: x => x.IngredientId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "meal_recipe_index",
+                schema: "plan",
+                columns: table => new
+                {
+                    MealId = table.Column<long>(type: "bigint", nullable: false),
+                    RecipeId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_meal_recipe_index", x => new { x.MealId, x.RecipeId });
+                    table.ForeignKey(
+                        name: "FK_MealRecipeIndex_MealEntity_MealId",
+                        column: x => x.MealId,
+                        principalSchema: "plan",
+                        principalTable: "Meal",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MealPlan",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    MealTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    RecipeId = table.Column<long>(type: "bigint", nullable: true),
+                    Note = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MealPlan", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MealPlan_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlan_Person_AuthorId",
+                        column: x => x.AuthorId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlan_Reference_MealTypeId",
+                        column: x => x.MealTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Measurement",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Symbol = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    MeasurementCategoryId = table.Column<long>(type: "bigint", nullable: false),
+                    IsBaseUnit = table.Column<bool>(type: "boolean", nullable: false),
+                    BaseUnitConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    MeasurementType = table.Column<string>(type: "character varying(21)", maxLength: 21, nullable: false),
+                    IngredientId = table.Column<long>(type: "bigint", nullable: true),
+                    TypicalQuantity = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    IsPreferredUnit = table.Column<bool>(type: "boolean", nullable: true),
+                    PreferredMeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    DefaultMeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    IsPreferred = table.Column<bool>(type: "boolean", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: true),
+                    StandardAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    IsStandardUnit = table.Column<bool>(type: "boolean", nullable: true),
+                    StandardMeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    NutrientMeasurementEntity_DefaultMeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    StandardDailyValue = table.Column<decimal>(type: "numeric", nullable: true),
+                    StandardDailyValueUnit = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    NutrientMeasurementEntity_Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Measurement", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Measurement_Ingredient_IngredientId",
+                        column: x => x.IngredientId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Measurement_Measurement_DefaultMeasurementId",
+                        column: x => x.DefaultMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Measurement_Measurement_NutrientMeasurementEntity_DefaultMe~",
+                        column: x => x.NutrientMeasurementEntity_DefaultMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Measurement_Measurement_PreferredMeasurementId",
+                        column: x => x.PreferredMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Measurement_Measurement_StandardMeasurementId",
+                        column: x => x.StandardMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MeasurementCategory",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    BaseUnitId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MeasurementCategory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MeasurementCategory_Measurement_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MeasurementConversion",
+                schema: "measurement",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FromMeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ToMeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
+                    Offset = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    Formula = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsDirectConversion = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MeasurementConversion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MeasurementConversion_Measurement_FromMeasurementId",
+                        column: x => x.FromMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MeasurementConversion_Measurement_ToMeasurementId",
+                        column: x => x.ToMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Nutrient",
+                schema: "nutrient",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1023)", maxLength: 1023, nullable: true),
+                    Rank = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    DefaultMeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ParentNutrientId = table.Column<long>(type: "bigint", nullable: true),
+                    FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsMicronutrient = table.Column<bool>(type: "boolean", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Nutrient", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Nutrient_Measurement_DefaultMeasurementId",
+                        column: x => x.DefaultMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Nutrient_Nutrient_ParentNutrientId",
+                        column: x => x.ParentNutrientId,
+                        principalSchema: "nutrient",
+                        principalTable: "Nutrient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PantryItem",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PlanId = table.Column<long>(type: "bigint", nullable: false),
+                    ShoppingTripId = table.Column<long>(type: "bigint", nullable: true),
+                    IngredientId = table.Column<long>(type: "bigint", nullable: false),
+                    Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    ItemStatusTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    AcquisitionDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    ExpectedExpirationDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    SourceLocation = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PantryItem", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_Ingredient_IngredientId",
+                        column: x => x.IngredientId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_Measurement_MeasurementId",
+                        column: x => x.MeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_Plan_PlanId",
+                        column: x => x.PlanId,
+                        principalSchema: "plan",
+                        principalTable: "Plan",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_Reference_ItemStatusTypeId",
+                        column: x => x.ItemStatusTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_ShoppingTrip_ShoppingTripId",
+                        column: x => x.ShoppingTripId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingTrip",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Recipe",
+                schema: "recipe",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    TotalTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PrepTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    CookTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PerformTime = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    RecipeYield = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    RecipeYieldQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    RecipeServings = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    PrepTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
+                    CookTimeMinutes = table.Column<long>(type: "bigint", nullable: true),
+                    Servings = table.Column<long>(type: "bigint", nullable: true),
+                    ServingQuantity = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    ServingQuantityMeasurementId = table.Column<long>(type: "bigint", nullable: true),
+                    CurationStatusId = table.Column<long>(type: "bigint", nullable: false),
+                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
+                    DateSubmittedForCuration = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DateCurationCompleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Version = table.Column<long>(type: "bigint", nullable: false),
+                    ParentRecipeId = table.Column<long>(type: "bigint", nullable: true),
+                    SourceUrl = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    SourceSite = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Rating = table.Column<decimal>(type: "numeric(3,2)", nullable: true),
+                    LastMade = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Image = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    OrgUrl = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsOcrRecipe = table.Column<bool>(type: "boolean", nullable: true),
+                    NameNormalized = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: true),
+                    DescriptionNormalized = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Recipe", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Recipe_Group_GroupEntityId",
+                        column: x => x.GroupEntityId,
+                        principalSchema: "reference",
+                        principalTable: "Group",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Recipe_Household_HouseholdEntityId",
+                        column: x => x.HouseholdEntityId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Recipe_Measurement_ServingQuantityMeasurementId",
+                        column: x => x.ServingQuantityMeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Recipe_Person_AuthorId",
+                        column: x => x.AuthorId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Recipe_Recipe_ParentRecipeId",
+                        column: x => x.ParentRecipeId,
+                        principalSchema: "recipe",
+                        principalTable: "Recipe",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Recipe_Reference_CurationStatusId",
+                        column: x => x.CurationStatusId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NutrientGuideline",
+                schema: "nutrient",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NutrientId = table.Column<long>(type: "bigint", nullable: false),
+                    GoalTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: false),
+                    MinAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    MaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    RecommendedAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NutrientGuideline", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NutrientGuideline_Measurement_MeasurementId",
+                        column: x => x.MeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_NutrientGuideline_Nutrient_NutrientId",
+                        column: x => x.NutrientId,
+                        principalSchema: "nutrient",
+                        principalTable: "Nutrient",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_NutrientGuideline_Reference_GoalTypeId",
+                        column: x => x.GoalTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Restriction",
                 schema: "plan",
                 columns: table => new
@@ -1708,168 +2150,6 @@ namespace Nom.Data.Migrations
                         principalTable: "Reference",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdCookbookRecipe",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdCookbookId = table.Column<long>(type: "bigint", nullable: false),
-                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdCookbookRecipe", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdCookbookRecipe_HouseholdCookbook_HouseholdCookbook~",
-                        column: x => x.HouseholdCookbookId,
-                        principalSchema: "plan",
-                        principalTable: "HouseholdCookbook",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdCookbookRecipe_Recipe_RecipeId",
-                        column: x => x.RecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdRecipe",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdRecipe", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdRecipe_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdRecipe_Recipe_RecipeId",
-                        column: x => x.RecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdRecipeAction",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    RecipeId = table.Column<long>(type: "bigint", nullable: false),
-                    ActorId = table.Column<long>(type: "bigint", nullable: false),
-                    ActionType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Details = table.Column<string>(type: "text", nullable: true),
-                    ActionDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdRecipeAction", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdRecipeAction_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdRecipeAction_Person_ActorId",
-                        column: x => x.ActorId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdRecipeAction_Recipe_RecipeId",
-                        column: x => x.RecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MealPlan",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
-                    Date = table.Column<DateOnly>(type: "date", nullable: false),
-                    MealTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    RecipeId = table.Column<long>(type: "bigint", nullable: true),
-                    Note = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MealPlan", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MealPlan_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlan_Person_AuthorId",
-                        column: x => x.AuthorId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlan_Recipe_RecipeId",
-                        column: x => x.RecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_MealPlan_Reference_MealTypeId",
-                        column: x => x.MealTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -2054,7 +2334,7 @@ namespace Nom.Data.Migrations
                     RecipeId = table.Column<long>(type: "bigint", nullable: false),
                     IngredientId = table.Column<long>(type: "bigint", nullable: false),
                     Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: false),
                     RawLine = table.Column<string>(type: "Text", nullable: false),
                     IngredientEntityId = table.Column<long>(type: "bigint", nullable: true),
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -2081,19 +2361,19 @@ namespace Nom.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "FK_RecipeIngredient_Measurement_MeasurementId",
+                        column: x => x.MeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_RecipeIngredient_Recipe_RecipeId",
                         column: x => x.RecipeId,
                         principalSchema: "recipe",
                         principalTable: "Recipe",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_RecipeIngredient_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2426,7 +2706,7 @@ namespace Nom.Data.Migrations
                     Name = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: false),
                     Note = table.Column<string>(type: "text", nullable: true),
                     Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    MeasurementId = table.Column<long>(type: "bigint", nullable: true),
                     IngredientId = table.Column<long>(type: "bigint", nullable: true),
                     RecipeId = table.Column<long>(type: "bigint", nullable: true),
                     IsChecked = table.Column<bool>(type: "boolean", nullable: false),
@@ -2447,16 +2727,16 @@ namespace Nom.Data.Migrations
                         principalTable: "Ingredient",
                         principalColumn: "Id");
                     table.ForeignKey(
+                        name: "FK_ShoppingListItem_Measurement_MeasurementId",
+                        column: x => x.MeasurementId,
+                        principalSchema: "measurement",
+                        principalTable: "Measurement",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_ShoppingListItem_Recipe_RecipeId",
                         column: x => x.RecipeId,
                         principalSchema: "recipe",
                         principalTable: "Recipe",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_ShoppingListItem_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ShoppingListItem_ShoppingListCategory_CategoryId",
@@ -2469,212 +2749,6 @@ namespace Nom.Data.Migrations
                         column: x => x.ShoppingListId,
                         principalSchema: "shopping",
                         principalTable: "ShoppingList",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ShoppingListLabel",
-                schema: "shopping",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ShoppingListId = table.Column<long>(type: "bigint", nullable: false),
-                    LabelId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShoppingListLabel", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShoppingListLabel_Reference_LabelId",
-                        column: x => x.LabelId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ShoppingListLabel_ShoppingList_ShoppingListId",
-                        column: x => x.ShoppingListId,
-                        principalSchema: "shopping",
-                        principalTable: "ShoppingList",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PantryItem",
-                schema: "shopping",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PlanId = table.Column<long>(type: "bigint", nullable: false),
-                    ShoppingTripId = table.Column<long>(type: "bigint", nullable: true),
-                    IngredientId = table.Column<long>(type: "bigint", nullable: false),
-                    Quantity = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    ItemStatusTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    AcquisitionDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    ExpectedExpirationDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    SourceLocation = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Notes = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PantryItem", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PantryItem_Ingredient_IngredientId",
-                        column: x => x.IngredientId,
-                        principalSchema: "recipe",
-                        principalTable: "Ingredient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PantryItem_Plan_PlanId",
-                        column: x => x.PlanId,
-                        principalSchema: "plan",
-                        principalTable: "Plan",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PantryItem_Reference_ItemStatusTypeId",
-                        column: x => x.ItemStatusTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PantryItem_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PantryItem_ShoppingTrip_ShoppingTripId",
-                        column: x => x.ShoppingTripId,
-                        principalSchema: "shopping",
-                        principalTable: "ShoppingTrip",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "GoalItem",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    GoalId = table.Column<long>(type: "bigint", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
-                    IsQuantifiable = table.Column<bool>(type: "boolean", nullable: false),
-                    IngredientId = table.Column<long>(type: "bigint", nullable: true),
-                    NutrientId = table.Column<long>(type: "bigint", nullable: true),
-                    TimeframeTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    MeasurementTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    MeasurementMinimum = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    MeasurementMaximum = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GoalItem", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_GoalItem_Goal_GoalId",
-                        column: x => x.GoalId,
-                        principalSchema: "plan",
-                        principalTable: "Goal",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_GoalItem_Ingredient_IngredientId",
-                        column: x => x.IngredientId,
-                        principalSchema: "recipe",
-                        principalTable: "Ingredient",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_GoalItem_Nutrient_NutrientId",
-                        column: x => x.NutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_GoalItem_Reference_MeasurementTypeId",
-                        column: x => x.MeasurementTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_GoalItem_Reference_TimeframeTypeId",
-                        column: x => x.TimeframeTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "meal_recipe_index",
-                schema: "plan",
-                columns: table => new
-                {
-                    MealId = table.Column<long>(type: "bigint", nullable: false),
-                    RecipeId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_meal_recipe_index", x => new { x.MealId, x.RecipeId });
-                    table.ForeignKey(
-                        name: "FK_MealRecipeIndex_MealEntity_MealId",
-                        column: x => x.MealId,
-                        principalSchema: "plan",
-                        principalTable: "Meal",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealRecipeIndex_RecipeEntity_RecipeId",
-                        column: x => x.RecipeId,
-                        principalSchema: "recipe",
-                        principalTable: "Recipe",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "shopping_trip_meal_index",
-                schema: "shopping",
-                columns: table => new
-                {
-                    ShoppingTripId = table.Column<long>(type: "bigint", nullable: false),
-                    MealId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_shopping_trip_meal_index", x => new { x.ShoppingTripId, x.MealId });
-                    table.ForeignKey(
-                        name: "FK_ShoppingTripMealIndex_MealEntity_MealId",
-                        column: x => x.MealId,
-                        principalSchema: "plan",
-                        principalTable: "Meal",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ShoppingTripMealIndex_ShoppingTripEntity_ShoppingTripId",
-                        column: x => x.ShoppingTripId,
-                        principalSchema: "shopping",
-                        principalTable: "ShoppingTrip",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -2747,114 +2821,6 @@ namespace Nom.Data.Migrations
                         principalTable: "Person",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Measurement",
-                schema: "measurement",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    Symbol = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    MeasurementCategoryId = table.Column<long>(type: "bigint", nullable: false),
-                    IsBaseUnit = table.Column<bool>(type: "boolean", nullable: false),
-                    BaseUnitConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
-                    MeasurementType = table.Column<string>(type: "character varying(21)", maxLength: 21, nullable: false),
-                    IngredientId = table.Column<long>(type: "bigint", nullable: true),
-                    TypicalQuantity = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    IsPreferredUnit = table.Column<bool>(type: "boolean", nullable: true),
-                    NutrientId = table.Column<long>(type: "bigint", nullable: true),
-                    StandardAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    IsStandardUnit = table.Column<bool>(type: "boolean", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Measurement", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Measurement_Ingredient_IngredientId",
-                        column: x => x.IngredientId,
-                        principalSchema: "recipe",
-                        principalTable: "Ingredient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Measurement_Nutrient_NutrientId",
-                        column: x => x.NutrientId,
-                        principalSchema: "nutrient",
-                        principalTable: "Nutrient",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MeasurementCategory",
-                schema: "measurement",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    BaseUnitId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MeasurementCategory", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MeasurementCategory_Measurement_BaseUnitId",
-                        column: x => x.BaseUnitId,
-                        principalSchema: "measurement",
-                        principalTable: "Measurement",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MeasurementConversion",
-                schema: "measurement",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    FromMeasurementId = table.Column<long>(type: "bigint", nullable: false),
-                    ToMeasurementId = table.Column<long>(type: "bigint", nullable: false),
-                    ConversionFactor = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
-                    Offset = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
-                    Formula = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    IsDirectConversion = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MeasurementConversion", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MeasurementConversion_Measurement_FromMeasurementId",
-                        column: x => x.FromMeasurementId,
-                        principalSchema: "measurement",
-                        principalTable: "Measurement",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_MeasurementConversion_Measurement_ToMeasurementId",
-                        column: x => x.ToMeasurementId,
-                        principalSchema: "measurement",
-                        principalTable: "Measurement",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -2956,10 +2922,10 @@ namespace Nom.Data.Migrations
                 column: "IngredientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_GoalItem_MeasurementTypeId",
+                name: "IX_GoalItem_MeasurementId",
                 schema: "plan",
                 table: "GoalItem",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GoalItem_NutrientId",
@@ -3140,10 +3106,10 @@ namespace Nom.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_IngredientNutrient_MeasurementTypeId",
+                name: "IX_IngredientNutrient_MeasurementId",
                 schema: "nutrient",
                 table: "IngredientNutrient",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientNutrient_NutrientId",
@@ -3243,6 +3209,12 @@ namespace Nom.Data.Migrations
                 column: "MealTypeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Measurement_DefaultMeasurementId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "DefaultMeasurementId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Measurement_IngredientId",
                 schema: "measurement",
                 table: "Measurement",
@@ -3259,6 +3231,24 @@ namespace Nom.Data.Migrations
                 schema: "measurement",
                 table: "Measurement",
                 column: "NutrientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_NutrientMeasurementEntity_DefaultMeasurementId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "NutrientMeasurementEntity_DefaultMeasurementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_PreferredMeasurementId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "PreferredMeasurementId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Measurement_StandardMeasurementId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "StandardMeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MeasurementCategory_BaseUnitId",
@@ -3315,10 +3305,10 @@ namespace Nom.Data.Migrations
                 column: "PersonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Nutrient_DefaultMeasurementTypeId",
+                name: "IX_Nutrient_DefaultMeasurementId",
                 schema: "nutrient",
                 table: "Nutrient",
-                column: "DefaultMeasurementTypeId");
+                column: "DefaultMeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Nutrient_FdcId",
@@ -3329,10 +3319,10 @@ namespace Nom.Data.Migrations
                 filter: "\"FdcId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Nutrient_Name_DefaultMeasurementTypeId",
+                name: "IX_Nutrient_Name_DefaultMeasurementId",
                 schema: "nutrient",
                 table: "Nutrient",
-                columns: new[] { "Name", "DefaultMeasurementTypeId" },
+                columns: new[] { "Name", "DefaultMeasurementId" },
                 unique: true,
                 filter: "\"FdcId\" IS NOT NULL");
 
@@ -3349,10 +3339,10 @@ namespace Nom.Data.Migrations
                 column: "GoalTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NutrientGuideline_MeasurementTypeId",
+                name: "IX_NutrientGuideline_MeasurementId",
                 schema: "nutrient",
                 table: "NutrientGuideline",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_NutrientGuideline_NutrientId",
@@ -3373,10 +3363,10 @@ namespace Nom.Data.Migrations
                 column: "ItemStatusTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PantryItem_MeasurementTypeId",
+                name: "IX_PantryItem_MeasurementId",
                 schema: "shopping",
                 table: "PantryItem",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PantryItem_PlanId",
@@ -3503,10 +3493,10 @@ namespace Nom.Data.Migrations
                 column: "ParentRecipeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Recipe_ServingQuantityMeasurementTypeId",
+                name: "IX_Recipe_ServingQuantityMeasurementId",
                 schema: "recipe",
                 table: "Recipe",
-                column: "ServingQuantityMeasurementTypeId");
+                column: "ServingQuantityMeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_recipe_type_index_RecipeTypeId",
@@ -3563,10 +3553,10 @@ namespace Nom.Data.Migrations
                 column: "IngredientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RecipeIngredient_MeasurementTypeId",
+                name: "IX_RecipeIngredient_MeasurementId",
                 schema: "recipe",
                 table: "RecipeIngredient",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RecipeNote_AuthorId",
@@ -3761,10 +3751,10 @@ namespace Nom.Data.Migrations
                 column: "IngredientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ShoppingListItem_MeasurementTypeId",
+                name: "IX_ShoppingListItem_MeasurementId",
                 schema: "shopping",
                 table: "ShoppingListItem",
-                column: "MeasurementTypeId");
+                column: "MeasurementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShoppingListItem_RecipeId",
@@ -3815,6 +3805,93 @@ namespace Nom.Data.Migrations
                 column: "PersonId");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_GoalItem_Measurement_MeasurementId",
+                schema: "plan",
+                table: "GoalItem",
+                column: "MeasurementId",
+                principalSchema: "measurement",
+                principalTable: "Measurement",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_GoalItem_Nutrient_NutrientId",
+                schema: "plan",
+                table: "GoalItem",
+                column: "NutrientId",
+                principalSchema: "nutrient",
+                principalTable: "Nutrient",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_HouseholdCookbookRecipe_Recipe_RecipeId",
+                schema: "plan",
+                table: "HouseholdCookbookRecipe",
+                column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_HouseholdRecipe_Recipe_RecipeId",
+                schema: "plan",
+                table: "HouseholdRecipe",
+                column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_HouseholdRecipeAction_Recipe_RecipeId",
+                schema: "plan",
+                table: "HouseholdRecipeAction",
+                column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_IngredientNutrient_Measurement_MeasurementId",
+                schema: "nutrient",
+                table: "IngredientNutrient",
+                column: "MeasurementId",
+                principalSchema: "measurement",
+                principalTable: "Measurement",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_IngredientNutrient_Nutrient_NutrientId",
+                schema: "nutrient",
+                table: "IngredientNutrient",
+                column: "NutrientId",
+                principalSchema: "nutrient",
+                principalTable: "Nutrient",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_MealRecipeIndex_RecipeEntity_RecipeId",
+                schema: "plan",
+                table: "meal_recipe_index",
+                column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_MealPlan_Recipe_RecipeId",
+                schema: "plan",
+                table: "MealPlan",
+                column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_Measurement_MeasurementCategory_MeasurementCategoryId",
                 schema: "measurement",
                 table: "Measurement",
@@ -3823,6 +3900,16 @@ namespace Nom.Data.Migrations
                 principalTable: "MeasurementCategory",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Measurement_Nutrient_NutrientId",
+                schema: "measurement",
+                table: "Measurement",
+                column: "NutrientId",
+                principalSchema: "nutrient",
+                principalTable: "Nutrient",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
             migrationBuilder.ApplyCustomUpOperations();
         }
 
@@ -3846,24 +3933,19 @@ namespace Nom.Data.Migrations
                 table: "Ingredient");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_Nutrient_Reference_DefaultMeasurementTypeId",
-                schema: "nutrient",
-                table: "Nutrient");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_Measurement_Ingredient_IngredientId",
                 schema: "measurement",
                 table: "Measurement");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_Measurement_Nutrient_NutrientId",
+                name: "FK_MeasurementCategory_Measurement_BaseUnitId",
                 schema: "measurement",
-                table: "Measurement");
+                table: "MeasurementCategory");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_Measurement_MeasurementCategory_MeasurementCategoryId",
-                schema: "measurement",
-                table: "Measurement");
+                name: "FK_Nutrient_Measurement_DefaultMeasurementId",
+                schema: "nutrient",
+                table: "Nutrient");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
@@ -4170,16 +4252,16 @@ namespace Nom.Data.Migrations
                 schema: "recipe");
 
             migrationBuilder.DropTable(
-                name: "Nutrient",
-                schema: "nutrient");
+                name: "Measurement",
+                schema: "measurement");
 
             migrationBuilder.DropTable(
                 name: "MeasurementCategory",
                 schema: "measurement");
 
             migrationBuilder.DropTable(
-                name: "Measurement",
-                schema: "measurement");
+                name: "Nutrient",
+                schema: "nutrient");
         }
     }
 }

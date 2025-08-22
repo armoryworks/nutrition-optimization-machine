@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
@@ -47,7 +47,7 @@ export class BasePageComponent implements OnInit, OnChanges {
         console.log('BasePageComponent - ngOnInit - config:', this.config);
     }
 
-    ngOnChanges(changes: Record<string, { previousValue: unknown; currentValue: unknown }>): void {
+    ngOnChanges(changes: SimpleChanges): void {
         console.log('BasePageComponent - ngOnChanges:', changes);
         if (changes['backButtonText']) {
             console.log('BasePageComponent - backButtonText changed:', {

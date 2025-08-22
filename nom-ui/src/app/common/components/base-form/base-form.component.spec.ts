@@ -61,49 +61,49 @@ describe('BaseFormComponent', () => {
         expect(compiled.textContent).toContain('Delete Test');
     });
 
-    it('should emit submit event when form is valid and not submitting', () => {
-        spyOn(component.submit, 'emit');
+    it('should emit formSubmit event when form is valid and not submitting', () => {
+        spyOn(component.formSubmit, 'emit');
         component.form.patchValue({ testField: 'test value' });
         component.isSubmitting = false;
 
         component.onSubmit();
 
-        expect(component.submit.emit).toHaveBeenCalled();
+        expect(component.formSubmit.emit).toHaveBeenCalled();
     });
 
-    it('should not emit submit event when form is invalid', () => {
-        spyOn(component.submit, 'emit');
+    it('should not emit formSubmit event when form is invalid', () => {
+        spyOn(component.formSubmit, 'emit');
         component.form.patchValue({ testField: '' });
 
         component.onSubmit();
 
-        expect(component.submit.emit).not.toHaveBeenCalled();
+        expect(component.formSubmit.emit).not.toHaveBeenCalled();
     });
 
-    it('should not emit submit event when form is submitting', () => {
-        spyOn(component.submit, 'emit');
+    it('should not emit formSubmit event when form is submitting', () => {
+        spyOn(component.formSubmit, 'emit');
         component.form.patchValue({ testField: 'test value' });
         component.isSubmitting = true;
 
         component.onSubmit();
 
-        expect(component.submit.emit).not.toHaveBeenCalled();
+        expect(component.formSubmit.emit).not.toHaveBeenCalled();
     });
 
-    it('should emit cancel event when cancel button is clicked', () => {
-        spyOn(component.cancel, 'emit');
+    it('should emit formCancel event when cancel button is clicked', () => {
+        spyOn(component.formCancel, 'emit');
 
         component.onCancel();
 
-        expect(component.cancel.emit).toHaveBeenCalled();
+        expect(component.formCancel.emit).toHaveBeenCalled();
     });
 
-    it('should emit delete event when delete button is clicked', () => {
-        spyOn(component.delete, 'emit');
+    it('should emit formDelete event when delete button is clicked', () => {
+        spyOn(component.formDelete, 'emit');
 
         component.onDelete();
 
-        expect(component.delete.emit).toHaveBeenCalled();
+        expect(component.formDelete.emit).toHaveBeenCalled();
     });
 
     it('should show loading state when loading is true', () => {

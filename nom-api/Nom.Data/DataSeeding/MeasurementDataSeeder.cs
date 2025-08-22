@@ -188,3 +188,4 @@ namespace Nom.Data.DataSeeding
         }
     }
 }
+

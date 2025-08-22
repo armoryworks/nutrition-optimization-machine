@@ -9,5 +9,5 @@ export interface CreateIngredientRequestModel {
 export interface NutrientValueModel {
     nutrientId: string;
     amount: number;
-    measurementTypeId: string;
+    measurementId: number;
 } 

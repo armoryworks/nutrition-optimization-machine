@@ -1,0 +1,124 @@
+<div class="measurement-converter">
+  <div class="converter-header">
+    <h2>Measurement Converter</h2>
+    <p>Convert between different measurement units</p>
+  </div>
+
+  <form [formGroup]="converterForm" (ngSubmit)="onConvert()" class="converter-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="fromCategory">From Category</label>
+        <select id="fromCategory" formControlName="fromCategoryId" class="form-control">
+          <option value="">Select Category</option>
+          <option *ngFor="let category of categories" [value]="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="fromMeasurement">From Unit</label>
+        <select id="fromMeasurement" formControlName="fromMeasurementId" class="form-control">
+          <option value="">Select Unit</option>
+          <option *ngFor="let measurement of fromMeasurements" [value]="measurement.id">
+            {{ measurement.name }} ({{ measurement.symbol }})
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="toCategory">To Category</label>
+        <select id="toCategory" formControlName="toCategoryId" class="form-control">
+          <option value="">Select Category</option>
+          <option *ngFor="let category of categories" [value]="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="toMeasurement">To Unit</label>
+        <select id="toMeasurement" formControlName="toMeasurementId" class="form-control">
+          <option value="">Select Unit</option>
+          <option *ngFor="let measurement of toMeasurements" [value]="measurement.id">
+            {{ measurement.name }} ({{ measurement.symbol }})
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="value">Value</label>
+        <input 
+          id="value" 
+          type="number" 
+          formControlName="value" 
+          class="form-control" 
+          placeholder="Enter value to convert"
+          step="0.01"
+          min="0">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button 
+        type="submit" 
+        class="btn btn-primary" 
+        [disabled]="!converterForm.valid || isLoading">
+        <span *ngIf="isLoading">Converting...</span>
+        <span *ngIf="!isLoading">Convert</span>
+      </button>
+      
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        (click)="onSwapMeasurements()"
+        [disabled]="!converterForm.get('fromMeasurementId')?.value || !converterForm.get('toMeasurementId')?.value">
+        Swap Units
+      </button>
+      
+      <button 
+        type="button" 
+        class="btn btn-outline" 
+        (click)="resetForm()">
+        Reset
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="error" class="error-message">
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="result !== null" class="conversion-result">
+    <h3>Conversion Result</h3>
+    <div class="result-display">
+      <span class="from-value">
+        {{ converterForm.get('value')?.value }} 
+        {{ fromMeasurements.find(m => m.id === converterForm.get('fromMeasurementId')?.value)?.symbol }}
+      </span>
+      <span class="equals">=</span>
+      <span class="to-value">
+        {{ result | number:'1.4-6' }} 
+        {{ toMeasurements.find(m => m.id === converterForm.get('toMeasurementId')?.value)?.symbol }}
+      </span>
+    </div>
+  </div>
+
+  <div class="converter-info">
+    <h4>How to use:</h4>
+    <ol>
+      <li>Select the source category and unit</li>
+      <li>Select the target category and unit</li>
+      <li>Enter the value you want to convert</li>
+      <li>Click "Convert" to see the result</li>
+    </ol>
+    
+    <p><strong>Note:</strong> Conversions are performed using the most direct path available. 
+    If no direct conversion exists, the system will attempt to convert through base units or find multi-step conversion paths.</p>
+  </div>
+</div>
+

@@ -72,7 +72,7 @@ namespace Nom.Orch.Services
                             IngredientName = gi.Ingredient != null ? gi.Ingredient.Name : null,
                             NutrientName = gi.Nutrient != null ? gi.Nutrient.Name : null,
                             TimeframeType = gi.TimeframeType != null ? gi.TimeframeType.Name : null,
-                            MeasurementType = gi.MeasurementType != null ? gi.MeasurementType.Name : null,
+                            Measurement = gi.Measurement != null ? gi.Measurement.Name : null,
                             MeasurementMinimum = gi.MeasurementMinimum,
                             MeasurementMaximum = gi.MeasurementMaximum
                         }).ToList() : new List<GoalItemModel>()
@@ -152,7 +152,7 @@ namespace Nom.Orch.Services
                             IngredientName = gi.Ingredient != null ? gi.Ingredient.Name : null,
                             NutrientName = gi.Nutrient != null ? gi.Nutrient.Name : null,
                             TimeframeType = gi.TimeframeType != null ? gi.TimeframeType.Name : null,
-                            MeasurementType = gi.MeasurementType != null ? gi.MeasurementType.Name : null,
+                            Measurement = gi.Measurement != null ? gi.Measurement.Name : null,
                             MeasurementMinimum = gi.MeasurementMinimum,
                             MeasurementMaximum = gi.MeasurementMaximum
                         }).ToList() : new List<GoalItemModel>()
@@ -238,7 +238,7 @@ namespace Nom.Orch.Services
                         IngredientName = gi.Ingredient?.Name,
                         NutrientName = gi.Nutrient?.Name,
                         TimeframeType = gi.TimeframeType?.Name,
-                        MeasurementType = gi.MeasurementType?.Name,
+                        Measurement = gi.Measurement?.Name,
                         MeasurementMinimum = gi.MeasurementMinimum,
                         MeasurementMaximum = gi.MeasurementMaximum
                     }).ToList() ?? new List<GoalItemModel>()
@@ -340,7 +340,7 @@ namespace Nom.Orch.Services
                         IngredientId = goalItem.IngredientId,
                         NutrientId = goalItem.NutrientId,
                         TimeframeTypeId = goalItem.TimeframeTypeId,
-                        MeasurementTypeId = goalItem.MeasurementTypeId,
+                        MeasurementId = goalItem.MeasurementId,
                         MeasurementMinimum = goalItem.MeasurementMinimum,
                         MeasurementMaximum = goalItem.MeasurementMaximum,
                         CreatedDate = DateTime.UtcNow

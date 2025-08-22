@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Plan;     // Required for PlanEntity
 using Nom.Data.Recipe;    // Required for IngredientEntity
-using Nom.Data.Reference; // Required for MeasurementType, ItemStatusType
+using Nom.Data.Reference; // Required for ItemStatusType
+using Nom.Data.Measurement; // Required for Measurement
 
 namespace Nom.Data.Shopping // Namespace remains Shopping
 {
@@ -65,17 +66,17 @@ namespace Nom.Data.Shopping // Namespace remains Shopping
         public decimal Quantity { get; set; }
 
         /// <summary>
-        /// Foreign key to the Reference.reference table, indicating the unit of measurement for the quantity
+        /// Foreign key to the Measurement.Measurement table, indicating the unit of measurement for the quantity
         /// (e.g., "grams", "units", "liters"). Corresponds to BIGINT NOT NULL.
         /// </summary>
         [Required]
-        public long MeasurementTypeId { get; set; }
+        public long MeasurementId { get; set; }
 
         /// <summary>
-        /// Navigation property to the associated ReferenceEntity representing the measurement type.
+        /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementTypeId))]
-        public virtual ReferenceEntity MeasurementType { get; set; } = default!;
+        [ForeignKey(nameof(MeasurementId))]
+        public virtual MeasurementEntity Measurement { get; set; } = default!;
 
         /// <summary>
         /// Foreign key to the Reference.reference table, indicating the current status of the item

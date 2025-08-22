@@ -15,6 +15,6 @@ namespace Nom.Orch.Models.Recipe
         public decimal Quantity { get; set; }
 
         [Required]
-        public long MeasurementTypeId { get; set; }
+        public long MeasurementId { get; set; }
     }
 }
