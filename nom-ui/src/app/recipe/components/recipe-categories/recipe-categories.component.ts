@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,7 +17,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/recipe-category.model';
+import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/i-recipe-category.model';
 
 
 @Component({
@@ -49,11 +49,16 @@ export class RecipeCategoriesComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
+    @Output() categoriesChange = new EventEmitter<RecipeCategoryResponseModel[]>();
+
     categories: RecipeCategoryResponseModel[] = [];
+    allCategories: RecipeCategoryResponseModel[] = [];
+    filteredCategories: RecipeCategoryResponseModel[] = [];
     isLoading = false;
     error: string | null = null;
     categoryForm: FormGroup;
     isAddingCategory = false;
+    searchTerm = '';
 
 
 
@@ -78,7 +83,9 @@ export class RecipeCategoriesComponent implements OnInit {
         this.recipeService.getAllCategories().subscribe({
             next: (categories) => {
                 this.categories = categories;
-                this.loading = false;
+                this.allCategories = categories;
+                this.filteredCategories = categories;
+                this.isLoading = false;
             },
             error: (error) => {
                 this.error = 'Failed to load categories';
@@ -118,7 +125,7 @@ export class RecipeCategoriesComponent implements OnInit {
                 parentCategoryId: this.categoryForm.get('parentCategoryId')?.value
             };
 
-            this.recipeCategoriesService.createCategory(newCategory).subscribe({
+            this.recipeService.createCategory(newCategory).subscribe({
                 next: (createdCategory) => {
                     this.allCategories = [...this.allCategories, createdCategory];
                     this.addCategory(createdCategory);
@@ -138,7 +145,7 @@ export class RecipeCategoriesComponent implements OnInit {
     }
 
     deleteCategory(category: RecipeCategoryModel): void {
-        this.recipeCategoriesService.deleteCategory(category.id!).subscribe({
+        this.recipeService.deleteCategory(category.id!).subscribe({
             next: () => {
                 this.allCategories = this.allCategories.filter(c => c.id !== category.id);
                 this.removeCategory(category);

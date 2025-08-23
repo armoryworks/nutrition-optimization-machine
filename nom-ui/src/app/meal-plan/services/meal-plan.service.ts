@@ -1,15 +1,13 @@
 import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
-import {
-    MealPlanCreateRequestModel,
-    MealPlanCreateResponseModel,
-    MealPlanResponseModel,
-    MealPlanUpdateRequestModel,
-    MealPlanRuleCreateRequestModel,
-    MealPlanRuleCreateResponseModel,
-    MealPlanRuleResponseModel,
-} from "../models/meal-plan.model";
+import { MealPlanCreateRequestModel } from "../models/meal-plan-create-request.model";
+import { MealPlanCreateResponseModel } from "../models/meal-plan-create-response.model";
+import { MealPlanResponseModel } from "../models/meal-plan-response.model";
+import { MealPlanUpdateRequestModel } from "../models/meal-plan-update-request.model";
+import { MealPlanRuleCreateRequestModel } from "../models/meal-plan-rule-create-request.model";
+import { MealPlanRuleCreateResponseModel } from "../models/meal-plan-rule-create-response.model";
+import { MealPlanRuleResponseModel } from "../models/meal-plan-rule-response.model";
 
 @Injectable({
     providedIn: "root",

@@ -26,6 +26,13 @@ namespace Nom.Orch.Interfaces
         Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
 
         /// <summary>
+        /// Gets the current onboarding state for a user, including existing person data
+        /// </summary>
+        /// <param name="userId">Optional user ID to fetch onboarding state for</param>
+        /// <returns>The current onboarding state</returns>
+        Task<OnboardingStateResponse> GetOnboardingStateAsync(string? userId = null);
+
+        /// <summary>
         /// Gets the current PersonId from the authenticated user's claims.
         /// Returns null if the user is in registration phase and doesn't have a PersonId yet.
         /// </summary>

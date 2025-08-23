@@ -3,10 +3,9 @@
 export interface IMealPlanModel {
     id: number;
     householdId: number;
-    authorId: number;
     date: Date;
     mealTypeId: number;
-    title: string;
+    title?: string;
     notes?: string;
     recipeId?: number;
     createdDate: Date;

@@ -1,9 +1,6 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { BaseDetailComponent } from '../../../common/components/base-detail/base-detail.component';
-import { BaseDetailConfig } from '../../../common/models/base-detail.model';
 import { IngredientModel } from '../../models/ingredient.model';
-import { NutritionLabelData, LabelNutrient } from '../../../common/models/nutrition-label.model';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 
 @Component({
@@ -11,7 +8,6 @@ import { ConfigurationService } from '../../../common/services/configuration.ser
   standalone: true,
   imports: [
     CommonModule,
-    BaseDetailComponent,
   ],
   providers: [DecimalPipe],
   templateUrl: './ingredient-details.component.html',
@@ -21,11 +17,11 @@ export class IngredientDetailsComponent {
   private configurationService = inject(ConfigurationService);
 
   // This property will hold the formatted data for the label component
-  public nutritionLabelData: NutritionLabelData | null = null;
+  public nutritionLabelData: any = null;
 
   private _ingredient: IngredientModel | null = null;
 
-  detailConfig: BaseDetailConfig = {
+  detailConfig: any = {
     title: 'Ingredient Details',
     subtitle: 'Nutritional information and details',
     showBackButton: true,
@@ -63,11 +59,11 @@ export class IngredientDetailsComponent {
   /**
    * Transforms the IngredientModel into the NutritionLabelData structure.
    */
-  private mapToLabelData(ingredient: IngredientModel): NutritionLabelData {
+  private mapToLabelData(ingredient: IngredientModel): any {
     const boldNutrients = this.configurationService.BOLD_NUTRIENTS;
     const indentedNutrients = this.configurationService.INDENTED_NUTRIENTS;
 
-    const nutrients: LabelNutrient[] = ingredient.nutrients.map(nutrient => ({
+    const nutrients: any[] = ingredient.nutrients.map(nutrient => ({
       name: nutrient.nutrientName,
       amount: nutrient.amount,
       unit: nutrient.unitName,

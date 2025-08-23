@@ -11,8 +11,14 @@ namespace Nom.Orch.Models.Person
     /// </summary>
     public class OnboardingCompleteRequest
     {
-        public string UserId { get; set; } = string.Empty;
+        public long? PersonId { get; set; }
+        public PersonDetailsRequest PersonDetails { get; set; } = new();
+        public List<PersonAttributeRequest> Attributes { get; set; } = new();
+        public List<RestrictionRequest> Restrictions { get; set; } = new();
         public string? PlanInvitationCode { get; set; }
-        public List<PersonDetailsRequest>? AdditionalParticipants { get; set; }
+        public bool HasAdditionalParticipants { get; set; }
+        public int NumberOfAdditionalParticipants { get; set; }
+        public List<PersonDetailsRequest> AdditionalParticipantDetails { get; set; } = new();
+        public bool ApplyIndividualPreferencesToEachPerson { get; set; }
     }
 }

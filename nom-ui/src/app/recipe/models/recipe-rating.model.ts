@@ -9,25 +9,18 @@ export interface IRecipeRatingModel {
     lastModifiedDate?: string;
 }
 
-export class RecipeRatingModel implements IRecipeRatingModel {
-    id: number;
-    recipeId: number;
-    authorId: number;
-    authorName: string;
-    rating: number;
-    reviewText?: string;
-    createdDate: string;
-    lastModifiedDate?: string;
+export class RecipeRatingModel {
+    id = 0;
+    recipeId = 0;
+    rating = 0;
+    comment = '';
+    createdDate: Date = new Date();
+    modifiedDate?: Date;
 
-    constructor(data: Partial<IRecipeRatingModel> = {}) {
-        this.id = data.id || 0;
-        this.recipeId = data.recipeId || 0;
-        this.authorId = data.authorId || 0;
-        this.authorName = data.authorName || "";
-        this.rating = data.rating || 0;
-        this.reviewText = data.reviewText;
-        this.createdDate = data.createdDate || "";
-        this.lastModifiedDate = data.lastModifiedDate;
+    constructor(data?: Partial<RecipeRatingModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
     }
 }
 

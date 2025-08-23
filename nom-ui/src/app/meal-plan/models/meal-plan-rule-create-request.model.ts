@@ -2,15 +2,10 @@
 
 import { IMealPlanRuleCreateRequestModel } from './meal-plan-rule-create-request.model.interface';
 
-export class MealPlanRuleCreateRequestModel implements IMealPlanRuleCreateRequestModel {
+export class MealPlanRuleCreateRequestModel {
+    name = '';
+    description = '';
+    ruleTypeId = 0;
     householdId = 0;
-    dayOfWeekId = 0;
-    mealTypeId = 0;
-    queryFilterString?: string;
-
-    constructor(data?: Partial<IMealPlanRuleCreateRequestModel>) {
-        if (data) {
-            Object.assign(this, data);
-        }
-    }
+    isActive = true;
 } 

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,7 +16,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
-import { RecipeCommentResponseModel } from '../../models/recipe-comment.model';
+import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recipe-comment.model';
+import { Subject, takeUntil } from 'rxjs';
 
 
 @Component({
@@ -47,11 +48,15 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    comments: RecipeCommentResponseModel[] = [];
+    @Input() recipeId!: number;
+
+    comments: RecipeCommentModel[] = [];
     isLoading = false;
     error: string | null = null;
     commentForm: FormGroup;
     isAddingComment = false;
+    isSubmitting = false;
+    private destroy$ = new Subject<void>();
 
 
 
@@ -76,8 +81,8 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     loadComments(): void {
         this.isLoading = true;
         this.error = null;
-        this.recipeAdvancedService
-            .getRecipeComments(this.recipeId)
+        this.recipeService
+            .getComments(this.recipeId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (comments) => {
@@ -105,8 +110,8 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
             title: this.commentForm.get("title")!.value || undefined,
         };
 
-        this.recipeAdvancedService
-            .createComment(request)
+        this.recipeService
+            .addComment(request)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (comment) => {
@@ -124,7 +129,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     }
 
     deleteComment(commentId: number): void {
-        this.recipeAdvancedService
+        this.recipeService
             .deleteComment(commentId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
@@ -132,7 +137,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                     this.comments = this.comments.filter(c => c.id !== commentId);
                     this.snackBar.open("Comment deleted successfully", "Close", { duration: 3000 });
                 },
-                error: (error) => {
+                error: (error: any) => {
                     console.error("Error deleting comment:", error);
                     this.snackBar.open("Failed to delete comment", "Close", { duration: 3000 });
                 },

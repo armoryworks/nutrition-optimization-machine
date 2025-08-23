@@ -34,6 +34,21 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
   encapsulation: ViewEncapsulation.None,
 })
 export class PersonCreationComponent implements OnInit, OnDestroy {
+  ngOnInit(): void {
+    // Initialize person creation form and load any required data
+    this.initializeForm();
+    this.loadInitialData();
+  }
+
+  private initializeForm(): void {
+    // TODO: Initialize the person creation form
+    console.log('Initializing person creation form');
+  }
+
+  private loadInitialData(): void {
+    // TODO: Load any initial data needed for person creation
+    console.log('Loading initial data for person creation');
+  }
   private nonNullableFb = inject(NonNullableFormBuilder);
   private personService = inject(PersonService);
 

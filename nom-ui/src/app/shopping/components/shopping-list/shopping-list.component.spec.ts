@@ -1,57 +1,86 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { ReactiveFormsModule } from '@angular/forms';
 import { ShoppingListComponent } from './shopping-list.component';
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
+import { ConfigurationService } from '../../../common/services/configuration.service';
 import { of } from 'rxjs';
 
 describe('ShoppingListComponent', () => {
     let component: ShoppingListComponent;
     let fixture: ComponentFixture<ShoppingListComponent>;
     let mockShoppingReferenceService: jasmine.SpyObj<ShoppingReferenceService>;
-
-    const mockPriorities = [
-        { referenceId: 11000, referenceName: 'Low', referenceDescription: 'Low priority items', groupId: 6000, groupName: 'Shopping Priority', groupDescription: 'Shopping priority levels' },
-        { referenceId: 11001, referenceName: 'Medium', referenceDescription: 'Medium priority items', groupId: 6000, groupName: 'Shopping Priority', groupDescription: 'Shopping priority levels' },
-        { referenceId: 11002, referenceName: 'High', referenceDescription: 'High priority items', groupId: 6000, groupName: 'Shopping Priority', groupDescription: 'Shopping priority levels' }
-    ];
+    let mockConfigurationService: jasmine.SpyObj<ConfigurationService>;
 
     const mockCategories = [
-        { referenceId: 11010, referenceName: 'Produce', referenceDescription: 'Fresh produce items', groupId: 6001, groupName: 'Shopping Category', groupDescription: 'Shopping categories' },
-        { referenceId: 11011, referenceName: 'Dairy', referenceDescription: 'Dairy products', groupId: 6001, groupName: 'Shopping Category', groupDescription: 'Shopping categories' },
-        { referenceId: 11012, referenceName: 'Meat', referenceDescription: 'Meat and poultry', groupId: 6001, groupName: 'Shopping Category', groupDescription: 'Shopping categories' }
+        { referenceId: 1, referenceName: 'Produce', referenceDescription: 'Fresh fruits and vegetables' },
+        { referenceId: 2, referenceName: 'Dairy', referenceDescription: 'Milk, cheese, and dairy products' }
     ];
 
-    const mockShoppingItems = [
-        { id: 1, name: 'Apples', categoryId: 11010, priorityId: 11000, quantity: 6 },
-        { id: 2, name: 'Milk', categoryId: 11011, priorityId: 11001, quantity: 1 },
-        { id: 3, name: 'Chicken Breast', categoryId: 11012, priorityId: 11002, quantity: 2 }
+    const mockPriorities = [
+        { referenceId: 1, referenceName: 'Low', referenceDescription: 'Low priority items' },
+        { referenceId: 2, referenceName: 'High', referenceDescription: 'High priority items' }
+    ];
+
+    const mockItems = [
+        {
+            id: 1,
+            name: 'Apples',
+            quantity: 5,
+            unit: 'kg',
+            categoryId: 1,
+            priorityId: 1,
+            notes: 'Fresh red apples',
+            isCompleted: false
+        },
+        {
+            id: 2,
+            name: 'Milk',
+            quantity: 2,
+            unit: 'L',
+            categoryId: 2,
+            priorityId: 2,
+            notes: 'Whole milk',
+            isCompleted: true
+        }
     ];
 
     beforeEach(async () => {
         mockShoppingReferenceService = jasmine.createSpyObj('ShoppingReferenceService', [
-            'getShoppingReferencesBulk'
+            'getShoppingCategories',
+            'getShoppingPriorities'
         ]);
+        mockConfigurationService = jasmine.createSpyObj('ConfigurationService', ['getColorPalette']);
+
+        mockShoppingReferenceService.getShoppingCategories.and.returnValue(of(mockCategories));
+        mockShoppingReferenceService.getShoppingPriorities.and.returnValue(of(mockPriorities));
+        mockConfigurationService.getColorPalette.and.returnValue(['#1976d2', '#388e3c', '#f57c00', '#d32f2f']);
 
         await TestBed.configureTestingModule({
             declarations: [ShoppingListComponent],
             imports: [
-                ReactiveFormsModule,
-                MatFormFieldModule,
-                MatSelectModule,
-                MatInputModule,
+                BrowserAnimationsModule,
+                MatCardModule,
                 MatButtonModule,
                 MatIconModule,
-                BrowserAnimationsModule
+                MatChipsModule,
+                MatFormFieldModule,
+                MatInputModule,
+                MatSelectModule,
+                MatMenuModule,
+                ReactiveFormsModule
             ],
             providers: [
-                FormBuilder,
-                { provide: ShoppingReferenceService, useValue: mockShoppingReferenceService }
+                { provide: ShoppingReferenceService, useValue: mockShoppingReferenceService },
+                { provide: ConfigurationService, useValue: mockConfigurationService }
             ]
         }).compileComponents();
 
@@ -63,236 +92,204 @@ describe('ShoppingListComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should initialize with empty arrays', () => {
-        expect(component.priorities).toEqual([]);
-        expect(component.categories).toEqual([]);
+    it('should initialize with default values', () => {
+        expect(component.items).toEqual([]);
         expect(component.filteredItems).toEqual([]);
-        expect(component.allItems).toEqual([]);
+        expect(component.categories).toEqual([]);
+        expect(component.priorities).toEqual([]);
+        expect(component.selectedCategory).toBeNull();
+        expect(component.selectedPriority).toBeNull();
+        expect(component.searchTerm).toBe('');
+        expect(component.showCompleted).toBe(true);
     });
 
     it('should load reference data on init', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+        component.ngOnInit();
 
-        fixture.detectChanges();
+        expect(mockShoppingReferenceService.getShoppingCategories).toHaveBeenCalled();
+        expect(mockShoppingReferenceService.getShoppingPriorities).toHaveBeenCalled();
+        expect(mockConfigurationService.getColorPalette).toHaveBeenCalled();
+    });
 
-        expect(mockShoppingReferenceService.getShoppingReferencesBulk).toHaveBeenCalled();
-        expect(component.priorities).toEqual(mockPriorities);
+    it('should populate categories and priorities arrays', () => {
+        component.ngOnInit();
+
         expect(component.categories).toEqual(mockCategories);
+        expect(component.priorities).toEqual(mockPriorities);
     });
 
-    it('should load shopping items on init', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should set items and filtered items', () => {
+        component.items = mockItems;
+        component.ngOnInit();
 
-        fixture.detectChanges();
-
-        expect(component.allItems.length).toBeGreaterThan(0);
-        expect(component.filteredItems.length).toBeGreaterThan(0);
-    });
-
-    it('should setup filter form correctly', () => {
-        expect(component.filtersForm).toBeDefined();
-        expect(component.filtersForm.get('priorityFilter')).toBeDefined();
-        expect(component.filtersForm.get('categoryFilter')).toBeDefined();
-    });
-
-    it('should filter items by priority', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
-
-        fixture.detectChanges();
-
-        // Set priority filter
-        component.filtersForm.get('priorityFilter')?.setValue(11002); // High priority
-        fixture.detectChanges();
-
-        // Should only show high priority items
-        const highPriorityItems = component.filteredItems.filter(item => item.priorityId === 11002);
-        expect(component.filteredItems.length).toBe(highPriorityItems.length);
+        expect(component.filteredItems).toEqual(mockItems);
     });
 
     it('should filter items by category', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+        component.items = mockItems;
+        component.categories = mockCategories;
+        component.selectedCategory = 1;
 
-        fixture.detectChanges();
+        component.filterItems();
 
-        // Set category filter
-        component.filtersForm.get('categoryFilter')?.setValue(11010); // Produce
-        fixture.detectChanges();
-
-        // Should only show produce items
-        const produceItems = component.filteredItems.filter(item => item.categoryId === 11010);
-        expect(component.filteredItems.length).toBe(produceItems.length);
+        expect(component.filteredItems.length).toBe(1);
+        expect(component.filteredItems[0].categoryId).toBe(1);
     });
 
-    it('should filter items by both priority and category', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should filter items by priority', () => {
+        component.items = mockItems;
+        component.priorities = mockPriorities;
+        component.selectedPriority = 2;
 
-        fixture.detectChanges();
+        component.filterItems();
 
-        // Set both filters
-        component.filtersForm.get('priorityFilter')?.setValue(11001); // Medium priority
-        component.filtersForm.get('categoryFilter')?.setValue(11011); // Dairy
-        fixture.detectChanges();
-
-        // Should only show medium priority dairy items
-        const filteredItems = component.filteredItems.filter(item =>
-            item.priorityId === 11001 && item.categoryId === 11011
-        );
-        expect(component.filteredItems.length).toBe(filteredItems.length);
+        expect(component.filteredItems.length).toBe(1);
+        expect(component.filteredItems[0].priorityId).toBe(2);
     });
 
-    it('should clear filters correctly', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should filter items by search term', () => {
+        component.items = mockItems;
+        component.searchTerm = 'apples';
 
-        fixture.detectChanges();
+        component.filterItems();
 
-        // Set filters
-        component.filtersForm.get('priorityFilter')?.setValue(11002);
-        component.filtersForm.get('categoryFilter')?.setValue(11010);
+        expect(component.filteredItems.length).toBe(1);
+        expect(component.filteredItems[0].name.toLowerCase()).toContain('apples');
+    });
 
-        // Clear filters
+    it('should filter completed items', () => {
+        component.items = mockItems;
+        component.showCompleted = false;
+
+        component.filterItems();
+
+        expect(component.filteredItems.length).toBe(1);
+        expect(component.filteredItems[0].isCompleted).toBe(false);
+    });
+
+    it('should combine multiple filters', () => {
+        component.items = mockItems;
+        component.categories = mockCategories;
+        component.priorities = mockPriorities;
+        component.selectedCategory = 1;
+        component.selectedPriority = 1;
+        component.searchTerm = 'apples';
+        component.showCompleted = false;
+
+        component.filterItems();
+
+        expect(component.filteredItems.length).toBe(1);
+        expect(component.filteredItems[0].name).toBe('Apples');
+        expect(component.filteredItems[0].categoryId).toBe(1);
+        expect(component.filteredItems[0].priorityId).toBe(1);
+        expect(component.filteredItems[0].isCompleted).toBe(false);
+    });
+
+    it('should clear all filters', () => {
+        component.selectedCategory = 1;
+        component.selectedPriority = 2;
+        component.searchTerm = 'test';
+        component.showCompleted = false;
+
         component.clearFilters();
 
-        expect(component.filtersForm.get('priorityFilter')?.value).toBe('');
-        expect(component.filtersForm.get('categoryFilter')?.value).toBe('');
+        expect(component.selectedCategory).toBeNull();
+        expect(component.selectedPriority).toBeNull();
+        expect(component.searchTerm).toBe('');
+        expect(component.showCompleted).toBe(true);
     });
 
-    it('should detect active filters correctly', () => {
-        expect(component.hasActiveFilters).toBe(false);
+    it('should get category name by id', () => {
+        component.categories = mockCategories;
 
-        component.filtersForm.get('priorityFilter')?.setValue(11002);
-        expect(component.hasActiveFilters).toBe(true);
-
-        component.filtersForm.get('priorityFilter')?.setValue('');
-        component.filtersForm.get('categoryFilter')?.setValue(11010);
-        expect(component.hasActiveFilters).toBe(true);
+        const categoryName = component.getCategoryName(1);
+        expect(categoryName).toBe('Produce');
     });
 
-    it('should get priority name correctly', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should return unknown for invalid category id', () => {
+        component.categories = mockCategories;
 
-        fixture.detectChanges();
-
-        expect(component.getPriorityName(11002)).toBe('High');
-        expect(component.getPriorityName(999)).toBe('Unknown'); // Non-existent ID
+        const categoryName = component.getCategoryName(999);
+        expect(categoryName).toBe('Unknown');
     });
 
-    it('should get category name correctly', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should get priority name by id', () => {
+        component.priorities = mockPriorities;
 
-        fixture.detectChanges();
-
-        expect(component.getCategoryName(11010)).toBe('Produce');
-        expect(component.getCategoryName(999)).toBe('Unknown'); // Non-existent ID
+        const priorityName = component.getPriorityName(2);
+        expect(priorityName).toBe('High');
     });
 
-    it('should get priority class correctly', () => {
-        expect(component.getPriorityClass(11002)).toBe('high');
-        expect(component.getPriorityClass(11001)).toBe('medium');
-        expect(component.getPriorityClass(11000)).toBe('low');
+    it('should return unknown for invalid priority id', () => {
+        component.priorities = mockPriorities;
+
+        const priorityName = component.getPriorityName(999);
+        expect(priorityName).toBe('Unknown');
     });
 
-    it('should get priority color correctly', () => {
-        expect(component.getPriorityColor(11002)).toBe('#f44336'); // Red for high
-        expect(component.getPriorityColor(11001)).toBe('#ff9800'); // Orange for medium
-        expect(component.getPriorityColor(11000)).toBe('#4caf50'); // Green for low
+    it('should generate color for item', () => {
+        component.items = mockItems;
+        component.colorPalette = ['#1976d2', '#388e3c', '#f57c00', '#d32f2f'];
+
+        const color = component.getItemColor(mockItems[0]);
+        expect(color).toBeDefined();
+        expect(component.colorPalette).toContain(color);
     });
 
-    it('should generate consistent category colors', () => {
-        const color1 = component.getCategoryColor(11010);
-        const color2 = component.getCategoryColor(11010);
-        expect(color1).toBe(color2); // Same ID should get same color
+    it('should toggle item completion status', () => {
+        const item = { ...mockItems[0] };
+        spyOn(component.itemStatusChange, 'emit');
+
+        component.toggleItemStatus(item);
+
+        expect(item.isCompleted).toBe(true);
+        expect(component.itemStatusChange.emit).toHaveBeenCalledWith(item);
     });
 
-    it('should count high priority items correctly', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should emit edit item event', () => {
+        const item = mockItems[0];
+        spyOn(component.editItem, 'emit');
 
-        fixture.detectChanges();
+        component.onEditItem(item);
 
-        const highPriorityCount = component.getHighPriorityCount();
-        const expectedCount = component.allItems.filter(item => item.priorityId === 11002).length;
-        expect(highPriorityCount).toBe(expectedCount);
+        expect(component.editItem.emit).toHaveBeenCalledWith(item);
     });
 
-    it('should count unique categories correctly', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should emit delete item event', () => {
+        const item = mockItems[0];
+        spyOn(component.deleteItem, 'emit');
 
-        fixture.detectChanges();
+        component.onDeleteItem(item);
 
-        const uniqueCategoriesCount = component.getUniqueCategoriesCount();
-        const expectedCount = new Set(component.allItems.map(item => item.categoryId)).size;
-        expect(uniqueCategoriesCount).toBe(expectedCount);
+        expect(component.deleteItem.emit).toHaveBeenCalledWith(item);
     });
 
-    it('should handle form value changes', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
+    it('should emit add item event', () => {
+        spyOn(component.addItem, 'emit');
 
-        fixture.detectChanges();
+        component.onAddItem();
 
-        // Simulate form value change
-        component.filtersForm.get('priorityFilter')?.setValue(11002);
-
-        // Should trigger filtering
-        expect(component.filteredItems.length).toBeLessThanOrEqual(component.allItems.length);
+        expect(component.addItem.emit).toHaveBeenCalled();
     });
 
-    it('should handle priority filter change', () => {
-        expect(() => component.onPriorityFilterChange({})).not.toThrow();
+    it('should get filtered items count', () => {
+        component.filteredItems = mockItems;
+
+        const count = component.getFilteredItemsCount();
+        expect(count).toBe(2);
     });
 
-    it('should handle category filter change', () => {
-        expect(() => component.onCategoryFilterChange({})).not.toThrow();
+    it('should get completed items count', () => {
+        component.items = mockItems;
+
+        const count = component.getCompletedItemsCount();
+        expect(count).toBe(1);
     });
 
-    it('should handle add new item', () => {
-        spyOn(console, 'log');
-        component.addNewItem();
-        expect(console.log).toHaveBeenCalledWith('Add new item clicked');
-    });
+    it('should get total items count', () => {
+        component.items = mockItems;
 
-    it('should handle edit item', () => {
-        spyOn(console, 'log');
-        const testItem = { id: 1, name: 'Test Item' };
-        component.editItem(testItem);
-        expect(console.log).toHaveBeenCalledWith('Edit item:', testItem);
-    });
-
-    it('should handle delete item', () => {
-        spyOn(console, 'log');
-        const testItem = { id: 1, name: 'Test Item' };
-        component.deleteItem(testItem);
-        expect(console.log).toHaveBeenCalledWith('Delete item:', testItem);
-    });
-
-    it('should clean up subscriptions on destroy', () => {
-        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(
-            of({ priorities: mockPriorities, categories: mockCategories })
-        );
-
-        fixture.detectChanges();
-
-        // Should not throw on destroy
-        expect(() => component.ngOnDestroy()).not.toThrow();
+        const count = component.getTotalItemsCount();
+        expect(count).toBe(2);
     });
 });

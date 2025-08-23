@@ -23,7 +23,7 @@ import { ReferenceItemModel } from '../../common/models/reference-item.model';
 })
 export class RecipeService {
   private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/recipes`;
+  private readonly apiUrl = `${environment.apiUrl}/recipe`;
 
   // Recipe methods
   getRecipes(): Observable<RecipeModel[]> {
@@ -126,5 +126,18 @@ export class RecipeService {
   // Additional methods for backward compatibility
   getMyRecipes(): Observable<RecipeModel[]> {
     return this.http.get<RecipeModel[]>(`${this.apiUrl}/my`);
+  }
+
+  // Recipe Categories
+  getAllCategories(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/categories`);
+  }
+
+  createCategory(category: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/categories`, category);
+  }
+
+  deleteCategory(categoryId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`);
   }
 }

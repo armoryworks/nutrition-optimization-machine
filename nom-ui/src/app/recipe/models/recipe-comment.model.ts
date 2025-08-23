@@ -9,25 +9,17 @@ export interface IRecipeCommentModel {
     lastModifiedDate?: string;
 }
 
-export class RecipeCommentModel implements IRecipeCommentModel {
-    id: number;
-    recipeId: number;
-    authorId: number;
-    authorName: string;
-    commentText: string;
-    title?: string;
-    createdDate: string;
-    lastModifiedDate?: string;
+export class RecipeCommentModel {
+    id = 0;
+    recipeId = 0;
+    content = '';
+    createdDate: Date = new Date();
+    modifiedDate?: Date;
 
-    constructor(data: Partial<IRecipeCommentModel> = {}) {
-        this.id = data.id || 0;
-        this.recipeId = data.recipeId || 0;
-        this.authorId = data.authorId || 0;
-        this.authorName = data.authorName || "";
-        this.commentText = data.commentText || "";
-        this.title = data.title;
-        this.createdDate = data.createdDate || "";
-        this.lastModifiedDate = data.lastModifiedDate;
+    constructor(data?: Partial<RecipeCommentModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
     }
 }
 

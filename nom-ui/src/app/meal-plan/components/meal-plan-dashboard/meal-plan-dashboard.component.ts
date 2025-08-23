@@ -19,7 +19,7 @@ import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanResponseModel } from '../../models/meal-plan.model';
+import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 

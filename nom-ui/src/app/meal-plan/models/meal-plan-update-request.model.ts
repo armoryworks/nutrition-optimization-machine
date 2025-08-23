@@ -3,6 +3,8 @@
 import { IMealPlanUpdateRequestModel } from './meal-plan-update-request.model.interface';
 
 export class MealPlanUpdateRequestModel implements IMealPlanUpdateRequestModel {
+    id = 0;
+    householdId = 0;
     date: Date = new Date();
     mealTypeId = 0;
     title = '';

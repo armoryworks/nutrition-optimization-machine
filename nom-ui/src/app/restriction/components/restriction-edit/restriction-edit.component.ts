@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 // Import new child restriction components
 import { SocietalRestrictionComponent } from '../societal-restriction/societal-restriction.component';
 import { MedicalRestrictionComponent } from '../medical-restriction/medical-restriction.component';
-import { PersonalPreferenceComponent } from '../personal-preference/personal-preference.component'; // Renamed component
+import { PersonalPreferenceRestrictionComponent } from '../personal-preference/personal-preference.component';
 
 import { RestrictionModel } from '../../models/restriction.model';
 import { RestrictionService } from '../../services/restriction.service';
@@ -38,7 +38,7 @@ import { RestrictionTypeEnum } from '../../enums/restriction-type.enum';
     // Import the new child components
     SocietalRestrictionComponent,
     MedicalRestrictionComponent,
-    PersonalPreferenceComponent,
+    PersonalPreferenceRestrictionComponent,
   ],
   templateUrl: './restriction-edit.component.html',
   styleUrls: ['./restriction-edit.component.scss'],

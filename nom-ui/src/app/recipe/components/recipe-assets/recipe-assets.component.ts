@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,12 +6,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject, takeUntil } from 'rxjs';
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
+import { ConfirmDeleteDialogComponent } from '../confirm-delete-dialog/confirm-delete-dialog.component';
 
 @Component({
     selector: 'app-recipe-assets',
@@ -38,11 +39,18 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     private dialog = inject(MatDialog);
     private configurationService = inject(ConfigurationService);
 
+    // Input properties
+    @Input() recipeId: number = 0;
+    @Input() isEditMode: boolean = false;
+
+    // Component state
     assets: any[] = [];
     assetForm: FormGroup;
     selectedFile: File | null = null;
     isSubmitting = false;
     uploadProgress = 0;
+    isLoading = false;
+    error: string | null = null;
 
     // Icon options for assets
     iconOptions = [
@@ -73,14 +81,25 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     }
 
     private loadAssets(): void {
-        this.recipeAssetsService.getRecipeAssets()
+        if (!this.recipeId) {
+            this.error = 'Recipe ID is required';
+            return;
+        }
+
+        this.isLoading = true;
+        this.error = null;
+
+        this.recipeAssetsService.getRecipeAssets(this.recipeId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
-                next: (assets) => {
+                next: (assets: any) => {
                     this.assets = assets;
+                    this.isLoading = false;
                 },
-                error: (error) => {
+                error: (error: any) => {
                     console.error('Error loading assets:', error);
+                    this.error = 'Failed to load assets. Please try again.';
+                    this.isLoading = false;
                     this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
                 }
             });
@@ -110,22 +129,26 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             this.isSubmitting = true;
             this.uploadProgress = 0;
 
-            const formData = new FormData();
-            formData.append('file', this.selectedFile);
-            formData.append('name', this.assetForm.get('name')?.value);
-            formData.append('description', this.assetForm.get('description')?.value);
-            formData.append('icon', this.assetForm.get('icon')?.value);
+            // Use the existing createRecipeAsset method
+            const assetData = {
+                name: this.assetForm.get('name')?.value,
+                icon: this.assetForm.get('icon')?.value,
+                description: this.assetForm.get('description')?.value,
+                fileName: this.selectedFile?.name || '',
+                fileSize: this.selectedFile?.size || 0,
+                mimeType: this.selectedFile?.type || ''
+            };
 
-            this.recipeAssetsService.uploadAsset(formData)
+            this.recipeAssetsService.createRecipeAsset(this.recipeId, assetData, this.selectedFile!)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
-                    next: (newAsset) => {
+                    next: (newAsset: any) => {
                         this.assets.push(newAsset);
                         this.resetForm();
                         this.snackBar.open('Asset uploaded successfully', 'Close', { duration: 3000 });
                         this.isSubmitting = false;
                     },
-                    error: (error) => {
+                    error: (error: any) => {
                         console.error('Error uploading asset:', error);
                         this.snackBar.open('Failed to upload asset', 'Close', { duration: 3000 });
                         this.isSubmitting = false;
@@ -140,14 +163,14 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             data: { message: 'Are you sure you want to delete this asset?' }
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        dialogRef.afterClosed().subscribe((result: any) => {
             if (result) {
                 this.recipeAssetsService.deleteRecipeAsset(assetId).subscribe({
                     next: () => {
                         this.assets = this.assets.filter(asset => asset.id !== assetId);
                         this.snackBar.open('Asset deleted successfully', 'Close', { duration: 3000 });
                     },
-                    error: (error) => {
+                    error: (error: any) => {
                         console.error('Error deleting asset:', error);
                         this.snackBar.open('Failed to delete asset', 'Close', { duration: 3000 });
                     }
@@ -158,7 +181,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
 
     onDownloadAsset(asset: any): void {
         this.recipeAssetsService.downloadAsset(asset.id).subscribe({
-            next: (blob) => {
+            next: (blob: any) => {
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
@@ -166,7 +189,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                 link.click();
                 window.URL.revokeObjectURL(url);
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error('Error downloading asset:', error);
                 this.snackBar.open('Failed to download asset', 'Close', { duration: 3000 });
             }
@@ -198,21 +221,23 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             fileInput.value = '';
         }
     }
-}
 
-@Component({
-    selector: 'nom-confirm-delete-dialog',
-    template: `
-        <h2 mat-dialog-title>Confirm Delete</h2>
-        <mat-dialog-content>{{ data.message }}</mat-dialog-content>
-        <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
-            <button mat-raised-button color="warn" [mat-dialog-close]="true">Delete</button>
-        </mat-dialog-actions>
-    `,
-    standalone: true,
-    imports: [CommonModule, MatDialogModule, MatButtonModule]
-})
-export class ConfirmDeleteDialogComponent {
-    data = inject({ message: string });
+    // Template methods
+    onRefresh(): void {
+        this.loadAssets();
+    }
+
+    onRetry(): void {
+        this.error = null;
+        this.loadAssets();
+    }
+
+    get listConfig(): any {
+        return {
+            title: 'Recipe Assets',
+            subtitle: 'Manage files, images, and documents for this recipe',
+            showBackButton: true,
+            showRefreshButton: true
+        };
+    }
 } 

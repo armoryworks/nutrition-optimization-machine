@@ -5,7 +5,6 @@ import { IMealPlanCreateResponseModel } from './meal-plan-create-response.model.
 export class MealPlanCreateResponseModel implements IMealPlanCreateResponseModel {
     id = 0;
     householdId = 0;
-    authorId = 0;
     date: Date = new Date();
     mealTypeId = 0;
     title = '';

@@ -17,7 +17,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanRuleCreateRequestModel, MealPlanRuleResponseModel } from '../../models/meal-plan-rule.model';
+import { MealPlanRuleCreateRequestModel } from '../../models/meal-plan-rule-create-request.model';
+import { MealPlanRuleResponseModel } from '../../models/meal-plan-rule-response.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -115,7 +116,6 @@ export class MealPlanRulesComponent implements OnInit {
 
     const request: MealPlanRuleCreateRequestModel = {
       householdId: this.getCurrentHouseholdId(),
-      authorId: this.getCurrentUserId(),
       name: formValue.name || 'Meal Plan Rule',
       dayOfWeekId: formValue.dayOfWeekId,
       mealTypeId: formValue.mealTypeId,

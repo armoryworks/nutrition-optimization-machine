@@ -4,7 +4,6 @@ export interface RecipeEditModel {
     id: number;
     name: string;
     description?: string;
-    authorId: number;
     ingredients: RecipeIngredientModel[];
     steps: RecipeStepModel[];
 }

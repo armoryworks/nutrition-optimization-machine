@@ -8,7 +8,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { HouseholdService } from '../../services/household.service';
-import { HouseholdInviteTokenCreateRequestModel, HouseholdInviteTokenResponseModel } from '../../models/household-invite-token-create-request.model';
+import { HouseholdInviteTokenCreateRequestModel } from '../../models/household-invite-token-create-request.model';
+import { HouseholdInviteTokenResponseModel } from '../../models/household-invite-token-response.model';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({

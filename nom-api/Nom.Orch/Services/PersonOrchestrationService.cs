@@ -133,15 +133,30 @@ namespace Nom.Orch.Services
         /// <returns>An OnboardingCompleteResponse indicating success and the primary PersonId.</returns>
         public async Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request)
         {
-            _logger.LogInformation("Completing onboarding for user {UserId}", request.UserId);
+            _logger.LogInformation("Completing onboarding for person {PersonId}", request.PersonId);
 
-            var currentIdentityUserId = GetCurrentUserId(); ;
-            var primaryPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == currentIdentityUserId);
-
-            if (primaryPerson == null)
+            // During onboarding, we work with the person directly rather than requiring user authentication
+            PersonEntity primaryPerson;
+            
+            if (request.PersonId.HasValue && request.PersonId.Value > 0)
             {
-                throw new KeyNotFoundException($"Person not found for user {currentIdentityUserId}");
+                // Use existing person
+                primaryPerson = await _dbContext.Persons.FindAsync(request.PersonId.Value);
+                
             }
+            else
+            {
+                // Create new person from details
+                primaryPerson = new PersonEntity
+                {
+                    Name = request.PersonDetails.Name,
+                    CreatedDate = DateTime.UtcNow
+                };
+                _dbContext.Persons.Add(primaryPerson);
+                await _dbContext.SaveChangesAsync();
+            }
+
+
 
             // Handle plan invitation if provided
             if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
@@ -164,10 +179,10 @@ namespace Nom.Orch.Services
                         _dbContext.PlanParticipants.Add(planMember);
                     }
                     // Mark invitation as used
-                    invitation.IsUsed = false;
+                    invitation.IsUsed = true;
                     invitation.UsedAt = DateTime.UtcNow;
 
-                    _logger.LogInformation("Successfully claimed plan invitation for user {UserId}", request.UserId);
+                    _logger.LogInformation("Successfully claimed plan invitation for person {PersonId}", primaryPerson.Id);
                 }
                 else
                 {
@@ -197,14 +212,15 @@ namespace Nom.Orch.Services
             _dbContext.PlanParticipants.Add(primaryParticipant);
 
             // Add additional participants if provided
-            if (request.AdditionalParticipants != null && request.AdditionalParticipants.Any())
+            if (request.HasAdditionalParticipants && request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
             {
-                foreach (var participantDetails in request.AdditionalParticipants)
+                foreach (var participantDetails in request.AdditionalParticipantDetails)
                 {
                     var newParticipant = new PersonEntity
                     {
                         Name = participantDetails.Name,
-                        CreatedByPersonId = primaryPerson.Id
+                        CreatedByPersonId = primaryPerson.Id,
+                        CreatedDate = DateTime.UtcNow
                     };
                     _dbContext.Persons.Add(newParticipant);
                     await _dbContext.SaveChangesAsync();
@@ -222,12 +238,114 @@ namespace Nom.Orch.Services
 
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully completed onboarding for user {UserId}", request.UserId);
+            _logger.LogInformation("Successfully completed onboarding for person {PersonId}", primaryPerson.Id);
             return new OnboardingCompleteResponse
             {
                 Success = true,
-                Message = "Onboarding completed successfully"
+                Message = "Onboarding completed successfully",
+                PersonId = primaryPerson.Id
             };
+        }
+
+        /// <summary>
+        /// Gets the current onboarding state for a user, including existing person data
+        /// </summary>
+        public async Task<OnboardingStateResponse> GetOnboardingStateAsync(string? userId = null)
+        {
+            try
+            {
+                var response = new OnboardingStateResponse();
+                
+                // Try to get existing person data
+                PersonEntity? existingPerson = null;
+                
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    // If userId provided, try to find person by userId
+                    existingPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == userId);
+                }
+                else
+                {
+                    // Try to get from current authenticated user
+                    try
+                    {
+                        var currentUserId = GetCurrentUserId();
+                        if (!string.IsNullOrEmpty(currentUserId))
+                        {
+                            existingPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == currentUserId);
+                        }
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        // User not authenticated, which is fine for onboarding
+                        _logger.LogInformation("User not authenticated during onboarding state fetch");
+                    }
+                }
+
+                if (existingPerson != null)
+                {
+                    response.HasExistingPerson = true;
+                    response.PersonId = existingPerson.Id;
+                    response.PersonDetails = new PersonDetailsRequest
+                    {
+                        Id = existingPerson.Id,
+                        Name = existingPerson.Name ?? string.Empty
+                    };
+
+                    // Get existing attributes
+                    var existingAttributes = await _dbContext.PersonAttributes
+                        .Where(pa => pa.PersonId == existingPerson.Id)
+                        .ToListAsync();
+
+                    response.Attributes = existingAttributes.Select(pa => new PersonAttributeRequest
+                    {
+                        AttributeTypeRefId = pa.AttributeTypeId,
+                        Value = pa.Value ?? string.Empty
+                    }).ToList();
+
+                    // Get existing restrictions
+                    var existingRestrictions = await _dbContext.Restrictions
+                        .Where(r => r.PersonId == existingPerson.Id)
+                        .ToListAsync();
+
+                    response.Restrictions = existingRestrictions.Select(r => new RestrictionRequest
+                    {
+                        Name = r.Name ?? string.Empty,
+                        Description = r.Description,
+                        RestrictionTypeId = r.RestrictionTypeId ?? 0,
+                        AppliesToEntirePlan = false, // Default value since this property doesn't exist in entity
+                        AffectedPersonIds = new List<long>() // Default empty list since this property doesn't exist in entity
+                    }).ToList();
+
+                    // Check if person is already part of a plan
+                    var planParticipation = await _dbContext.PlanParticipants
+                        .FirstOrDefaultAsync(pp => pp.PersonId == existingPerson.Id);
+
+                    if (planParticipation != null)
+                    {
+                        response.IsComplete = true;
+                        response.CurrentStep = 100; // Completed
+                    }
+                    else
+                    {
+                        response.IsComplete = false;
+                        response.CurrentStep = 50; // Person created but no plan yet
+                    }
+                }
+                else
+                {
+                    response.HasExistingPerson = false;
+                    response.IsComplete = false;
+                    response.CurrentStep = 0; // Not started
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching onboarding state");
+                throw;
+            }
         }
 
         private string? GetCurrentUserId()

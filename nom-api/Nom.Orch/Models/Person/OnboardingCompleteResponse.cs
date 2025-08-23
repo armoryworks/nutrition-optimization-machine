@@ -5,6 +5,6 @@ namespace Nom.Orch.Models.Person
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
-        public long? NewPersonId { get; set; }
+        public long PersonId { get; set; }
     }
 }

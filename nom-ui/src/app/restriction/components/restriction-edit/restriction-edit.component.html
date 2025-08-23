@@ -16,9 +16,9 @@
       [medicalRestrictionForm]="medicalRestrictionFormGroup"
     ></nom-medical-restriction>
     } @case (RestrictionTypeEnum.PersonalPreference) {
-    <nom-personal-preference
+    <app-personal-preference
       [personalPreferenceForm]="personalPreferenceFormGroup"
-    ></nom-personal-preference>
+    ></app-personal-preference>
     } @default {
     <p class="nom-message-text">
       No restriction type selected or supported for editing.

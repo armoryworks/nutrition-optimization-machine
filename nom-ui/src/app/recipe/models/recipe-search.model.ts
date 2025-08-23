@@ -1,23 +1,23 @@
 export interface RecipeSearchModel {
-    query?: string;
-    ingredientIds?: number[];
-    categoryIds?: number[];
-    tagIds?: number[];
-    toolIds?: number[];
-    cuisineTypeIds?: number[];
-    minRating?: number;
+    query: string;
+    categoryIds: number[];
+    ingredientIds: number[];
+    difficultyLevel?: number;
     maxPrepTime?: number;
     maxCookTime?: number;
     maxTotalTime?: number;
-    isPublic?: boolean;
-    isApproved?: boolean;
-    sortBy?: string;
-    sortDirection?: string;
+    minServings?: number;
+    maxServings?: number;
+    dietaryRestrictions: number[];
+    allergens: number[];
+    nutritionFilters: NutritionFilter[];
+    sortBy: string;
+    sortOrder: string;
     page: number;
     pageSize: number;
-    includeIngredients: boolean;
-    includeSteps: boolean;
-    includeNutrition: boolean;
+    includeCurated: boolean;
+    includeUserCreated: boolean;
+    maxResults: number;
 }
 
 export interface RecipeSearchResponse {

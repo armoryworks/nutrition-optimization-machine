@@ -105,14 +105,23 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
-        public async Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model)
+        public async Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model, long currentPersonId)
         {
+            // Validate that the current user exists
+            var author = await _context.Persons.FindAsync(currentPersonId);
+            if (author == null)
+            {
+                throw new ArgumentException($"Current user with ID {currentPersonId} does not exist.");
+            }
+
             var recipe = new RecipeEntity
             {
                 Name = model.Name,
                 Description = model.Description,
-                AuthorId = model.AuthorId,
-                CurationStatusId = (long)CurationStatusEnum.NonCurated
+                AuthorId = currentPersonId,
+                CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = currentPersonId
             };
 
             _context.Recipes.Add(recipe);

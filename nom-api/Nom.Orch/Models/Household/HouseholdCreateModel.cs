@@ -16,7 +16,6 @@ namespace Nom.Orch.Models.Household
         [Required(ErrorMessage = "Group ID is required.")]
         public long GroupId { get; set; }
 
-        [Required(ErrorMessage = "Author ID is required.")]
-        public long AuthorId { get; set; }
+        // public long AuthorId { get; set; } // REMOVED - Will be set from claims
     }
 } 

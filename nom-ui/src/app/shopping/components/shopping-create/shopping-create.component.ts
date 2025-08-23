@@ -57,17 +57,12 @@ export class ShoppingCreateComponent implements OnInit {
     this.shoppingForm = this.nonNullableFb.group({
       Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]],
-      GroupId: [null],
-      AuthorId: [null]
+      GroupId: [null]
     });
   }
 
   ngOnInit(): void {
-    // Set default values or get from current user context
-    const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
-    this.shoppingForm.patchValue({
-      AuthorId: currentPersonId || 1 // Use current person ID or fallback
-    });
+    // No need to set AuthorId - it will be handled by the backend
   }
 
   onSubmit(): void {

@@ -13,7 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanResponseModel } from '../../models/meal-plan.model';
+import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
 

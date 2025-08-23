@@ -265,7 +265,6 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         const formValue = this.recipeForm.value;
         const recipeData: RecipeEditModel = {
             id: this.recipeId || 0,
-            authorId: this.userInfoService.getCurrentUserInfoValue()?.personId || 1,
             name: formValue.name,
             description: formValue.description || 'No description provided',
             ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({

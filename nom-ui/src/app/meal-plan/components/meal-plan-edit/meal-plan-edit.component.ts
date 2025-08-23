@@ -14,7 +14,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanResponseModel, MealPlanUpdateRequestModel } from '../../models/meal-plan.model';
+import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
+import { MealPlanUpdateRequestModel } from '../../models/meal-plan-update-request.model';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({

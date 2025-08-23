@@ -12,7 +12,7 @@ export class QuestionService {
   private baseUrl = '/api/questions';
 
   getOnboardingQuestions(): Observable<QuestionAnswerSubmission[]> {
-    return this.http.get(`${this.baseUrl}/onboarding`);
+    return this.http.get<QuestionAnswerSubmission[]>(`${this.baseUrl}/onboarding`);
   }
 
   submitOnboardingAnswers(

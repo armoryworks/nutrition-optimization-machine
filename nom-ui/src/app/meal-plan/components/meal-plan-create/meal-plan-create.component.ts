@@ -14,7 +14,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { MealPlanService } from '../../services/meal-plan.service';
-import { MealPlanCreateRequestModel } from '../../models/meal-plan.model';
+import { MealPlanCreateRequestModel } from '../../models/meal-plan-create-request.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
@@ -68,21 +68,14 @@ export class MealPlanCreateComponent implements OnInit {
 
   constructor() {
     this.mealPlanForm = this.nonNullableFb.group({
-      RecipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      MealType: ['dinner', [Validators.required]],
-      Date: [new Date(), [Validators.required]],
+      Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       Description: ['', [Validators.maxLength(500)]],
-      GroupId: [null],
-      AuthorId: [null]
+      GroupId: [null]
     });
   }
 
   ngOnInit(): void {
-    // Set default values or get from current user context
-    const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
-    this.mealPlanForm.patchValue({
-      AuthorId: currentPersonId || 1 // Use current person ID or fallback
-    });
+    // No need to set AuthorId - it will be handled by the backend
   }
 
   onSubmit(): void {
@@ -90,7 +83,7 @@ export class MealPlanCreateComponent implements OnInit {
       this.isLoading = true;
 
       const createRequest = new MealPlanCreateRequestModel({
-        recipeName: this.mealPlanForm.value.RecipeName,
+        recipeName: this.mealPlanForm.value.Name,
         mealType: this.mealPlanForm.value.MealType,
         date: this.mealPlanForm.value.Date,
         description: this.mealPlanForm.value.Description

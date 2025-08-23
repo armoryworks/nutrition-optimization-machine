@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Nom.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/recipe-advanced-search")]
     [Authorize]
     public class RecipeAdvancedSearchController : BaseApiController
     {

@@ -148,6 +148,28 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
     return this.personalPreferenceForm.get(formArrayName) as FormArray;
   }
 
+  // Getters for FormArrays that the template expects
+  get dislikedIngredientsArray(): FormArray {
+    return this.personalPreferenceForm.get('dislikedIngredients') as FormArray;
+  }
+
+  get dislikedTexturesArray(): FormArray {
+    return this.personalPreferenceForm.get('dislikedTextures') as FormArray;
+  }
+
+  get preferredCookingMethodsArray(): FormArray {
+    return this.personalPreferenceForm.get('preferredCookingMethods') as FormArray;
+  }
+
+  public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
+    const selectedValues = event.value;
+    const formArray = this.personalPreferenceForm.get(formControlName) as FormArray;
+    formArray.clear();
+    selectedValues.forEach((value: string) => {
+      formArray.push(this.fb.control(value));
+    });
+  }
+
   public onSubmit(): void {
     if (this.personalPreferenceForm.valid) {
       console.log('Form submitted:', this.personalPreferenceForm.value);

@@ -10,7 +10,7 @@ namespace Nom.Orch.Interfaces
     {
         Task<List<RecipeResponseModel>> GetAllRecipesAsync();
         Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId);
-        Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model);
+        Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model, long currentPersonId);
         Task<RecipeResponseModel?> GetRecipeAsync(long id);
         Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model);
         Task<bool> DeleteRecipeAsync(long id);

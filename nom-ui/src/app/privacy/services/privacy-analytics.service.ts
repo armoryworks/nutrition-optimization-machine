@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
-import { PrivacyAnalyticsModel, DataProcessingLogModel, ComplianceMetricModel } from '../models/i-privacy-analytics.model';
+import { environment } from '../../../environments/environment';
+import { PrivacyAnalyticsModel, DataProcessingLogModel, ComplianceMetricModel, RiskFactorModel } from '../models/i-privacy-analytics.model';
 
 @Injectable({
     providedIn: 'root'
@@ -45,7 +45,7 @@ export class PrivacyAnalyticsService {
     }
 
     getDataRetentionMetrics(): Observable<PrivacyAnalyticsModel> {
-        return this.http.get(`${this.baseUrl}/data-retention-metrics`);
+        return this.http.get<PrivacyAnalyticsModel>(`${this.baseUrl}/data-retention-metrics`);
     }
 
     getConsentAnalytics(): Observable<PrivacyAnalyticsModel> {

@@ -1,14 +1,27 @@
-@if (ingredient) {
-  <nom-base-detail
-    [config]="detailConfig"
-    (back)="onBack()">
+<div class="ingredient-details">
+  <div class="ingredient-details__header">
+    <h2>{{ detailConfig.title }}</h2>
+    <p>{{ detailConfig.subtitle }}</p>
+    <button *ngIf="detailConfig.showBackButton" (click)="onBack()" class="back-button">
+      {{ detailConfig.backButtonText }}
+    </button>
+  </div>
 
-    <div class="ingredient-details__content">
-      @if (nutritionLabelData) {
-        <nom-nutrition-label [data]="nutritionLabelData"></nom-nutrition-label>
-      } @else {
-        <p>No nutrition data to display.</p>
-      }
+  <div *ngIf="ingredient" class="ingredient-info">
+    <h3>Nutritional Information</h3>
+    <p>This ingredient contains the following nutrients per 100g:</p>
+    
+    <div class="nutrients-list">
+      <div *ngFor="let nutrient of nutritionLabelData?.nutrients" 
+           class="nutrient-item"
+           [class.bold]="nutrient.isBold"
+           [class.indented]="nutrient.isIndented">
+        <span class="nutrient-name">{{ nutrient.name }}</span>
+        <span class="nutrient-amount">{{ nutrient.amount }} {{ nutrient.unit }}</span>
+        <span *ngIf="nutrient.dailyValue > 0" class="daily-value">
+          ({{ nutrient.dailyValue }}% DV)
+        </span>
+      </div>
     </div>
-  </nom-base-detail>
-}
+  </div>
+</div>

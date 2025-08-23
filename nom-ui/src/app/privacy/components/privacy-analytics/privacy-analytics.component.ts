@@ -14,7 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { PrivacyAnalyticsService } from '../../services/privacy-analytics.service';
 import { PrivacyAnalyticsModel } from '../../models/i-privacy-analytics.model';
-import { DataProcessingLogModel } from '../../models/i-data-processing-log.model';
+import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
 
 @Component({
     selector: 'nom-privacy-analytics',
@@ -50,7 +50,6 @@ export class PrivacyAnalyticsComponent implements OnInit {
     listConfig: BasePageConfig = {
         title: 'Privacy Analytics',
         subtitle: 'Monitor data processing activities and compliance metrics',
-        showSearch: false,
         showRefreshButton: true,
         refreshButtonText: 'Refresh',
         maxWidth: 'none'

@@ -1,33 +1,8 @@
-export class ShoppingListCategory {
-    id = 0;
-    name = '';
-    description?: string;
-    householdId = 0;
-    sortOrder = 0;
-    color?: string;
-    listCount = 0;
-}
-
-export class ShoppingListTemplate {
-    id = 0;
-    name = '';
-    description?: string;
-    householdId = 0;
-    items: ShoppingListItemTemplate[] = [];
-    createdDate: Date = new Date();
-    modifiedDate?: Date;
-}
-
-export class ShoppingListItemTemplate {
-    id = 0;
-    templateId = 0;
-    name = '';
-    quantity = 1;
-    measurementUnit = '';
-    notes?: string;
-    categoryId?: number;
-    categoryName?: string;
-}
+// This file has been refactored to follow the one class per file rule.
+// Individual classes have been moved to their own files:
+// - ShoppingListCategory -> shopping-list-category.model.ts
+// - ShoppingListTemplate -> shopping-list-template.model.ts  
+// - ShoppingListItemTemplate -> shopping-list-item-template.model.ts
 
 // Re-export the ShoppingListResponseModel from its dedicated file
 export { ShoppingListResponseModel } from './shopping-list-response.model'; 

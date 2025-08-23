@@ -13,8 +13,7 @@ namespace Nom.Orch.Models.Shopping
         [StringLength(2047, ErrorMessage = "Description cannot exceed 2047 characters.")]
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Author ID is required.")]
-        public long AuthorId { get; set; }
+        // public long AuthorId { get; set; } // REMOVED - Will be set from claims
 
         public long? HouseholdId { get; set; }
 

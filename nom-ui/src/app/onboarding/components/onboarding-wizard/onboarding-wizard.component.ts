@@ -88,9 +88,11 @@ export class OnboardingWizardComponent implements OnInit, OnChanges {
     }
 
     onAnswerChange(value: string | number | boolean): void {
-        this.currentAnswerForm.patchValue({
-            answer: value
-        });
+        if (this.currentQuestion) {
+            this.currentAnswerForm.patchValue({
+                answer: value
+            });
+        }
     }
 
     goToPreviousQuestion(): void {
@@ -102,7 +104,7 @@ export class OnboardingWizardComponent implements OnInit, OnChanges {
     }
 
     goToNextQuestion(): void {
-        if (this.currentAnswerForm.valid) {
+        if (this.currentAnswerForm.valid && this.currentQuestion) {
             const answer = this.currentAnswerForm.get('answer')?.value;
             this.answerSubmitted.emit({
                 questionIndex: this.currentQuestionIndex,

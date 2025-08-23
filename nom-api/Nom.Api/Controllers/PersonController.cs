@@ -76,7 +76,24 @@ namespace Nom.Api.Controllers
             return NotFound();
         }
 
+        [HttpGet("onboarding-state")]
+        [AllowAnonymous] // Allow fetching onboarding state without authentication
+        public async Task<IActionResult> GetOnboardingState([FromQuery] string? userId = null)
+        {
+            try
+            {
+                var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(userId);
+                return Ok(onboardingState);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching onboarding state");
+                return StatusCode(500, new { message = "Failed to fetch onboarding state" });
+            }
+        }
+
         [HttpPost("onboarding-complete")]
+        [AllowAnonymous] // Allow onboarding completion without authentication
         public async Task<IActionResult> OnboardingComplete([FromBody] OnboardingCompleteRequest request)
         {
             if (!ModelState.IsValid)

@@ -4,7 +4,7 @@ namespace Nom.Orch.Models.Person
 {
     public class CreateInvitationRequest
     {
-        public long InviterPersonId { get; set; }
+        // public long InviterPersonId { get; set; } // REMOVED - Will be set from claims
         public string InvitationType { get; set; } = string.Empty;
         public long? PlanId { get; set; }
         public DateTime? ExpirationDate { get; set; }

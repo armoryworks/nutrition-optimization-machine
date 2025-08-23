@@ -4,15 +4,9 @@ import { IMealPlanRuleCreateResponseModel } from './meal-plan-rule-create-respon
 
 export class MealPlanRuleCreateResponseModel implements IMealPlanRuleCreateResponseModel {
     id = 0;
+    name = '';
+    description = '';
+    ruleTypeId = 0;
     householdId = 0;
-    dayOfWeekId = 0;
-    mealTypeId = 0;
-    queryFilterString?: string;
-    createdDate: Date = new Date();
-
-    constructor(data?: Partial<IMealPlanRuleCreateResponseModel>) {
-        if (data) {
-            Object.assign(this, data);
-        }
-    }
+    isActive = true;
 } 

@@ -122,7 +122,7 @@ export class PlanEditComponent implements OnInit {
       this.tempRestrictions.push(restriction); // Add new
     }
 
-    this.currentRestrictionType = null; // Exit restriction editing mode
+    this.currentRestrictionType = undefined; // Exit restriction editing mode
   }
 
   public submitForm(): void {
@@ -147,7 +147,7 @@ export class PlanEditComponent implements OnInit {
   // A getter to provide restrictions for the RestrictionEditComponent
   // It should filter based on what the RestrictionEditComponent is currently editing
   get restrictionsForEditComponent(): RestrictionModel[] {
-    if (this.currentRestrictionType === null) {
+    if (this.currentRestrictionType === undefined) {
       return [];
     }
     // Filter for current type

@@ -63,8 +63,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var response = await _recipeService.CreateRecipeAsync(request);
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
+                {
+                    return Unauthorized("User not authenticated");
+                }
+
+                var response = await _recipeService.CreateRecipeAsync(request, currentPersonId.Value);
                 return CreatedAtAction(nameof(GetRecipe), new { id = response.Id }, response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

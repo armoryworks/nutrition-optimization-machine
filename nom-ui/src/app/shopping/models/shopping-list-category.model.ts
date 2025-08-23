@@ -1,22 +1,14 @@
 import { IShoppingListCategoryModel } from './shopping-list-category.model.interface';
 
-export class ShoppingListCategory implements IShoppingListCategoryModel {
+export class ShoppingListCategory {
     id = 0;
-    householdId = 0;
     name = '';
     description?: string;
+    householdId = 0;
     sortOrder = 0;
     color?: string;
-    createdDate: Date = new Date();
-    modifiedDate?: Date;
-    listCount = 0; // Number of lists in this category
-    itemCount = 0; // Alias for listCount
-
-    constructor(data?: Partial<IShoppingListCategoryModel>) {
-        if (data) {
-            Object.assign(this, data);
-        }
-    }
+    listCount = 0;
+    itemCount = 0; // Alias for listCount for backward compatibility
 }
 
 export class ShoppingListCategoryCreate {
