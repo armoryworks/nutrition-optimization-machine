@@ -53,13 +53,13 @@ export class RecipeRatingsComponent implements OnInit {
     averageRating = 0;
     isLoading = false;
     isSubmitting = false;
-    ratingForm: FormGroup;
+    ratingForm: FormGroup = this.nonNullableFb.group({
+        rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
+        comment: ['', [Validators.maxLength(1000)]]
+    });
 
     constructor() {
-        this.ratingForm = this.nonNullableFb.group({
-            rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
-            comment: ['', [Validators.maxLength(1000)]]
-        });
+        // Form is now initialized at declaration
     }
 
     ngOnInit(): void {
@@ -129,7 +129,6 @@ export class RecipeRatingsComponent implements OnInit {
 
             const ratingData = {
                 recipeId: this.recipeId,
-                authorId: currentPersonId,
                 rating: this.ratingForm.value.rating,
                 comment: this.ratingForm.value.comment
             };

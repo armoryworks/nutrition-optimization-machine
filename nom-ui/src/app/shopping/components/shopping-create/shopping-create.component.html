@@ -12,17 +12,17 @@
         <mat-label>Shopping List Name</mat-label>
         <input 
           matInput 
-          formControlName="Name"
+          formControlName="name"
           placeholder="Enter shopping list name..."
           class="shopping-create__input"
         />
-        @if (shoppingForm.get('Name')?.hasError('required')) {
+        @if (shoppingForm.get('name')?.hasError('required')) {
           <mat-error>Name is required</mat-error>
         }
-        @if (shoppingForm.get('Name')?.hasError('minlength')) {
+        @if (shoppingForm.get('name')?.hasError('minlength')) {
           <mat-error>Name must be at least 2 characters</mat-error>
         }
-        @if (shoppingForm.get('Name')?.hasError('maxlength')) {
+        @if (shoppingForm.get('name')?.hasError('maxlength')) {
           <mat-error>Name cannot exceed 100 characters</mat-error>
         }
       </mat-form-field>
@@ -32,12 +32,12 @@
         <mat-label>Description (Optional)</mat-label>
         <textarea 
           matInput 
-          formControlName="Description"
+          formControlName="description"
           placeholder="Add a description for your shopping list..."
           rows="3"
           class="shopping-create__textarea"
         ></textarea>
-        @if (shoppingForm.get('Description')?.hasError('maxlength')) {
+        @if (shoppingForm.get('description')?.hasError('maxlength')) {
           <mat-error>Description cannot exceed 500 characters</mat-error>
         }
       </mat-form-field>

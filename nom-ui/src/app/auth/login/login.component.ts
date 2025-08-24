@@ -50,17 +50,16 @@ export class LoginComponent {
   private authManager = inject(AuthManagerService);
   private notificationService = inject(NotificationService);
 
-  loginForm: FormGroup;
+  loginForm: FormGroup = this.nonNullableFb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+    rememberMe: [false],
+  });
+
   isLoading = false;
 
-
-
   constructor() {
-    this.loginForm = this.nonNullableFb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required],
-      rememberMe: [false],
-    });
+    // Form is now initialized at declaration
   }
 
 

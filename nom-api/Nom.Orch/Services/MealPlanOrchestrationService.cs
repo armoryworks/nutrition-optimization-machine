@@ -48,12 +48,12 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
-        public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model)
+        public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId)
         {
             var mealPlan = new MealPlanEntity
             {
                 HouseholdId = model.HouseholdId,
-                AuthorId = model.AuthorId,
+                AuthorId = authorId,
                 Date = model.Date,
                 MealTypeId = model.MealTypeId,
                 Title = model.Title,

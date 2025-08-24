@@ -1,46 +1,87 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="householdForm"
-  [isSubmitting]="isLoading"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
->
-  <div class="household-create">
-    <div class="household-create__container">
-      <!-- Household Name Field -->
-      <mat-form-field appearance="outline" class="household-create__field">
-        <mat-label>Household Name</mat-label>
-        <input 
-          matInput 
-          formControlName="Name"
-          placeholder="Enter household name..."
-          class="household-create__input"
-        />
-        @if (householdForm.get('Name')?.hasError('required')) {
-          <mat-error>Name is required</mat-error>
+<div class="household-create">
+  <div class="household-create__container">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>home</mat-icon>
+          {{ formConfig.title }}
+        </mat-card-title>
+        @if (formConfig.subtitle) {
+        <mat-card-subtitle>{{ formConfig.subtitle }}</mat-card-subtitle>
         }
-        @if (householdForm.get('Name')?.hasError('minlength')) {
-          <mat-error>Name must be at least 2 characters</mat-error>
-        }
-        @if (householdForm.get('Name')?.hasError('maxlength')) {
-          <mat-error>Name cannot exceed 100 characters</mat-error>
-        }
-      </mat-form-field>
+      </mat-card-header>
 
-      <!-- Description Field -->
-      <mat-form-field appearance="outline" class="household-create__field">
-        <mat-label>Description (Optional)</mat-label>
-        <textarea 
-          matInput 
-          formControlName="Description"
-          placeholder="Add a description for your household..."
-          rows="3"
-          class="household-create__textarea"
-        ></textarea>
-        @if (householdForm.get('Description')?.hasError('maxlength')) {
-          <mat-error>Description cannot exceed 500 characters</mat-error>
-        }
-      </mat-form-field>
-    </div>
+      <mat-card-content>
+        <form [formGroup]="householdForm" (ngSubmit)="onSubmit()">
+          <!-- Household Name Field -->
+          <mat-form-field appearance="outline" class="household-create__field">
+            <mat-label>
+              <mat-icon>edit</mat-icon>
+              Household Name
+            </mat-label>
+            <input matInput formControlName="name" placeholder="Enter a name for your household..."
+              class="household-create__input" required />
+            @if (householdForm.get('name')?.hasError('required')) {
+            <mat-error>
+              <mat-icon>error</mat-icon>
+              Name is required
+            </mat-error>
+            }
+            @if (householdForm.get('name')?.hasError('minlength')) {
+            <mat-error>
+              <mat-icon>error</mat-icon>
+              Name must be at least 2 characters
+            </mat-error>
+            }
+            @if (householdForm.get('name')?.hasError('maxlength')) {
+            <mat-error>
+              <mat-icon>error</mat-icon>
+              Name cannot exceed 100 characters
+            </mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Description Field -->
+          <mat-form-field appearance="outline" class="household-create__field">
+            <mat-label>
+              <mat-icon>description</mat-icon>
+              Description (Optional)
+            </mat-label>
+            <textarea matInput formControlName="description"
+              placeholder="Add a description to help identify your household..." rows="4"
+              class="household-create__textarea"></textarea>
+            @if (householdForm.get('description')?.hasError('maxlength')) {
+            <mat-error>
+              <mat-icon>error</mat-icon>
+              Description cannot exceed 500 characters
+            </mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <div class="action-buttons">
+              <button mat-button type="button" (click)="onCancel()" [disabled]="isLoading" class="cancel-button">
+                <mat-icon>close</mat-icon>
+                {{ formConfig.cancelText || 'Cancel' }}
+              </button>
+
+              <button mat-raised-button color="primary" type="submit" [disabled]="householdForm.invalid || isLoading"
+                class="submit-button">
+                @if (isLoading) {
+                <mat-spinner diameter="20" class="household-create__loading"></mat-spinner>
+                <span>Saving...</span>
+                } @else {
+                <ng-container>
+                  <mat-icon>check</mat-icon>
+                  <span>{{ formConfig.submitText || 'Create Household' }}</span>
+                </ng-container>
+                }
+              </button>
+            </div>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
   </div>
-</nom-base-form> 
+</div>

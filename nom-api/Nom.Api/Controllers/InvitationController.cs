@@ -22,7 +22,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var invitation = await _invitationOrchestrationService.CreateInvitationAsync(request);
+                var inviterPersonId = GetCurrentPersonIdRequired();
+                var invitation = await _invitationOrchestrationService.CreateInvitationAsync(request, inviterPersonId);
                 return Ok(invitation);
             }
             catch (Exception ex)

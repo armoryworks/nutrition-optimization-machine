@@ -39,7 +39,12 @@ export class ShoppingCreateComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private userInfoService = inject(UserInfoService);
 
-  shoppingForm: FormGroup;
+  shoppingForm: FormGroup = this.nonNullableFb.group({
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    description: ['', [Validators.maxLength(500)]],
+    householdId: [1]
+  });
+
   isLoading = false;
 
   formConfig: BaseFormConfig = {
@@ -51,14 +56,8 @@ export class ShoppingCreateComponent implements OnInit {
     maxWidth: '600px',
   };
 
-
-
   constructor() {
-    this.shoppingForm = this.nonNullableFb.group({
-      Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      Description: ['', [Validators.maxLength(500)]],
-      GroupId: [null]
-    });
+    // Form is now initialized at declaration
   }
 
   ngOnInit(): void {
@@ -70,9 +69,9 @@ export class ShoppingCreateComponent implements OnInit {
       this.isLoading = true;
 
       const createRequest = new ShoppingListCreateRequestModel({
-        name: this.shoppingForm.value.Name,
-        description: this.shoppingForm.value.Description,
-        householdId: 1 // Default household ID - you might want to get this from user context
+        name: this.shoppingForm.value.name,
+        description: this.shoppingForm.value.description,
+        householdId: this.shoppingForm.value.householdId
       });
 
       this.shoppingService.createShoppingList(createRequest).subscribe({

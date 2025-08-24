@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Nom.Orch.UtilityInterfaces;
+using Nom.Orch.UtilityServices;
 
 namespace Nom.Orch.UtilityServices
 {
@@ -377,56 +378,6 @@ namespace Nom.Orch.UtilityServices
             };
         }
 
-        public class SecurityEvent
-        {
-            public Guid Id { get; set; }
-            public SecurityEventType EventType { get; set; }
-            public string Description { get; set; } = string.Empty;
-            public string? UserId { get; set; }
-            public string? IpAddress { get; set; }
-            public DateTime Timestamp { get; set; }
-            public SecurityEventSeverity Severity { get; set; }
-        }
 
-        public class SecurityStatistics
-        {
-            public int TotalEvents { get; set; }
-            public int EventsLastHour { get; set; }
-            public int EventsLastDay { get; set; }
-            public int CriticalEvents { get; set; }
-            public int HighSeverityEvents { get; set; }
-            public int MediumSeverityEvents { get; set; }
-            public int LowSeverityEvents { get; set; }
-            public int FailedLoginAttempts { get; set; }
-            public int SuspiciousActivity { get; set; }
-            public int UnauthorizedAccess { get; set; }
-            public int DataBreachAttempts { get; set; }
-            public DateTime? LastEventTimestamp { get; set; }
-        }
-
-        public enum SecurityEventType
-        {
-            Login,
-            FailedLogin,
-            Logout,
-            DataAccess,
-            UnauthorizedAccess,
-            BruteForceAttempt,
-            AccountCompromise,
-            DataBreachAttempt,
-            DenialOfService,
-            SuspiciousActivity,
-            GeographicAnomaly,
-            TimeBasedAnomaly,
-            ResourceAnomaly
-        }
-
-        public enum SecurityEventSeverity
-        {
-            Low,
-            Medium,
-            High,
-            Critical
-        }
     }
 } 

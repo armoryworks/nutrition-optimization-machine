@@ -11,6 +11,9 @@ export class ShoppingListModel implements IShoppingListModel {
     modifiedDate?: Date;
     itemCount = 0;
     completedItemCount = 0;
+    authorId = 0;
+    createdById = 0;
+    userId = 0;
 
     constructor(data?: Partial<IShoppingListModel>) {
         if (data) {

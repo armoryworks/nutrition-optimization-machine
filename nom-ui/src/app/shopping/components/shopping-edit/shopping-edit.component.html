@@ -13,17 +13,17 @@
           <mat-label>Shopping List Name</mat-label>
           <input 
             matInput 
-            formControlName="Name" 
+            formControlName="name" 
             placeholder="Enter shopping list name"
             class="shopping-edit__input-field"
           >
-          <mat-error *ngIf="shoppingForm.get('Name')?.hasError('required')">
+          <mat-error *ngIf="shoppingForm.get('name')?.hasError('required')">
             Shopping list name is required
           </mat-error>
-          <mat-error *ngIf="shoppingForm.get('Name')?.hasError('minlength')">
+          <mat-error *ngIf="shoppingForm.get('name')?.hasError('minlength')">
             Shopping list name must be at least 2 characters
           </mat-error>
-          <mat-error *ngIf="shoppingForm.get('Name')?.hasError('maxlength')">
+          <mat-error *ngIf="shoppingForm.get('name')?.hasError('maxlength')">
             Shopping list name cannot exceed 100 characters
           </mat-error>
         </mat-form-field>
@@ -35,12 +35,12 @@
           <mat-label>Description (Optional)</mat-label>
           <textarea 
             matInput 
-            formControlName="Description" 
+            formControlName="description" 
             placeholder="Enter shopping list description"
             rows="4"
             class="shopping-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="shoppingForm.get('Description')?.hasError('maxlength')">
+          <mat-error *ngIf="shoppingForm.get('description')?.hasError('maxlength')">
             Description cannot exceed 500 characters
           </mat-error>
         </mat-form-field>

@@ -8,11 +8,18 @@ export class MealPlanModel implements IMealPlanModel {
     householdId = 0;
     date: Date = new Date();
     mealTypeId = 0;
+    mealType = '';
     title = '';
     notes?: string;
+    description?: string;
     recipeId?: number;
+    recipeName?: string;
+    groupName?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
+    authorId = 0;
+    createdById = 0;
+    userId = 0;
 
     constructor(data?: Partial<IMealPlanModel>) {
         if (data) {

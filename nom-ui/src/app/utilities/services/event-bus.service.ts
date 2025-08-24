@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 
-export interface AppEvent {
-    type: string;
-    data?: unknown;
-}
+import { AppEvent } from './app-event.interface';
 
 @Injectable({
     providedIn: 'root',

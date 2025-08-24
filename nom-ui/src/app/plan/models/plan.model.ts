@@ -4,17 +4,30 @@
  * Interface representing the structure of a nutritional plan.
  * Used on the frontend for data transfer and display.
  */
-export class PlanModel {
-    id = 0;
-    name = '';
-    description?: string;
-    startDate: Date = new Date();
-    endDate?: Date;
-    goals: GoalModel[] = [];
-    meals: MealModel[] = [];
-    restrictions: RestrictionModel[] = [];
-    createdDate: Date = new Date();
-    modifiedDate?: Date;
+export interface PlanModel {
+  id: number;
+  name: string;
+  description?: string;
+  startDate?: Date;
+  endDate?: Date;
+  invitationCode?: string;
+  curationStatus: string;
+  authorName: string;
+  dateSubmittedForCuration?: Date;
+  dateCurationCompleted?: Date;
+  parentPlanId?: number;
+  version: number;
+  createdDate: Date;
+  lastModifiedDate?: Date;
+  authorId: number;
+  createdById: number;
+  userId: number;
+
+  // Navigation properties
+  goals: GoalModel[];
+  meals: MealModel[];
+  restrictions: RestrictionModel[];
+  participants?: PlanParticipantModel[];
 }
 
 export interface GoalModel {

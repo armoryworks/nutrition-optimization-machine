@@ -14,19 +14,19 @@ namespace Nom.Orch.UtilityInterfaces
         /// <param name="description">Event description</param>
         /// <param name="userId">User ID (optional)</param>
         /// <param name="ipAddress">IP address (optional)</param>
-        void RecordSecurityEvent(AdvancedMonitoringService.SecurityEventType eventType, string description, string? userId = null, string? ipAddress = null);
+        void RecordSecurityEvent(SecurityEventType eventType, string description, string? userId = null, string? ipAddress = null);
 
         /// <summary>
         /// Gets security events for a time period
         /// </summary>
         /// <param name="since">Start time (optional)</param>
         /// <returns>List of security events</returns>
-        List<AdvancedMonitoringService.SecurityEvent> GetSecurityEvents(DateTime? since = null);
+        List<SecurityEvent> GetSecurityEvents(DateTime? since = null);
 
         /// <summary>
         /// Gets security statistics
         /// </summary>
         /// <returns>Security statistics</returns>
-        AdvancedMonitoringService.SecurityStatistics GetSecurityStatistics();
+        SecurityStatistics GetSecurityStatistics();
     }
 } 

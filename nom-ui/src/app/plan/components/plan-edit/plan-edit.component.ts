@@ -45,7 +45,13 @@ export class PlanEditComponent implements OnInit {
   @Output() formSubmitted = new EventEmitter<PlanModel>();
   @Output() back = new EventEmitter<void>();
 
-  planForm: FormGroup;
+  planForm: FormGroup = this.fb.group({
+    name: new FormControl('', Validators.required),
+    description: new FormControl(''),
+    invitationCode: new FormControl(''),
+    // No longer managing restrictions or participants directly here,
+    // but will collect them from child components if needed
+  });
 
   // Track the type of restriction being edited to pass to RestrictionEditComponent
   currentRestrictionType: RestrictionTypeEnum | undefined = undefined;
@@ -56,16 +62,8 @@ export class PlanEditComponent implements OnInit {
   // Expose enum to template
   public RestrictionTypeEnum = RestrictionTypeEnum;
 
-
-
   constructor() {
-    this.planForm = this.fb.group({
-      name: new FormControl('', Validators.required),
-      description: new FormControl(''),
-      invitationCode: new FormControl(''),
-      // No longer managing restrictions or participants directly here,
-      // but will collect them from child components if needed
-    });
+    // Form is now initialized at declaration
   }
 
   ngOnInit(): void {

@@ -7,10 +7,10 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { IngredientModel } from '../../models/ingredient.model';
 import { IngredientFormComponent, IngredientFormData } from '../ingredient-form/ingredient-form.component';
 
-export interface IngredientCreateModalData {
-    recipeId?: number;
-    ingredientName?: string;
-}
+import { IngredientCreateModalData } from './ingredient-create-modal-data.interface';
+
+// Re-export the interface for components that need it
+export type { IngredientCreateModalData } from './ingredient-create-modal-data.interface';
 
 @Component({
     selector: 'nom-ingredient-create-modal',

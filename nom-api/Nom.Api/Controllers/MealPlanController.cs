@@ -49,7 +49,8 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model);
+                var authorId = GetCurrentPersonIdRequired();
+                var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
                 return Ok(response);
             }
             catch (Exception ex)

@@ -47,13 +47,13 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
-        public async Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model)
+        public async Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model, long authorId)
         {
             var shoppingList = new ShoppingListEntity
             {
                 Name = model.Name,
                 Description = model.Description,
-                AuthorId = model.AuthorId,
+                AuthorId = authorId,
                 HouseholdId = model.HouseholdId,
                 GroupId = model.GroupId,
                 CreatedDate = DateTime.UtcNow,

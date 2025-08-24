@@ -43,13 +43,14 @@ To protect sensitive user data and ensure secure system access.
 
 ### Requirements
 
-| ID        | Requirement             | Status      | Details                                                 |
-| --------- | ----------------------- | ----------- | ------------------------------------------------------- |
-| NFR-6.2.1 | Data Protection         | ✅ COMPLETE | All sensitive user data transmitted and stored securely |
-| NFR-6.2.2 | Input Sanitization      | ✅ COMPLETE | User inputs properly sanitized and validated            |
-| NFR-6.2.3 | Access Control          | ✅ COMPLETE | Proper authorization checks for data access and actions |
-| NFR-6.2.4 | Encryption              | ✅ COMPLETE | Personal data encrypted in transit (TLS) and at rest    |
-| NFR-6.2.5 | Authentication Security | ✅ COMPLETE | Secure authentication with password complexity and 2FA  |
+| ID        | Requirement             | Status      | Details                                                                              |
+| --------- | ----------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| NFR-6.2.1 | Data Protection         | ✅ COMPLETE | All sensitive user data transmitted and stored securely                              |
+| NFR-6.2.2 | Input Sanitization      | ✅ COMPLETE | User inputs properly sanitized and validated                                         |
+| NFR-6.2.3 | Access Control          | ✅ COMPLETE | Proper authorization checks for data access and actions                              |
+| NFR-6.2.4 | Encryption              | ✅ COMPLETE | Personal data encrypted in transit (TLS) and at rest                                 |
+| NFR-6.2.5 | Authentication Security | ✅ COMPLETE | Secure authentication with password complexity and 2FA                               |
+| NFR-6.2.6 | User ID Security        | ✅ COMPLETE | Frontend never sends user IDs of the in-context user, backend gets from auth context |
 
 ### Security Implementations
 
@@ -60,6 +61,7 @@ To protect sensitive user data and ensure secure system access.
 - **Claims-Based Authorization**: `CanManageCuration`, `CanManageUserRoles` policies
 - **Two-Factor Authentication**: Optional 2FA with authenticator app support
 - **Password Security**: Complexity requirements and secure reset mechanisms
+- **User ID Security**: Frontend models never include user identification fields of the in-context user (AuthorId, CreatedById, UserId, PersonId), backend services receive user ID from authentication context
 
 #### Data Protection
 

@@ -18,19 +18,12 @@ import { ReferenceItemModel } from '../../../common/models/reference-item.model'
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
-export interface IngredientFormData {
-  recipeId?: number;
-  ingredientName?: string;
-}
+import { IngredientFormData } from './ingredient-form-data.interface';
+import { IngredientFormConfig } from './ingredient-form-config.interface';
 
-export interface IngredientFormConfig {
-  title: string;
-  subtitle?: string;
-  submitText: string;
-  showCancelButton: boolean;
-  cancelText: string;
-  maxWidth?: string;
-}
+// Re-export the interfaces for components that need them
+export type { IngredientFormData } from './ingredient-form-data.interface';
+export type { IngredientFormConfig } from './ingredient-form-config.interface';
 
 @Component({
   selector: 'nom-ingredient-form',
@@ -100,7 +93,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
     this.ingredientForm = this.nonNullableFb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
       description: ['', [Validators.maxLength(2047)]],
-      nutrients: this.nonNullableFb.array([])
+      nutrients: this.nonNullableFb.array([this.newNutrient()])
     });
   }
 
@@ -108,6 +101,11 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
     this.initializeForm();
     this.setupDuplicateChecking();
     this.loadMeasurementTypes();
+
+    // Add a default nutrient if none exist
+    if (this.nutrients.length === 0) {
+      this.addNutrient();
+    }
   }
 
   ngOnDestroy(): void {
@@ -211,6 +209,11 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
         measurementId: [nutrient.measurementId || 1, Validators.required]
       }));
     });
+
+    // Ensure at least one nutrient exists
+    if (this.nutrients.length === 0) {
+      this.addNutrient();
+    }
   }
 
   get nutrients(): FormArray {
@@ -236,6 +239,12 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.ingredientForm.invalid || this.isSubmitting) {
       this.ingredientForm.markAllAsTouched();
+      return;
+    }
+
+    // Ensure nutrients array exists and has at least one item
+    if (this.nutrients.length === 0) {
+      this.addNutrient();
       return;
     }
 

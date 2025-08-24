@@ -54,7 +54,10 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
 
   @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
 
-  personForm: FormGroup;
+  personForm: FormGroup = this.nonNullableFb.group({
+    name: new FormControl('', [Validators.required, Validators.minLength(2)]),
+  });
+
   isSubmitting = false;
   isLoading = false;
   error: string | null = null;
@@ -76,13 +79,8 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-
-
   constructor() {
-    // Always initialize the form group with default/empty values
-    this.personForm = this.nonNullableFb.group({
-      name: new FormControl('', [Validators.required, Validators.minLength(2)]),
-    });
+    // Form is now initialized at declaration
   }
 
 

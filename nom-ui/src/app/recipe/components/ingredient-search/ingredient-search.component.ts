@@ -21,7 +21,6 @@ import {
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { IngredientModel } from '../../models/ingredient.model';
-import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component';
 import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
 
 @Component({
@@ -34,7 +33,6 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     MatInputModule,
     MatAutocompleteModule,
     MatProgressSpinnerModule,
-    IngredientDetailsComponent,
     BaseListComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],

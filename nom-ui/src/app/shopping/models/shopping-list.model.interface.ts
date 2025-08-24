@@ -9,4 +9,7 @@ export interface IShoppingListModel {
     modifiedDate?: Date;
     itemCount: number;
     completedItemCount: number;
+    authorId: number;
+    createdById: number;
+    userId: number;
 } 

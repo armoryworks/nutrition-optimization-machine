@@ -9,7 +9,7 @@ namespace Nom.Orch.Interfaces
     public interface IShoppingListOrchestrationService
     {
         Task<List<ShoppingListResponseModel>> GetAllShoppingListsAsync();
-        Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model);
+        Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model, long authorId);
         Task<ShoppingListResponseModel?> GetShoppingListAsync(long id);
         Task<ShoppingListResponseModel?> UpdateShoppingListAsync(long id, ShoppingListUpdateModel model);
         Task<bool> DeleteShoppingListAsync(long id);

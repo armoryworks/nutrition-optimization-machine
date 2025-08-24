@@ -13,7 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdCreateRequestModel } from '../../models/household-create-request.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 
 @Component({
     selector: 'nom-household-create',
@@ -27,7 +27,7 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
-        BaseFormComponent,
+
     ],
     templateUrl: './household-create.component.html',
     styleUrls: ['./household-create.component.scss']
@@ -39,7 +39,11 @@ export class HouseholdCreateComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private userInfoService = inject(UserInfoService);
 
-    householdForm: FormGroup;
+    householdForm: FormGroup = this.nonNullableFb.group({
+        name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+        description: ['', [Validators.maxLength(500)]]
+    });
+
     isLoading = false;
 
     formConfig: BaseFormConfig = {
@@ -52,11 +56,7 @@ export class HouseholdCreateComponent implements OnInit {
     };
 
     constructor() {
-        this.householdForm = this.nonNullableFb.group({
-            Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-            Description: ['', [Validators.maxLength(500)]],
-            GroupId: [null]
-        });
+        // Form is now initialized at declaration
     }
 
     ngOnInit(): void {
@@ -68,8 +68,9 @@ export class HouseholdCreateComponent implements OnInit {
             this.isLoading = true;
 
             const createRequest = new HouseholdCreateRequestModel({
-                name: this.householdForm.value.Name,
-                description: this.householdForm.value.Description
+                name: this.householdForm.value.name,
+                description: this.householdForm.value.description,
+                groupId: 3 // Temporary: Using Recipe Type group ID (3) to fix foreign key constraint
             });
 
             this.householdService.createHousehold(createRequest).subscribe({

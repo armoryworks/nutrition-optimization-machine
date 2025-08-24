@@ -1854,13 +1854,130 @@ public class DataProcessingLogEntity : BaseEntity
 
 ### Security Anti-Patterns
 
-| ❌ NEVER DO                          | ✅ ALWAYS DO                     |
-| ------------------------------------ | -------------------------------- |
-| Store sensitive data in localStorage | Use secure HTTP-only cookies     |
-| Trust client-side validation         | Implement server-side validation |
-| Expose internal IDs in URLs          | Use opaque identifiers           |
-| Log sensitive information            | Implement proper audit logging   |
-| Hardcode connection strings          | Use configuration management     |
+| ❌ NEVER DO                                | ✅ ALWAYS DO                      |
+| ------------------------------------------ | --------------------------------- |
+| Store sensitive data in localStorage       | Use secure HTTP-only cookies      |
+| Trust client-side validation               | Implement server-side validation  |
+| Expose internal IDs in URLs                | Use opaque identifiers            |
+| Log sensitive information                  | Implement proper audit logging    |
+| Hardcode connection strings                | Use configuration management      |
+| **Pass in-context user IDs from frontend** | **Get user ID from auth context** |
+
+### User ID Security Requirements
+
+**🚨 CRITICAL: NEVER pass user identification of the in-context user from frontend to backend**
+
+**Security Principle:**
+
+- **Frontend**: Never sends `AuthorId`, `CreatedById`, `UserId`, `PersonId`, or similar fields of the in-context user in request payloads
+- **Backend**: Always determines current user ID from authentication context (claims, JWT, etc.)
+- **Database**: Stores user ID for audit/ownership purposes
+- **Response**: Can include user ID for display/authorization purposes
+- **Display Fields**: `authorName`, `creatorName` fields are acceptable for showing who created content (read-only)
+- **Other User IDs**: Frontend CAN send user IDs of OTHER users (e.g., `inviteePersonId`, `assigneeId`) when referencing someone else
+
+**Backend Authentication Context Methods:**
+
+- **Controllers**: Use `GetCurrentPersonIdRequired()` from `_BaseApiController`
+- **Services**: Accept `long currentPersonId` as a parameter from the controller
+- **Entities**: Set `AuthorId`, `CreatedByPersonId` from the service parameter, not from request models
+
+**❌ FORBIDDEN Patterns:**
+
+```typescript
+// Frontend models - NEVER include user ID fields
+export interface RecipeCreateModel {
+  name: string;
+  description: string;
+  authorId: number; // ❌ FORBIDDEN - Remove this field
+  personId: number; // ❌ FORBIDDEN - Remove this field
+  ingredients: string[];
+}
+
+// Frontend components - NEVER set user ID in requests
+const request = {
+  name: "My Recipe",
+  authorId: currentUser.id, // ❌ FORBIDDEN - Remove this assignment
+  personId: currentUser.personId, // ❌ FORBIDDEN - Remove this assignment
+};
+```
+
+**✅ REQUIRED Patterns:**
+
+**Backend - Getting In-Context User ID:**
+
+```csharp
+// In Controllers - Use base controller method
+public async Task<ActionResult<RecipeModel>> CreateRecipe([FromBody] RecipeCreateRequest request)
+{
+    var currentPersonId = GetCurrentPersonIdRequired(); // ✅ Gets authenticated user's person ID
+    var recipe = await _recipeService.CreateAsync(request, currentPersonId);
+    return Ok(recipe);
+}
+
+// In Services - Accept person ID as parameter
+public async Task<RecipeModel> CreateAsync(RecipeCreateRequest request, long currentPersonId)
+{
+    var recipe = new RecipeEntity
+    {
+        Name = request.Name,
+        AuthorId = currentPersonId, // ✅ Set from parameter, not from request
+        CreatedByPersonId = currentPersonId
+    };
+    // ... rest of implementation
+}
+```
+
+**Frontend - Clean Request Models:**
+
+```typescript
+// Frontend models - Only business data, no in-context user identification
+export interface RecipeCreateModel {
+  name: string;
+  description: string;
+  ingredients: string[];
+  // ✅ Clean - No in-context user ID fields
+}
+
+// Frontend models - CAN include other user IDs when referencing someone else
+export interface InvitationClaimModel {
+  invitationCode: string;
+  inviteePersonId: number; // ✅ Acceptable - This is someone else's ID
+}
+
+// Frontend components - Only send business data
+const request = {
+  name: "My Recipe",
+  ingredients: ["flour", "sugar"],
+  // ✅ Clean - No user ID assignment
+};
+```
+
+**Security Verification Checklist:**
+
+- [ ] No frontend models have `authorId`, `createdById`, `userId` fields
+- [ ] No frontend components set user ID in request payloads
+- [ ] All backend services receive user ID as parameter (not from request)
+- [ ] All backend controllers get user ID from authentication context
+- [ ] All request models are clean of user identification fields
+- [ ] Response models can still include user ID for display purposes
+- [ ] Entity models keep user ID for database storage
+- [ ] `authorName`, `creatorName` fields are acceptable for display (read-only from API)
+
+**Important Distinction:**
+
+- **❌ FORBIDDEN**: `authorId: number` - Numeric user ID that could be manipulated
+- **✅ ACCEPTABLE**: `authorName: string` - Display name for showing who created content
+- **❌ FORBIDDEN**: `CreatedById: number` - Numeric user ID in request payloads
+- **✅ ACCEPTABLE**: `creatorName: string` - Display name in response models
+
+**Why This Matters:**
+
+1. **Prevents Impersonation**: Users cannot create content as other users
+2. **Maintains Data Integrity**: All content is properly attributed to actual creators
+3. **Audit Trail**: Accurate tracking of who created/modified what
+4. **Security Compliance**: Meets enterprise security requirements
+5. **Trust Boundary**: Clear separation between client and server responsibilities
 
 ## Material 3 Theming Requirements
 

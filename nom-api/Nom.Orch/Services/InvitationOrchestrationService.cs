@@ -22,14 +22,14 @@ namespace Nom.Orch.Services
             _logger = logger;
         }
 
-        public async Task<InvitationModel> CreateInvitationAsync(CreateInvitationRequest request)
+        public async Task<InvitationModel> CreateInvitationAsync(CreateInvitationRequest request, long inviterPersonId)
         {
-            _logger.LogInformation("Creating invitation for inviter {InviterPersonId}", request.InviterPersonId);
+            _logger.LogInformation("Creating invitation for inviter {InviterPersonId}", inviterPersonId);
 
             var invitation = new InvitationEntity
             {
                 Code = GenerateInvitationCode(),
-                InviterPersonId = request.InviterPersonId,
+                InviterPersonId = inviterPersonId,
                 InvitationType = request.InvitationType,
                 PlanId = request.PlanId,
                 ExpirationDate = request.ExpirationDate,

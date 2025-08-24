@@ -4,18 +4,8 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, filter } from 'rxjs/operators';
 import { EventBusService } from './event-bus.service';
 
-export interface UserClaim {
-    type: string;
-    value: string;
-}
-
-export interface UserInfo {
-    personId: number;
-    userId?: string;
-    email?: string;
-    userName?: string;
-    claims: UserClaim[];
-}
+import { UserClaim } from './user-claim.interface';
+import { UserInfo } from './user-info.interface';
 
 @Injectable({
     providedIn: 'root'

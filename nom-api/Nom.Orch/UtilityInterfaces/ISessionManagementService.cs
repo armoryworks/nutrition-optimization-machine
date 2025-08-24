@@ -14,7 +14,7 @@ namespace Nom.Orch.UtilityInterfaces
         /// <param name="deviceInfo">Device information</param>
         /// <param name="ipAddress">IP address</param>
         /// <returns>Session information</returns>
-        Task<SessionManagementService.SessionInfo> CreateSessionAsync(string userId, string deviceInfo, string ipAddress);
+        Task<SessionInfo> CreateSessionAsync(string userId, string deviceInfo, string ipAddress);
 
         /// <summary>
         /// Validates a session and updates last activity
@@ -28,14 +28,14 @@ namespace Nom.Orch.UtilityInterfaces
         /// </summary>
         /// <param name="sessionId">The session ID</param>
         /// <returns>Session information or null</returns>
-        SessionManagementService.SessionInfo? GetSessionInfo(string sessionId);
+        SessionInfo? GetSessionInfo(string sessionId);
 
         /// <summary>
         /// Gets all active sessions for a user
         /// </summary>
         /// <param name="userId">The user ID</param>
         /// <returns>List of active sessions</returns>
-        Task<List<SessionManagementService.SessionInfo>> GetUserSessionsAsync(string userId);
+        Task<List<SessionInfo>> GetUserSessionsAsync(string userId);
 
         /// <summary>
         /// Invalidates a specific session
@@ -63,7 +63,7 @@ namespace Nom.Orch.UtilityInterfaces
         /// </summary>
         /// <param name="userId">The user ID</param>
         /// <returns>Session statistics</returns>
-        Task<SessionManagementService.SessionStatistics> GetSessionStatisticsAsync(string userId);
+        Task<SessionStatistics> GetSessionStatisticsAsync(string userId);
 
         /// <summary>
         /// Cleans up expired sessions

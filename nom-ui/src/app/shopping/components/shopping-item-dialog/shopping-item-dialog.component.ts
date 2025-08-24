@@ -13,20 +13,8 @@ import { ConfigurationService } from '../../../common/services/configuration.ser
 import { ReferenceSelectorComponent } from '../../../common/components/reference-selector/reference-selector.component';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
-export interface ShoppingItemDialogData {
-    mode: 'add' | 'edit';
-    item?: any;
-}
-
-export interface ShoppingItemFormData {
-    name: string;
-    description: string;
-    quantity: number;
-    unit: string;
-    category: string;
-    priority: string;
-    isCompleted: boolean;
-}
+import { ShoppingItemDialogData } from './shopping-item-dialog-data.interface';
+import { ShoppingItemFormData } from './shopping-item-form-data.interface';
 
 @Component({
     selector: 'nom-shopping-item-dialog',

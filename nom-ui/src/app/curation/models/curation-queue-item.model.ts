@@ -8,5 +8,4 @@ export interface CurationQueueItemModel {
     instructions?: string; // For recipes
     rawIngredientsString?: string; // For recipes
     sourceUrl?: string;
-    authorId: number;
 } 

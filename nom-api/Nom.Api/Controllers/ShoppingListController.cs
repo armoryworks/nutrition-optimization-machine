@@ -49,7 +49,8 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var response = await _shoppingListOrchestrationService.CreateShoppingListAsync(model);
+                var authorId = GetCurrentPersonIdRequired();
+                var response = await _shoppingListOrchestrationService.CreateShoppingListAsync(model, authorId);
                 return Ok(response);
             }
             catch (Exception ex)

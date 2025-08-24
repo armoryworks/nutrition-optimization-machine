@@ -6,7 +6,7 @@ namespace Nom.Orch.Interfaces
 {
     public interface IInvitationOrchestrationService
     {
-        Task<InvitationModel> CreateInvitationAsync(CreateInvitationRequest request);
+        Task<InvitationModel> CreateInvitationAsync(CreateInvitationRequest request, long inviterPersonId);
         Task<InvitationModel> ClaimInvitationAsync(ClaimInvitationRequest request);
         Task<InvitationModel?> GetInvitationByCodeAsync(string code);
         Task<List<InvitationModel>> GetInvitationsByInviterAsync(long inviterPersonId);

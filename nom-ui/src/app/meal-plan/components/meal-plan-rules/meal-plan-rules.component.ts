@@ -115,6 +115,7 @@ export class MealPlanRulesComponent implements OnInit {
     const formValue = this.ruleForm.value;
 
     const request: MealPlanRuleCreateRequestModel = {
+      id: 0,
       householdId: this.getCurrentHouseholdId(),
       name: formValue.name || 'Meal Plan Rule',
       dayOfWeekId: formValue.dayOfWeekId,

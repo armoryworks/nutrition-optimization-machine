@@ -353,7 +353,7 @@ namespace Nom.Orch.Services
                 Id = ingredient.Id,
                 Name = ingredient.Name,
                 Description = ingredient.Description,
-                AuthorId = ingredient.CreatedByPersonId,
+                AuthorId = ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
@@ -382,7 +382,7 @@ namespace Nom.Orch.Services
                 Id = ingredient.Id,
                 Name = ingredient.Name,
                 Description = ingredient.Description,
-                AuthorId = ingredient.CreatedByPersonId,
+                AuthorId = ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = "NonCurated",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
@@ -407,7 +407,7 @@ namespace Nom.Orch.Services
                 Id = ingredient.Id,
                 Name = ingredient.Name,
                 Description = ingredient.Description,
-                AuthorId = ingredient.CreatedByPersonId,
+                AuthorId = ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
             };
@@ -429,7 +429,7 @@ namespace Nom.Orch.Services
                     Id = ingredient.Id,
                     Name = ingredient.Name,
                     Description = ingredient.Description,
-                    AuthorId = ingredient.CreatedByPersonId,
+                    AuthorId = ingredient.CreatedByPersonId ?? 0L,
                     CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                     Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
                 });

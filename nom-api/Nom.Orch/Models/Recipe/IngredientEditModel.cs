@@ -11,5 +11,8 @@ namespace Nom.Orch.Models.Recipe
         public string? Description { get; set; }
         public string? CurationStatus { get; set; }
         public List<NutrientValueModel> Nutrients { get; set; } = new List<NutrientValueModel>();
+        public long AuthorId { get; set; }
+        public long CreatedById { get; set; }
+        public long UserId { get; set; }
     }
 }

@@ -46,6 +46,25 @@ export const routes: Routes = [
   },
 
   // --- NEW LAZY-LOADED FEATURE ROUTES ---
+
+  // Redirects for singular versions of plural paths
+  { path: 'recipe', redirectTo: 'recipes', pathMatch: 'full' },
+  { path: 'meal-plans', redirectTo: 'meal-plan', pathMatch: 'full' },
+  { path: 'shopping-list', redirectTo: 'shopping', pathMatch: 'full' },
+  { path: 'shopping-lists', redirectTo: 'shopping', pathMatch: 'full' },
+  { path: 'households', redirectTo: 'household', pathMatch: 'full' },
+  { path: 'users', redirectTo: 'user', pathMatch: 'full' },
+  { path: 'admin-panel', redirectTo: 'admin', pathMatch: 'full' },
+  { path: 'curations', redirectTo: 'curation', pathMatch: 'full' },
+
+
+  // Additional common redirects
+  { path: 'profile', redirectTo: 'user/profile', pathMatch: 'full' },
+  { path: 'settings', redirectTo: 'user/settings', pathMatch: 'full' },
+  { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'plans', redirectTo: 'curated-plans', pathMatch: 'full' },
+  { path: 'plan', redirectTo: 'curated-plans', pathMatch: 'full' },
+
   {
     path: 'recipes',
     loadChildren: () => import('./recipe/recipe.routes').then(m => m.RECIPE_ROUTES),
@@ -63,6 +82,11 @@ export const routes: Routes = [
   },
   {
     path: 'messaging',
+    loadChildren: () => import('./communication/communication.routes').then(m => m.COMMUNICATION_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'communication',
     loadChildren: () => import('./communication/communication.routes').then(m => m.COMMUNICATION_ROUTES),
     canActivate: [AuthGuard]
   },

@@ -1,15 +1,5 @@
-import { PersonAttributeModel } from '../models/person-attribute.model'; // Adjust path if necessary
-
-/**
- * Interface representing the structure of a person.
- * Used on the frontend for data transfer and display.
- */
-export interface IPersonModel {
-  id?: number;
-  name: string;
-  // Add other properties if needed (e.g., email, date of birth)
-  attributes?: PersonAttributeModel[]; // NEW: To hold health attributes for this person
-}
+import { PersonAttributeModel } from './person-attribute.model';
+import { IPersonModel } from './person.interface';
 
 /**
  * Model class for a person, implementing IPersonModel.

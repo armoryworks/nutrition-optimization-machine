@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Nom.Orch.UtilityInterfaces;
+using Nom.Orch.UtilityServices;
 
 namespace Nom.Orch.UtilityServices
 {
@@ -386,25 +387,6 @@ namespace Nom.Orch.UtilityServices
             }
         }
 
-        public class SessionInfo
-        {
-            public string SessionId { get; set; } = string.Empty;
-            public string UserId { get; set; } = string.Empty;
-            public string DeviceInfo { get; set; } = string.Empty;
-            public string IpAddress { get; set; } = string.Empty;
-            public DateTime CreatedAt { get; set; }
-            public DateTime LastActivity { get; set; }
-            public bool IsActive { get; set; }
-        }
 
-        public class SessionStatistics
-        {
-            public int TotalActiveSessions { get; set; }
-            public int MaxConcurrentSessions { get; set; }
-            public DateTime? OldestSession { get; set; }
-            public DateTime? NewestSession { get; set; }
-            public Dictionary<string, int> SessionsByDevice { get; set; } = new Dictionary<string, int>();
-            public Dictionary<string, int> SessionsByIp { get; set; } = new Dictionary<string, int>();
-        }
     }
 }

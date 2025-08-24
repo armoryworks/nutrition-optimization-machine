@@ -1,4 +1,4 @@
-// Component styles only - theme is handled globally
+// Component styles following Material Design principles and theme system
 
 .household-create {
   display: flex;
@@ -6,126 +6,274 @@
   align-items: flex-start;
   min-height: 100vh;
   padding: 2rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: var(--mat-sys-background);
+  color: var(--mat-sys-on-background);
+  animation: fadeIn 0.3s ease-out;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
   }
 
   &__container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+    width: 100%;
     max-width: 600px;
     margin: 0 auto;
+    animation: slideUp 0.4s ease-out 0.1s both;
   }
 
-  &__card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-  }
+  // Material Card overrides for consistent theming
+  ::ng-deep {
+    .mat-mdc-card {
+      background-color: var(--mat-sys-surface-container);
+      color: var(--mat-sys-on-surface);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--mat-sys-outline-variant);
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &__header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 2rem 1.5rem;
+      &:hover {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+      }
+    }
 
-    @media (max-width: 768px) {
-      padding: 1.5rem 1rem 1rem;
+    .mat-mdc-card-header {
+      background-color: var(--mat-sys-surface-container-high);
+      color: var(--mat-sys-on-surface);
+      padding: 2rem 2rem 1.5rem;
+      margin: 0;
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+      @media (max-width: 768px) {
+        padding: 1.5rem 1rem 1rem;
+      }
+    }
+
+    .mat-mdc-card-title {
+      font: var(--mat-sys-headline-large);
+      color: var(--mat-sys-on-surface);
+      margin: 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      @media (max-width: 768px) {
+        font: var(--mat-sys-headline-medium);
+      }
+
+      .mat-icon {
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--mat-sys-primary);
+        opacity: 0.9;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .mat-mdc-card-subtitle {
+      font: var(--mat-sys-body-large);
+      color: var(--mat-sys-on-surface-variant);
+      margin: 0.75rem 0 0;
+      line-height: 1.5;
+      opacity: 0.9;
+
+      @media (max-width: 768px) {
+        font: var(--mat-sys-body-medium);
+      }
+    }
+
+    .mat-mdc-card-content {
+      padding: 2rem;
+      background-color: var(--mat-sys-surface-container);
+
+      @media (max-width: 768px) {
+        padding: 1.5rem 1rem;
+      }
     }
   }
 
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0;
-    color: white;
-
-    @media (max-width: 768px) {
-      font-size: 1.5rem;
-    }
-  }
-
-  &__title-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-
-    @media (max-width: 768px) {
-      font-size: 1.75rem;
-      width: 1.75rem;
-      height: 1.75rem;
-    }
-  }
-
-  &__subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
-    margin: 0.5rem 0 0;
-    line-height: 1.5;
-  }
-
-  &__content {
-    padding: 2rem;
-
-    @media (max-width: 768px) {
-      padding: 1.5rem 1rem;
-    }
-  }
-
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  &__form-row {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
+  // Form styling
   &__field {
     width: 100%;
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 0.4s ease-out both;
 
-    &--full {
-      flex: 1;
+    &:nth-child(1) { animation-delay: 0.2s; }
+    &:nth-child(2) { animation-delay: 0.3s; }
+
+    &:last-of-type {
+      margin-bottom: 2rem;
     }
   }
 
-  &__input {
-    font-size: 16px;
-  }
+  // Material form field overrides
+  ::ng-deep {
+    .mat-mdc-form-field {
+      width: 100%;
 
-  &__textarea {
-    font-size: 16px;
-    line-height: 1.5;
-    resize: vertical;
-    min-height: 80px;
-  }
+      .mat-mdc-form-field-flex {
+        background-color: var(--mat-sys-surface-container-low);
+        border-radius: 12px;
+        border: 2px solid var(--mat-sys-outline-variant);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        min-height: 56px;
+        position: relative;
+        overflow: hidden;
 
-  &__actions {
-    padding: 1.5rem 2rem 2rem;
-    display: flex;
-    justify-content: flex-end;
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(var(--mat-sys-primary), 0.1), transparent);
+          transition: left 0.5s ease;
+        }
 
-    @media (max-width: 768px) {
-      padding: 1rem 1rem 1.5rem;
-      flex-direction: column;
-      gap: 1rem;
+        &:hover {
+          border-color: var(--mat-sys-outline);
+          background-color: var(--mat-sys-surface-container);
+
+          &::before {
+            left: 100%;
+          }
+        }
+
+        &.mat-focused {
+          border-color: var(--mat-sys-primary);
+          background-color: var(--mat-sys-surface-container);
+          box-shadow: 0 0 0 4px rgba(var(--mat-sys-primary), 0.12);
+
+          &::before {
+            display: none;
+          }
+        }
+      }
+
+      .mat-mdc-form-field-focus-overlay {
+        background: transparent;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        padding: 0;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        margin-top: 0.5rem;
+      }
+
+      .mat-mdc-form-field-label {
+        color: var(--mat-sys-on-surface-variant);
+        font: var(--mat-sys-body-medium);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: color 0.3s ease;
+        padding: 0 20px;
+        margin-top: 8px;
+
+        .mat-icon {
+          font-size: 1rem;
+          width: 1rem;
+          height: 1rem;
+          opacity: 0.7;
+          transition: all 0.3s ease;
+          color: var(--mat-sys-on-surface-variant);
+        }
+
+        &:hover .mat-icon {
+          opacity: 1;
+          transform: scale(1.1);
+          color: var(--mat-sys-primary);
+        }
+
+        &.mat-mdc-form-field-label-floating {
+          color: var(--mat-sys-primary);
+          
+          .mat-icon {
+            color: var(--mat-sys-primary);
+            opacity: 0.9;
+          }
+        }
+      }
+
+      .mat-mdc-input-element {
+        color: var(--mat-sys-on-surface);
+        font: var(--mat-sys-body-large);
+        padding: 16px 20px;
+        line-height: 1.5;
+        transition: all 0.3s ease;
+
+        &::placeholder {
+          color: var(--mat-sys-on-surface-variant);
+          opacity: 0.7;
+          transition: opacity 0.3s ease;
+        }
+
+        &:focus::placeholder {
+          opacity: 0.5;
+        }
+      }
+
+      .mat-mdc-form-field-error {
+        color: var(--mat-sys-error);
+        font: var(--mat-sys-body-small);
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        animation: shake 0.5s ease-in-out;
+        padding: 0 20px;
+
+        .mat-icon {
+          font-size: 0.875rem;
+          width: 0.875rem;
+          height: 0.875rem;
+        }
+      }
+
+      // Remove default Material Design outline
+      .mat-mdc-form-field-outline {
+        display: none;
+      }
+
+      // Custom outline for better visual hierarchy
+      .mat-mdc-form-field-outline-thick {
+        display: none;
+      }
+    }
+
+    // Textarea specific styling
+    .mat-mdc-textarea {
+      .mat-mdc-input-element {
+        min-height: 120px;
+        resize: vertical;
+        line-height: 1.6;
+      }
     }
   }
 
-  &__action-buttons {
+  // Form actions
+  .form-actions {
+    padding-top: 1rem;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    margin-top: 1rem;
+    animation: fadeInUp 0.4s ease-out 0.4s both;
+  }
+
+  .action-buttons {
     display: flex;
     gap: 1rem;
+    justify-content: flex-end;
     align-items: center;
 
     @media (max-width: 768px) {
@@ -134,130 +282,183 @@
     }
   }
 
-  &__button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // Button styling
+  ::ng-deep {
+    .mat-mdc-button,
+    .mat-mdc-raised-button {
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0.025em;
+      padding: 12px 24px;
+      min-height: 48px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
 
-    @media (max-width: 768px) {
-      width: 100%;
-      justify-content: center;
-      padding: 0.75rem 1rem;
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s ease, height 0.6s ease;
+      }
+
+      &:active::before {
+        width: 300px;
+        height: 300px;
+      }
+
+      @media (max-width: 768px) {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .mat-icon {
+        margin-right: 0.5rem;
+        transition: transform 0.3s ease;
+      }
+
+      &:hover .mat-icon {
+        transform: scale(1.1);
+      }
     }
 
-    &--primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    .mat-mdc-button {
+      color: var(--mat-sys-on-surface-variant);
+      border: 2px solid var(--mat-sys-outline-variant);
 
       &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        background-color: var(--mat-sys-surface-container-high);
+        border-color: var(--mat-sys-outline);
+        color: var(--mat-sys-on-surface);
+        transform: translateY(-1px);
       }
 
       &:disabled {
-        background: rgba(102, 126, 234, 0.3);
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--mat-sys-on-surface-variant);
+        border-color: var(--mat-sys-outline-variant);
+        opacity: 0.5;
+      }
+    }
+
+    .mat-mdc-raised-button.mat-primary {
+      background-color: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      box-shadow: 0 4px 12px rgba(var(--mat-sys-primary), 0.3);
+
+      &:hover:not(:disabled) {
+        background-color: var(--mat-sys-primary);
+        box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        background-color: var(--mat-sys-surface-variant);
+        color: var(--mat-sys-on-surface-variant);
         box-shadow: none;
       }
     }
-
-    &--secondary {
-      color: #666;
-      border: 1px solid #ddd;
-
-      &:hover:not(:disabled) {
-        background: #f5f5f5;
-        border-color: #ccc;
-      }
-
-      &:disabled {
-        color: #ccc;
-        border-color: #eee;
-      }
-    }
   }
 
-  &__spinner {
-    margin-right: 0.5rem;
+  // Loading state
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--mat-sys-on-primary);
+    animation: pulse 2s ease-in-out infinite;
   }
 }
 
-// Material form field overrides
-::ng-deep {
-  .mat-mdc-form-field {
-    .mat-mdc-form-field-flex {
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 8px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-
-      &:hover {
-        border-color: rgba(102, 126, 234, 0.5);
-        background: rgba(255, 255, 255, 0.9);
-      }
-
-      &.mat-focused {
-        border-color: #667eea;
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-      }
-    }
-
-    .mat-mdc-form-field-focus-overlay {
-      background: transparent;
-    }
-
-    .mat-mdc-text-field-wrapper {
-      padding: 0;
-    }
-
-    .mat-mdc-form-field-subscript-wrapper {
-      margin-top: 0.25rem;
-    }
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-
-  .mat-mdc-card {
-    .mat-mdc-card-header {
-      padding: 0;
-    }
-
-    .mat-mdc-card-content {
-      padding: 0;
-    }
-
-    .mat-mdc-card-actions {
-      padding: 0;
-    }
+  to {
+    opacity: 1;
   }
 }
 
-// Material 3 theme overrides
-mat-form-field {
-  .mat-mdc-form-field {
-    width: 100%;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
   }
-
-  .mat-mdc-text-field-wrapper {
-    border-radius: 8px;
-  }
-
-  .mat-mdc-form-field-focus-overlay {
-    background-color: transparent;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-// Responsive Design
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Responsive adjustments
 @media (max-width: 768px) {
   .household-create {
     &__container {
-      padding: 0 16px;
+      padding: 0;
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .household-create {
+    ::ng-deep {
+      .mat-mdc-card {
+        border: 2px solid var(--mat-sys-outline);
+      }
+
+      .mat-mdc-form-field .mat-mdc-form-field-flex {
+        border-width: 2px;
+      }
     }
   }
 } 

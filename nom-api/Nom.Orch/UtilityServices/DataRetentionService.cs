@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Nom.Orch.UtilityInterfaces;
+using Nom.Orch.UtilityServices;
 
 namespace Nom.Orch.UtilityServices
 {
@@ -445,31 +446,6 @@ namespace Nom.Orch.UtilityServices
             }
         }
 
-        public class DataRetentionReport
-        {
-            public DateTime ExecutionTime { get; set; }
-            public bool Success { get; set; }
-            public string? ErrorMessage { get; set; }
-            public List<CleanupResult> CleanupResults { get; set; } = new List<CleanupResult>();
-        }
 
-        public class CleanupResult
-        {
-            public string DataType { get; set; } = string.Empty;
-            public int RecordsDeleted { get; set; }
-            public int RetentionPeriodDays { get; set; }
-            public bool Success { get; set; }
-            public string? ErrorMessage { get; set; }
-        }
-
-        public class DataRetentionStatistics
-        {
-            public int UserActivityRecords { get; set; }
-            public int AuditLogRecords { get; set; }
-            public int PrivacyRequestRecords { get; set; }
-            public int TemporaryFileRecords { get; set; }
-            public int OrphanedDataRecords { get; set; }
-            public DateTime? LastCleanupDate { get; set; }
-        }
     }
 } 

@@ -9,7 +9,7 @@ namespace Nom.Orch.Interfaces
     public interface IMealPlanOrchestrationService
     {
         Task<List<MealPlanResponseModel>> GetAllMealPlansAsync();
-        Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model);
+        Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId);
         Task<MealPlanResponseModel?> GetMealPlanAsync(long id);
         Task<MealPlanResponseModel?> UpdateMealPlanAsync(long id, MealPlanUpdateModel model);
         Task<bool> DeleteMealPlanAsync(long id);

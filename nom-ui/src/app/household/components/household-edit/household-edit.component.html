@@ -13,17 +13,17 @@
           <mat-label>Household Name</mat-label>
           <input 
             matInput 
-            formControlName="Name" 
+            formControlName="name" 
             placeholder="Enter household name"
             class="household-edit__input-field"
           >
-          <mat-error *ngIf="householdForm.get('Name')?.hasError('required')">
+          <mat-error *ngIf="householdForm.get('name')?.hasError('required')">
             Household name is required
           </mat-error>
-          <mat-error *ngIf="householdForm.get('Name')?.hasError('minlength')">
+          <mat-error *ngIf="householdForm.get('name')?.hasError('minlength')">
             Household name must be at least 2 characters
           </mat-error>
-          <mat-error *ngIf="householdForm.get('Name')?.hasError('maxlength')">
+          <mat-error *ngIf="householdForm.get('name')?.hasError('maxlength')">
             Household name cannot exceed 100 characters
           </mat-error>
         </mat-form-field>
@@ -35,12 +35,12 @@
           <mat-label>Description (Optional)</mat-label>
           <textarea 
             matInput 
-            formControlName="Description" 
+            formControlName="description" 
             placeholder="Enter household description"
             rows="4"
             class="household-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="householdForm.get('Description')?.hasError('maxlength')">
+          <mat-error *ngIf="householdForm.get('description')?.hasError('maxlength')">
             Description cannot exceed 500 characters
           </mat-error>
         </mat-form-field>

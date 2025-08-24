@@ -12,17 +12,17 @@
         <mat-label>Recipe Name</mat-label>
         <input 
           matInput 
-          formControlName="RecipeName"
+          formControlName="recipeName"
           placeholder="Enter recipe name..."
           class="meal-plan-create__input"
         />
-        @if (mealPlanForm.get('RecipeName')?.hasError('required')) {
+        @if (mealPlanForm.get('recipeName')?.hasError('required')) {
           <mat-error>Recipe name is required</mat-error>
         }
-        @if (mealPlanForm.get('RecipeName')?.hasError('minlength')) {
+        @if (mealPlanForm.get('recipeName')?.hasError('minlength')) {
           <mat-error>Recipe name must be at least 2 characters</mat-error>
         }
-        @if (mealPlanForm.get('RecipeName')?.hasError('maxlength')) {
+        @if (mealPlanForm.get('recipeName')?.hasError('maxlength')) {
           <mat-error>Recipe name cannot exceed 100 characters</mat-error>
         }
       </mat-form-field>
@@ -30,14 +30,12 @@
       <!-- Meal Type Field -->
       <mat-form-field appearance="outline" class="meal-plan-create__field">
         <mat-label>Meal Type</mat-label>
-        <mat-select formControlName="MealType" class="meal-plan-create__select">
+        <mat-select formControlName="mealType" class="meal-plan-create__select">
           @for (mealType of mealTypes; track mealType.value) {
-            <mat-option [value]="mealType.value">
-              {{ mealType.label }}
-            </mat-option>
+            <mat-option [value]="mealType.value">{{ mealType.label }}</mat-option>
           }
         </mat-select>
-        @if (mealPlanForm.get('MealType')?.hasError('required')) {
+        @if (mealPlanForm.get('mealType')?.hasError('required')) {
           <mat-error>Meal type is required</mat-error>
         }
       </mat-form-field>
@@ -47,13 +45,14 @@
         <mat-label>Date</mat-label>
         <input 
           matInput 
-          [matDatepicker]="picker" 
-          formControlName="Date"
+          [matDatepicker]="picker"
+          formControlName="date"
+          placeholder="Choose a date"
           class="meal-plan-create__input"
         />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-        @if (mealPlanForm.get('Date')?.hasError('required')) {
+        @if (mealPlanForm.get('date')?.hasError('required')) {
           <mat-error>Date is required</mat-error>
         }
       </mat-form-field>
@@ -63,12 +62,12 @@
         <mat-label>Description (Optional)</mat-label>
         <textarea 
           matInput 
-          formControlName="Description"
+          formControlName="description"
           placeholder="Add a description for your meal plan..."
           rows="3"
           class="meal-plan-create__textarea"
         ></textarea>
-        @if (mealPlanForm.get('Description')?.hasError('maxlength')) {
+        @if (mealPlanForm.get('description')?.hasError('maxlength')) {
           <mat-error>Description cannot exceed 500 characters</mat-error>
         }
       </mat-form-field>

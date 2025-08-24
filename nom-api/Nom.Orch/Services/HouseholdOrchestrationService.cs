@@ -61,7 +61,6 @@ namespace Nom.Orch.Services
                 Name = household.Name,
                 Description = household.Description,
                 GroupId = household.GroupId,
-                AuthorId = model.AuthorId,
                 CreatedDate = household.CreatedDate
             };
         }

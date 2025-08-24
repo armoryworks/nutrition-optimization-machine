@@ -188,6 +188,28 @@ ng generate component path/to/component --standalone
 - [ ] Performance benchmarks met
 - [ ] Security scans pass
 
+### Security Checklist
+
+**🚨 CRITICAL: User ID Security Verification**
+
+Before submitting any code that creates/updates entities:
+
+- [ ] **Frontend Models**: No `authorId`, `createdById`, `userId`, `personId` fields of the in-context user in request models
+- [ ] **Frontend Components**: No in-context user ID assignment in request payloads
+- [ ] **Backend Services**: Services receive user ID as parameter (not from request)
+- [ ] **Backend Controllers**: Controllers get user ID from authentication context
+- [ ] **Request Models**: All request models are clean of in-context user identification fields (other user IDs like `inviteePersonId` are acceptable)
+- [ ] **Backend Implementation**: Services use `GetCurrentPersonIdRequired()` or similar methods to get authenticated user's person ID
+- [ ] **Response Models**: Can still include user ID for display purposes
+- [ ] **Entity Models**: Keep user ID for database storage
+
+**Why This Matters:**
+
+- Prevents user impersonation attacks
+- Maintains data integrity and audit trails
+- Ensures proper authorization
+- Meets enterprise security requirements
+
 ### Deployment Pipeline
 
 1. **Development**: Local development and testing

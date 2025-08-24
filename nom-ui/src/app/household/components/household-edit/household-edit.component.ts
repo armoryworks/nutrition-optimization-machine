@@ -39,7 +39,11 @@ export class HouseholdEditComponent implements OnInit {
     private router = inject(Router);
     private snackBar = inject(MatSnackBar);
 
-    householdForm: FormGroup;
+    householdForm: FormGroup = this.nonNullableFb.group({
+        name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+        description: ['', [Validators.maxLength(500)]]
+    });
+
     isLoading = false;
     householdId = 0;
     household: HouseholdResponseModel | null = null;
@@ -54,10 +58,7 @@ export class HouseholdEditComponent implements OnInit {
     };
 
     constructor() {
-        this.householdForm = this.nonNullableFb.group({
-            Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-            Description: ['', [Validators.maxLength(500)]]
-        });
+        // Form is now initialized at declaration
     }
 
     ngOnInit(): void {
@@ -74,8 +75,8 @@ export class HouseholdEditComponent implements OnInit {
             next: (household) => {
                 this.household = household;
                 this.householdForm.patchValue({
-                    Name: household.name,
-                    Description: household.description || ''
+                    name: household.name,
+                    description: household.description || ''
                 });
                 this.isLoading = false;
             },
@@ -96,8 +97,8 @@ export class HouseholdEditComponent implements OnInit {
             this.isLoading = true;
 
             const updateRequest = new HouseholdUpdateRequestModel({
-                name: this.householdForm.value.Name,
-                description: this.householdForm.value.Description
+                name: this.householdForm.value.name,
+                description: this.householdForm.value.description
             });
 
             this.householdService.updateHousehold(this.householdId, updateRequest).subscribe({

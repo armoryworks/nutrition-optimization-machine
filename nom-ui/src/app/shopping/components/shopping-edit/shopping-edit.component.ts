@@ -40,7 +40,11 @@ export class ShoppingEditComponent implements OnInit {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
-  shoppingForm: FormGroup;
+  shoppingForm: FormGroup = this.nonNullableFb.group({
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    description: ['', [Validators.maxLength(500)]]
+  });
+
   isLoading = false;
   shoppingListId = 0;
   shoppingList: ShoppingListResponseModel | null = null;
@@ -54,13 +58,8 @@ export class ShoppingEditComponent implements OnInit {
     maxWidth: '600px',
   };
 
-
-
   constructor() {
-    this.shoppingForm = this.nonNullableFb.group({
-      Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      Description: ['', [Validators.maxLength(500)]]
-    });
+    // Form is now initialized at declaration
   }
 
   ngOnInit(): void {
@@ -77,8 +76,8 @@ export class ShoppingEditComponent implements OnInit {
       next: (shoppingList) => {
         this.shoppingList = shoppingList;
         this.shoppingForm.patchValue({
-          Name: shoppingList.name,
-          Description: shoppingList.description || ''
+          name: shoppingList.name,
+          description: shoppingList.description || ''
         });
         this.isLoading = false;
       },
@@ -99,8 +98,8 @@ export class ShoppingEditComponent implements OnInit {
       this.isLoading = true;
 
       const updateRequest: ShoppingListUpdateRequest = {
-        name: this.shoppingForm.value.Name,
-        description: this.shoppingForm.value.Description
+        name: this.shoppingForm.value.name,
+        description: this.shoppingForm.value.description
       };
 
       this.shoppingService.updateShoppingList(this.shoppingListId, updateRequest).subscribe({

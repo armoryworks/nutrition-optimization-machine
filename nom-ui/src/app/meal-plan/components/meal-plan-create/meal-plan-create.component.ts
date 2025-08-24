@@ -45,7 +45,14 @@ export class MealPlanCreateComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private userInfoService = inject(UserInfoService);
 
-  mealPlanForm: FormGroup;
+  mealPlanForm: FormGroup = this.nonNullableFb.group({
+    recipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    mealType: ['dinner', [Validators.required]],
+    date: [new Date(), [Validators.required]],
+    description: ['', [Validators.maxLength(500)]],
+    householdId: [1]
+  });
+
   isLoading = false;
 
   mealTypes = [
@@ -64,14 +71,8 @@ export class MealPlanCreateComponent implements OnInit {
     maxWidth: '600px',
   };
 
-
-
   constructor() {
-    this.mealPlanForm = this.nonNullableFb.group({
-      Name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      Description: ['', [Validators.maxLength(500)]],
-      GroupId: [null]
-    });
+    // Form is now initialized at declaration
   }
 
   ngOnInit(): void {
@@ -83,10 +84,10 @@ export class MealPlanCreateComponent implements OnInit {
       this.isLoading = true;
 
       const createRequest = new MealPlanCreateRequestModel({
-        recipeName: this.mealPlanForm.value.Name,
-        mealType: this.mealPlanForm.value.MealType,
-        date: this.mealPlanForm.value.Date,
-        description: this.mealPlanForm.value.Description
+        recipeName: this.mealPlanForm.value.recipeName,
+        mealType: this.mealPlanForm.value.mealType,
+        date: this.mealPlanForm.value.date,
+        description: this.mealPlanForm.value.description
       });
 
       this.mealPlanService.createMealPlan(createRequest).subscribe({

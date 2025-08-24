@@ -5,9 +5,16 @@ export interface IMealPlanModel {
     householdId: number;
     date: Date;
     mealTypeId: number;
-    title?: string;
+    mealType: string;
+    title: string;
     notes?: string;
+    description?: string;
     recipeId?: number;
+    recipeName?: string;
+    groupName?: string;
     createdDate: Date;
     modifiedDate?: Date;
+    authorId: number;
+    createdById: number;
+    userId: number;
 } 

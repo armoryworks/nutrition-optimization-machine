@@ -7,9 +7,20 @@ export class MealPlanResponseModel implements IMealPlanResponseModel {
     householdId = 0;
     date: Date = new Date();
     mealTypeId = 0;
+    mealType = '';
     title = '';
     notes?: string;
+    description?: string;
     recipeId?: number;
+    recipeName?: string;
+    groupName?: string;
     createdDate: Date = new Date();
     modifiedDate?: Date;
+    authorName?: string;
+
+    constructor(data?: Partial<IMealPlanResponseModel>) {
+        if (data) {
+            Object.assign(this, data);
+        }
+    }
 } 

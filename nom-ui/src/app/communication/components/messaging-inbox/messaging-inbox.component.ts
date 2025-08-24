@@ -100,12 +100,12 @@ export class MessagingInboxComponent implements OnInit {
 
   openThread(thread: MessageThreadModel): void {
     if (thread.id) {
-      this.router.navigate(['/communication/thread', thread.id]);
+      this.router.navigate(['/messaging/thread', thread.id]);
     }
   }
 
   startNewConversation(): void {
-    this.router.navigate(['/communication/new']);
+    this.router.navigate(['/messaging/new']);
   }
 
   markAsRead(thread: MessageThreadModel): void {

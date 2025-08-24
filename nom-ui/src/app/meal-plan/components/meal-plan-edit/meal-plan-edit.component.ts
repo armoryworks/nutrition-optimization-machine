@@ -46,7 +46,13 @@ export class MealPlanEditComponent implements OnInit {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
-  mealPlanForm: FormGroup;
+  mealPlanForm: FormGroup = this.nonNullableFb.group({
+    recipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    mealType: ['dinner', [Validators.required]],
+    date: [new Date(), [Validators.required]],
+    description: ['', [Validators.maxLength(500)]]
+  });
+
   isLoading = false;
   mealPlanId = 0;
   mealPlan: MealPlanResponseModel | null = null;
@@ -67,15 +73,8 @@ export class MealPlanEditComponent implements OnInit {
     maxWidth: '600px',
   };
 
-
-
   constructor() {
-    this.mealPlanForm = this.nonNullableFb.group({
-      RecipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      MealType: ['dinner', [Validators.required]],
-      Date: [new Date(), [Validators.required]],
-      Description: ['', [Validators.maxLength(500)]]
-    });
+    // Form is now initialized at declaration
   }
 
   ngOnInit(): void {
@@ -92,10 +91,10 @@ export class MealPlanEditComponent implements OnInit {
       next: (mealPlan) => {
         this.mealPlan = mealPlan;
         this.mealPlanForm.patchValue({
-          RecipeName: mealPlan.recipeName,
-          MealType: mealPlan.mealType,
-          Date: new Date(mealPlan.date),
-          Description: mealPlan.description || ''
+          recipeName: mealPlan.recipeName,
+          mealType: mealPlan.mealType,
+          date: new Date(mealPlan.date),
+          description: mealPlan.description || ''
         });
         this.isLoading = false;
       },
@@ -116,10 +115,10 @@ export class MealPlanEditComponent implements OnInit {
       this.isLoading = true;
 
       const updateRequest = new MealPlanUpdateRequestModel({
-        recipeName: this.mealPlanForm.value.RecipeName,
-        mealTypeId: this.getMealTypeId(this.mealPlanForm.value.MealType),
-        date: this.mealPlanForm.value.Date,
-        description: this.mealPlanForm.value.Description
+        recipeName: this.mealPlanForm.value.recipeName,
+        mealTypeId: this.getMealTypeId(this.mealPlanForm.value.mealType),
+        date: this.mealPlanForm.value.date,
+        description: this.mealPlanForm.value.description
       });
 
       this.mealPlanService.updateMealPlan(this.mealPlanId, updateRequest).subscribe({

@@ -11,12 +11,12 @@ namespace Nom.Orch.UtilityInterfaces
         /// Executes data retention cleanup for all data types
         /// </summary>
         /// <returns>Data retention report</returns>
-        Task<DataRetentionService.DataRetentionReport> ExecuteDataRetentionCleanupAsync();
+        Task<DataRetentionReport> ExecuteDataRetentionCleanupAsync();
 
         /// <summary>
         /// Gets data retention statistics
         /// </summary>
         /// <returns>Data retention statistics</returns>
-        Task<DataRetentionService.DataRetentionStatistics> GetDataRetentionStatisticsAsync();
+        Task<DataRetentionStatistics> GetDataRetentionStatisticsAsync();
     }
 } 

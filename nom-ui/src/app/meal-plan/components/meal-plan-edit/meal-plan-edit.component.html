@@ -13,17 +13,17 @@
           <mat-label>Recipe Name</mat-label>
           <input 
             matInput 
-            formControlName="RecipeName" 
+            formControlName="recipeName" 
             placeholder="Enter recipe name"
             class="meal-plan-edit__input-field"
           >
-          <mat-error *ngIf="mealPlanForm.get('RecipeName')?.hasError('required')">
+          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('required')">
             Recipe name is required
           </mat-error>
-          <mat-error *ngIf="mealPlanForm.get('RecipeName')?.hasError('minlength')">
+          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('minlength')">
             Recipe name must be at least 2 characters
           </mat-error>
-          <mat-error *ngIf="mealPlanForm.get('RecipeName')?.hasError('maxlength')">
+          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('maxlength')">
             Recipe name cannot exceed 100 characters
           </mat-error>
         </mat-form-field>
@@ -33,14 +33,14 @@
       <div class="meal-plan-edit__field">
         <mat-form-field class="meal-plan-edit__select">
           <mat-label>Meal Type</mat-label>
-          <mat-select formControlName="MealType" class="meal-plan-edit__select-field">
+          <mat-select formControlName="mealType" class="meal-plan-edit__select-field">
             @for (mealType of mealTypes; track mealType.value) {
               <mat-option [value]="mealType.value">
                 {{ mealType.label }}
               </mat-option>
             }
           </mat-select>
-          <mat-error *ngIf="mealPlanForm.get('MealType')?.hasError('required')">
+          <mat-error *ngIf="mealPlanForm.get('mealType')?.hasError('required')">
             Meal type is required
           </mat-error>
         </mat-form-field>
@@ -53,13 +53,13 @@
           <input 
             matInput 
             [matDatepicker]="picker" 
-            formControlName="Date"
+            formControlName="date"
             placeholder="Choose a date"
             class="meal-plan-edit__date-field"
           >
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="mealPlanForm.get('Date')?.hasError('required')">
+          <mat-error *ngIf="mealPlanForm.get('date')?.hasError('required')">
             Date is required
           </mat-error>
         </mat-form-field>
@@ -71,12 +71,12 @@
           <mat-label>Description (Optional)</mat-label>
           <textarea 
             matInput 
-            formControlName="Description" 
+            formControlName="description" 
             placeholder="Enter meal plan description"
             rows="4"
             class="meal-plan-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="mealPlanForm.get('Description')?.hasError('maxlength')">
+          <mat-error *ngIf="mealPlanForm.get('description')?.hasError('maxlength')">
             Description cannot exceed 500 characters
           </mat-error>
         </mat-form-field>
