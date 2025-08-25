@@ -2,9 +2,8 @@
 
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthManagerService } from '../utilities/services/auth-manager.service';
 import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 /**
  * A functional route guard that checks if a user is authenticated.
@@ -13,18 +12,17 @@ import { Observable } from 'rxjs';
  * @returns An Observable<boolean> or a boolean indicating if activation is allowed.
  */
 export const AuthGuard: CanActivateFn = (): Observable<boolean> => {
-  const authManager = inject(AuthManagerService);
   const router = inject(Router);
 
-  return authManager.userLogin.pipe(
-    map(isLoggedIn => {
-      if (isLoggedIn) {
-        return true; // User is logged in, allow access
-      }
+  // Check for the same token key that AuthService uses
+  const token = localStorage.getItem('authToken');
+  const isLoggedIn = !!token;
 
-      // User is not logged in, redirect to the home page (which contains the login component)
-      router.navigate(['/home']);
-      return false; // Block access
-    })
-  );
+  if (isLoggedIn) {
+    return of(true); // User is logged in, allow access
+  }
+
+  // User is not logged in, redirect to the home page (which contains the login component)
+  router.navigate(['/home']);
+  return of(false); // Block access
 };

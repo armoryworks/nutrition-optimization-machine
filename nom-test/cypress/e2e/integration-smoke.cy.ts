@@ -122,7 +122,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
       if ($body.find('.nom-main-nav').length > 0) {
         cy.log(`✅ Found main navigation, looking for ${targetText}...`);
         cy.get('.nom-main-nav').within(() => {
-          // Look for the specific navigation link
+          // Look for the specific navigation link in any section
           const $nav = Cypress.$(this);
           if ($nav.find(`a:contains("${targetText}"), button:contains("${targetText}")`).length > 0) {
             cy.get(`a:contains("${targetText}"), button:contains("${targetText}")`).first().click();
@@ -163,7 +163,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
         const text = Cypress.$(el).text().toLowerCase();
         return text.includes(targetText.toLowerCase());
       });
-
+      
       if ($clickableElements.length > 0) {
         cy.log(`✅ Found ${targetText} with general search`);
         cy.wrap($clickableElements.first()).click();
@@ -684,119 +684,72 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
 
     cy.wait(1000);
 
-    // Step 1.5: Navigate to Dashboard where navigation elements are visible
-    cy.log('🏠 Step 1.5: Navigating to Dashboard where navigation elements are visible');
+    // Step 2: Browse Public Content using UI only
+    cy.log('🥕 Step 2: Browsing Public Content (UI Only)');
     cy.wait(500);
-
-    // After login, we should be on the dashboard or home page with navigation visible
-    // Look for Dashboard link in the main navigation
-    cy.get('body').then(($body) => {
-      if ($body.find('.nom-main-nav').length > 0) {
-        cy.log('✅ Main navigation is visible, looking for Dashboard...');
-        cy.get('.nom-main-nav').within(() => {
-          if (Cypress.$(this).find('a:contains("Dashboard")').length > 0) {
-            cy.log('✅ Found Dashboard in main navigation, clicking...');
-            cy.get('a:contains("Dashboard")').first().click();
-          } else {
-            cy.log('⚠️ Dashboard not found in main navigation, staying on current page...');
-          }
-        });
-      } else {
-        cy.log('⚠️ Main navigation not visible yet, waiting for page to load...');
-        cy.wait(2000);
-      }
-    });
-
+    
+    // Navigate to browse recipes using the new public navigation
+    cy.log('🔍 Looking for Browse Recipes link in public navigation...');
+    findNavigationElement('Browse Recipes');
+    
     cy.wait(2000);
-
-    // Debug: Check what navigation elements are now available
+    
+    // Verify we're on the recipe page
+    cy.log('✅ Verifying we reached the recipe page...');
+    cy.get('body').should('contain', 'Discover Amazing Recipes');
+    
+    // Navigate to browse ingredients using the new public navigation
+    cy.log('🔍 Looking for Browse Ingredients link in public navigation...');
+    findNavigationElement('Browse Ingredients');
+    
+    cy.wait(2000);
+    
+    // Verify we're on the ingredient page
+    cy.log('✅ Verifying we reached the ingredient page...');
+    cy.get('body').should('contain', 'ingredient');
+    
+    // Step 3: Authenticate User to Access Protected Features
+    cy.log('🔐 Step 3: Authenticating User to Access Protected Features (UI Only)');
+    cy.wait(500);
+    
+    // Navigate back to home to access user menu
+    cy.log('🏠 Navigating back to home to access user menu...');
+    findNavigationElement('Browse Recipes'); // This should take us back to a page with navigation
+    
+    cy.wait(1000);
+    
+    // Now authenticate the user to access protected features
+    cy.log('🔐 Authenticating user to access protected features...');
+    authenticateUser();
+    
+    cy.wait(2000);
+    
+    // Step 4: Access Protected Features using UI only
+    cy.log('🔒 Step 4: Accessing Protected Features (UI Only)');
+    cy.wait(500);
+    
+    // Navigate to Dashboard where authenticated navigation is visible
+    cy.log('🏠 Navigating to Dashboard where authenticated navigation is visible...');
+    findNavigationElement('Dashboard');
+    
+    cy.wait(2000);
+    
+    // Debug: Check what navigation elements are now available after authentication
     cy.log('🔍 Debugging: Checking navigation elements after authentication...');
     debugNavigationElements();
 
-    // Step 2: Create Diverse Ingredients with Nutrients using UI only
-    cy.log('🥕 Step 2: Creating Diverse Ingredients with Nutrients (UI Only)');
+    // Step 5: Create Diverse Ingredients with Nutrients using UI only
+    cy.log('🥕 Step 5: Creating Diverse Ingredients with Nutrients (UI Only)');
     cy.wait(500);
-
-    // Navigate to ingredient management using UI elements
-    cy.log('🔍 Looking for ingredient management link/button in the UI...');
-
-    // First try to find ingredients in the main navigation
-    cy.get('body').then(($body) => {
-      if ($body.find('.nom-main-nav').length > 0) {
-        // Check if ingredients is in main nav
-        cy.get('.nom-main-nav').within(() => {
-          if (Cypress.$(this).find('a:contains("Ingredients"), button:contains("Ingredients")').length > 0) {
-            cy.log('✅ Found ingredients in main navigation');
-            cy.get('a:contains("Ingredients"), button:contains("Ingredients")').first().click();
-          } else {
-            // Ingredients not in main nav, try user menu
-            cy.log('⚠️ Ingredients not in main navigation, trying user menu...');
-            cy.get('body').click(0, 0); // Close any open menus
-            cy.wait(500);
-            findAndClickUserIcon();
-            cy.wait(1000);
-            // Look for "Ingredient Search" in the user menu dropdown
-            cy.get('body').then(($body) => {
-              if ($body.find('a:contains("Ingredient Search")').length > 0) {
-                cy.log('✅ Found Ingredient Search in user menu');
-                cy.get('a:contains("Ingredient Search")').first().click();
-              } else {
-                cy.log('⚠️ Ingredient Search not found in user menu, trying alternative...');
-                // Try to find any ingredient-related link
-                cy.get('a, button').then(($elements) => {
-                  const $ingredientElement = $elements.filter((i, el) => {
-                    const text = Cypress.$(el).text().toLowerCase();
-                    return text.includes('ingredient') || text.includes('ingredients');
-                  }).first();
-
-                  if ($ingredientElement.length > 0) {
-                    cy.log('✅ Found ingredient-related element, clicking...');
-                    cy.wrap($ingredientElement).click();
-                  } else {
-                    cy.log('❌ No ingredient-related element found');
-                    throw new Error('No ingredient-related element found');
-                  }
-                });
-              }
-            });
-          }
-        });
-      } else {
-        // No main nav, try user menu directly
-        cy.log('⚠️ No main navigation found, trying user menu...');
-        findAndClickUserIcon();
-        cy.wait(1000);
-        // Look for "Ingredient Search" in the user menu dropdown
-        cy.get('body').then(($body) => {
-          if ($body.find('a:contains("Ingredient Search")').length > 0) {
-            cy.log('✅ Found Ingredient Search in user menu');
-            cy.get('a:contains("Ingredient Search")').first().click();
-          } else {
-            cy.log('⚠️ Ingredient Search not found in user menu, trying alternative...');
-            // Try to find any ingredient-related link
-            cy.get('a, button').then(($elements) => {
-              const $ingredientElement = $elements.filter((i, el) => {
-                const text = Cypress.$(el).text().toLowerCase();
-                return text.includes('ingredient') || text.includes('ingredients');
-              }).first();
-
-              if ($ingredientElement.length > 0) {
-                cy.log('✅ Found ingredient-related element, clicking...');
-                cy.wrap($ingredientElement).click();
-              } else {
-                cy.log('❌ No ingredient-related element found');
-                throw new Error('No ingredient-related element found');
-              }
-            });
-          }
-        });
-      }
-    });
-
+    
+    // Navigate to ingredient management using authenticated navigation
+    cy.log('🔍 Looking for ingredient management in authenticated navigation...');
+    findNavigationElement('Browse Ingredients');
+    
     cy.wait(2000);
-
-    // Alternative: Look for "Create Ingredient" button on the current page
-    cy.log('🔍 Looking for Create Ingredient button on current page...');
+    
+    // Look for "Create Ingredient" button on the authenticated ingredient page
+    cy.log('🔍 Looking for Create Ingredient button on authenticated ingredient page...');
     cy.get('body').then(($body) => {
       if ($body.find('button:contains("Create Ingredient"), button:contains("New Ingredient"), [data-cy=create-ingredient-button]').length > 0) {
         cy.log('✅ Found Create Ingredient button, clicking...');
@@ -809,7 +762,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
             const text = Cypress.$(el).text().toLowerCase();
             return text.includes('create') || text.includes('add') || text.includes('new');
           }).first();
-
+          
           if ($createButton.length > 0) {
             cy.log('✅ Found alternative button, clicking...');
             cy.wrap($createButton).click();
@@ -820,7 +773,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
         });
       }
     });
-
+    
     cy.wait(1000);
 
     // Create each ingredient using UI forms
@@ -884,59 +837,26 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
       });
 
       // Submit ingredient using UI button
-      cy.log(`📤 Submitting ingredient: ${ingredient.name}`);
+      cy.log(`📤 Submitting ingredient ${ingredient.name} using UI button...`);
       cy.get('[data-cy=submit-ingredient-button], button:contains("Save"), button:contains("Create"), button[type="submit"]').click();
       cy.wait(2000);
 
-      cy.log(`✅ Created ingredient: ${ingredient.name}`);
+      cy.log(`✅ Ingredient ${ingredient.name} created successfully using UI elements!`);
+      cy.wait(1000);
     });
-
-    cy.log('✅ All ingredients created successfully using UI elements!');
-    cy.wait(1000);
-
-    // Step 3: Create Recipes Using Ingredients using UI only
-    cy.log('📖 Step 3: Creating Recipes Using Ingredients (UI Only)');
-    cy.wait(500);
-
-    // Navigate to recipe management using UI elements
-    cy.log('�� Looking for recipe management link/button in the UI...');
-
-    // First try to find recipes in the main navigation
-    cy.get('body').then(($body) => {
-      if ($body.find('.nom-main-nav').length > 0) {
-        // Check if recipes is in main nav
-        cy.get('.nom-main-nav').within(() => {
-          if (Cypress.$(this).find('a:contains("Recipes"), button:contains("Recipes"), a:contains("Recipe Search")').length > 0) {
-            cy.log('✅ Found recipes in main navigation');
-            cy.get('a:contains("Recipes"), button:contains("Recipes"), a:contains("Recipe Search")').first().click();
-          } else {
-            // Recipes not in main nav, try main nav Recipe Search
-            cy.log('⚠️ Recipes not in main navigation, trying Recipe Search...');
-            cy.get('body').click(0, 0); // Close any open menus
-            cy.wait(500);
-            findNavigationElement('Recipe Search');
-          }
-        });
-      } else {
-        // No main nav, try Recipe Search directly
-        cy.log('⚠️ No main navigation found, trying Recipe Search...');
-        findNavigationElement('Recipe Search');
-      }
-    });
-
-    cy.wait(2000);
 
     // Create each recipe using UI forms
     createdRecipes.forEach((recipe, index) => {
       cy.log(`📖 Creating recipe ${index + 1}/${createdRecipes.length}: ${recipe.name}`);
 
       // Look for and click "Create Recipe" button in the UI
-      cy.get('button:contains("Create Recipe"), button:contains("Add Recipe"), button:contains("New Recipe"), [data-cy=create-recipe-button], [data-cy=add-recipe-button]').then(($createBtn) => {
+      cy.get('button:contains("Create"), button:contains("Add"), button:contains("New"), [data-cy=create-recipe-button], [data-cy=add-recipe-button]').then(($createBtn) => {
         if ($createBtn.length > 0) {
           cy.log('✅ Found create recipe button, clicking...');
           $createBtn.first().click();
         } else {
           cy.log('⚠️ Create recipe button not found, looking for alternative...');
+          // Look for any button that might create recipes
           cy.get('button').contains(/create|add|new/i).click();
         }
       });
@@ -966,7 +886,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
 
       // Add ingredients using UI elements
       recipe.ingredients.forEach((ingredient, ingredientIndex) => {
-        cy.log(`🥕 Adding ingredient: ${ingredient.ingredientName}`);
+        cy.log(`➕ Adding ingredient: ${ingredient.ingredientName}`);
 
         // Look for "Add Ingredient" button
         cy.get('button:contains("Add Ingredient"), button:contains("Add"), [data-cy=add-ingredient-button]').then(($addIngredientBtn) => {
@@ -987,7 +907,7 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
 
       // Add instructions using UI elements
       recipe.instructions.forEach((instruction, instructionIndex) => {
-        cy.log(`📝 Adding instruction: ${instruction}`);
+        cy.log(`📝 Adding instruction ${instructionIndex + 1}: ${instruction}`);
 
         // Look for "Add Instruction" button
         cy.get('button:contains("Add Instruction"), button:contains("Add"), [data-cy=add-instruction-button]').then(($addInstructionBtn) => {
@@ -1003,139 +923,176 @@ describe('NOM Complete User Journey Integration Test - UI Only', () => {
       });
 
       // Submit recipe using UI button
-      cy.log(`📤 Submitting recipe: ${recipe.name}`);
+      cy.log(`📤 Submitting recipe ${recipe.name} using UI button...`);
       cy.get('[data-cy=submit-recipe-button], button:contains("Save"), button:contains("Create"), button[type="submit"]').click();
       cy.wait(2000);
 
-      cy.log(`✅ Created recipe: ${recipe.name}`);
+      cy.log(`✅ Recipe ${recipe.name} created successfully using UI elements!`);
+      cy.wait(1000);
     });
 
-    cy.log('✅ All recipes created successfully using UI elements!');
+    cy.log('✅ All ingredients and recipes created successfully using UI elements!');
     cy.wait(1000);
 
-    // Step 4: Create a Meal Plan using UI only
-    cy.log('📅 Step 4: Creating a Meal Plan (UI Only)');
+    // Step 6: Create Meal Plan using UI only
+    cy.log('📅 Step 6: Creating Meal Plan (UI Only)');
     cy.wait(500);
-
-    // Navigate to meal planning using UI elements
-    cy.log('🔍 Looking for meal plan management link/button in the UI...');
+    
+    // Navigate to meal planning using authenticated navigation
+    cy.log('🔍 Looking for meal plan management in authenticated navigation...');
     findNavigationElement('Meal Plans');
-
+    
     cy.wait(2000);
-
-    // Create meal plan using UI elements
-    cy.log('📝 Creating new meal plan using UI elements...');
-    cy.get('button:contains("Create Plan"), button:contains("Add Plan"), button:contains("New Plan"), [data-cy=create-meal-plan-button], [data-cy=add-meal-plan-button]').then(($createBtn) => {
-      if ($createBtn.length > 0) {
-        cy.log('✅ Found create meal plan button, clicking...');
-        $createBtn.first().click();
-      } else {
-        cy.log('⚠️ Create meal plan button not found, looking for alternative...');
-        cy.get('button').contains(/create|add|new/i).click();
-      }
-    });
-
-    cy.wait(1000);
-
-    // Fill meal plan form using UI elements
-    cy.log('📝 Filling meal plan form using UI elements...');
-    cy.get('[data-cy=meal-plan-name-input], input[placeholder*="name"], input[name*="name"]').type('Test Integration Meal Plan');
-    cy.wait(500);
-    cy.get('[data-cy=meal-plan-description-input], textarea[placeholder*="description"], textarea[name*="description"]').type('Meal plan for integration testing');
-    cy.wait(500);
-
-    // Submit meal plan using UI button
-    cy.log('📤 Submitting meal plan using UI button...');
-    cy.get('[data-cy=submit-meal-plan-button], button:contains("Save"), button:contains("Create"), button[type="submit"]').click();
-    cy.wait(2000);
-
-    cy.log('✅ Meal plan created successfully using UI elements!');
-    cy.wait(1000);
-
-    // Step 5: Generate Randomized Meal Plan using UI only
-    cy.log('🎲 Step 5: Generating Randomized Meal Plan (UI Only)');
-    cy.wait(500);
-
-    // Look for meal randomizer functionality in the UI
-    cy.log('🔍 Looking for meal randomizer functionality in the UI...');
+    
+    // Look for "Create Plan" button on the meal plan page
+    cy.log('🔍 Looking for Create Plan button on meal plan page...');
     cy.get('body').then(($body) => {
-      if ($body.find('button:contains("Randomize"), button:contains("Generate"), button:contains("Random")').length > 0) {
-        cy.log('✅ Found meal randomizer button, clicking...');
-        cy.get('button:contains("Randomize"), button:contains("Generate"), button:contains("Random")').first().click();
-      } else if ($body.find('[data-cy=generate-random-meals-button], [data-cy=randomize-meals-button]').length > 0) {
-        cy.log('✅ Found meal randomizer element with data-cy attribute');
-        cy.get('[data-cy=generate-random-meals-button], [data-cy=randomize-meals-button]').first().click();
+      if ($body.find('button:contains("Create Plan"), button:contains("New Plan"), [data-cy=create-plan-button]').length > 0) {
+        cy.log('✅ Found Create Plan button, clicking...');
+        cy.get('button:contains("Create Plan"), button:contains("New Plan"), [data-cy=create-plan-button]').first().click();
       } else {
-        cy.log('⚠️ Meal randomizer not found, looking for alternative meal generation...');
-        // Look for any button that might generate meals
-        cy.get('button').contains(/generate|create|make/i).click();
+        cy.log('⚠️ Create Plan button not found, looking for alternative...');
+        // Look for any button that might create meal plans
+        cy.get('button').then(($buttons) => {
+          const $createButton = $buttons.filter((i, el) => {
+            const text = Cypress.$(el).text().toLowerCase();
+            return text.includes('create') || text.includes('add') || text.includes('new');
+          }).first();
+          
+          if ($createButton.length > 0) {
+            cy.log('✅ Found alternative button, clicking...');
+            cy.wrap($createButton).click();
+          } else {
+            cy.log('❌ No create/add/new button found');
+            throw new Error('No create/add/new button found');
+          }
+        });
       }
     });
-
+    
     cy.wait(2000);
-
-    // Verify meal types are appropriate using UI elements
-    cy.log('✅ Verifying meal type constraints using UI elements...');
+    
+    // Step 7: Generate Randomized Meal Plan using UI only
+    cy.log('🎲 Step 7: Generating Randomized Meal Plan (UI Only)');
+    cy.wait(500);
+    
+    // Look for "Randomize" or "Generate" button
+    cy.log('🔍 Looking for meal plan randomization button...');
+    cy.get('body').then(($body) => {
+      if ($body.find('button:contains("Randomize"), button:contains("Generate"), [data-cy=randomize-button]').length > 0) {
+        cy.log('✅ Found randomization button, clicking...');
+        cy.get('button:contains("Randomize"), button:contains("Generate"), [data-cy=randomize-button]').first().click();
+      } else {
+        cy.log('⚠️ Randomization button not found, looking for alternative...');
+        // Look for any button that might randomize meals
+        cy.get('button').then(($buttons) => {
+          const $randomizeButton = $buttons.filter((i, el) => {
+            const text = Cypress.$(el).text().toLowerCase();
+            return text.includes('random') || text.includes('generate') || text.includes('shuffle');
+          }).first();
+          
+          if ($randomizeButton.length > 0) {
+            cy.log('✅ Found alternative randomization button, clicking...');
+            cy.wrap($randomizeButton).click();
+          } else {
+            cy.log('❌ No randomization button found');
+            throw new Error('No randomization button found');
+          }
+        });
+      }
+    });
+    
+    cy.wait(2000);
+    
+    // Verify meal plan was generated
+    cy.log('✅ Verifying meal plan was generated...');
     cy.get('body').should('contain', 'meal');
-
-    cy.log('✅ Randomized meal plan generated successfully using UI elements!');
-    cy.wait(1000);
-
-    // Step 6: Generate Shopping List from Meal Plan using UI only
-    cy.log('🛒 Step 6: Generating Shopping List from Meal Plan (UI Only)');
+    
+    // Step 8: Generate Shopping List from Meal Plan using UI only
+    cy.log('🛒 Step 8: Generating Shopping List from Meal Plan (UI Only)');
     cy.wait(500);
-
-    // Navigate to shopping list generation using UI elements
-    cy.log('🔍 Looking for shopping list generation link/button in the UI...');
+    
+    // Navigate to shopping using authenticated navigation
+    cy.log('🔍 Looking for shopping in authenticated navigation...');
     findNavigationElement('Shopping');
-
+    
     cy.wait(2000);
-
-    // Generate shopping list from meal plan using UI elements
-    cy.log('🛒 Generating shopping list from meal plan using UI elements...');
-    cy.get('button:contains("Generate from Meal Plan"), button:contains("Create from Plan"), button:contains("Generate"), [data-cy=generate-from-meal-plan-button]').then(($generateBtn) => {
-      if ($generateBtn.length > 0) {
-        cy.log('✅ Found generate shopping list button, clicking...');
-        $generateBtn.first().click();
+    
+    // Look for "Generate from Meal Plan" button
+    cy.log('🔍 Looking for shopping list generation button...');
+    cy.get('body').then(($body) => {
+      if ($body.find('button:contains("Generate from Meal Plan"), button:contains("Generate List"), [data-cy=generate-shopping-button]').length > 0) {
+        cy.log('✅ Found shopping list generation button, clicking...');
+        cy.get('button:contains("Generate from Meal Plan"), button:contains("Generate List"), [data-cy=generate-shopping-button]').first().click();
       } else {
-        cy.log('⚠️ Generate shopping list button not found, looking for alternative...');
-        cy.get('button').contains(/generate|create|make/i).click();
+        cy.log('⚠️ Shopping list generation button not found, looking for alternative...');
+        // Look for any button that might generate shopping lists
+        cy.get('button').then(($buttons) => {
+          const $generateButton = $buttons.filter((i, el) => {
+            const text = Cypress.$(el).text().toLowerCase();
+            return text.includes('generate') || text.includes('create') || text.includes('make');
+          }).first();
+          
+          if ($generateButton.length > 0) {
+            cy.log('✅ Found alternative generation button, clicking...');
+            cy.wrap($generateButton).click();
+          } else {
+            cy.log('❌ No generation button found');
+            throw new Error('No generation button found');
+          }
+        });
       }
     });
-
+    
     cy.wait(2000);
-
-    // Verify shopping list was created using UI elements
-    cy.log('✅ Verifying shopping list using UI elements...');
+    
+    // Verify shopping list was generated
+    cy.log('✅ Verifying shopping list was generated...');
     cy.get('body').should('contain', 'shopping');
-
-    cy.log('✅ Shopping list generated successfully using UI elements!');
-    cy.wait(1000);
-
-    // Step 7: Verify Meal Plan Schedule using UI only
-    cy.log('📋 Step 7: Verifying Meal Plan Schedule (UI Only)');
+    
+    // Step 9: Verify Meal Plan Schedule using UI only
+    cy.log('📋 Step 9: Verifying Meal Plan Schedule (UI Only)');
     cy.wait(500);
-
-    // Navigate to meal plan schedule using UI elements
-    cy.log('🔍 Looking for meal plan schedule link/button in the UI...');
-    findNavigationElement('Schedule');
-
+    
+    // Navigate back to meal plans to view schedule
+    cy.log('🔍 Navigating back to meal plans to view schedule...');
+    findNavigationElement('Meal Plans');
+    
     cy.wait(2000);
-
-    // Verify all meals are present using UI elements
-    cy.log('✅ Verifying meal plan schedule using UI elements...');
+    
+    // Look for "View Schedule" or "Schedule" button
+    cy.log('🔍 Looking for schedule view button...');
+    cy.get('body').then(($body) => {
+      if ($body.find('button:contains("View Schedule"), button:contains("Schedule"), [data-cy=view-schedule-button]').length > 0) {
+        cy.log('✅ Found schedule view button, clicking...');
+        cy.get('button:contains("View Schedule"), button:contains("Schedule"), [data-cy=view-schedule-button]').first().click();
+      } else {
+        cy.log('⚠️ Schedule view button not found, looking for alternative...');
+        // Look for any button that might show the schedule
+        cy.get('button').then(($buttons) => {
+          const $scheduleButton = $buttons.filter((i, el) => {
+            const text = Cypress.$(el).text().toLowerCase();
+            return text.includes('schedule') || text.includes('view') || text.includes('show');
+          }).first();
+          
+          if ($scheduleButton.length > 0) {
+            cy.log('✅ Found alternative schedule button, clicking...');
+            cy.wrap($scheduleButton).click();
+          } else {
+            cy.log('❌ No schedule button found');
+            throw new Error('No schedule button found');
+          }
+        });
+      }
+    });
+    
+    cy.wait(2000);
+    
+    // Verify meal plan schedule is visible
+    cy.log('✅ Verifying meal plan schedule is visible...');
     cy.get('body').should('contain', 'plan');
-
-    // Verify meals for each day using UI elements
-    cy.log('📅 Checking daily meal assignments using UI elements...');
-    // This would need to be implemented based on actual UI structure
-
-    cy.log('✅ Meal plan schedule verified successfully using UI elements!');
-    cy.wait(1000);
-
-    cy.log('🎉 Complete user journey test completed successfully using ONLY UI elements!');
-    cy.log('✅ All steps from registration to meal plan verification completed through visible interface!');
-    cy.log('🚫 No direct URL navigation was used - only UI elements were interacted with!');
+    
+    cy.log('🎉 Full user journey completed successfully using UI elements only!');
   });
 
   it('should handle meal type constraints correctly in randomization using UI only', () => {

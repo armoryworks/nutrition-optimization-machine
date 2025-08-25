@@ -1,104 +1,210 @@
 <header class="nom-header">
   <div class="nom-header__left">
-    <!-- Global Recipe Search - Available to all users -->
-    <div class="nom-search">
-      <mat-form-field class="nom-search__field">
-        <mat-icon matPrefix>search</mat-icon>
-        <input matInput 
-               placeholder="Search recipes and ingredients..." 
-               [(ngModel)]="searchQuery"
-               (input)="onSearchInput($event)"
-               (keyup.enter)="performSearch()">
-        <button mat-icon-button matSuffix (click)="performSearch()" *ngIf="searchQuery">
-          <mat-icon>search</mat-icon>
-        </button>
-      </mat-form-field>
-    </div>
+    <h1 class="nom-header__title">NOM</h1>
+    <p class="nom-header__subtitle">Nutrition Optimization Machine</p>
   </div>
 
   <div class="nom-header__center">
-    <!-- Main Navigation -->
-    @if (isLoggedIn$ | async) {
+    <!-- Main Navigation - Always Visible -->
     <nav class="nom-main-nav">
-      <a routerLink="/user/dashboard" class="nom-main-nav__link">
-        <mat-icon>dashboard</mat-icon>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/household" class="nom-main-nav__link">
-        <mat-icon>home</mat-icon>
-        <span>Households</span>
-      </a>
-      <a routerLink="/shopping" class="nom-main-nav__link">
-        <mat-icon>shopping_cart</mat-icon>
-        <span>Shopping</span>
-      </a>
-      <a routerLink="/meal-plan" class="nom-main-nav__link">
-        <mat-icon>restaurant_menu</mat-icon>
-        <span>Meal Plans</span>
-      </a>
-      <a routerLink="/messaging" class="nom-main-nav__link">
-        <mat-icon>message</mat-icon>
-        <span>Messages</span>
-      </a>
-      <a routerLink="/recipe-search" class="nom-main-nav__link">
-        <mat-icon>search</mat-icon>
-        <span>Recipe Search</span>
-      </a>
-      <a routerLink="/curated-plans" class="nom-main-nav__link">
-        <mat-icon>schedule</mat-icon>
-        <span>Curated Plans</span>
-      </a>
+      <!-- PUBLIC SECTION - Always visible -->
+      <div class="nom-main-nav__public">
+        <a routerLink="/recipes" class="nom-main-nav__link">
+          <mat-icon>restaurant</mat-icon>
+          <span>Browse Recipes</span>
+        </a>
+        <a routerLink="/ingredients" class="nom-main-nav__link">
+          <mat-icon>eco</mat-icon>
+          <span>Browse Ingredients</span>
+        </a>
+        <a routerLink="/nutrition" class="nom-main-nav__link">
+          <mat-icon>nutrition</mat-icon>
+          <span>Nutrition Info</span>
+        </a>
+      </div>
     </nav>
-    }
   </div>
 
   <div class="nom-header__right">
-    <button mat-icon-button (click)="toggleTheme()" (keyup.enter)="toggleTheme()" class="nom-header__theme-toggle" tabindex="0">
-      <mat-icon>{{ isDarkTheme ? 'dark_mode' : 'light_mode' }}</mat-icon>
+    <!-- Theme Toggle - Always visible -->
+    <button 
+      mat-icon-button 
+      class="nom-header__theme-toggle"
+      (click)="toggleTheme()"
+      [attr.aria-label]="'Toggle ' + (isDarkTheme ? 'light' : 'dark') + ' theme'">
+      <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
 
-    <div class="nom-user-menu" (click)="toggleUserMenu()" (keyup.enter)="toggleUserMenu()" data-cy="user-menu" tabindex="0" role="button" aria-label="User menu">
-      <div class="nom-user-menu__icon-container">
-        <img src="https://placehold.co/24x24/0000FF/FFFFFF?text=U" alt="User" class="nom-user-menu__user-icon" />
-        <span class="nom-user-menu__status-indicator"
-          [class.nom-user-menu__status-indicator--logged-in]="isLoggedIn"></span>
+    <!-- User Menu - Only visible when logged in -->
+    @if (isLoggedIn$ | async) {
+      <div class="nom-user-menu" data-cy="user-menu">
+        <button 
+          mat-icon-button 
+          [matMenuTriggerFor]="userMenu"
+          class="nom-user-menu__trigger"
+          aria-label="User menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        
+        <mat-menu #userMenu="matMenu" class="nom-user-menu__dropdown">
+          <!-- User Profile Section -->
+          <div class="nom-user-menu__section">
+            <div class="nom-user-menu__profile">
+              <mat-icon>account_circle</mat-icon>
+              <span>User Menu</span>
+            </div>
+          </div>
+          
+          <mat-divider></mat-divider>
+          
+          <!-- Main Navigation Section -->
+          <div class="nom-user-menu__section">
+            <a mat-menu-item routerLink="/user/dashboard" class="nom-user-menu__item">
+              <mat-icon>dashboard</mat-icon>
+              <span>Dashboard</span>
+            </a>
+            <a mat-menu-item routerLink="/household" class="nom-user-menu__item">
+              <mat-icon>home</mat-icon>
+              <span>Households</span>
+            </a>
+            <a mat-menu-item routerLink="/shopping" class="nom-user-menu__item">
+              <mat-icon>shopping_cart</mat-icon>
+              <span>Shopping</span>
+            </a>
+            <a mat-menu-item routerLink="/meal-plan" class="nom-user-menu__item">
+              <mat-icon>restaurant_menu</mat-icon>
+              <span>Meal Plans</span>
+            </a>
+            <a mat-menu-item routerLink="/messaging" class="nom-user-menu__item">
+              <mat-icon>message</mat-icon>
+              <span>Messages</span>
+            </a>
+            <a mat-menu-item routerLink="/ingredient-search" class="nom-user-menu__item">
+              <mat-icon>search</mat-icon>
+              <span>Ingredient Search</span>
+            </a>
+            <a mat-menu-item routerLink="/curated-plans" class="nom-user-menu__item">
+              <mat-icon>schedule</mat-icon>
+              <span>Curated Plans</span>
+            </a>
+          </div>
+          
+          <mat-divider></mat-divider>
+          
+          <!-- User Management Section -->
+          <div class="nom-user-menu__section">
+            <a mat-menu-item routerLink="/edit-profile" class="nom-user-menu__item">
+              <mat-icon>person</mat-icon>
+              <span>Edit Profile</span>
+            </a>
+            <a mat-menu-item routerLink="/privacy-settings" class="nom-user-menu__item">
+              <mat-icon>security</mat-icon>
+              <span>Privacy Settings</span>
+            </a>
+            <button mat-menu-item (click)="logout()" class="nom-user-menu__item">
+              <mat-icon>logout</mat-icon>
+              <span>Logout</span>
+            </button>
+          </div>
+        </mat-menu>
       </div>
-    </div>
+    }
+    
+    <!-- Login/Register buttons - Only visible when NOT logged in -->
+    @if (!(isLoggedIn$ | async)) {
+      <div class="nom-header__auth-buttons">
+        <button 
+          mat-button 
+          color="accent" 
+          (click)="openLoginPopover()"
+          class="nom-header__auth-button">
+          <mat-icon>login</mat-icon>
+          <span>Login</span>
+        </button>
+        <a routerLink="/register" class="nom-header__auth-button">
+          <mat-icon>person_add</mat-icon>
+          <span>Register</span>
+        </a>
+      </div>
+    }
   </div>
 </header>
 
-<main class="nom-content">
-  @if (isLoggedIn$ | async) {
-  <div class="nom-user-menu__dropdown" [class.nom-user-menu__dropdown--open]="isUserMenuOpen">
-    <ul class="nom-user-menu__logged-in-list">
-      <li><a routerLink="/ingredient-search" class="nom-user-menu__link">Ingredient Search</a></li>
-      <li class="nom-user-menu__divider"></li>
-      <li><a routerLink="/edit-profile" class="nom-user-menu__link">Edit Profile</a></li>
-      <li><a routerLink="/update-info" class="nom-user-menu__link">Update Account</a></li>
-      <li><a routerLink="/update-two-factor" class="nom-user-menu__link">2FA Settings</a></li>
-      <li><a routerLink="/user/privacy-settings" class="nom-user-menu__link">Privacy Settings</a></li>
-
-      @if (canManageCuration$ | async) {
-      <li class="nom-user-menu__divider"></li>
-      <li><a routerLink="/curation" class="nom-user-menu__link">Curation Queue</a></li>
-      }
-      @if (canManageUserRoles$ | async) {
-      <li><a routerLink="/admin/user-management" class="nom-user-menu__link">User Management</a></li>
-      }
-
-      <li class="nom-user-menu__divider"></li>
-      <li><a (click)="logout()" (keyup.enter)="logout()" class="nom-user-menu__link nom-user-menu__link--logout" data-cy="logout-button" tabindex="0" role="button">Logout</a></li>
-    </ul>
+<!-- Login Popover - Only visible when not logged in and login button is clicked -->
+@if (!(isLoggedIn$ | async) && showLoginPopover) {
+  <div class="nom-login-popover" data-cy="login-popover">
+    <div class="nom-login-popover__content">
+      <div class="nom-login-popover__header">
+        <h3>Login</h3>
+        <button 
+          mat-icon-button 
+          (click)="closeLoginPopover()"
+          class="nom-login-popover__close"
+          aria-label="Close login">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()" class="nom-login-popover__form">
+        <mat-form-field class="nom-login-popover__field">
+          <mat-label>Email</mat-label>
+          <input 
+            matInput 
+            type="email" 
+            formControlName="email"
+            placeholder="Enter your email"
+            data-cy="email-input"
+            required>
+          <mat-icon matSuffix>email</mat-icon>
+        </mat-form-field>
+        
+        <mat-form-field class="nom-login-popover__field">
+          <mat-label>Password</mat-label>
+          <input 
+            matInput 
+            type="password" 
+            formControlName="password"
+            placeholder="Enter your password"
+            data-cy="password-input"
+            required>
+          <mat-icon matSuffix>lock</mat-icon>
+        </mat-form-field>
+        
+        <div class="nom-login-popover__checkbox">
+          <mat-checkbox formControlName="rememberMe" color="primary">
+            Remember me
+          </mat-checkbox>
+        </div>
+        
+        <div class="nom-login-popover__actions">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="loginForm.invalid || isLoggingIn"
+            data-cy="login-button"
+            class="nom-login-popover__submit">
+            <mat-icon *ngIf="!isLoggingIn">login</mat-icon>
+            <mat-spinner *ngIf="isLoggingIn" diameter="20"></mat-spinner>
+            <span>{{ isLoggingIn ? 'Logging in...' : 'Login' }}</span>
+          </button>
+        </div>
+        
+        <div class="nom-login-popover__links">
+          <a routerLink="/forgot-password" class="nom-login-popover__link">Forgot Password?</a>
+          <a routerLink="/register" class="nom-login-popover__link">Create Account</a>
+        </div>
+      </form>
+    </div>
   </div>
-  } @else {
-  <nom-login [class.nom-user-menu__dropdown--open]="isUserMenuOpen"
-    class="nom-user-menu__dropdown nom-user-menu__logged-out-content nom-user-menu__login-component"></nom-login>
-  }
+}
+
+<main class="nom-main">
   <router-outlet></router-outlet>
 </main>
 
 <footer class="nom-footer">
   <p>Powered by Mealie: <a href="https://github.com/mealie-recipes/mealie"
     target="_blank">https://github.com/mealie-recipes/mealie</a>. A big Thank you to the contributors of that project!</p>
-  <p>&copy; {{ currentYear }} {{ title }}. All rights reserved. A big thank you to the contributors of </p>
+  <p>&copy; 2024 NOM - Nutrition Optimization Machine. All rights reserved.</p>
 </footer>

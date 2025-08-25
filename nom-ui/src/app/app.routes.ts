@@ -16,69 +16,43 @@ import { PersonProfileEditComponent } from './person/components/person-profile-e
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
-  // Eager-loaded routes for immediate access
+  // Public routes - accessible to everyone
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
+  { path: 'recipes', loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent) },
+  { path: 'ingredients', redirectTo: 'ingredient-search', pathMatch: 'full' },
+  { path: 'nutrition', redirectTo: 'home', pathMatch: 'full' }, // Redirect to home for now since nutrition-info doesn't exist
+
+  // Auth routes - accessible to everyone (using existing structure)
   { path: 'register', component: RegistrationComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
   { path: 'send-confirmation', component: SendConfirmationEmailComponent },
-  { path: 'update-info', component: UpdateInfoComponent, canActivate: [AuthGuard] },
-  { path: 'update-two-factor', component: UpdateTwoFactorComponent, canActivate: [AuthGuard] },
-  { path: 'edit-profile', component: PersonProfileEditComponent, canActivate: [AuthGuard] },
-  {
-    path: 'onboarding',
-    redirectTo: 'onboarding/invitationCode',
-    pathMatch: 'full',
-  },
-  { path: 'onboarding/:stepId', component: OnboardingWorkflowComponent, canActivate: [AuthGuard] },
-  { path: 'privacy-settings', component: PrivacySettingsComponent, canActivate: [AuthGuard] },
-  { path: 'ingredient-search', component: IngredientSearchComponent, canActivate: [AuthGuard] },
-  {
-    path: 'recipe-search',
-    loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'curated-plans',
-    loadComponent: () => import('./plan/components/curated-plans/curated-plans.component').then(m => m.CuratedPlansComponent),
-    canActivate: [AuthGuard]
-  },
 
-  // --- NEW LAZY-LOADED FEATURE ROUTES ---
-
-  // Redirects for singular versions of plural paths
-  { path: 'recipe', redirectTo: 'recipes', pathMatch: 'full' },
-  { path: 'meal-plans', redirectTo: 'meal-plan', pathMatch: 'full' },
-  { path: 'shopping-list', redirectTo: 'shopping', pathMatch: 'full' },
-  { path: 'shopping-lists', redirectTo: 'shopping', pathMatch: 'full' },
-  { path: 'households', redirectTo: 'household', pathMatch: 'full' },
-  { path: 'users', redirectTo: 'user', pathMatch: 'full' },
-  { path: 'admin-panel', redirectTo: 'admin', pathMatch: 'full' },
+  // Common redirects
   { path: 'curations', redirectTo: 'curation', pathMatch: 'full' },
-
-
-  // Additional common redirects
   { path: 'profile', redirectTo: 'user/profile', pathMatch: 'full' },
   { path: 'settings', redirectTo: 'user/settings', pathMatch: 'full' },
   { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' },
   { path: 'plans', redirectTo: 'curated-plans', pathMatch: 'full' },
   { path: 'plan', redirectTo: 'curated-plans', pathMatch: 'full' },
 
+  // Protected routes - require authentication (using existing structure)
   {
-    path: 'recipes',
-    loadChildren: () => import('./recipe/recipe.routes').then(m => m.RECIPE_ROUTES),
+    path: 'ingredient-search',
+    loadComponent: () => import('./recipe/components/ingredient-search/ingredient-search.component').then(m => m.IngredientSearchComponent),
     canActivate: [AuthGuard]
   },
   {
     path: 'curation',
     loadChildren: () => import('./curation/curation.routes').then(m => m.CURATION_ROUTES),
-    canActivate: [AuthGuard] // In a real app, this would use a specific role guard
+    canActivate: [AuthGuard]
   },
   {
     path: 'admin',
     loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES),
-    canActivate: [AuthGuard] // In a real app, this would use a specific role guard
+    canActivate: [AuthGuard]
   },
   {
     path: 'messaging',
@@ -110,6 +84,39 @@ export const routes: Routes = [
     loadChildren: () => import('./meal-plan/meal-plan.routes').then(m => m.MEAL_PLAN_ROUTES),
     canActivate: [AuthGuard]
   },
-  // --- Default and Wildcard routes MUST be last ---
-  { path: '', redirectTo: '/home', pathMatch: 'full' }
+  {
+    path: 'onboarding',
+    redirectTo: 'onboarding/invitationCode',
+    pathMatch: 'full'
+  },
+  {
+    path: 'onboarding/:stepId',
+    component: OnboardingWorkflowComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'privacy-settings',
+    component: PrivacySettingsComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'update-info',
+    component: UpdateInfoComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'update-two-factor',
+    component: UpdateTwoFactorComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'edit-profile',
+    component: PersonProfileEditComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'curated-plans',
+    loadComponent: () => import('./plan/components/curated-plans/curated-plans.component').then(m => m.CuratedPlansComponent),
+    canActivate: [AuthGuard]
+  }
 ];

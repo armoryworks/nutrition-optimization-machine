@@ -145,6 +145,7 @@ export class RegistrationComponent {
   }
 
   openUserMenuFromFooter() {
-    this.authManagerService.openUserMenuSignal.next();
+    // Navigate to home page where the login popover is available
+    this.router.navigate(['/home']);
   }
 }

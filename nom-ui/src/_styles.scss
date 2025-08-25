@@ -8,6 +8,276 @@
 // ------------------------------------
 @include mat.core();
 
+// Fallback CSS variables for when Material Design theme isn't fully loaded
+:root {
+  // Surface colors
+  --mat-sys-surface-container: #fafafa;
+  --mat-sys-surface-container-low: #f5f5f5;
+  --mat-sys-surface-container-high: #e0e0e0;
+  --mat-sys-on-surface: #212121;
+  --mat-sys-on-surface-variant: #666666;
+  
+  // Primary colors
+  --mat-sys-primary: #1976d2;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #e3f2fd;
+  --mat-sys-on-primary-container: #0d47a1;
+  
+  // Secondary colors
+  --mat-sys-secondary: #ff4081;
+  --mat-sys-on-secondary: #ffffff;
+  
+  // Error colors
+  --mat-sys-error: #f44336;
+  --mat-sys-on-error: #ffffff;
+  --mat-sys-error-container: #ffebee;
+  
+  // Outline colors
+  --mat-sys-outline: #757575;
+  --mat-sys-outline-variant: #bdbdbd;
+  
+  // Shadow
+  --mat-sys-shadow: 0, 0, 0;
+}
+
+// Dark theme overrides
+body.dark-theme,
+[data-theme='dark'] {
+  // Surface colors
+  --mat-sys-surface-container: #1e1e1e;
+  --mat-sys-surface-container-low: #2d2d2d;
+  --mat-sys-surface-container-high: #3d3d3d;
+  --mat-sys-on-surface: #ffffff;
+  --mat-sys-on-surface-variant: #b0b0b0;
+  
+  // Primary colors
+  --mat-sys-primary: #90caf9;
+  --mat-sys-on-primary: #000000;
+  --mat-sys-primary-container: #1976d2;
+  --mat-sys-on-primary-container: #ffffff;
+  
+  // Secondary colors
+  --mat-sys-secondary: #f48fb1;
+  --mat-sys-on-secondary: #000000;
+  
+  // Error colors
+  --mat-sys-error: #f44336;
+  --mat-sys-on-error: #ffffff;
+  --mat-sys-error-container: #3d1f1f;
+  
+  // Outline colors
+  --mat-sys-outline: #b0b0b0;
+  --mat-sys-outline-variant: #666666;
+  
+  // Shadow
+  --mat-sys-shadow: 255, 255, 255;
+}
+
+// Global form field fixes to prevent unwanted icons
+input:not([type="password"]) {
+  // Hide password visibility toggles on non-password fields
+  &::-webkit-password-toggle-button,
+  &::-webkit-credentials-auto-fill-button,
+  &::-webkit-contacts-auto-fill-button,
+  &::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+  }
+}
+
+// Ensure Material form fields don't have unwanted icons
+.mat-form-field {
+  input:not([type="password"]) {
+    &::-webkit-password-toggle-button,
+    &::-webkit-credentials-auto-fill-button,
+    &::-webkit-contacts-auto-fill-button,
+    &::-webkit-strong-password-auto-fill-button {
+      display: none !important;
+    }
+  }
+}
+
+// Global button improvements for better contrast
+.mat-button,
+.mat-raised-button,
+.mat-stroked-button,
+.mat-flat-button {
+  // Ensure proper contrast for button text
+  color: var(--mat-sys-on-primary, #ffffff) !important;
+  
+  &.mat-primary {
+    background-color: var(--mat-sys-primary, #1976d2) !important;
+    color: var(--mat-sys-on-primary, #ffffff) !important;
+  }
+  
+  &.mat-accent {
+    background-color: var(--mat-sys-secondary, #ff4081) !important;
+    color: var(--mat-sys-on-secondary, #ffffff) !important;
+  }
+  
+  &.mat-warn {
+    background-color: var(--mat-sys-error, #f44336) !important;
+    color: var(--mat-sys-on-error, #ffffff) !important;
+  }
+}
+
+// Global form field improvements
+.mat-form-field {
+  .mat-form-field-wrapper {
+    background-color: var(--mat-sys-surface-container-low, #f5f5f5) !important;
+    border-radius: 4px;
+  }
+
+  .mat-form-field-label,
+  .mat-form-field-hint,
+  .mat-form-field-prefix,
+  .mat-form-field-suffix,
+  .mat-form-field-ripple,
+  .mat-form-field-subscript-wrapper {
+    color: var(--mat-sys-on-surface, #212121) !important;
+  }
+
+  input.mat-input-element {
+    color: var(--mat-sys-on-surface, #212121) !important;
+
+    &::placeholder {
+      color: var(--mat-sys-outline, #757575) !important;
+    }
+  }
+
+  mat-error {
+    color: var(--mat-sys-error, #f44336) !important;
+  }
+}
+
+// Global card improvements
+.mat-card {
+  background-color: var(--mat-sys-surface-container, #fafafa) !important;
+  color: var(--mat-sys-on-surface, #212121) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+// Global icon improvements
+.mat-icon {
+  color: inherit !important;
+}
+
+// Responsive improvements
+@media (max-width: 768px) {
+  .mat-button,
+  .mat-raised-button,
+  .mat-stroked-button,
+  .mat-flat-button {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+  }
+  
+  .mat-form-field {
+    .mat-form-field-wrapper {
+      padding: 8px !important;
+    }
+  }
+}
+
+// Global layout improvements to prevent content truncation
+.nom-page-container {
+  padding-top: 80px; // Account for reduced fixed header height
+  min-height: calc(100vh - 80px);
+  overflow-x: hidden; // Prevent horizontal scrolling
+  
+  // Ensure content doesn't get cut off
+  .nom-card,
+  .mat-card {
+    margin: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  // Responsive padding adjustments
+  @media (max-width: 768px) {
+    padding-top: 76px;
+    min-height: calc(100vh - 76px);
+  }
+
+  @media (max-width: 480px) {
+    padding-top: 72px;
+    min-height: calc(100vh - 72px);
+  }
+}
+
+// Prevent text truncation in common elements
+h1, h2, h3, h4, h5, h6 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+// Improve button accessibility and contrast
+button,
+.mat-button,
+.mat-raised-button,
+.mat-stroked-button,
+.mat-flat-button {
+  min-height: 44px; // Ensure touch-friendly size
+  min-width: 44px; // Ensure touch-friendly size
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Improve form field accessibility
+.mat-form-field {
+  margin-bottom: 16px;
+  
+  .mat-form-field-wrapper {
+    padding: 8px 12px;
+  }
+  
+  .mat-form-field-label {
+    font-weight: 500;
+  }
+  
+  input.mat-input-element {
+    font-size: 16px; // Prevent zoom on mobile
+  }
+}
+
+// Improve navigation accessibility
+nav,
+.nav,
+.nom-main-nav {
+  a,
+  button {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:focus {
+      outline: 2px solid var(--mat-sys-primary, #1976d2);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// Improve card accessibility
+.mat-card,
+.nom-card {
+  .mat-card-header {
+    padding: 16px 16px 8px 16px;
+  }
+  
+  .mat-card-content {
+    padding: 8px 16px 16px 16px;
+  }
+  
+  .mat-card-actions {
+    padding: 8px 16px 16px 16px;
+  }
+}
+
 html {
   .dark-theme {
     @include mat.theme((color: (primary: nom-theme.$primary-palette,
@@ -446,7 +716,7 @@ body.dark-theme, [data-theme='dark'] {
   }
 
   &-warning {
-    background-color: #fff3cd !important;
+    background-color: var(--mat-sys-error-container, #fff3cd) !important;
     color: #664d03 !important;
     border: 2px solid #664d03 !important;
 

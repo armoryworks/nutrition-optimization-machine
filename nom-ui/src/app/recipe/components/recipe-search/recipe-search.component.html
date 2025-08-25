@@ -1,165 +1,36 @@
-<nom-base-list
-  [config]="listConfig"
-  [isLoading]="isLoading"
-  [error]="error">
-
-  <!-- Search Form -->
-  <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="search-form">
-    <div class="search-row">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search Recipes</mat-label>
-        <input matInput formControlName="query" placeholder="Enter recipe name or description" 
-               [matAutocomplete]="auto">
-        <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSuggestionSelected($event.option.value)">
-          <mat-option *ngFor="let suggestion of searchSuggestions$ | async" [value]="suggestion">
-            {{ suggestion }}
-          </mat-option>
-        </mat-autocomplete>
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
-
-      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading">
-        <mat-icon>search</mat-icon>
-        Search
-      </button>
-    </div>
-
-    <!-- Advanced Filters -->
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
-        <mat-panel-title>
-          <mat-icon>tune</mat-icon>
-          Advanced Filters
-        </mat-panel-title>
-      </mat-expansion-panel-header>
-
-      <div class="filters-grid">
-        <div class="filter-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Minimum Rating</mat-label>
-            <input matInput type="number" formControlName="minRating" min="1" max="5" placeholder="1-5">
-            <mat-icon matSuffix>star</mat-icon>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Max Prep Time (minutes)</mat-label>
-            <input matInput type="number" formControlName="maxPrepTime" min="0" placeholder="0-480">
-            <mat-icon matSuffix>schedule</mat-icon>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Max Cook Time (minutes)</mat-label>
-            <input matInput type="number" formControlName="maxCookTime" min="0" placeholder="0-480">
-            <mat-icon matSuffix>timer</mat-icon>
-          </mat-form-field>
-        </div>
-
-        <div class="filter-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Sort By</mat-label>
-            <mat-select formControlName="sortBy">
-              <mat-option *ngFor="let option of sortOptions" [value]="option.value">
-                {{ option.label }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Sort Direction</mat-label>
-            <mat-select formControlName="sortDirection">
-              <mat-option *ngFor="let option of sortDirections" [value]="option.value">
-                {{ option.label }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="filter-row">
-          <mat-checkbox formControlName="isPublic">Public Recipes Only</mat-checkbox>
-          <mat-checkbox formControlName="isApproved">Approved Recipes Only</mat-checkbox>
-          <mat-checkbox formControlName="includeIngredients">Include Ingredients</mat-checkbox>
-        </div>
-      </div>
-
-      <div class="filter-actions">
-        <button mat-button type="button" (click)="clearFilters()">
-          <mat-icon>clear</mat-icon>
-          Clear Filters
-        </button>
-      </div>
-    </mat-expansion-panel>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      <button mat-stroked-button (click)="loadPopularRecipes()" [disabled]="isLoading">
-        <mat-icon>trending_up</mat-icon>
-        Popular Recipes
-      </button>
-
-      <button mat-stroked-button (click)="loadRecentRecipes()" [disabled]="isLoading">
-        <mat-icon>schedule</mat-icon>
-        Recent Recipes
-      </button>
-    </div>
-  </form>
-
-  <!-- Search Results -->
-  <div class="search-results">
-    @if (searchResults.length > 0) {
-      <div class="results-grid">
-        @for (recipe of searchResults; track recipe.id) {
-          <mat-card class="recipe-card">
-            <mat-card-header>
-              <mat-card-title>{{ recipe.name }}</mat-card-title>
-              <mat-card-subtitle>
-                @for (star of getRatingStars(recipe.rating); track $index) {
-                  <mat-icon class="star-icon">{{ star }}</mat-icon>
-                }
-                <span class="rating-text">{{ recipe.rating }}/5</span>
-              </mat-card-subtitle>
-            </mat-card-header>
-
-            <mat-card-content>
-              <p class="recipe-description">{{ recipe.description }}</p>
-              
-              <div class="recipe-meta">
-                <div class="meta-item">
-                  <mat-icon>schedule</mat-icon>
-                  <span>Prep: {{ formatTime(recipe.prepTime) }}</span>
-                </div>
-                <div class="meta-item">
-                  <mat-icon>timer</mat-icon>
-                  <span>Cook: {{ formatTime(recipe.cookTime) }}</span>
-                </div>
-                <div class="meta-item">
-                  <mat-icon>person</mat-icon>
-                  <span>{{ recipe.servings }} servings</span>
-                </div>
+<div class="recipe-search">
+  <div class="recipe-search__container">
+    <!-- Public Landing Page -->
+    <div class="recipe-search__public-landing">
+      <mat-card class="recipe-search__welcome-card">
+        <mat-card-header>
+          <mat-card-title>Discover Amazing Recipes</mat-card-title>
+          <mat-card-subtitle>Browse our collection of delicious recipes from around the world</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="recipe-search__public-actions">
+            <button mat-raised-button color="primary" (click)="browsePublicRecipes()">
+              <mat-icon>restaurant</mat-icon>
+              Browse Recipes
+            </button>
+            
+            <div class="recipe-search__auth-prompt">
+              <p>Want to create your own recipes and save favorites?</p>
+              <div class="recipe-search__auth-buttons">
+                <button mat-button color="accent" (click)="onLogin()">
+                  <mat-icon>login</mat-icon>
+                  Login
+                </button>
+                <button mat-button color="accent" (click)="onRegister()">
+                  <mat-icon>person_add</mat-icon>
+                  Create Account
+                </button>
               </div>
-
-              @if (recipe.tags && recipe.tags.length > 0) {
-                <div class="recipe-tags">
-                  @for (tag of recipe.tags; track tag) {
-                    <mat-chip>{{ tag }}</mat-chip>
-                  }
-                </div>
-              }
-            </mat-card-content>
-
-            <mat-card-actions>
-              <button mat-button color="primary" [routerLink]="['/recipe', recipe.id]">
-                View Recipe
-              </button>
-            </mat-card-actions>
-          </mat-card>
-        }
-      </div>
-    } @else if (!isLoading) {
-      <div class="no-results">
-        <mat-icon>search_off</mat-icon>
-        <p>No recipes found matching your criteria.</p>
-        <p>Try adjusting your search terms or filters.</p>
-      </div>
-    }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
-</nom-base-list> 
+</div> 

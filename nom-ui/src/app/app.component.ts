@@ -1,207 +1,127 @@
 // File: nom-ui/src/app/app.component.ts
 
-import { Component, OnInit, ViewEncapsulation, PLATFORM_ID, OnDestroy, inject } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import {
-  RouterOutlet,
-  RouterLink,
-  Router,
-  NavigationStart,
-} from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { LoginComponent } from './auth/login/login.component';
-import { NomConfigService } from './utilities/services/nom-config.service';
-import { AuthManagerService } from './utilities/services/auth-manager.service';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { ThemeService } from './services/theme.service';
 import { AuthService } from './auth/auth.service';
-import { NotificationService } from './utilities/services/notification.service';
-import { UserInfoService } from './utilities/services/user-info.service';
-import { Subscription, Observable } from 'rxjs';
-
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'nom-root',
   standalone: true,
   imports: [
     CommonModule,
-    RouterOutlet,
-    RouterLink,
-    FormsModule,
-    LoginComponent,
-    MatToolbarModule,
-    MatButtonModule,
+    RouterModule,
+    ReactiveFormsModule,
     MatIconModule,
-    MatCardModule,
+    MatButtonModule,
+    MatMenuModule,
     MatDividerModule,
     MatFormFieldModule,
     MatInputModule,
+    MatProgressSpinnerModule,
+    MatCheckboxModule
   ],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
-  encapsulation: ViewEncapsulation.None,
+  styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit, OnDestroy {
-  private platformId = inject(PLATFORM_ID);
-  private notificationService = inject(NotificationService);
-  private configService = inject(NomConfigService);
-  private authManagerService = inject(AuthManagerService);
+export class AppComponent implements OnInit {
+  private themeService = inject(ThemeService);
   private authService = inject(AuthService);
-  private userInfoService = inject(UserInfoService);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
-  title = 'NOM - Nutrition Optimization Machine';
-  isMenuOpen = false;
-  isLoggedIn = false;
-  isUserMenuOpen = false;
   isDarkTheme = false;
-  currentYear: number = new Date().getFullYear();
-  searchQuery = '';
-
-  // Observables for reactive UI updates
-  isLoggedIn$: Observable<boolean>;
-  canManageCuration$: Observable<boolean>;
-  canManageUserRoles$: Observable<boolean>;
-
-  private subscriptions: Subscription = new Subscription();
+  isLoggedIn$ = this.authService.isLoggedIn$;
+  showLoginPopover = false;
+  isLoggingIn = false;
+  loginForm: FormGroup;
 
   constructor() {
-    // Initialize observables from the AuthManagerService
-    this.isLoggedIn$ = this.authManagerService.userLogin;
-    this.canManageCuration$ = this.authManagerService.canManageCuration$;
-    this.canManageUserRoles$ = this.authManagerService.canManageUserRoles$;
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rememberMe: [false]
+    });
   }
 
   ngOnInit(): void {
-    this.configService.loadSettings();
-    this.isDarkTheme = localStorage.getItem('theme') === 'dark';
-    this.applyThemeClass();
-    this.checkLoggedIn();
-    // Removed loadUserInfo() call since AuthManagerService will handle it
+    // Ensure dark theme is applied on initialization
+    this.themeService.isDarkTheme$.subscribe(isDark => {
+      this.isDarkTheme = isDark;
+      // Force apply the theme class to body
+      document.body.classList.remove('light-theme', 'dark-theme');
+      document.body.classList.add(isDark ? 'dark-theme' : 'light-theme');
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    });
 
-    // Add debugging for claims observables
-    this.subscriptions.add(
-      this.canManageCuration$.subscribe(hasCuration => {
-        console.log('CanManageCuration changed:', hasCuration);
-      })
-    );
-
-    this.subscriptions.add(
-      this.canManageUserRoles$.subscribe(hasUserRoles => {
-        console.log('CanManageUserRoles changed:', hasUserRoles);
-      })
-    );
-
-    this.subscriptions.add(
-      this.router.events.subscribe((event) => {
-        if (event instanceof NavigationStart) {
-          if (this.isUserMenuOpen) { this.toggleUserMenu(); }
-          if (this.isMenuOpen) { this.toggleMenu(); }
-        }
-      })
-    );
-
-    this.subscriptions.add(
-      this.authManagerService.openUserMenuSignal.subscribe(() => {
-        if (!this.isUserMenuOpen) { this.toggleUserMenu(); }
-      })
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
-
-  checkLoggedIn() {
-    this.subscriptions.add(
-      this.isLoggedIn$.subscribe((status) => {
-        this.isLoggedIn = status;
-        // Don't load user info here since AuthManagerService will handle it after login
-      })
-    );
-    this.authManagerService.checkUserLoggedInStatus();
-  }
-
-  loadUserInfo() {
-    // Only load user info if user is logged in
-    if (this.authManagerService.isLoggedIn()) {
-      this.authService.getInfo().subscribe({
-        next: (userInfo: unknown) => {
-          console.log('User info loaded:', userInfo);
-        },
-        error: (error: unknown) => {
-          console.error('Error loading user info:', error);
-        }
-      });
+    // Force dark theme on first load if no theme is set
+    const savedTheme = localStorage.getItem('theme');
+    if (!savedTheme) {
+      this.themeService.toggleTheme(); // This will set dark theme as default
     }
   }
-
-  toggleMenu(): void { this.isMenuOpen = !this.isMenuOpen; }
-  toggleUserMenu(): void { this.isUserMenuOpen = !this.isUserMenuOpen; }
 
   toggleTheme(): void {
-    this.isDarkTheme = !this.isDarkTheme;
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('theme', this.isDarkTheme ? 'dark' : 'light');
-    }
-    this.applyThemeClass();
+    this.themeService.toggleTheme();
   }
 
-  onSearchInput(event: Event): void {
-    // Handle search input with debouncing
-    const target = event.target as HTMLInputElement;
-    const query = target.value;
-    if (query.length >= 2) {
-      // Implement debounced search here if needed
-      console.log('Search query:', query);
-    }
+  openLoginPopover(): void {
+    this.showLoginPopover = true;
   }
 
-  performSearch(): void {
-    if (this.searchQuery.trim()) {
-      // Navigate to recipe search with query only
-      this.router.navigate(['/recipe-search'], {
-        queryParams: {
-          q: this.searchQuery.trim()
+  closeLoginPopover(): void {
+    this.showLoginPopover = false;
+    this.loginForm.reset();
+  }
+
+  onLoginSubmit(): void {
+    if (this.loginForm.valid) {
+      this.isLoggingIn = true;
+      const { email, password, rememberMe } = this.loginForm.value;
+
+      this.authService.login({
+        email,
+        password,
+        twoFactorCode: '',
+        toFactorRecoveryCode: '',
+        rememberMe: rememberMe
+      }).subscribe({
+        next: (response) => {
+          this.isLoggingIn = false;
+          this.closeLoginPopover();
+          // Navigate to dashboard or home after successful login
+          this.router.navigate(['/home']);
+        },
+        error: (error) => {
+          this.isLoggingIn = false;
+          console.error('Login failed:', error);
+          // You could add error handling here (e.g., show error message)
         }
       });
-    }
-  }
-
-  private applyThemeClass(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      document.body.classList.remove('dark-theme', 'light-theme');
-      document.body.classList.add(this.isDarkTheme ? 'dark-theme' : 'light-theme');
     }
   }
 
   logout(): void {
-    this.isUserMenuOpen = false;
     this.authService.logout().subscribe({
       next: () => {
-        this.authManagerService.logout();
-        this.notificationService.success('Logged Out Successfully');
+        this.router.navigate(['/home']);
       },
-      error: (error: unknown) => {
-        console.error('Logout error:', error);
-        const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Failed to log out. Please try again.';
-        this.notificationService.error(errorMessage);
-      },
+      error: (error) => {
+        console.error('Logout failed:', error);
+        // Still navigate to home even if logout API call fails
+        this.router.navigate(['/home']);
+      }
     });
-  }
-
-  onOnboardingComplete(success: boolean): void {
-    console.log('Onboarding Workflow completed:', success ? 'Successfully!' : 'With errors.');
-    if (success) {
-      this.notificationService.success('Onboarding completed successfully!');
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.notificationService.error('There was an issue completing your onboarding. Please try again.');
-    }
   }
 }

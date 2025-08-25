@@ -1,32 +1,59 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { RegisterUser } from './models/register-user';
+import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 import { LoginUser } from './models/login-user';
+import { LoginResponse } from './models/login-response';
+import { RegisterUser } from './models/register-user';
 import { ForgotPassword } from './models/forgot-password';
 import { ResetPassword } from './models/reset-password';
 import { ConfirmEmail } from './models/confirm-email';
 import { SendConfirmationEmail } from './models/send-confirmation-email';
 import { UpdateInfo } from './models/update-info';
 import { UpdateTwoFactor } from './models/update-two-factor';
-import { LoginResponse } from './models/login-response';
-import {
-  HttpClient,
-  HttpErrorResponse,
-  HttpParams,
-} from '@angular/common/http';
 import { CurrentInfo } from './models/current-info';
 import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
   private httpClient = inject(HttpClient);
+  private apiUrl = environment.apiUrl;
 
-  private readonly apiUrl = '/api/auth';
+  private isLoggedInSubject = new BehaviorSubject<boolean>(false);
+  isLoggedIn$ = this.isLoggedInSubject.asObservable();
 
+  constructor() {
+    this.checkLoginStatus();
+  }
 
+  private checkLoginStatus(): void {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      this.isLoggedInSubject.next(true);
+    }
+  }
+
+  login(credentials: LoginUser): Observable<LoginResponse> {
+    return this.httpClient.post<LoginResponse>(`${this.apiUrl}/login`, credentials)
+      .pipe(
+        tap((response: LoginResponse) => {
+          if (response.accessToken) {
+            localStorage.setItem('authToken', response.accessToken);
+            this.isLoggedInSubject.next(true);
+          }
+        }),
+        catchError(this.handleError)
+      );
+  }
+
+  logout(): Observable<void> {
+    localStorage.removeItem('authToken');
+    this.isLoggedInSubject.next(false);
+    return this.httpClient.post<void>(`${this.apiUrl}/logout`, undefined).pipe(catchError(this.handleError));
+  }
 
   register(userData: RegisterUser): Observable<void> {
     // Map the frontend model to the API model
@@ -42,18 +69,6 @@ export class AuthService {
 
     return this.httpClient
       .post<void>(`${this.apiUrl}/register-custom`, apiPayload)
-      .pipe(catchError(this.handleError));
-  }
-
-  login(credentials: LoginUser): Observable<LoginResponse> {
-    return this.httpClient
-      .post<LoginResponse>(`${this.apiUrl}/login`, credentials)
-      .pipe(catchError(this.handleError));
-  }
-
-  logout(): Observable<void> {
-    return this.httpClient
-      .post<void>(`${this.apiUrl}/logout`, undefined)
       .pipe(catchError(this.handleError));
   }
 
@@ -118,51 +133,28 @@ export class AuthService {
     let errorMessage = 'An unknown error occurred. Please try again.';
 
     if (error.error instanceof ErrorEvent) {
-      // Client-side or network error occurred.
-      errorMessage = `Network error: ${error.error.message}. Please check your internet connection.`;
+      // Client-side error
+      errorMessage = error.error.message;
     } else {
-      // The backend returned an unsuccessful response code.
-      // The response body may contain clues as to what went wrong.
-      if (error.status === 400) {
-        // Check if the error response has a structured 'errors' object (like ProblemDetails)
-        if (
-          error.error &&
-          error.error.errors &&
-          typeof error.error.errors === 'object'
-        ) {
-          const validationErrors = error.error.errors;
-          const messages: string[] = [];
-
-          // Iterate over the keys of the 'errors' object (e.g., "DuplicateUserName")
-          for (const key in validationErrors) {
-            if (Object.prototype.hasOwnProperty.call(validationErrors, key)) {
-              const errorArray = validationErrors[key];
-              // Each key's value is an array of error messages
-              if (Array.isArray(errorArray)) {
-                messages.push(...errorArray); // Add all messages from this array
-              }
-            }
-          }
-          // If specific messages are found, use them. Otherwise, provide a generic 400 error.
-          errorMessage =
-            messages.length > 0
-              ? messages.join('\n')
-              : 'Invalid registration data. Please check your inputs.';
-        } else if (error.error && typeof error.error === 'string') {
-          // Fallback for plain text error messages
-          errorMessage = error.error;
-        } else {
-          errorMessage = 'Invalid registration data. Please check your inputs.';
-        }
+      // Server-side error
+      if (error.status === 0) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (error.status === 400) {
+        errorMessage = error.error?.message || 'Bad request. Please check your input.';
+      } else if (error.status === 401) {
+        errorMessage = error.error?.message || 'Authentication failed. Please log in again.';
+      } else if (error.status === 403) {
+        errorMessage = error.error?.message || 'Access denied. You do not have permission to perform this action.';
+      } else if (error.status === 404) {
+        errorMessage = error.error?.message || 'The requested resource was not found.';
       } else if (error.status === 500) {
-        errorMessage = 'Internal server error. Please try again later.';
+        errorMessage = error.error?.message || 'Server error. Please try again later.';
       } else {
-        errorMessage = `Server responded with status: ${error.status
-          }. Message: ${error.message || 'No specific message.'}`;
+        errorMessage = error.error?.message || `Server error (${error.status}). Please try again.`;
       }
     }
-    // Re-throw the error with the processed message.
-    // The component will subscribe to this re-thrown error and use NotificationService.
+
+    console.error('AuthService error:', error);
     return throwError(() => new Error(errorMessage));
   }
 }

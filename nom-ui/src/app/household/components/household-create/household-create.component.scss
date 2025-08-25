@@ -21,11 +21,11 @@
   }
 
   &__card {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--mat-sys-surface-container);
     backdrop-filter: blur(10px);
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(var(--mat-sys-shadow), 0.1);
+    border: 1px solid var(--mat-sys-outline-variant);
     overflow: hidden;
   }
 
@@ -66,7 +66,7 @@
   }
 
   &__subtitle {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--mat-sys-on-surface-variant);
     font-size: 1rem;
     margin: 0.5rem 0 0;
     line-height: 1.5;
@@ -162,8 +162,8 @@
       }
 
       &:disabled {
-        background: rgba(102, 126, 234, 0.3);
-        color: rgba(255, 255, 255, 0.7);
+        background: var(--mat-sys-outline);
+        color: var(--mat-sys-on-surface-variant);
         box-shadow: none;
       }
     }
@@ -193,20 +193,20 @@
 ::ng-deep {
   .mat-mdc-form-field {
     .mat-mdc-form-field-flex {
-      background: rgba(255, 255, 255, 0.8);
+      background: var(--mat-sys-surface-container-low);
       border-radius: 8px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--mat-sys-outline-variant);
       transition: all 0.3s ease;
 
       &:hover {
-        border-color: rgba(102, 126, 234, 0.5);
-        background: rgba(255, 255, 255, 0.9);
+        border-color: var(--mat-sys-primary);
+        background: var(--mat-sys-surface-container);
       }
 
       &.mat-focused {
-        border-color: #667eea;
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        border-color: var(--mat-sys-primary);
+        background: var(--mat-sys-surface-container);
+        box-shadow: 0 0 0 2px rgba(var(--mat-sys-primary), 0.2);
       }
     }
 
