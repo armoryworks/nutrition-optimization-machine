@@ -11,3 +11,4 @@ export interface IPersonModel {
     attributes?: PersonAttributeModel[]; // NEW: To hold health attributes for this person
 }
 
+

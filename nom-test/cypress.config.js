@@ -3,7 +3,7 @@ const { defineConfig } = require('cypress')
 module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:4200', // Angular dev server
-    supportFile: 'cypress/support/e2e.js',
+    supportFile: 'cypress/support/e2e.ts',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     viewportWidth: 1280,
     viewportHeight: 720,
@@ -25,6 +25,6 @@ module.exports = defineConfig({
       bundler: 'webpack',
     },
     specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
-    supportFile: 'cypress/support/component.js',
+    supportFile: 'cypress/support/component.ts',
   },
 }) 

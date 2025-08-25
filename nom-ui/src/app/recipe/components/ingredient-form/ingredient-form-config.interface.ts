@@ -7,3 +7,4 @@ export interface IngredientFormConfig {
     maxWidth?: string;
 }
 
+
