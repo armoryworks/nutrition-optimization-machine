@@ -132,70 +132,9 @@
 
 <!-- Login Popover - Only visible when not logged in and login button is clicked -->
 @if (!(isLoggedIn$ | async) && showLoginPopover) {
+  <div class="nom-login-popover-backdrop" (click)="closeLoginPopover()"></div>
   <div class="nom-login-popover" data-cy="login-popover">
-    <div class="nom-login-popover__content">
-      <div class="nom-login-popover__header">
-        <h3>Login</h3>
-        <button 
-          mat-icon-button 
-          (click)="closeLoginPopover()"
-          class="nom-login-popover__close"
-          aria-label="Close login">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-      
-      <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()" class="nom-login-popover__form">
-        <mat-form-field class="nom-login-popover__field">
-          <mat-label>Email</mat-label>
-          <input 
-            matInput 
-            type="email" 
-            formControlName="email"
-            placeholder="Enter your email"
-            data-cy="email-input"
-            required>
-          <mat-icon matSuffix>email</mat-icon>
-        </mat-form-field>
-        
-        <mat-form-field class="nom-login-popover__field">
-          <mat-label>Password</mat-label>
-          <input 
-            matInput 
-            type="password" 
-            formControlName="password"
-            placeholder="Enter your password"
-            data-cy="password-input"
-            required>
-          <mat-icon matSuffix>lock</mat-icon>
-        </mat-form-field>
-        
-        <div class="nom-login-popover__checkbox">
-          <mat-checkbox formControlName="rememberMe" color="primary">
-            Remember me
-          </mat-checkbox>
-        </div>
-        
-        <div class="nom-login-popover__actions">
-          <button 
-            mat-raised-button 
-            color="primary" 
-            type="submit"
-            [disabled]="loginForm.invalid || isLoggingIn"
-            data-cy="login-button"
-            class="nom-login-popover__submit">
-            <mat-icon *ngIf="!isLoggingIn">login</mat-icon>
-            <mat-spinner *ngIf="isLoggingIn" diameter="20"></mat-spinner>
-            <span>{{ isLoggingIn ? 'Logging in...' : 'Login' }}</span>
-          </button>
-        </div>
-        
-        <div class="nom-login-popover__links">
-          <a routerLink="/forgot-password" class="nom-login-popover__link">Forgot Password?</a>
-          <a routerLink="/register" class="nom-login-popover__link">Create Account</a>
-        </div>
-      </form>
-    </div>
+    <nom-login></nom-login>
   </div>
 }
 

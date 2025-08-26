@@ -3,7 +3,7 @@
 .login {
   // All core layout, typography, and color styling is now managed by .nom- classes from system.scss.
   // This component's SCSS should primarily handle specific overrides or unique child elements.
-
+  width: 500px;
   &__options-row {
     display: flex;
     justify-content: space-between;

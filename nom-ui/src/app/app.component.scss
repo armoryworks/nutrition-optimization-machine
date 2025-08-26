@@ -559,161 +559,49 @@ mat-form-field {
   }
 }
 
-.nom-content {
+// Login Popover Styles
+.nom-login-popover-backdrop {
   position: fixed;
-  top: 72px;
-  bottom: 40px;
+  top: 0;
   left: 0;
   right: 0;
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 0;
-  transition: margin-right 0.3s ease-in-out;
-  background-color: var(--mat-sys-background);
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  cursor: pointer;
 }
 
-// Login Popover Styles
 .nom-login-popover {
-  position: fixed; // Changed from absolute to fixed for better positioning
-  top: 50%; // Center vertically
-  left: 50%; // Center horizontally
-  transform: translate(-50%, -50%); // Center the popover
-  z-index: 9999; // Increased z-index to ensure it's on top
-  margin: 0; // Remove margin that might cause positioning issues
-  
-  &__content {
-    background-color: var(--mat-sys-surface-container, #2d2d2d);
-    border: 1px solid var(--mat-sys-outline-variant, #666666);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(var(--mat-sys-shadow, 0, 0, 0), 0.15);
-    min-width: 320px;
-    max-width: 400px;
-    overflow: hidden;
-  }
-  
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
-    background-color: var(--mat-sys-surface-container-high);
-    
-    h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface);
-    }
-  }
-  
-  &__close {
-    color: var(--mat-sys-on-surface-variant);
-    
-    &:hover {
-      background-color: var(--mat-sys-surface-container-low);
-    }
-  }
-  
-  &__form {
-    padding: 20px;
-  }
-  
-  &__field {
-    width: 100%;
-    margin-bottom: 16px;
-    
-    .mat-form-field-wrapper {
-      background-color: var(--mat-sys-surface-container-low);
-      border-radius: 8px;
-    }
-    
-    .mat-form-field-outline {
-      border: none;
-    }
-    
-    input {
-      color: var(--mat-sys-on-surface);
-      
-      &::placeholder {
-        color: var(--mat-sys-on-surface-variant);
-      }
-    }
-    
-    .mat-form-field-label {
-      color: var(--mat-sys-on-surface-variant);
-    }
-    
-    .mat-form-field-suffix {
-      color: var(--mat-sys-on-surface-variant);
-    }
-  }
-  
-  &__checkbox {
-    margin-bottom: 16px;
-    
-    .mat-checkbox {
-      color: var(--mat-sys-on-surface);
-      
-      .mat-checkbox-frame {
-        border-color: var(--mat-sys-outline-variant);
-      }
-      
-      .mat-checkbox-checkmark-path {
-        stroke: var(--mat-sys-primary);
-      }
-      
-      .mat-checkbox-background {
-        background-color: var(--mat-sys-primary);
-      }
-    }
-  }
-  
-  &__actions {
-    margin-bottom: 16px;
-  }
-  
-  &__submit {
-    width: 100%;
-    padding: 12px 24px;
-    font-size: 16px;
-    font-weight: 500;
-    
-    mat-icon, mat-spinner {
-      margin-right: 8px;
-    }
-  }
-  
-  &__links {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-  }
-  
-  &__link {
-    color: var(--mat-sys-primary);
-    text-decoration: none;
-    font-weight: 500;
-    
-    &:hover {
-      text-decoration: underline;
-    }
-  }
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  margin: 0;
+  background-color: var(--mat-sys-surface-container, #2d2d2d);
+  border: 1px solid var(--mat-sys-outline-variant, #666666);
+  box-shadow: 0 8px 24px rgba(var(--mat-sys-shadow, 0, 0, 0), 0.15);
+  min-width: 400px;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 12px;
 }
 
 // Footer Styles
 .nom-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height:55px;
+  text-align: center;;
+  
   background-color: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
-  padding: 24px 20px;
-  text-align: center;
-  margin-top: auto;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-  
   p {
     margin: 8px 0;
-    font-size: 14px;
+    font-size: 9px;
     line-height: 1.5;
   }
   
@@ -774,10 +662,6 @@ mat-form-field {
     padding-top: 0;
     box-shadow: none;
     flex-shrink: 0;
-  }
-
-  .nom-content {
-    margin-right: 0;
   }
 
   .nom-user-menu {

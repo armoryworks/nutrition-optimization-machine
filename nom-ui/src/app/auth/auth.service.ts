@@ -20,7 +20,7 @@ import { UpdateTwoFactorResponse } from './models/update-two-factor-response';
 })
 export class AuthService {
   private httpClient = inject(HttpClient);
-  private apiUrl = environment.apiUrl;
+  private readonly apiUrl = '/api/auth';
 
   private isLoggedInSubject = new BehaviorSubject<boolean>(false);
   isLoggedIn$ = this.isLoggedInSubject.asObservable();
