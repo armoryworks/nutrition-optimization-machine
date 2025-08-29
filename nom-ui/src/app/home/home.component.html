@@ -14,7 +14,7 @@
             <mat-icon>person_add</mat-icon>
             Get Started
           </button>
-          <button mat-stroked-button class="home__hero-btn" routerLink="/recipe-search">
+          <button mat-stroked-button class="home__hero-btn" (click)="onBrowseRecipesClick()">
             <mat-icon>search</mat-icon>
             Browse Recipes
           </button>
@@ -22,15 +22,15 @@
       </div>
       <div class="home__hero-visual">
         <div class="home__hero-cards">
-          <div class="home__hero-card home__hero-card--recipe">
+          <div class="home__hero-card home__hero-card--recipe" (click)="onRecipeCardClick()" style="cursor: pointer;">
             <mat-icon>restaurant</mat-icon>
             <span>Recipes</span>
           </div>
-          <div class="home__hero-card home__hero-card--ingredient">
+          <div class="home__hero-card home__hero-card--ingredient" (click)="onIngredientCardClick()" style="cursor: pointer;">
             <mat-icon>eco</mat-icon>
             <span>Ingredients</span>
           </div>
-          <div class="home__hero-card home__hero-card--nutrition">
+          <div class="home__hero-card home__hero-card--nutrition" (click)="onNutritionCardClick()" style="cursor: pointer;">
             <mat-icon>monitor_heart</mat-icon>
             <span>Nutrition</span>
           </div>
@@ -77,7 +77,7 @@
     <section class="home__quick-actions">
       <h2 class="home__section-title">Get Started Today</h2>
       <div class="home__actions-grid">
-        <div class="home__action-card" routerLink="/recipe-search">
+        <div class="home__action-card" (click)="onBrowseRecipesClick()" style="cursor: pointer;">
           <mat-icon>search</mat-icon>
           <h3>Browse Recipes</h3>
           <p>Explore our curated collection of delicious recipes</p>
@@ -95,7 +95,7 @@
           <p>Create an account to share your own recipes</p>
           <span class="home__action-arrow">→</span>
         </div>
-        <div class="home__action-card" routerLink="/ingredient-search">
+        <div class="home__action-card" (click)="onFindIngredientsClick()" style="cursor: pointer;">
           <mat-icon>eco</mat-icon>
           <h3>Find Ingredients</h3>
           <p>Search our comprehensive ingredient database</p>

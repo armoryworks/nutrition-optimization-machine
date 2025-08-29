@@ -742,3 +742,235 @@ body.dark-theme, [data-theme='dark'] {
     }
   }
 }
+
+// Compact spacing utilities for space-efficient layouts
+.nom-compact {
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    margin-bottom: 0.75rem;
+    gap: 1rem;
+
+    .header-title-section {
+      flex-shrink: 0;
+    }
+
+    .header-center-section {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .header-actions-section {
+      flex-shrink: 0;
+    }
+  }
+
+  &-spacing {
+    &-xs { margin: 0.25rem !important; }
+    &-sm { margin: 0.5rem !important; }
+    &-md { margin: 1rem !important; }
+    &-lg { margin: 1.5rem !important; }
+  }
+
+  &-padding {
+    &-xs { padding: 0.25rem !important; }
+    &-sm { padding: 0.5rem !important; }
+    &-md { padding: 1rem !important; }
+    &-lg { padding: 1.5rem !important; }
+  }
+
+  &-gap {
+    &-xs { gap: 0.25rem !important; }
+    &-sm { gap: 0.5rem !important; }
+    &-md { gap: 1rem !important; }
+    &-lg { gap: 1.5rem !important; }
+  }
+
+  // Minimal top spacing for dashboard-style pages
+  &-top-minimal {
+    padding-top: 0px !important;
+    margin-top: 0 !important;
+  }
+}
+
+// Pill-style stat components
+.nom-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mat-sys-primary);
+  }
+
+  .number {
+    font-weight: 600;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .label {
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// Universal filter bar for search and filtering
+.nom-filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  align-items: flex-end;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__field {
+    flex: 1;
+    min-width: 200px;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      min-width: unset;
+    }
+
+    // Compact form field styling
+    ::ng-deep {
+      .mat-mdc-form-field-wrapper {
+        padding-bottom: 0;
+      }
+
+      .mat-mdc-form-field-bottom-align::before {
+        display: none;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        height: 40px;
+        
+        .mat-mdc-form-field-input-control {
+          height: 40px;
+        }
+      }
+    }
+  }
+}
+
+// Universal scrolling utilities for components that approach footer
+.nom-scroll-container {
+  // Base container that manages overall height
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px); // Account for header space
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+
+  // Scrollable content area - can be applied to individual content sections
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0; // Important for flex items to shrink
+    padding-bottom: 10px; // Minimum space above footer
+    max-height: 250px; // Reduced default height for better fit
+    
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-container-low);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline-variant);
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--mat-sys-outline);
+      }
+    }
+
+    // Variant for larger content areas
+    &--large {
+      max-height: 350px; // Reduced from 500px
+    }
+
+    // Variant for smaller content areas  
+    &--small {
+      max-height: 150px; // Reduced from 200px
+    }
+
+    // Variant for full height (original behavior)
+    &--full {
+      max-height: none;
+      flex: 1;
+    }
+  }
+
+  // Fixed footer/actions area (non-scrollable)
+  &__actions {
+    flex-shrink: 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    background: var(--mat-sys-surface);
+    margin-top: auto;
+  }
+
+  // Variant for components with bottom buttons
+  &--with-actions {
+    .nom-scroll-container__content {
+      padding-bottom: 0; // Remove bottom padding when actions are present
+    }
+  }
+
+  // Variant for dashboard-style layouts
+  &--dashboard {
+    height: calc(100vh - 140px); // Extra space for dashboard header
+    max-height: calc(100vh - 140px);
+  }
+
+  // Variant for modal/dialog content
+  &--modal {
+    height: calc(100vh - 200px);
+    max-height: calc(100vh - 200px);
+  }
+
+  // Mobile responsive adjustments
+  @media (max-width: 768px) {
+    height: calc(100vh - 100px);
+    max-height: calc(100vh - 100px);
+
+    &--dashboard {
+      height: calc(100vh - 120px);
+      max-height: calc(100vh - 120px);
+    }
+
+    &--modal {
+      height: calc(100vh - 150px);
+      max-height: calc(100vh - 150px);
+    }
+  }
+}

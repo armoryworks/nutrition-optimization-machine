@@ -19,9 +19,7 @@ export const routes: Routes = [
   // Public routes - accessible to everyone
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
-  { path: 'recipes', loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent) },
-  { path: 'ingredients', redirectTo: 'ingredient-search', pathMatch: 'full' },
-  { path: 'nutrition', redirectTo: 'home', pathMatch: 'full' }, // Redirect to home for now since nutrition-info doesn't exist
+  { path: 'about', component: HomeComponent }, // Show home content for now since about page isn't implemented
 
   // Auth routes - accessible to everyone (using existing structure)
   { path: 'register', component: RegistrationComponent },
@@ -39,6 +37,11 @@ export const routes: Routes = [
   { path: 'plan', redirectTo: 'curated-plans', pathMatch: 'full' },
 
   // Protected routes - require authentication (using existing structure)
+  {
+    path: 'recipes',
+    loadChildren: () => import('./recipe/recipe.routes').then(m => m.RECIPE_ROUTES),
+    canActivate: [AuthGuard]
+  },
   {
     path: 'ingredient-search',
     loadComponent: () => import('./recipe/components/ingredient-search/ingredient-search.component').then(m => m.IngredientSearchComponent),

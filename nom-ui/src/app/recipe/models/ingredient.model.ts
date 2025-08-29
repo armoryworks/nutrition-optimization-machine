@@ -6,11 +6,12 @@ export interface IngredientModel extends BaseCommonModel {
     description?: string;
     categoryId?: number;
     fdcId?: string;
-    curationStatusId: number;
+    curationStatus?: string; // Backend returns this as a string, not curationStatusId as number
+    curationStatusId?: number; // Keep for backward compatibility, but backend doesn't return this
     nutrients: NutrientValueModel[];
-    allergens: number[];
-    isActive: boolean;
+    allergens?: number[];
+    isActive?: boolean;
     authorId: number;
-    createdById: number;
-    userId: number;
+    createdById?: number;
+    userId?: number;
 }

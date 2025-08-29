@@ -797,6 +797,150 @@ listConfig: BaseListConfig = {
 - ✅ **Responsive** - Stacks vertically on mobile devices
 - ✅ **Equal width distribution** - Each field gets 50% of available width
 
+### **Universal Scrolling Pattern (Footer Collision Prevention)**
+
+**🚨 CRITICAL: Universal Rule for All Components**
+
+**When to Use:**
+
+- **ALWAYS** when component content approaches within 10px of footer
+- Components with dynamic content that can grow vertically
+- Components with bottom action buttons
+- Any page that might overflow the viewport
+
+**Universal Rule:**
+
+When any component content approaches the footer at 10px above it, the content must have vertical scrolling. If there are buttons at the bottom of the component, the content above the buttons should scroll while keeping buttons fixed.
+
+**Implementation Pattern:**
+
+```html
+<!-- Component with fixed header and scrollable content -->
+<div class="component-container">
+  <!-- Fixed header/controls (always visible) -->
+  <div class="component-header">
+    <h2>Section Title</h2>
+    <button>Action Button</button>
+  </div>
+
+  <!-- Scrollable content area -->
+  <div class="nom-scroll-container__content">
+    <!-- Content items that can scroll -->
+    <div class="content-item">Item 1</div>
+    <div class="content-item">Item 2</div>
+    <!-- ... more items -->
+  </div>
+</div>
+
+<!-- Full page with scrollable sections -->
+<div class="nom-scroll-container nom-scroll-container--dashboard">
+  <!-- Fixed page header -->
+  <div class="page-header">
+    <h1>Page Title</h1>
+    <div class="stats-pills">...</div>
+  </div>
+
+  <!-- Page content with individual scrollable sections -->
+  <div class="page-content">
+    <div class="section">
+      <div class="section-header">
+        <h2>My Items</h2>
+        <button>New Item</button>
+      </div>
+      <!-- Only this content scrolls -->
+      <div class="nom-scroll-container__content">
+        <!-- Scrollable items -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Component with fixed bottom actions -->
+<div class="nom-scroll-container nom-scroll-container--with-actions">
+  <div class="fixed-header">
+    <!-- Fixed header content -->
+  </div>
+  <div
+    class="nom-scroll-container__content nom-scroll-container__content--full"
+  >
+    <!-- Scrollable content -->
+  </div>
+  <div class="nom-scroll-container__actions">
+    <!-- Fixed bottom actions -->
+  </div>
+</div>
+```
+
+**Available Variants:**
+
+| Variant          | Use Case                       | Height Calculation         |
+| ---------------- | ------------------------------ | -------------------------- |
+| Base             | Standard pages                 | `calc(100vh - 120px)`      |
+| `--dashboard`    | Dashboard layouts              | `calc(100vh - 140px)`      |
+| `--modal`        | Modal/dialog content           | `calc(100vh - 200px)`      |
+| `--with-actions` | Components with bottom buttons | Same height, fixed actions |
+
+**Content Area Variants:**
+
+| Content Variant | Use Case                    | Max Height                |
+| --------------- | --------------------------- | ------------------------- |
+| Default         | Individual content sections | `300px`                   |
+| `--small`       | Compact content areas       | `200px`                   |
+| `--large`       | Extended content areas      | `500px`                   |
+| `--full`        | Full height (original)      | `flex: 1` (no max-height) |
+
+**CSS Implementation (in `_styles.scss`):**
+
+```scss
+.nom-scroll-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    padding-bottom: 10px; // Minimum space above footer
+  }
+
+  &__actions {
+    flex-shrink: 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    background: var(--mat-sys-surface);
+    margin-top: auto;
+  }
+}
+```
+
+**Key Principles:**
+
+1. **Fixed Headers/Controls**: Section headers and action buttons remain static and always visible
+2. **Targeted Scrolling**: Only content areas scroll, not entire sections
+3. **Flexible Heights**: Different max-heights for different content types
+4. **Consistent Behavior**: Same scrolling pattern across all components
+
+**Benefits:**
+
+- ✅ **Prevents content cutoff** - Content never gets hidden by footer
+- ✅ **Fixed navigation** - Headers and controls always accessible
+- ✅ **Consistent UX** - Same behavior across all components
+- ✅ **Responsive** - Adapts to different screen sizes
+- ✅ **Accessible** - Custom scrollbar styling
+- ✅ **Reusable** - Single utility class system
+- ✅ **Action preservation** - Bottom buttons always visible
+- ✅ **Focused scrolling** - Only content scrolls, headers stay put
+
+**Migration Requirements:**
+
+- **MANDATORY**: All existing components must be updated to use this pattern
+- **Priority**: Start with most frequently used components
+- **Testing**: Verify 10px minimum space above footer on all screen sizes
+
 ### **Header Action Integration Pattern (Review Interfaces)**
 
 **When to Use:**

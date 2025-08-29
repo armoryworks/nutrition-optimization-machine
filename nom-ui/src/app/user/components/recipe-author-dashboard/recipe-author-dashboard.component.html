@@ -1,68 +1,61 @@
-<div class="nom-page-container full-canvas">
-    <div class="nom-dashboard">
-        <div class="nom-dashboard__header">
-            <div class="nom-dashboard__header-content">
+<div class="nom-page-container full-canvas nom-compact-top-minimal">
+    <div class="nom-dashboard nom-scroll-container nom-scroll-container--dashboard">
+        <!-- Compact Header with Stats Pills -->
+        <div class="nom-dashboard__header-compact">
+            <div class="nom-dashboard__header-title-section">
                 <h1 class="nom-dashboard__title">My Dashboard</h1>
-                <p class="nom-dashboard__subtitle">Manage your created recipes and ingredients</p>
             </div>
-            <div class="nom-dashboard__header-actions">
-                <button mat-raised-button color="primary" routerLink="/recipes/new" class="nom-dashboard__action-button">
-                    <mat-icon>add</mat-icon>
-                    <span>Create Recipe</span>
-                </button>
-                <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__action-button">
-                    <mat-icon>eco</mat-icon>
-                    <span>Create Ingredient</span>
-                </button>
+            
+            <div class="nom-dashboard__header-center-section">
+                <!-- Stats Pills -->
+                <div class="nom-dashboard__stats-pills">
+                    <div class="nom-dashboard__stat-pill">
+                        <mat-icon>restaurant</mat-icon>
+                        <span class="nom-dashboard__stat-number">{{ recipesCount$ | async }}</span>
+                        <span class="nom-dashboard__stat-label">Recipes</span>
+                    </div>
+                    <div class="nom-dashboard__stat-pill">
+                        <mat-icon>eco</mat-icon>
+                        <span class="nom-dashboard__stat-number">{{ ingredientsCount$ | async }}</span>
+                        <span class="nom-dashboard__stat-label">Ingredients</span>
+                    </div>
+                    <div class="nom-dashboard__stat-pill">
+                        <mat-icon>pending</mat-icon>
+                        <span class="nom-dashboard__stat-number">{{ pendingCurationCount$ | async }}</span>
+                        <span class="nom-dashboard__stat-label">Pending</span>
+                    </div>
+                </div>
             </div>
+            
+
         </div>
 
         <div class="nom-dashboard__content">
-            <!-- Stats Cards -->
-            <div class="nom-dashboard__stats">
-                <div class="nom-dashboard__stat-card">
-                    <div class="nom-dashboard__stat-icon">
-                        <mat-icon>restaurant</mat-icon>
-                    </div>
-                    <div class="nom-dashboard__stat-content">
-                        <h3 class="nom-dashboard__stat-number">
-                            {{ recipesCount$ | async }}
-                        </h3>
-                        <p class="nom-dashboard__stat-label">Recipes</p>
-                    </div>
-                </div>
-                <div class="nom-dashboard__stat-card">
-                    <div class="nom-dashboard__stat-icon">
-                        <mat-icon>eco</mat-icon>
-                    </div>
-                    <div class="nom-dashboard__stat-content">
-                        <h3 class="nom-dashboard__stat-number">
-                            {{ ingredientsCount$ | async }}
-                        </h3>
-                        <p class="nom-dashboard__stat-label">Ingredients</p>
-                    </div>
-                </div>
-                <div class="nom-dashboard__stat-card">
-                    <div class="nom-dashboard__stat-icon">
-                        <mat-icon>pending</mat-icon>
-                    </div>
-                    <div class="nom-dashboard__stat-content">
-                        <h3 class="nom-dashboard__stat-number">
-                            {{ pendingCurationCount$ | async }}
-                        </h3>
-                        <p class="nom-dashboard__stat-label">Pending Curation</p>
-                    </div>
-                </div>
-            </div>
 
             <!-- Main Content Grid -->
             <div class="nom-dashboard__grid">
                 <!-- Recipes Section -->
                 <div class="nom-dashboard__section">
-                    <div class="nom-dashboard__section-header">
-                        <div class="nom-dashboard__section-title-group">
-                            <h2 class="nom-dashboard__section-title">My Recipes</h2>
-                            <p class="nom-dashboard__section-subtitle">Your custom recipes</p>
+                    <div class="nom-dashboard__section-header-compact">
+                        <!-- Recipe Filters moved to header -->
+                        <div class="nom-dashboard__filters">
+                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
+                                <mat-label>Search My Recipes...</mat-label>
+                                <input matInput [(ngModel)]="recipeSearchTerm" (input)="onRecipeSearch()" placeholder="Search My Recipes...">
+                                <mat-icon matSuffix>search</mat-icon>
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
+                                <mat-label>Status</mat-label>
+                                <mat-select [(ngModel)]="recipeStatusFilter" (selectionChange)="onRecipeStatusFilter()">
+                                    <mat-option value="">All Statuses</mat-option>
+                                    <mat-option value="DRAFT">Draft</mat-option>
+                                    <mat-option value="NONCURATED">Non-Curated</mat-option>
+                                    <mat-option value="PENDINGCURATION">Pending Curation</mat-option>
+                                    <mat-option value="CURATED">Curated</mat-option>
+                                    <mat-option value="REQUIRESREVISION">Requires Revision</mat-option>
+                                    <mat-option value="REJECTED">Rejected</mat-option>
+                                </mat-select>
+                            </mat-form-field>
                         </div>
                         <button mat-stroked-button (click)="navigateToNewRecipe()" class="nom-dashboard__action-button">
                             <mat-icon>add</mat-icon>
@@ -70,8 +63,8 @@
                         </button>
                     </div>
 
-                    @if (recipes$ | async; as recipes) {
-                    <div class="nom-dashboard__item-grid">
+                    @if (filteredRecipes$ | async; as recipes) {
+                    <div class="nom-dashboard__item-grid nom-scroll-container__content nom-scroll-container__content--large">
                         @for (recipe of recipes; track recipe.id) {
                         <div class="nom-dashboard__item-card">
                             <div class="nom-dashboard__item-row">
@@ -141,19 +134,35 @@
 
                 <!-- Ingredients Section -->
                 <div class="nom-dashboard__section">
-                    <div class="nom-dashboard__section-header">
-                        <div class="nom-dashboard__section-title-group">
-                            <h2 class="nom-dashboard__section-title">My Ingredients</h2>
-                            <p class="nom-dashboard__section-subtitle">Your custom ingredients</p>
+                    <div class="nom-dashboard__section-header-compact">
+                        <!-- Ingredient Filters moved to header -->
+                        <div class="nom-dashboard__filters">
+                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
+                                <mat-label>Search My Ingredients...</mat-label>
+                                <input matInput [(ngModel)]="ingredientSearchTerm" (input)="onIngredientSearch()" placeholder="Search My Ingredients...">
+                                <mat-icon matSuffix>search</mat-icon>
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
+                                <mat-label>Status</mat-label>
+                                <mat-select [(ngModel)]="ingredientStatusFilter" (selectionChange)="onIngredientStatusFilter()">
+                                    <mat-option value="">All Statuses</mat-option>
+                                    <mat-option value="DRAFT">Draft</mat-option>
+                                    <mat-option value="NONCURATED">Non-Curated</mat-option>
+                                    <mat-option value="PENDINGCURATION">Pending Curation</mat-option>
+                                    <mat-option value="CURATED">Curated</mat-option>
+                                    <mat-option value="REQUIRESREVISION">Requires Revision</mat-option>
+                                    <mat-option value="REJECTED">Rejected</mat-option>
+                                </mat-select>
+                            </mat-form-field>
                         </div>
-                        <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__section-action">
+                        <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__action-button">
                             <mat-icon>add</mat-icon>
                             <span>New Ingredient</span>
                         </button>
                     </div>
 
-                    @if (ingredients$ | async; as ingredients) {
-                    <div class="nom-dashboard__item-grid">
+                    @if (filteredIngredients$ | async; as ingredients) {
+                    <div class="nom-dashboard__item-grid nom-scroll-container__content nom-scroll-container__content--large">
                         @for (ingredient of ingredients; track ingredient.id) {
                         <div class="nom-dashboard__item-card">
                             <div class="nom-dashboard__item-row">

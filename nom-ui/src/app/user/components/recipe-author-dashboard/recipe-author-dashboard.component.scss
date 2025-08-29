@@ -7,57 +7,106 @@
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: vars.$spacing-large;
+    padding: 5px vars.$spacing-large 0;
+    height: calc(100vh - 120px); // Constrain total height to prevent page scroll
+    overflow: hidden; // Prevent page-level scrolling
 
     @include mixins.breakpoint(mobile) {
-        padding: vars.$spacing-medium;
+        padding: 0px vars.$spacing-medium 0;
+        height: calc(100vh - 100px); // Adjust for mobile header
     }
 
-    &__header {
+    // Compact Header Pattern (following docs/development/conventions.md)
+    &__header-compact {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: vars.$spacing-xxlarge;
-        gap: vars.$spacing-large;
+        align-items: center;
+        padding: vars.$spacing-small 0;
+        margin-bottom: vars.$spacing-small;
+        gap: vars.$spacing-medium;
 
         @include mixins.breakpoint(mobile) {
             flex-direction: column;
             align-items: stretch;
-            gap: vars.$spacing-medium;
+            gap: vars.$spacing-small;
         }
     }
 
-    &__header-content {
+    &__header-title-section {
+        flex-shrink: 0;
+    }
+
+    &__header-center-section {
         flex: 1;
-    }
-
-    &__title {
-        font: var(--mat-sys-display-small);
-        color: var(--mat-sys-on-surface);
-        margin: 0 0 vars.$spacing-small 0;
-        font-weight: 600;
-
-        @include mixins.breakpoint(mobile) {
-            font: var(--mat-sys-headline-large);
-        }
-    }
-
-    &__subtitle {
-        font: var(--mat-sys-body-large);
-        color: var(--mat-sys-on-surface-variant);
-        margin: 0;
-        line-height: 1.5;
-    }
-
-    &__header-actions {
         display: flex;
-        gap: vars.$spacing-medium;
+        justify-content: flex-end;
         align-items: center;
 
         @include mixins.breakpoint(mobile) {
-            flex-direction: column;
-            width: 100%;
+            justify-content: flex-start;
         }
+    }
+
+    &__title {
+        font: var(--mat-sys-headline-large);
+        color: var(--mat-sys-on-surface);
+        margin: 0;
+        font-weight: 600;
+        line-height: 1.2;
+
+        @include mixins.breakpoint(mobile) {
+            font: var(--mat-sys-headline-medium);
+        }
+    }
+
+    // Stats Pills
+    &__stats-pills {
+        display: flex;
+        gap: vars.$spacing-small;
+        align-items: center;
+
+        @include mixins.breakpoint(mobile) {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+    }
+
+    &__stat-pill {
+        display: flex;
+        align-items: center;
+        gap: vars.$spacing-xsmall;
+        padding: vars.$spacing-xsmall vars.$spacing-small;
+        background: var(--mat-sys-surface-container);
+        border: 1px solid var(--mat-sys-outline-variant);
+        border-radius: 20px;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: var(--mat-sys-surface-container-high);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(var(--mat-sys-shadow), 0.1);
+        }
+
+        mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: var(--mat-sys-primary);
+        }
+    }
+
+    &__stat-number {
+        font: var(--mat-sys-title-medium);
+        color: var(--mat-sys-on-surface);
+        font-weight: 600;
+        line-height: 1;
+    }
+
+    &__stat-label {
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+        font-weight: 500;
+        line-height: 1;
     }
 
     &__action-button {
@@ -69,15 +118,22 @@
     &__content {
         display: flex;
         flex-direction: column;
-        gap: vars.$spacing-xxlarge;
+        gap: vars.$spacing-large;
+        padding: 0 vars.$spacing-large vars.$spacing-large;
+        flex: 1; // Take remaining space
+        min-height: 0; // Allow shrinking
+        overflow-y: auto; // Enable internal scrolling
+
+        @include mixins.breakpoint(mobile) {
+            padding: 0 vars.$spacing-medium vars.$spacing-medium;
+        }
     }
 
-    // Stats Section
-    &__stats {
+    // Main Grid
+    &__grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: vars.$spacing-large;
-        margin-bottom: vars.$spacing-xxlarge;
 
         @include mixins.breakpoint(mobile) {
             grid-template-columns: 1fr;
@@ -85,126 +141,93 @@
         }
     }
 
-    &__stat-card {
+    // Sections
+    &__section {
         background: var(--mat-sys-surface-container);
         border-radius: vars.$nom-border-radius;
-        padding: vars.$spacing-large;
-        display: flex;
-        align-items: center;
-        gap: vars.$spacing-medium;
+        padding: vars.$spacing-medium;
         border: 1px solid var(--mat-sys-outline-variant);
-        transition: all 0.2s ease;
+    }
 
-        &:hover {
-            background: var(--mat-sys-surface-container-high);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.15);
+    // Compact Section Header
+    &__section-header-compact {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end; // Align to bottom for better form field alignment
+        margin-bottom: vars.$spacing-small;
+        gap: vars.$spacing-medium;
+
+        @include mixins.breakpoint(mobile) {
+            flex-direction: column;
+            align-items: stretch;
+            gap: vars.$spacing-small;
         }
     }
 
-    &__stat-icon {
-        @include mixins.flex-center;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: var(--mat-sys-primary-container);
-        color: var(--mat-sys-on-primary-container);
-
-        mat-icon {
-            font-size: 24px;
-            width: 24px;
-            height: 24px;
-        }
-    }
-
-    &__stat-content {
-        flex: 1;
-    }
-
-    &__stat-number {
-        font: var(--mat-sys-display-small);
+    &__section-title {
+        font: var(--mat-sys-title-large);
         color: var(--mat-sys-on-surface);
         margin: 0;
         font-weight: 600;
         line-height: 1.2;
     }
 
-    &__stat-label {
-        font: var(--mat-sys-body-medium);
-        color: var(--mat-sys-on-surface-variant);
-        margin: vars.$spacing-xsmall 0 0 0;
-    }
-
-    // Main Grid
-    &__grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: vars.$spacing-xxlarge;
-
-        @include mixins.breakpoint(mobile) {
-            grid-template-columns: 1fr;
-            gap: vars.$spacing-large;
-        }
-    }
-
-    // Sections
-    &__section {
-        background: var(--mat-sys-surface-container);
-        border-radius: vars.$nom-border-radius;
-        padding: vars.$spacing-large;
-        border: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    &__section-header {
+    // Filter Section (now in header)
+    &__filters {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: vars.$spacing-large;
-        gap: vars.$spacing-medium;
+        gap: vars.$spacing-small;
+        align-items: flex-end;
+        flex: 1; // Take available space
 
         @include mixins.breakpoint(mobile) {
             flex-direction: column;
-            align-items: stretch;
+            gap: vars.$spacing-small;
         }
     }
 
-    &__section-title-group {
+    &__filter-field {
         flex: 1;
-    }
+        min-width: 200px;
 
-    &__section-title {
-        font: var(--mat-sys-headline-medium);
-        color: var(--mat-sys-on-surface);
-        margin: 0 0 vars.$spacing-xsmall 0;
-        font-weight: 600;
-    }
-
-    &__section-subtitle {
-        font: var(--mat-sys-body-medium);
-        color: var(--mat-sys-on-surface-variant);
-        margin: 0;
-    }
-
-    &__section-action {
         @include mixins.breakpoint(mobile) {
             width: 100%;
+            min-width: unset;
+        }
+
+        // Compact form field styling
+        ::ng-deep {
+            .mat-mdc-form-field-wrapper {
+                padding-bottom: 0;
+            }
+
+            .mat-mdc-form-field-bottom-align::before {
+                display: none;
+            }
+
+            .mat-mdc-text-field-wrapper {
+                height: 40px;
+                
+                .mat-mdc-form-field-input-control {
+                    height: 40px;
+                }
+            }
         }
     }
 
     // Item Grid
     &__item-grid {
         display: grid;
-        gap: vars.$spacing-medium;
+        gap: vars.$spacing-small;
 
         @include mixins.breakpoint(mobile) {
-            gap: vars.$spacing-small;
+            gap: vars.$spacing-xsmall;
         }
     }
 
     &__item-card {
         background: var(--mat-sys-surface-container-low);
         border-radius: vars.$nom-border-radius;
-        padding: vars.$spacing-large;
+        padding: vars.$spacing-small vars.$spacing-medium;
         border: 1px solid var(--mat-sys-outline-variant);
         transition: all 0.2s ease;
         overflow: hidden; // Prevent content from overflowing the card
@@ -297,9 +320,24 @@
             color: var(--mat-sys-on-tertiary-container);
         }
 
+        &--pendingcuration {
+            background: var(--mat-sys-secondary-container);
+            color: var(--mat-sys-on-secondary-container);
+        }
+
         &--curated {
             background: var(--mat-sys-primary-container);
             color: var(--mat-sys-on-primary-container);
+        }
+
+        &--requiresrevision {
+            background: var(--mat-sys-error-container);
+            color: var(--mat-sys-on-error-container);
+        }
+
+        &--rejected {
+            background: var(--mat-sys-error-container);
+            color: var(--mat-sys-on-error-container);
         }
 
         &--draft {

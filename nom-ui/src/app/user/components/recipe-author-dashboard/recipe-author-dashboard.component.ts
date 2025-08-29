@@ -3,6 +3,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +11,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Observable, of, catchError } from 'rxjs';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { Observable, of, catchError, combineLatest, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -20,7 +24,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
 import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboard-item.model';
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
-import { canSubmitForCuration, CurationStatus } from '../../../recipe/models/curation-status.enum';
+import { canSubmitForCuration, CurationStatus, isPendingCuration } from '../../../recipe/models/curation-status.enum';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 // Helper function to convert curation status ID to status string
@@ -55,13 +59,17 @@ interface MenuItem {
   imports: [
     CommonModule,
     RouterLink,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatMenuModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule
   ],
   templateUrl: './recipe-author-dashboard.component.html',
   styleUrls: ['./recipe-author-dashboard.component.scss']
@@ -76,11 +84,25 @@ export class RecipeAuthorDashboardComponent implements OnInit {
 
   recipes$!: Observable<RecipeDashboardItemModel[]>;
   ingredients$!: Observable<RecipeDashboardItemModel[]>;
+  filteredRecipes$!: Observable<RecipeDashboardItemModel[]>;
+  filteredIngredients$!: Observable<RecipeDashboardItemModel[]>;
   recipesCount$!: Observable<number>;
   ingredientsCount$!: Observable<number>;
   pendingCurationCount$!: Observable<number>;
   error: string | null = null;
   submittingItems = new Set<number>();
+
+  // Filter properties
+  recipeSearchTerm = '';
+  ingredientSearchTerm = '';
+  recipeStatusFilter = '';
+  ingredientStatusFilter = '';
+
+  // Filter subjects for reactive filtering
+  private recipeSearchSubject = new BehaviorSubject<string>('');
+  private ingredientSearchSubject = new BehaviorSubject<string>('');
+  private recipeStatusSubject = new BehaviorSubject<string>('');
+  private ingredientStatusSubject = new BehaviorSubject<string>('');
 
 
 
@@ -100,7 +122,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
     this.ingredients$ = this.recipeService.getMyIngredients().pipe(
       map(ingredients => ingredients.map(ingredient => ({
         ...ingredient,
-        curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
+        curationStatus: ingredient.curationStatus || 'NonCurated'
       }))),
       catchError((err: Error | string | unknown) => {
         console.error('Error fetching ingredients:', err);
@@ -118,17 +140,30 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       map(ingredients => ingredients.length)
     );
 
-    this.pendingCurationCount$ = this.recipes$.pipe(
-      map(recipes => recipes.filter(r => canSubmitForCuration(r.curationStatus)).length)
+    this.pendingCurationCount$ = combineLatest([this.recipes$, this.ingredients$]).pipe(
+      map(([recipes, ingredients]) => {
+        const pendingRecipes = recipes.filter(r => isPendingCuration(r.curationStatus));
+        const pendingIngredients = ingredients.filter(i => isPendingCuration(i.curationStatus));
+        return pendingRecipes.length + pendingIngredients.length;
+      })
     );
 
-    // Debug: Log the recipes data
-    this.recipes$.subscribe(recipes => {
-      console.log('Dashboard - Recipes loaded:', recipes);
-      recipes.forEach(recipe => {
-        console.log(`Recipe ${recipe.id} (${recipe.name}): status="${recipe.curationStatus}", canSubmit=${canSubmitForCuration(recipe.curationStatus)}`);
-      });
-    });
+    // Set up filtered observables
+    this.filteredRecipes$ = combineLatest([
+      this.recipes$,
+      this.recipeSearchSubject,
+      this.recipeStatusSubject
+    ]).pipe(
+      map(([recipes, searchTerm, statusFilter]) => this.filterItems(recipes, searchTerm, statusFilter))
+    );
+
+    this.filteredIngredients$ = combineLatest([
+      this.ingredients$,
+      this.ingredientSearchSubject,
+      this.ingredientStatusSubject
+    ]).pipe(
+      map(([ingredients, searchTerm, statusFilter]) => this.filterItems(ingredients, searchTerm, statusFilter))
+    );
   }
 
   submitRecipeForCuration(recipeId: number): void {
@@ -178,7 +213,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         this.ingredients$ = this.recipeService.getMyIngredients().pipe(
           map(ingredients => ingredients.map(ingredient => ({
             ...ingredient,
-            curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
+            curationStatus: ingredient.curationStatus || 'NonCurated'
           }))),
           catchError((err: Error | string | unknown) => {
             console.error('Error fetching ingredients:', err);
@@ -277,7 +312,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
             this.ingredients$ = this.recipeService.getMyIngredients().pipe(
               map(ingredients => ingredients.map(ingredient => ({
                 ...ingredient,
-                curationStatus: getCurationStatusFromId(ingredient.curationStatusId)
+                curationStatus: ingredient.curationStatus || 'NonCurated'
               }))),
               catchError((err: Error | string | unknown) => {
                 console.error('Error fetching ingredients:', err);
@@ -344,5 +379,37 @@ export class RecipeAuthorDashboardComponent implements OnInit {
         returnToTitle: 'Dashboard'
       }
     });
+  }
+
+  // Filter methods
+  private filterItems(items: RecipeDashboardItemModel[], searchTerm: string, statusFilter: string): RecipeDashboardItemModel[] {
+    return items.filter(item => {
+      // Name filter (case-insensitive contains)
+      const matchesName = !searchTerm ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Status filter
+      const matchesStatus = !statusFilter ||
+        item.curationStatus?.toUpperCase() === statusFilter.toUpperCase();
+
+      return matchesName && matchesStatus;
+    });
+  }
+
+  // Filter event handlers
+  onRecipeSearch(): void {
+    this.recipeSearchSubject.next(this.recipeSearchTerm);
+  }
+
+  onIngredientSearch(): void {
+    this.ingredientSearchSubject.next(this.ingredientSearchTerm);
+  }
+
+  onRecipeStatusFilter(): void {
+    this.recipeStatusSubject.next(this.recipeStatusFilter);
+  }
+
+  onIngredientStatusFilter(): void {
+    this.ingredientStatusSubject.next(this.ingredientStatusFilter);
   }
 }
