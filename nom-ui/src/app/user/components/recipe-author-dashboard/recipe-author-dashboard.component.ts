@@ -108,10 +108,17 @@ export class RecipeAuthorDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.recipes$ = this.recipeService.getRecipes().pipe(
-      map(recipes => recipes.map(recipe => ({
-        ...recipe,
-        curationStatus: recipe.curationStatus || 'draft'
-      }))),
+      map(recipes => {
+        const mappedRecipes = recipes.map(recipe => ({
+          ...recipe,
+          curationStatus: recipe.curationStatus || 'draft'
+        }));
+
+        // Debug logging to see actual status values
+        console.log('Recipe statuses:', mappedRecipes.map(r => ({ name: r.name, status: r.curationStatus })));
+
+        return mappedRecipes;
+      }),
       catchError((err: Error | string | unknown) => {
         console.error('Error fetching recipes:', err);
         this.error = 'Could not load your recipes. Please try again later.';
@@ -120,10 +127,17 @@ export class RecipeAuthorDashboardComponent implements OnInit {
     );
 
     this.ingredients$ = this.recipeService.getMyIngredients().pipe(
-      map(ingredients => ingredients.map(ingredient => ({
-        ...ingredient,
-        curationStatus: ingredient.curationStatus || 'NonCurated'
-      }))),
+      map(ingredients => {
+        const mappedIngredients = ingredients.map(ingredient => ({
+          ...ingredient,
+          curationStatus: ingredient.curationStatus || 'NonCurated'
+        }));
+
+        // Debug logging to see actual status values
+        console.log('Ingredient statuses:', mappedIngredients.map(i => ({ name: i.name, status: i.curationStatus })));
+
+        return mappedIngredients;
+      }),
       catchError((err: Error | string | unknown) => {
         console.error('Error fetching ingredients:', err);
         this.error = 'Could not load your ingredients. Please try again later.';
@@ -388,12 +402,49 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       const matchesName = !searchTerm ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Status filter
-      const matchesStatus = !statusFilter ||
-        item.curationStatus?.toUpperCase() === statusFilter.toUpperCase();
+      // Status filter with multiple format handling
+      const matchesStatus = !statusFilter || this.statusMatches(item.curationStatus, statusFilter);
 
       return matchesName && matchesStatus;
     });
+  }
+
+  // Helper method to match different curation status formats
+  private statusMatches(itemStatus: string | undefined, filterStatus: string): boolean {
+    if (!itemStatus) return false;
+
+    // Normalize both statuses for comparison
+    const normalizedItemStatus = this.normalizeStatus(itemStatus);
+    const normalizedFilterStatus = this.normalizeStatus(filterStatus);
+
+    return normalizedItemStatus === normalizedFilterStatus;
+  }
+
+  // Normalize status values to a consistent format
+  private normalizeStatus(status: string): string {
+    const normalized = status.toLowerCase().replace(/[-_\s]/g, '');
+
+    // Map various formats to consistent values
+    switch (normalized) {
+      case 'draft':
+        return 'draft';
+      case 'noncurated':
+      case 'non-curated':
+        return 'noncurated';
+      case 'pendingcuration':
+      case 'pending-curation':
+      case 'pendingcura':
+        return 'pendingcuration';
+      case 'curated':
+        return 'curated';
+      case 'requiresrevision':
+      case 'requires-revision':
+        return 'requiresrevision';
+      case 'rejected':
+        return 'rejected';
+      default:
+        return normalized;
+    }
   }
 
   // Filter event handlers

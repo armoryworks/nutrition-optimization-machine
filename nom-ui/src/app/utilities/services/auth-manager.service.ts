@@ -79,7 +79,7 @@ export class AuthManagerService {
       filter(event => event.type === 'user:info-updated')
     ).subscribe((event) => {
       if (event.data) {
-        this.updateClaimsFromUserInfo(event.data as { claims?: { type: string }[]; PersonId?: number });
+        this.updateClaimsFromUserInfo(event.data as { claims?: { type: string }[]; personId?: number });
       }
     });
   }
@@ -233,12 +233,12 @@ export class AuthManagerService {
     this._canManageUserRoles.next(false);
   }
 
-  private updateClaimsFromUserInfo(userInfo: { claims?: { type: string }[]; PersonId?: number }): void {
+  private updateClaimsFromUserInfo(userInfo: { claims?: { type: string }[]; personId?: number }): void {
     console.log('Updating claims from user info:', userInfo);
     if (userInfo && userInfo.claims) {
       // Set personId from user info
-      if (userInfo.PersonId) {
-        this.personId = userInfo.PersonId;
+      if (userInfo.personId) {
+        this.personId = userInfo.personId;
       }
 
       const canCure = userInfo.claims.some((claim: { type: string }) => claim.type === 'CanManageCuration');

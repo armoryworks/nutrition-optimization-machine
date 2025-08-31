@@ -422,6 +422,9 @@ mat-form-field {
       border: 1px solid var(--mat-sys-outline-variant);
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.15);
+      width: 350px !important;
+      max-width: 350px !important;
+      overflow-x: hidden !important;
     }
 
     .mat-menu-item {
@@ -640,7 +643,11 @@ mat-form-field {
 
   .nom-user-menu {
     &__dropdown {
-      min-width: 250px;
+      .mat-menu-panel {
+        width: 300px !important;
+        max-width: 300px !important;
+        overflow-x: hidden !important;
+      }
     }
   }
 }
@@ -666,7 +673,11 @@ mat-form-field {
 
   .nom-user-menu {
     &__dropdown {
-      min-width: 350px;
+      .mat-menu-panel {
+        width: 350px !important;
+        max-width: 350px !important;
+        overflow-x: hidden !important;
+      }
     }
   }
 }

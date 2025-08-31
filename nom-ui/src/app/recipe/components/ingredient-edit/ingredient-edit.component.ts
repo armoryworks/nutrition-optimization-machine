@@ -59,25 +59,28 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
         if (id) {
           this.isEditMode = true;
           this.ingredientId = +id;
+          this.isLoading = true;
+          // Load the ingredient data when in edit mode
+          return this.ingredientService.getIngredientDetails(this.ingredientId);
         } else {
           // Create mode
           this.isEditMode = false;
           this.ingredientId = 0;
+          this.isLoading = false;
+          return of(null);
         }
-        this.isLoading = false;
-
-        return of(null);
       }),
       takeUntil(this.destroy$)
     ).subscribe({
       next: (ingredientData: IngredientModel | null) => {
         if (ingredientData) {
           this.ingredient = ingredientData;
+          console.log('Loaded ingredient data:', ingredientData);
         }
         this.isLoading = false;
       },
-      error: () => {
-        console.error('Error loading ingredient');
+      error: (error) => {
+        console.error('Error loading ingredient:', error);
         this.error = 'Failed to load ingredient. Please try again.';
         this.isLoading = false;
       }

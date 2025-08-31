@@ -9,6 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './auth/auth.service';
+import { AuthManagerService } from './utilities/services/auth-manager.service';
 import { Router } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 
@@ -30,10 +31,12 @@ import { LoginComponent } from './auth/login/login.component';
 export class AppComponent implements OnInit {
   private themeService = inject(ThemeService);
   private authService = inject(AuthService);
+  private authManagerService = inject(AuthManagerService);
   private router = inject(Router);
 
   isDarkTheme = false;
   isLoggedIn$ = this.authService.isLoggedIn$;
+  canManageCuration$ = this.authManagerService.canManageCuration$;
   showLoginPopover = false;
 
   constructor() {
@@ -54,6 +57,14 @@ export class AppComponent implements OnInit {
     if (!savedTheme) {
       this.themeService.toggleTheme(); // This will set dark theme as default
     }
+
+    // Debug curation permissions
+    this.canManageCuration$.subscribe(canManage => {
+      console.log('App Component - canManageCuration changed:', canManage);
+    });
+
+    // Force check user logged in status to load claims
+    this.authManagerService.checkUserLoggedInStatus();
   }
 
   toggleTheme(): void {

@@ -87,6 +87,13 @@
               <mat-icon>schedule</mat-icon>
               <span>Curated Plans</span>
             </a>
+
+            @if (canManageCuration$ | async) {
+            <a mat-menu-item routerLink="/curation" class="nom-user-menu__item">
+              <mat-icon>rate_review</mat-icon>
+              <span>Curation Queue</span>
+            </a>
+            }
           </div>
           
           <mat-divider></mat-divider>

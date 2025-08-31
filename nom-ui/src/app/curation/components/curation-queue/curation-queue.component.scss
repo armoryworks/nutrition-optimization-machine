@@ -37,8 +37,11 @@ textarea.mat-mdc-input-element {
 }
 
 .curation-queue__container {
-  width: 100%;
-  max-width: 100%;
+  position:absolute;
+  top: 65px;;
+  left: 0;
+  right: 0;
+  bottom: 10px;
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
@@ -67,9 +70,9 @@ textarea.mat-mdc-input-element {
 }
 
 .queue-items {
-  position: absolute; 
-  top:0;  
-  bottom: 10px;
+  position: absolute;
+  top: 0;
+  bottom: 20px;
   left: 20px;
   width: 300px;
   display: flex;
@@ -82,12 +85,17 @@ textarea.mat-mdc-input-element {
   min-width: 0;
 
   &__header {
+    position:absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30pxpx;
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--mat-sys-outline-variant);
     min-width: 0;
 
-    h2 {
+    &h2 {
       @include mixins.nom-high-contrast-text;
       font-size: 1.1rem;
       font-weight: 600;
@@ -106,6 +114,11 @@ textarea.mat-mdc-input-element {
   }
 
   &__list {
+    position:absolute;
+    top: 70px;
+    bottom: 0;
+    left: 10px;
+    right: 0;
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -242,8 +255,8 @@ textarea.mat-mdc-input-element {
 .decision-panel {
   position: absolute;
   top: 0;
-  bottom: 10px;
-  left: 360px;;
+  bottom: 20px;
+  left: 360px;
   right: 20px;
   min-width: 0;
 
@@ -290,7 +303,7 @@ textarea.mat-mdc-input-element {
       box-sizing: border-box;
       min-width: 0;
     }
-    
+
     .mat-mdc-card-content {
       position: absolute;
       top: 55px;
@@ -339,7 +352,7 @@ textarea.mat-mdc-input-element {
         height: 32px;
         line-height: 32px;
         color: var(--mat-sys-on-surface-variant);
-        
+
         &:hover {
           color: var(--mat-sys-on-surface);
           background-color: var(--mat-sys-surface-container);
@@ -394,16 +407,16 @@ textarea.mat-mdc-input-element {
 ::ng-deep .control-menu {
   .mat-mdc-menu-content {
     padding: 0.5rem 0;
-    
+
     .mat-mdc-menu-item {
       min-height: 40px;
       padding: 0.5rem 1rem;
-      
+
       .mat-mdc-menu-item-text {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        
+
         .mat-icon {
           font-size: 1.25rem;
           width: 1.25rem;
@@ -469,17 +482,17 @@ textarea.mat-mdc-input-element {
   border-radius: 8px;
   border: 1px solid var(--mat-sys-outline-variant);
   background-color: var(--mat-sys-surface-container-low);
-  
+
   .mat-mdc-expansion-panel-header {
     padding: 0.75rem 1rem;
     min-height: 48px;
-    
+
     .mat-mdc-expansion-panel-header-title {
       font-weight: 600;
       color: var(--mat-sys-on-surface);
     }
   }
-  
+
   .mat-mdc-expansion-panel-content {
     .mat-mdc-expansion-panel-body {
       padding: 0.75rem 1rem 1rem 1rem;
@@ -493,21 +506,21 @@ textarea.mat-mdc-input-element {
     max-height: 250px; // Fixed height limit to prevent unnecessary empty space
     overflow-y: auto;
     overflow-x: hidden;
-    
+
     // Custom scrollbar styling for accordion content
     &::-webkit-scrollbar {
       width: 6px;
     }
-    
+
     &::-webkit-scrollbar-track {
       background: var(--mat-sys-surface-container-low);
       border-radius: 3px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background: var(--mat-sys-outline-variant);
       border-radius: 3px;
-      
+
       &:hover {
         background: var(--mat-sys-outline);
       }
@@ -603,7 +616,7 @@ textarea.mat-mdc-input-element {
     gap: 1rem;
     width: 100%;
     box-sizing: border-box;
-    
+
     @include mixins.breakpoint(mobile) {
       flex-direction: column;
       gap: 0.5rem;
@@ -637,7 +650,7 @@ textarea.mat-mdc-input-element {
     gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: flex-end;
-    margin-top: 0.75rem;
+    margin-top: -0.25rem;
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
@@ -711,7 +724,7 @@ textarea.mat-mdc-input-element {
   top: 0;
   left: 360px;
   right: 20px;
-  bottom: 0;
+  bottom: 20px;
 
   &__content {
     text-align: center;
@@ -754,8 +767,6 @@ textarea.mat-mdc-input-element {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 300px;
   background-color: var(--mat-sys-surface-container-low);
   border-radius: 12px;
   border: 2px dashed var(--mat-sys-outline-variant);
@@ -783,9 +794,6 @@ textarea.mat-mdc-input-element {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 300px;
-  min-width: 0;
 
   &__icon {
     color: var(--mat-sys-primary);
@@ -834,5 +842,3 @@ textarea.mat-mdc-input-element {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
 }
-
-
