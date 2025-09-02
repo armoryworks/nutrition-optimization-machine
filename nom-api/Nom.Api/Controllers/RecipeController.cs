@@ -101,7 +101,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] RecipeUpdateModel request)
+        public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
         {
             try
             {

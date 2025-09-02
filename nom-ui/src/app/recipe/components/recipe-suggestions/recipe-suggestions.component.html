@@ -83,9 +83,9 @@
             <label for="maxDifficulty">Max Difficulty</label>
             <select id="maxDifficulty" formControlName="maxDifficulty">
               <option value="">Any</option>
-              <option value="1">Easy</option>
-              <option value="2">Medium</option>
-              <option value="3">Hard</option>
+              <option *ngFor="let difficulty of difficulties" [value]="difficulty.id">
+                {{ difficulty.name }}
+              </option>
             </select>
           </div>
         </div>

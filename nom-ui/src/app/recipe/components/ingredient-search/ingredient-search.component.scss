@@ -1,23 +1,242 @@
 // File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.scss
 
 .ingredient-search {
+    // Main component layout - CSS Grid for clean structure
     display: flex;
-    justify-content: center;
-    padding: 2rem;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+}
 
-    &__wrapper {
-        width: 100%;
-        max-width: 600px;
+// Ingredient card container
+.ingredient-card {
+    background: var(--mat-sys-surface-container);
+    border-radius: 16px;
+    box-shadow: var(--mat-sys-elevation-2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    
+    // Card header with search
+    &__header {
+        padding: 24px 24px 16px 24px;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+        background: var(--mat-sys-surface-container-low);
     }
-
-    &__form-field {
-        width: 100%;
+    
+    // Card content area
+    &__content {
+        padding: 24px;
+        flex: 1;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    // Placeholder state when no ingredient selected
+    &__placeholder {
+        text-align: center;
+        color: var(--mat-sys-on-surface-variant);
+        
+        &-icon {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+        
+        &-title {
+            margin: 0 0 8px 0;
+            font: var(--mat-sys-headline-small);
+            font-weight: 500;
+            color: var(--mat-sys-on-surface);
+        }
+        
+        &-text {
+            margin: 0;
+            font: var(--mat-sys-body-large);
+            color: var(--mat-sys-on-surface-variant);
+            max-width: 400px;
+            margin: 0 auto;
+        }
     }
 }
 
-.mat-option.is-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 48px;
+// Search form field - direct styling without wrapper divs
+.search-field {
+    width: 100%;
+    
+    // Material form field styling
+    .mat-mdc-form-field {
+        background: var(--mat-sys-surface-container);
+        border-radius: 12px;
+        
+        .mat-mdc-text-field-wrapper {
+            border-radius: 12px;
+            padding-left: 0;
+        }
+    }
+    
+    .mat-mdc-form-field-label {
+        color: var(--mat-sys-on-surface-variant);
+        font: var(--mat-sys-body-large);
+    }
+    
+    input {
+        font: var(--mat-sys-body-large);
+        color: var(--mat-sys-on-surface);
+    }
+
+    // Search icon prefix styling
+    &__prefix {
+        display: flex;
+        align-items: center;
+        margin-right: 8px;
+        
+        mat-icon {
+            color: var(--mat-sys-on-surface-variant);
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    // Let Material Design handle the prefix positioning naturally
+    .mat-mdc-text-field-wrapper .mat-mdc-form-field-infix {
+        min-height: 56px;
+    }
+
+    .mat-mdc-form-field-icon-prefix,
+    .mat-mdc-form-field-icon-suffix {
+        color: var(--mat-sys-on-surface-variant);
+    }
+
+    // Autocomplete option styling - using direct selectors
+    &__option {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 0;
+    }
+
+    &__option-name {
+        font: var(--mat-sys-body-large);
+        font-weight: 500;
+        color: var(--mat-sys-on-surface);
+    }
+
+    &__option-fdc,
+    &__option-alias {
+        font: var(--mat-sys-body-small);
+        color: var(--mat-sys-on-surface-variant);
+    }
+
+    &__loading-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        
+        mat-spinner {
+            flex-shrink: 0;
+        }
+        
+        span {
+            font: var(--mat-sys-body-medium);
+            color: var(--mat-sys-on-surface-variant);
+        }
+    }
+
+    &__no-results {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        color: var(--mat-sys-on-surface-variant);
+        
+        mat-icon {
+            flex-shrink: 0;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+        
+        span {
+            font: var(--mat-sys-body-medium);
+        }
+    }
+}
+
+// Global autocomplete panel styling (outside component scope)
+.mat-mdc-autocomplete-panel {
+    border-radius: 12px;
+    box-shadow: var(--mat-sys-elevation-3);
+    background: var(--mat-sys-surface-container);
+    
+    .mat-mdc-option {
+        padding: 12px 16px;
+        min-height: auto;
+        line-height: 1.4;
+        
+        &:hover {
+            background: var(--mat-sys-surface-container-high);
+        }
+        
+        &.mat-mdc-option-active {
+            background: var(--mat-sys-surface-container-highest);
+        }
+    }
+}
+
+// Responsive design - mobile-first approach
+@media (max-width: 768px) {
+    .ingredient-search {
+        padding: 8px;
+        gap: 16px;
+    }
+    
+    .ingredient-card {
+        border-radius: 12px;
+        
+        &__header {
+            padding: 16px 16px 12px 16px;
+        }
+        
+        &__content {
+            padding: 16px;
+            min-height: 150px;
+        }
+        
+        &__placeholder {
+            &-icon {
+                font-size: 36px;
+                width: 36px;
+                height: 36px;
+                margin-bottom: 12px;
+            }
+            
+            &-title {
+                font: var(--mat-sys-headline-small);
+            }
+            
+            &-text {
+                font: var(--mat-sys-body-medium);
+            }
+        }
+    }
+    
+    .search-field {
+        &__option {
+            padding: 12px 0;
+        }
+        
+        &__loading-option,
+        &__no-results {
+            padding: 12px;
+        }
+    }
 }

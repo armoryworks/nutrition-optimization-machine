@@ -21,7 +21,10 @@ import {
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { IngredientModel } from '../../models/ingredient.model';
-import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
+import { BaseListConfig } from '../../../common/components/base-list/base-list.component';
+import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'nom-ingredient-search',
@@ -33,7 +36,9 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     MatInputModule,
     MatAutocompleteModule,
     MatProgressSpinnerModule,
-    BaseListComponent,
+    MatIconModule,
+    BasePageComponent,
+    IngredientDetailsComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './ingredient-search.component.html',
@@ -49,11 +54,19 @@ export class IngredientSearchComponent implements OnInit, OnDestroy {
   error: string | null = null;
   private destroy$ = new Subject<void>();
 
+  // Page configuration - no title/subtitle for more compact layout
+  pageConfig: BasePageConfig = {
+    title: '', // Hide title for more space
+    subtitle: '', // Hide subtitle for more space
+    maxWidth: '1000px',
+  };
+
+  // List configuration (keeping for nested base-list if needed)
   listConfig: BaseListConfig = {
-    title: 'Ingredient Search',
-    subtitle: 'Search for ingredients to view their nutritional information',
-    showSearch: true,
-    maxWidth: '800px'
+    title: '',
+    subtitle: '',
+    showSearch: false,
+    maxWidth: '100%'
   };
 
 

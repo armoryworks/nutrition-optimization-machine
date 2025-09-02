@@ -1,27 +1,91 @@
 <div class="ingredient-details">
-  <div class="ingredient-details__header">
-    <h2>{{ detailConfig.title }}</h2>
-    <p>{{ detailConfig.subtitle }}</p>
-    <button *ngIf="detailConfig.showBackButton" (click)="onBack()" class="back-button">
-      {{ detailConfig.backButtonText }}
-    </button>
-  </div>
+  <mat-card class="ingredient-card">
+    <mat-card-header>
+      <mat-card-title class="ingredient-title">
+        <mat-icon class="ingredient-icon">restaurant</mat-icon>
+        {{ detailConfig.title }}
+      </mat-card-title>
+      <mat-card-subtitle class="ingredient-subtitle">
+        {{ detailConfig.subtitle }}
+      </mat-card-subtitle>
+    </mat-card-header>
 
-  <div *ngIf="ingredient" class="ingredient-info">
-    <h3>Nutritional Information</h3>
-    <p>This ingredient contains the following nutrients per 100g:</p>
-    
-    <div class="nutrients-list">
-      <div *ngFor="let nutrient of nutritionLabelData?.nutrients" 
-           class="nutrient-item"
-           [class.bold]="nutrient.isBold"
-           [class.indented]="nutrient.isIndented">
-        <span class="nutrient-name">{{ nutrient.name }}</span>
-        <span class="nutrient-amount">{{ nutrient.amount }} {{ nutrient.unit }}</span>
-        <span *ngIf="nutrient.dailyValue > 0" class="daily-value">
-          ({{ nutrient.dailyValue }}% DV)
-        </span>
+    <mat-card-content>
+      <div *ngIf="ingredient" class="ingredient-content">
+        <!-- Basic Info Section -->
+        <div class="info-section">
+          <div class="section-header">
+            <mat-icon>info</mat-icon>
+            <h3>Basic Information</h3>
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Name:</span>
+              <span class="info-value">{{ ingredient.name }}</span>
+            </div>
+            <div class="info-item" *ngIf="ingredient.fdcId">
+              <span class="info-label">FDC ID:</span>
+              <span class="info-value">{{ ingredient.fdcId }}</span>
+            </div>
+            <div class="info-item" *ngIf="ingredient.description">
+              <span class="info-label">Description:</span>
+              <span class="info-value">{{ ingredient.description }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nutritional Information Section -->
+        <div class="nutrition-section" *ngIf="nutritionLabelData?.nutrients && nutritionLabelData.nutrients.length > 0">
+          <div class="section-header">
+            <mat-icon>local_dining</mat-icon>
+            <h3>Nutritional Information</h3>
+            <span class="serving-info">per {{ nutritionLabelData.servingSizeHousehold }}</span>
+          </div>
+
+          <!-- Calories Highlight -->
+          <div class="calories-highlight" *ngIf="nutritionLabelData.calories > 0">
+            <div class="calories-container">
+              <span class="calories-label">Calories</span>
+              <span class="calories-value">{{ nutritionLabelData.calories }}</span>
+            </div>
+          </div>
+
+          <!-- Nutrients List -->
+          <div class="nutrients-container">
+            <div class="nutrients-header">
+              <span>Nutrient</span>
+              <span>Amount</span>
+              <span>% DV</span>
+            </div>
+            <div class="nutrients-list">
+              <div *ngFor="let nutrient of nutritionLabelData.nutrients" 
+                   class="nutrient-row"
+                   [class.nutrient-bold]="nutrient.isBold"
+                   [class.nutrient-indented]="nutrient.isIndented">
+                <span class="nutrient-name">{{ nutrient.name }}</span>
+                <span class="nutrient-amount">{{ nutrient.amount | number:'1.1-2' }} {{ nutrient.unit }}</span>
+                <span class="nutrient-dv">
+                  <span *ngIf="nutrient.dailyValue > 0; else noDv">{{ nutrient.dailyValue }}%</span>
+                  <ng-template #noDv>-</ng-template>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Nutrition Data Message -->
+        <div class="no-nutrition" *ngIf="!nutritionLabelData?.nutrients || nutritionLabelData.nutrients.length === 0">
+          <mat-icon class="no-data-icon">info_outline</mat-icon>
+          <p>No nutritional information available for this ingredient.</p>
+        </div>
       </div>
-    </div>
-  </div>
+    </mat-card-content>
+
+    <mat-card-actions *ngIf="detailConfig.showBackButton">
+      <button mat-button (click)="onBack()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+        {{ detailConfig.backButtonText }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
 </div>

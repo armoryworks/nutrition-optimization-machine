@@ -44,6 +44,20 @@ builder.Services.AddCors(options =>
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 }
+                else
+                {
+                    // Fallback: allow all origins in development
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                }
+            }
+            else
+            {
+                // Fallback: allow all origins in development
+                policy.AllowAnyOrigin()
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
             }
         });
 });
@@ -190,11 +204,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseRouting();
 app.UseCors(corsPolicyName);
+app.UseRouting();
 
 // Add security middleware in order
-app.UseSecurityHeaders(); // Add security headers first
+// app.UseSecurityHeaders(); // Temporarily disabled for CORS testing
 app.UseMiddleware<AuditLoggingMiddleware>();
 // app.UseMiddleware<InputValidationMiddleware>(); // Temporarily disabled for testing
 app.UseMiddleware<RateLimitingMiddleware>();

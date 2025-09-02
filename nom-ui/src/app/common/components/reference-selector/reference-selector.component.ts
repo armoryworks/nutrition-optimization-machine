@@ -5,7 +5,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, startWith, map } from 'rxjs/operators';
-import { ReferenceDataService, ReferenceItem } from '../../services/reference-data.service';
+import { ReferenceDataService } from '../../services/reference-data.service';
+import { ReferenceItemModel } from '../../models/reference-item.model';
 
 @Component({
   selector: 'app-reference-selector',
@@ -63,9 +64,9 @@ export class ReferenceSelectorComponent implements OnInit, OnDestroy {
   @Input() showDescription = false;
   @Input() controlId = 'reference-selector';
 
-  @Output() selectionChange = new EventEmitter<ReferenceItem | ReferenceItem[]>();
+  @Output() selectionChange = new EventEmitter<ReferenceItemModel | ReferenceItemModel[]>();
 
-  filteredOptions$!: Observable<ReferenceItem[]>;
+  filteredOptions$!: Observable<ReferenceItemModel[]>;
   selectedItemDescription?: string;
 
   private destroy$ = new Subject<void>();
@@ -136,22 +137,22 @@ export class ReferenceSelectorComponent implements OnInit, OnDestroy {
     }
   }
 
-  private getSelectedItem(referenceId: number): ReferenceItem | undefined {
-    let selectedItem: ReferenceItem | undefined;
+  private getSelectedItem(referenceId: number): ReferenceItemModel | undefined {
+    let selectedItem: ReferenceItemModel | undefined;
     this.filteredOptions$.pipe(
       takeUntil(this.destroy$),
-      map(items => items.find(item => item.referenceId === referenceId))
+      map(items => items.find(item => item.referenceId && item.referenceId === referenceId))
     ).subscribe(item => {
       selectedItem = item;
     });
     return selectedItem;
   }
 
-  private getSelectedItems(referenceIds: number[]): ReferenceItem[] {
-    let items: ReferenceItem[] = [];
+  private getSelectedItems(referenceIds: number[]): ReferenceItemModel[] {
+    let items: ReferenceItemModel[] = [];
     this.filteredOptions$.pipe(
       takeUntil(this.destroy$),
-      map(options => options.filter(item => referenceIds.includes(item.referenceId)))
+      map(options => options.filter(item => item.referenceId && referenceIds.includes(item.referenceId)))
     ).subscribe(filteredItems => {
       items = filteredItems;
     });

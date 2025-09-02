@@ -18,6 +18,8 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanRuleCreateRequestModel } from '../../models/meal-plan-rule-create-request.model';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { MealPlanRuleResponseModel } from '../../models/meal-plan-rule-response.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
@@ -45,6 +47,7 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
 })
 export class MealPlanRulesComponent implements OnInit {
   private mealPlanService = inject(MealPlanService);
+  private referenceDataService = inject(ReferenceDataService);
   private router = inject(Router);
   private nonNullableFb = inject(NonNullableFormBuilder);
   private snackBar = inject(MatSnackBar);
@@ -56,22 +59,8 @@ export class MealPlanRulesComponent implements OnInit {
   ruleForm: FormGroup;
   isAddingRule = false;
 
-  mealTypes = [
-    { id: 1, name: 'Breakfast' },
-    { id: 2, name: 'Lunch' },
-    { id: 3, name: 'Dinner' },
-    { id: 4, name: 'Snack' }
-  ];
-
-  daysOfWeek = [
-    { id: 1, name: 'Monday' },
-    { id: 2, name: 'Tuesday' },
-    { id: 3, name: 'Wednesday' },
-    { id: 4, name: 'Thursday' },
-    { id: 5, name: 'Friday' },
-    { id: 6, name: 'Saturday' },
-    { id: 7, name: 'Sunday' }
-  ];
+  mealTypes: ReferenceItemModel[] = [];
+  daysOfWeek: ReferenceItemModel[] = [];
 
 
 
@@ -85,6 +74,31 @@ export class MealPlanRulesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRules();
+    this.loadReferenceData();
+  }
+
+  private loadReferenceData(): void {
+    // Load meal types from backend
+    this.referenceDataService.getMealTypes().subscribe({
+      next: (mealTypes) => {
+        this.mealTypes = mealTypes;
+      },
+      error: (error) => {
+        console.error('Error loading meal types:', error);
+        this.mealTypes = [];
+      }
+    });
+
+    // Load days of week
+    this.referenceDataService.getDaysOfWeek().subscribe({
+      next: (days) => {
+        this.daysOfWeek = days;
+      },
+      error: (error) => {
+        console.error('Error loading days of week:', error);
+        this.daysOfWeek = [];
+      }
+    });
   }
 
   loadRules(): void {

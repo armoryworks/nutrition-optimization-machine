@@ -62,8 +62,8 @@ namespace Nom.Api.Controllers
                     return BadRequest("Search query is required");
                 }
 
-                // For now, return empty results - implement search logic later
-                return Ok(new List<object>());
+                var ingredients = await _recipeOrch.SearchIngredientsAsync(q);
+                return Ok(ingredients);
             }
             catch (Exception ex)
             {

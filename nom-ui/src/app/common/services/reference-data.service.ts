@@ -1,190 +1,168 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
-import { map, tap, catchError } from 'rxjs/operators';
+import { Observable, of, combineLatest } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-
-export interface ReferenceItem {
-    referenceId: number;
-    referenceName: string;
-    referenceDescription: string;
-    groupId: number;
-    groupName: string;
-    groupDescription: string;
-}
-
-export interface ReferenceGroup {
-    [groupId: number]: ReferenceItem[];
-}
+import { ReferenceItemModel } from '../models/reference-item.model';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ReferenceDataService {
-    private readonly baseUrl = `${environment.apiUrl}/api/Reference`;
+    private http = inject(HttpClient);
 
-    // Cache for reference data with TTL (Time To Live)
-    private referenceCache = new Map<number, { data: ReferenceItem[], timestamp: number }>();
-    private bulkCache = new Map<string, { data: ReferenceGroup, timestamp: number }>();
-
-    // Cache TTL in milliseconds (5 minutes)
-    private readonly CACHE_TTL = 5 * 60 * 1000;
-
-    constructor(private http: HttpClient) { }
+    // Cache for reference data to avoid repeated API calls
+    private cache = new Map<number, ReferenceItemModel[]>();
 
     /**
-     * Gets all references for a specific reference group
+     * Gets reference data by group ID with caching
      */
-    getReferencesByGroup(discriminatorId: number): Observable<ReferenceItem[]> {
-        // Check cache first with TTL validation
-        const cached = this.referenceCache.get(discriminatorId);
-        if (cached && this.isCacheValid(cached.timestamp)) {
-            return of(cached.data);
+    getReferencesByGroup(groupId: number): Observable<ReferenceItemModel[]> {
+        // Check cache first
+        if (this.cache.has(groupId)) {
+            return of(this.cache.get(groupId)!);
         }
 
-        return this.http.get<ReferenceItem[]>(`${this.baseUrl}/${discriminatorId}/all`).pipe(
-            tap(references => {
-                // Cache the results with timestamp
-                this.referenceCache.set(discriminatorId, {
-                    data: references,
-                    timestamp: Date.now()
-                });
+        return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/reference/${groupId}/all`).pipe(
+            map(data => {
+                // Cache the result
+                this.cache.set(groupId, data);
+                return data;
             }),
             catchError(error => {
-                console.error(`Error fetching references for group ${discriminatorId}:`, error);
+                console.error(`Error loading reference data for group ${groupId}:`, error);
                 return of([]);
             })
         );
     }
 
     /**
-     * Gets multiple reference groups in one call for performance
+     * Gets measurement types
      */
-    getReferencesBulk(discriminatorIds: number[]): Observable<ReferenceGroup> {
-        // Create cache key
-        const cacheKey = discriminatorIds.sort().join(',');
-
-        // Check cache first with TTL validation
-        const cached = this.bulkCache.get(cacheKey);
-        if (cached && this.isCacheValid(cached.timestamp)) {
-            return of(cached.data);
-        }
-
-        return this.http.post<ReferenceGroup>(`${this.baseUrl}/bulk`, discriminatorIds).pipe(
-            tap(references => {
-                // Cache the results with timestamp
-                this.bulkCache.set(cacheKey, {
-                    data: references,
-                    timestamp: Date.now()
-                });
-
-                // Also update individual caches with timestamps
-                Object.entries(references).forEach(([groupId, items]) => {
-                    this.referenceCache.set(parseInt(groupId), {
-                        data: items,
-                        timestamp: Date.now()
-                    });
-                });
-            }),
+    getMeasurementTypes(): Observable<ReferenceItemModel[]> {
+        return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/measurement/all`).pipe(
             catchError(error => {
-                console.error('Error fetching references in bulk:', error);
-                return of({});
+                console.error('Error loading measurement types:', error);
+                return of([]);
             })
         );
     }
 
     /**
-     * Checks if cache entry is still valid based on TTL
+     * Gets measurements by category
      */
-    private isCacheValid(timestamp: number): boolean {
-        return Date.now() - timestamp < this.CACHE_TTL;
+    getMeasurementsByCategory(categoryId: number): Observable<ReferenceItemModel[]> {
+        return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/measurement/by-category/${categoryId}`).pipe(
+            catchError(error => {
+                console.error(`Error loading measurements for category ${categoryId}:`, error);
+                return of([]);
+            })
+        );
     }
 
     /**
-     * Clears expired cache entries
+     * Gets nutrient types
      */
-    private clearExpiredCache(): void {
-        const now = Date.now();
-
-        // Clear expired individual cache entries
-        this.referenceCache.forEach((value, key) => {
-            if (!this.isCacheValid(value.timestamp)) {
-                this.referenceCache.delete(key);
-            }
-        });
-
-        // Clear expired bulk cache entries
-        this.bulkCache.forEach((value, key) => {
-            if (!this.isCacheValid(value.timestamp)) {
-                this.bulkCache.delete(key);
-            }
-        });
+    getNutrientTypes(): Observable<ReferenceItemModel[]> {
+        // Using the dedicated nutrient endpoint instead of reference system
+        return this.http.get<any[]>(`${environment.apiUrl}/nutrient/all`).pipe(
+            map(nutrients => nutrients.map(nutrient => ({
+                id: nutrient.id,
+                name: nutrient.name,
+                description: nutrient.description,
+                referenceId: nutrient.id // Map to referenceId for compatibility
+            }))),
+            catchError(error => {
+                console.error('Error loading nutrient types:', error);
+                return of([]);
+            })
+        );
     }
 
     /**
-     * Clears the cache for a specific group
+     * Gets restriction types
      */
-    clearCache(discriminatorId?: number): void {
-        if (discriminatorId) {
-            this.referenceCache.delete(discriminatorId);
-            // Clear bulk cache entries that contain this group
-            this.bulkCache.forEach((value, key) => {
-                if (key.includes(discriminatorId.toString())) {
-                    this.bulkCache.delete(key);
-                }
-            });
-        } else {
-            // Clear all caches
-            this.referenceCache.clear();
-            this.bulkCache.clear();
-        }
+    getRestrictionTypes(): Observable<ReferenceItemModel[]> {
+        // Using the restriction type reference group (2000 from the enum)
+        return this.getReferencesByGroup(2000);
+    }
+
+    /**
+     * Gets meal types
+     */
+    getMealTypes(): Observable<ReferenceItemModel[]> {
+        // Using the meal type reference group (1 from the enum)
+        return this.getReferencesByGroup(1);
+    }
+
+    /**
+     * Gets days of week
+     */
+    getDaysOfWeek(): Observable<ReferenceItemModel[]> {
+        // This might need a specific reference group or could be hardcoded as it's standard
+        return of([
+            { id: 1, name: 'Monday' },
+            { id: 2, name: 'Tuesday' },
+            { id: 3, name: 'Wednesday' },
+            { id: 4, name: 'Thursday' },
+            { id: 5, name: 'Friday' },
+            { id: 6, name: 'Saturday' },
+            { id: 7, name: 'Sunday' }
+        ]);
+    }
+
+    /**
+     * Gets difficulty levels
+     */
+    getDifficultyLevels(): Observable<ReferenceItemModel[]> {
+        return of([
+            { id: 1, name: 'Easy' },
+            { id: 2, name: 'Medium' },
+            { id: 3, name: 'Hard' }
+        ]);
+    }
+
+    /**
+     * Clears the cache (useful for testing or when data might have changed)
+     */
+    clearCache(): void {
+        this.cache.clear();
     }
 
     /**
      * Gets a specific reference item by ID from a group
      */
-    getReferenceById(groupId: number, referenceId: number): Observable<ReferenceItem | null> {
+    getReferenceById(groupId: number, referenceId: number): Observable<ReferenceItemModel | null> {
         return this.getReferencesByGroup(groupId).pipe(
-            map(references => references.find(ref => ref.referenceId === referenceId) || null)
+            map(references => references.find(ref => ref.id === referenceId) || null)
         );
     }
 
     /**
-     * Gets reference items by name pattern from a group
+     * Gets multiple reference groups in one call for performance
      */
-    getReferencesByNamePattern(groupId: number, pattern: string): Observable<ReferenceItem[]> {
-        return this.getReferencesByGroup(groupId).pipe(
-            map(references =>
-                references.filter(ref =>
-                    ref.referenceName.toLowerCase().includes(pattern.toLowerCase())
-                )
+    getReferencesBulk(groupIds: number[]): Observable<{ [groupId: number]: ReferenceItemModel[] }> {
+        const requests = groupIds.map(groupId =>
+            this.getReferencesByGroup(groupId).pipe(
+                map(references => ({ groupId, references }))
             )
         );
+
+        return combineLatest(requests).pipe(
+            map(results => {
+                const bulkResult: { [groupId: number]: ReferenceItemModel[] } = {};
+                results.forEach(({ groupId, references }) => {
+                    bulkResult[groupId] = references;
+                });
+                return bulkResult;
+            })
+        );
     }
 
     /**
-     * Gets cache statistics for monitoring
+     * Clears cache for a specific group
      */
-    getCacheStats(): { individualCacheSize: number, bulkCacheSize: number, totalEntries: number } {
-        this.clearExpiredCache(); // Clean up expired entries first
-
-        return {
-            individualCacheSize: this.referenceCache.size,
-            bulkCacheSize: this.bulkCache.size,
-            totalEntries: this.referenceCache.size + this.bulkCache.size
-        };
-    }
-
-    /**
-     * Preloads commonly used reference groups for better performance
-     */
-    preloadCommonReferences(): void {
-        const commonGroups = [6000, 6001, 6002, 6003, 6004]; // Shopping priorities, categories, etc.
-
-        commonGroups.forEach(groupId => {
-            if (!this.referenceCache.has(groupId)) {
-                this.getReferencesByGroup(groupId).subscribe();
-            }
-        });
+    clearCacheForGroup(groupId: number): void {
+        this.cache.delete(groupId);
     }
 }

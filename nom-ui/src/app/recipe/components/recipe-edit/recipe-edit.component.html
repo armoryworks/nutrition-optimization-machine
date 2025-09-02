@@ -95,7 +95,7 @@
           <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
           <mat-form-field class="nom-step-list__item-field">
             <mat-label>Step</mat-label>
-            <textarea matInput formControlName="instruction" cdkTextareaAutosize
+            <textarea matInput formControlName="description" cdkTextareaAutosize
               #autosize="cdkTextareaAutosize" cdkAutosizeMinRows="3"></textarea>
           </mat-form-field>
           <button mat-icon-button type="button" (click)="removeStep(i)" title="Remove Step"

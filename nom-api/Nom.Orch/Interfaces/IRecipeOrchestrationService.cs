@@ -12,7 +12,7 @@ namespace Nom.Orch.Interfaces
         Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId);
         Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model, long currentPersonId);
         Task<RecipeResponseModel?> GetRecipeAsync(long id);
-        Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model);
+        Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model);
         Task<bool> DeleteRecipeAsync(long id);
 
         // Recipe Comments
@@ -31,5 +31,6 @@ namespace Nom.Orch.Interfaces
         Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model);
         Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model);
         Task<List<IngredientEditModel>> GetMyIngredientsAsync(long personId);
+        Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query);
     }
 }

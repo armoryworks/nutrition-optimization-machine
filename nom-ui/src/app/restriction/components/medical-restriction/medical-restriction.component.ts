@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Observable, startWith, map } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 
 
 @Component({
@@ -38,6 +40,7 @@ import { RestrictionService } from '../../services/restriction.service';
 export class MedicalRestrictionComponent implements OnInit {
   private fb = inject(NonNullableFormBuilder);
   private restrictionService = inject(RestrictionService);
+  private referenceDataService = inject(ReferenceDataService);
 
   @Input() medicalRestrictionForm!: FormGroup; // Input FormGroup for this section
 
@@ -45,36 +48,10 @@ export class MedicalRestrictionComponent implements OnInit {
   public micronutrientSearchControl = new FormControl<string>('');
   public filteredMicronutrients!: Observable<string[]>;
 
-  // Options for select dropdowns and checkboxes
-  public allergyOptions = [
-    { id: 200, name: 'Peanuts' },
-    { id: 201, name: 'Tree Nuts' },
-    { id: 202, name: 'Dairy' },
-    { id: 203, name: 'Eggs' },
-    { id: 204, name: 'Wheat' },
-    { id: 205, name: 'Soy' },
-    { id: 206, name: 'Fish' },
-    { id: 207, name: 'Shellfish' },
-  ];
-
-  public allergyMedicalConditions = [
-    { id: 200, name: 'Celiac Disease' },
-    { id: 201, name: 'Lactose Intolerance' },
-    { id: 202, name: 'Diabetes Type 1' },
-    { id: 203, name: 'Diabetes Type 2' },
-    { id: 204, name: 'High Blood Pressure' },
-    { id: 205, name: 'High Cholesterol' },
-    { id: 206, name: 'Gout' },
-    { id: 207, name: 'Anemia' },
-    { id: 208, name: 'Pregnancy' },
-  ];
-
-  public gastrointestinalConditionsOptions = [
-    { id: 300, name: "Crohn's Disease" },
-    { id: 301, name: 'IBS' },
-    { id: 302, name: 'Ulcerative Colitis' },
-    { id: 303, name: 'GERD' },
-  ];
+  // Options for select dropdowns and checkboxes - loaded from backend
+  public allergyOptions: ReferenceItemModel[] = [];
+  public allergyMedicalConditions: ReferenceItemModel[] = [];
+  public gastrointestinalConditionsOptions: ReferenceItemModel[] = [];
 
   public kidneyDiseaseRestrictionsOptions = [
     'Sodium',
@@ -146,6 +123,29 @@ export class MedicalRestrictionComponent implements OnInit {
     // Fetch real data (mocked for now)
     this.restrictionService.getMicronutrients().subscribe((data) => {
       if (data && data.length > 0) this.allMicronutrients = data;
+    });
+
+    this.loadMedicalRestrictionOptions();
+  }
+
+  private loadMedicalRestrictionOptions(): void {
+    // Load medical restriction options from backend
+    // Using different reference groups for different types of medical restrictions
+    this.referenceDataService.getReferencesByGroup(2000).subscribe({
+      next: (options) => {
+        // For now, we'll use the same group for all medical restrictions
+        // In a real implementation, you might have separate groups for allergies, conditions, etc.
+        this.allergyOptions = options;
+        this.allergyMedicalConditions = options;
+        this.gastrointestinalConditionsOptions = options;
+      },
+      error: (error) => {
+        console.error('Error loading medical restriction options:', error);
+        // Fallback to empty arrays if API fails
+        this.allergyOptions = [];
+        this.allergyMedicalConditions = [];
+        this.gastrointestinalConditionsOptions = [];
+      }
     });
   }
 

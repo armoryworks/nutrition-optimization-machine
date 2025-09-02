@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -14,7 +14,9 @@ import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/o
 
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientModel } from '../../models/ingredient.model';
+import { UpdateIngredientRequestModel } from '../../models/update-ingredient-request.model';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
@@ -44,7 +46,7 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
   templateUrl: './ingredient-form.component.html',
   styleUrls: ['./ingredient-form.component.scss']
 })
-export class IngredientFormComponent implements OnInit, OnDestroy {
+export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   @Input() mode: 'create' | 'edit' = 'create';
   @Input() ingredient?: IngredientModel | null = null;
   @Input() isModal = false;
@@ -58,6 +60,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
 
   private nonNullableFb = inject(NonNullableFormBuilder);
   private recipeService = inject(RecipeService);
+  private referenceDataService = inject(ReferenceDataService);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
 
@@ -66,7 +69,8 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   isCheckingDuplicate = false;
   existingIngredient: IngredientModel | null = null;
-  measurements: any[] = [];
+  measurements: ReferenceItemModel[] = [];
+  nutrientTypes: ReferenceItemModel[] = [];
   error: string | null = null;
   private destroy$ = new Subject<void>();
 
@@ -91,6 +95,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.ingredientForm = this.nonNullableFb.group({
+      id: [0], // Add ID field to the form
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
       description: ['', [Validators.maxLength(2047)]],
       nutrients: this.nonNullableFb.array([this.newNutrient()])
@@ -101,10 +106,25 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
     this.initializeForm();
     this.setupDuplicateChecking();
     this.loadMeasurementTypes();
+    this.loadNutrientTypes();
 
     // Add a default nutrient if none exist
     if (this.nutrients.length === 0) {
       this.addNutrient();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // React to changes in ingredient input
+    if (changes['ingredient'] && !changes['ingredient'].firstChange) {
+      console.log('Ingredient input changed:', changes['ingredient'].currentValue);
+      this.initializeForm();
+    }
+
+    // React to changes in mode input
+    if (changes['mode'] && !changes['mode'].firstChange) {
+      console.log('Mode input changed:', changes['mode'].currentValue);
+      this.initializeForm();
     }
   }
 
@@ -186,13 +206,37 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
   }
 
   private loadMeasurementTypes(): void {
-    // Load measurements from the new measurement system
-    // This should be enhanced to load from the measurement service
-    this.measurements = [
-      { id: 1, name: 'Gram', symbol: 'g' },
-      { id: 2, name: 'Milligram', symbol: 'mg' },
-      { id: 3, name: 'Microgram', symbol: 'µg' }
-    ];
+    // Load measurements from the backend API
+    this.referenceDataService.getMeasurementTypes().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (measurements) => {
+        this.measurements = measurements;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading measurement types:', error);
+        // Fallback to empty array if API fails
+        this.measurements = [];
+      }
+    });
+  }
+
+  private loadNutrientTypes(): void {
+    // Load nutrient types from the backend API
+    this.referenceDataService.getNutrientTypes().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (nutrients) => {
+        this.nutrientTypes = nutrients;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading nutrient types:', error);
+        // Fallback to empty array if API fails
+        this.nutrientTypes = [];
+      }
+    });
   }
 
   private populateNutrients(nutrients: any[]): void {
@@ -210,8 +254,8 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
       }));
     });
 
-    // Ensure at least one nutrient exists
-    if (this.nutrients.length === 0) {
+    // Only add a default nutrient in create mode, not edit mode
+    if (this.nutrients.length === 0 && this.mode === 'create') {
       this.addNutrient();
     }
   }
@@ -266,16 +310,25 @@ export class IngredientFormComponent implements OnInit, OnDestroy {
     this.error = null;
     const formValue = this.ingredientForm.value;
 
-    // Create the ingredient request
-    const request = {
-      name: formValue.name,
-      description: formValue.description,
-      nutrients: formValue.nutrients
-    };
+    // Convert string values to numbers for nutrients
+    const processedNutrients = formValue.nutrients.map((nutrient: any) => ({
+      nutrientId: parseInt(nutrient.nutrientId.toString(), 10),
+      amount: nutrient.amount,
+      measurementId: parseInt(nutrient.measurementId.toString(), 10)
+    }));
 
     const request$ = this.mode === 'edit' && this.ingredient?.id
-      ? this.recipeService.updateIngredient(this.ingredient.id, request)
-      : this.recipeService.createIngredient(request);
+      ? this.recipeService.updateIngredient(this.ingredient.id, {
+        id: this.ingredient.id, // Use ID from form (now includes the ingredient ID)
+        name: formValue.name,
+        description: formValue.description,
+        nutrients: processedNutrients
+      })
+      : this.recipeService.createIngredient({
+        name: formValue.name,
+        description: formValue.description,
+        nutrients: processedNutrients
+      });
 
     request$.pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {

@@ -16,6 +16,7 @@ import { RecipeSearchModel } from '../models/recipe-search.model';
 import { RecipeSearchResponse } from '../models/recipe-search.model';
 import { IngredientModel } from '../models/ingredient.model';
 import { CreateIngredientRequestModel } from '../models/create-ingredient-request.model';
+import { UpdateIngredientRequestModel } from '../models/update-ingredient-request.model';
 import { ReferenceItemModel } from '../../common/models/reference-item.model';
 
 @Injectable({
@@ -89,7 +90,7 @@ export class RecipeService {
     return this.http.post<IngredientModel>(`${environment.apiUrl}/ingredients`, ingredient);
   }
 
-  updateIngredient(id: number, ingredient: CreateIngredientRequestModel): Observable<IngredientModel> {
+  updateIngredient(id: number, ingredient: UpdateIngredientRequestModel): Observable<IngredientModel> {
     return this.http.put<IngredientModel>(`${environment.apiUrl}/ingredients/${id}`, ingredient);
   }
 
@@ -139,5 +140,19 @@ export class RecipeService {
 
   deleteCategory(categoryId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`);
+  }
+
+  // Measurement Types
+  getMeasurementTypes(): Observable<ReferenceItemModel[]> {
+    return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/measurement/all`);
+  }
+
+  getMeasurementsByCategory(categoryId: number): Observable<ReferenceItemModel[]> {
+    return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/measurement/by-category/${categoryId}`);
+  }
+
+  // Reference Data
+  getReferencesByGroup(groupId: number): Observable<ReferenceItemModel[]> {
+    return this.http.get<ReferenceItemModel[]>(`${environment.apiUrl}/reference/${groupId}/all`);
   }
 }

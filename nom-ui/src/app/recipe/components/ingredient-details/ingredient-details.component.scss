@@ -1,9 +1,352 @@
-// File: nom-ui/src/app/recipe/components/ingredient-details/ingredient-details.component.scss
-
 .ingredient-details {
-    &__content {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.ingredient-card {
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--mat-sys-surface-container);
+  border-radius: 16px;
+  box-shadow: var(--mat-sys-elevation-2);
+  overflow: hidden;
+}
+
+// Header Styles
+.ingredient-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: var(--mat-sys-headline-medium);
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+  margin: 0;
+
+  .ingredient-icon {
+    color: var(--mat-sys-primary);
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.ingredient-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-large);
+  margin: 8px 0 0 0;
+}
+
+// Content Styles
+.ingredient-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+// Section Headers
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--mat-sys-primary);
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  h3 {
+    margin: 0;
+    font: var(--mat-sys-headline-small);
+    font-weight: 600;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .serving-info {
+    margin-left: auto;
+    font: var(--mat-sys-body-medium);
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+}
+
+// Basic Information Section
+.info-section {
+  .info-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--mat-sys-surface-variant);
+    border-radius: 12px;
+    border-left: 4px solid var(--mat-sys-primary);
+
+    .info-label {
+      font: var(--mat-sys-body-medium);
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
     }
+
+    .info-value {
+      font: var(--mat-sys-body-medium);
+      color: var(--mat-sys-on-surface-variant);
+      text-align: right;
+      flex: 1;
+      margin-left: 16px;
+    }
+  }
+}
+
+// Nutrition Section
+.nutrition-section {
+  .calories-highlight {
+    margin-bottom: 24px;
+    
+    .calories-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, var(--mat-sys-primary-container) 0%, var(--mat-sys-secondary-container) 100%);
+      border-radius: 16px;
+      border: 2px solid var(--mat-sys-primary);
+
+      .calories-label {
+        font: var(--mat-sys-headline-small);
+        font-weight: 600;
+        color: var(--mat-sys-on-primary-container);
+      }
+
+      .calories-value {
+        font: var(--mat-sys-headline-large);
+        font-weight: 700;
+        color: var(--mat-sys-on-primary-container);
+      }
+    }
+  }
+
+  .nutrients-container {
+    background: var(--mat-sys-surface-variant);
+    border-radius: 12px;
+    overflow: hidden;
+
+    .nutrients-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 80px;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      font: var(--mat-sys-body-medium);
+      font-weight: 600;
+      text-align: center;
+
+      span:first-child {
+        text-align: left;
+      }
+    }
+
+    .nutrients-list {
+      .nutrient-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 80px;
+        gap: 16px;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background: var(--mat-sys-surface-container-high);
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &.nutrient-bold {
+          font-weight: 600;
+          background: var(--mat-sys-surface-container-high);
+
+          .nutrient-name {
+            color: var(--mat-sys-on-surface);
+          }
+        }
+
+        &.nutrient-indented {
+          padding-left: 40px;
+          background: var(--mat-sys-surface-container-low);
+
+          .nutrient-name {
+            font-size: 0.9em;
+            color: var(--mat-sys-on-surface-variant);
+          }
+        }
+
+        .nutrient-name {
+          font: var(--mat-sys-body-medium);
+          color: var(--mat-sys-on-surface);
+          text-align: left;
+        }
+
+        .nutrient-amount {
+          font: var(--mat-sys-body-medium);
+          color: var(--mat-sys-on-surface-variant);
+          text-align: center;
+          font-weight: 500;
+        }
+
+        .nutrient-dv {
+          font: var(--mat-sys-body-medium);
+          color: var(--mat-sys-on-surface-variant);
+          text-align: center;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
+
+// No Nutrition Data
+.no-nutrition {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+
+  .no-data-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--mat-sys-outline);
+  }
+
+  p {
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// Card Actions
+mat-card-actions {
+  padding: 16px 24px;
+  background: var(--mat-sys-surface-container-low);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  .back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--mat-sys-primary);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .ingredient-card {
+    margin: 0 16px;
+    border-radius: 12px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .serving-info {
+      margin-left: 0;
+    }
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .info-value {
+      margin-left: 0;
+      text-align: left;
+    }
+  }
+
+  .calories-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .nutrients-header,
+  .nutrient-row {
+    grid-template-columns: 2fr 1fr 60px;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .nutrient-row.nutrient-indented {
+    padding-left: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ingredient-card {
+    margin: 0 8px;
+    border-radius: 8px;
+  }
+
+  .nutrients-header,
+  .nutrient-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    text-align: left;
+
+    .nutrient-amount,
+    .nutrient-dv {
+      text-align: left;
+    }
+  }
+
+  .nutrients-header {
+    display: none; // Hide header on very small screens
+  }
+
+  .nutrient-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+
+    .nutrient-name {
+      font-weight: 600;
+    }
+
+    .nutrient-amount::before {
+      content: "Amount: ";
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
+    }
+
+    .nutrient-dv::before {
+      content: "% Daily Value: ";
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
+    }
+  }
 }

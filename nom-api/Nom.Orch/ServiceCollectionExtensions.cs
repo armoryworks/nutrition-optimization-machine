@@ -33,8 +33,8 @@ namespace Nom.Orch
             }
 
             // Define namespaces to scan for interfaces and implementations
-            var interfaceNamespaces = new[] { "Nom.Orch.Interfaces", "Nom.Orch.UtilityInterfaces" };
-            var implementationNamespaces = new[] { "Nom.Orch.Services", "Nom.Orch.UtilityServices" };
+            var interfaceNamespaces = new[] { "Nom.Orch.Interfaces", "Nom.Orch.UtilityInterfaces", "Nom.Orch.Interfaces.Measurement" };
+            var implementationNamespaces = new[] { "Nom.Orch.Services", "Nom.Orch.UtilityServices", "Nom.Orch.Services.Measurement" };
 
             var serviceRegistrations = assembly.GetExportedTypes()
                 .Where(type => type.IsInterface && interfaceNamespaces.Contains(type.Namespace) && type.Name.EndsWith("Service"))

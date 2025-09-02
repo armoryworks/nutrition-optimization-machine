@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { Subject, of } from 'rxjs';
-import { switchMap, takeUntil } from 'rxjs/operators';
+import { switchMap, takeUntil, tap, catchError } from 'rxjs/operators';
 
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientModel } from '../../models/ingredient.model';
@@ -56,17 +56,27 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
     this.route.paramMap.pipe(
       switchMap(params => {
         const id = params.get('id');
+        console.log('Route paramMap - id:', id);
+        console.log('Route paramMap - all params:', params);
         if (id) {
           this.isEditMode = true;
           this.ingredientId = +id;
           this.isLoading = true;
+          console.log('Edit mode - loading ingredient ID:', this.ingredientId);
           // Load the ingredient data when in edit mode
-          return this.ingredientService.getIngredientDetails(this.ingredientId);
+          return this.ingredientService.getIngredientDetails(this.ingredientId).pipe(
+            tap(data => console.log('API response received:', data)),
+            catchError(error => {
+              console.error('API call failed:', error);
+              throw error;
+            })
+          );
         } else {
           // Create mode
           this.isEditMode = false;
           this.ingredientId = 0;
           this.isLoading = false;
+          console.log('Create mode - no ingredient ID');
           return of(null);
         }
       }),
@@ -76,6 +86,10 @@ export class IngredientEditComponent implements OnInit, OnDestroy {
         if (ingredientData) {
           this.ingredient = ingredientData;
           console.log('Loaded ingredient data:', ingredientData);
+
+          // Ingredient data loaded successfully - form component will handle page config update
+        } else {
+          console.log('No ingredient data received');
         }
         this.isLoading = false;
       },

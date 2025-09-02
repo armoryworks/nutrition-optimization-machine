@@ -10,6 +10,9 @@
     (cancel)="onCancel()">
 
     <div [formGroup]="ingredientForm">
+      <!-- Hidden ID field for edit mode -->
+      <input type="hidden" formControlName="id">
+      
       @if (isLoading) {
         <div class="nom-ingredient-form__loading">
           <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
@@ -62,16 +65,9 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Nutrient</mat-label>
                   <mat-select formControlName="nutrientId">
-                    <mat-option value="1008">Energy (kcal)</mat-option>
-                    <mat-option value="1003">Protein (g)</mat-option>
-                    <mat-option value="1004">Total Fat (g)</mat-option>
-                    <mat-option value="1005">Carbohydrates (g)</mat-option>
-                    <mat-option value="1079">Fiber (g)</mat-option>
-                    <mat-option value="1093">Sodium (mg)</mat-option>
-                    <mat-option value="1092">Potassium (mg)</mat-option>
-                    <mat-option value="1087">Calcium (mg)</mat-option>
-                    <mat-option value="1089">Iron (mg)</mat-option>
-                    <mat-option value="1106">Vitamin C (mg)</mat-option>
+                    <mat-option *ngFor="let nutrient of nutrientTypes" [value]="nutrient.id">
+                      {{ nutrient.name }}
+                    </mat-option>
                   </mat-select>
                 </mat-form-field>
 
@@ -83,9 +79,9 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Unit</mat-label>
                   <mat-select formControlName="measurementId">
-                    <mat-option value="4003">g (gram)</mat-option>
-                    <mat-option value="4004">mg (milligram)</mat-option>
-                    <mat-option value="4005">µg (microgram)</mat-option>
+                    <mat-option *ngFor="let measurement of measurements" [value]="measurement.id">
+                      {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
+                    </mat-option>
                   </mat-select>
                 </mat-form-field>
 
@@ -127,6 +123,9 @@
 
         <mat-card-content>
           <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
+            <!-- Hidden ID field for edit mode -->
+            <input type="hidden" formControlName="id">
+            
             <!-- Form Content -->
             <div class="form-content">
               <!-- General Information Section -->
@@ -160,9 +159,9 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Nutrient</mat-label>
                         <mat-select formControlName="nutrientId">
-                          <mat-option value="5006">Protein</mat-option>
-                          <mat-option value="5003">Carbohydrates</mat-option>
-                          <mat-option value="5000">Fat</mat-option>
+                          <mat-option *ngFor="let nutrient of nutrientTypes" [value]="nutrient.id">
+                            {{ nutrient.name }}
+                          </mat-option>
                         </mat-select>
                       </mat-form-field>
 
@@ -174,9 +173,9 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Unit</mat-label>
                         <mat-select formControlName="measurementId">
-                          <mat-option value="4003">g (gram)</mat-option>
-                          <mat-option value="4004">mg (milligram)</mat-option>
-                          <mat-option value="4005">µg (microgram)</mat-option>
+                          <mat-option *ngFor="let measurement of measurements" [value]="measurement.id">
+                            {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
+                          </mat-option>
                         </mat-select>
                       </mat-form-field>
 

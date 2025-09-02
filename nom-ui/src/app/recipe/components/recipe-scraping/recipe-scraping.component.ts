@@ -104,7 +104,7 @@ export class RecipeScrapingComponent {
 
             if (response.success) {
                 // Navigate to the created recipe
-                this.router.navigate(['/recipe', response.recipeId]);
+                this.router.navigate(['/recipes', response.recipeId]);
             } else {
                 this.error = response.error || 'Failed to create recipe';
             }
@@ -120,7 +120,7 @@ export class RecipeScrapingComponent {
      * Cancel scraping and go back
      */
     cancel(): void {
-        this.router.navigate(['/recipe']);
+        this.router.navigate(['/recipes']);
     }
 
     /**

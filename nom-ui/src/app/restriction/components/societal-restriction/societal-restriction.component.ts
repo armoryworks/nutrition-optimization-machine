@@ -15,6 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Observable, startWith, map } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 
 @Component({
   selector: 'nom-societal-restriction',
@@ -35,6 +37,7 @@ import { RestrictionService } from '../../services/restriction.service';
 export class SocietalRestrictionComponent implements OnInit {
   private fb = inject(NonNullableFormBuilder);
   private restrictionService = inject(RestrictionService);
+  private referenceDataService = inject(ReferenceDataService);
 
   @Input() societalRestrictionForm!: FormGroup; // Input FormGroup for this section
 
@@ -42,14 +45,8 @@ export class SocietalRestrictionComponent implements OnInit {
   public ingredientSearchControl = new FormControl<string>('');
   public filteredCuratedIngredients!: Observable<string[]>;
 
-  // Options for select dropdowns
-  public societalReligiousEthicalOptions = [
-    { id: 100, name: 'Vegan' },
-    { id: 101, name: 'Vegetarian' },
-    { id: 102, name: 'Kosher' },
-    { id: 103, name: 'Halal' },
-    { id: 104, name: 'Pescatarian' },
-  ];
+  // Options for select dropdowns - loaded from backend
+  public societalReligiousEthicalOptions: ReferenceItemModel[] = [];
 
   private allCuratedIngredients: string[] = [
     'Apple',
@@ -110,6 +107,23 @@ export class SocietalRestrictionComponent implements OnInit {
     // Fetch real data (mocked for now)
     this.restrictionService.getCuratedIngredients().subscribe((data) => {
       if (data && data.length > 0) this.allCuratedIngredients = data;
+    });
+
+    this.loadSocietalRestrictionOptions();
+  }
+
+  private loadSocietalRestrictionOptions(): void {
+    // Load societal/religious/ethical restriction options from backend
+    // Using a specific reference group for societal restrictions
+    this.referenceDataService.getReferencesByGroup(2000).subscribe({
+      next: (options) => {
+        this.societalReligiousEthicalOptions = options;
+      },
+      error: (error) => {
+        console.error('Error loading societal restriction options:', error);
+        // Fallback to empty array if API fails
+        this.societalReligiousEthicalOptions = [];
+      }
     });
   }
 

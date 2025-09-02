@@ -22,10 +22,12 @@ import { RecipeModel } from '../../models/recipe.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { IngredientCreateModalComponent, IngredientCreateModalData } from '../ingredient-create-modal/ingredient-create-modal.component';
 import { IngredientModel } from '../../models/ingredient.model';
-import { RecipeEditModel, RecipeIngredientModel } from '../../models/recipe-edit.model';
+import { RecipeEditModel } from '../../models/recipe-edit.model';
+import { RecipeIngredientModel } from '../../models/recipe-ingredient.model';
 import { RecipeStepModel } from '../../models/recipe-step.model';
 import { CurationService } from '../../../curation/services/curation.service';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
@@ -60,6 +62,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private dialog = inject(MatDialog);
     private curationService = inject(CurationService);
     private userInfoService = inject(UserInfoService);
+    private referenceDataService = inject(ReferenceDataService);
 
     recipeForm: FormGroup;
     isEditMode = false;
@@ -106,8 +109,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             switchMap(value => (value && typeof value === 'string' && value.length > 1) ? this.recipeService.searchIngredients(value) : of([]))
         );
 
-        // TODO: Replace with measurement service call
-        this.measurements$ = of([]);
+        // Load measurements from the reference data service
+        this.measurements$ = this.referenceDataService.getMeasurementTypes();
     }
 
     ngOnInit(): void {
@@ -139,7 +142,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     createIngredientGroup(ingredient: IngredientSearchResponseModel): FormGroup {
         return this.nonNullableFb.group({
-            ingredientId: [ingredient.id],
+            IngredientId: [ingredient.id],
             name: [ingredient.name],
             quantity: [1, [Validators.required, Validators.min(0.01)]],
             measurementId: [1, [Validators.required]]
@@ -151,7 +154,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         // Check if ingredient is already added
         const existingIndex = this.ingredients.controls.findIndex(
-            control => control.get('ingredientId')?.value === ingredient.id
+            control => control.get('IngredientId')?.value === ingredient.id
         );
 
         if (existingIndex >= 0) {
@@ -210,7 +213,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         if (recipe.ingredients && recipe.ingredients.length > 0) {
             recipe.ingredients.forEach((ingredient: IngredientModel) => {
                 const ingredientGroup = this.nonNullableFb.group({
-                    ingredientId: [ingredient.id],
+                    IngredientId: [ingredient.id],
                     name: [ingredient.name],
                     quantity: [1, [Validators.required, Validators.min(0.01)]], // Default quantity
                     measurementId: [1, [Validators.required]] // Default measurement
@@ -223,8 +226,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         if (recipe.steps && recipe.steps.length > 0) {
             recipe.steps.forEach((step: RecipeStepModel, index: number) => {
                 const stepGroup = this.nonNullableFb.group({
-                    instruction: [step.description, [Validators.required]],
-                    stepNumber: [index] // Use array index as step number
+                    description: [step.description, [Validators.required]],
+                    order: [index + 1] // Use array index + 1 as step order
                 });
                 this.steps.push(stepGroup);
             });
@@ -237,8 +240,8 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     createStepGroup(): FormGroup {
         return this.nonNullableFb.group({
-            instruction: ['', [Validators.required]],
-            stepNumber: [0]
+            description: ['', [Validators.required]],
+            order: [this.steps.length + 1]
         });
     }
 
@@ -299,7 +302,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             next: (recipe) => {
                 const action = this.isEditMode ? 'updated' : 'created';
                 this.notificationService.success(`Recipe ${action} successfully`);
-                this.router.navigate(['/recipe', recipe.id]);
+                this.router.navigate(['/recipes', recipe.id]);
             },
             error: (error) => {
                 console.error('Error saving recipe:', error);
@@ -309,7 +312,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onCancel(): void {
-        this.router.navigate(['/recipe']);
+        this.router.navigate(['/recipes']);
     }
 
     submitForCuration(): void {
@@ -336,7 +339,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         ).subscribe({
             next: () => {
                 this.notificationService.success('Recipe submitted for curation successfully');
-                this.router.navigate(['/recipe', this.recipeId]);
+                this.router.navigate(['/recipes', this.recipeId]);
             },
             error: (error) => {
                 console.error('Error submitting recipe for curation:', error);
@@ -346,7 +349,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onBack(): void {
-        this.router.navigate(['/recipe']);
+        this.router.navigate(['/recipes']);
     }
 
     onRefresh(): void {

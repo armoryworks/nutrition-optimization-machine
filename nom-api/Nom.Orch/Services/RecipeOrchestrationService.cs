@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Nom.Data;
 using Nom.Data.Recipe;
+using Nom.Data.Nutrient;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 
@@ -36,6 +37,33 @@ namespace Nom.Orch.Services
             return null;
         }
 
+        public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+                return new List<IngredientSearchResponseModel>();
+
+            var searchTerm = query.ToLower().Trim();
+
+            var ingredients = await _context.Ingredients
+                .Include(i => i.CurationStatus)
+                .Include(i => i.Aliases)
+                .Where(i => i.Name.ToLower().Contains(searchTerm) ||
+                            (i.NameNormalized != null && i.NameNormalized.ToLower().Contains(searchTerm)) ||
+                            i.Aliases.Any(a => a.AliasName.ToLower().Contains(searchTerm)))
+                .OrderBy(i => i.Name.Length) // Prioritize shorter names (exact matches)
+                .ThenBy(i => i.Name)
+                .Take(20) // Limit results for performance
+                .ToListAsync();
+
+            return ingredients.Select(i => new IngredientSearchResponseModel
+            {
+                Id = i.Id,
+                Name = i.Name,
+                FdcId = i.FdcId,
+                MatchedAlias = i.Aliases.FirstOrDefault(a => a.AliasName.ToLower().Contains(searchTerm))?.AliasName
+            }).ToList();
+        }
+
         private async Task<List<NutrientValueModel>> GetIngredientNutrientsAsync(long ingredientId)
         {
             var nutrients = await _context.IngredientNutrients
@@ -51,6 +79,49 @@ namespace Nom.Orch.Services
                 .ToListAsync();
 
             return nutrients;
+        }
+
+        private async Task UpdateIngredientNutrientsAsync(long ingredientId, List<NutrientValueModel> nutrients)
+        {
+            Console.WriteLine($"UpdateIngredientNutrientsAsync called for ingredient {ingredientId} with {nutrients.Count} nutrients");
+            
+            // Remove existing nutrients for this ingredient
+            var existingNutrients = await _context.IngredientNutrients
+                .Where(in_ => in_.IngredientId == ingredientId)
+                .ToListAsync();
+            
+            Console.WriteLine($"Found {existingNutrients.Count} existing nutrients to remove");
+            _context.IngredientNutrients.RemoveRange(existingNutrients);
+
+            // Add new nutrients
+            int addedCount = 0;
+            foreach (var nutrient in nutrients)
+            {
+                Console.WriteLine($"Processing nutrient: NutrientId={nutrient.NutrientId}, Amount={nutrient.Amount}");
+                
+                // Skip empty nutrients (nutrientId = 0 or empty)
+                if (nutrient.NutrientId <= 0)
+                {
+                    Console.WriteLine($"Skipping nutrient with NutrientId={nutrient.NutrientId} (<= 0)");
+                    continue;
+                }
+
+                var ingredientNutrient = new IngredientNutrientEntity
+                {
+                    IngredientId = ingredientId,
+                    NutrientId = nutrient.NutrientId,
+                    Amount = nutrient.Amount,
+                    MeasurementId = 1, // Default measurement ID - you may want to make this configurable
+                    CreatedDate = DateTime.UtcNow,
+                    LastModifiedDate = DateTime.UtcNow
+                };
+
+                _context.IngredientNutrients.Add(ingredientNutrient);
+                addedCount++;
+                Console.WriteLine($"Added nutrient: IngredientId={ingredientId}, NutrientId={nutrient.NutrientId}, Amount={nutrient.Amount}");
+            }
+            
+            Console.WriteLine($"Total nutrients added: {addedCount}");
         }
 
         public async Task<List<RecipeResponseModel>> GetAllRecipesAsync()
@@ -127,6 +198,35 @@ namespace Nom.Orch.Services
             _context.Recipes.Add(recipe);
             await _context.SaveChangesAsync();
 
+            // Add ingredients
+            foreach (var ingredient in model.Ingredients)
+            {
+                var recipeIngredient = new RecipeIngredientEntity
+                {
+                    RecipeId = recipe.Id,
+                    IngredientId = ingredient.IngredientId,
+                    Quantity = ingredient.Quantity,
+                    MeasurementId = ingredient.MeasurementId,
+                    RawLine = string.Empty // Default empty since not in model
+                };
+                _context.RecipeIngredients.Add(recipeIngredient);
+            }
+
+            // Add steps
+            foreach (var step in model.Steps)
+            {
+                var recipeStep = new RecipeStepEntity
+                {
+                    RecipeId = recipe.Id,
+                    Summary = step.Description, // Use Description as Summary
+                    Description = step.Description,
+                    StepNumber = step.Order // Use Order as StepNumber
+                };
+                _context.RecipeSteps.Add(recipeStep);
+            }
+
+            await _context.SaveChangesAsync();
+
             return new RecipeCreateResponseModel
             {
                 Id = recipe.Id,
@@ -162,16 +262,59 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, RecipeUpdateModel model)
+        public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)
         {
             var recipe = await _context.Recipes.FindAsync(id);
             if (recipe == null)
                 return null;
 
+            // Update basic recipe properties
             recipe.Name = model.Name;
             recipe.Description = model.Description;
             recipe.LastModifiedDate = DateTime.UtcNow;
 
+            // Remove existing ingredients and steps
+            var existingIngredients = await _context.RecipeIngredients
+                .Where(ri => ri.RecipeId == id)
+                .ToListAsync();
+            _context.RecipeIngredients.RemoveRange(existingIngredients);
+
+            var existingSteps = await _context.RecipeSteps
+                .Where(rs => rs.RecipeId == id)
+                .ToListAsync();
+            _context.RecipeSteps.RemoveRange(existingSteps);
+
+            // Save changes to remove existing data
+            await _context.SaveChangesAsync();
+
+            // Add new ingredients
+            foreach (var ingredient in model.Ingredients)
+            {
+                var recipeIngredient = new RecipeIngredientEntity
+                {
+                    RecipeId = recipe.Id,
+                    IngredientId = ingredient.IngredientId,
+                    Quantity = ingredient.Quantity,
+                    MeasurementId = ingredient.MeasurementId,
+                    RawLine = string.Empty // Default empty since not in model
+                };
+                _context.RecipeIngredients.Add(recipeIngredient);
+            }
+
+            // Add new steps
+            foreach (var step in model.Steps)
+            {
+                var recipeStep = new RecipeStepEntity
+                {
+                    RecipeId = recipe.Id,
+                    Summary = step.Description, // Use Description as Summary
+                    Description = step.Description,
+                    StepNumber = step.Order // Use Order as StepNumber
+                };
+                _context.RecipeSteps.Add(recipeStep);
+            }
+
+            // Save all changes
             await _context.SaveChangesAsync();
 
             return new RecipeResponseModel
@@ -361,6 +504,8 @@ namespace Nom.Orch.Services
 
         public async Task<IngredientEditModel> CreateIngredientAsync(CreateIngredientRequest model)
         {
+            Console.WriteLine($"CreateIngredientAsync called with {model.Nutrients.Count} nutrients");
+            
             var currentPersonId = GetCurrentPersonId();
             
             var ingredient = new IngredientEntity
@@ -377,6 +522,10 @@ namespace Nom.Orch.Services
             _context.Ingredients.Add(ingredient);
             await _context.SaveChangesAsync();
 
+            // Add nutrients for the new ingredient
+            await UpdateIngredientNutrientsAsync(ingredient.Id, model.Nutrients);
+            await _context.SaveChangesAsync();
+
             return new IngredientEditModel
             {
                 Id = ingredient.Id,
@@ -390,6 +539,8 @@ namespace Nom.Orch.Services
 
         public async Task<IngredientEditModel> UpdateIngredientAsync(UpdateIngredientRequest model)
         {
+            Console.WriteLine($"UpdateIngredientAsync called for ingredient {model.Id} with {model.Nutrients.Count} nutrients");
+            
             var ingredient = await _context.Ingredients
                 .Include(i => i.CurationStatus)
                 .FirstOrDefaultAsync(i => i.Id == model.Id);
@@ -400,7 +551,12 @@ namespace Nom.Orch.Services
             ingredient.Description = model.Description;
             ingredient.LastModifiedDate = DateTime.UtcNow;
 
+            // Update nutrients
+            await UpdateIngredientNutrientsAsync(ingredient.Id, model.Nutrients);
+
+            Console.WriteLine("About to save changes to database");
             await _context.SaveChangesAsync();
+            Console.WriteLine("Database changes saved successfully");
 
             return new IngredientEditModel
             {

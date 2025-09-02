@@ -28,6 +28,7 @@ namespace Nom.Api.Controllers
         /// <param name="discriminatorId">The discriminator ID for the reference group</param>
         /// <returns>List of references for the specified group</returns>
         [HttpGet("{discriminatorId}/all")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(List<Nom.Data.Reference.GroupedReferenceViewEntity>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

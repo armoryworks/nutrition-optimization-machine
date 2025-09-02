@@ -16,6 +16,8 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { RecipeSuggestionService } from '../../services/recipe-suggestion.service';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeReferenceService } from '../../services/recipe-reference.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
 @Component({
@@ -44,6 +46,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     private recipeSuggestionService = inject(RecipeSuggestionService);
     private recipeService = inject(RecipeService);
     private recipeReferenceService = inject(RecipeReferenceService);
+    private referenceDataService = inject(ReferenceDataService);
 
     suggestionForm: FormGroup;
     aiSuggestionForm: FormGroup;
@@ -57,7 +60,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
     selectedTools: number[] = [];
 
     // Reference data loaded dynamically
-    difficulties: any[] = [];
+    difficulties: ReferenceItemModel[] = [];
     cuisines: any[] = [];
     mealTypes: any[] = [];
     dietaryOptions: any[] = [];

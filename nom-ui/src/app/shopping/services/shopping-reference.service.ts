@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ReferenceDataService, ReferenceItem } from '../../common/services/reference-data.service';
+import { ReferenceDataService } from '../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../common/models/reference-item.model';
 import { REFERENCE_IDS } from '../../common/constants/reference-ids';
 
 @Injectable({
@@ -13,14 +14,14 @@ export class ShoppingReferenceService {
     /**
      * Gets all shopping priority types
      */
-    getShoppingPriorities(): Observable<ReferenceItem[]> {
+    getShoppingPriorities(): Observable<ReferenceItemModel[]> {
         return this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.SHOPPING_PRIORITY_TYPE);
     }
 
     /**
      * Gets all shopping category types
      */
-    getShoppingCategories(): Observable<ReferenceItem[]> {
+    getShoppingCategories(): Observable<ReferenceItemModel[]> {
         return this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.SHOPPING_CATEGORY_TYPE);
     }
 
@@ -28,8 +29,8 @@ export class ShoppingReferenceService {
      * Gets shopping priorities and categories in one call
      */
     getShoppingReferences(): Observable<{
-        priorities: ReferenceItem[];
-        categories: ReferenceItem[];
+        priorities: ReferenceItemModel[];
+        categories: ReferenceItemModel[];
     }> {
         return combineLatest([
             this.getShoppingPriorities(),
@@ -45,14 +46,14 @@ export class ShoppingReferenceService {
     /**
      * Gets a shopping priority by ID
      */
-    getShoppingPriorityById(priorityId: number): Observable<ReferenceItem | null> {
+    getShoppingPriorityById(priorityId: number): Observable<ReferenceItemModel | null> {
         return this.referenceDataService.getReferenceById(REFERENCE_IDS.SHOPPING_PRIORITY_TYPE, priorityId);
     }
 
     /**
      * Gets a shopping category by ID
      */
-    getShoppingCategoryById(categoryId: number): Observable<ReferenceItem | null> {
+    getShoppingCategoryById(categoryId: number): Observable<ReferenceItemModel | null> {
         return this.referenceDataService.getReferenceById(REFERENCE_IDS.SHOPPING_CATEGORY_TYPE, categoryId);
     }
 
@@ -60,8 +61,8 @@ export class ShoppingReferenceService {
      * Gets shopping priorities and categories with bulk loading for performance
      */
     getShoppingReferencesBulk(): Observable<{
-        priorities: ReferenceItem[];
-        categories: ReferenceItem[];
+        priorities: ReferenceItemModel[];
+        categories: ReferenceItemModel[];
     }> {
         return this.referenceDataService.getReferencesBulk([
             REFERENCE_IDS.SHOPPING_PRIORITY_TYPE,
@@ -78,7 +79,7 @@ export class ShoppingReferenceService {
      * Clears shopping reference cache
      */
     clearCache(): void {
-        this.referenceDataService.clearCache(REFERENCE_IDS.SHOPPING_PRIORITY_TYPE);
-        this.referenceDataService.clearCache(REFERENCE_IDS.SHOPPING_CATEGORY_TYPE);
+        this.referenceDataService.clearCacheForGroup(REFERENCE_IDS.SHOPPING_PRIORITY_TYPE);
+        this.referenceDataService.clearCacheForGroup(REFERENCE_IDS.SHOPPING_CATEGORY_TYPE);
     }
 }

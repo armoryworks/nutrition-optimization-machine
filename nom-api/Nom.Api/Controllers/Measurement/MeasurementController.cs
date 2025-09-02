@@ -307,6 +307,7 @@ namespace Nom.Api.Controllers.Measurement
         /// Gets all measurements.
         /// </summary>
         [HttpGet("all")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(List<MeasurementModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllMeasurements()
         {
@@ -326,6 +327,7 @@ namespace Nom.Api.Controllers.Measurement
         /// Gets all measurement categories.
         /// </summary>
         [HttpGet("categories")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(List<MeasurementCategoryModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllCategories()
         {

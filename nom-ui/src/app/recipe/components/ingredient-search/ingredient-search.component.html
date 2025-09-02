@@ -1,33 +1,78 @@
 <!-- File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.html -->
-<nom-base-list
-  [config]="listConfig"
-  [loading]="isLoading"
-  [error]="error">
-
-  <div class="ingredient-search__wrapper">
-    <mat-form-field class="ingredient-search__form-field">
-      <mat-label>Search for an Ingredient</mat-label>
-      <input type="text" placeholder="e.g., chicken breast" matInput [formControl]="searchControl"
-        [matAutocomplete]="auto" />
-      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
-        (optionSelected)="onIngredientSelected($event)">
-        @if (isLoading) {
-          <mat-option class="is-loading">
-            <mat-spinner diameter="20"></mat-spinner>
-          </mat-option>
-        }
-        @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
-          <mat-option [value]="ingredient">
-            {{ ingredient.name }}
-          </mat-option>
-        }
-      </mat-autocomplete>
-    </mat-form-field>
-
-    <!-- Display the details component when an ingredient is selected -->
-    @if (selectedIngredient) {
-      <nom-ingredient-details [ingredient]="selectedIngredient"></nom-ingredient-details>
-    }
-  </div>
-</nom-base-list>
+<nom-base-page class="ingredient-search" [config]="pageConfig" [isLoading]="false" [error]="null">
   
+  <!-- Ingredient details card with search as header -->
+  <div class="ingredient-card">
+    <!-- Search form as card header -->
+    <div class="ingredient-card__header">
+      <mat-form-field class="search-field" appearance="outline">
+        <mat-label>Search for an Ingredient</mat-label>
+        <span matTextPrefix class="search-field__prefix">
+          <mat-icon>search</mat-icon>
+        </span>
+        <input 
+          type="text" 
+          placeholder="e.g., chicken breast, rice, tomato" 
+          matInput 
+          [formControl]="searchControl"
+          [matAutocomplete]="auto" />
+        @if (isLoading) {
+          <mat-spinner matSuffix diameter="20"></mat-spinner>
+        }
+        
+        <!-- Autocomplete dropdown -->
+        <mat-autocomplete #auto="matAutocomplete" 
+                          [displayWith]="displayFn"
+                          (optionSelected)="onIngredientSelected($event)">
+          @if (isLoading) {
+            <mat-option class="search-field__loading-option" disabled>
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Searching ingredients...</span>
+            </mat-option>
+          }
+          
+          @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
+            <mat-option [value]="ingredient">
+              <div class="search-field__option">
+                <div class="search-field__option-name">{{ ingredient.name }}</div>
+                @if (ingredient.fdcId) {
+                  <div class="search-field__option-fdc">FDC: {{ ingredient.fdcId }}</div>
+                }
+                @if (ingredient.matchedAlias) {
+                  <div class="search-field__option-alias">Also known as: {{ ingredient.matchedAlias }}</div>
+                }
+              </div>
+            </mat-option>
+          }
+          
+          @if ((filteredIngredients$ | async)?.length === 0 && !isLoading && searchControl.value && searchControl.value.length > 2) {
+            <mat-option disabled>
+              <div class="search-field__no-results">
+                <mat-icon>search_off</mat-icon>
+                <span>No ingredients found for "{{ searchControl.value }}"</span>
+              </div>
+            </mat-option>
+          }
+        </mat-autocomplete>
+        
+        @if (error) {
+          <mat-error>{{ error }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <!-- Ingredient details as card content -->
+    <div class="ingredient-card__content">
+      @if (selectedIngredient) {
+        <nom-ingredient-details [ingredient]="selectedIngredient"></nom-ingredient-details>
+      } @else {
+        <div class="ingredient-card__placeholder">
+          <mat-icon class="ingredient-card__placeholder-icon">search</mat-icon>
+          <h3 class="ingredient-card__placeholder-title">Search for an Ingredient</h3>
+          <p class="ingredient-card__placeholder-text">Enter an ingredient name above to view detailed nutritional information</p>
+        </div>
+      }
+    </div>
+  </div>
+  
+</nom-base-page>

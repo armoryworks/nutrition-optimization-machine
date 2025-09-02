@@ -1,13 +1,19 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { IngredientModel } from '../../models/ingredient.model';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 
 @Component({
-  selector: 'app-ingredient-details',
+  selector: 'nom-ingredient-details',
   standalone: true,
   imports: [
     CommonModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
   ],
   providers: [DecimalPipe],
   templateUrl: './ingredient-details.component.html',

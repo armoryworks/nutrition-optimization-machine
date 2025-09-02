@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ReferenceDataService, ReferenceItem } from '../../common/services/reference-data.service';
+import { ReferenceDataService } from '../../common/services/reference-data.service';
+import { ReferenceItemModel } from '../../common/models/reference-item.model';
 import { REFERENCE_IDS } from '../../common/constants/reference-ids';
 
 @Injectable({
@@ -13,21 +14,21 @@ export class RecipeReferenceService {
     /**
      * Gets all recipe difficulty types
      */
-    getRecipeDifficulties(): Observable<ReferenceItem[]> {
+    getRecipeDifficulties(): Observable<ReferenceItemModel[]> {
         return this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.RECIPE_DIFFICULTY_TYPE);
     }
 
     /**
      * Gets all cuisine types
      */
-    getCuisineTypes(): Observable<ReferenceItem[]> {
+    getCuisineTypes(): Observable<ReferenceItemModel[]> {
         return this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.CUISINE_TYPE);
     }
 
     /**
      * Gets all meal types
      */
-    getMealTypes(): Observable<ReferenceItem[]> {
+    getMealTypes(): Observable<ReferenceItemModel[]> {
         return this.referenceDataService.getReferencesByGroup(REFERENCE_IDS.MEAL_TYPE);
     }
 
@@ -35,9 +36,9 @@ export class RecipeReferenceService {
      * Gets recipe references in one call
      */
     getRecipeReferences(): Observable<{
-        difficulties: ReferenceItem[];
-        cuisines: ReferenceItem[];
-        mealTypes: ReferenceItem[];
+        difficulties: ReferenceItemModel[];
+        cuisines: ReferenceItemModel[];
+        mealTypes: ReferenceItemModel[];
     }> {
         return combineLatest([
             this.getRecipeDifficulties(),
@@ -55,21 +56,21 @@ export class RecipeReferenceService {
     /**
      * Gets a recipe difficulty by ID
      */
-    getRecipeDifficultyById(difficultyId: number): Observable<ReferenceItem | null> {
+    getRecipeDifficultyById(difficultyId: number): Observable<ReferenceItemModel | null> {
         return this.referenceDataService.getReferenceById(REFERENCE_IDS.RECIPE_DIFFICULTY_TYPE, difficultyId);
     }
 
     /**
      * Gets a cuisine type by ID
      */
-    getCuisineTypeById(cuisineId: number): Observable<ReferenceItem | null> {
+    getCuisineTypeById(cuisineId: number): Observable<ReferenceItemModel | null> {
         return this.referenceDataService.getReferenceById(REFERENCE_IDS.CUISINE_TYPE, cuisineId);
     }
 
     /**
      * Gets a meal type by ID
      */
-    getMealTypeById(mealTypeId: number): Observable<ReferenceItem | null> {
+    getMealTypeById(mealTypeId: number): Observable<ReferenceItemModel | null> {
         return this.referenceDataService.getReferenceById(REFERENCE_IDS.MEAL_TYPE, mealTypeId);
     }
 
@@ -77,11 +78,11 @@ export class RecipeReferenceService {
      * Gets recipe references with bulk loading for performance
      */
     getRecipeReferencesBulk(): Observable<{
-        difficulties: ReferenceItem[];
-        cuisines: ReferenceItem[];
-        mealTypes: ReferenceItem[];
-        dietaryOptions: ReferenceItem[];
-        allergens: ReferenceItem[];
+        difficulties: ReferenceItemModel[];
+        cuisines: ReferenceItemModel[];
+        mealTypes: ReferenceItemModel[];
+        dietaryOptions: ReferenceItemModel[];
+        allergens: ReferenceItemModel[];
     }> {
         return this.referenceDataService.getReferencesBulk([
             REFERENCE_IDS.RECIPE_DIFFICULTY_TYPE,

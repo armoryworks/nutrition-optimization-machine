@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/recipe/models/recipe-ingredient.model.ts
 
 export interface RecipeIngredientModel {
-    ingredientId: number;
+    IngredientId: number;
     quantity: number;
     measurementId: number;
     // The name is included here for display purposes on the frontend,
