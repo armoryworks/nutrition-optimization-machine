@@ -1,196 +1,845 @@
-// Meal Plan Dashboard Component Styles
-// Uses nom-dashboard classes for consistency with user dashboard
+// Component styles only - theme is handled globally
 
-// Custom styles for meal plan specific elements
+@use '../../../../_variables' as vars;
+@use '../../../../_mixins' as mixins;
+
+// Base Dashboard Styles (copied from user dashboard for consistency)
 .nom-dashboard {
-  &__view-toggle {
-    margin-right: 1rem;
-    
-    ::ng-deep .mat-button-toggle-group {
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid var(--mat-sys-outline-variant);
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5px vars.$spacing-large 0;
+  height: calc(100vh - 120px); // Constrain total height to prevent page scroll
+  overflow: hidden; // Prevent page-level scrolling
+
+  @include mixins.breakpoint(mobile) {
+    padding: 0px vars.$spacing-medium 0;
+    height: calc(100vh - 100px); // Adjust for mobile header
+  }
+
+  // Compact Header Pattern (following docs/development/conventions.md)
+  &__header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: vars.$spacing-small 0;
+    margin-bottom: vars.$spacing-small;
+    gap: vars.$spacing-medium;
+
+    @include mixins.breakpoint(mobile) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: vars.$spacing-small;
     }
   }
 
-  &__action-buttons {
+  &__header-title-section {
+    flex-shrink: 0;
+  }
+
+  &__header-center-section {
+    flex: 1;
     display: flex;
-    gap: 0.5rem;
+    justify-content: flex-end;
     align-items: center;
-  }
 
-  &__week-view {
-    margin-top: 1rem;
-  }
-
-  &__week-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__week-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__week-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1rem;
-    margin-top: 1rem;
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-      gap: 0.5rem;
+    @include mixins.breakpoint(mobile) {
+      justify-content: flex-start;
     }
   }
 
-  &__day-column {
-    background-color: var(--mat-sys-surface-container);
-    border-radius: 12px;
-    padding: 1rem;
-    border: 1px solid var(--mat-sys-outline-variant);
-    min-height: 200px;
-  }
-
-  &__day-header {
-    text-align: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__day-title {
-    font: var(--mat-sys-title-medium);
+  &__title {
+    font: var(--mat-sys-headline-large);
     color: var(--mat-sys-on-surface);
-    margin: 0 0 0.25rem;
-    font-weight: 600;
-  }
-
-  &__day-date {
-    font: var(--mat-sys-body-small);
-    color: var(--mat-sys-on-surface-variant);
     margin: 0;
+    font-weight: 600;
+    line-height: 1.2;
+
+    @include mixins.breakpoint(mobile) {
+      font: var(--mat-sys-headline-medium);
+    }
   }
 
-  &__today-chip {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  &__day-plans {
+  // Stats Pills
+  &__stats-pills {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    gap: vars.$spacing-small;
+    align-items: center;
+
+    @include mixins.breakpoint(mobile) {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
   }
 
-  &__plan-item {
-    background-color: var(--mat-sys-surface-container-low);
-    border-radius: 8px;
-    padding: 0.75rem;
+  &__stat-pill {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-xsmall;
+    padding: vars.$spacing-xsmall vars.$spacing-small;
+    background: var(--mat-sys-surface-container);
     border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 20px;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
+      background: var(--mat-sys-surface-container-high);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(var(--mat-sys-shadow), 0.1);
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--mat-sys-primary);
     }
   }
 
-  &__plan-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  &__plan-icon {
-    font-size: 1rem;
-    width: 1rem;
-    height: 1rem;
-  }
-
-  &__plan-info {
-    flex: 1;
-  }
-
-  &__plan-title {
-    font: var(--mat-sys-body-medium);
+  &__stat-number {
+    font: var(--mat-sys-title-medium);
     color: var(--mat-sys-on-surface);
-    margin: 0;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1;
   }
 
-  &__plan-description {
+  &__stat-label {
     font: var(--mat-sys-body-small);
     color: var(--mat-sys-on-surface-variant);
-    margin: 0.25rem 0 0;
-    line-height: 1.4;
+    font-weight: 500;
+    line-height: 1;
   }
 
-  &__plan-actions {
-    display: flex;
-    gap: 0.25rem;
-    margin-top: 0.5rem;
-  }
+  &__action-button {
+    white-space: nowrap;
+    font-weight: 500;
+    height: 44px; // Match form field height
+    border-radius: 8px; // Match form field border radius
+    padding: 0 16px;
+    min-width: 120px;
 
-  &__month-view {
-    margin-top: 1rem;
-  }
+    mat-icon {
+      margin-right: vars.$spacing-xsmall;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
 
-  &__month-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__month-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__empty-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-top: 1rem;
-
-    @media (max-width: 480px) {
-      flex-direction: column;
+    @include mixins.breakpoint(mobile) {
       width: 100%;
     }
   }
-}
 
-// Responsive adjustments
-@media (max-width: 768px) {
-  .nom-dashboard {
-    &__filters {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-large;
+    padding: 0 vars.$spacing-large vars.$spacing-large;
+    flex: 1; // Take remaining space
+    min-height: 0; // Allow shrinking
+    overflow-y: auto; // Enable internal scrolling
+
+    @include mixins.breakpoint(mobile) {
+      padding: 0 vars.$spacing-medium vars.$spacing-medium;
+    }
+  }
+
+  // Main Grid
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: vars.$spacing-large;
+
+    @include mixins.breakpoint(mobile) {
+      grid-template-columns: 1fr;
+      gap: vars.$spacing-medium;
+    }
+  }
+
+  // Sections
+  &__section {
+    background: var(--mat-sys-surface-container);
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-medium;
+    border: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  // Compact Section Header
+  &__section-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; // Center alignment for better visual balance
+    margin-bottom: vars.$spacing-medium; // Slightly more space
+    gap: vars.$spacing-medium;
+    min-height: 50px; // Consistent height for alignment
+
+    @include mixins.breakpoint(mobile) {
       flex-direction: column;
+      align-items: stretch;
+      gap: vars.$spacing-small;
+      min-height: auto;
+    }
+  }
+
+  // Filter Section (now in header)
+  &__filters {
+    display: flex;
+    gap: vars.$spacing-medium;
+    align-items: center; // Center alignment to match header
+    flex: 1; // Take available space
+
+    @include mixins.breakpoint(mobile) {
+      flex-direction: column;
+      gap: vars.$spacing-small;
+      align-items: stretch;
+    }
+  }
+
+  &__filter-field {
+    flex: 1;
+    min-width: 180px;
+    max-width: 250px;
+
+    @include mixins.breakpoint(mobile) {
+      width: 100%;
+      min-width: unset;
+      max-width: none;
+    }
+
+    // Comprehensive form field styling improvements
+    ::ng-deep {
+      .mat-mdc-form-field {
+        width: 100%;
+      }
+
+      .mat-mdc-form-field-wrapper {
+        padding-bottom: 0;
+        margin-bottom: 0;
+        width: 100%;
+      }
+
+      .mat-mdc-form-field-bottom-align::before {
+        display: none;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        height: 44px !important;
+        border-radius: 8px;
+        background: var(--mat-sys-surface-container-low);
+        border: 1px solid var(--mat-sys-outline-variant);
+        transition: all 0.2s ease;
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 !important;
+
+        &:hover {
+          background: var(--mat-sys-surface-container);
+          border-color: var(--mat-sys-outline);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        &.mdc-text-field--focused {
+          background: var(--mat-sys-surface-container);
+          border-color: var(--mat-sys-primary);
+          box-shadow: 0 0 0 1px var(--mat-sys-primary);
+        }
+
+        .mat-mdc-form-field-input-control {
+          height: 44px !important;
+          padding: 0 14px !important;
+          font-size: 14px;
+          line-height: 44px !important; // Center text vertically
+          color: var(--mat-sys-on-surface);
+          background: transparent;
+          border: none;
+          margin: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+
+          &::placeholder {
+            color: var(--mat-sys-on-surface-variant);
+            opacity: 0.75;
+            font-size: 14px;
+            line-height: 1 !important;
+          }
+
+          &:focus {
+            outline: none;
+          }
+        }
+
+        .mat-mdc-form-field-icon-suffix {
+          padding-right: 12px;
+          display: flex;
+          align-items: center;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            color: var(--mat-sys-on-surface-variant);
+            opacity: 0.7;
+          }
+        }
+
+        // Remove default outline
+        .mdc-notched-outline {
+          display: none;
+        }
+      }
+
+      .mat-mdc-floating-label {
+        font-size: 14px;
+        color: var(--mat-sys-on-surface-variant);
+        line-height: 1;
+        font-weight: 400;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        left: 14px !important;
+
+        &.mdc-floating-label--float-above {
+          font-size: 12px;
+          color: var(--mat-sys-primary);
+          transform: translateY(-36px) scale(0.85) !important;
+          font-weight: 500;
+          top: 0 !important;
+        }
+      }
+    }
+  }
+
+  // Empty States
+  &__empty-state {
+    @include mixins.flex-center;
+    flex-direction: column;
+    text-align: center;
+    padding: vars.$spacing-xxlarge;
+    color: var(--mat-sys-on-surface-variant);
+
+    h3 {
+      font: var(--mat-sys-headline-small);
+      color: var(--mat-sys-on-surface);
+      margin: vars.$spacing-medium 0 vars.$spacing-small 0;
+    }
+
+    p {
+      font: var(--mat-sys-body-medium);
+      margin: 0 0 vars.$spacing-large 0;
+      line-height: 1.5;
+    }
+  }
+
+  &__empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.5;
+
+    @include mixins.breakpoint(mobile) {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  &__empty-action {
+    @include mixins.breakpoint(mobile) {
+      width: 100%;
+    }
+  }
+
+  // Loading and Error States
+  &__loading-container {
+    @include mixins.flex-center;
+    min-height: 200px;
+  }
+
+  &__error-message {
+    @include mixins.flex-center;
+    flex-direction: column;
+    gap: vars.$spacing-medium;
+    padding: vars.$spacing-large;
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+    border-radius: vars.$nom-border-radius;
+    text-align: center;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    p {
+      font: var(--mat-sys-body-medium);
+      margin: 0;
+    }
+  }
+
+  // Custom styles for meal plan specific elements
+  .nom-dashboard {
+    &__view-toggle {
+      margin-right: 1rem;
+
+      ::ng-deep .mat-button-toggle-group {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--mat-sys-outline-variant);
+      }
+    }
+
+    &__title-section {
+      display: flex;
+      align-items: center;
       gap: 1rem;
+      flex: 1;
+    }
+
+    &__title-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+      color: white;
+
+      @media (max-width: 768px) {
+        font-size: 2.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+    }
+
+    &__title-info {
+      flex: 1;
+    }
+
+    &__title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      color: white;
+      line-height: 1.2;
+
+      @media (max-width: 768px) {
+        font-size: 2rem;
+      }
+    }
+
+    &__subtitle {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    &__header-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+      gap: 12px;
+    }
+
+    &__create-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    &__rules-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &__refresh-button {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &__view-controls {
+      margin-bottom: 2rem;
     }
 
     &__view-toggle {
-      margin-right: 0;
+      margin-bottom: 24px;
+    }
+
+    &__toggle-group {
+      border-radius: 8px;
+    }
+
+    &__view-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      &--active {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+    }
+
+    &__search-section {
+      margin-bottom: 24px;
+    }
+
+    &__search-field {
+      width: 100%;
+      max-width: 400px;
+
+      .mat-mdc-form-field-flex {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    &__loading,
+    &__error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      text-align: center;
+      color: white;
+
+      p {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+      }
+    }
+
+    &__error-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    &__error-content {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    &__error-icon {
+      font-size: 4rem;
+      width: 4rem;
+      height: 4rem;
+      color: #f44336;
       margin-bottom: 1rem;
     }
 
-    &__action-buttons {
+    &__content {
+      display: flex;
       flex-direction: column;
-      width: 100%;
+      gap: 24px;
+    }
+
+    // Week View
+    &__week-view {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    &__week-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    &__week-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--mdc-filled-text-field-label-text-color);
+    }
+
+    &__week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 16px;
+    }
+
+    &__day-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    &__day-header {
+      text-align: center;
+      padding: 12px;
+      background-color: var(--mdc-filled-text-field-container-color);
+      border-radius: 8px;
+    }
+
+    &__day-title {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--mdc-filled-text-field-label-text-color);
+    }
+
+    &__day-date {
+      margin: 0;
+      font-size: 12px;
+      color: var(--mdc-filled-text-field-supporting-text-color);
+    }
+
+    &__today-chip {
+      margin-top: 8px;
+      font-size: 10px;
+    }
+
+    &__day-plans {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 120px;
+    }
+
+    &__plan-item {
+      background-color: var(--mdc-filled-text-field-container-color);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    &__plan-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    &__plan-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+    }
+
+    &__plan-info {
+      flex: 1;
+    }
+
+    &__plan-title {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--mdc-filled-text-field-label-text-color);
+    }
+
+    &__plan-description {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--mdc-filled-text-field-supporting-text-color);
+    }
+
+    &__plan-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    // Month View
+    &__month-view {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    &__month-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    &__month-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--mdc-filled-text-field-label-text-color);
+    }
+
+    &__month-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    &__plan-card {
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      border-radius: 12px;
+      overflow: hidden;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    &__plan-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 16px 0 16px;
+    }
+
+    &__plan-card-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      margin-top: 4px;
+    }
+
+    &__plan-card-info {
+      flex: 1;
+    }
+
+    &__plan-card-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--mdc-filled-text-field-label-text-color);
+    }
+
+    &__plan-card-subtitle {
+      margin: 4px 0 0 0;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--mdc-filled-text-field-supporting-text-color);
+    }
+
+    &__plan-card-content {
+      padding: 0 16px;
+    }
+
+    &__plan-card-description {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--mdc-filled-text-field-supporting-text-color);
+    }
+
+    &__plan-card-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px 16px 16px;
     }
   }
-}
+
+  // Material overrides
+  ::ng-deep {
+    .mat-mdc-card {
+      .mat-mdc-card-header {
+        padding: 0;
+      }
+
+      .mat-mdc-card-content {
+        padding: 0;
+      }
+
+      .mat-mdc-card-actions {
+        padding: 0;
+      }
+    }
+
+    .mat-mdc-menu-panel {
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    .meal-plan-dashboard {
+      &__container {
+        padding: 0 12px;
+      }
+
+      &__header-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      &__search-field {
+        max-width: 100%;
+      }
+
+      &__week-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      &__month-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+  }
