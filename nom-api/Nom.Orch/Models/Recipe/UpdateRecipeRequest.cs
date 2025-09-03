@@ -7,7 +7,6 @@ namespace Nom.Orch.Models.Recipe
 {
     public class UpdateRecipeRequest
     {
-        [Required]
         public long Id { get; set; }
 
         [Required]

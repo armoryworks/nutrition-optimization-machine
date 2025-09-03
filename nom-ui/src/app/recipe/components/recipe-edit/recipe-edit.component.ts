@@ -4,6 +4,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Location } from '@angular/common';
 import { RecipeService } from '../../services/recipe.service';
 import { Observable, of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, startWith, finalize, takeUntil, take } from 'rxjs/operators';
@@ -57,6 +58,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private route = inject(ActivatedRoute);
     router = inject(Router);
+    private location = inject(Location);
     private recipeService = inject(RecipeService);
     private notificationService = inject(NotificationService);
     private dialog = inject(MatDialog);
@@ -94,6 +96,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
     private destroy$ = new Subject<void>();
 
+    // Back navigation properties
+    private referringPage = '/recipes';
+    private referringPageTitle = 'Recipes';
+
     constructor() {
         this.recipeForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.maxLength(511)]],
@@ -114,6 +120,9 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        // Capture referring page information immediately at the start
+        this.captureReferringPage();
+
         this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
             const id = params['id'];
             if (id) {
@@ -211,12 +220,12 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
 
         // Load ingredients
         if (recipe.ingredients && recipe.ingredients.length > 0) {
-            recipe.ingredients.forEach((ingredient: IngredientModel) => {
+            recipe.ingredients.forEach((ingredient: any) => {
                 const ingredientGroup = this.nonNullableFb.group({
-                    IngredientId: [ingredient.id],
+                    IngredientId: [ingredient.IngredientId || ingredient.id],
                     name: [ingredient.name],
-                    quantity: [1, [Validators.required, Validators.min(0.01)]], // Default quantity
-                    measurementId: [1, [Validators.required]] // Default measurement
+                    quantity: [ingredient.quantity || 1, [Validators.required, Validators.min(0.01)]],
+                    measurementId: [ingredient.measurementId || 1, [Validators.required]]
                 });
                 this.ingredients.push(ingredientGroup);
             });
@@ -270,12 +279,16 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             id: this.recipeId || 0,
             name: formValue.name,
             description: formValue.description || 'No description provided',
-            ingredients: formValue.ingredients.map((ingredient: RecipeIngredientModel, index: number) => ({
-                ...ingredient,
+            ingredients: formValue.ingredients.map((ingredient: any, index: number) => ({
+                IngredientId: Number(ingredient.IngredientId),
+                quantity: Number(ingredient.quantity),
+                measurementId: Number(ingredient.measurementId),
+                name: ingredient.name,
                 stepNumber: index + 1
             })),
-            steps: formValue.steps.map((step: RecipeStepModel, index: number) => ({
-                ...step,
+            steps: formValue.steps.map((step: any, index: number) => ({
+                description: step.description,
+                order: index + 1,
                 stepNumber: index + 1
             }))
         };
@@ -312,7 +325,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onCancel(): void {
-        this.router.navigate(['/recipes']);
+        this.navigateBack();
     }
 
     submitForCuration(): void {
@@ -349,7 +362,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onBack(): void {
-        this.router.navigate(['/recipes']);
+        this.navigateBack();
     }
 
     onRefresh(): void {
@@ -383,5 +396,64 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 this.error = 'Failed to load recipe. Please try again.';
             }
         });
+    }
+
+    private captureReferringPage(): void {
+        // Try to get referring page from query parameters first
+        const returnTo = this.route.snapshot.queryParams['returnTo'];
+        const returnToTitle = this.route.snapshot.queryParams['returnToTitle'];
+
+        console.log('CaptureReferringPage - Query params:', { returnTo, returnToTitle });
+        console.log('CaptureReferringPage - Before update - referringPageTitle:', this.referringPageTitle);
+
+        if (returnTo) {
+            this.referringPage = returnTo;
+            this.referringPageTitle = returnToTitle || 'Previous Page';
+            console.log('CaptureReferringPage - Using query params:', { returnTo, returnToTitle });
+        } else {
+            // Fallback: try to get from browser history or default to recipes
+            const referrer = document.referrer;
+            console.log('CaptureReferringPage - No query params, checking referrer:', referrer);
+            if (referrer && referrer.includes(window.location.origin)) {
+                // Extract path from referrer URL
+                const url = new URL(referrer);
+                console.log('CaptureReferringPage - Referrer URL:', url.pathname);
+                if (url.pathname !== window.location.pathname) {
+                    this.referringPage = url.pathname;
+                    this.referringPageTitle = this.getPageTitleFromPath(url.pathname);
+                    console.log('CaptureReferringPage - Using referrer:', { referringPage: this.referringPage, referringPageTitle: this.referringPageTitle });
+                }
+            }
+        }
+
+        console.log('Final referring page:', this.referringPage, 'Title:', this.referringPageTitle);
+    }
+
+    private getPageTitleFromPath(path: string): string {
+        // Map common paths to readable titles
+        const pathTitles: Record<string, string> = {
+            '/user/dashboard': 'Dashboard',
+            '/recipes': 'Recipes',
+            '/recipes/ingredients': 'Ingredients',
+            '/user/recipe-author-dashboard': 'Recipe Author Dashboard',
+            '/': 'Home'
+        };
+
+        return pathTitles[path] || 'Previous Page';
+    }
+
+    private navigateBack(): void {
+        console.log('navigateBack called - referringPage:', this.referringPage);
+        console.log('navigateBack called - current pathname:', window.location.pathname);
+
+        // Try to navigate back to referring page, fallback to browser back
+        if (this.referringPage && this.referringPage !== window.location.pathname) {
+            console.log('navigateBack - navigating to:', this.referringPage);
+            this.router.navigate([this.referringPage]);
+        } else {
+            console.log('navigateBack - using browser back navigation');
+            // Fallback to browser back navigation
+            this.location.back();
+        }
     }
 }

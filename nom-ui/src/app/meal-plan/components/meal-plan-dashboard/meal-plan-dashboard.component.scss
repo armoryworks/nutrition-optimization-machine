@@ -1,492 +1,196 @@
-// Component styles following Material Design principles and theme system
+// Meal Plan Dashboard Component Styles
+// Uses nom-dashboard classes for consistency with user dashboard
 
-.meal-plan-dashboard {
-  min-height: 100vh;
-  background-color: var(--mat-sys-background);
-  color: var(--mat-sys-on-background);
-  padding: 2rem 1rem;
-  animation: fadeIn 0.3s ease-out;
-
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
-  }
-
-  &__container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
-    animation: slideUp 0.4s ease-out 0.1s both;
-  }
-
-  &__header {
-    margin-bottom: 2rem;
-    animation: fadeInUp 0.4s ease-out 0.2s both;
-  }
-
-  &__header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1rem;
+// Custom styles for meal plan specific elements
+.nom-dashboard {
+  &__view-toggle {
+    margin-right: 1rem;
+    
+    ::ng-deep .mat-button-toggle-group {
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--mat-sys-outline-variant);
     }
   }
 
-  &__title-section {
+  &__action-buttons {
     display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  &__week-view {
+    margin-top: 1rem;
+  }
+
+  &__week-header {
+    display: flex;
+    justify-content: center;
     align-items: center;
     gap: 1rem;
-    flex: 1;
-  }
-
-  &__title-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
-    color: var(--mat-sys-primary);
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: scale(1.1);
-    }
-
-    @media (max-width: 768px) {
-      font-size: 2.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-  }
-
-  &__title-info {
-    flex: 1;
-  }
-
-  &__title {
-    font: var(--mat-sys-headline-large);
-    color: var(--mat-sys-on-background);
-    margin: 0 0 0.5rem;
-    line-height: 1.2;
-    font-weight: 700;
-
-    @media (max-width: 768px) {
-      font: var(--mat-sys-headline-medium);
-    }
-  }
-
-  &__subtitle {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  &__header-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
-    animation: fadeInUp 0.4s ease-out 0.3s both;
-  }
-
-  &__create-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0.025em;
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-    border: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(var(--mat-sys-primary), 0.3);
-
-    &:hover {
-      background-color: var(--mat-sys-primary);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
-    }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &__rules-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0.025em;
-    background-color: var(--mat-sys-surface-container-high);
-    color: var(--mat-sys-on-surface-variant);
-    border: 2px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
-      color: var(--mat-sys-on-surface);
-      transform: translateY(-1px);
-    }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &__refresh-button {
-    color: var(--mat-sys-on-surface-variant);
-    background-color: var(--mat-sys-surface-container-high);
-    border: 2px solid var(--mat-sys-outline-variant);
-    border-radius: 12px;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
-      color: var(--mat-sys-on-surface);
-      transform: translateY(-1px);
-    }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: rotate(180deg);
-    }
-  }
-
-  &__content {
-    animation: fadeInUp 0.4s ease-out 0.4s both;
-  }
-
-  &__stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
     margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
   }
 
-  &__stat-card {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    &:hover {
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-      transform: translateY(-2px);
-    }
-  }
-
-  &__stat-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  &__stat-icon {
-    font-size: 1.5rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    color: var(--mat-sys-primary);
-  }
-
-  &__stat-title {
-    font: var(--mat-sys-title-medium);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-  }
-
-  &__stat-value {
-    font: var(--mat-sys-headline-large);
-    color: var(--mat-sys-on-surface);
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__stat-description {
-    font: var(--mat-sys-body-medium);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0.5rem 0 0;
-  }
-
-  &__plans-section {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
-    margin-bottom: 2rem;
-  }
-
-  &__section-title {
+  &__week-title {
     font: var(--mat-sys-headline-medium);
     color: var(--mat-sys-on-surface);
-    margin: 0 0 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    margin: 0;
+    font-weight: 600;
   }
 
-  &__section-icon {
-    color: var(--mat-sys-primary);
-  }
-
-  &__plans-grid {
+  &__week-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
   }
 
-  &__plan-card {
-    background-color: var(--mat-sys-surface-container-low);
+  &__day-column {
+    background-color: var(--mat-sys-surface-container);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     border: 1px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
-    cursor: pointer;
+    min-height: 200px;
+  }
+
+  &__day-header {
+    text-align: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  &__day-title {
+    font: var(--mat-sys-title-medium);
+    color: var(--mat-sys-on-surface);
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+  }
+
+  &__day-date {
+    font: var(--mat-sys-body-small);
+    color: var(--mat-sys-on-surface-variant);
+    margin: 0;
+  }
+
+  &__today-chip {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  &__day-plans {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__plan-item {
+    background-color: var(--mat-sys-surface-container-low);
+    border-radius: 8px;
+    padding: 0.75rem;
+    border: 1px solid var(--mat-sys-outline-variant);
+    transition: all 0.2s ease;
 
     &:hover {
       background-color: var(--mat-sys-surface-container);
       border-color: var(--mat-sys-outline);
-      transform: translateY(-1px);
     }
   }
 
   &__plan-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  &__plan-name {
-    font: var(--mat-sys-title-medium);
-    color: var(--mat-sys-on-surface);
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__plan-status {
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font: var(--mat-sys-label-small);
-    font-weight: 600;
-  }
-
-  &__plan-description {
-    font: var(--mat-sys-body-medium);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  &__plan-meta {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__meta-item {
-    display: flex;
     align-items: center;
     gap: 0.5rem;
-    font: var(--mat-sys-body-small);
-    color: var(--mat-sys-on-surface-variant);
+    margin-bottom: 0.5rem;
   }
 
-  &__meta-icon {
+  &__plan-icon {
     font-size: 1rem;
     width: 1rem;
     height: 1rem;
-    color: var(--mat-sys-outline-variant);
   }
 
-  &__empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
+  &__plan-info {
+    flex: 1;
+  }
+
+  &__plan-title {
+    font: var(--mat-sys-body-medium);
+    color: var(--mat-sys-on-surface);
+    margin: 0;
+    font-weight: 500;
+  }
+
+  &__plan-description {
+    font: var(--mat-sys-body-small);
     color: var(--mat-sys-on-surface-variant);
+    margin: 0.25rem 0 0;
+    line-height: 1.4;
   }
 
-  &__empty-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    color: var(--mat-sys-outline-variant);
-    margin-bottom: 1rem;
+  &__plan-actions {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
   }
 
-  &__empty-title {
+  &__month-view {
+    margin-top: 1rem;
+  }
+
+  &__month-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  &__month-title {
     font: var(--mat-sys-headline-medium);
     color: var(--mat-sys-on-surface);
-    margin: 0 0 0.5rem;
+    margin: 0;
+    font-weight: 600;
   }
 
-  &__empty-description {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0 0 1.5rem;
-    line-height: 1.5;
-  }
-
-  &__search-section {
-    margin-bottom: 2rem;
-  }
-
-  &__search-field {
-    width: 100%;
-    max-width: 400px;
-
-    ::ng-deep .mat-mdc-form-field {
-      .mat-mdc-form-field-flex {
-        background-color: var(--mat-sys-surface-container-low);
-        border-radius: 12px;
-        border: 2px solid var(--mat-sys-outline-variant);
-        transition: all 0.3s ease;
-
-        &:hover {
-          border-color: var(--mat-sys-outline);
-          background-color: var(--mat-sys-surface-container);
-        }
-
-        &.mat-focused {
-          border-color: var(--mat-sys-primary);
-          background-color: var(--mat-sys-surface-container);
-          box-shadow: 0 0 0 4px rgba(var(--mat-sys-primary), 0.12);
-        }
-      }
-    }
-  }
-
-  &__loading,
-  &__error {
+  &__empty-actions {
     display: flex;
-    flex-direction: column;
+    gap: 1rem;
     align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    text-align: center;
-    color: var(--mat-sys-on-surface-variant);
-    animation: fadeInUp 0.4s ease-out 0.5s both;
-  }
+    margin-top: 1rem;
 
-  &__error-card {
-    background-color: var(--mat-sys-error-container);
-    color: var(--mat-sys-on-error-container);
-    border-radius: 16px;
-    max-width: 500px;
-    width: 100%;
-    border: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__error-content {
-    text-align: center;
-    padding: 2rem;
-  }
-
-  &__error-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    color: var(--mat-sys-error);
-    margin-bottom: 1rem;
-  }
-}
-
-// Animations
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+    @media (max-width: 480px) {
+      flex-direction: column;
+      width: 100%;
+    }
   }
 }
 
 // Responsive adjustments
 @media (max-width: 768px) {
-  .meal-plan-dashboard {
-    &__container {
-      padding: 0 8px;
+  .nom-dashboard {
+    &__filters {
+      flex-direction: column;
+      gap: 1rem;
     }
 
-    &__stats-grid {
-      grid-template-columns: 1fr;
+    &__view-toggle {
+      margin-right: 0;
+      margin-bottom: 1rem;
     }
 
-    &__plans-grid {
-      grid-template-columns: 1fr;
-    }
-
-    &__plans-section {
-      padding: 1.5rem 1rem;
-    }
-
-    &__search-field {
-      max-width: 100%;
+    &__action-buttons {
+      flex-direction: column;
+      width: 100%;
     }
   }
 }
-
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .meal-plan-dashboard {
-    &__stat-card,
-    &__plans-section,
-    &__plan-card {
-      border: 2px solid var(--mat-sys-outline);
-    }
-  }
-} 

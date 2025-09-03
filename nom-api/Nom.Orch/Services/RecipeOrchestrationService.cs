@@ -242,6 +242,11 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
+                .Include(r => r.RecipeIngredients)
+                    .ThenInclude(ri => ri.Ingredient)
+                .Include(r => r.RecipeIngredients)
+                    .ThenInclude(ri => ri.Measurement)
+                .Include(r => r.RecipeSteps)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
@@ -258,7 +263,19 @@ namespace Nom.Orch.Services
                 CommentCount = recipe.Comments?.Count ?? 0,
                 RatingCount = recipe.Ratings?.Count ?? 0,
                 CreatedDate = recipe.CreatedDate,
-                ModifiedDate = recipe.LastModifiedDate
+                ModifiedDate = recipe.LastModifiedDate,
+                Ingredients = recipe.RecipeIngredients?.Select(ri => new RecipeIngredientModel
+                {
+                    IngredientId = ri.IngredientId,
+                    Quantity = ri.Quantity,
+                    MeasurementId = ri.MeasurementId,
+                    Name = ri.Ingredient?.Name ?? string.Empty
+                }).ToList() ?? new List<RecipeIngredientModel>(),
+                Steps = recipe.RecipeSteps?.Select(rs => new RecipeStepModel
+                {
+                    Description = rs.Description ?? string.Empty,
+                    Order = rs.StepNumber
+                }).OrderBy(s => s.Order).ToList() ?? new List<RecipeStepModel>()
             };
         }
 
@@ -284,12 +301,15 @@ namespace Nom.Orch.Services
                 .ToListAsync();
             _context.RecipeSteps.RemoveRange(existingSteps);
 
-            // Save changes to remove existing data
-            await _context.SaveChangesAsync();
-
-            // Add new ingredients
+            // Add new ingredients (skip invalid ones)
             foreach (var ingredient in model.Ingredients)
             {
+                // Skip ingredients with invalid IDs
+                if (ingredient.IngredientId <= 0 || ingredient.MeasurementId <= 0)
+                {
+                    continue;
+                }
+
                 var recipeIngredient = new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,

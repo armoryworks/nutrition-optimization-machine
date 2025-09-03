@@ -10,8 +10,8 @@
     [config]="formConfig"
     [form]="recipeForm"
     [isSubmitting]="isSubmitting"
-    (submit)="onSubmit()"
-    (cancel)="onCancel()">
+    (formSubmit)="onSubmit()"
+    (formCancel)="onCancel()">
 
     <div [formGroup]="recipeForm">
       <div class="nom-recipe-edit__section">
@@ -110,12 +110,14 @@
       }
     </div>
 
+    @if (isEditMode) {
     <div class="nom-recipe-edit__additional-actions">
       <button mat-stroked-button type="button" (click)="submitForCuration()" [disabled]="isSubmitting">
         <mat-icon>send</mat-icon>
         Submit for Curation
       </button>
     </div>
+    }
 
     </div>
   </nom-base-form>

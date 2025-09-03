@@ -15,5 +15,7 @@ namespace Nom.Orch.Models.Recipe
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string? CurationStatus { get; set; }
+        public List<RecipeIngredientModel> Ingredients { get; set; } = new();
+        public List<RecipeStepModel> Steps { get; set; } = new();
     }
 } 

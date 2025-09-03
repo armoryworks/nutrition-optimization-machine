@@ -21,7 +21,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+
 
 @Component({
     selector: 'nom-meal-plan-dashboard',
@@ -42,7 +42,7 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
         MatSelectModule,
         MatButtonToggleModule,
         ReactiveFormsModule,
-        BasePageComponent,
+
     ],
     templateUrl: './meal-plan-dashboard.component.html',
     styleUrls: ['./meal-plan-dashboard.component.scss']
@@ -61,13 +61,7 @@ export class MealPlanDashboardComponent implements OnInit {
     viewMode: 'week' | 'month' = 'week';
     selectedDate = new Date();
 
-    pageConfig: BasePageConfig = {
-        title: 'Meal Plans',
-        subtitle: 'Plan and organize your meals for the week or month',
-        showRefreshButton: true,
-        refreshButtonText: 'Refresh',
-        maxWidth: '1200px',
-    };
+
 
 
 
@@ -244,5 +238,20 @@ export class MealPlanDashboardComponent implements OnInit {
 
     isSelectedDate(date: Date): boolean {
         return date.toDateString() === this.selectedDate.toDateString();
+    }
+
+    getTotalMeals(): number {
+        return this.filteredPlans.length;
+    }
+
+    getUpcomingMeals(): number {
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        return this.filteredPlans.filter(plan => {
+            const planDate = plan.date instanceof Date ? plan.date : new Date(plan.date);
+            return planDate >= today && planDate <= nextWeek;
+        }).length;
     }
 } 
