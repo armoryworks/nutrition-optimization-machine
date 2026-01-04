@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideRouter } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { HomeComponent } from './home.component';
@@ -12,9 +12,9 @@ describe('HomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         HomeComponent,
-        RouterTestingModule,
         NoopAnimationsModule
-      ]
+      ],
+      providers: [provideRouter([])]
     })
       .compileComponents();
 

@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideRouter } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 
 import { RegistrationComponent } from './registration.component';
 import { AuthService } from '../auth.service';
@@ -16,26 +17,34 @@ import { LoginResponse } from '../models/login-response';
 describe('RegistrationComponent', () => {
     let component: RegistrationComponent;
     let fixture: ComponentFixture<RegistrationComponent>;
-    let authService: jasmine.SpyObj<AuthService>;
-    let authManagerService: jasmine.SpyObj<AuthManagerService>;
-    let notificationService: jasmine.SpyObj<NotificationService>;
+    let authService: any;
+    let authManagerService: any;
+    let notificationService: any;
 
     beforeEach(async () => {
-        const authServiceSpy = jasmine.createSpyObj('AuthService', ['register', 'login']);
-        const authManagerServiceSpy = jasmine.createSpyObj('AuthManagerService', ['login'], {
+        const authServiceSpy = {
+            register: vi.fn(),
+            login: vi.fn()
+        };
+        const authManagerServiceSpy = {
+            login: vi.fn(),
             rememberMe: true
-        });
-        const notificationServiceSpy = jasmine.createSpyObj('NotificationService', ['success', 'error', 'warning']);
+        };
+        const notificationServiceSpy = {
+            success: vi.fn(),
+            error: vi.fn(),
+            warning: vi.fn()
+        };
 
         await TestBed.configureTestingModule({
             imports: [
                 RegistrationComponent,
                 ReactiveFormsModule,
                 HttpClientTestingModule,
-                RouterTestingModule,
                 NoopAnimationsModule
             ],
             providers: [
+                provideRouter([]),
                 { provide: AuthService, useValue: authServiceSpy },
                 { provide: AuthManagerService, useValue: authManagerServiceSpy },
                 { provide: NotificationService, useValue: notificationServiceSpy }
@@ -44,9 +53,9 @@ describe('RegistrationComponent', () => {
 
         fixture = TestBed.createComponent(RegistrationComponent);
         component = fixture.componentInstance;
-        authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-        authManagerService = TestBed.inject(AuthManagerService) as jasmine.SpyObj<AuthManagerService>;
-        notificationService = TestBed.inject(NotificationService) as jasmine.SpyObj<NotificationService>;
+        authService = TestBed.inject(AuthService);
+        authManagerService = TestBed.inject(AuthManagerService);
+        notificationService = TestBed.inject(NotificationService);
 
         fixture.detectChanges();
     });
@@ -80,10 +89,10 @@ describe('RegistrationComponent', () => {
         };
 
         // Mock successful registration
-        authService.register.and.returnValue(of(void 0));
+        authService.register.mockReturnValue(of(void 0));
 
         // Mock successful login
-        authManagerService.login.and.returnValue(of(loginResponse));
+        authManagerService.login.mockReturnValue(of(loginResponse));
 
         // Set form values
         component.registrationForm.patchValue(registerUser);
@@ -108,7 +117,7 @@ describe('RegistrationComponent', () => {
         };
 
         const errorMessage = 'Registration failed';
-        authService.register.and.returnValue(throwError(() => new Error(errorMessage)));
+        authService.register.mockReturnValue(throwError(() => new Error(errorMessage)));
 
         // Set form values
         component.registrationForm.patchValue(registerUser);
@@ -142,10 +151,10 @@ describe('RegistrationComponent', () => {
         const errorMessage = 'Login failed';
 
         // Mock successful registration
-        authService.register.and.returnValue(of(void 0));
+        authService.register.mockReturnValue(of(void 0));
 
         // Mock failed login
-        authManagerService.login.and.returnValue(throwError(() => new Error(errorMessage)));
+        authManagerService.login.mockReturnValue(throwError(() => new Error(errorMessage)));
 
         // Set form values
         component.registrationForm.patchValue(registerUser);
