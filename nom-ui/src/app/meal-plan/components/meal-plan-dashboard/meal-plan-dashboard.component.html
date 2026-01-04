@@ -34,191 +34,120 @@
                 <!-- Meal Plans Section -->
                 <div class="nom-dashboard__section">
                     <div class="nom-dashboard__section-header-compact">
-                        <!-- Meal Plan Filters moved to header -->
+                        <!-- View Toggle and Search -->
                         <div class="nom-dashboard__filters">
-                            <!-- View Mode Toggle -->
-                            <mat-button-toggle-group [value]="viewMode" (change)="onViewModeChange($event.value)" class="nom-dashboard__view-toggle">
-                                <mat-button-toggle value="week">Week View</mat-button-toggle>
-                                <mat-button-toggle value="month">Month View</mat-button-toggle>
+                            <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()" class="nom-dashboard__view-toggle">
+                                <mat-button-toggle value="week">
+                                    <mat-icon>view_week</mat-icon>
+                                    <span>Week View</span>
+                                </mat-button-toggle>
+                                <mat-button-toggle value="month">
+                                    <mat-icon>view_module</mat-icon>
+                                    <span>Month View</span>
+                                </mat-button-toggle>
                             </mat-button-toggle-group>
                             
                             <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
                                 <mat-label>Search Meal Plans...</mat-label>
-                                <input matInput [formControl]="searchControl" placeholder="Search by recipe name or description...">
+                                <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search Meal Plans...">
                                 <mat-icon matSuffix>search</mat-icon>
                             </mat-form-field>
                         </div>
-                        <button mat-stroked-button (click)="onCreatePlan()" class="nom-dashboard__action-button">
+                        
+                        <button mat-stroked-button (click)="createMealPlan()" class="nom-dashboard__action-button">
                             <mat-icon>add</mat-icon>
                             <span>Create Plan</span>
                         </button>
                     </div>
 
-                    @if (!isLoading && !error && filteredPlans.length === 0) {
-                        <div class="nom-dashboard__empty-state">
-                            <mat-icon class="nom-dashboard__empty-icon">schedule</mat-icon>
-                            <h3>
-                                @if (searchControl.value) {
-                                    No meal plans found
-                                } @else {
-                                    No meal plans yet
-                                }
-                            </h3>
-                            <p>
-                                @if (searchControl.value) {
-                                    No meal plans match your search criteria. Try adjusting your search terms.
-                                } @else {
-                                    Plan and organize your meals for the week or month. Create your first meal plan to get started.
-                                }
-                            </p>
-                            @if (searchControl.value) {
-                                <button mat-button (click)="searchControl.setValue('')" class="nom-dashboard__empty-action">
-                                    <mat-icon>clear</mat-icon>
-                                    Clear Search
-                                </button>
-                            }
-                        </div>
-                    }
-
-                    <!-- Week View -->
-                    @if (!isLoading && !error && viewMode === 'week' && filteredPlans.length > 0) {
-                        <div class="nom-dashboard__week-view">
-                            <div class="nom-dashboard__week-header">
-                                <button mat-icon-button (click)="onDateChange(getPreviousWeekDate())">
-                                    <mat-icon>chevron_left</mat-icon>
-                                </button>
-                                <h2 class="nom-dashboard__week-title">
-                                    {{ selectedDate | date:'MMMM yyyy' }}
-                                </h2>
-                                <button mat-icon-button (click)="onDateChange(getNextWeekDate())">
-                                    <mat-icon>chevron_right</mat-icon>
-                                </button>
-                            </div>
-
-                            <div class="nom-dashboard__week-grid">
-                                @for (day of getWeekDays(); track day) {
-                                    <div class="nom-dashboard__day-column">
-                                        <div class="nom-dashboard__day-header">
-                                            <h3 class="nom-dashboard__day-title">
-                                                {{ day | date:'EEE' }}
-                                            </h3>
-                                            <p class="nom-dashboard__day-date">
-                                                {{ day | date:'MMM d' }}
-                                            </p>
-                                            @if (isToday(day)) {
-                                                <mat-chip color="primary" class="nom-dashboard__today-chip">
-                                                    Today
-                                                </mat-chip>
-                                            }
-                                        </div>
-
-                                        <div class="nom-dashboard__day-plans">
-                                            @for (plan of getPlansForDate(day); track plan.id) {
-                                                <div class="nom-dashboard__plan-item">
-                                                    <div class="nom-dashboard__plan-header">
-                                                        <mat-icon 
-                                                            class="nom-dashboard__plan-icon"
-                                                            [color]="getMealTypeColor(plan.mealType)"
-                                                        >
-                                                            {{ getMealTypeIcon(plan.mealType) }}
-                                                        </mat-icon>
-                                                        <div class="nom-dashboard__plan-info">
-                                                            <h4 class="nom-dashboard__plan-title">
-                                                                {{ plan.recipeName || plan.mealType }}
-                                                            </h4>
-                                                            @if (plan.description) {
-                                                                <p class="nom-dashboard__plan-description">
-                                                                    {{ plan.description }}
-                                                                </p>
-                                                            }
+                    @if (filteredPlans.length > 0) {
+                        @if (viewMode === 'week') {
+                            <!-- Week View -->
+                            <div class="nom-dashboard__week-view">
+                                <div class="nom-dashboard__week-header">
+                                    <h2 class="nom-dashboard__week-title">This Week's Meal Plans</h2>
+                                </div>
+                                <div class="nom-dashboard__week-grid">
+                                    @for (day of getWeekDays(); track day.date) {
+                                        <div class="nom-dashboard__day-column">
+                                            <div class="nom-dashboard__day-header">
+                                                <h3 class="nom-dashboard__day-title">{{ day.name }}</h3>
+                                                <p class="nom-dashboard__day-date">{{ day.date | date:'MMM d' }}</p>
+                                                @if (isToday(day.date)) {
+                                                    <mat-chip class="nom-dashboard__today-chip">Today</mat-chip>
+                                                }
+                                            </div>
+                                            <div class="nom-dashboard__day-plans">
+                                                @for (plan of getPlansForDay(day.date); track plan.id) {
+                                                    <div class="nom-dashboard__plan-item">
+                                                        <div class="nom-dashboard__plan-header">
+                                                            <mat-icon class="nom-dashboard__plan-icon">restaurant</mat-icon>
+                                                            <div class="nom-dashboard__plan-info">
+                                                                <h4 class="nom-dashboard__plan-title">{{ plan.name }}</h4>
+                                                                <p class="nom-dashboard__plan-description">{{ plan.description }}</p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div class="nom-dashboard__plan-actions">
-                                                        <button mat-icon-button (click)="onViewPlan(plan.id); $event.stopPropagation()">
-                                                            <mat-icon>visibility</mat-icon>
-                                                        </button>
-                                                        <button mat-icon-button (click)="onEditPlan(plan.id); $event.stopPropagation()">
-                                                            <mat-icon>edit</mat-icon>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    <!-- Month View -->
-                    @if (!isLoading && !error && viewMode === 'month' && filteredPlans.length > 0) {
-                        <div class="nom-dashboard__month-view">
-                            <div class="nom-dashboard__month-header">
-                                <button mat-icon-button (click)="onDateChange(getPreviousWeekDate())">
-                                    <mat-icon>chevron_left</mat-icon>
-                                </button>
-                                <h2 class="nom-dashboard__month-title">
-                                    {{ selectedDate | date:'MMMM yyyy' }}
-                                </h2>
-                                <button mat-icon-button (click)="onDateChange(getNextWeekDate())">
-                                    <mat-icon>chevron_right</mat-icon>
-                                </button>
-                            </div>
-
-                            <div class="nom-dashboard__item-grid nom-scroll-container__content nom-scroll-container__content--large">
-                                @for (plan of filteredPlans; track plan.id) {
-                                    <div class="nom-dashboard__item-card">
-                                        <div class="nom-dashboard__item-row">
-                                            <div class="nom-dashboard__item-info">
-                                                <h3 class="nom-dashboard__item-title" 
-                                                    [matTooltip]="plan.recipeName || plan.mealType" 
-                                                    matTooltipPosition="above"
-                                                    [matTooltipDisabled]="(plan.recipeName || plan.mealType).length <= 30">
-                                                    {{ plan.recipeName || plan.mealType }}
-                                                </h3>
-                                                <div class="nom-dashboard__item-status">
-                                                    <mat-icon class="nom-dashboard__plan-icon" [color]="getMealTypeColor(plan.mealType)">
-                                                        {{ getMealTypeIcon(plan.mealType) }}
-                                                    </mat-icon>
-                                                    <span class="nom-dashboard__status-badge">
-                                                        {{ plan.date | date:'MMM d, yyyy' }}
-                                                    </span>
-                                                </div>
-                                                @if (plan.description) {
-                                                    <div class="nom-dashboard__item-version">
-                                                        <span class="nom-dashboard__version-text">{{ plan.description }}</span>
+                                                        <div class="nom-dashboard__plan-actions">
+                                                            <button mat-icon-button (click)="editMealPlan(plan)" title="Edit">
+                                                                <mat-icon>edit</mat-icon>
+                                                            </button>
+                                                            <button mat-icon-button (click)="deleteMealPlan(plan)" title="Delete">
+                                                                <mat-icon>delete</mat-icon>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 }
                                             </div>
-                                            <div class="nom-dashboard__item-actions">
-                                                <button mat-icon-button [matMenuTriggerFor]="planMenu" class="nom-dashboard__action-btn" title="Actions">
-                                                    <mat-icon>more_vert</mat-icon>
-                                                </button>
-                                                <mat-menu #planMenu="matMenu">
-                                                    <button mat-menu-item (click)="onViewPlan(plan.id)">
-                                                        <mat-icon>visibility</mat-icon>
-                                                        <span>View</span>
-                                                    </button>
-                                                    <button mat-menu-item (click)="onEditPlan(plan.id)">
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        } @else {
+                            <!-- Month View -->
+                            <div class="nom-dashboard__month-view">
+                                <div class="nom-dashboard__month-header">
+                                    <h2 class="nom-dashboard__month-title">{{ getCurrentMonth() }}</h2>
+                                </div>
+                                <div class="nom-dashboard__item-grid">
+                                    @for (plan of filteredPlans; track plan.id) {
+                                        <div class="nom-dashboard__item-card">
+                                            <div class="nom-dashboard__item-row">
+                                                <div class="nom-dashboard__item-info">
+                                                    <h3 class="nom-dashboard__item-title">{{ plan.name }}</h3>
+                                                    <div class="nom-dashboard__item-status">
+                                                        <span class="nom-dashboard__status-badge">{{ plan.status }}</span>
+                                                    </div>
+                                                    <div class="nom-dashboard__item-version">
+                                                        <span class="nom-dashboard__version-text">{{ plan.date | date:'MMM d' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="nom-dashboard__item-actions">
+                                                    <button mat-icon-button (click)="editMealPlan(plan)" class="nom-dashboard__action-btn" title="Edit">
                                                         <mat-icon>edit</mat-icon>
-                                                        <span>Edit</span>
                                                     </button>
-                                                    <button mat-menu-item (click)="onDeletePlan(plan.id)">
+                                                    <button mat-icon-button (click)="deleteMealPlan(plan)" class="nom-dashboard__action-btn" title="Delete">
                                                         <mat-icon>delete</mat-icon>
-                                                        <span>Delete</span>
                                                     </button>
-                                                </mat-menu>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                }
+                                    }
+                                </div>
                             </div>
-                        </div>
-                    }
-
-                    @if (isLoading) {
-                        <div class="nom-dashboard__loading-container">
-                            <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                        }
+                    } @else {
+                        <div class="nom-dashboard__empty-state">
+                            <mat-icon class="nom-dashboard__empty-icon">schedule</mat-icon>
+                            <h3>No meal plans yet</h3>
+                            <p>Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
+                            @if (searchTerm) {
+                                <div class="nom-dashboard__empty-actions">
+                                    <button mat-stroked-button (click)="clearSearch()" class="nom-dashboard__empty-action">
+                                        <mat-icon>clear</mat-icon>
+                                        Clear Search
+                                    </button>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
