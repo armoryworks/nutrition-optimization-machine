@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +19,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
     selector: 'nom-curated-plans',
     standalone: true,
     imports: [
+    AsyncPipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
