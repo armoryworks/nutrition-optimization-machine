@@ -63,15 +63,15 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border: 2px dashed var(--mat-outlined-button-outline-color);
+    border: 2px dashed var(--mat-button-outlined-outline-color);
     border-radius: 8px;
-    background: var(--mat-outlined-button-background-color);
-    color: var(--mat-outlined-button-foreground-color);
+    background: var(--mat-button-outlined-background-color);
+    color: var(--mat-button-outlined-foreground-color);
     transition: all 0.2s ease;
 
     &:hover {
-      border-color: var(--mat-outlined-button-outline-color-hover);
-      background: var(--mat-outlined-button-background-color-hover);
+      border-color: var(--mat-button-outlined-outline-color-hover);
+      background: var(--mat-button-outlined-background-color-hover);
     }
   }
 
@@ -227,13 +227,13 @@
 @media (prefers-color-scheme: dark) {
   .recipe-assets {
     &__file-button {
-      border-color: var(--mat-outlined-button-outline-color-dark);
-      background: var(--mat-outlined-button-background-color-dark);
-      color: var(--mat-outlined-button-foreground-color-dark);
+      border-color: var(--mat-button-outlined-outline-color-dark);
+      background: var(--mat-button-outlined-background-color-dark);
+      color: var(--mat-button-outlined-foreground-color-dark);
 
       &:hover {
-        border-color: var(--mat-outlined-button-outline-color-hover-dark);
-        background: var(--mat-outlined-button-background-color-hover-dark);
+        border-color: var(--mat-button-outlined-outline-color-hover-dark);
+        background: var(--mat-button-outlined-background-color-hover-dark);
       }
     }
 
