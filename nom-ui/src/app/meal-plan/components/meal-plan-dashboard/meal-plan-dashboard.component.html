@@ -83,7 +83,7 @@
                                                         <div class="nom-dashboard__plan-header">
                                                             <mat-icon class="nom-dashboard__plan-icon">restaurant</mat-icon>
                                                             <div class="nom-dashboard__plan-info">
-                                                                <h4 class="nom-dashboard__plan-title">{{ plan.name }}</h4>
+                                                                <h4 class="nom-dashboard__plan-title">{{ plan.title || plan.recipeName }}</h4>
                                                                 <p class="nom-dashboard__plan-description">{{ plan.description }}</p>
                                                             </div>
                                                         </div>
@@ -113,9 +113,9 @@
                                         <div class="nom-dashboard__item-card">
                                             <div class="nom-dashboard__item-row">
                                                 <div class="nom-dashboard__item-info">
-                                                    <h3 class="nom-dashboard__item-title">{{ plan.name }}</h3>
+                                                    <h3 class="nom-dashboard__item-title">{{ plan.title || plan.recipeName }}</h3>
                                                     <div class="nom-dashboard__item-status">
-                                                        <span class="nom-dashboard__status-badge">{{ plan.status }}</span>
+                                                        <span class="nom-dashboard__status-badge">{{ plan.mealType }}</span>
                                                     </div>
                                                     <div class="nom-dashboard__item-version">
                                                         <span class="nom-dashboard__version-text">{{ plan.date | date:'MMM d' }}</span>

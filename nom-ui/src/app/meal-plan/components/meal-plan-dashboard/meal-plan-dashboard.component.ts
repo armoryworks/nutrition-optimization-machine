@@ -15,7 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { MealPlanService } from '../../services/meal-plan.service';
@@ -42,7 +42,7 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
         MatSelectModule,
         MatButtonToggleModule,
         ReactiveFormsModule,
-
+        FormsModule,
     ],
     templateUrl: './meal-plan-dashboard.component.html',
     styleUrls: ['./meal-plan-dashboard.component.scss']
@@ -58,6 +58,7 @@ export class MealPlanDashboardComponent implements OnInit {
     isLoading = true;
     error: string | null = null;
     searchControl = new FormControl('');
+    searchTerm = '';
     viewMode: 'week' | 'month' = 'week';
     selectedDate = new Date();
 
@@ -75,8 +76,18 @@ export class MealPlanDashboardComponent implements OnInit {
             debounceTime(300),
             distinctUntilChanged()
         ).subscribe(searchTerm => {
-            this.filterPlans(searchTerm || '');
+            this.searchTerm = searchTerm || '';
+            this.filterPlans(this.searchTerm);
         });
+    }
+
+    onSearch(): void {
+        this.filterPlans(this.searchTerm);
+    }
+
+    clearSearch(): void {
+        this.searchTerm = '';
+        this.filterPlans('');
     }
 
     loadMealPlans(): void {
@@ -104,6 +115,7 @@ export class MealPlanDashboardComponent implements OnInit {
             const term = searchTerm.toLowerCase();
             this.filteredPlans = this.mealPlans.filter(plan =>
                 plan.recipeName?.toLowerCase().includes(term) ||
+                plan.title?.toLowerCase().includes(term) ||
                 plan.description?.toLowerCase().includes(term)
             );
         }
@@ -111,6 +123,10 @@ export class MealPlanDashboardComponent implements OnInit {
 
     onCreatePlan(): void {
         this.router.navigate(['/meal-plan/create']);
+    }
+
+    createMealPlan(): void {
+        this.onCreatePlan();
     }
 
     onViewPlan(planId: number): void {
@@ -169,8 +185,11 @@ export class MealPlanDashboardComponent implements OnInit {
         this.loadMealPlans();
     }
 
-    onViewModeChange(mode: 'week' | 'month'): void {
-        this.viewMode = mode;
+    onViewModeChange(event?: any): void {
+        // viewMode is already bound via ngModel, so just need to handle the event
+        if (event?.value) {
+            this.viewMode = event.value;
+        }
     }
 
     onDateChange(date: Date): void {
@@ -209,18 +228,40 @@ export class MealPlanDashboardComponent implements OnInit {
         }
     }
 
-    getWeekDays(): Date[] {
-        const days: Date[] = [];
+    getWeekDays(): { date: Date; name: string }[] {
+        const days: { date: Date; name: string }[] = [];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const startOfWeek = new Date(this.selectedDate);
         startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
         for (let i = 0; i < 7; i++) {
             const day = new Date(startOfWeek);
             day.setDate(day.getDate() + i);
-            days.push(day);
+            days.push({
+                date: day,
+                name: dayNames[day.getDay()]
+            });
         }
 
         return days;
+    }
+
+    getPlansForDay(date: Date): MealPlanResponseModel[] {
+        return this.getPlansForDate(date);
+    }
+
+    editMealPlan(plan: MealPlanResponseModel): void {
+        this.onEditPlan(plan.id);
+    }
+
+    deleteMealPlan(plan: MealPlanResponseModel): void {
+        this.onDeletePlan(plan.id);
+    }
+
+    getCurrentMonth(): string {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${months[this.selectedDate.getMonth()]} ${this.selectedDate.getFullYear()}`;
     }
 
     getPlansForDate(date: Date): MealPlanResponseModel[] {

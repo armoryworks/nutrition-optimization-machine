@@ -600,6 +600,19 @@
     gap: 8px;
     padding: 12px 16px 16px 16px;
   }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    &__week-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    &__month-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
 }
 
   // Material overrides
@@ -621,18 +634,5 @@
     .mat-mdc-menu-panel {
       border-radius: 8px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  // Responsive Design
-  @media (max-width: 768px) {
-    &__week-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    &__month-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
     }
   }
