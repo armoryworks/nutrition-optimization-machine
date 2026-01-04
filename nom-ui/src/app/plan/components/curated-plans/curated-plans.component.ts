@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,17 +18,16 @@ import { NotificationService } from '../../../utilities/services/notification.se
     selector: 'nom-curated-plans',
     standalone: true,
     imports: [
-        CommonModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
-        MatChipsModule,
-        MatProgressSpinnerModule,
-        MatDialogModule,
-        MatFormFieldModule,
-        MatInputModule,
-        FormsModule
-    ],
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatChipsModule,
+    MatProgressSpinnerModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    FormsModule
+],
     templateUrl: './curated-plans.component.html',
     styleUrls: ['./curated-plans.component.scss']
 })
@@ -133,7 +132,7 @@ export class CuratedPlansComponent implements OnInit {
 @Component({
     selector: 'nom-plan-name-dialog',
     standalone: true,
-    imports: [CommonModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule],
+    imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule],
     template: `
     <h2 mat-dialog-title>{{ data.title }}</h2>
     <mat-dialog-content>

@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/recipe/components/ingredient-create-modal/ingredient-create-modal.component.ts
 
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 
 import { IngredientModel } from '../../models/ingredient.model';
@@ -16,10 +16,9 @@ export type { IngredientCreateModalData } from './ingredient-create-modal-data.i
     selector: 'nom-ingredient-create-modal',
     standalone: true,
     imports: [
-        CommonModule,
-        MatDialogModule,
-        IngredientFormComponent,
-    ],
+    MatDialogModule,
+    IngredientFormComponent
+],
     templateUrl: './ingredient-create-modal.component.html',
     styleUrls: ['./ingredient-create-modal.component.scss']
 })

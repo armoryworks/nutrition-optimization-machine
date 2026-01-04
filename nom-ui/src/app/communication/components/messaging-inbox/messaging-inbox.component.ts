@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/communication/components/messaging-inbox/messaging-inbox.component.ts
 
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -27,7 +27,6 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
   selector: 'nom-messaging-inbox',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     FormsModule,
     MatCardModule,
@@ -43,8 +42,8 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
     MatProgressSpinnerModule,
     MatDividerModule,
     MatBadgeModule,
-    BasePageComponent,
-  ],
+    BasePageComponent
+],
   templateUrl: './messaging-inbox.component.html',
   styleUrls: ['./messaging-inbox.component.scss'],
   encapsulation: ViewEncapsulation.None,

@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,7 +31,6 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
   selector: 'nom-ingredient-form',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -41,8 +40,8 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
     MatProgressSpinnerModule,
     MatSelectModule,
     BaseFormComponent,
-    BasePageComponent,
-  ],
+    BasePageComponent
+],
   templateUrl: './ingredient-form.component.html',
   styleUrls: ['./ingredient-form.component.scss']
 })

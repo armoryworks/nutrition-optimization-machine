@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/recipe/components/ingredient-edit/ingredient-edit.component.ts
 
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { Subject, of } from 'rxjs';
@@ -15,9 +15,8 @@ import { IngredientFormComponent } from '../ingredient-form/ingredient-form.comp
   selector: 'nom-ingredient-edit',
   standalone: true,
   imports: [
-    CommonModule,
-    IngredientFormComponent,
-  ],
+    IngredientFormComponent
+],
   templateUrl: './ingredient-edit.component.html',
   styleUrls: ['./ingredient-edit.component.scss']
 })

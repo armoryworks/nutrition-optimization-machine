@@ -6,7 +6,7 @@ import {
   NonNullableFormBuilder,
   AbstractControl,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 // Router is no longer directly used for navigation in this component
 // RouterLink is kept in imports if needed by the HTML template, but not for direct TS logic.
 import { Router } from '@angular/router'; // Kept Router import if it's used elsewhere in the component beyond navigation
@@ -31,7 +31,6 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
   selector: 'nom-registration',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -39,11 +38,10 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
-    MatToolbarModule, // Kept as it's in your provided starter code
+    MatToolbarModule,
     MatProgressSpinnerModule,
-    MatProgressBarModule,
-    // RouterLink, // Removed if no direct routerLink is needed in this component's HTML
-  ],
+    MatProgressBarModule
+],
   templateUrl: './registration.component.html',
   styleUrls: ['./registration.component.scss'], // Assuming .scss
   encapsulation: ViewEncapsulation.None,

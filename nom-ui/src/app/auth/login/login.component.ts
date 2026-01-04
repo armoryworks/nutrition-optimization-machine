@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
 
 // Angular Material Imports
@@ -28,7 +28,6 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-login',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -38,8 +37,8 @@ import { NotificationService } from '../../utilities/services/notification.servi
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
-    RouterLink, // Add RouterLink
-  ],
+    RouterLink
+],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   encapsulation: ViewEncapsulation.None,

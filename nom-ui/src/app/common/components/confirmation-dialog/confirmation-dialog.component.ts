@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/common/components/confirmation-dialog/confirmation-dialog.component.ts
 
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogModule,
@@ -19,7 +19,7 @@ export interface ConfirmationDialogData {
 @Component({
   selector: 'nom-confirmation-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule],
   templateUrl: './confirmation-dialog.component.html',
 })
 export class ConfirmationDialogComponent {

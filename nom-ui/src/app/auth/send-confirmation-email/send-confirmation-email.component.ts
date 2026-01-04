@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
 
 // Angular Material Imports
@@ -25,7 +25,6 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-send-confirmation-email',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -34,8 +33,8 @@ import { NotificationService } from '../../utilities/services/notification.servi
     MatIconModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
-    RouterLink, // Add RouterLink
-  ],
+    RouterLink
+],
   templateUrl: './send-confirmation-email.component.html',
   styleUrls: ['./send-confirmation-email.component.scss'],
   encapsulation: ViewEncapsulation.None,

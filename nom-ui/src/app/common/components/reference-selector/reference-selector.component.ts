@@ -19,39 +19,55 @@ import { ReferenceItemModel } from '../../models/reference-item.model';
   ],
   template: `
     <div class="reference-selector">
-      <label *ngIf="label" [for]="controlId" class="reference-selector__label">
-        {{ label }}
-      </label>
-      
-      <mat-form-field *ngIf="!isMultiSelect" class="reference-selector__field">
-        <mat-label>{{ placeholder || 'Select option' }}</mat-label>
-        <mat-select [formControl]="formControl" [id]="controlId">
-          <mat-option *ngFor="let item of filteredOptions$ | async" [value]="item.referenceId">
-            {{ item.referenceName }}
-          </mat-option>
-        </mat-select>
-        <mat-error *ngIf="control.hasError('required')">
-          {{ requiredErrorMessage || 'This field is required' }}
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field *ngIf="isMultiSelect" class="reference-selector__field">
-        <mat-label>{{ placeholder || 'Select options' }}</mat-label>
-        <mat-select [formControl]="formControl" [id]="controlId" multiple>
-          <mat-option *ngFor="let item of filteredOptions$ | async" [value]="item.referenceId">
-            {{ item.referenceName }}
-          </mat-option>
-        </mat-select>
-        <mat-error *ngIf="control.hasError('required')">
-          {{ requiredErrorMessage || 'This field is required' }}
-        </mat-error>
-      </mat-form-field>
-
-      <div *ngIf="showDescription && selectedItemDescription" class="reference-selector__description">
-        {{ selectedItemDescription }}
-      </div>
+      @if (label) {
+        <label [for]="controlId" class="reference-selector__label">
+          {{ label }}
+        </label>
+      }
+    
+      @if (!isMultiSelect) {
+        <mat-form-field class="reference-selector__field">
+          <mat-label>{{ placeholder || 'Select option' }}</mat-label>
+          <mat-select [formControl]="formControl" [id]="controlId">
+            @for (item of filteredOptions$ | async; track item) {
+              <mat-option [value]="item.referenceId">
+                {{ item.referenceName }}
+              </mat-option>
+            }
+          </mat-select>
+          @if (control.hasError('required')) {
+            <mat-error>
+              {{ requiredErrorMessage || 'This field is required' }}
+            </mat-error>
+          }
+        </mat-form-field>
+      }
+    
+      @if (isMultiSelect) {
+        <mat-form-field class="reference-selector__field">
+          <mat-label>{{ placeholder || 'Select options' }}</mat-label>
+          <mat-select [formControl]="formControl" [id]="controlId" multiple>
+            @for (item of filteredOptions$ | async; track item) {
+              <mat-option [value]="item.referenceId">
+                {{ item.referenceName }}
+              </mat-option>
+            }
+          </mat-select>
+          @if (control.hasError('required')) {
+            <mat-error>
+              {{ requiredErrorMessage || 'This field is required' }}
+            </mat-error>
+          }
+        </mat-form-field>
+      }
+    
+      @if (showDescription && selectedItemDescription) {
+        <div class="reference-selector__description">
+          {{ selectedItemDescription }}
+        </div>
+      }
     </div>
-  `,
+    `,
   styleUrls: ['./reference-selector.component.scss']
 })
 export class ReferenceSelectorComponent implements OnInit, OnDestroy {

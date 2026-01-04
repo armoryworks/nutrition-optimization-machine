@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'; // Import ActivatedRoute and Router
 
 // Angular Material Imports
@@ -17,14 +17,13 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-confirm-email',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
     MatIconModule,
-    RouterLink, // For navigation buttons
-  ],
+    RouterLink
+],
   templateUrl: './confirm-email.component.html',
   styleUrls: ['./confirm-email.component.scss'],
   encapsulation: ViewEncapsulation.None,

@@ -7,7 +7,7 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,14 +20,13 @@ import { PersonModel } from '../../../person/models/person.model';
   selector: 'nom-onboarding-restriction-scope',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatRadioModule,
-    MatSelectModule,
-  ],
+    MatSelectModule
+],
   templateUrl: './onboarding-restriction-scope.component.html',
   styleUrls: ['./onboarding-restriction-scope.component.scss'],
 })

@@ -6,7 +6,7 @@ import {
   NonNullableFormBuilder,
   AbstractControl,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router'; // Import Router for navigation
 
 // Angular Material Imports
@@ -26,7 +26,6 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-reset-password',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -34,8 +33,8 @@ import { NotificationService } from '../../utilities/services/notification.servi
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatProgressBarModule,
-  ],
+    MatProgressBarModule
+],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
   encapsulation: ViewEncapsulation.None,

@@ -4,28 +4,34 @@
   [loading]="isLoading"
   (submit)="onSubmit()"
   (cancel)="onCancel()"
->
+  >
   <div class="meal-plan-edit">
     <div class="meal-plan-edit__container">
       <!-- Recipe Name Field -->
       <div class="meal-plan-edit__field">
         <mat-form-field class="meal-plan-edit__input">
           <mat-label>Recipe Name</mat-label>
-          <input 
-            matInput 
-            formControlName="recipeName" 
+          <input
+            matInput
+            formControlName="recipeName"
             placeholder="Enter recipe name"
             class="meal-plan-edit__input-field"
-          >
-          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('required')">
-            Recipe name is required
-          </mat-error>
-          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('minlength')">
-            Recipe name must be at least 2 characters
-          </mat-error>
-          <mat-error *ngIf="mealPlanForm.get('recipeName')?.hasError('maxlength')">
-            Recipe name cannot exceed 100 characters
-          </mat-error>
+            >
+          @if (mealPlanForm.get('recipeName')?.hasError('required')) {
+            <mat-error>
+              Recipe name is required
+            </mat-error>
+          }
+          @if (mealPlanForm.get('recipeName')?.hasError('minlength')) {
+            <mat-error>
+              Recipe name must be at least 2 characters
+            </mat-error>
+          }
+          @if (mealPlanForm.get('recipeName')?.hasError('maxlength')) {
+            <mat-error>
+              Recipe name cannot exceed 100 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -40,9 +46,11 @@
               </mat-option>
             }
           </mat-select>
-          <mat-error *ngIf="mealPlanForm.get('mealType')?.hasError('required')">
-            Meal type is required
-          </mat-error>
+          @if (mealPlanForm.get('mealType')?.hasError('required')) {
+            <mat-error>
+              Meal type is required
+            </mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -50,18 +58,20 @@
       <div class="meal-plan-edit__field">
         <mat-form-field class="meal-plan-edit__date">
           <mat-label>Date</mat-label>
-          <input 
-            matInput 
-            [matDatepicker]="picker" 
+          <input
+            matInput
+            [matDatepicker]="picker"
             formControlName="date"
             placeholder="Choose a date"
             class="meal-plan-edit__date-field"
-          >
+            >
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="mealPlanForm.get('date')?.hasError('required')">
-            Date is required
-          </mat-error>
+          @if (mealPlanForm.get('date')?.hasError('required')) {
+            <mat-error>
+              Date is required
+            </mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -69,18 +79,20 @@
       <div class="meal-plan-edit__field">
         <mat-form-field class="meal-plan-edit__textarea">
           <mat-label>Description (Optional)</mat-label>
-          <textarea 
-            matInput 
-            formControlName="description" 
+          <textarea
+            matInput
+            formControlName="description"
             placeholder="Enter meal plan description"
             rows="4"
             class="meal-plan-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="mealPlanForm.get('description')?.hasError('maxlength')">
-            Description cannot exceed 500 characters
-          </mat-error>
+          @if (mealPlanForm.get('description')?.hasError('maxlength')) {
+            <mat-error>
+              Description cannot exceed 500 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
     </div>
   </div>
-</nom-base-form> 
+</nom-base-form>

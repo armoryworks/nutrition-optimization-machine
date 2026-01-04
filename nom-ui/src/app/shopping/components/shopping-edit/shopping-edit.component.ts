@@ -1,5 +1,5 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -19,7 +19,6 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   selector: 'nom-shopping-edit',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -27,8 +26,8 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    BaseFormComponent,
-  ],
+    BaseFormComponent
+],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './shopping-edit.component.html',
   styleUrls: ['./shopping-edit.component.scss']
