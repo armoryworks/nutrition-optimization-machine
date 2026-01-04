@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +23,6 @@ import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-it
   selector: 'nom-shopping-detail',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -34,8 +33,8 @@ import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-it
     MatListModule,
     MatMenuModule,
     MatCheckboxModule,
-    BaseDetailComponent,
-  ],
+    BaseDetailComponent
+],
   templateUrl: './shopping-detail.component.html',
   styleUrls: ['./shopping-detail.component.scss']
 })

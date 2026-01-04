@@ -6,7 +6,7 @@ import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,18 +28,16 @@ import { RestrictionTypeEnum } from '../../enums/restriction-type.enum';
   selector: 'nom-restriction-edit',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
-    MatSelectModule, // Still needed for appliesToEntirePlan
-    MatIconModule, // Still needed for submit icon
-    MatFormFieldModule, // Still needed for appliesToEntirePlan
-    // Import the new child components
+    MatSelectModule,
+    MatIconModule,
+    MatFormFieldModule,
     SocietalRestrictionComponent,
     MedicalRestrictionComponent,
-    PersonalPreferenceRestrictionComponent,
-  ],
+    PersonalPreferenceRestrictionComponent
+],
   templateUrl: './restriction-edit.component.html',
   styleUrls: ['./restriction-edit.component.scss'],
   encapsulation: ViewEncapsulation.None,

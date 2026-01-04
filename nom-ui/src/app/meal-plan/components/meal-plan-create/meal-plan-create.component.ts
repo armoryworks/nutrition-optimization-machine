@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -22,7 +22,6 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   selector: 'nom-meal-plan-create',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -33,8 +32,8 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    BaseFormComponent,
-  ],
+    BaseFormComponent
+],
   templateUrl: './meal-plan-create.component.html',
   styleUrls: ['./meal-plan-create.component.scss']
 })

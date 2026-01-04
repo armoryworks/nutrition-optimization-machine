@@ -4,28 +4,34 @@
   [loading]="isLoading"
   (submit)="onSubmit()"
   (cancel)="onCancel()"
->
+  >
   <div class="household-edit">
     <div class="household-edit__container">
       <!-- Name Field -->
       <div class="household-edit__field">
         <mat-form-field class="household-edit__input">
           <mat-label>Household Name</mat-label>
-          <input 
-            matInput 
-            formControlName="name" 
+          <input
+            matInput
+            formControlName="name"
             placeholder="Enter household name"
             class="household-edit__input-field"
-          >
-          <mat-error *ngIf="householdForm.get('name')?.hasError('required')">
-            Household name is required
-          </mat-error>
-          <mat-error *ngIf="householdForm.get('name')?.hasError('minlength')">
-            Household name must be at least 2 characters
-          </mat-error>
-          <mat-error *ngIf="householdForm.get('name')?.hasError('maxlength')">
-            Household name cannot exceed 100 characters
-          </mat-error>
+            >
+          @if (householdForm.get('name')?.hasError('required')) {
+            <mat-error>
+              Household name is required
+            </mat-error>
+          }
+          @if (householdForm.get('name')?.hasError('minlength')) {
+            <mat-error>
+              Household name must be at least 2 characters
+            </mat-error>
+          }
+          @if (householdForm.get('name')?.hasError('maxlength')) {
+            <mat-error>
+              Household name cannot exceed 100 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -33,18 +39,20 @@
       <div class="household-edit__field">
         <mat-form-field class="household-edit__textarea">
           <mat-label>Description (Optional)</mat-label>
-          <textarea 
-            matInput 
-            formControlName="description" 
+          <textarea
+            matInput
+            formControlName="description"
             placeholder="Enter household description"
             rows="4"
             class="household-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="householdForm.get('description')?.hasError('maxlength')">
-            Description cannot exceed 500 characters
-          </mat-error>
+          @if (householdForm.get('description')?.hasError('maxlength')) {
+            <mat-error>
+              Description cannot exceed 500 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
     </div>
   </div>
-</nom-base-form> 
+</nom-base-form>

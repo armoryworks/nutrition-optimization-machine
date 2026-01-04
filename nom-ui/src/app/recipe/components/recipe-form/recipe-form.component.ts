@@ -13,187 +13,233 @@ import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
         <h2>{{ isEditMode ? 'Edit Recipe' : 'Create New Recipe' }}</h2>
         <p class="subtitle">Fill in the details below to {{ isEditMode ? 'update' : 'create' }} your recipe</p>
       </div>
-
+    
       <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="recipe-form__content">
         <!-- Basic Information -->
         <div class="form-section">
           <h3>Basic Information</h3>
-          
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Recipe Name</mat-label>
               <input matInput formControlName="name" placeholder="Enter recipe name">
-              <mat-error *ngIf="recipeForm.get('name')?.hasError('required')">
-                Recipe name is required
-              </mat-error>
+              @if (recipeForm.get('name')?.hasError('required')) {
+                <mat-error>
+                  Recipe name is required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
-
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Description</mat-label>
               <textarea matInput formControlName="description" rows="3" placeholder="Describe your recipe"></textarea>
-              <mat-error *ngIf="recipeForm.get('description')?.hasError('required')">
-                Description is required
-              </mat-error>
+              @if (recipeForm.get('description')?.hasError('required')) {
+                <mat-error>
+                  Description is required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
-
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Preparation Time (minutes)</mat-label>
               <input matInput type="number" formControlName="prepTime" min="1">
-              <mat-error *ngIf="recipeForm.get('prepTime')?.hasError('required')">
-                Preparation time is required
-              </mat-error>
-              <mat-error *ngIf="recipeForm.get('prepTime')?.hasError('min')">
-                Preparation time must be at least 1 minute
-              </mat-error>
+              @if (recipeForm.get('prepTime')?.hasError('required')) {
+                <mat-error>
+                  Preparation time is required
+                </mat-error>
+              }
+              @if (recipeForm.get('prepTime')?.hasError('min')) {
+                <mat-error>
+                  Preparation time must be at least 1 minute
+                </mat-error>
+              }
             </mat-form-field>
-
+    
             <mat-form-field class="form-field">
               <mat-label>Cook Time (minutes)</mat-label>
               <input matInput type="number" formControlName="cookTime" min="0">
-              <mat-error *ngIf="recipeForm.get('cookTime')?.hasError('min')">
-                Cook time cannot be negative
-              </mat-error>
+              @if (recipeForm.get('cookTime')?.hasError('min')) {
+                <mat-error>
+                  Cook time cannot be negative
+                </mat-error>
+              }
             </mat-form-field>
           </div>
         </div>
-
+    
         <!-- Recipe Classification -->
         <div class="form-section">
           <h3>Recipe Classification</h3>
-          
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Difficulty Level</mat-label>
               <mat-select formControlName="difficultyId" [showDescription]="true">
-                <mat-option *ngFor="let difficulty of difficulties" [value]="difficulty.referenceId">
-                  {{ difficulty.referenceName }}
-                </mat-option>
+                @for (difficulty of difficulties; track difficulty) {
+                  <mat-option [value]="difficulty.referenceId">
+                    {{ difficulty.referenceName }}
+                  </mat-option>
+                }
               </mat-select>
-              <mat-error *ngIf="recipeForm.get('difficultyId')?.hasError('required')">
-                Difficulty level is required
-              </mat-error>
+              @if (recipeForm.get('difficultyId')?.hasError('required')) {
+                <mat-error>
+                  Difficulty level is required
+                </mat-error>
+              }
             </mat-form-field>
-
+    
             <mat-form-field class="form-field">
               <mat-label>Cuisine Type</mat-label>
               <mat-select formControlName="cuisineTypeId" [showDescription]="true">
-                <mat-option *ngFor="let cuisine in cuisines" [value]="cuisine.referenceId">
-                  {{ cuisine.referenceName }}
-                </mat-option>
+                @for (cuisine in cuisines; track cuisine in cuisines) {
+                  <mat-option [value]="cuisine.referenceId">
+                    {{ cuisine.referenceName }}
+                  </mat-option>
+                }
               </mat-select>
-              <mat-error *ngIf="recipeForm.get('cuisineTypeId')?.hasError('required')">
-                Cuisine type is required
-              </mat-error>
+              @if (recipeForm.get('cuisineTypeId')?.hasError('required')) {
+                <mat-error>
+                  Cuisine type is required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
-
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Meal Type</mat-label>
               <mat-select formControlName="mealTypeId" [showDescription]="true">
-                <mat-option *ngFor="let mealType in mealTypes" [value]="mealType.referenceId">
-                  {{ mealType.referenceName }}
-                </mat-option>
+                @for (mealType in mealTypes; track mealType in mealTypes) {
+                  <mat-option [value]="mealType.referenceId">
+                    {{ mealType.referenceName }}
+                  </mat-option>
+                }
               </mat-select>
-              <mat-error *ngIf="recipeForm.get('mealTypeId')?.hasError('required')">
-                Meal type is required
-              </mat-error>
+              @if (recipeForm.get('mealTypeId')?.hasError('required')) {
+                <mat-error>
+                  Meal type is required
+                </mat-error>
+              }
             </mat-form-field>
-
+    
             <mat-form-field class="form-field">
               <mat-label>Servings</mat-label>
               <input matInput type="number" formControlName="servings" min="1">
-              <mat-error *ngIf="recipeForm.get('servings')?.hasError('required')">
-                Number of servings is required
-              </mat-error>
-              <mat-error *ngIf="recipeForm.get('servings')?.hasError('min')">
-                Servings must be at least 1
-              </mat-error>
+              @if (recipeForm.get('servings')?.hasError('required')) {
+                <mat-error>
+                  Number of servings is required
+                </mat-error>
+              }
+              @if (recipeForm.get('servings')?.hasError('min')) {
+                <mat-error>
+                  Servings must be at least 1
+                </mat-error>
+              }
             </mat-form-field>
           </div>
         </div>
-
+    
         <!-- Dietary Information -->
         <div class="form-section">
           <h3>Dietary Information</h3>
-          
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Dietary Options</mat-label>
               <mat-select formControlName="dietaryOptionIds" multiple [showDescription]="true">
-                <mat-option *ngFor="let option in dietaryOptions" [value]="option.referenceId">
-                  {{ option.referenceName }}
-                </mat-option>
+                @for (option in dietaryOptions; track option in dietaryOptions) {
+                  <mat-option [value]="option.referenceId">
+                    {{ option.referenceName }}
+                  </mat-option>
+                }
               </mat-select>
               <mat-hint>Select all that apply</mat-hint>
             </mat-form-field>
           </div>
-
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Allergen Information</mat-label>
               <mat-select formControlName="allergenIds" multiple [showDescription]="true">
-                <mat-option *ngFor="let allergen in allergens" [value]="allergen.referenceId">
-                  {{ allergen.referenceName }}
-                </mat-option>
+                @for (allergen in allergens; track allergen in allergens) {
+                  <mat-option [value]="allergen.referenceId">
+                    {{ allergen.referenceName }}
+                  </mat-option>
+                }
               </mat-select>
               <mat-hint>Select allergens this recipe contains</mat-hint>
             </mat-form-field>
           </div>
         </div>
-
+    
         <!-- Instructions -->
         <div class="form-section">
           <h3>Cooking Instructions</h3>
-          
+    
           <div class="form-row">
             <mat-form-field class="form-field">
               <mat-label>Instructions</mat-label>
               <textarea matInput formControlName="instructions" rows="6" placeholder="Enter step-by-step cooking instructions"></textarea>
-              <mat-error *ngIf="recipeForm.get('instructions')?.hasError('required')">
-                Cooking instructions are required
-              </mat-error>
+              @if (recipeForm.get('instructions')?.hasError('required')) {
+                <mat-error>
+                  Cooking instructions are required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
         </div>
-
+    
         <!-- Form Actions -->
         <div class="form-actions">
           <button mat-button type="button" (click)="onCancel()">Cancel</button>
           <button mat-raised-button color="primary" type="submit" [disabled]="recipeForm.invalid || isSubmitting">
-            <mat-icon *ngIf="isSubmitting" class="spinning">refresh</mat-icon>
+            @if (isSubmitting) {
+              <mat-icon class="spinning">refresh</mat-icon>
+            }
             {{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update Recipe' : 'Create Recipe') }}
           </button>
         </div>
       </form>
-
+    
       <!-- Selected Options Display -->
-      <div class="selected-options" *ngIf="hasSelectedOptions()">
-        <h4>Selected Options:</h4>
-        <div class="options-grid">
-          <div *ngIf="getSelectedDifficulty()" class="option-item">
-            <strong>Difficulty:</strong> {{ getSelectedDifficulty()?.referenceName }}
-          </div>
-          <div *ngIf="getSelectedCuisine()" class="option-item">
-            <strong>Cuisine:</strong> {{ getSelectedCuisine()?.referenceName }}
-          </div>
-          <div *ngIf="getSelectedMealType()" class="option-item">
-            <strong>Meal Type:</strong> {{ getSelectedMealType()?.referenceName }}
-          </div>
-          <div *ngIf="getSelectedDietaryOptions().length > 0" class="option-item">
-            <strong>Dietary:</strong> {{ getSelectedDietaryOptions().map(o => o.referenceName).join(', ') }}
-          </div>
-          <div *ngIf="getSelectedAllergens().length > 0" class="option-item">
-            <strong>Allergens:</strong> {{ getSelectedAllergens().map(o => o.referenceName).join(', ') }}
+      @if (hasSelectedOptions()) {
+        <div class="selected-options">
+          <h4>Selected Options:</h4>
+          <div class="options-grid">
+            @if (getSelectedDifficulty()) {
+              <div class="option-item">
+                <strong>Difficulty:</strong> {{ getSelectedDifficulty()?.referenceName }}
+              </div>
+            }
+            @if (getSelectedCuisine()) {
+              <div class="option-item">
+                <strong>Cuisine:</strong> {{ getSelectedCuisine()?.referenceName }}
+              </div>
+            }
+            @if (getSelectedMealType()) {
+              <div class="option-item">
+                <strong>Meal Type:</strong> {{ getSelectedMealType()?.referenceName }}
+              </div>
+            }
+            @if (getSelectedDietaryOptions().length > 0) {
+              <div class="option-item">
+                <strong>Dietary:</strong> {{ getSelectedDietaryOptions().map(o => o.referenceName).join(', ') }}
+              </div>
+            }
+            @if (getSelectedAllergens().length > 0) {
+              <div class="option-item">
+                <strong>Allergens:</strong> {{ getSelectedAllergens().map(o => o.referenceName).join(', ') }}
+              </div>
+            }
           </div>
         </div>
-      </div>
+      }
     </div>
-  `,
+    `,
   styleUrls: ['./recipe-form.component.scss']
 })
 export class RecipeFormComponent implements OnInit, OnDestroy {

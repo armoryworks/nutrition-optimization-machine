@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,21 +25,20 @@ import { BasePageComponent, BasePageConfig } from '../../../common/components/ba
     selector: 'nom-shopping-dashboard',
     standalone: true,
     imports: [
-        CommonModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatChipsModule,
-        MatDividerModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
-        MatFormFieldModule,
-        MatInputModule,
-        ReactiveFormsModule,
-        BasePageComponent,
-    ],
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    BasePageComponent
+],
     templateUrl: './shopping-dashboard.component.html',
     styleUrls: ['./shopping-dashboard.component.scss']
 })

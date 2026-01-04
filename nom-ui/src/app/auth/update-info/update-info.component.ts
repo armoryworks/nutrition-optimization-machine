@@ -6,7 +6,7 @@ import {
   NonNullableFormBuilder,
   AbstractControl,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -26,7 +26,6 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-update-info',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -34,8 +33,8 @@ import { NotificationService } from '../../utilities/services/notification.servi
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatProgressBarModule,
-  ],
+    MatProgressBarModule
+],
   templateUrl: './update-info.component.html',
   styleUrls: ['./update-info.component.scss'],
   encapsulation: ViewEncapsulation.None,

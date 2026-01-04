@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import { ReactiveFormsModule, NonNullableFormBuilder } from "@angular/forms";
 import { MatCardModule } from "@angular/material/card";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -22,21 +22,20 @@ import { BasePageComponent, BasePageConfig } from "../../../common/components/ba
     selector: "nom-household-dashboard",
     standalone: true,
     imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatIconModule,
-        MatButtonModule,
-        MatTableModule,
-        MatPaginatorModule,
-        MatSortModule,
-        MatChipsModule,
-        MatTooltipModule,
-        MatProgressSpinnerModule,
-        BasePageComponent,
-    ],
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatChipsModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    BasePageComponent
+],
     templateUrl: "./household-dashboard.component.html",
     styleUrls: ["./household-dashboard.component.scss"],
     encapsulation: ViewEncapsulation.None,

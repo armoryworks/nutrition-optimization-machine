@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 
 // Angular Material Imports
@@ -25,7 +25,6 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-forgot-password',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -34,8 +33,8 @@ import { NotificationService } from '../../utilities/services/notification.servi
     MatIconModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
-    RouterLink, // Add RouterLink for navigation
-  ],
+    RouterLink
+],
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.scss'],
   encapsulation: ViewEncapsulation.None,

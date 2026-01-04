@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,11 +20,10 @@ export interface BasePageConfig {
     selector: 'nom-base-page',
     standalone: true,
     imports: [
-        CommonModule,
-        MatProgressSpinnerModule,
-        MatIconModule,
-        MatButtonModule,
-    ],
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatButtonModule
+],
     templateUrl: './base-page.component.html',
     styleUrls: ['./base-page.component.scss']
 })

@@ -11,18 +11,20 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
     template: `
     <div class="shopping-item-form">
       <h3>Add Shopping Item</h3>
-      
+    
       <form [formGroup]="shoppingItemForm" (ngSubmit)="onSubmit()">
         <div class="form-row">
           <mat-form-field class="form-field">
             <mat-label>Item Name</mat-label>
             <input matInput formControlName="name" placeholder="Enter item name">
-            <mat-error *ngIf="shoppingItemForm.get('name')?.hasError('required')">
-              Item name is required
-            </mat-error>
+            @if (shoppingItemForm.get('name')?.hasError('required')) {
+              <mat-error>
+                Item name is required
+              </mat-error>
+            }
           </mat-form-field>
         </div>
-
+    
         <div class="form-row">
           <app-reference-selector
             [discriminatorId]="REFERENCE_IDS.SHOPPING_CATEGORY_TYPE"
@@ -33,7 +35,7 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
             (selectionChange)="onCategoryChange($event)">
           </app-reference-selector>
         </div>
-
+    
         <div class="form-row">
           <app-reference-selector
             [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
@@ -44,20 +46,24 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
             (selectionChange)="onPriorityChange($event)">
           </app-reference-selector>
         </div>
-
+    
         <div class="form-row">
           <mat-form-field class="form-field">
             <mat-label>Quantity</mat-label>
             <input matInput type="number" formControlName="quantity" min="1">
-            <mat-error *ngIf="shoppingItemForm.get('quantity')?.hasError('required')">
-              Quantity is required
-            </mat-error>
-            <mat-error *ngIf="shoppingItemForm.get('quantity')?.hasError('min')">
-              Quantity must be at least 1
-            </mat-error>
+            @if (shoppingItemForm.get('quantity')?.hasError('required')) {
+              <mat-error>
+                Quantity is required
+              </mat-error>
+            }
+            @if (shoppingItemForm.get('quantity')?.hasError('min')) {
+              <mat-error>
+                Quantity must be at least 1
+              </mat-error>
+            }
           </mat-form-field>
         </div>
-
+    
         <div class="form-actions">
           <button mat-button type="button" (click)="onCancel()">Cancel</button>
           <button mat-raised-button color="primary" type="submit" [disabled]="shoppingItemForm.invalid">
@@ -65,20 +71,24 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
           </button>
         </div>
       </form>
-
-      <div *ngIf="selectedCategory" class="selected-info">
-        <strong>Selected Category:</strong> {{ selectedCategory.referenceName }}
-        <br>
-        <em>{{ selectedCategory.referenceDescription }}</em>
-      </div>
-
-      <div *ngIf="selectedPriority" class="selected-info">
-        <strong>Selected Priority:</strong> {{ selectedPriority.referenceName }}
-        <br>
-        <em>{{ selectedPriority.referenceDescription }}</em>
-      </div>
-    </div>
-  `,
+    
+      @if (selectedCategory) {
+        <div class="selected-info">
+          <strong>Selected Category:</strong> {{ selectedCategory.referenceName }}
+          <br>
+            <em>{{ selectedCategory.referenceDescription }}</em>
+          </div>
+        }
+    
+        @if (selectedPriority) {
+          <div class="selected-info">
+            <strong>Selected Priority:</strong> {{ selectedPriority.referenceName }}
+            <br>
+              <em>{{ selectedPriority.referenceDescription }}</em>
+            </div>
+          }
+        </div>
+    `,
     styleUrls: ['./shopping-item-form.component.scss']
 })
 export class ShoppingItemFormComponent implements OnInit, OnDestroy {

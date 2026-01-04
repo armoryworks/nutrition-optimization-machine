@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -27,7 +27,6 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
   selector: 'nom-meal-plan-rules',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -40,8 +39,8 @@ import { ConfirmDialogComponent } from '../../../common/components/confirm-dialo
     MatSelectModule,
     MatDialogModule,
     MatListModule,
-    MatMenuModule,
-  ],
+    MatMenuModule
+],
   templateUrl: './meal-plan-rules.component.html',
   styleUrls: ['./meal-plan-rules.component.scss']
 })

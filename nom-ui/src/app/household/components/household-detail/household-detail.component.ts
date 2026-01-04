@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,18 +21,17 @@ import { BaseDetailComponent, BaseDetailConfig } from '../../../common/component
     selector: 'nom-household-detail',
     standalone: true,
     imports: [
-        CommonModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatChipsModule,
-        MatDividerModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
-        BaseDetailComponent,
-    ],
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatListModule,
+    MatMenuModule,
+    BaseDetailComponent
+],
     templateUrl: './household-detail.component.html',
     styleUrls: ['./household-detail.component.scss']
 })

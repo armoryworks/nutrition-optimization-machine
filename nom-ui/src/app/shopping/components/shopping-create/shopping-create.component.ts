@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -19,7 +19,6 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
   selector: 'nom-shopping-create',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -27,8 +26,8 @@ import { BaseFormComponent, BaseFormConfig } from '../../../common/components/ba
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    BaseFormComponent,
-  ],
+    BaseFormComponent
+],
   templateUrl: './shopping-create.component.html',
   styleUrls: ['./shopping-create.component.scss']
 })

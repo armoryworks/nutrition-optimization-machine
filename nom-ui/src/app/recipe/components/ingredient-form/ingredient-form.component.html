@@ -12,7 +12,7 @@
     <div [formGroup]="ingredientForm">
       <!-- Hidden ID field for edit mode -->
       <input type="hidden" formControlName="id">
-      
+
       @if (isLoading) {
         <div class="nom-ingredient-form__loading">
           <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
@@ -21,7 +21,7 @@
         <!-- General Information Section -->
         <div class="nom-ingredient-form__section">
           <h3 class="nom-ingredient-form__section-title">General Information</h3>
-          
+
           <mat-form-field class="nom-ingredient-form__form-field">
             <mat-label>Ingredient Name*</mat-label>
             <input matInput type="text" formControlName="name" placeholder="Ingredient Name*">
@@ -65,9 +65,11 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Nutrient</mat-label>
                   <mat-select formControlName="nutrientId">
-                    <mat-option *ngFor="let nutrient of nutrientTypes" [value]="nutrient.id">
-                      {{ nutrient.name }}
-                    </mat-option>
+                    @for (nutrient of nutrientTypes; track nutrient) {
+                      <mat-option [value]="nutrient.id">
+                        {{ nutrient.name }}
+                      </mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
 
@@ -79,9 +81,11 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Unit</mat-label>
                   <mat-select formControlName="measurementId">
-                    <mat-option *ngFor="let measurement of measurements" [value]="measurement.id">
-                      {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
-                    </mat-option>
+                    @for (measurement of measurements; track measurement) {
+                      <mat-option [value]="measurement.id">
+                        {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
+                      </mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
 
@@ -125,7 +129,7 @@
           <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
             <!-- Hidden ID field for edit mode -->
             <input type="hidden" formControlName="id">
-            
+
             <!-- Form Content -->
             <div class="form-content">
               <!-- General Information Section -->
@@ -139,7 +143,7 @@
                 <mat-form-field class="nom-ingredient-form__form-field">
                   <mat-label>Description (Optional)</mat-label>
                   <textarea matInput formControlName="description" rows="3"
-                    placeholder="A brief description of the ingredient..."></textarea>
+                  placeholder="A brief description of the ingredient..."></textarea>
                 </mat-form-field>
               </div>
 
@@ -159,9 +163,11 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Nutrient</mat-label>
                         <mat-select formControlName="nutrientId">
-                          <mat-option *ngFor="let nutrient of nutrientTypes" [value]="nutrient.id">
-                            {{ nutrient.name }}
-                          </mat-option>
+                          @for (nutrient of nutrientTypes; track nutrient) {
+                            <mat-option [value]="nutrient.id">
+                              {{ nutrient.name }}
+                            </mat-option>
+                          }
                         </mat-select>
                       </mat-form-field>
 
@@ -173,9 +179,11 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Unit</mat-label>
                         <mat-select formControlName="measurementId">
-                          <mat-option *ngFor="let measurement of measurements" [value]="measurement.id">
-                            {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
-                          </mat-option>
+                          @for (measurement of measurements; track measurement) {
+                            <mat-option [value]="measurement.id">
+                              {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
+                            </mat-option>
+                          }
                         </mat-select>
                       </mat-form-field>
 
@@ -199,8 +207,8 @@
             <div class="form-actions">
               <div class="action-buttons">
                 @if (formConfig.showCancelButton) {
-                  <button 
-                    mat-button 
+                  <button
+                    mat-button
                     type="button"
                     (click)="onCancel()"
                     [disabled]="isSubmitting">
@@ -209,9 +217,9 @@
                   </button>
                 }
 
-                <button 
-                  mat-raised-button 
-                  color="primary" 
+                <button
+                  mat-raised-button
+                  color="primary"
                   type="submit"
                   [disabled]="ingredientForm.invalid || isSubmitting">
                   @if (isSubmitting) {

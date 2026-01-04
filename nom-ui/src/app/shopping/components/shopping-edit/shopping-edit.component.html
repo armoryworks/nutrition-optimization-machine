@@ -4,28 +4,34 @@
   [loading]="isLoading"
   (submit)="onSubmit()"
   (cancel)="onCancel()"
->
+  >
   <div class="shopping-edit">
     <div class="shopping-edit__container">
       <!-- Name Field -->
       <div class="shopping-edit__field">
         <mat-form-field class="shopping-edit__input">
           <mat-label>Shopping List Name</mat-label>
-          <input 
-            matInput 
-            formControlName="name" 
+          <input
+            matInput
+            formControlName="name"
             placeholder="Enter shopping list name"
             class="shopping-edit__input-field"
-          >
-          <mat-error *ngIf="shoppingForm.get('name')?.hasError('required')">
-            Shopping list name is required
-          </mat-error>
-          <mat-error *ngIf="shoppingForm.get('name')?.hasError('minlength')">
-            Shopping list name must be at least 2 characters
-          </mat-error>
-          <mat-error *ngIf="shoppingForm.get('name')?.hasError('maxlength')">
-            Shopping list name cannot exceed 100 characters
-          </mat-error>
+            >
+          @if (shoppingForm.get('name')?.hasError('required')) {
+            <mat-error>
+              Shopping list name is required
+            </mat-error>
+          }
+          @if (shoppingForm.get('name')?.hasError('minlength')) {
+            <mat-error>
+              Shopping list name must be at least 2 characters
+            </mat-error>
+          }
+          @if (shoppingForm.get('name')?.hasError('maxlength')) {
+            <mat-error>
+              Shopping list name cannot exceed 100 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -33,18 +39,20 @@
       <div class="shopping-edit__field">
         <mat-form-field class="shopping-edit__textarea">
           <mat-label>Description (Optional)</mat-label>
-          <textarea 
-            matInput 
-            formControlName="description" 
+          <textarea
+            matInput
+            formControlName="description"
             placeholder="Enter shopping list description"
             rows="4"
             class="shopping-edit__textarea-field"
           ></textarea>
-          <mat-error *ngIf="shoppingForm.get('description')?.hasError('maxlength')">
-            Description cannot exceed 500 characters
-          </mat-error>
+          @if (shoppingForm.get('description')?.hasError('maxlength')) {
+            <mat-error>
+              Description cannot exceed 500 characters
+            </mat-error>
+          }
         </mat-form-field>
       </div>
     </div>
   </div>
-</nom-base-form> 
+</nom-base-form>

@@ -8,118 +8,122 @@
     </div>
 
     @if (isLoading) {
-    <div class="curated-plans__loading">
-      <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
-      <p>Loading curated plans...</p>
-    </div>
+      <div class="curated-plans__loading">
+        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+        <p>Loading curated plans...</p>
+      </div>
     } @else if (error) {
-    <div class="curated-plans__error">
-      <mat-icon>error</mat-icon>
-      <p>{{ error }}</p>
-      <button mat-raised-button color="primary" (click)="loadCuratedPlans()">
-        <mat-icon>refresh</mat-icon>
-        Try Again
-      </button>
-    </div>
+      <div class="curated-plans__error">
+        <mat-icon>error</mat-icon>
+        <p>{{ error }}</p>
+        <button mat-raised-button color="primary" (click)="loadCuratedPlans()">
+          <mat-icon>refresh</mat-icon>
+          Try Again
+        </button>
+      </div>
     } @else {
-    <div class="curated-plans__content">
-      @if (curatedPlans$ | async; as plans) {
-      @if (plans.length > 0) {
-      <div class="curated-plans__grid">
-        @for (plan of plans; track plan.id) {
-        <mat-card class="curated-plans__plan-card">
-          <div class="curated-plans__plan-header">
-            <div class="curated-plans__plan-info">
-              <h3 class="curated-plans__plan-title">{{ plan.name }}</h3>
-              <p class="curated-plans__plan-author">by {{ plan.authorName }}</p>
-              <p class="curated-plans__plan-duration">{{ getPlanDuration(plan) }}</p>
-            </div>
-            <div class="curated-plans__plan-status">
-              <mat-chip [color]="getStatusColor(plan.curationStatus)" selected>
-                {{ plan.curationStatus }}
-              </mat-chip>
-            </div>
-          </div>
+      <div class="curated-plans__content">
+        @if (curatedPlans$ | async; as plans) {
+          @if (plans.length > 0) {
+            <div class="curated-plans__grid">
+              @for (plan of plans; track plan.id) {
+                <mat-card class="curated-plans__plan-card">
+                  <div class="curated-plans__plan-header">
+                    <div class="curated-plans__plan-info">
+                      <h3 class="curated-plans__plan-title">{{ plan.name }}</h3>
+                      <p class="curated-plans__plan-author">by {{ plan.authorName }}</p>
+                      <p class="curated-plans__plan-duration">{{ getPlanDuration(plan) }}</p>
+                    </div>
+                    <div class="curated-plans__plan-status">
+                      <mat-chip [color]="getStatusColor(plan.curationStatus)" selected>
+                        {{ plan.curationStatus }}
+                      </mat-chip>
+                    </div>
+                  </div>
 
-          @if (plan.description) {
-          <div class="curated-plans__plan-description">
-            <p>{{ plan.description }}</p>
-          </div>
-          }
+                  @if (plan.description) {
+                    <div class="curated-plans__plan-description">
+                      <p>{{ plan.description }}</p>
+                    </div>
+                  }
 
-          <div class="curated-plans__plan-stats">
-            @if (getPlanStats(plan).goals > 0) {
-            <div class="curated-plans__stat">
-              <mat-icon>flag</mat-icon>
-              <span>{{ getPlanStats(plan).goals }} Goals</span>
-            </div>
-            }
-            @if (getPlanStats(plan).meals > 0) {
-            <div class="curated-plans__stat">
-              <mat-icon>restaurant</mat-icon>
-              <span>{{ getPlanStats(plan).meals }} Meals</span>
-            </div>
-            }
-            @if (getPlanStats(plan).recipes > 0) {
-            <div class="curated-plans__stat">
-              <mat-icon>menu_book</mat-icon>
-              <span>{{ getPlanStats(plan).recipes }} Recipes</span>
-            </div>
-            }
-          </div>
+                  <div class="curated-plans__plan-stats">
+                    @if (getPlanStats(plan).goals > 0) {
+                      <div class="curated-plans__stat">
+                        <mat-icon>flag</mat-icon>
+                        <span>{{ getPlanStats(plan).goals }} Goals</span>
+                      </div>
+                    }
+                    @if (getPlanStats(plan).meals > 0) {
+                      <div class="curated-plans__stat">
+                        <mat-icon>restaurant</mat-icon>
+                        <span>{{ getPlanStats(plan).meals }} Meals</span>
+                      </div>
+                    }
+                    @if (getPlanStats(plan).recipes > 0) {
+                      <div class="curated-plans__stat">
+                        <mat-icon>menu_book</mat-icon>
+                        <span>{{ getPlanStats(plan).recipes }} Recipes</span>
+                      </div>
+                    }
+                  </div>
 
-          @if (plan.goals.length > 0) {
-          <div class="curated-plans__plan-goals">
-            <h4>Goals</h4>
-            <div class="curated-plans__goals-list">
-              @for (goal of plan.goals; track goal.id) {
-              <div class="curated-plans__goal">
-                <mat-icon>flag</mat-icon>
-                <span>{{ goal.name }}</span>
-              </div>
+                  @if (plan.goals.length > 0) {
+                    <div class="curated-plans__plan-goals">
+                      <h4>Goals</h4>
+                      <div class="curated-plans__goals-list">
+                        @for (goal of plan.goals; track goal.id) {
+                          <div class="curated-plans__goal">
+                            <mat-icon>flag</mat-icon>
+                            <span>{{ goal.name }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (plan.restrictions.length > 0) {
+                    <div class="curated-plans__plan-restrictions">
+                      <h4>Restrictions</h4>
+                      <div class="curated-plans__restrictions-list">
+                        @for (restriction of plan.restrictions; track restriction.id) {
+                          <div class="curated-plans__restriction">
+                            <mat-icon>warning</mat-icon>
+                            <span>{{ restriction.name }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <div class="curated-plans__plan-actions">
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      [disabled]="cloningPlanId === plan.id"
+                      (click)="clonePlan(plan.id)"
+                      class="curated-plans__clone-btn">
+                      @if (cloningPlanId === plan.id) {
+                        <mat-icon>hourglass_empty</mat-icon>
+                      }
+                      @if (cloningPlanId !== plan.id) {
+                        <mat-icon>content_copy</mat-icon>
+                      }
+                      <span>{{ cloningPlanId === plan.id ? 'Cloning...' : 'Clone Plan' }}</span>
+                    </button>
+                  </div>
+                </mat-card>
               }
             </div>
-          </div>
-          }
-
-          @if (plan.restrictions.length > 0) {
-          <div class="curated-plans__plan-restrictions">
-            <h4>Restrictions</h4>
-            <div class="curated-plans__restrictions-list">
-              @for (restriction of plan.restrictions; track restriction.id) {
-              <div class="curated-plans__restriction">
-                <mat-icon>warning</mat-icon>
-                <span>{{ restriction.name }}</span>
-              </div>
-              }
+          } @else {
+            <div class="curated-plans__empty">
+              <mat-icon class="curated-plans__empty-icon">schedule</mat-icon>
+              <h3>No curated plans available</h3>
+              <p>Check back later for professionally curated meal plans</p>
             </div>
-          </div>
           }
-
-          <div class="curated-plans__plan-actions">
-            <button 
-              mat-raised-button 
-              color="primary" 
-              [disabled]="cloningPlanId === plan.id"
-              (click)="clonePlan(plan.id)"
-              class="curated-plans__clone-btn">
-              <mat-icon *ngIf="cloningPlanId === plan.id">hourglass_empty</mat-icon>
-              <mat-icon *ngIf="cloningPlanId !== plan.id">content_copy</mat-icon>
-              <span>{{ cloningPlanId === plan.id ? 'Cloning...' : 'Clone Plan' }}</span>
-            </button>
-          </div>
-        </mat-card>
         }
       </div>
-      } @else {
-      <div class="curated-plans__empty">
-        <mat-icon class="curated-plans__empty-icon">schedule</mat-icon>
-        <h3>No curated plans available</h3>
-        <p>Check back later for professionally curated meal plans</p>
-      </div>
-      }
-      }
-    </div>
     }
   </div>
-</div> 
+</div>

@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.ts
 
 import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -21,17 +21,16 @@ import { ConfirmationDialogComponent } from '../../../common/components/confirma
   selector: 'nom-privacy-settings',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatSlideToggleModule,
     MatButtonModule,
     MatDividerModule,
     MatProgressBarModule,
-    MatDialogModule, // Add MatDialogModule to imports
+    MatDialogModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-  ],
+    MatProgressSpinnerModule
+],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
   encapsulation: ViewEncapsulation.None,
