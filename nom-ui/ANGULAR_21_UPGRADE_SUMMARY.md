@@ -5,7 +5,7 @@ Successfully upgraded nom-ui from Angular 19.2.x to Angular 21.0.6 with full mod
 
 ## Major Upgrades Completed
 
-### ✅ Angular Framework (19.2.x → 21.0.6)
+### Angular Framework (19.2.x → 21.0.6)
 - **Angular Core**: 19.2.13 → 21.0.6
 - **Angular CLI**: 19.2.13 → 21.0.4
 - **Angular Material**: 19.2.17 → 21.0.5
@@ -13,21 +13,21 @@ Successfully upgraded nom-ui from Angular 19.2.x to Angular 21.0.6 with full mod
 - **TypeScript**: 5.7.3 → 5.9.3 (required by Angular 21)
 - **angular-eslint**: 20.1.1 → 21.1.0
 
-### ✅ Testing Framework Migration (Karma → Vitest)
+### Testing Framework Migration (Karma → Vitest)
 - Installed Vitest 4.0.16 with @vitest/ui and jsdom
 - Created vitest.config.ts and test setup
 - Migrated 11 test files from Jasmine to Vitest syntax
 - Removed all Karma dependencies (8 packages)
 - Updated package.json test scripts
 
-### ✅ Zoneless Change Detection
+### Zoneless Change Detection
 - Migrated from zone-based to zoneless change detection
 - Removed zone.js dependency entirely
 - Updated app.config.ts to use provideZonelessChangeDetection()
 - Fixed AsyncPipe imports in affected components
 - Reduced bundle size (no Zone.js overhead)
 
-### ⏭️ RxJS 8 (Deferred)
+### RxJS 8 (Deferred)
 - RxJS 8 currently only available in alpha
 - Staying on RxJS 7.8.x for production stability
 - Can upgrade when RxJS 8 stable is released
@@ -73,17 +73,17 @@ Successfully upgraded nom-ui from Angular 19.2.x to Angular 21.0.6 with full mod
 
 ## Verification
 
-✅ Build succeeds: `npm run build`
-✅ No TypeScript compilation errors
-✅ No Zone.js dependencies remaining
-✅ Bundle size reduced
-✅ Modern Angular 21 features enabled
+- Build succeeds: `npm run build`
+- No TypeScript compilation errors
+- No Zone.js dependencies remaining
+- Bundle size reduced
+- Modern Angular 21 features enabled
 
 ## Known Issues & Warnings
 
-⚠️ Bundle size warnings (acceptable - just budget alerts)
-⚠️ FontAwesome stylesheet path warning (non-blocking)
-⚠️ Some test files may need additional updates for full Vitest compatibility
+- Bundle size warnings (acceptable - just budget alerts)
+- FontAwesome stylesheet path warning (non-blocking)
+- Some test files may need additional updates for full Vitest compatibility
 
 ## Next Steps
 
