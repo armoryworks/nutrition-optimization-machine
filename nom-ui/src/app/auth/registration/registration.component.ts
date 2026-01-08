@@ -134,7 +134,7 @@ export class RegistrationComponent {
         });
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         const errorMessage = error.message; // Access the processed error message from AuthService
         this.notificationService.error(errorMessage); // Use NotificationService for error
         console.error('Registration failed:', error);

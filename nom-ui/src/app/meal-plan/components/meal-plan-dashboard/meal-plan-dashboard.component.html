@@ -11,7 +11,7 @@
                 <div class="nom-dashboard__stats-pills">
                     <div class="nom-dashboard__stat-pill">
                         <mat-icon>schedule</mat-icon>
-                        <span class="nom-dashboard__stat-number">{{ filteredPlans.length }}</span>
+                        <span class="nom-dashboard__stat-number">{{ filteredPlans().length }}</span>
                         <span class="nom-dashboard__stat-label">Plans</span>
                     </div>
                     <div class="nom-dashboard__stat-pill">
@@ -61,7 +61,7 @@
                     </div>
 
                     @if (filteredPlans.length > 0) {
-                        @if (viewMode === 'week') {
+                        @if (viewMode() === 'week') {
                             <!-- Week View -->
                             <div class="nom-dashboard__week-view">
                                 <div class="nom-dashboard__week-header">
@@ -109,7 +109,7 @@
                                     <h2 class="nom-dashboard__month-title">{{ getCurrentMonth() }}</h2>
                                 </div>
                                 <div class="nom-dashboard__item-grid">
-                                    @for (plan of filteredPlans; track plan.id) {
+                                    @for (plan of filteredPlans(); track plan.id) {
                                         <div class="nom-dashboard__item-card">
                                             <div class="nom-dashboard__item-row">
                                                 <div class="nom-dashboard__item-info">
@@ -140,7 +140,7 @@
                             <mat-icon class="nom-dashboard__empty-icon">schedule</mat-icon>
                             <h3>No meal plans yet</h3>
                             <p>Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
-                            @if (searchTerm) {
+                            @if (searchTerm()) {
                                 <div class="nom-dashboard__empty-actions">
                                     <button mat-stroked-button (click)="clearSearch()" class="nom-dashboard__empty-action">
                                         <mat-icon>clear</mat-icon>
@@ -153,7 +153,7 @@
                 </div>
             </div>
 
-            @if (error) {
+            @if (error()) {
                 <div class="nom-dashboard__error-message">
                     <mat-icon>error</mat-icon>
                     <p>{{ error }}</p>

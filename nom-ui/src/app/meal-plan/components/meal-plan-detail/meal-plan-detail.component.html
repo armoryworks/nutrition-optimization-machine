@@ -1,11 +1,11 @@
 <nom-base-detail
   [config]="detailConfig"
-  [loading]="isLoading"
-  [error]="error"
+  [loading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (retry)="onRetry()"
 >
-  @if (mealPlan && !isLoading) {
+  @if (mealPlan() && !isLoading()) {
     <div class="meal-plan-detail">
       <div class="meal-plan-detail__container">
         <!-- Header Actions -->
@@ -36,10 +36,10 @@
               <mat-icon class="meal-plan-detail__info-icon">restaurant_menu</mat-icon>
               <div class="meal-plan-detail__info-content">
                 <mat-card-title class="meal-plan-detail__info-title">
-                  {{ mealPlan.recipeName }}
+                  {{ mealPlan()!.recipeName }}
                 </mat-card-title>
                 <mat-card-subtitle class="meal-plan-detail__info-subtitle">
-                  {{ formatDate(mealPlan.date) }}
+                  {{ formatDate(mealPlan()!.date) }}
                 </mat-card-subtitle>
               </div>
             </mat-card-header>
@@ -56,13 +56,13 @@
                   <div class="meal-plan-detail__detail-label">Meal Type</div>
                   <div class="meal-plan-detail__detail-value">
                     <mat-chip 
-                      [color]="getMealTypeColor(mealPlan.mealType)"
+                      [color]="getMealTypeColor(mealPlan()!.mealType)"
                       class="meal-plan-detail__meal-type-chip"
                     >
                       <mat-icon class="meal-plan-detail__meal-type-icon">
-                        {{ getMealTypeIcon(mealPlan.mealType) }}
+                        {{ getMealTypeIcon(mealPlan()!.mealType) }}
                       </mat-icon>
-                      {{ mealPlan.mealType | titlecase }}
+                      {{ mealPlan()!.mealType | titlecase }}
                     </mat-chip>
                   </div>
                 </div>
@@ -72,11 +72,11 @@
                   <div class="meal-plan-detail__detail-label">Date</div>
                   <div class="meal-plan-detail__detail-value">
                     <span class="meal-plan-detail__date-text" 
-                          [class.today]="isToday(mealPlan.date)"
-                          [class.past]="isPast(mealPlan.date)">
-                      {{ formatDate(mealPlan.date) }}
+                          [class.today]="isToday(mealPlan()!.date)"
+                          [class.past]="isPast(mealPlan()!.date)">
+                      {{ formatDate(mealPlan()!.date) }}
                     </span>
-                    @if (isToday(mealPlan.date)) {
+                    @if (isToday(mealPlan()!.date)) {
                       <mat-chip color="accent" class="meal-plan-detail__today-chip">
                         Today
                       </mat-chip>
@@ -85,31 +85,31 @@
                 </div>
 
                 <!-- Description -->
-                @if (mealPlan.description) {
+                @if (mealPlan()!.description) {
                   <div class="meal-plan-detail__detail-item meal-plan-detail__detail-item--full">
                     <div class="meal-plan-detail__detail-label">Description</div>
                     <div class="meal-plan-detail__detail-value">
-                      <p class="meal-plan-detail__description">{{ mealPlan.description }}</p>
+                      <p class="meal-plan-detail__description">{{ mealPlan()!.description }}</p>
                     </div>
                   </div>
                 }
 
                 <!-- Author -->
-                @if (mealPlan.authorName) {
+                @if (mealPlan()!.authorName) {
                   <div class="meal-plan-detail__detail-item">
                     <div class="meal-plan-detail__detail-label">Created By</div>
                     <div class="meal-plan-detail__detail-value">
-                      <span class="meal-plan-detail__author">{{ mealPlan.authorName }}</span>
+                      <span class="meal-plan-detail__author">{{ mealPlan()!.authorName }}</span>
                     </div>
                   </div>
                 }
 
                 <!-- Group -->
-                @if (mealPlan.groupName) {
+                @if (mealPlan()!.groupName) {
                   <div class="meal-plan-detail__detail-item">
                     <div class="meal-plan-detail__detail-label">Household</div>
                     <div class="meal-plan-detail__detail-value">
-                      <span class="meal-plan-detail__group">{{ mealPlan.groupName }}</span>
+                      <span class="meal-plan-detail__group">{{ mealPlan()!.groupName }}</span>
                     </div>
                   </div>
                 }

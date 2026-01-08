@@ -27,12 +27,12 @@
 
   <div class="nom-header__right">
     <!-- Theme Toggle - Always visible -->
-    <button 
-      mat-icon-button 
+    <button
+      mat-icon-button
       class="nom-header__theme-toggle"
       (click)="toggleTheme()"
-      [attr.aria-label]="'Toggle ' + (isDarkTheme ? 'light' : 'dark') + ' theme'">
-      <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
+      <mat-icon>{{ isDarkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
 
     <!-- User Menu - Only visible when logged in -->
@@ -138,7 +138,7 @@
 </header>
 
 <!-- Login Popover - Only visible when not logged in and login button is clicked -->
-@if (!(isLoggedIn$ | async) && showLoginPopover) {
+@if (!(isLoggedIn$ | async) && showLoginPopover()) {
   <div class="nom-login-popover-backdrop" (click)="closeLoginPopover()"></div>
   <div class="nom-login-popover" data-cy="login-popover">
     <nom-login></nom-login>

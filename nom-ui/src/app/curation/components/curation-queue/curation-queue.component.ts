@@ -342,7 +342,7 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   }
 
-  parseIngredients(ingredientsString: string): { name: string, quantity: string, unit: string }[] {
+  parseIngredients(ingredientsString: string | undefined): { name: string, quantity: string, unit: string }[] {
     if (!ingredientsString) return [];
 
     try {

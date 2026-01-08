@@ -1,7 +1,7 @@
 <nom-base-page
   [config]="pageConfig"
-  [isLoading]="isLoading"
-  [error]="error"
+  [isLoading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (refresh)="onRefresh()"
   (retry)="onRetry()">
@@ -9,7 +9,7 @@
   <nom-base-form
     [config]="formConfig"
     [form]="healthAttributesForm"
-    [isSubmitting]="isSubmitting"
+    [isSubmitting]="isSubmitting()"
     (submit)="onSubmit()"
     (cancel)="onCancel()">
 

@@ -68,7 +68,7 @@
 
               <button mat-raised-button color="primary" type="submit" [disabled]="householdForm.invalid || isLoading"
                 class="submit-button">
-                @if (isLoading) {
+                @if (isLoading()) {
                 <mat-spinner diameter="20" class="household-create__loading"></mat-spinner>
                 <span>Saving...</span>
                 } @else {

@@ -17,7 +17,7 @@
     <mat-card class="shopping-category-management__form-card">
       <mat-card-header>
         <mat-card-title>
-          @if (isEditing) {
+          @if (isEditing()) {
             Edit Category
           } @else {
             Add New Category
@@ -58,7 +58,7 @@
           </mat-form-field>
 
           <div class="shopping-category-management__form-actions">
-            @if (isEditing) {
+            @if (isEditing()) {
               <button mat-button type="button" (click)="cancelEdit()">
                 Cancel
               </button>
@@ -70,11 +70,11 @@
               [disabled]="categoryForm.invalid || isSubmitting"
               class="shopping-category-management__submit-btn">
               @if (!isSubmitting) {
-                <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+                <mat-icon>{{ isEditing() ? 'save' : 'add' }}</mat-icon>
               } @else {
                 <mat-spinner diameter="20"></mat-spinner>
               }
-              {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update Category' : 'Add Category') }}
+              {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
             </button>
           </div>
         </form>
@@ -85,7 +85,7 @@
     <div class="shopping-category-management__list-section">
       <h2 class="shopping-category-management__list-title">Existing Categories</h2>
 
-      @if (loading) {
+      @if (loading()) {
         <div class="shopping-category-management__loading">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading categories...</p>
@@ -102,7 +102,7 @@
 
       @if (!loading && categories.length > 0) {
         <div class="shopping-category-management__categories-grid">
-          @for (category of categories; track category.id) {
+          @for (category of categories(); track category.id) {
             <mat-card class="shopping-category-management__category-card">
               <mat-card-header>
                 <mat-card-title class="shopping-category-management__category-title">

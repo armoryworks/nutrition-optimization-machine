@@ -19,7 +19,7 @@
     </div>
 
     <!-- Loading State -->
-    @if (loading) {
+    @if (loading()) {
       <div class="messaging-inbox__loading">
         <mat-spinner diameter="40"></mat-spinner>
         <p>Loading messages...</p>
@@ -27,13 +27,13 @@
     }
 
     <!-- Error State -->
-    @if (error && !loading) {
+    @if (error() && !loading()) {
       <div class="messaging-inbox__error">
         <mat-card class="messaging-inbox__error-card">
           <mat-card-content>
             <div class="messaging-inbox__error-content">
               <mat-icon color="warn">error</mat-icon>
-              <p>{{ error }}</p>
+              <p>{{ error() }}</p>
               <button mat-button color="primary" (click)="onRetry()">
                 Try Again
               </button>
@@ -44,7 +44,7 @@
     }
 
     <!-- Empty State -->
-    @if (!loading && !error && messageThreads.length === 0) {
+    @if (!loading() && !error() && messageThreads().length === 0) {
       <div class="messaging-inbox__empty">
         <mat-card class="messaging-inbox__empty-card">
           <mat-card-content>
@@ -62,12 +62,12 @@
     }
 
     <!-- Message Threads List -->
-    @if (!loading && !error && messageThreads.length > 0) {
+    @if (!loading() && !error() && messageThreads().length > 0) {
       <div class="messaging-inbox__content">
         <mat-card class="messaging-inbox__threads-card">
           <mat-card-content>
             <div class="messaging-inbox__threads">
-              @for (thread of messageThreads; track thread) {
+              @for (thread of messageThreads(); track thread) {
                 <div
                   class="messaging-inbox__thread"
                   [class.messaging-inbox__thread--unread]="hasUnreadMessages(thread)"

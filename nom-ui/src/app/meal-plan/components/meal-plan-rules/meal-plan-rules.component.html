@@ -24,7 +24,7 @@
           <mat-form-field appearance="outline" class="meal-plan-rules__field">
             <mat-label>Day of Week</mat-label>
             <mat-select formControlName="dayOfWeekId" class="meal-plan-rules__select">
-              @for (day of daysOfWeek; track day.id) {
+              @for (day of daysOfWeek(); track day.id) {
                 <mat-option [value]="day.id">
                   {{ day.name }}
                 </mat-option>
@@ -38,7 +38,7 @@
           <mat-form-field appearance="outline" class="meal-plan-rules__field">
             <mat-label>Meal Type</mat-label>
             <mat-select formControlName="mealTypeId" class="meal-plan-rules__select">
-              @for (mealType of mealTypes; track mealType.id) {
+              @for (mealType of mealTypes(); track mealType.id) {
                 <mat-option [value]="mealType.id">
                   {{ mealType.name }}
                 </mat-option>
@@ -66,12 +66,12 @@
               type="submit"
               [disabled]="ruleForm.invalid || isAddingRule"
               class="meal-plan-rules__submit-btn">
-              @if (isAddingRule) {
+              @if (isAddingRule()) {
                 <mat-icon>hourglass_empty</mat-icon>
               } @else {
                 <mat-icon>add</mat-icon>
               }
-              {{ isAddingRule ? 'Adding...' : 'Add Rule' }}
+              {{ isAddingRule() ? 'Adding...' : 'Add Rule' }}
             </button>
           </div>
         </form>
@@ -82,7 +82,7 @@
     <div class="meal-plan-rules__list-section">
       <h2 class="meal-plan-rules__list-title">Existing Rules</h2>
 
-      @if (isLoading) {
+      @if (isLoading()) {
         <div class="meal-plan-rules__loading">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading rules...</p>
@@ -99,7 +99,7 @@
 
       @if (!isLoading && rules.length > 0) {
         <div class="meal-plan-rules__rules-list">
-          @for (rule of rules; track rule.id) {
+          @for (rule of rules(); track rule.id) {
             <mat-card class="meal-plan-rules__rule-card">
               <mat-card-header>
                 <mat-card-title class="meal-plan-rules__rule-title">

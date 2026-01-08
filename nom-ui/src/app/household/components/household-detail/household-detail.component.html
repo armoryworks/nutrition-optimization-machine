@@ -1,11 +1,11 @@
 <nom-base-detail
   [config]="detailConfig"
-  [loading]="isLoading"
-  [error]="error"
+  [loading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (retry)="onRetry()"
 >
-  @if (household && !isLoading) {
+  @if (household() && !isLoading()) {
     <div class="household-detail">
       <div class="household-detail__container">
         <!-- Header Actions -->
@@ -41,11 +41,11 @@
               <mat-icon class="household-detail__info-icon">home</mat-icon>
               <div class="household-detail__info-content">
                 <mat-card-title class="household-detail__info-title">
-                  {{ household.name }}
+                  {{ household()!.name }}
                 </mat-card-title>
-                @if (household.description) {
+                @if (household()!.description) {
                   <mat-card-subtitle class="household-detail__info-subtitle">
-                    {{ household.description }}
+                    {{ household()!.description }}
                   </mat-card-subtitle>
                 }
               </div>
@@ -61,28 +61,28 @@
                 <div class="household-detail__stat">
                   <mat-icon class="household-detail__stat-icon">people</mat-icon>
                   <div class="household-detail__stat-content">
-                    <span class="household-detail__stat-value">{{ household.memberCount || 0 }}</span>
+                    <span class="household-detail__stat-value">{{ household()!.memberCount || 0 }}</span>
                     <span class="household-detail__stat-label">Members</span>
                   </div>
                 </div>
                 <div class="household-detail__stat">
                   <mat-icon class="household-detail__stat-icon">restaurant_menu</mat-icon>
                   <div class="household-detail__stat-content">
-                    <span class="household-detail__stat-value">{{ household.recipeCount || 0 }}</span>
+                    <span class="household-detail__stat-value">{{ household()!.recipeCount || 0 }}</span>
                     <span class="household-detail__stat-label">Recipes</span>
                   </div>
                 </div>
                 <div class="household-detail__stat">
                   <mat-icon class="household-detail__stat-icon">schedule</mat-icon>
                   <div class="household-detail__stat-content">
-                    <span class="household-detail__stat-value">{{ household.planCount || 0 }}</span>
+                    <span class="household-detail__stat-value">{{ household()!.planCount || 0 }}</span>
                     <span class="household-detail__stat-label">Meal Plans</span>
                   </div>
                 </div>
                 <div class="household-detail__stat">
                   <mat-icon class="household-detail__stat-icon">shopping_cart</mat-icon>
                   <div class="household-detail__stat-content">
-                    <span class="household-detail__stat-value">{{ household.shoppingListCount || 0 }}</span>
+                    <span class="household-detail__stat-value">{{ household()!.shoppingListCount || 0 }}</span>
                     <span class="household-detail__stat-label">Shopping Lists</span>
                   </div>
                 </div>
@@ -120,13 +120,13 @@
         </div>
 
         <!-- Members Section -->
-        @if (household.members && household.members.length > 0) {
+        @if (household()!.members && household()!.members!.length > 0) {
           <div class="household-detail__members-section">
             <h3 class="household-detail__members-title">Household Members</h3>
             <mat-card class="household-detail__members-card">
               <mat-card-content>
                 <div class="household-detail__members-list">
-                  @for (member of household.members; track member.id) {
+                  @for (member of household()!.members; track member.id) {
                     <div class="household-detail__member-item">
                       <div class="household-detail__member-info">
                         <mat-icon class="household-detail__member-icon">person</mat-icon>

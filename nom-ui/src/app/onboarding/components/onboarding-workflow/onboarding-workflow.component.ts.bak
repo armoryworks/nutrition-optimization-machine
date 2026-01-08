@@ -174,12 +174,12 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       (step) => step.id === stepId
     );
     if (foundIndex !== -1) {
-      this.currentStepIndex.set(foundIndex);
+      this.currentStepIndex = foundIndex;
     } else {
       this.router.navigate(['onboarding', this.workflowSteps[0].id], {
         replaceUrl: true,
       });
-      this.currentStepIndex.set(0);
+      this.currentStepIndex = 0;
     }
 
     const healthAttributesStepIndex = this.workflowSteps.findIndex(
@@ -189,12 +189,12 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       (s) => s.id === 'societalRestrictions'
     );
 
-    if (this.currentStepIndex() !== healthAttributesStepIndex) {
+    if (this.currentStepIndex !== healthAttributesStepIndex) {
       this.currentHealthAttributePersonIndex = 0;
     }
     if (
-      this.currentStepIndex() < firstRestrictionStepIndex ||
-      this.currentStepIndex() >
+      this.currentStepIndex < firstRestrictionStepIndex ||
+      this.currentStepIndex >
       this.workflowSteps.findIndex((s) => s.id === 'personalPreferences')
     ) {
       this.currentRestrictionPersonIndex = 0;
@@ -202,7 +202,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   get currentStep(): OnboardingWorkflowStep | undefined {
-    const currentStepConfig = this.workflowSteps[this.currentStepIndex()];
+    const currentStepConfig = this.workflowSteps[this.currentStepIndex];
 
     if (
       currentStepConfig.id === 'healthAttributes' &&
@@ -227,8 +227,8 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     );
 
     if (
-      this.currentStepIndex() >= firstRestrictionStepIndex &&
-      this.currentStepIndex() <= lastRestrictionStepIndex &&
+      this.currentStepIndex >= firstRestrictionStepIndex &&
+      this.currentStepIndex <= lastRestrictionStepIndex &&
       this.onboardingData.hasAdditionalParticipants &&
       this.onboardingData.applyIndividualPreferencesToEachPerson &&
       this.currentRestrictionPersonIndex < this.allPersonsInPlan.length
@@ -519,7 +519,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   private nextStepInternal(): void {
     this.error.set(null);
 
-    let nextStepIndexCandidate = this.currentStepIndex() + 1;
+    let nextStepIndexCandidate = this.currentStepIndex + 1;
 
     const healthAttributesStepIndex = this.workflowSteps.findIndex(
       (s) => s.id === 'healthAttributes'
@@ -543,8 +543,8 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       this.currentStep?.id === 'invitationCode' &&
       this.onboardingData.planInvitationCode
     ) {
-      this.currentStepIndex.set(healthAttributesStepIndex);
-      this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+      this.currentStepIndex = healthAttributesStepIndex;
+      this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
@@ -553,8 +553,8 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       this.currentStep?.id === 'additionalParticipants' &&
       this.onboardingData.hasAdditionalParticipants === false
     ) {
-      this.currentStepIndex.set(summaryStepIndex);
-      this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+      this.currentStepIndex = summaryStepIndex;
+      this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
@@ -577,20 +577,20 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
 
     // Handle looping for Restriction types (Steps 9-11)
     if (
-      this.currentStepIndex() >= firstRestrictionStepIndex &&
-      this.currentStepIndex() <= lastRestrictionStepIndex
+      this.currentStepIndex >= firstRestrictionStepIndex &&
+      this.currentStepIndex <= lastRestrictionStepIndex
     ) {
       if (
-        this.currentStepIndex() === lastRestrictionStepIndex &&
+        this.currentStepIndex === lastRestrictionStepIndex &&
         this.onboardingData.hasAdditionalParticipants &&
         this.onboardingData.applyIndividualPreferencesToEachPerson &&
         this.currentRestrictionPersonIndex < this.allPersonsInPlan.length - 1
       ) {
         this.currentRestrictionPersonIndex++;
-        this.currentStepIndex.set(firstRestrictionStepIndex);
-        this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+        this.currentStepIndex = firstRestrictionStepIndex;
+        this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
-      } else if (this.currentStepIndex() === lastRestrictionStepIndex) {
+      } else if (this.currentStepIndex === lastRestrictionStepIndex) {
         if (
           this.onboardingData.hasAdditionalParticipants &&
           this.workflowSteps[applyIndividualPreferencesStepIndex].condition!(
@@ -619,8 +619,8 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.currentStepIndex.set(nextStepIndexCandidate);
-    this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+    this.currentStepIndex = nextStepIndexCandidate;
+    this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
   }
 
   previousStep(): void {
@@ -633,24 +633,24 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
       this.currentStep?.id === 'summary' &&
       this.onboardingData.hasAdditionalParticipants === false
     ) {
-      this.currentStepIndex.set(this.additionalParticipantsStepIndex);
-      this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+      this.currentStepIndex = this.additionalParticipantsStepIndex;
+      this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
     // Handle going back from Apply Individual Preferences (Step 12)
     if (this.currentStep?.id === 'applyIndividualPreferences') {
-      this.currentStepIndex.set(this.lastRestrictionStepIndex);
-      this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+      this.currentStepIndex = this.lastRestrictionStepIndex;
+      this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
       return;
     }
 
     // Handle going back within Restriction loop (Steps 9-11)
     if (
-      this.currentStepIndex() >= this.firstRestrictionStepIndex &&
-      this.currentStepIndex() <= this.lastRestrictionStepIndex
+      this.currentStepIndex >= this.firstRestrictionStepIndex &&
+      this.currentStepIndex <= this.lastRestrictionStepIndex
     ) {
-      if (this.currentStepIndex() === this.firstRestrictionStepIndex) {
+      if (this.currentStepIndex === this.firstRestrictionStepIndex) {
         // If at the first restriction step for a person in loop
         if (
           this.onboardingData.hasAdditionalParticipants &&
@@ -658,52 +658,52 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
           this.currentRestrictionPersonIndex > 0
         ) {
           this.currentRestrictionPersonIndex--;
-          this.currentStepIndex.set(this.lastRestrictionStepIndex);
+          this.currentStepIndex = this.lastRestrictionStepIndex;
         } else {
-          this.currentStepIndex.set(this.restrictionScopeStepIndex);
+          this.currentStepIndex = this.restrictionScopeStepIndex;
         }
-        this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+        this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
       } else {
-        this.currentStepIndex.set(this.currentStepIndex() - 1);
-        this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+        this.currentStepIndex--;
+        this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
       }
     }
 
     // Handle going back within Health Attributes loop (Step 6)
-    if (this.currentStepIndex() === this.healthAttributesStepIndex) {
+    if (this.currentStepIndex === this.healthAttributesStepIndex) {
       if (this.currentHealthAttributePersonIndex > 0) {
         this.currentHealthAttributePersonIndex--;
         this.navigateToStep(this.workflowSteps[this.healthAttributesStepIndex].id);
         return;
       } else {
         if (this.onboardingData.planInvitationCode) {
-          this.currentStepIndex.set(this.invitationCodeStepIndex);
+          this.currentStepIndex = this.invitationCodeStepIndex;
         } else {
-          this.currentStepIndex.set(this.additionalParticipantsStepIndex);
+          this.currentStepIndex = this.additionalParticipantsStepIndex;
         }
-        this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+        this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
         return;
       }
     }
 
     // Default back navigation: Find the previous un-skipped step
-    if (this.currentStepIndex() > 0) {
-      this.currentStepIndex.set(this.currentStepIndex() - 1);
+    if (this.currentStepIndex > 0) {
+      this.currentStepIndex--;
 
       // Skip back over conditional steps if their condition is no longer met
       while (
-        this.currentStepIndex() > 0 &&
-        this.workflowSteps[this.currentStepIndex()].condition &&
-        !this.workflowSteps[this.currentStepIndex()].condition!(
+        this.currentStepIndex > 0 &&
+        this.workflowSteps[this.currentStepIndex].condition &&
+        !this.workflowSteps[this.currentStepIndex].condition!(
           this.onboardingData
         )
       ) {
-        this.currentStepIndex.set(this.currentStepIndex() - 1);
+        this.currentStepIndex--;
       }
     }
-    this.navigateToStep(this.workflowSteps[this.currentStepIndex()].id);
+    this.navigateToStep(this.workflowSteps[this.currentStepIndex].id);
   }
 
   skipCurrentStep(): void {

@@ -262,7 +262,6 @@ export class RestrictionEditComponent implements OnInit {
         break;
       default:
         console.error('Unknown restriction type for submission.');
-        this.formSubmitted.error('Unknown restriction type.');
         return;
     }
 
@@ -290,9 +289,6 @@ export class RestrictionEditComponent implements OnInit {
 
       this.formSubmitted.emit(newRestriction);
     } else {
-      this.formSubmitted.error(
-        'Restriction form is invalid. Please correct the errors.'
-      );
       console.error('Restriction form is invalid. Please correct the errors.');
     }
   }
