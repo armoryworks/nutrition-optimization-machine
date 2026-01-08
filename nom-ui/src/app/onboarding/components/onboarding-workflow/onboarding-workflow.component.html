@@ -3,27 +3,27 @@
   <mat-card class="nom-card">
     <mat-card-header class="nom-card__header">
       <mat-card-title class="nom-card__title">
-        @if (submitMessage) { Onboarding Complete! } @else { Onboarding:
+        @if (submitMessage()) { Onboarding Complete! } @else { Onboarding:
         {{ currentStepTitle }}
         }
       </mat-card-title>
     </mat-card-header>
 
-    @if (isLoading || isSubmitting) {
+    @if (isLoading() || isSubmitting()) {
     <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
-    } @if (error && !submitMessage) {
+    } @if (error() && !submitMessage()) {
     <mat-card-content class="nom-card__content">
       <div class="nom-form__error form-level-error nom-message-text mb-4">
-        {{ error }}
+        {{ error() }}
       </div>
     </mat-card-content>
-    } @else if (submitMessage) {
+    } @else if (submitMessage()) {
     <mat-card-content class="nom-card__content">
       <div class="text-center p-4 rounded-md" [ngClass]="{
-          'bg-green-100 text-green-700': submitMessage.includes('successfully'),
-          'bg-red-100 text-red-700': !submitMessage.includes('successfully')
+          'bg-green-100 text-green-700': submitMessage()!.includes('successfully'),
+          'bg-red-100 text-red-700': !submitMessage()!.includes('successfully')
         }">
-        <p class="nom-message-text font-semibold">{{ submitMessage }}</p>
+        <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
         <button mat-raised-button color="primary" (click)="onCompletionRedirect()" class="nom-button mt-4">
           Go to Dashboard
         </button>
@@ -35,7 +35,7 @@
       <!-- Step 1: Invitation Code -->
       @if (currentStep?.id === 'invitationCode') {
       <nom-onboarding-invitation-code [currentInvitationCode]="onboardingData.planInvitationCode"
-        [isLoading]="isLoading" [errorMessage]="error" (codeSubmitted)="onInvitationCodeSubmitted($event)"
+        [isLoading]="isLoading()" [errorMessage]="error()" (codeSubmitted)="onInvitationCodeSubmitted($event)"
         (noCodeSelected)="onNoInvitationCodeSelected()">
       </nom-onboarding-invitation-code>
       }
@@ -48,7 +48,7 @@
           onboardingData.numberOfAdditionalParticipants
         " [additionalParticipantDetailsInput]="
           onboardingData.additionalParticipantDetails
-        " [principalPersonId]="onboardingData.personId" [isLoading]="isLoading"
+        " [principalPersonId]="onboardingData.personId" [isLoading]="isLoading()"
         [allCurrentPersonsInPlan]="allPersonsInPlan"
         (participantsDataSubmitted)="onAdditionalParticipantsSubmitted($event)" (skipStep)="previousStep()">
       </nom-onboarding-additional-participants>
@@ -65,7 +65,7 @@
       @else if (currentStep?.id === 'restrictionScope') {
       <nom-onboarding-restriction-scope [restrictionScopeInput]="onboardingData.currentRestrictionScope"
         [affectedPersonIdsInput]="onboardingData.currentAffectedPersonIds" [allPersonsInPlan]="allPersonsInPlan"
-        [isLoading]="isLoading" (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)">
+        [isLoading]="isLoading()" (scopeSubmitted)="onRestrictionScopeDataSubmitted($event)">
       </nom-onboarding-restriction-scope>
       }
       <!-- Steps 9-11: Restriction Edit (Loops per person if Individual Preferences selected) -->
@@ -175,22 +175,22 @@
       }
     </mat-card-content>
 
-    @if (!submitMessage && !!currentStep && currentStep.id) {
+    @if (!submitMessage() && !!currentStep && currentStep.id) {
     <mat-card-actions class="nom-card__footer flex justify-between items-center px-6 py-4">
-      @if(currentStepIndex > 0){
+      @if(currentStepIndex() > 0){
       <button mat-button color="accent" (click)="previousStep()"
-        [disabled]="currentStepIndex === 0 || isLoading || isSubmitting" class="nom-button">
+        [disabled]="currentStepIndex() === 0 || isLoading() || isSubmitting()" class="nom-button">
         Previous
       </button>
       } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) { <button mat-stroked-button
-        (click)="skipCurrentStep()" [disabled]="isLoading || isSubmitting" class="nom-button">
+        (click)="skipCurrentStep()" [disabled]="isLoading() || isSubmitting()" class="nom-button">
         Skip
         </button>
         }
 
         <button mat-raised-button color="primary" (click)="triggerChildComponentSubmission()"
-          [disabled]="isLoading || isSubmitting" class="nom-button">
-          @if (!isSubmitting) {
+          [disabled]="isLoading() || isSubmitting()" class="nom-button">
+          @if (!isSubmitting()) {
           <span>{{ isSubmitStep() ? 'Submit Onboarding' : 'Next' }}</span>
           } @else {
           <mat-spinner diameter="20" class="nom-button__spinner"></mat-spinner>

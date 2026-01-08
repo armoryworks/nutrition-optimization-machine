@@ -10,7 +10,7 @@
       mat-raised-button
       color="primary"
       (click)="onHasParticipantsAnswer(true)"
-      [disabled]="isLoading"
+      [disabled]="isLoading()"
       class="nom-button mr-2"
     >
       Yes
@@ -19,7 +19,7 @@
       mat-raised-button
       color="accent"
       (click)="onHasParticipantsAnswer(false)"
-      [disabled]="isLoading"
+      [disabled]="isLoading()"
       class="nom-button"
     >
       No
@@ -53,7 +53,7 @@
       mat-raised-button
       color="accent"
       (click)="goToPreviousSubStep()"
-      [disabled]="isLoading"
+      [disabled]="isLoading()"
       class="nom-button mr-2"
     >
       Previous
@@ -62,7 +62,7 @@
       mat-raised-button
       color="primary"
       (click)="onHowManySubmit()"
-      [disabled]="isLoading || numberOfAdditionalParticipantsControl.invalid"
+      [disabled]="isLoading() || numberOfAdditionalParticipantsControl.invalid"
       class="nom-button"
     >
       Next
@@ -92,7 +92,7 @@
       mat-raised-button
       color="accent"
       (click)="goToPreviousSubStep()"
-      [disabled]="isLoading"
+      [disabled]="isLoading()"
       class="nom-button mr-2"
     >
       Previous
@@ -101,7 +101,7 @@
       mat-raised-button
       color="primary"
       (click)="onNamesSubmit()"
-      [disabled]="isLoading || !areAllParticipantNamesValid"
+      [disabled]="isLoading() || !areAllParticipantNamesValid"
       class="nom-button"
     >
       Next

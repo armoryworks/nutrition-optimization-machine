@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'; // Import ActivatedRoute and Router
 
@@ -34,7 +34,7 @@ export class ConfirmEmailComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private router = inject(Router);
 
-  isLoading = true;
+  isLoading = signal(true);
   confirmationStatus: 'pending' | 'success' | 'failure' = 'pending';
   confirmationMessage = 'Confirming your email address...';
 
@@ -52,7 +52,7 @@ export class ConfirmEmailComponent implements OnInit {
         this.confirmationStatus = 'failure';
         this.confirmationMessage =
           'Invalid email confirmation link. Missing user ID or code.';
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.error(this.confirmationMessage);
         return;
       }
@@ -65,7 +65,7 @@ export class ConfirmEmailComponent implements OnInit {
 
       this.authService.confirmEmail(confirmationData).subscribe(
         () => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.confirmationStatus = 'success';
           this.confirmationMessage = 'Your email has been successfully confirmed!';
           this.notificationService.success(this.confirmationMessage);
@@ -75,7 +75,7 @@ export class ConfirmEmailComponent implements OnInit {
           }, 3000);
         },
         (error) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.confirmationStatus = 'failure';
           console.error('Email confirmation error:', error);
           // The error.message is already processed by AuthService.handleError

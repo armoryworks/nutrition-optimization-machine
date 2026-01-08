@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -45,7 +45,7 @@ export class SendConfirmationEmailComponent {
   private notificationService = inject(NotificationService);
 
   sendConfirmationEmailForm: FormGroup;
-  isLoading = false;
+  isLoading = signal(false);
 
 
 
@@ -68,20 +68,20 @@ export class SendConfirmationEmailComponent {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const data: SendConfirmationEmail =
       this.sendConfirmationEmailForm.getRawValue();
 
     this.authService.sendConfirmationEmail(data).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.success(
           'Confirmation email sent. Please check your inbox!'
         );
         this.sendConfirmationEmailForm.reset(); // Optionally reset the form on success
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Send confirmation email error:', error);
         // The error.message is already processed by the AuthService's handleError
         this.notificationService.error(

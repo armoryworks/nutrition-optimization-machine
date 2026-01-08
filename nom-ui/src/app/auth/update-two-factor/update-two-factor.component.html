@@ -9,7 +9,7 @@
       >
     </mat-card-header>
 
-    @if (isLoading) {
+    @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       color="primary"
@@ -93,10 +93,10 @@
           mat-raised-button
           color="primary"
           type="submit"
-          [disabled]="twoFactorForm.invalid || isLoading"
+          [disabled]="twoFactorForm.invalid || isLoading()"
           class="nom-button"
         >
-          @if (!isLoading) {
+          @if (!isLoading()) {
           <span>Save 2FA Settings</span>
           } @else {
           <mat-spinner

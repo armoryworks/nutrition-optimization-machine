@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -38,11 +38,11 @@ export class RecipeScrapingComponent {
     private snackBar = inject(MatSnackBar);
 
     scrapingForm: FormGroup;
-    isLoading = false;
-    isScraping = false;
-    error: string | null = null;
-    scrapedRecipe: RecipeScrapingModel | null = null;
-    showPreview = false;
+    isLoading = signal(false);
+    isScraping = signal(false);
+    error = signal<string | null>(null);
+    scrapedRecipe = signal<RecipeScrapingModel | null>(null);
+    showPreview = signal(false);
 
     constructor() {
         this.scrapingForm = this.nonNullableFb.group({
@@ -62,9 +62,9 @@ export class RecipeScrapingComponent {
             return;
         }
 
-        this.isLoading = true;
-        this.error = null;
-        this.scrapedRecipe = null;
+        this.isLoading.set(true);
+        this.error.set(null);
+        this.scrapedRecipe.set(null);
 
         try {
             const request = {
@@ -72,13 +72,14 @@ export class RecipeScrapingComponent {
                 useOpenAI: false
             };
 
-            this.scrapedRecipe = await this.recipeService.testScrapeRecipe(request).toPromise();
-            this.showPreview = true;
+            const result = await this.recipeService.testScrapeRecipe(request).toPromise();
+            this.scrapedRecipe.set(result || null);
+            this.showPreview.set(true);
         } catch (error: unknown) {
-            this.error = (error as { error?: { message?: string } })?.error?.message || 'Failed to test scrape recipe';
+            this.error.set((error as { error?: { message?: string } })?.error?.message || 'Failed to test scrape recipe');
             console.error('Error testing recipe scraping:', error);
         } finally {
-            this.isLoading = false;
+            this.isLoading.set(false);
         }
     }
 
@@ -86,12 +87,12 @@ export class RecipeScrapingComponent {
      * Create recipe from scraped data
      */
     async createRecipe(): Promise<void> {
-        if (!this.scrapedRecipe) {
+        if (!this.scrapedRecipe()) {
             return;
         }
 
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         try {
             const request: RecipeScrapingRequestModel = {
@@ -102,17 +103,17 @@ export class RecipeScrapingComponent {
 
             const response = await this.recipeService.scrapeRecipeFromUrl(request).toPromise();
 
-            if (response.success) {
+            if (response && response.success) {
                 // Navigate to the created recipe
                 this.router.navigate(['/recipes', response.recipeId]);
             } else {
-                this.error = response.error || 'Failed to create recipe';
+                this.error.set((response && response.error) || 'Failed to create recipe');
             }
         } catch (error: unknown) {
-            this.error = (error as { error?: { message?: string } })?.error?.message || 'Failed to create recipe';
+            this.error.set((error as { error?: { message?: string } })?.error?.message || 'Failed to create recipe');
             console.error('Error creating recipe:', error);
         } finally {
-            this.isLoading = false;
+            this.isLoading.set(false);
         }
     }
 
@@ -128,9 +129,9 @@ export class RecipeScrapingComponent {
      */
     reset(): void {
         this.scrapingForm.reset();
-        this.error = null;
-        this.scrapedRecipe = null;
-        this.showPreview = false;
+        this.error.set(null);
+        this.scrapedRecipe.set(null);
+        this.showPreview.set(false);
     }
 
     /**

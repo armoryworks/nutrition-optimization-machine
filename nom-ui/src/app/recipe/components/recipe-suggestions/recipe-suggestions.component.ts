@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -50,23 +50,34 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
 
     suggestionForm: FormGroup;
     aiSuggestionForm: FormGroup;
-    suggestions: any[] = [];
-    trendingRecipes: any[] = [];
-    seasonalRecipes: any[] = [];
-    loading = false;
-    aiLoading = false;
-    activeTab = 'ingredients';
-    selectedIngredients: number[] = [];
-    selectedTools: number[] = [];
+    suggestions = signal<any[]>([]);
+    trendingRecipes = signal<any[]>([]);
+    seasonalRecipes = signal<any[]>([]);
+    loading = signal(false);
+    aiLoading = signal(false);
+    activeTab = signal('ingredients');
+    selectedIngredients = signal<number[]>([]);
+    selectedTools = signal<number[]>([]);
 
     // Reference data loaded dynamically
-    difficulties: ReferenceItemModel[] = [];
-    cuisines: any[] = [];
-    mealTypes: any[] = [];
-    dietaryOptions: any[] = [];
+    difficulties = signal<ReferenceItemModel[]>([]);
+    cuisines = signal<any[]>([]);
+    mealTypes = signal<any[]>([]);
+    dietaryOptions = signal<any[]>([]);
 
     // Make constants available in template
     readonly REFERENCE_IDS = REFERENCE_IDS;
+
+    // Computed signals
+    isLoadingSuggestions = computed(() => this.loading());
+    isLoadingAISuggestions = computed(() => this.aiLoading());
+    hasSuggestions = computed(() => this.suggestions().length > 0);
+    hasTrendingRecipes = computed(() => this.trendingRecipes().length > 0);
+    hasSeasonalRecipes = computed(() => this.seasonalRecipes().length > 0);
+    hasSelectedIngredients = computed(() => this.selectedIngredients().length > 0);
+    hasSelectedTools = computed(() => this.selectedTools().length > 0);
+    isFormValid = computed(() => this.suggestionForm.valid);
+    isAIFormValid = computed(() => this.aiSuggestionForm.valid);
 
     private destroy$ = new Subject<void>();
 
@@ -122,7 +133,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
                 distinctUntilChanged()
             )
             .subscribe(() => {
-                if (this.activeTab === 'ingredients' && this.selectedIngredients.length > 0) {
+                if (this.activeTab() === 'ingredients' && this.selectedIngredients().length > 0) {
                     this.getSuggestions();
                 }
             });
@@ -138,10 +149,10 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
         this.recipeReferenceService.getRecipeReferencesBulk()
             .pipe(takeUntil(this.destroy$))
             .subscribe(({ difficulties, cuisines, mealTypes, dietaryOptions }) => {
-                this.difficulties = difficulties;
-                this.cuisines = cuisines;
-                this.mealTypes = mealTypes;
-                this.dietaryOptions = dietaryOptions;
+                this.difficulties.set(difficulties);
+                this.cuisines.set(cuisines);
+                this.mealTypes.set(mealTypes);
+                this.dietaryOptions.set(dietaryOptions);
             });
     }
 
@@ -149,23 +160,23 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
      * Get recipe suggestions based on selected ingredients and tools
      */
     getSuggestions(): void {
-        if (this.selectedIngredients.length === 0) {
+        if (this.selectedIngredients().length === 0) {
             return;
         }
 
-        this.loading = true;
+        this.loading.set(true);
         const query: RecipeSuggestionQuery = this.suggestionForm.value;
 
-        this.recipeSuggestionService.getRecipeSuggestions(query, this.selectedIngredients, this.selectedTools)
+        this.recipeSuggestionService.getRecipeSuggestions(query, this.selectedIngredients(), this.selectedTools())
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
-                    this.suggestions = response;
-                    this.loading = false;
+                    this.suggestions.set(response);
+                    this.loading.set(false);
                 },
                 error: (error) => {
                     console.error('Error getting suggestions:', error);
-                    this.loading = false;
+                    this.loading.set(false);
                 }
             });
     }
@@ -178,19 +189,19 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.aiLoading = true;
+        this.aiLoading.set(true);
         const query = this.aiSuggestionForm.value;
 
         this.recipeSuggestionService.generateAISuggestions(query)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (response) => {
-                    this.suggestions = response;
-                    this.aiLoading = false;
+                    this.suggestions.set(response);
+                    this.aiLoading.set(false);
                 },
                 error: (error) => {
                     console.error('Error generating AI suggestions:', error);
-                    this.aiLoading = false;
+                    this.aiLoading.set(false);
                 }
             });
     }
@@ -203,7 +214,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (recipes) => {
-                    this.trendingRecipes = recipes;
+                    this.trendingRecipes.set(recipes);
                 },
                 error: (error) => {
                     console.error('Error loading trending recipes:', error);
@@ -219,7 +230,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (recipes) => {
-                    this.seasonalRecipes = recipes;
+                    this.seasonalRecipes.set(recipes);
                 },
                 error: (error) => {
                     console.error('Error loading seasonal recipes:', error);
@@ -235,7 +246,7 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (recipes) => {
-                    this.suggestions = recipes;
+                    this.suggestions.set(recipes);
                 },
                 error: (error) => {
                     console.error('Error loading recommendations:', error);
@@ -247,11 +258,12 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
      * Toggle ingredient selection
      */
     toggleIngredient(ingredientId: number): void {
-        const index = this.selectedIngredients.indexOf(ingredientId);
+        const current = this.selectedIngredients();
+        const index = current.indexOf(ingredientId);
         if (index > -1) {
-            this.selectedIngredients.splice(index, 1);
+            this.selectedIngredients.set(current.filter(id => id !== ingredientId));
         } else {
-            this.selectedIngredients.push(ingredientId);
+            this.selectedIngredients.set([...current, ingredientId]);
         }
     }
 
@@ -259,11 +271,12 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
      * Toggle tool selection
      */
     toggleTool(toolId: number): void {
-        const index = this.selectedTools.indexOf(toolId);
+        const current = this.selectedTools();
+        const index = current.indexOf(toolId);
         if (index > -1) {
-            this.selectedTools.splice(index, 1);
+            this.selectedTools.set(current.filter(id => id !== toolId));
         } else {
-            this.selectedTools.push(toolId);
+            this.selectedTools.set([...current, toolId]);
         }
     }
 
@@ -271,121 +284,66 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
      * Check if ingredient is selected
      */
     isIngredientSelected(ingredientId: number): boolean {
-        return this.selectedIngredients.includes(ingredientId);
+        return this.selectedIngredients().includes(ingredientId);
     }
 
     /**
      * Check if tool is selected
      */
     isToolSelected(toolId: number): boolean {
-        return this.selectedTools.includes(toolId);
+        return this.selectedTools().includes(toolId);
     }
 
     /**
      * Get selected ingredients count
      */
     getSelectedIngredientsCount(): number {
-        return this.selectedIngredients.length;
+        return this.selectedIngredients().length;
     }
 
     /**
      * Get selected tools count
      */
     getSelectedToolsCount(): number {
-        return this.selectedTools.length;
+        return this.selectedTools().length;
+    }
+
+    /**
+     * Set active tab
+     */
+    setActiveTab(tab: string): void {
+        this.activeTab.set(tab);
     }
 
     /**
      * Clear all selections
      */
     clearSelections(): void {
-        this.selectedIngredients = [];
-        this.selectedTools = [];
+        this.selectedIngredients.set([]);
+        this.selectedTools.set([]);
     }
 
     /**
      * Get suggestions count
      */
     getSuggestionsCount(): number {
-        return this.suggestions.length;
+        return this.suggestions().length;
     }
 
     /**
      * Get trending recipes count
      */
     getTrendingRecipesCount(): number {
-        return this.trendingRecipes.length;
+        return this.trendingRecipes().length;
     }
 
     /**
      * Get seasonal recipes count
      */
     getSeasonalRecipesCount(): number {
-        return this.seasonalRecipes.length;
+        return this.seasonalRecipes().length;
     }
 
-    /**
-     * Check if suggestions are loading
-     */
-    get isLoadingSuggestions(): boolean {
-        return this.loading;
-    }
-
-    /**
-     * Check if AI suggestions are loading
-     */
-    get isLoadingAISuggestions(): boolean {
-        return this.aiLoading;
-    }
-
-    /**
-     * Check if any suggestions are available
-     */
-    get hasSuggestions(): boolean {
-        return this.suggestions.length > 0;
-    }
-
-    /**
-     * Check if any trending recipes are available
-     */
-    get hasTrendingRecipes(): boolean {
-        return this.trendingRecipes.length > 0;
-    }
-
-    /**
-     * Check if any seasonal recipes are available
-     */
-    get hasSeasonalRecipes(): boolean {
-        return this.seasonalRecipes.length > 0;
-    }
-
-    /**
-     * Check if any ingredients are selected
-     */
-    get hasSelectedIngredients(): boolean {
-        return this.selectedIngredients.length > 0;
-    }
-
-    /**
-     * Check if any tools are selected
-     */
-    get hasSelectedTools(): boolean {
-        return this.selectedTools.length > 0;
-    }
-
-    /**
-     * Check if form is valid
-     */
-    get isFormValid(): boolean {
-        return this.suggestionForm.valid;
-    }
-
-    /**
-     * Check if AI form is valid
-     */
-    get isAIFormValid(): boolean {
-        return this.aiSuggestionForm.valid;
-    }
 
     /**
      * Get form errors
@@ -451,27 +409,27 @@ export class RecipeSuggestionsComponent implements OnInit, OnDestroy {
      * Get difficulty options for display
      */
     getDifficultyOptions(): any[] {
-        return this.difficulties;
+        return this.difficulties();
     }
 
     /**
      * Get cuisine options for display
      */
     getCuisineOptions(): any[] {
-        return this.cuisines;
+        return this.cuisines();
     }
 
     /**
      * Get meal type options for display
      */
     getMealTypeOptions(): any[] {
-        return this.mealTypes;
+        return this.mealTypes();
     }
 
     /**
      * Get dietary options for display
      */
     getDietaryOptions(): any[] {
-        return this.dietaryOptions;
+        return this.dietaryOptions();
     }
 } 

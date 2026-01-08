@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.ts
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,8 +14,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable, of, catchError, combineLatest, BehaviorSubject } from 'rxjs';
+import { Observable, of, catchError, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 
 import { RecipeService } from '../../../recipe/services/recipe.service';
@@ -92,17 +93,17 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   error: string | null = null;
   submittingItems = new Set<number>();
 
-  // Filter properties
+  // Filter signals for reactive filtering
+  private recipeSearchSignal = signal('');
+  private ingredientSearchSignal = signal('');
+  private recipeStatusSignal = signal('');
+  private ingredientStatusSignal = signal('');
+
+  // Properties for ngModel binding (keep for backward compatibility)
   recipeSearchTerm = '';
   ingredientSearchTerm = '';
   recipeStatusFilter = '';
   ingredientStatusFilter = '';
-
-  // Filter subjects for reactive filtering
-  private recipeSearchSubject = new BehaviorSubject<string>('');
-  private ingredientSearchSubject = new BehaviorSubject<string>('');
-  private recipeStatusSubject = new BehaviorSubject<string>('');
-  private ingredientStatusSubject = new BehaviorSubject<string>('');
 
 
 
@@ -162,21 +163,22 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       })
     );
 
-    // Set up filtered observables
-    this.filteredRecipes$ = combineLatest([
-      this.recipes$,
-      this.recipeSearchSubject,
-      this.recipeStatusSubject
-    ]).pipe(
-      map(([recipes, searchTerm, statusFilter]) => this.filterItems(recipes, searchTerm, statusFilter))
+    // Set up filtered observables with signal-based filtering
+    const recipeSearch$ = combineLatest([this.recipes$]).pipe(
+      map(([recipes]) => this.filterItems(recipes, this.recipeSearchSignal(), this.recipeStatusSignal()))
     );
 
-    this.filteredIngredients$ = combineLatest([
-      this.ingredients$,
-      this.ingredientSearchSubject,
-      this.ingredientStatusSubject
-    ]).pipe(
-      map(([ingredients, searchTerm, statusFilter]) => this.filterItems(ingredients, searchTerm, statusFilter))
+    const ingredientSearch$ = combineLatest([this.ingredients$]).pipe(
+      map(([ingredients]) => this.filterItems(ingredients, this.ingredientSearchSignal(), this.ingredientStatusSignal()))
+    );
+
+    // Initially set filtered observables to base observables
+    this.filteredRecipes$ = this.recipes$.pipe(
+      map(recipes => this.filterItems(recipes, this.recipeSearchSignal(), this.recipeStatusSignal()))
+    );
+
+    this.filteredIngredients$ = this.ingredients$.pipe(
+      map(ingredients => this.filterItems(ingredients, this.ingredientSearchSignal(), this.ingredientStatusSignal()))
     );
   }
 
@@ -449,18 +451,34 @@ export class RecipeAuthorDashboardComponent implements OnInit {
 
   // Filter event handlers
   onRecipeSearch(): void {
-    this.recipeSearchSubject.next(this.recipeSearchTerm);
+    this.recipeSearchSignal.set(this.recipeSearchTerm);
+    this.updateFilteredRecipes();
   }
 
   onIngredientSearch(): void {
-    this.ingredientSearchSubject.next(this.ingredientSearchTerm);
+    this.ingredientSearchSignal.set(this.ingredientSearchTerm);
+    this.updateFilteredIngredients();
   }
 
   onRecipeStatusFilter(): void {
-    this.recipeStatusSubject.next(this.recipeStatusFilter);
+    this.recipeStatusSignal.set(this.recipeStatusFilter);
+    this.updateFilteredRecipes();
   }
 
   onIngredientStatusFilter(): void {
-    this.ingredientStatusSubject.next(this.ingredientStatusFilter);
+    this.ingredientStatusSignal.set(this.ingredientStatusFilter);
+    this.updateFilteredIngredients();
+  }
+
+  private updateFilteredRecipes(): void {
+    this.filteredRecipes$ = this.recipes$.pipe(
+      map(recipes => this.filterItems(recipes, this.recipeSearchSignal(), this.recipeStatusSignal()))
+    );
+  }
+
+  private updateFilteredIngredients(): void {
+    this.filteredIngredients$ = this.ingredients$.pipe(
+      map(ingredients => this.filterItems(ingredients, this.ingredientSearchSignal(), this.ingredientStatusSignal()))
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -43,9 +43,9 @@ export class HouseholdEditComponent implements OnInit {
         description: ['', [Validators.maxLength(500)]]
     });
 
-    isLoading = false;
-    householdId = 0;
-    household: HouseholdResponseModel | null = null;
+    isLoading = signal(false);
+    householdId = signal(0);
+    household = signal<HouseholdResponseModel | null>(null);
 
     formConfig: BaseFormConfig = {
         title: 'Edit Household',
@@ -62,22 +62,22 @@ export class HouseholdEditComponent implements OnInit {
 
     ngOnInit(): void {
         this.route.params.subscribe(params => {
-            this.householdId = +params['id'];
+            this.householdId.set(+params['id']);
             this.loadHousehold();
         });
     }
 
     loadHousehold(): void {
-        this.isLoading = true;
+        this.isLoading.set(true);
 
-        this.householdService.getHousehold(this.householdId).subscribe({
+        this.householdService.getHousehold(this.householdId()).subscribe({
             next: (household) => {
-                this.household = household;
+                this.household.set(household);
                 this.householdForm.patchValue({
                     name: household.name,
                     description: household.description || ''
                 });
-                this.isLoading = false;
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading household:', error);
@@ -92,26 +92,26 @@ export class HouseholdEditComponent implements OnInit {
     }
 
     onSubmit(): void {
-        if (this.householdForm.valid && this.household) {
-            this.isLoading = true;
+        if (this.householdForm.valid && this.household()) {
+            this.isLoading.set(true);
 
             const updateRequest = new HouseholdUpdateRequestModel({
                 name: this.householdForm.value.name,
                 description: this.householdForm.value.description
             });
 
-            this.householdService.updateHousehold(this.householdId, updateRequest).subscribe({
+            this.householdService.updateHousehold(this.householdId(), updateRequest).subscribe({
                 next: () => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     this.snackBar.open('Household updated successfully!', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
                         verticalPosition: 'top'
                     });
-                    this.router.navigate(['/household', this.householdId]);
+                    this.router.navigate(['/household', this.householdId()]);
                 },
                 error: (error) => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     console.error('Error updating household:', error);
                     this.snackBar.open('Failed to update household. Please try again.', 'Close', {
                         duration: 5000,
@@ -124,6 +124,6 @@ export class HouseholdEditComponent implements OnInit {
     }
 
     onCancel(): void {
-        this.router.navigate(['/household', this.householdId]);
+        this.router.navigate(['/household', this.householdId()]);
     }
 } 

@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable } from 'rxjs';
 import { tap, filter } from 'rxjs/operators';
 import { EventBusService } from './event-bus.service';
 
@@ -15,7 +15,7 @@ export class UserInfoService {
     private eventBus = inject(EventBusService);
 
     private readonly apiUrl = 'api/UserInfo';
-    private currentUserInfo = new BehaviorSubject<UserInfo | null>(null);
+    private currentUserInfo = signal<UserInfo | null>(null);
 
     constructor() {
         // Listen to authentication events
@@ -41,7 +41,7 @@ export class UserInfoService {
     getCurrentUserInfo(): Observable<UserInfo> {
         return this.http.get<UserInfo>(`${this.apiUrl}/current`).pipe(
             tap(userInfo => {
-                this.currentUserInfo.next(userInfo);
+                this.currentUserInfo.set(userInfo);
             })
         );
     }
@@ -59,15 +59,16 @@ export class UserInfoService {
     }
 
     getCurrentUserInfoValue(): UserInfo | null {
-        return this.currentUserInfo.value;
+        return this.currentUserInfo();
     }
 
-    getCurrentUserInfoObservable(): Observable<UserInfo | null> {
-        return this.currentUserInfo.asObservable();
+    // For components that need the signal directly
+    getCurrentUserInfoSignal() {
+        return this.currentUserInfo.asReadonly();
     }
 
     hasClaimSync(claimType: string, claimValue?: string): boolean {
-        const userInfo = this.currentUserInfo.value;
+        const userInfo = this.currentUserInfo();
         if (!userInfo) return false;
 
         if (claimValue) {
@@ -86,18 +87,18 @@ export class UserInfoService {
     }
 
     getPersonId(): number | null {
-        const userInfo = this.currentUserInfo.value;
+        const userInfo = this.currentUserInfo();
         return userInfo?.personId || null;
     }
 
     clearUserInfo(): void {
-        this.currentUserInfo.next(null);
+        this.currentUserInfo.set(null);
     }
 
     private loadUserClaims(): void {
         this.getCurrentUserInfo().subscribe({
             next: (userInfo) => {
-                this.currentUserInfo.next(userInfo);
+                this.currentUserInfo.set(userInfo);
                 // Emit event to notify other services about user info update
                 this.eventBus.emitUserInfoUpdated(userInfo);
             },

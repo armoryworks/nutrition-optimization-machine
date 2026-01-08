@@ -6,20 +6,20 @@
     </mat-card-header>
 
     <mat-card-content>
-      @if (isLoading) {
+      @if (isLoading()) {
         <div class="measurement-list__loading">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading measurements...</p>
         </div>
-      } @else if (error) {
+      } @else if (error()) {
         <div class="measurement-list__error">
           <mat-icon color="warn">error</mat-icon>
-          <p>{{ error }}</p>
+          <p>{{ error() }}</p>
           <button mat-button color="primary" (click)="onRefresh()">Retry</button>
         </div>
       } @else {
         <div class="measurement-list__table-container">
-          <table mat-table [dataSource]="measurements" class="measurement-list__table">
+          <table mat-table [dataSource]="measurements()" class="measurement-list__table">
             <!-- Name Column -->
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Name</th>
@@ -61,7 +61,7 @@
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
 
-          @if (measurements.length === 0) {
+          @if (measurements().length === 0) {
             <div class="measurement-list__empty">
               <mat-icon>inbox</mat-icon>
               <p>No measurements found</p>

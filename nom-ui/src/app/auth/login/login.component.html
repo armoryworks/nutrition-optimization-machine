@@ -4,7 +4,7 @@
       <mat-card-title class="nom-card__title">Welcome Back!</mat-card-title>
       <mat-card-subtitle class="nom-card__subtitle">Sign in to your account</mat-card-subtitle>
     </mat-card-header>
-    @if (isLoading) {
+    @if (isLoading()) {
     <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
     }
     <mat-card-content class="nom-card__content">
@@ -34,11 +34,11 @@
         <mat-checkbox class="login__options-row" formControlName="rememberMe">Remember Me</mat-checkbox>
         <a class="login__options-row" routerLink="/forgot-password" class="nom-link">Forgot Password?</a>
 
-        <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || isLoading"
+        <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || isLoading()"
           class="nom-button" data-cy="login-button">
-          @if (!isLoading) {
+          @if (!isLoading()) {
           <span>Sign In</span>
-          } @if (isLoading) {
+          } @if (isLoading()) {
           <mat-spinner [diameter]="20" class="nom-button__spinner"></mat-spinner>
           }
         </button>

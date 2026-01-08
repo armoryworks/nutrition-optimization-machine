@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, input, output } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,19 +20,19 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   styleUrls: ['./onboarding-invitation-code.component.scss'],
 })
 export class OnboardingInvitationCodeComponent implements OnInit {
-  @Input() currentInvitationCode: string | null = null;
-  @Input() isLoading = false;
-  @Input() errorMessage: string | null = null;
+  currentInvitationCode = input<string | null>(null);
+  isLoading = input(false);
+  errorMessage = input<string | null>(null);
 
-  @Output() codeSubmitted = new EventEmitter<string>();
-  @Output() noCodeSelected = new EventEmitter<void>();
+  codeSubmitted = output<string>();
+  noCodeSelected = output<void>();
 
   invitationCodeFormControl = new FormControl<string | null>(null);
 
   ngOnInit(): void {
     // Initialize form control with existing data if available (e.g., from session storage)
-    if (this.currentInvitationCode) {
-      this.invitationCodeFormControl.setValue(this.currentInvitationCode);
+    if (this.currentInvitationCode()) {
+      this.invitationCodeFormControl.setValue(this.currentInvitationCode());
     }
   }
 

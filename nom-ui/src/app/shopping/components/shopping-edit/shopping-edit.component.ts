@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -44,9 +44,9 @@ export class ShoppingEditComponent implements OnInit {
     description: ['', [Validators.maxLength(500)]]
   });
 
-  isLoading = false;
-  shoppingListId = 0;
-  shoppingList: ShoppingListResponseModel | null = null;
+  isLoading = signal(false);
+  shoppingListId = signal(0);
+  shoppingList = signal<ShoppingListResponseModel | null>(null);
 
   formConfig: BaseFormConfig = {
     title: 'Edit Shopping List',
@@ -63,22 +63,22 @@ export class ShoppingEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.shoppingListId = +params['id'];
+      this.shoppingListId.set(+params['id']);
       this.loadShoppingList();
     });
   }
 
   loadShoppingList(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
 
-    this.shoppingService.getShoppingList(this.shoppingListId).subscribe({
+    this.shoppingService.getShoppingList(this.shoppingListId()).subscribe({
       next: (shoppingList) => {
-        this.shoppingList = shoppingList;
+        this.shoppingList.set(shoppingList);
         this.shoppingForm.patchValue({
           name: shoppingList.name,
           description: shoppingList.description || ''
         });
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading shopping list:', error);
@@ -93,26 +93,26 @@ export class ShoppingEditComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.shoppingForm.valid && this.shoppingList) {
-      this.isLoading = true;
+    if (this.shoppingForm.valid && this.shoppingList()) {
+      this.isLoading.set(true);
 
       const updateRequest: ShoppingListUpdateRequest = {
         name: this.shoppingForm.value.name,
         description: this.shoppingForm.value.description
       };
 
-      this.shoppingService.updateShoppingList(this.shoppingListId, updateRequest).subscribe({
+      this.shoppingService.updateShoppingList(this.shoppingListId(), updateRequest).subscribe({
         next: () => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.snackBar.open('Shopping list updated successfully!', 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
             verticalPosition: 'top'
           });
-          this.router.navigate(['/shopping', this.shoppingListId]);
+          this.router.navigate(['/shopping', this.shoppingListId()]);
         },
         error: (error) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           console.error('Error updating shopping list:', error);
           this.snackBar.open('Failed to update shopping list. Please try again.', 'Close', {
             duration: 5000,
@@ -125,6 +125,6 @@ export class ShoppingEditComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/shopping', this.shoppingListId]);
+    this.router.navigate(['/shopping', this.shoppingListId()]);
   }
 } 

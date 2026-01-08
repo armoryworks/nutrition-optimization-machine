@@ -1,11 +1,11 @@
 <!-- Unified Ingredient Form Component - Works in both Modal and Page contexts -->
 
-@if (isModal) {
+@if (isModal()) {
   <!-- Modal Context: Use BaseFormComponent -->
   <nom-base-form
-    [config]="formConfig"
+    [config]="formConfig()"
     [form]="ingredientForm"
-    [isSubmitting]="isSubmitting"
+    [isSubmitting]="isSubmitting()"
     (submit)="onSubmit()"
     (cancel)="onCancel()">
 
@@ -13,7 +13,7 @@
       <!-- Hidden ID field for edit mode -->
       <input type="hidden" formControlName="id">
 
-      @if (isLoading) {
+      @if (isLoading()) {
         <div class="nom-ingredient-form__loading">
           <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
         </div>
@@ -26,16 +26,16 @@
             <mat-label>Ingredient Name*</mat-label>
             <input matInput type="text" formControlName="name" placeholder="Ingredient Name*">
             <mat-icon matSuffix>info</mat-icon>
-            @if (isCheckingDuplicate) {
+            @if (isCheckingDuplicate()) {
               <mat-hint>Checking for duplicates...</mat-hint>
             }
           </mat-form-field>
 
-          @if (existingIngredient && showDuplicateChecking) {
+          @if (existingIngredient() && showDuplicateChecking()) {
             <div class="nom-ingredient-form__duplicate-warning">
               <div class="nom-ingredient-form__duplicate-content">
                 <mat-icon>warning</mat-icon>
-                <span>An ingredient with this name already exists: <strong>{{ existingIngredient.name }}</strong></span>
+                <span>An ingredient with this name already exists: <strong>{{ existingIngredient()!.name }}</strong></span>
               </div>
               <button mat-stroked-button type="button" (click)="useExistingIngredient()" class="nom-ingredient-form__use-existing-btn">
                 Use Existing
@@ -65,7 +65,7 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Nutrient</mat-label>
                   <mat-select formControlName="nutrientId">
-                    @for (nutrient of nutrientTypes; track nutrient) {
+                    @for (nutrient of nutrientTypes(); track nutrient) {
                       <mat-option [value]="nutrient.id">
                         {{ nutrient.name }}
                       </mat-option>
@@ -81,7 +81,7 @@
                 <mat-form-field class="nom-ingredient-form__nutrient-field">
                   <mat-label>Unit</mat-label>
                   <mat-select formControlName="measurementId">
-                    @for (measurement of measurements; track measurement) {
+                    @for (measurement of measurements(); track measurement) {
                       <mat-option [value]="measurement.id">
                         {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
                       </mat-option>
@@ -109,9 +109,9 @@
 } @else {
   <!-- Page Context: Use BasePageComponent -->
   <nom-base-page
-    [config]="pageConfig"
-    [isLoading]="isLoading"
-    [error]="error"
+    [config]="pageConfig()"
+    [isLoading]="isLoading()"
+    [error]="error()"
     (back)="onBack()"
     (refresh)="onRefresh()"
     (retry)="onRetry()">
@@ -119,9 +119,9 @@
     <div class="base-form-container" style="max-width: 600px;">
       <mat-card>
         <mat-card-header>
-          <mat-card-title>{{ formConfig.title }}</mat-card-title>
-          @if (formConfig.subtitle) {
-            <mat-card-subtitle>{{ formConfig.subtitle }}</mat-card-subtitle>
+          <mat-card-title>{{ formConfig().title }}</mat-card-title>
+          @if (formConfig().subtitle) {
+            <mat-card-subtitle>{{ formConfig().subtitle }}</mat-card-subtitle>
           }
         </mat-card-header>
 
@@ -163,7 +163,7 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Nutrient</mat-label>
                         <mat-select formControlName="nutrientId">
-                          @for (nutrient of nutrientTypes; track nutrient) {
+                          @for (nutrient of nutrientTypes(); track nutrient) {
                             <mat-option [value]="nutrient.id">
                               {{ nutrient.name }}
                             </mat-option>
@@ -179,7 +179,7 @@
                       <mat-form-field class="nom-ingredient-form__nutrient-field">
                         <mat-label>Unit</mat-label>
                         <mat-select formControlName="measurementId">
-                          @for (measurement of measurements; track measurement) {
+                          @for (measurement of measurements(); track measurement) {
                             <mat-option [value]="measurement.id">
                               {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
                             </mat-option>
@@ -206,14 +206,14 @@
             <!-- Form Actions -->
             <div class="form-actions">
               <div class="action-buttons">
-                @if (formConfig.showCancelButton) {
+                @if (formConfig().showCancelButton) {
                   <button
                     mat-button
                     type="button"
                     (click)="onCancel()"
-                    [disabled]="isSubmitting">
+                    [disabled]="isSubmitting()">
                     <mat-icon>cancel</mat-icon>
-                    {{ formConfig.cancelText || 'Cancel' }}
+                    {{ formConfig().cancelText || 'Cancel' }}
                   </button>
                 }
 
@@ -221,11 +221,11 @@
                   mat-raised-button
                   color="primary"
                   type="submit"
-                  [disabled]="ingredientForm.invalid || isSubmitting">
-                  @if (isSubmitting) {
+                  [disabled]="ingredientForm.invalid || isSubmitting()">
+                  @if (isSubmitting()) {
                     <mat-icon>hourglass_empty</mat-icon>
                   }
-                  <span>{{ isSubmitting ? 'Saving...' : (formConfig.submitText || 'Save') }}</span>
+                  <span>{{ isSubmitting() ? 'Saving...' : (formConfig().submitText || 'Save') }}</span>
                 </button>
               </div>
             </div>

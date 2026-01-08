@@ -1,11 +1,9 @@
 import {
   Component,
   OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  OnChanges,
-  SimpleChanges,
+  input,
+  output,
+  effect,
 } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -30,13 +28,13 @@ import { PersonModel } from '../../../person/models/person.model';
   templateUrl: './onboarding-restriction-scope.component.html',
   styleUrls: ['./onboarding-restriction-scope.component.scss'],
 })
-export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
-  @Input() restrictionScopeInput: 'plan' | 'specific' | null = null;
-  @Input() affectedPersonIdsInput: number[] | null = null;
-  @Input() allPersonsInPlan: PersonModel[] = [];
-  @Input() isLoading = false; // To disable buttons when parent is loading
+export class OnboardingRestrictionScopeComponent implements OnInit {
+  restrictionScopeInput = input<'plan' | 'specific' | null>(null);
+  affectedPersonIdsInput = input<number[] | null>(null);
+  allPersonsInPlan = input<PersonModel[]>([]);
+  isLoading = input(false); // To disable buttons when parent is loading
 
-  @Output() scopeSubmitted = new EventEmitter<{
+  scopeSubmitted = output<{
     appliesToEntirePlan: boolean;
     affectedPersonIds: number[];
   }>();
@@ -54,29 +52,31 @@ export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
     Validators.required
   );
 
+  constructor() {
+    // Effect to watch for input changes and re-initialize
+    effect(() => {
+      // Access inputs to track them
+      const scope = this.restrictionScopeInput();
+      const personIds = this.affectedPersonIdsInput();
+      const persons = this.allPersonsInPlan();
+
+      // Re-initialize when inputs change
+      this.initializeFromInputs();
+    });
+  }
+
   ngOnInit(): void {
     this.initializeFromInputs();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    // Re-initialize if external inputs change
-    if (
-      changes['restrictionScopeInput'] ||
-      changes['affectedPersonIdsInput'] ||
-      changes['allPersonsInPlan']
-    ) {
-      this.initializeFromInputs();
-    }
-  }
-
   private initializeFromInputs(): void {
     // Set initial values for internal controls from inputs
-    if (this.restrictionScopeInput !== null) {
-      this.internalRestrictionScopeControl.setValue(this.restrictionScopeInput);
+    if (this.restrictionScopeInput() !== null) {
+      this.internalRestrictionScopeControl.setValue(this.restrictionScopeInput());
     }
-    if (this.affectedPersonIdsInput !== null) {
+    if (this.affectedPersonIdsInput() !== null) {
       this.internalAffectedPersonIdsControl.setValue(
-        this.affectedPersonIdsInput
+        this.affectedPersonIdsInput()
       );
     }
 
@@ -87,7 +87,7 @@ export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
   private updateSubStep(): void {
     if (
       this.internalRestrictionScopeControl.value === 'specific' &&
-      (this.allPersonsInPlan?.length || 0) > 1
+      (this.allPersonsInPlan()?.length || 0) > 1
     ) {
       this.currentSubStep = 'selectPeople';
     } else {
@@ -102,9 +102,9 @@ export class OnboardingRestrictionScopeComponent implements OnInit, OnChanges {
       } else {
         // 'specific' selected
         // If only one person available, auto-select them and proceed
-        if ((this.allPersonsInPlan?.length || 0) <= 1) {
+        if ((this.allPersonsInPlan()?.length || 0) <= 1) {
           const personId =
-            this.allPersonsInPlan.length > 0 ? this.allPersonsInPlan[0].id! : 0;
+            this.allPersonsInPlan().length > 0 ? this.allPersonsInPlan()[0].id! : 0;
           this.emitDataAndProceed(false, [personId]);
         } else {
           // Otherwise, move to the "select people" sub-step

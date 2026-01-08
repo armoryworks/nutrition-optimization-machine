@@ -60,18 +60,18 @@
           </mat-form-field>
 
           <div class="recipe-rating__form-actions">
-            <button 
-              mat-raised-button 
-              color="primary" 
+            <button
+              mat-raised-button
+              color="primary"
               type="submit"
-              [disabled]="ratingForm.invalid || isSubmitting"
+              [disabled]="ratingForm.invalid || isSubmitting()"
               class="recipe-rating__submit-btn">
-              @if (!isSubmitting) {
+              @if (!isSubmitting()) {
                 <mat-icon>star</mat-icon>
               } @else {
                 <mat-spinner diameter="20"></mat-spinner>
               }
-              {{ isSubmitting ? 'Submitting...' : 'Submit Rating' }}
+              {{ isSubmitting() ? 'Submitting...' : 'Submit Rating' }}
             </button>
           </div>
         </form>

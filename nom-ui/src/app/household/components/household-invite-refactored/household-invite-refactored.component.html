@@ -1,7 +1,7 @@
-<nom-base-form 
+<nom-base-form
   [config]="formConfig"
   [form]="inviteForm"
-  [isSubmitting]="isLoading"
+  [isSubmitting]="isLoading()"
   (submit)="generateInviteToken()"
   (cancel)="onBack()">
   
@@ -22,23 +22,23 @@
   </mat-form-field>
 
   <!-- Error Message -->
-  @if (error) {
+  @if (error()) {
     <div class="error-message">
       <mat-icon color="warn">error</mat-icon>
-      <span>{{ error }}</span>
+      <span>{{ error() }}</span>
     </div>
   }
 
   <!-- Invite Link Section -->
-  @if (inviteLink) {
+  @if (inviteLink()) {
     <div class="invite-section">
       <mat-divider></mat-divider>
       <h3>Invite Link Generated</h3>
-      
+
       <div class="invite-link-container">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Invite Link</mat-label>
-          <input matInput [value]="inviteLink" readonly>
+          <input matInput [value]="inviteLink()" readonly>
           <button mat-icon-button matSuffix (click)="copyInviteLink()" matTooltip="Copy link">
             <mat-icon>content_copy</mat-icon>
           </button>
@@ -48,7 +48,7 @@
       <div class="invite-token-container">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Invite Token</mat-label>
-          <input matInput [value]="inviteToken" readonly>
+          <input matInput [value]="inviteToken()" readonly>
           <button mat-icon-button matSuffix (click)="copyToken()" matTooltip="Copy token">
             <mat-icon>content_copy</mat-icon>
           </button>

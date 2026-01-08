@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,6 +17,7 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeRatingModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'nom-recipe-ratings',
@@ -45,14 +46,15 @@ export class RecipeRatingsComponent implements OnInit {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
+    private userInfoService = inject(UserInfoService);
 
-    @Input() recipeId = 0;
+    recipeId = input.required<number>();
 
-    ratings: RecipeRatingResponseModel[] = [];
-    userRating: RecipeRatingModel | null = null;
-    averageRating = 0;
-    isLoading = false;
-    isSubmitting = false;
+    ratings = signal<RecipeRatingResponseModel[]>([]);
+    userRating = signal<RecipeRatingModel | null>(null);
+    averageRating = signal(0);
+    isLoading = signal(false);
+    isSubmitting = signal(false);
     ratingForm: FormGroup = this.nonNullableFb.group({
         rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
         comment: ['', [Validators.maxLength(1000)]]
@@ -69,13 +71,13 @@ export class RecipeRatingsComponent implements OnInit {
     }
 
     loadRatings(): void {
-        this.isLoading = true;
-        this.recipeService.getRatings(this.recipeId).subscribe({
+        this.isLoading.set(true);
+        this.recipeService.getRatings(this.recipeId()).subscribe({
             next: (ratings) => {
-                this.ratings = ratings;
+                this.ratings.set(ratings);
                 this.calculateAverageRating();
                 this.findUserRating();
-                this.isLoading = false;
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading ratings:', error);
@@ -84,38 +86,38 @@ export class RecipeRatingsComponent implements OnInit {
                     horizontalPosition: 'center',
                     verticalPosition: 'top'
                 });
-                this.isLoading = false;
+                this.isLoading.set(false);
             }
         });
     }
 
     calculateAverageRating(): void {
-        if (this.ratings.length === 0) {
-            this.averageRating = 0;
+        if (this.ratings().length === 0) {
+            this.averageRating.set(0);
             return;
         }
 
-        const totalRating = this.ratings.reduce((sum, rating) => sum + rating.rating, 0);
-        this.averageRating = totalRating / this.ratings.length;
+        const totalRating = this.ratings().reduce((sum, rating) => sum + rating.rating, 0);
+        this.averageRating.set(totalRating / this.ratings().length);
     }
 
     findUserRating(): void {
         const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
         if (currentPersonId) {
-            this.userRating = this.ratings.find(r => r.authorId === currentPersonId) || null;
+            this.userRating.set(this.ratings().find(r => r.authorId === currentPersonId) || null);
         }
 
-        if (this.userRating) {
+        if (this.userRating()) {
             this.ratingForm.patchValue({
-                rating: this.userRating.rating,
-                comment: this.userRating.comment || ''
+                rating: this.userRating()!.rating,
+                comment: this.userRating()!.comment || ''
             });
         }
     }
 
     onSubmit(): void {
-        if (this.ratingForm.valid && !this.isSubmitting) {
-            this.isSubmitting = true;
+        if (this.ratingForm.valid && !this.isSubmitting()) {
+            this.isSubmitting.set(true);
 
             const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
             if (!currentPersonId) {
@@ -128,22 +130,24 @@ export class RecipeRatingsComponent implements OnInit {
             }
 
             const ratingData = {
-                recipeId: this.recipeId,
+                recipeId: this.recipeId(),
                 rating: this.ratingForm.value.rating,
                 comment: this.ratingForm.value.comment
             };
 
-            if (this.userRating) {
+            if (this.userRating()) {
                 // Update existing rating
-                this.recipeService.updateRating(this.userRating.id, ratingData).subscribe({
+                this.recipeService.updateRating(this.userRating()!.id, ratingData).subscribe({
                     next: (updatedRating) => {
-                        const index = this.ratings.findIndex(r => r.id === updatedRating.id);
+                        const index = this.ratings().findIndex(r => r.id === updatedRating.id);
                         if (index !== -1) {
-                            this.ratings[index] = updatedRating;
+                            const updatedRatings = [...this.ratings()];
+                            updatedRatings[index] = updatedRating;
+                            this.ratings.set(updatedRatings);
                         }
-                        this.userRating = updatedRating;
+                        this.userRating.set(updatedRating);
                         this.calculateAverageRating();
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                         this.snackBar.open('Rating updated successfully!', 'Close', {
                             duration: 3000,
                             horizontalPosition: 'center',
@@ -157,17 +161,17 @@ export class RecipeRatingsComponent implements OnInit {
                             horizontalPosition: 'center',
                             verticalPosition: 'top'
                         });
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                     }
                 });
             } else {
                 // Add new rating
                 this.recipeService.addRating(ratingData).subscribe({
                     next: (newRating) => {
-                        this.ratings.unshift(newRating);
-                        this.userRating = newRating;
+                        this.ratings.set([newRating, ...this.ratings()]);
+                        this.userRating.set(newRating);
                         this.calculateAverageRating();
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                         this.snackBar.open('Rating added successfully!', 'Close', {
                             duration: 3000,
                             horizontalPosition: 'center',
@@ -181,7 +185,7 @@ export class RecipeRatingsComponent implements OnInit {
                             horizontalPosition: 'center',
                             verticalPosition: 'top'
                         });
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                     }
                 });
             }
@@ -189,11 +193,11 @@ export class RecipeRatingsComponent implements OnInit {
     }
 
     onDeleteRating(): void {
-        if (this.userRating && confirm('Are you sure you want to delete your rating?')) {
-            this.recipeService.deleteRating(this.userRating.id).subscribe({
+        if (this.userRating() && confirm('Are you sure you want to delete your rating?')) {
+            this.recipeService.deleteRating(this.userRating()!.id).subscribe({
                 next: () => {
-                    this.ratings = this.ratings.filter(r => r.id !== this.userRating!.id);
-                    this.userRating = null;
+                    this.ratings.set(this.ratings().filter(r => r.id !== this.userRating()!.id));
+                    this.userRating.set(null);
                     this.calculateAverageRating();
                     this.ratingForm.reset();
                     this.snackBar.open('Rating deleted successfully!', 'Close', {

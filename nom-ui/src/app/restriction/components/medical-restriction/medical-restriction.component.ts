@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
+import { Component, OnInit, input, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -42,7 +42,7 @@ export class MedicalRestrictionComponent implements OnInit {
   private restrictionService = inject(RestrictionService);
   private referenceDataService = inject(ReferenceDataService);
 
-  @Input() medicalRestrictionForm!: FormGroup; // Input FormGroup for this section
+  medicalRestrictionForm = input.required<FormGroup>(); // Input FormGroup for this section
 
   // FormControls for autocomplete inputs
   public micronutrientSearchControl = new FormControl<string>('');
@@ -94,22 +94,6 @@ export class MedicalRestrictionComponent implements OnInit {
 
 
   ngOnInit(): void {
-    if (!this.medicalRestrictionForm) {
-      console.warn(
-        'MedicalRestrictionComponent: medicalRestrictionForm input is missing. Initializing a default one.'
-      );
-      this.medicalRestrictionForm = this.fb.group({
-        allergyMedicalIngredientIds: this.fb.array([] as FormControl<string>[]),
-        allergyMedicalConditionIds: this.fb.array([] as FormControl<number>[]),
-        gastrointestinalConditions: this.fb.array([] as FormControl<number>[]),
-        kidneyDiseaseNutrientRestrictions: this.fb.array(
-          [] as FormControl<string>[]
-        ),
-        vitaminMineralDeficiencies: this.fb.array([] as FormControl<string>[]),
-        prescriptionInteractions: new FormControl(''),
-      });
-    }
-
     this.filteredMicronutrients =
       this.micronutrientSearchControl.valueChanges.pipe(
         startWith(''),
@@ -160,7 +144,7 @@ export class MedicalRestrictionComponent implements OnInit {
     const input = event.input;
     const value = (event.value || '').trim();
     if (value) {
-      const formArray = this.medicalRestrictionForm.get(
+      const formArray = this.medicalRestrictionForm().get(
         formArrayName
       ) as FormArray;
       if (!formArray.value.includes(value)) {
@@ -173,7 +157,7 @@ export class MedicalRestrictionComponent implements OnInit {
   }
 
   public removeChip(chip: string, formArrayName: string): void {
-    const formArray = this.medicalRestrictionForm.get(
+    const formArray = this.medicalRestrictionForm().get(
       formArrayName
     ) as FormArray;
     const index = formArray.value.indexOf(chip);
@@ -184,7 +168,7 @@ export class MedicalRestrictionComponent implements OnInit {
 
   public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
     const selectedValues = event.value;
-    const formArray = this.medicalRestrictionForm.get(
+    const formArray = this.medicalRestrictionForm().get(
       formControlName
     ) as FormArray;
     formArray.clear();
@@ -198,7 +182,7 @@ export class MedicalRestrictionComponent implements OnInit {
     value: string,
     isChecked: boolean
   ): void {
-    const formArray = this.medicalRestrictionForm.get(
+    const formArray = this.medicalRestrictionForm().get(
       formControlName
     ) as FormArray;
     if (isChecked) {
@@ -217,7 +201,7 @@ export class MedicalRestrictionComponent implements OnInit {
     formControlName: string,
     optionValue: string
   ): boolean {
-    const formArray = this.medicalRestrictionForm.get(
+    const formArray = this.medicalRestrictionForm().get(
       formControlName
     ) as FormArray;
     return formArray.value.includes(optionValue);
@@ -225,27 +209,27 @@ export class MedicalRestrictionComponent implements OnInit {
 
   // Getters for FormArrays
   get allergyMedicalIngredientIdsArray(): FormArray {
-    return this.medicalRestrictionForm.get(
+    return this.medicalRestrictionForm().get(
       'allergyMedicalIngredientIds'
     ) as FormArray;
   }
   get allergyMedicalConditionIdsArray(): FormArray {
-    return this.medicalRestrictionForm.get(
+    return this.medicalRestrictionForm().get(
       'allergyMedicalConditionIds'
     ) as FormArray;
   }
   get gastrointestinalConditionsArray(): FormArray {
-    return this.medicalRestrictionForm.get(
+    return this.medicalRestrictionForm().get(
       'gastrointestinalConditions'
     ) as FormArray;
   }
   get kidneyDiseaseNutrientRestrictionsArray(): FormArray {
-    return this.medicalRestrictionForm.get(
+    return this.medicalRestrictionForm().get(
       'kidneyDiseaseNutrientRestrictions'
     ) as FormArray;
   }
   get vitaminMineralDeficienciesArray(): FormArray {
-    return this.medicalRestrictionForm.get(
+    return this.medicalRestrictionForm().get(
       'vitaminMineralDeficiencies'
     ) as FormArray;
   }

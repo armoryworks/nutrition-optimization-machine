@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, OnInit, inject, signal } from "@angular/core";
 
 import { ReactiveFormsModule, NonNullableFormBuilder } from "@angular/forms";
 import { MatCardModule } from "@angular/material/card";
@@ -45,9 +45,9 @@ export class HouseholdDashboardComponent implements OnInit {
     private router = inject(Router);
     private fb = inject(NonNullableFormBuilder);
 
-    households: HouseholdResponseModel[] = [];
-    loading = false;
-    error = "";
+    households = signal<HouseholdResponseModel[]>([]);
+    loading = signal(false);
+    error = signal("");
 
     pageConfig: BasePageConfig = {
         title: "Households",
@@ -64,17 +64,17 @@ export class HouseholdDashboardComponent implements OnInit {
     }
 
     loadHouseholds(): void {
-        this.loading = true;
-        this.error = "";
+        this.loading.set(true);
+        this.error.set("");
 
         this.householdService.getHouseholds().subscribe({
             next: (households) => {
-                this.households = households;
-                this.loading = false;
+                this.households.set(households);
+                this.loading.set(false);
             },
             error: (error) => {
-                this.error = "Failed to load households";
-                this.loading = false;
+                this.error.set("Failed to load households");
+                this.loading.set(false);
                 console.error("Error loading households:", error);
             },
         });

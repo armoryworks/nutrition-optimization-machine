@@ -51,7 +51,7 @@
         <mat-form-field appearance="outline" class="unit-field">
           <mat-label>Unit</mat-label>
           <mat-select formControlName="unit">
-            @for (unit of units; track unit) {
+            @for (unit of units(); track unit) {
               <mat-option [value]="unit">
                 {{ unit }}
               </mat-option>
@@ -86,10 +86,10 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting">
+      <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting()">
         Cancel
       </button>
-      <button mat-raised-button color="primary" type="submit" [disabled]="itemForm.invalid || isSubmitting">
+      <button mat-raised-button color="primary" type="submit" [disabled]="itemForm.invalid || isSubmitting()">
         {{ getSubmitText() }}
       </button>
     </mat-dialog-actions>

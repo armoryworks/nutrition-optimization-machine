@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
 
-import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, ViewChild, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, ViewChild, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -72,11 +72,11 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
 
   @Output() onboardingComplete = new EventEmitter<boolean>();
 
-  currentStepIndex = 0;
-  isLoading = false;
-  isSubmitting = false;
-  error: string | null = null;
-  submitMessage: string | null = null;
+  currentStepIndex = signal(0);
+  isLoading = signal(false);
+  isSubmitting = signal(false);
+  error = signal<string | null>(null);
+  submitMessage = signal<string | null>(null);
 
   onboardingData!: OnboardingCompleteRequestModel;
   workflowSteps: OnboardingWorkflowStep[] = [];
@@ -290,10 +290,10 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   // --- Handlers for Child Component Emissions ---
 
   onInvitationCodeSubmitted(code: string): void {
-    this.error = null;
-    this.isLoading = true;
+    this.error.set(null);
+    this.isLoading.set(true);
     setTimeout(() => {
-      this.isLoading = false;
+      this.isLoading.set(false);
       const isValid = code === 'PLAN123';
       if (isValid) {
         this.onboardingService.updateOnboardingProperty(
@@ -310,9 +310,9 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         }
         this.nextStepInternal();
       } else {
-        this.error =
-          'Invalid invitation code. Please try again or create a new plan.';
-        this.notificationService.error(this.error);
+        const errorMsg = 'Invalid invitation code. Please try again or create a new plan.';
+        this.error.set(errorMsg);
+        this.notificationService.error(errorMsg);
         this.onboardingInvitationCodeComponent?.invitationCodeFormControl.setErrors(
           { invalidCode: true }
         );
@@ -321,7 +321,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   onNoInvitationCodeSelected(): void {
-    this.error = null;
+    this.error.set(null);
     this.onboardingService.updateOnboardingProperty('planInvitationCode', null);
     this.nextStepInternal();
   }
@@ -333,7 +333,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     numberOfAdditionalParticipants: number;
     additionalParticipantDetails: PersonModel[];
   }): void {
-    this.error = null;
+    this.error.set(null);
     this.onboardingService.updateOnboardingProperty(
       'hasAdditionalParticipants',
       data.hasAdditionalParticipants
@@ -384,7 +384,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
     appliesToEntirePlan: boolean;
     affectedPersonIds: number[];
   }): void {
-    this.error = null;
+    this.error.set(null);
     this.onboardingService.updateOnboardingProperty(
       'currentRestrictionScope',
       data.appliesToEntirePlan ? 'plan' : 'specific'
@@ -434,7 +434,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   onIndividualPreferencesAnswer(answer: boolean): void {
-    this.error = null;
+    this.error.set(null);
     this.onboardingService.updateOnboardingProperty(
       'applyIndividualPreferencesToEachPerson',
       answer
@@ -445,7 +445,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   // --- Workflow Navigation Logic ---
 
   triggerChildComponentSubmission(): void {
-    this.error = null;
+    this.error.set(null);
 
     if (this.isSubmitStep()) {
       this.submitOnboardingData();
@@ -517,7 +517,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   private nextStepInternal(): void {
-    this.error = null;
+    this.error.set(null);
 
     let nextStepIndexCandidate = this.currentStepIndex + 1;
 
@@ -624,7 +624,7 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   previousStep(): void {
-    this.error = null;
+    this.error.set(null);
 
 
 
@@ -741,24 +741,24 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   }
 
   submitOnboardingData(): void {
-    if (this.isSubmitting) return;
+    if (this.isSubmitting()) return;
 
-    this.isSubmitting = true;
-    this.error = null;
-    this.submitMessage = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
+    this.submitMessage.set(null);
 
     this.personService
       .submitOnboardingComplete(this.onboardingData)
       .pipe(
         finalize(() => {
-          this.isSubmitting = false;
+          this.isSubmitting.set(false);
         })
       )
       .subscribe({
         next: (response) => {
-          this.submitMessage =
-            response.message || 'Onboarding completed successfully!';
-          this.notificationService.success(this.submitMessage);
+          const successMsg = response.message || 'Onboarding completed successfully!';
+          this.submitMessage.set(successMsg);
+          this.notificationService.success(successMsg);
 
           if (
             response &&
@@ -778,9 +778,10 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Onboarding submission failed:', err);
           const errorMsg = err.error?.message || err.message || 'Unknown error';
-          this.error = `Submission failed: ${errorMsg}`;
-          this.submitMessage = `Submission failed: ${errorMsg}`;
-          this.notificationService.error(this.submitMessage);
+          const fullErrorMsg = `Submission failed: ${errorMsg}`;
+          this.error.set(fullErrorMsg);
+          this.submitMessage.set(fullErrorMsg);
+          this.notificationService.error(fullErrorMsg);
         },
       });
   }

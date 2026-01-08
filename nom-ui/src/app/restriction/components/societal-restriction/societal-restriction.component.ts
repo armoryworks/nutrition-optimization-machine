@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
+import { Component, OnInit, input, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -39,7 +39,7 @@ export class SocietalRestrictionComponent implements OnInit {
   private restrictionService = inject(RestrictionService);
   private referenceDataService = inject(ReferenceDataService);
 
-  @Input() societalRestrictionForm!: FormGroup; // Input FormGroup for this section
+  societalRestrictionForm = input.required<FormGroup>(); // Input FormGroup for this section
 
   // FormControls for autocomplete inputs
   public ingredientSearchControl = new FormControl<string>('');
@@ -80,20 +80,6 @@ export class SocietalRestrictionComponent implements OnInit {
 
 
   ngOnInit(): void {
-    if (!this.societalRestrictionForm) {
-      // This should ideally be handled by the parent, but for safety
-      console.warn(
-        'SocietalRestrictionComponent: societalRestrictionForm input is missing. Initializing a default one.'
-      );
-      this.societalRestrictionForm = this.fb.group({
-        societalReligiousEthicalTypeIds: this.fb.array(
-          [] as FormControl<number>[]
-        ),
-        mandatoryInclusions: this.fb.array([] as FormControl<string>[]),
-        fastingSchedules: new FormControl(''),
-      });
-    }
-
     this.filteredCuratedIngredients =
       this.ingredientSearchControl.valueChanges.pipe(
         startWith(''),
@@ -138,7 +124,7 @@ export class SocietalRestrictionComponent implements OnInit {
     const input = event.input;
     const value = (event.value || '').trim();
     if (value) {
-      const formArray = this.societalRestrictionForm.get(
+      const formArray = this.societalRestrictionForm().get(
         formArrayName
       ) as FormArray;
       if (!formArray.value.includes(value)) {
@@ -151,7 +137,7 @@ export class SocietalRestrictionComponent implements OnInit {
   }
 
   public removeChip(chip: string, formArrayName: string): void {
-    const formArray = this.societalRestrictionForm.get(
+    const formArray = this.societalRestrictionForm().get(
       formArrayName
     ) as FormArray;
     const index = formArray.value.indexOf(chip);
@@ -162,7 +148,7 @@ export class SocietalRestrictionComponent implements OnInit {
 
   public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
     const selectedValues = event.value;
-    const formArray = this.societalRestrictionForm.get(
+    const formArray = this.societalRestrictionForm().get(
       formControlName
     ) as FormArray;
     formArray.clear();
@@ -173,13 +159,13 @@ export class SocietalRestrictionComponent implements OnInit {
 
   // Getter for FormArray: societalReligiousEthicalTypeIds
   get societalReligiousEthicalTypeIdsArray(): FormArray {
-    return this.societalRestrictionForm.get(
+    return this.societalRestrictionForm().get(
       'societalReligiousEthicalTypeIds'
     ) as FormArray;
   }
 
   // Getter for FormArray: mandatoryInclusions
   get mandatoryInclusionsArray(): FormArray {
-    return this.societalRestrictionForm.get('mandatoryInclusions') as FormArray;
+    return this.societalRestrictionForm().get('mandatoryInclusions') as FormArray;
   }
 }

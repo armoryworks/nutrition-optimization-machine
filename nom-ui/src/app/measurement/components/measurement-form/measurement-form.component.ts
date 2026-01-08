@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,8 +31,8 @@ export class MeasurementFormComponent implements OnInit {
     private measurementService = inject(MeasurementService);
 
     measurementForm: FormGroup;
-    isSubmitting = false;
-    error: string | null = null;
+    isSubmitting = signal(false);
+    error = signal<string | null>(null);
 
     measurementTypes = [
         { value: 'Mass', label: 'Mass' },
@@ -58,15 +58,15 @@ export class MeasurementFormComponent implements OnInit {
 
     onSubmit(): void {
         if (this.measurementForm.valid) {
-            this.isSubmitting = true;
-            this.error = null;
+            this.isSubmitting.set(true);
+            this.error.set(null);
 
             const measurementData = this.measurementForm.value;
 
             // TODO: Implement create/update logic
             console.log('Measurement data:', measurementData);
 
-            this.isSubmitting = false;
+            this.isSubmitting.set(false);
         }
     }
 
@@ -74,7 +74,7 @@ export class MeasurementFormComponent implements OnInit {
         this.measurementForm.reset({
             conversionFactor: 1
         });
-        this.error = null;
+        this.error.set(null);
     }
 
     onCancel(): void {

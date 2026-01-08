@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.ts
 
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -43,8 +43,8 @@ export class PrivacySettingsComponent implements OnInit {
 
   consentForm: FormGroup;
   privacyForm: FormGroup;
-  isLoading = false;
-  isSubmitting = false;
+  isLoading = signal(false);
+  isSubmitting = signal(false);
 
   // This would be fetched from a reference data service in a real app
   availableConsents: ConsentModel[] = [
@@ -93,14 +93,14 @@ export class PrivacySettingsComponent implements OnInit {
     if (this.privacyForm.invalid) {
       return;
     }
-    this.isSubmitting = true;
+    this.isSubmitting.set(true);
   }
 
   onConsentSubmit(): void {
     if (this.consentForm.invalid) {
       return;
     }
-    this.isLoading = true;
+    this.isLoading.set(true);
 
     const formValues = this.consentForm.value;
     const consentRequests: ConsentModel[] = this.availableConsents.map(
@@ -114,13 +114,13 @@ export class PrivacySettingsComponent implements OnInit {
 
     this.privacyService.updateConsent(request).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.success(
           'Your privacy settings have been updated.'
         );
       },
       error: (err) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.error(
           err.message || 'Failed to update settings.'
         );
@@ -129,16 +129,16 @@ export class PrivacySettingsComponent implements OnInit {
   }
 
   onExportData(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.privacyService.requestDataExport({ format: 'json' }).subscribe({
       next: (res) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.info(
           `Data export requested. You will be notified when it's ready. Request ID: ${res.requestId}`
         );
       },
       error: (err) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.error(
           err.message || 'Failed to request data export.'
         );
@@ -160,17 +160,17 @@ export class PrivacySettingsComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         // User confirmed the action
-        this.isLoading = true;
+        this.isLoading.set(true);
         this.privacyService.requestDataDeletion({ confirm: true }).subscribe({
           next: (res) => {
-            this.isLoading = false;
+            this.isLoading.set(false);
             this.notificationService.warning(
               `Account deletion process initiated. You will be logged out shortly. Request ID: ${res.requestId}`
             );
             // Here you would typically log the user out.
           },
           error: (err) => {
-            this.isLoading = false;
+            this.isLoading.set(false);
             this.notificationService.error(
               err.message || 'Failed to initiate account deletion.'
             );

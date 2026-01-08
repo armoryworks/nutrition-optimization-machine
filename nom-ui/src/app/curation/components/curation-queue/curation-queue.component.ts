@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/curation/components/curation-queue/curation-queue.component.ts
 
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -56,13 +56,13 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private fb = inject(NonNullableFormBuilder);
 
-  queueItems: CurationQueueItemModel[] = [];
-  isLoading = true;
-  selectedItem: CurationQueueItemModel | null = null;
+  queueItems = signal<CurationQueueItemModel[]>([]);
+  isLoading = signal(true);
+  selectedItem = signal<CurationQueueItemModel | null>(null);
   decisionForm: FormGroup;
-  isSubmitting = false;
-  error: string | null = null;
-  lastRefreshTime: Date | null = null;
+  isSubmitting = signal(false);
+  error = signal<string | null>(null);
+  lastRefreshTime = signal<Date | null>(null);
 
   listConfig: BaseListConfig = {
     title: 'Curation Queue',
@@ -92,22 +92,22 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   // Computed properties for template filtering
-  get recipeCount(): number {
-    return this.queueItems.filter(item => item.entityType === 'Recipe').length;
-  }
+  recipeCount = computed(() => {
+    return this.queueItems().filter(item => item.entityType === 'Recipe').length;
+  });
 
-  get ingredientCount(): number {
-    return this.queueItems.filter(item => item.entityType === 'Ingredient').length;
-  }
+  ingredientCount = computed(() => {
+    return this.queueItems().filter(item => item.entityType === 'Ingredient').length;
+  });
 
-  get hasItems(): boolean {
-    return this.queueItems.length > 0;
-  }
+  hasItems = computed(() => {
+    return this.queueItems().length > 0;
+  });
 
-  get selectedItemIndex(): number {
-    if (!this.selectedItem) return -1;
-    return this.queueItems.findIndex(item => item.id === this.selectedItem!.id);
-  }
+  selectedItemIndex = computed(() => {
+    if (!this.selectedItem()) return -1;
+    return this.queueItems().findIndex(item => item.id === this.selectedItem()!.id);
+  });
 
   constructor() {
     this.decisionForm = this.fb.group({
@@ -135,24 +135,24 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
 
   loadCurationQueue(): void {
     console.log('Loading curation queue...');
-    this.isLoading = true;
-    this.error = null;
+    this.isLoading.set(true);
+    this.error.set(null);
 
     this.curationService.getCurationQueue().pipe(
       takeUntil(this.destroy$),
       finalize(() => {
-        this.isLoading = false;
-        this.lastRefreshTime = new Date();
+        this.isLoading.set(false);
+        this.lastRefreshTime.set(new Date());
         this.updateListConfig();
       })
     ).subscribe({
       next: (items) => {
         console.log('Curation queue loaded:', items);
-        this.queueItems = items;
+        this.queueItems.set(items);
 
         // If the currently selected item is no longer in the queue, clear selection
-        if (this.selectedItem && !items.find(item => item.id === this.selectedItem!.id)) {
-          this.selectedItem = null;
+        if (this.selectedItem() && !items.find(item => item.id === this.selectedItem()!.id)) {
+          this.selectedItem.set(null);
           this.decisionForm.reset();
         }
 
@@ -160,7 +160,7 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
       },
       error: (error: unknown) => {
         console.error('Error loading curation queue:', error);
-        this.error = 'Failed to load curation queue. Please try again.';
+        this.error.set('Failed to load curation queue. Please try again.');
         this.notificationService.error('Failed to load curation queue');
       }
     });
@@ -170,31 +170,31 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
     this.listConfig = {
       ...this.listConfig,
       stats: [
-        { label: 'Pending', value: this.queueItems.length, type: 'pending' },
-        { label: 'Recipes', value: this.recipeCount, type: 'recipe' },
-        { label: 'Ingredients', value: this.ingredientCount, type: 'ingredient' }
+        { label: 'Pending', value: this.queueItems().length, type: 'pending' },
+        { label: 'Recipes', value: this.recipeCount(), type: 'recipe' },
+        { label: 'Ingredients', value: this.ingredientCount(), type: 'ingredient' }
       ],
-      progressText: this.hasItems && this.selectedItem ? `Reviewing item ${this.selectedItemIndex + 1} of ${this.queueItems.length}` : this.hasItems ? 'Select an item to review' : 'No items to review',
-      progressValue: this.hasItems && this.selectedItem ? this.selectedItemIndex + 1 : 0,
-      progressTotal: this.queueItems.length,
+      progressText: this.hasItems() && this.selectedItem() ? `Reviewing item ${this.selectedItemIndex() + 1} of ${this.queueItems().length}` : this.hasItems() ? 'Select an item to review' : 'No items to review',
+      progressValue: this.hasItems() && this.selectedItem() ? this.selectedItemIndex() + 1 : 0,
+      progressTotal: this.queueItems().length,
 
       customActions: [
         {
           label: 'Previous',
           icon: 'skip_previous',
           color: 'accent',
-          disabled: !this.selectedItem || this.selectedItemIndex <= 0,
+          disabled: !this.selectedItem() || this.selectedItemIndex() <= 0,
           action: () => this.selectPreviousItem()
         },
         {
           label: 'Next',
           icon: 'skip_next',
           color: 'primary',
-          disabled: !this.selectedItem || this.selectedItemIndex >= this.queueItems.length - 1,
+          disabled: !this.selectedItem() || this.selectedItemIndex() >= this.queueItems().length - 1,
           action: () => this.selectNextItem()
         }
       ],
-      lastUpdated: this.lastRefreshTime || undefined
+      lastUpdated: this.lastRefreshTime() || undefined
     };
   }
 
@@ -203,36 +203,36 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   }
 
   onRetry(): void {
-    this.error = null;
+    this.error.set(null);
     this.loadCurationQueue();
   }
 
   selectItem(item: CurationQueueItemModel): void {
-    if (this.selectedItem?.id === item.id) {
+    if (this.selectedItem()?.id === item.id) {
       // If clicking the same item, deselect it
-      this.selectedItem = null;
+      this.selectedItem.set(null);
       this.decisionForm.reset();
     } else {
-      this.selectedItem = item;
+      this.selectedItem.set(item);
       this.decisionForm.reset();
     }
     this.updateListConfig();
   }
 
   selectNextItem(): void {
-    if (this.selectedItemIndex >= 0 && this.selectedItemIndex < this.queueItems.length - 1) {
-      this.selectItem(this.queueItems[this.selectedItemIndex + 1]);
+    if (this.selectedItemIndex() >= 0 && this.selectedItemIndex() < this.queueItems().length - 1) {
+      this.selectItem(this.queueItems()[this.selectedItemIndex() + 1]);
     }
   }
 
   selectPreviousItem(): void {
-    if (this.selectedItemIndex > 0) {
-      this.selectItem(this.queueItems[this.selectedItemIndex - 1]);
+    if (this.selectedItemIndex() > 0) {
+      this.selectItem(this.queueItems()[this.selectedItemIndex() - 1]);
     }
   }
 
   approve(): void {
-    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+    if (!this.selectedItem() || this.decisionForm.invalid || this.isSubmitting()) {
       return;
     }
 
@@ -243,7 +243,7 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   }
 
   requestRevision(): void {
-    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+    if (!this.selectedItem() || this.decisionForm.invalid || this.isSubmitting()) {
       return;
     }
 
@@ -254,7 +254,7 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   }
 
   reject(): void {
-    if (!this.selectedItem || this.decisionForm.invalid || this.isSubmitting) {
+    if (!this.selectedItem() || this.decisionForm.invalid || this.isSubmitting()) {
       return;
     }
 
@@ -265,12 +265,12 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   }
 
   private submitDecision(action: 'approve' | 'revision' | 'reject', onSuccess: () => void): void {
-    this.isSubmitting = true;
-    this.error = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
 
     const decision: CurationDecisionRequestModel = {
-      entityId: this.selectedItem!.id,
-      entityType: this.selectedItem!.entityType,
+      entityId: this.selectedItem()!.id,
+      entityType: this.selectedItem()!.entityType,
       decisionNotes: this.decisionForm.get('decisionNotes')?.value
     };
 
@@ -283,7 +283,7 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
     serviceCall.pipe(
       takeUntil(this.destroy$),
       finalize(() => {
-        this.isSubmitting = false;
+        this.isSubmitting.set(false);
       })
     ).subscribe({
       next: () => {
@@ -291,20 +291,20 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
       },
       error: (error: unknown) => {
         console.error(`Error ${action}ing item:`, error);
-        this.error = `Failed to ${action} item. Please try again.`;
+        this.error.set(`Failed to ${action} item. Please try again.`);
         this.notificationService.error(`Failed to ${action} item`);
       }
     });
   }
 
   private removeItemFromQueue(): void {
-    this.queueItems = this.queueItems.filter(item => item.id !== this.selectedItem!.id);
-    this.selectedItem = null;
+    this.queueItems.set(this.queueItems().filter(item => item.id !== this.selectedItem()!.id));
+    this.selectedItem.set(null);
     this.decisionForm.reset();
   }
 
   cancel(): void {
-    this.selectedItem = null;
+    this.selectedItem.set(null);
     this.decisionForm.reset();
   }
 
@@ -403,13 +403,13 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   }
 
   // Utility method to check if form has unsaved changes
-  get hasUnsavedChanges(): boolean {
+  hasUnsavedChanges = computed(() => {
     return this.decisionForm.dirty && this.decisionForm.valid;
-  }
+  });
 
   // Method to handle beforeunload event
   onBeforeUnload(): boolean {
-    if (this.hasUnsavedChanges) {
+    if (this.hasUnsavedChanges()) {
       return true; // Will show browser warning
     }
     return false;

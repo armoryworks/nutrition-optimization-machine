@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -44,10 +44,10 @@ export class MealPlanDetailComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
-  mealPlan: MealPlanResponseModel | null = null;
-  isLoading = true;
-  error: string | null = null;
-  mealPlanId = 0;
+  mealPlan = signal<MealPlanResponseModel | null>(null);
+  isLoading = signal(true);
+  error = signal<string | null>(null);
+  mealPlanId = signal(0);
 
   detailConfig: BaseDetailConfig = {
     title: 'Meal Plan Details',
@@ -60,24 +60,24 @@ export class MealPlanDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.mealPlanId = +params['id'];
+      this.mealPlanId.set(+params['id']);
       this.loadMealPlan();
     });
   }
 
   loadMealPlan(): void {
-    this.isLoading = true;
-    this.error = null;
+    this.isLoading.set(true);
+    this.error.set(null);
 
-    this.mealPlanService.getMealPlan(this.mealPlanId).subscribe({
+    this.mealPlanService.getMealPlan(this.mealPlanId()).subscribe({
       next: (mealPlan) => {
-        this.mealPlan = mealPlan;
-        this.isLoading = false;
+        this.mealPlan.set(mealPlan);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading meal plan:', error);
-        this.error = 'Failed to load meal plan details';
-        this.isLoading = false;
+        this.error.set('Failed to load meal plan details');
+        this.isLoading.set(false);
       }
     });
   }
@@ -91,17 +91,17 @@ export class MealPlanDetailComponent implements OnInit {
   }
 
   onEditMealPlan(): void {
-    this.router.navigate(['/meal-plan', this.mealPlanId, 'edit']);
+    this.router.navigate(['/meal-plan', this.mealPlanId(), 'edit']);
   }
 
   onDeleteMealPlan(): void {
-    if (!this.mealPlan) return;
+    if (!this.mealPlan()) return;
 
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
         title: 'Delete Meal Plan',
-        message: `Are you sure you want to delete "${this.mealPlan.recipeName}"? This action cannot be undone.`,
+        message: `Are you sure you want to delete "${this.mealPlan()!.recipeName}"? This action cannot be undone.`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
         confirmColor: 'warn'
@@ -110,7 +110,7 @@ export class MealPlanDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.mealPlanService.deleteMealPlan(this.mealPlanId).subscribe({
+        this.mealPlanService.deleteMealPlan(this.mealPlanId()).subscribe({
           next: () => {
             this.snackBar.open('Meal plan deleted successfully', 'Close', {
               duration: 3000,
@@ -133,13 +133,13 @@ export class MealPlanDetailComponent implements OnInit {
   }
 
   onDuplicateMealPlan(): void {
-    if (!this.mealPlan) return;
+    if (!this.mealPlan()) return;
 
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
         title: 'Duplicate Meal Plan',
-        message: `Are you sure you want to duplicate "${this.mealPlan.recipeName}"?`,
+        message: `Are you sure you want to duplicate "${this.mealPlan()!.recipeName}"?`,
         confirmText: 'Duplicate',
         cancelText: 'Cancel',
         confirmColor: 'primary'

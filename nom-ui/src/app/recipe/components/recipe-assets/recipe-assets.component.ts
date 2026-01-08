@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, OnDestroy, Input } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -40,17 +40,17 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     private configurationService = inject(ConfigurationService);
 
     // Input properties
-    @Input() recipeId: number = 0;
-    @Input() isEditMode: boolean = false;
+    recipeId = input<number>(0);
+    isEditMode = input<boolean>(false);
 
     // Component state
-    assets: any[] = [];
+    assets = signal<any[]>([]);
     assetForm: FormGroup;
     selectedFile: File | null = null;
-    isSubmitting = false;
-    uploadProgress = 0;
-    isLoading = false;
-    error: string | null = null;
+    isSubmitting = signal(false);
+    uploadProgress = signal(0);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
 
     // Icon options for assets
     iconOptions = [
@@ -81,25 +81,25 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     }
 
     private loadAssets(): void {
-        if (!this.recipeId) {
-            this.error = 'Recipe ID is required';
+        if (!this.recipeId()) {
+            this.error.set('Recipe ID is required');
             return;
         }
 
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
-        this.recipeAssetsService.getRecipeAssets(this.recipeId)
+        this.recipeAssetsService.getRecipeAssets(this.recipeId())
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (assets: any) => {
-                    this.assets = assets;
-                    this.isLoading = false;
+                    this.assets.set(assets);
+                    this.isLoading.set(false);
                 },
                 error: (error: any) => {
                     console.error('Error loading assets:', error);
-                    this.error = 'Failed to load assets. Please try again.';
-                    this.isLoading = false;
+                    this.error.set('Failed to load assets. Please try again.');
+                    this.isLoading.set(false);
                     this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
                 }
             });
@@ -126,8 +126,8 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
 
     onSubmit(): void {
         if (this.assetForm.valid && this.selectedFile) {
-            this.isSubmitting = true;
-            this.uploadProgress = 0;
+            this.isSubmitting.set(true);
+            this.uploadProgress.set(0);
 
             // Use the existing createRecipeAsset method
             const assetData = {
@@ -139,19 +139,19 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                 mimeType: this.selectedFile?.type || ''
             };
 
-            this.recipeAssetsService.createRecipeAsset(this.recipeId, assetData, this.selectedFile!)
+            this.recipeAssetsService.createRecipeAsset(this.recipeId(), assetData, this.selectedFile!)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (newAsset: any) => {
-                        this.assets.push(newAsset);
+                        this.assets.set([...this.assets(), newAsset]);
                         this.resetForm();
                         this.snackBar.open('Asset uploaded successfully', 'Close', { duration: 3000 });
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                     },
                     error: (error: any) => {
                         console.error('Error uploading asset:', error);
                         this.snackBar.open('Failed to upload asset', 'Close', { duration: 3000 });
-                        this.isSubmitting = false;
+                        this.isSubmitting.set(false);
                     }
                 });
         }
@@ -167,7 +167,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             if (result) {
                 this.recipeAssetsService.deleteRecipeAsset(assetId).subscribe({
                     next: () => {
-                        this.assets = this.assets.filter(asset => asset.id !== assetId);
+                        this.assets.set(this.assets().filter(asset => asset.id !== assetId));
                         this.snackBar.open('Asset deleted successfully', 'Close', { duration: 3000 });
                     },
                     error: (error: any) => {
@@ -228,16 +228,14 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     }
 
     onRetry(): void {
-        this.error = null;
+        this.error.set(null);
         this.loadAssets();
     }
 
-    get listConfig(): any {
-        return {
-            title: 'Recipe Assets',
-            subtitle: 'Manage files, images, and documents for this recipe',
-            showBackButton: true,
-            showRefreshButton: true
-        };
-    }
+    listConfig = computed(() => ({
+        title: 'Recipe Assets',
+        subtitle: 'Manage files, images, and documents for this recipe',
+        showBackButton: true,
+        showRefreshButton: true
+    }));
 } 

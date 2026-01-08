@@ -1,13 +1,13 @@
 <nom-base-page
-  [config]="listConfig"
-  [isLoading]="isLoading"
-  [error]="error"
+  [config]="listConfig()"
+  [isLoading]="isLoading()"
+  [error]="error()"
   (refresh)="onRefresh()"
   (retry)="onRetry()">
 
   <div class="recipe-assets__container">
     <!-- Upload Form (Edit Mode Only) -->
-    @if (isEditMode) {
+    @if (isEditMode()) {
       <mat-card class="recipe-assets__upload-card">
         <mat-card-header>
           <mat-card-title>Upload New Asset</mat-card-title>
@@ -72,14 +72,14 @@
             </div>
 
             <div class="recipe-assets__form-actions">
-              <button 
-                mat-raised-button 
-                color="primary" 
+              <button
+                mat-raised-button
+                color="primary"
                 type="submit"
-                [disabled]="assetForm.invalid || !selectedFile || isSubmitting"
+                [disabled]="assetForm.invalid || !selectedFile || isSubmitting()"
                 class="recipe-assets__submit-btn">
                 <mat-icon>upload</mat-icon>
-                {{ isSubmitting ? 'Uploading...' : 'Upload Asset' }}
+                {{ isSubmitting() ? 'Uploading...' : 'Upload Asset' }}
               </button>
             </div>
           </form>
@@ -90,27 +90,27 @@
     <!-- Assets List -->
     <div class="recipe-assets__list-section">
       <h3 class="recipe-assets__section-title">Recipe Assets</h3>
-      
-      @if (isLoading) {
+
+      @if (isLoading()) {
         <div class="recipe-assets__loading">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading assets...</p>
         </div>
       }
 
-      @if (!isLoading && assets.length === 0) {
+      @if (!isLoading() && assets().length === 0) {
         <div class="recipe-assets__empty">
           <mat-icon class="recipe-assets__empty-icon">folder_open</mat-icon>
           <p>No assets uploaded yet.</p>
-          @if (isEditMode) {
+          @if (isEditMode()) {
             <p>Upload files, images, or documents to share with this recipe.</p>
           }
         </div>
       }
 
-      @if (!isLoading && assets.length > 0) {
+      @if (!isLoading() && assets().length > 0) {
         <mat-list class="recipe-assets__list">
-          @for (asset of assets; track asset.id) {
+          @for (asset of assets(); track asset.id) {
             <mat-list-item class="recipe-assets__list-item">
               <div matListItemIcon class="recipe-assets__item-icon">
                 <mat-icon [matTooltip]="getIconClass(asset.icon)" matTooltipPosition="above">
@@ -131,8 +131,8 @@
               </div>
 
               <div matListItemMeta class="recipe-assets__item-actions">
-                <button 
-                  mat-icon-button 
+                <button
+                  mat-icon-button
                   color="primary"
                   (click)="onDownloadAsset(asset)"
                   class="recipe-assets__download-btn"
@@ -140,9 +140,9 @@
                   <mat-icon>download</mat-icon>
                 </button>
 
-                @if (isEditMode) {
-                  <button 
-                    mat-icon-button 
+                @if (isEditMode()) {
+                  <button
+                    mat-icon-button
                     color="warn"
                     (click)="onDeleteAsset(asset.id)"
                     class="recipe-assets__delete-btn"

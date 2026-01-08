@@ -1,11 +1,10 @@
 import {
   Component,
   OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  OnChanges,
-  SimpleChanges,
+  input,
+  output,
+  signal,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -30,20 +29,20 @@ import { PersonModel } from '../../../person/models/person.model';
   styleUrls: ['./onboarding-additional-participants.component.scss'],
 })
 export class OnboardingAdditionalParticipantsComponent
-  implements OnInit, OnChanges {
-  @Input() hasAdditionalParticipantsInput: boolean | null = null;
-  @Input() numberOfAdditionalParticipantsInput: number | null = null;
-  @Input() additionalParticipantDetailsInput: PersonModel[] = [];
-  @Input() principalPersonId: number | null = null; // Used for generating unique temp IDs
-  @Input() isLoading = false;
-  @Input() allCurrentPersonsInPlan: PersonModel[] = []; // Full list of persons for temp ID generation
+  implements OnInit {
+  hasAdditionalParticipantsInput = input<boolean | null>(null);
+  numberOfAdditionalParticipantsInput = input<number | null>(null);
+  additionalParticipantDetailsInput = input<PersonModel[]>([]);
+  principalPersonId = input<number | null>(null); // Used for generating unique temp IDs
+  isLoading = input(false);
+  allCurrentPersonsInPlan = input<PersonModel[]>([]); // Full list of persons for temp ID generation
 
-  @Output() participantsDataSubmitted = new EventEmitter<{
+  participantsDataSubmitted = output<{
     hasAdditionalParticipants: boolean;
     numberOfAdditionalParticipants: number;
     additionalParticipantDetails: PersonModel[];
   }>();
-  @Output() skipStep = new EventEmitter<void>(); // For skipping the whole section if a skip button is desired
+  skipStep = output<void>(); // For skipping the whole section if a skip button is desired
 
   // Internal state to manage the sub-workflow
   currentSubStep: 'hasParticipants' | 'howMany' | 'names' = 'hasParticipants';
@@ -56,38 +55,40 @@ export class OnboardingAdditionalParticipantsComponent
   ]);
   internalAdditionalParticipantDetails: PersonModel[] = [];
 
+  constructor() {
+    // Effect to watch for input changes and re-initialize
+    effect(() => {
+      // Access all inputs to track them
+      const hasParticipants = this.hasAdditionalParticipantsInput();
+      const numberOfParticipants = this.numberOfAdditionalParticipantsInput();
+      const participantDetails = this.additionalParticipantDetailsInput();
+
+      // Re-initialize if inputs have changed
+      if (
+        hasParticipants !== this.internalHasAdditionalParticipants ||
+        numberOfParticipants !== this.numberOfAdditionalParticipantsControl.value ||
+        participantDetails !== this.internalAdditionalParticipantDetails
+      ) {
+        this.initializeFromInputs();
+      }
+      this.updateSubStep();
+    });
+  }
+
   ngOnInit(): void {
     this.initializeFromInputs();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    // Re-initialize if external inputs change and it's not due to our own emissions
-    if (
-      (changes['hasAdditionalParticipantsInput'] &&
-        changes['hasAdditionalParticipantsInput'].currentValue !==
-        this.internalHasAdditionalParticipants) ||
-      (changes['numberOfAdditionalParticipantsInput'] &&
-        changes['numberOfAdditionalParticipantsInput'].currentValue !==
-        this.numberOfAdditionalParticipantsControl.value) ||
-      (changes['additionalParticipantDetailsInput'] &&
-        changes['additionalParticipantDetailsInput'].currentValue !==
-        this.internalAdditionalParticipantDetails)
-    ) {
-      this.initializeFromInputs();
-    }
-    this.updateSubStep();
-  }
-
   private initializeFromInputs(): void {
     this.internalHasAdditionalParticipants =
-      this.hasAdditionalParticipantsInput;
+      this.hasAdditionalParticipantsInput();
     this.numberOfAdditionalParticipantsControl.setValue(
-      this.numberOfAdditionalParticipantsInput
+      this.numberOfAdditionalParticipantsInput()
     );
     // Create a deep copy to avoid direct mutation of parent's array
     this.internalAdditionalParticipantDetails = this
-      .additionalParticipantDetailsInput
-      ? this.additionalParticipantDetailsInput.map((p) => new PersonModel(p))
+      .additionalParticipantDetailsInput()
+      ? this.additionalParticipantDetailsInput().map((p) => new PersonModel(p))
       : [];
 
     // Ensure names are empty strings if they were default placeholders on load
@@ -179,7 +180,7 @@ export class OnboardingAdditionalParticipantsComponent
 
     if (desiredCount > currentCount) {
       for (let i = currentCount; i < desiredCount; i++) {
-        const newTempId = -(this.allCurrentPersonsInPlan.length + 1 + i);
+        const newTempId = -(this.allCurrentPersonsInPlan().length + 1 + i);
         this.internalAdditionalParticipantDetails.push(
           new PersonModel({
             id: newTempId,

@@ -3,10 +3,10 @@
     <h3 class="nom-section__heading">Restriction Details</h3>
     <p class="nom-instruction-text">
       Please provide details for your
-      {{ getRestrictionTypeName(restrictionType!) }} restriction.
+      {{ getRestrictionTypeName(restrictionType()!) }} restriction.
     </p>
 
-    @switch (restrictionType) { @case
+    @switch (restrictionType()) { @case
     (RestrictionTypeEnum.SocietalReligiousEthical) {
     <nom-societal-restriction
       [societalRestrictionForm]="societalRestrictionFormGroup"

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -42,10 +42,10 @@ export class HouseholdDetailComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    household: HouseholdResponseModel | null = null;
-    isLoading = true;
-    error: string | null = null;
-    householdId = 0;
+    household = signal<HouseholdResponseModel | null>(null);
+    isLoading = signal(true);
+    error = signal<string | null>(null);
+    householdId = signal(0);
 
     detailConfig: BaseDetailConfig = {
         title: 'Household Details',
@@ -58,24 +58,24 @@ export class HouseholdDetailComponent implements OnInit {
 
     ngOnInit(): void {
         this.route.params.subscribe(params => {
-            this.householdId = +params['id'];
+            this.householdId.set(+params['id']);
             this.loadHousehold();
         });
     }
 
     loadHousehold(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
-        this.householdService.getHousehold(this.householdId).subscribe({
+        this.householdService.getHousehold(this.householdId()).subscribe({
             next: (household) => {
-                this.household = household;
-                this.isLoading = false;
+                this.household.set(household);
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading household:', error);
-                this.error = 'Failed to load household details';
-                this.isLoading = false;
+                this.error.set('Failed to load household details');
+                this.isLoading.set(false);
             }
         });
     }
@@ -89,33 +89,33 @@ export class HouseholdDetailComponent implements OnInit {
     }
 
     onEditHousehold(): void {
-        this.router.navigate(['/household', this.householdId, 'edit']);
+        this.router.navigate(['/household', this.householdId(), 'edit']);
     }
 
     onInviteMembers(): void {
-        this.router.navigate(['/household', this.householdId, 'invite']);
+        this.router.navigate(['/household', this.householdId(), 'invite']);
     }
 
     onViewMealPlans(): void {
-        this.router.navigate(['/plan'], { queryParams: { householdId: this.householdId } });
+        this.router.navigate(['/plan'], { queryParams: { householdId: this.householdId() } });
     }
 
     onViewShoppingLists(): void {
-        this.router.navigate(['/shopping'], { queryParams: { householdId: this.householdId } });
+        this.router.navigate(['/shopping'], { queryParams: { householdId: this.householdId() } });
     }
 
     onViewRecipes(): void {
-        this.router.navigate(['/recipe'], { queryParams: { householdId: this.householdId } });
+        this.router.navigate(['/recipe'], { queryParams: { householdId: this.householdId() } });
     }
 
     onDeleteHousehold(): void {
-        if (!this.household) return;
+        if (!this.household()) return;
 
         const dialogRef = this.dialog.open(ConfirmDialogComponent, {
             width: '400px',
             data: {
                 title: 'Delete Household',
-                message: `Are you sure you want to delete "${this.household.name}"? This action cannot be undone and will remove all associated data.`,
+                message: `Are you sure you want to delete "${this.household()!.name}"? This action cannot be undone and will remove all associated data.`,
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
                 confirmColor: 'warn'
@@ -124,7 +124,7 @@ export class HouseholdDetailComponent implements OnInit {
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this.householdService.deleteHousehold(this.householdId).subscribe({
+                this.householdService.deleteHousehold(this.householdId()).subscribe({
                     next: () => {
                         this.snackBar.open('Household deleted successfully', 'Close', {
                             duration: 3000,
@@ -160,7 +160,7 @@ export class HouseholdDetailComponent implements OnInit {
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this.householdService.removeMember(this.householdId, memberId).subscribe({
+                this.householdService.removeMember(this.householdId(), memberId).subscribe({
                     next: () => {
                         this.snackBar.open('Member removed successfully', 'Close', {
                             duration: 3000,
@@ -183,8 +183,8 @@ export class HouseholdDetailComponent implements OnInit {
     }
 
     onCopyInviteLink(): void {
-        if (this.household?.inviteToken) {
-            const inviteLink = `${window.location.origin}/household/join/${this.household.inviteToken}`;
+        if (this.household()?.inviteToken) {
+            const inviteLink = `${window.location.origin}/household/join/${this.household()!.inviteToken}`;
             navigator.clipboard.writeText(inviteLink).then(() => {
                 this.snackBar.open('Invite link copied to clipboard', 'Close', {
                     duration: 3000,

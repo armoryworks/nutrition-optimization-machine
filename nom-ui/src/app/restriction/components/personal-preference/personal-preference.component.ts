@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, input, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -39,7 +39,7 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
   private restrictionService = inject(RestrictionService);
   private referenceDataService = inject(ReferenceDataService);
 
-  @Input() personalPreferenceForm!: FormGroup;
+  personalPreferenceForm = input.required<FormGroup>();
 
   // FormControls for autocomplete inputs
   public ingredientSearchControl = new FormControl<string>('');
@@ -56,18 +56,6 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    if (!this.personalPreferenceForm) {
-      console.warn(
-        'PersonalPreferenceRestrictionComponent: personalPreferenceForm input is missing. Initializing a default one.'
-      );
-      this.personalPreferenceForm = this.fb.group({
-        personalPreferenceSpiceLevel: new FormControl(''),
-        dislikedIngredients: this.fb.array([] as FormControl<string>[]),
-        dislikedTextures: this.fb.array([] as FormControl<string>[]),
-        preferredCookingMethods: this.fb.array([] as FormControl<string>[]),
-      });
-    }
-
     this.loadReferenceData();
     this.setupIngredientSearch();
   }
@@ -127,7 +115,7 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
     const input = event.input;
     const value = (event.value || '').trim();
     if (value) {
-      const formArray = this.personalPreferenceForm.get(
+      const formArray = this.personalPreferenceForm().get(
         formArrayName
       ) as FormArray;
       formArray.push(this.fb.control(value));
@@ -138,32 +126,32 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
   }
 
   public removeChip(index: number, formArrayName: string): void {
-    const formArray = this.personalPreferenceForm.get(
+    const formArray = this.personalPreferenceForm().get(
       formArrayName
     ) as FormArray;
     formArray.removeAt(index);
   }
 
   public getFormArray(formArrayName: string): FormArray {
-    return this.personalPreferenceForm.get(formArrayName) as FormArray;
+    return this.personalPreferenceForm().get(formArrayName) as FormArray;
   }
 
   // Getters for FormArrays that the template expects
   get dislikedIngredientsArray(): FormArray {
-    return this.personalPreferenceForm.get('dislikedIngredients') as FormArray;
+    return this.personalPreferenceForm().get('dislikedIngredients') as FormArray;
   }
 
   get dislikedTexturesArray(): FormArray {
-    return this.personalPreferenceForm.get('dislikedTextures') as FormArray;
+    return this.personalPreferenceForm().get('dislikedTextures') as FormArray;
   }
 
   get preferredCookingMethodsArray(): FormArray {
-    return this.personalPreferenceForm.get('preferredCookingMethods') as FormArray;
+    return this.personalPreferenceForm().get('preferredCookingMethods') as FormArray;
   }
 
   public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
     const selectedValues = event.value;
-    const formArray = this.personalPreferenceForm.get(formControlName) as FormArray;
+    const formArray = this.personalPreferenceForm().get(formControlName) as FormArray;
     formArray.clear();
     selectedValues.forEach((value: string) => {
       formArray.push(this.fb.control(value));
@@ -171,14 +159,14 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
   }
 
   public onSubmit(): void {
-    if (this.personalPreferenceForm.valid) {
-      console.log('Form submitted:', this.personalPreferenceForm.value);
+    if (this.personalPreferenceForm().valid) {
+      console.log('Form submitted:', this.personalPreferenceForm().value);
       // TODO: Implement form submission logic
     }
   }
 
   public onReset(): void {
-    this.personalPreferenceForm.reset();
+    this.personalPreferenceForm().reset();
   }
 
   public getSpiceLevelOptions(): any[] {

@@ -3,15 +3,15 @@
     <mat-card-header>
       <mat-card-title class="ingredient-title">
         <mat-icon class="ingredient-icon">restaurant</mat-icon>
-        {{ detailConfig.title }}
+        {{ detailConfig().title }}
       </mat-card-title>
       <mat-card-subtitle class="ingredient-subtitle">
-        {{ detailConfig.subtitle }}
+        {{ detailConfig().subtitle }}
       </mat-card-subtitle>
     </mat-card-header>
 
     <mat-card-content>
-      @if (ingredient) {
+      @if (ingredient()) {
         <div class="ingredient-content">
           <!-- Basic Info Section -->
           <div class="info-section">
@@ -22,36 +22,36 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Name:</span>
-                <span class="info-value">{{ ingredient.name }}</span>
+                <span class="info-value">{{ ingredient()!.name }}</span>
               </div>
-              @if (ingredient.fdcId) {
+              @if (ingredient()!.fdcId) {
                 <div class="info-item">
                   <span class="info-label">FDC ID:</span>
-                  <span class="info-value">{{ ingredient.fdcId }}</span>
+                  <span class="info-value">{{ ingredient()!.fdcId }}</span>
                 </div>
               }
-              @if (ingredient.description) {
+              @if (ingredient()!.description) {
                 <div class="info-item">
                   <span class="info-label">Description:</span>
-                  <span class="info-value">{{ ingredient.description }}</span>
+                  <span class="info-value">{{ ingredient()!.description }}</span>
                 </div>
               }
             </div>
           </div>
           <!-- Nutritional Information Section -->
-          @if (nutritionLabelData?.nutrients && nutritionLabelData.nutrients.length > 0) {
+          @if (nutritionLabelData()?.nutrients && nutritionLabelData()!.nutrients.length > 0) {
             <div class="nutrition-section">
               <div class="section-header">
                 <mat-icon>local_dining</mat-icon>
                 <h3>Nutritional Information</h3>
-                <span class="serving-info">per {{ nutritionLabelData.servingSizeHousehold }}</span>
+                <span class="serving-info">per {{ nutritionLabelData()!.servingSizeHousehold }}</span>
               </div>
               <!-- Calories Highlight -->
-              @if (nutritionLabelData.calories > 0) {
+              @if (nutritionLabelData()!.calories > 0) {
                 <div class="calories-highlight">
                   <div class="calories-container">
                     <span class="calories-label">Calories</span>
-                    <span class="calories-value">{{ nutritionLabelData.calories }}</span>
+                    <span class="calories-value">{{ nutritionLabelData()!.calories }}</span>
                   </div>
                 </div>
               }
@@ -63,7 +63,7 @@
                   <span>% DV</span>
                 </div>
                 <div class="nutrients-list">
-                  @for (nutrient of nutritionLabelData.nutrients; track nutrient) {
+                  @for (nutrient of nutritionLabelData()!.nutrients; track nutrient) {
                     <div
                       class="nutrient-row"
                       [class.nutrient-bold]="nutrient.isBold"
@@ -84,7 +84,7 @@
             </div>
           }
           <!-- No Nutrition Data Message -->
-          @if (!nutritionLabelData?.nutrients || nutritionLabelData.nutrients.length === 0) {
+          @if (!nutritionLabelData()?.nutrients || nutritionLabelData()!.nutrients.length === 0) {
             <div class="no-nutrition">
               <mat-icon class="no-data-icon">info_outline</mat-icon>
               <p>No nutritional information available for this ingredient.</p>
@@ -94,11 +94,11 @@
       }
     </mat-card-content>
 
-    @if (detailConfig.showBackButton) {
+    @if (detailConfig().showBackButton) {
       <mat-card-actions>
         <button mat-button (click)="onBack()" class="back-button">
           <mat-icon>arrow_back</mat-icon>
-          {{ detailConfig.backButtonText }}
+          {{ detailConfig().backButtonText }}
         </button>
       </mat-card-actions>
     }

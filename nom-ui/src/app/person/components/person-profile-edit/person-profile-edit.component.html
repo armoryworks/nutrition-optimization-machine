@@ -1,7 +1,7 @@
 <nom-base-page [config]="pageConfig">
   <nom-base-form [config]="formConfig" [form]="personForm" (formSubmitted)="onSubmit()" (formCancelled)="onCancel()">
     <div class="nom-form__content">
-      @if (isInitialLoading) {
+      @if (isInitialLoading()) {
       <div class="nom-loading-container">
         <mat-spinner diameter="40"></mat-spinner>
         <p class="nom-loading-text">Loading your profile...</p>

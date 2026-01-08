@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,6 +17,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { Subject, takeUntil } from 'rxjs';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
@@ -47,21 +48,31 @@ import { RecipeAdvancedService } from '../../services/recipe-advanced.service';
     styleUrls: ['./recipe-timeline-events.component.scss']
 })
 export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
-    @Input() recipeId!: number;
-
-    timelineEvents: RecipeTimelineEventResponseModel[] = [];
-    isLoading = false;
-    error: string | null = null;
-    timelineEventForm: FormGroup;
-    isSubmitting = false;
-    destroy$ = new Subject<void>();
-
     private recipeService = inject(RecipeService);
     private recipeAdvancedService = inject(RecipeAdvancedService);
     private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
+    private destroy$ = new Subject<void>();
+
+    recipeId = input.required<number>();
+
+    timelineEvents = signal<RecipeTimelineEventResponseModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
+    timelineEventForm: FormGroup;
+    isSubmitting = signal(false);
+
+    eventTypes = [
+        { id: 1, name: "First Made" },
+        { id: 2, name: "Modified" },
+        { id: 3, name: "Shared" },
+        { id: 4, name: "Rated" },
+        { id: 5, name: "Added to Meal Plan" },
+        { id: 6, name: "Added to Shopping List" },
+        { id: 7, name: "Custom Event" }
+    ];
 
     constructor() {
         this.timelineEventForm = this.nonNullableFb.group({
@@ -84,36 +95,36 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
     }
 
     loadTimelineEvents(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
         this.recipeAdvancedService
-            .getRecipeTimelineEvents(this.recipeId)
+            .getRecipeTimelineEvents(this.recipeId())
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (timelineEvents) => {
-                    this.timelineEvents = timelineEvents.sort((a, b) =>
+                    this.timelineEvents.set(timelineEvents.sort((a, b) =>
                         new Date(b.eventDate || b.createdDate).getTime() -
                         new Date(a.eventDate || a.createdDate).getTime()
-                    );
-                    this.isLoading = false;
+                    ));
+                    this.isLoading.set(false);
                 },
                 error: (error) => {
                     console.error("Error loading timeline events:", error);
-                    this.error = "Failed to load timeline events. Please try again.";
-                    this.isLoading = false;
+                    this.error.set("Failed to load timeline events. Please try again.");
+                    this.isLoading.set(false);
                 },
             });
     }
 
     createTimelineEvent(): void {
-        if (this.timelineEventForm.invalid || this.isSubmitting) {
+        if (this.timelineEventForm.invalid || this.isSubmitting()) {
             return;
         }
 
-        this.isSubmitting = true;
-        this.error = null;
+        this.isSubmitting.set(true);
+        this.error.set(null);
         const request: RecipeTimelineEventCreateModel = {
-            recipeId: this.recipeId,
+            recipeId: this.recipeId(),
             eventTypeId: this.timelineEventForm.get("eventTypeId")!.value,
             eventTitle: this.timelineEventForm.get("eventTitle")!.value,
             eventDescription: this.timelineEventForm.get("eventDescription")!.value || undefined,
@@ -125,15 +136,15 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (timelineEvent) => {
-                    this.timelineEvents.unshift(timelineEvent);
+                    this.timelineEvents.set([timelineEvent, ...this.timelineEvents()]);
                     this.timelineEventForm.reset();
                     this.snackBar.open("Timeline event added successfully", "Close", { duration: 3000 });
-                    this.isSubmitting = false;
+                    this.isSubmitting.set(false);
                 },
                 error: (error) => {
                     console.error("Error creating timeline event:", error);
-                    this.error = "Failed to create timeline event. Please try again.";
-                    this.isSubmitting = false;
+                    this.error.set("Failed to create timeline event. Please try again.");
+                    this.isSubmitting.set(false);
                 },
             });
     }
@@ -144,7 +155,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: () => {
-                    this.timelineEvents = this.timelineEvents.filter(e => e.id !== eventId);
+                    this.timelineEvents.set(this.timelineEvents().filter(e => e.id !== eventId));
                     this.snackBar.open("Timeline event deleted successfully", "Close", { duration: 3000 });
                 },
                 error: (error) => {

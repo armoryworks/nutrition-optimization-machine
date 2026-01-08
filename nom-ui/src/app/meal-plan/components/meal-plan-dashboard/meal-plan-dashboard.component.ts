@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -53,14 +53,14 @@ export class MealPlanDashboardComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    mealPlans: MealPlanResponseModel[] = [];
-    filteredPlans: MealPlanResponseModel[] = [];
-    isLoading = true;
-    error: string | null = null;
+    mealPlans = signal<MealPlanResponseModel[]>([]);
+    filteredPlans = signal<MealPlanResponseModel[]>([]);
+    isLoading = signal(true);
+    error = signal<string | null>(null);
     searchControl = new FormControl('');
-    searchTerm = '';
-    viewMode: 'week' | 'month' = 'week';
-    selectedDate = new Date();
+    searchTerm = signal('');
+    viewMode = signal<'week' | 'month'>('week');
+    selectedDate = signal(new Date());
 
 
 
@@ -76,48 +76,48 @@ export class MealPlanDashboardComponent implements OnInit {
             debounceTime(300),
             distinctUntilChanged()
         ).subscribe(searchTerm => {
-            this.searchTerm = searchTerm || '';
-            this.filterPlans(this.searchTerm);
+            this.searchTerm.set(searchTerm || '');
+            this.filterPlans(this.searchTerm());
         });
     }
 
     onSearch(): void {
-        this.filterPlans(this.searchTerm);
+        this.filterPlans(this.searchTerm());
     }
 
     clearSearch(): void {
-        this.searchTerm = '';
+        this.searchTerm.set('');
         this.filterPlans('');
     }
 
     loadMealPlans(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         this.mealPlanService.getMealPlans().subscribe({
             next: (mealPlans) => {
-                this.mealPlans = mealPlans;
-                this.filteredPlans = [...this.mealPlans];
-                this.isLoading = false;
+                this.mealPlans.set(mealPlans);
+                this.filteredPlans.set([...this.mealPlans()]);
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading meal plans:', error);
-                this.error = 'Failed to load meal plans';
-                this.isLoading = false;
+                this.error.set('Failed to load meal plans');
+                this.isLoading.set(false);
             }
         });
     }
 
     filterPlans(searchTerm: string): void {
         if (!searchTerm.trim()) {
-            this.filteredPlans = [...this.mealPlans];
+            this.filteredPlans.set([...this.mealPlans()]);
         } else {
             const term = searchTerm.toLowerCase();
-            this.filteredPlans = this.mealPlans.filter(plan =>
+            this.filteredPlans.set(this.mealPlans().filter(plan =>
                 plan.recipeName?.toLowerCase().includes(term) ||
                 plan.title?.toLowerCase().includes(term) ||
                 plan.description?.toLowerCase().includes(term)
-            );
+            ));
         }
     }
 
@@ -188,22 +188,22 @@ export class MealPlanDashboardComponent implements OnInit {
     onViewModeChange(event?: any): void {
         // viewMode is already bound via ngModel, so just need to handle the event
         if (event?.value) {
-            this.viewMode = event.value;
+            this.viewMode.set(event.value);
         }
     }
 
     onDateChange(date: Date): void {
-        this.selectedDate = date;
+        this.selectedDate.set(date);
     }
 
     getPreviousWeekDate(): Date {
-        const date = new Date(this.selectedDate);
+        const date = new Date(this.selectedDate());
         date.setDate(date.getDate() - 7);
         return date;
     }
 
     getNextWeekDate(): Date {
-        const date = new Date(this.selectedDate);
+        const date = new Date(this.selectedDate());
         date.setDate(date.getDate() + 7);
         return date;
     }
@@ -231,7 +231,7 @@ export class MealPlanDashboardComponent implements OnInit {
     getWeekDays(): { date: Date; name: string }[] {
         const days: { date: Date; name: string }[] = [];
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const startOfWeek = new Date(this.selectedDate);
+        const startOfWeek = new Date(this.selectedDate());
         startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
         for (let i = 0; i < 7; i++) {
@@ -261,12 +261,12 @@ export class MealPlanDashboardComponent implements OnInit {
     getCurrentMonth(): string {
         const months = ['January', 'February', 'March', 'April', 'May', 'June',
                        'July', 'August', 'September', 'October', 'November', 'December'];
-        return `${months[this.selectedDate.getMonth()]} ${this.selectedDate.getFullYear()}`;
+        return `${months[this.selectedDate().getMonth()]} ${this.selectedDate().getFullYear()}`;
     }
 
     getPlansForDate(date: Date): MealPlanResponseModel[] {
         const dateString = date.toISOString().split('T')[0];
-        return this.filteredPlans.filter(plan => {
+        return this.filteredPlans().filter(plan => {
             const planDate = plan.date instanceof Date ? plan.date.toISOString().split('T')[0] : plan.date;
             return planDate === dateString;
         });
@@ -278,11 +278,11 @@ export class MealPlanDashboardComponent implements OnInit {
     }
 
     isSelectedDate(date: Date): boolean {
-        return date.toDateString() === this.selectedDate.toDateString();
+        return date.toDateString() === this.selectedDate().toDateString();
     }
 
     getTotalMeals(): number {
-        return this.filteredPlans.length;
+        return this.filteredPlans().length;
     }
 
     getUpcomingMeals(): number {
@@ -290,7 +290,7 @@ export class MealPlanDashboardComponent implements OnInit {
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
 
-        return this.filteredPlans.filter(plan => {
+        return this.filteredPlans().filter(plan => {
             const planDate = plan.date instanceof Date ? plan.date : new Date(plan.date);
             return planDate >= today && planDate <= nextWeek;
         }).length;

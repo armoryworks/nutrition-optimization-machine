@@ -42,18 +42,18 @@
           </mat-form-field>
 
           <div class="household-invite__form-actions">
-            <button 
-              mat-raised-button 
-              color="primary" 
+            <button
+              mat-raised-button
+              color="primary"
               type="submit"
-              [disabled]="inviteForm.invalid || isLoading"
+              [disabled]="inviteForm.invalid || isLoading()"
               class="household-invite__submit-btn">
-              @if (isLoading) {
+              @if (isLoading()) {
                 <mat-icon>hourglass_empty</mat-icon>
               } @else {
                 <mat-icon>send</mat-icon>
               }
-              {{ isLoading ? 'Creating...' : 'Create Invitation' }}
+              {{ isLoading() ? 'Creating...' : 'Create Invitation' }}
             </button>
           </div>
         </form>
@@ -61,14 +61,14 @@
     </mat-card>
 
     <!-- Error Message -->
-    @if (error) {
+    @if (error()) {
       <div class="household-invite__error">
         <mat-card class="household-invite__error-card">
           <mat-card-content>
             <div class="household-invite__error-content">
               <mat-icon class="household-invite__error-icon">error</mat-icon>
               <h3>Error Creating Invitation</h3>
-              <p>{{ error }}</p>
+              <p>{{ error() }}</p>
             </div>
           </mat-card-content>
         </mat-card>
@@ -76,7 +76,7 @@
     }
 
     <!-- Invite Link Section -->
-    @if (inviteLink) {
+    @if (inviteLink()) {
       <div class="household-invite__invite-section">
         <mat-card class="household-invite__invite-card">
           <mat-card-header>
@@ -88,9 +88,9 @@
             <div class="household-invite__link-container">
               <mat-form-field appearance="outline" class="household-invite__link-field">
                 <mat-label>Invitation Link</mat-label>
-                <input 
-                  matInput 
-                  [value]="inviteLink"
+                <input
+                  matInput
+                  [value]="inviteLink()"
                   readonly
                   class="household-invite__link-input"
                 />

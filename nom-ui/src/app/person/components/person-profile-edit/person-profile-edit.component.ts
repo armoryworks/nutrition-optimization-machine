@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
     FormGroup,
     Validators,
@@ -47,8 +47,8 @@ export class PersonProfileEditComponent implements OnInit {
     private notificationService = inject(NotificationService);
 
     personForm: FormGroup;
-    isLoading = false;
-    isInitialLoading = true;
+    isLoading = signal(false);
+    isInitialLoading = signal(true);
     currentPerson: PersonModel | null = null;
 
     pageConfig: BasePageConfig = {
@@ -79,7 +79,7 @@ export class PersonProfileEditComponent implements OnInit {
     }
 
     private loadCurrentPerson(): void {
-        this.isInitialLoading = true;
+        this.isInitialLoading.set(true);
         this.personService.getCurrentPerson().subscribe({
             next: (person) => {
                 if (person) {
@@ -88,10 +88,10 @@ export class PersonProfileEditComponent implements OnInit {
                         name: person.name || '',
                     });
                 }
-                this.isInitialLoading = false;
+                this.isInitialLoading.set(false);
             },
             error: (error) => {
-                this.isInitialLoading = false;
+                this.isInitialLoading.set(false);
                 console.error('Error loading person info:', error);
                 this.notificationService.error(
                     error.message || 'Failed to load your profile information.'
@@ -106,14 +106,14 @@ export class PersonProfileEditComponent implements OnInit {
             return;
         }
 
-        this.isLoading = true;
+        this.isLoading.set(true);
         const personName = this.personForm.get('name')?.value;
 
         this.personService
             .upsertPerson({ personName })
             .subscribe({
                 next: (response) => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     this.currentPerson = new PersonModel({
                         id: response.id,
                         name: response.name
@@ -121,7 +121,7 @@ export class PersonProfileEditComponent implements OnInit {
                     this.notificationService.success('Profile updated successfully!');
                 },
                 error: (error) => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     console.error('Error updating person:', error);
                     this.notificationService.error(
                         error.error?.message || error.message || 'Failed to update profile.'

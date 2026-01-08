@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, input, output, ViewEncapsulation, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,12 +38,12 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
 export class PlanEditComponent implements OnInit {
   private fb = inject(NonNullableFormBuilder);
 
-  @Input() plan: PlanModel | undefined = undefined;
-  @Input() allPersonsInPlan: PersonModel[] = []; // Assuming PersonModel is available
-  @Input() currentPersonId = 0; // Assuming currentPersonId is passed for individual restrictions
+  plan = input<PlanModel | undefined>(undefined);
+  allPersonsInPlan = input<PersonModel[]>([]); // Assuming PersonModel is available
+  currentPersonId = input(0); // Assuming currentPersonId is passed for individual restrictions
 
-  @Output() formSubmitted = new EventEmitter<PlanModel>();
-  @Output() back = new EventEmitter<void>();
+  formSubmitted = output<PlanModel>();
+  back = output<void>();
 
   planForm: FormGroup = this.fb.group({
     name: new FormControl('', Validators.required),
@@ -68,23 +68,23 @@ export class PlanEditComponent implements OnInit {
 
   ngOnInit(): void {
     // Update form values based on input plan
-    if (this.plan) {
+    if (this.plan()) {
       this.planForm.patchValue({
-        name: this.plan.name || '',
-        description: this.plan.description || '',
-        invitationCode: this.plan.invitationCode || '',
+        name: this.plan()!.name || '',
+        description: this.plan()!.description || '',
+        invitationCode: this.plan()!.invitationCode || '',
       });
     }
 
     // Initialize tempRestrictions with any existing restrictions from the input plan
-    if (this.plan?.restrictions) {
-      this.tempRestrictions = [...this.plan.restrictions];
+    if (this.plan()?.restrictions) {
+      this.tempRestrictions = [...this.plan()!.restrictions];
     }
   }
 
   public getPersonName(personId: number | null, defaultRetVal: string): string {
     return (
-      this.allPersonsInPlan.find((p) => p.id === personId)?.name ||
+      this.allPersonsInPlan().find((p) => p.id === personId)?.name ||
       defaultRetVal
     );
   }
@@ -127,7 +127,7 @@ export class PlanEditComponent implements OnInit {
     this.planForm.markAllAsTouched();
     if (this.planForm.valid) {
       const updatedPlan: PlanModel = {
-        ...this.plan!, // Start with existing plan data
+        ...this.plan()!, // Start with existing plan data
         name: this.planForm.get('name')?.value,
         description: this.planForm.get('description')?.value,
         invitationCode: this.planForm.get('invitationCode')?.value,

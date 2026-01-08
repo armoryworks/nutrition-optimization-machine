@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, input, output, ViewEncapsulation, OnDestroy, inject, signal } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -51,16 +51,16 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   public readonly HEIGHT_IN_FEET_NAME = 'HeightInFeet';
   public readonly HEIGHT_IN_INCHES_NAME = 'HeightInInches';
 
-  @Input() attributes: PersonAttributeModel[] = [];
-  @Input() currentPersonId = 0;
-  @Output() formSubmitted = new EventEmitter<PersonAttributeModel[]>();
-  @Output() skipStep = new EventEmitter<void>();
+  attributes = input<PersonAttributeModel[]>([]);
+  currentPersonId = input(0);
+  formSubmitted = output<PersonAttributeModel[]>();
+  skipStep = output<void>();
 
   healthAttributesForm!: FormGroup;
   attributeTypes: AttributeTypeModel[] = [];
-  isSubmitting = false;
-  isLoading = false;
-  error: string | null = null;
+  isSubmitting = signal(false);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   pageConfig: BasePageConfig = {
     title: 'Health Information',
@@ -97,8 +97,8 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   loadAttributeTypes(): void {
-    this.isLoading = true;
-    this.error = null;
+    this.isLoading.set(true);
+    this.error.set(null);
 
     this.referenceService.getAttributeTypes().pipe(
       takeUntil(this.destroy$)
@@ -114,12 +114,12 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
           options: this.getOptionsForAttribute(attr.name)
         }));
         this.initializeForm();
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading attribute types:', error);
-        this.error = 'Failed to load health attributes. Please try again.';
-        this.isLoading = false;
+        this.error.set('Failed to load health attributes. Please try again.');
+        this.isLoading.set(false);
       }
     });
   }
@@ -130,12 +130,12 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
     // Initialize form controls for each attribute type
     this.attributeTypes.forEach(attrType => {
       const controlName = this.getFormControlName(attrType.name);
-      const existingValue = this.attributes.find(attr => attr.attributeTypeRefId === attrType.id)?.value || '';
+      const existingValue = this.attributes().find(attr => attr.attributeTypeRefId === attrType.id)?.value || '';
       formControls[controlName] = new FormControl(existingValue);
     });
 
     // Special handling for height attributes
-    const heightAttribute = this.attributes.find(attr => attr.attributeTypeRefId === this.HEIGHT_ATTRIBUTE_ID);
+    const heightAttribute = this.attributes().find(attr => attr.attributeTypeRefId === this.HEIGHT_ATTRIBUTE_ID);
     if (heightAttribute) {
       const heightInInches = parseInt(heightAttribute.value) || 0;
       const feet = Math.floor(heightInInches / 12);
@@ -156,8 +156,8 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    this.isSubmitting = true;
-    this.error = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
 
     if (this.healthAttributesForm.valid) {
       const formValue = this.healthAttributesForm.value;
@@ -180,7 +180,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
 
           attributes.push({
             id: 0, // Will be set by the backend for new attributes
-            personId: this.currentPersonId,
+            personId: this.currentPersonId(),
             attributeTypeRefId: attrType.id,
             value: processedValue.toString()
           });
@@ -189,9 +189,9 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
 
       this.formSubmitted.emit(attributes);
     } else {
-      this.error = 'Please correct the form errors before submitting.';
+      this.error.set('Please correct the form errors before submitting.');
     }
-    this.isSubmitting = false;
+    this.isSubmitting.set(false);
   }
 
   onCancel(): void {
@@ -215,7 +215,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   }
 
   onRetry(): void {
-    this.error = null;
+    this.error.set(null);
     this.loadAttributeTypes();
   }
 

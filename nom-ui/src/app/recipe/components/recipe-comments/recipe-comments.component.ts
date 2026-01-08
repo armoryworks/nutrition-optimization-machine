@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,10 +14,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { Subject, takeUntil } from 'rxjs';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recipe-comment.model';
-import { Subject, takeUntil } from 'rxjs';
 
 
 @Component({
@@ -47,16 +47,16 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
-
-    @Input() recipeId!: number;
-
-    comments: RecipeCommentModel[] = [];
-    isLoading = false;
-    error: string | null = null;
-    commentForm: FormGroup;
-    isAddingComment = false;
-    isSubmitting = false;
     private destroy$ = new Subject<void>();
+
+    recipeId = input.required<number>();
+
+    comments = signal<RecipeCommentModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
+    commentForm: FormGroup;
+    isAddingComment = signal(false);
+    isSubmitting = signal(false);
 
 
 
@@ -79,33 +79,33 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     }
 
     loadComments(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
         this.recipeService
-            .getComments(this.recipeId)
+            .getComments(this.recipeId())
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (comments) => {
-                    this.comments = comments;
-                    this.isLoading = false;
+                    this.comments.set(comments);
+                    this.isLoading.set(false);
                 },
                 error: (error) => {
                     console.error("Error loading comments:", error);
-                    this.error = "Failed to load comments. Please try again.";
-                    this.isLoading = false;
+                    this.error.set("Failed to load comments. Please try again.");
+                    this.isLoading.set(false);
                 },
             });
     }
 
     submitComment(): void {
-        if (this.commentForm.invalid || this.isSubmitting) {
+        if (this.commentForm.invalid || this.isSubmitting()) {
             return;
         }
 
-        this.isSubmitting = true;
-        this.error = null;
+        this.isSubmitting.set(true);
+        this.error.set(null);
         const request: RecipeCommentCreateModel = {
-            recipeId: this.recipeId,
+            recipeId: this.recipeId(),
             commentText: this.commentForm.get("commentText")!.value,
             title: this.commentForm.get("title")!.value || undefined,
         };
@@ -115,15 +115,15 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (comment) => {
-                    this.comments.unshift(comment);
+                    this.comments.set([comment, ...this.comments()]);
                     this.commentForm.reset();
                     this.snackBar.open("Comment added successfully", "Close", { duration: 3000 });
-                    this.isSubmitting = false;
+                    this.isSubmitting.set(false);
                 },
                 error: (error) => {
                     console.error("Error creating comment:", error);
-                    this.error = "Failed to post comment. Please try again.";
-                    this.isSubmitting = false;
+                    this.error.set("Failed to post comment. Please try again.");
+                    this.isSubmitting.set(false);
                 },
             });
     }
@@ -134,7 +134,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: () => {
-                    this.comments = this.comments.filter(c => c.id !== commentId);
+                    this.comments.set(this.comments().filter(c => c.id !== commentId));
                     this.snackBar.open("Comment deleted successfully", "Close", { duration: 3000 });
                 },
                 error: (error: any) => {

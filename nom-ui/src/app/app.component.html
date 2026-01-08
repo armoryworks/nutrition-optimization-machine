@@ -88,7 +88,7 @@
               <span>Curated Plans</span>
             </a>
 
-            @if (canManageCuration$ | async) {
+            @if (authManagerService.canManageCuration()) {
             <a mat-menu-item routerLink="/curation" class="nom-user-menu__item">
               <mat-icon>rate_review</mat-icon>
               <span>Curation Queue</span>

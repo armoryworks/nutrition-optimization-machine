@@ -8,7 +8,7 @@
         >If you haven't received it, we can send another one.</mat-card-subtitle
       >
     </mat-card-header>
-    @if (isLoading) {
+    @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       color="primary"
@@ -48,12 +48,12 @@
           mat-raised-button
           color="primary"
           type="submit"
-          [disabled]="sendConfirmationEmailForm.invalid || isLoading"
+          [disabled]="sendConfirmationEmailForm.invalid || isLoading()"
           class="nom-button"
         >
-          @if (!isLoading) {
+          @if (!isLoading()) {
           <span>Resend Confirmation Email</span>
-          } @if (isLoading) {
+          } @if (isLoading()) {
           <mat-spinner
             [diameter]="20"
             class="nom-button__spinner"

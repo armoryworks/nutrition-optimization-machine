@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -45,14 +45,14 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    categories: ShoppingListCategory[] = [];
-    isLoading = false;
-    error: string | null = null;
+    categories = signal<ShoppingListCategory[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
     categoryForm: FormGroup;
-    isAddingCategory = false;
-    isEditing = false;
-    isSubmitting = false;
-    loading = false;
+    isAddingCategory = signal(false);
+    isEditing = signal(false);
+    isSubmitting = signal(false);
+    loading = signal(false);
 
     constructor() {
         this.categoryForm = this.nonNullableFb.group({
@@ -66,42 +66,42 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     }
 
     loadCategories(): void {
-        this.isLoading = true;
-        this.loading = true;
+        this.isLoading.set(true);
+        this.loading.set(true);
         this.shoppingService.getCategories().subscribe({
             next: (categories: ShoppingListCategory[]) => {
-                this.categories = categories;
-                this.isLoading = false;
-                this.loading = false;
+                this.categories.set(categories);
+                this.isLoading.set(false);
+                this.loading.set(false);
             },
             error: (error: Error | string | unknown) => {
                 console.error('Error loading categories:', error);
                 this.snackBar.open('Error loading categories', 'Close', { duration: 3000 });
-                this.isLoading = false;
-                this.loading = false;
+                this.isLoading.set(false);
+                this.loading.set(false);
             }
         });
     }
 
     onSubmit(): void {
         if (this.categoryForm.valid) {
-            this.isAddingCategory = true;
-            this.isSubmitting = true;
+            this.isAddingCategory.set(true);
+            this.isSubmitting.set(true);
             const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
 
             this.shoppingService.createCategory(categoryData).subscribe({
                 next: (category: ShoppingListCategory) => {
-                    this.categories.push(category);
+                    this.categories.set([...this.categories(), category]);
                     this.categoryForm.reset();
                     this.snackBar.open('Category created successfully', 'Close', { duration: 3000 });
-                    this.isAddingCategory = false;
-                    this.isSubmitting = false;
+                    this.isAddingCategory.set(false);
+                    this.isSubmitting.set(false);
                 },
                 error: (error: Error | string | unknown) => {
                     console.error('Error creating category:', error);
                     this.snackBar.open('Error creating category', 'Close', { duration: 3000 });
-                    this.isAddingCategory = false;
-                    this.isSubmitting = false;
+                    this.isAddingCategory.set(false);
+                    this.isSubmitting.set(false);
                 }
             });
         }
@@ -110,30 +110,30 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     createCategory(): void {
         if (this.categoryForm.valid) {
             const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
-            this.isLoading = true;
-            this.loading = true;
+            this.isLoading.set(true);
+            this.loading.set(true);
 
             this.shoppingService.createCategory(categoryData).subscribe({
                 next: (category: ShoppingListCategory) => {
-                    this.categories.push(category);
+                    this.categories.set([...this.categories(), category]);
                     this.categoryForm.reset();
                     this.snackBar.open('Category created successfully', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 },
                 error: (error: Error | string | unknown) => {
                     console.error('Error creating category:', error);
                     this.snackBar.open('Error creating category', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 }
             });
         }
     }
 
     editCategory(category: ShoppingListCategory): void {
-        this.isAddingCategory = true;
-        this.isEditing = true;
+        this.isAddingCategory.set(true);
+        this.isEditing.set(true);
         this.categoryForm.patchValue({
             name: category.name,
             description: category.description
@@ -141,31 +141,33 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     }
 
     updateCategory(): void {
-        if (this.categoryForm.valid && this.isEditing) {
+        if (this.categoryForm.valid && this.isEditing()) {
             const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
-            this.isLoading = true;
-            this.loading = true;
+            this.isLoading.set(true);
+            this.loading.set(true);
 
             // For now, we'll treat this as create since we don't have the category ID
             // In a real implementation, you'd need to track the category being edited
             this.shoppingService.createCategory(categoryData).subscribe({
                 next: (updatedCategory: ShoppingListCategory) => {
-                    const index = this.categories.findIndex(c => c.id === updatedCategory.id);
+                    const categories = this.categories();
+                    const index = categories.findIndex(c => c.id === updatedCategory.id);
                     if (index !== -1) {
-                        this.categories[index] = updatedCategory;
+                        categories[index] = updatedCategory;
+                        this.categories.set([...categories]);
                     }
                     this.categoryForm.reset();
-                    this.isAddingCategory = false;
-                    this.isEditing = false;
+                    this.isAddingCategory.set(false);
+                    this.isEditing.set(false);
                     this.snackBar.open('Category updated successfully', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 },
                 error: (error: Error | string | unknown) => {
                     console.error('Error updating category:', error);
                     this.snackBar.open('Error updating category', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 }
             });
         }
@@ -173,20 +175,20 @@ export class ShoppingCategoryManagementComponent implements OnInit {
 
     deleteCategory(category: ShoppingListCategory): void {
         if (confirm('Are you sure you want to delete this category? Items will be moved to uncategorized.')) {
-            this.isLoading = true;
-            this.loading = true;
+            this.isLoading.set(true);
+            this.loading.set(true);
             this.shoppingService.deleteCategory(category.id).subscribe({
                 next: () => {
-                    this.categories = this.categories.filter(c => c.id !== category.id);
+                    this.categories.set(this.categories().filter(c => c.id !== category.id));
                     this.snackBar.open('Category deleted successfully', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 },
                 error: (error: Error | string | unknown) => {
                     console.error('Error deleting category:', error);
                     this.snackBar.open('Error deleting category', 'Close', { duration: 3000 });
-                    this.isLoading = false;
-                    this.loading = false;
+                    this.isLoading.set(false);
+                    this.loading.set(false);
                 }
             });
         }
@@ -194,8 +196,8 @@ export class ShoppingCategoryManagementComponent implements OnInit {
 
     cancelEdit(): void {
         this.categoryForm.reset();
-        this.isAddingCategory = false;
-        this.isEditing = false;
+        this.isAddingCategory.set(false);
+        this.isEditing.set(false);
     }
 
     getCategoryColor(category: ShoppingListCategory): string {

@@ -1,7 +1,7 @@
 <nom-base-detail
   [config]="detailConfig"
-  [loading]="isLoading"
-  [error]="error">
+  [loading]="isLoading()"
+  [error]="error()">
 
   <div class="recipe-share-token__content">
     <!-- Create Share Token Form -->
@@ -27,15 +27,15 @@
       </div>
 
       <div class="recipe-share-token__form-actions">
-        <button 
-          mat-raised-button 
-          color="primary" 
+        <button
+          mat-raised-button
+          color="primary"
           type="submit"
-          [disabled]="shareTokenForm.invalid || isSubmitting"
+          [disabled]="shareTokenForm.invalid || isSubmitting()"
           class="recipe-share-token__submit-btn">
-          <mat-icon *ngIf="!isSubmitting">add</mat-icon>
-          <mat-icon *ngIf="isSubmitting" class="recipe-share-token__loading">hourglass_empty</mat-icon>
-          {{ isSubmitting ? 'Creating...' : 'Create Share Token' }}
+          <mat-icon *ngIf="!isSubmitting()">add</mat-icon>
+          <mat-icon *ngIf="isSubmitting()" class="recipe-share-token__loading">hourglass_empty</mat-icon>
+          {{ isSubmitting() ? 'Creating...' : 'Create Share Token' }}
         </button>
       </div>
     </form>
@@ -45,14 +45,14 @@
     <!-- Share Tokens List -->
     <div class="recipe-share-token__tokens-section">
       <h3 class="recipe-share-token__section-title">Active Share Tokens</h3>
-      
-             <div *ngIf="shareTokens.length === 0 && !isLoading" class="recipe-share-token__empty">
+
+             <div *ngIf="shareTokens().length === 0 && !isLoading()" class="recipe-share-token__empty">
          <mat-icon class="recipe-share-token__empty-icon">share</mat-icon>
          <p>No share tokens created yet</p>
        </div>
 
-             <div *ngIf="shareTokens.length > 0" class="recipe-share-token__tokens-list">
-         <div *ngFor="let shareToken of shareTokens; trackBy: trackByShareTokenId" class="recipe-share-token__token-item">
+             <div *ngIf="shareTokens().length > 0" class="recipe-share-token__tokens-list">
+         <div *ngFor="let shareToken of shareTokens(); trackBy: trackByShareTokenId" class="recipe-share-token__token-item">
            <div class="recipe-share-token__token-info">
              <div class="recipe-share-token__token-header">
                <h4 class="recipe-share-token__token-name">

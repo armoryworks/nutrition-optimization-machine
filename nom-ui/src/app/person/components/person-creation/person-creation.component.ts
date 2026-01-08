@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, output, ViewEncapsulation, OnDestroy, inject, signal } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -52,15 +52,15 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private personService = inject(PersonService);
 
-  @Output() personSubmitted = new EventEmitter<PersonCreateResponseModel>();
+  personSubmitted = output<PersonCreateResponseModel>();
 
   personForm: FormGroup = this.nonNullableFb.group({
     name: new FormControl('', [Validators.required, Validators.minLength(2)]),
   });
 
-  isSubmitting = false;
-  isLoading = false;
-  error: string | null = null;
+  isSubmitting = signal(false);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   pageConfig: BasePageConfig = {
     title: 'Create Your Profile',
@@ -92,19 +92,19 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     if (this.personForm.invalid) {
-      this.error = 'Please provide a valid name.';
+      this.error.set('Please provide a valid name.');
       return;
     }
 
-    this.isSubmitting = true;
-    this.error = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
 
     const personName = this.personForm.get('name')?.value;
 
     this.personService
       .upsertPerson({ personName })
       .pipe(
-        finalize(() => (this.isSubmitting = false)),
+        finalize(() => this.isSubmitting.set(false)),
         takeUntil(this.destroy$)
       )
       .subscribe({
@@ -113,7 +113,7 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Error creating person:', err);
-          this.error = `Failed to create person: ${err.message || 'Unknown error'}`;
+          this.error.set(`Failed to create person: ${err.message || 'Unknown error'}`);
         },
       });
   }
@@ -131,6 +131,6 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   }
 
   onRetry(): void {
-    this.error = null;
+    this.error.set(null);
   }
 }

@@ -1,7 +1,7 @@
 <nom-base-page
   [config]="pageConfig"
-  [isLoading]="loading"
-  [error]="error"
+  [isLoading]="loading()"
+  [error]="error()"
   (refresh)="onRefresh()"
   (retry)="onRetry()"
 >
@@ -23,7 +23,7 @@
       <!-- Content -->
       <div class="household-dashboard__content">
         <!-- Empty State -->
-        @if (!loading && !error && households.length === 0) {
+        @if (!loading() && !error() && households().length === 0) {
           <div class="household-dashboard__empty-state">
             <mat-card class="household-dashboard__empty-card">
               <mat-card-content>
@@ -47,9 +47,9 @@
         }
 
         <!-- Households Grid -->
-        @if (!loading && !error && households.length > 0) {
+        @if (!loading() && !error() && households().length > 0) {
           <div class="household-dashboard__grid">
-            @for (household of households; track household.id) {
+            @for (household of households(); track household.id) {
               <mat-card
                 class="household-dashboard__household-card"
                 (click)="viewHousehold(household)"

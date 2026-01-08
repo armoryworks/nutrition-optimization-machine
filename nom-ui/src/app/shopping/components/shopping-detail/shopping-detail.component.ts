@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -45,10 +45,10 @@ export class ShoppingDetailComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
-  shoppingList: ShoppingListResponseModel | null = null;
-  isLoading = true;
-  error: string | null = null;
-  shoppingListId = 0;
+  shoppingList = signal<ShoppingListResponseModel | null>(null);
+  isLoading = signal(true);
+  error = signal<string | null>(null);
+  shoppingListId = signal(0);
 
   detailConfig: BaseDetailConfig = {
     title: 'Shopping List Details',
@@ -60,24 +60,24 @@ export class ShoppingDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.shoppingListId = +params['id'];
+      this.shoppingListId.set(+params['id']);
       this.loadShoppingList();
     });
   }
 
   loadShoppingList(): void {
-    this.isLoading = true;
-    this.error = null;
+    this.isLoading.set(true);
+    this.error.set(null);
 
-    this.shoppingService.getShoppingList(this.shoppingListId).subscribe({
+    this.shoppingService.getShoppingList(this.shoppingListId()).subscribe({
       next: (shoppingList) => {
-        this.shoppingList = shoppingList;
-        this.isLoading = false;
+        this.shoppingList.set(shoppingList);
+        this.isLoading.set(false);
       },
       error: (error: Error | string | unknown) => {
         console.error('Error loading shopping list:', error);
-        this.error = 'Failed to load shopping list details';
-        this.isLoading = false;
+        this.error.set('Failed to load shopping list details');
+        this.isLoading.set(false);
       }
     });
   }
@@ -91,17 +91,17 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   onEditShoppingList(): void {
-    this.router.navigate(['/shopping', this.shoppingListId, 'edit']);
+    this.router.navigate(['/shopping', this.shoppingListId(), 'edit']);
   }
 
   onDeleteShoppingList(): void {
-    if (!this.shoppingList) return;
+    if (!this.shoppingList()) return;
 
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
         title: 'Delete Shopping List',
-        message: `Are you sure you want to delete "${this.shoppingList.name}"? This action cannot be undone.`,
+        message: `Are you sure you want to delete "${this.shoppingList()!.name}"? This action cannot be undone.`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
         confirmColor: 'warn'
@@ -110,7 +110,7 @@ export class ShoppingDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.shoppingService.deleteShoppingList(this.shoppingListId).subscribe({
+        this.shoppingService.deleteShoppingList(this.shoppingListId()).subscribe({
           next: () => {
             this.snackBar.open('Shopping list deleted successfully', 'Close', {
               duration: 3000,
@@ -137,14 +137,14 @@ export class ShoppingDetailComponent implements OnInit {
     const dialogRef = this.dialog.open(ShoppingItemDialogComponent, {
       width: '500px',
       data: {
-        shoppingListId: this.shoppingListId,
+        shoppingListId: this.shoppingListId(),
         mode: 'add'
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.shoppingService.addShoppingListItem(this.shoppingListId, result).subscribe({
+        this.shoppingService.addShoppingListItem(this.shoppingListId(), result).subscribe({
           next: () => {
             this.snackBar.open('Item added successfully', 'Close', {
               duration: 3000,
@@ -167,9 +167,9 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   onToggleItemComplete(itemId: number): void {
-    if (!this.shoppingList) return;
+    if (!this.shoppingList()) return;
 
-    const item = this.shoppingList.items?.find(i => i.id === itemId);
+    const item = this.shoppingList()!.items?.find(i => i.id === itemId);
     if (!item) return;
 
     const updatedItem: ShoppingListItemUpdateRequestModel = {
@@ -184,7 +184,7 @@ export class ShoppingDetailComponent implements OnInit {
       isCompleted: !item.isCompleted
     };
 
-    this.shoppingService.updateShoppingListItem(this.shoppingListId, itemId, updatedItem).subscribe({
+    this.shoppingService.updateShoppingListItem(this.shoppingListId(), itemId, updatedItem).subscribe({
       next: () => {
         this.snackBar.open(
           updatedItem.isCompleted ? 'Item marked as complete' : 'Item marked as incomplete',
@@ -222,7 +222,7 @@ export class ShoppingDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.shoppingService.deleteShoppingListItem(this.shoppingListId, itemId).subscribe({
+        this.shoppingService.deleteShoppingListItem(this.shoppingListId(), itemId).subscribe({
           next: () => {
             this.snackBar.open('Item deleted successfully', 'Close', {
               duration: 3000,
@@ -245,8 +245,8 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   getProgressPercentage(): number {
-    if (!this.shoppingList || !this.shoppingList.totalItems || this.shoppingList.totalItems === 0) return 0;
-    return Math.round((this.shoppingList.completedItems / this.shoppingList.totalItems) * 100);
+    if (!this.shoppingList() || !this.shoppingList()!.totalItems || this.shoppingList()!.totalItems === 0) return 0;
+    return Math.round((this.shoppingList()!.completedItems / this.shoppingList()!.totalItems) * 100);
   }
 
   getProgressColor(percentage: number): string {

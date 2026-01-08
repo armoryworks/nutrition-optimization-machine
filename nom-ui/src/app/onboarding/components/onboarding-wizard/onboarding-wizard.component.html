@@ -9,7 +9,7 @@
       </mat-card-title>
     </mat-card-header>
 
-    @if (isLoading) {
+    @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       color="primary"
@@ -18,15 +18,15 @@
     }
 
     <mat-card-content class="nom-card__content">
-      @if (!isLoading && error && !submitMessage) {
+      @if (!isLoading() && error() && !submitMessage()) {
       <div class="nom-form__error form-level-error nom-message-text mb-4">
-        {{ error }}
+        {{ error() }}
       </div>
-      } @else if (!isLoading && questions.length === 0 && !error) {
+      } @else if (!isLoading() && questions().length === 0 && !error()) {
       <div class="text-center py-8">
         <p class="nom-message-text">No onboarding questions available.</p>
       </div>
-      } @else if (!isLoading && questions.length > 0 && !submitMessage &&
+      } @else if (!isLoading() && questions().length > 0 && !submitMessage() &&
       currentQuestion) {
       <form [formGroup]="currentAnswerForm" class="nom-form">
         <div class="nom-section mb-8">
@@ -143,7 +143,7 @@
             mat-raised-button
             color="accent"
             (click)="goToPreviousQuestion()"
-            [disabled]="currentQuestionIndex === 0 || isSubmitting"
+            [disabled]="currentQuestionIndex() === 0 || isSubmitting()"
             class="nom-button"
           >
             Previous
@@ -152,12 +152,12 @@
             mat-raised-button
             color="primary"
             (click)="goToNextQuestion()"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             class="nom-button"
           >
-            @if (!isSubmitting) {
+            @if (!isSubmitting()) {
             <span>{{
-              currentQuestionIndex === questions.length - 1 ? 'Submit' : 'Next'
+              currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next'
             }}</span>
             } @else {
             <mat-spinner
@@ -168,15 +168,15 @@
           </button>
         </div>
       </form>
-      } @else if (!isLoading && submitMessage) {
+      } @else if (!isLoading() && submitMessage()) {
       <div
         class="text-center p-4 rounded-md"
         [ngClass]="{
-          'bg-green-100 text-green-700': submitMessage.includes('successfully'),
-          'bg-red-100 text-red-700': !submitMessage.includes('successfully')
+          'bg-green-100 text-green-700': submitMessage()!.includes('successfully'),
+          'bg-red-100 text-red-700': !submitMessage()!.includes('successfully')
         }"
       >
-        <p class="nom-message-text font-semibold">{{ submitMessage }}</p>
+        <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
         <button
           mat-raised-button
           color="primary"

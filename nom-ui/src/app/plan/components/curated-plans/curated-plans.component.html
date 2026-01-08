@@ -7,15 +7,15 @@
       </p>
     </div>
 
-    @if (isLoading) {
+    @if (isLoading()) {
       <div class="curated-plans__loading">
         <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
         <p>Loading curated plans...</p>
       </div>
-    } @else if (error) {
+    } @else if (error()) {
       <div class="curated-plans__error">
         <mat-icon>error</mat-icon>
-        <p>{{ error }}</p>
+        <p>{{ error() }}</p>
         <button mat-raised-button color="primary" (click)="loadCuratedPlans()">
           <mat-icon>refresh</mat-icon>
           Try Again
@@ -23,10 +23,9 @@
       </div>
     } @else {
       <div class="curated-plans__content">
-        @if (curatedPlans$ | async; as plans) {
-          @if (plans.length > 0) {
-            <div class="curated-plans__grid">
-              @for (plan of plans; track plan.id) {
+        @if (curatedPlans().length > 0) {
+          <div class="curated-plans__grid">
+            @for (plan of curatedPlans(); track plan.id) {
                 <mat-card class="curated-plans__plan-card">
                   <div class="curated-plans__plan-header">
                     <div class="curated-plans__plan-info">
@@ -100,16 +99,16 @@
                     <button
                       mat-raised-button
                       color="primary"
-                      [disabled]="cloningPlanId === plan.id"
+                      [disabled]="cloningPlanId() === plan.id"
                       (click)="clonePlan(plan.id)"
                       class="curated-plans__clone-btn">
-                      @if (cloningPlanId === plan.id) {
+                      @if (cloningPlanId() === plan.id) {
                         <mat-icon>hourglass_empty</mat-icon>
                       }
-                      @if (cloningPlanId !== plan.id) {
+                      @if (cloningPlanId() !== plan.id) {
                         <mat-icon>content_copy</mat-icon>
                       }
-                      <span>{{ cloningPlanId === plan.id ? 'Cloning...' : 'Clone Plan' }}</span>
+                      <span>{{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}</span>
                     </button>
                   </div>
                 </mat-card>
@@ -122,7 +121,6 @@
               <p>Check back later for professionally curated meal plans</p>
             </div>
           }
-        }
       </div>
     }
   </div>

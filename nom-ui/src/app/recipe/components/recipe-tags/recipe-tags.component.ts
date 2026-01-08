@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, OnInit, input, output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -53,18 +53,18 @@ export class RecipeTagsComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    @Input() recipeId?: number;
-    @Input() tags: RecipeTagModel[] = [];
-    @Output() tagsChange = new EventEmitter<RecipeTagModel[]>();
+    recipeId = input<number>();
+    tags = input<RecipeTagModel[]>([]);
+    tagsChange = output<RecipeTagModel[]>();
 
-    allTags: RecipeTagModel[] = [];
-    loading = false;
-    error = '';
-    searchTerm = '';
-    filteredTags: RecipeTagModel[] = [];
+    allTags = signal<RecipeTagModel[]>([]);
+    loading = signal(false);
+    error = signal('');
+    searchTerm = signal('');
+    filteredTags = signal<RecipeTagModel[]>([]);
 
     tagForm: FormGroup;
-    isAddingTag = false;
+    isAddingTag = signal(false);
 
     pageConfig: BasePageConfig = {
         title: 'Recipe Tags',
@@ -87,18 +87,18 @@ export class RecipeTagsComponent implements OnInit {
     }
 
     loadAllTags(): void {
-        this.loading = true;
-        this.error = '';
+        this.loading.set(true);
+        this.error.set('');
 
         this.recipeTagsService.getAllTags().subscribe({
             next: (tags) => {
-                this.allTags = tags;
-                this.filteredTags = tags;
-                this.loading = false;
+                this.allTags.set(tags);
+                this.filteredTags.set(tags);
+                this.loading.set(false);
             },
             error: (error) => {
-                this.error = 'Failed to load tags';
-                this.loading = false;
+                this.error.set('Failed to load tags');
+                this.loading.set(false);
                 console.error('Error loading tags:', error);
             },
         });
@@ -113,15 +113,15 @@ export class RecipeTagsComponent implements OnInit {
     }
 
     addTag(tag: RecipeTagModel): void {
-        if (!this.tags.find(t => t.id === tag.id)) {
-            this.tags = [...this.tags, tag];
-            this.tagsChange.emit(this.tags);
+        if (!this.tags().find(t => t.id === tag.id)) {
+            const updatedTags = [...this.tags(), tag];
+            this.tagsChange.emit(updatedTags);
         }
     }
 
     removeTag(tag: RecipeTagModel): void {
-        this.tags = this.tags.filter(t => t.id !== tag.id);
-        this.tagsChange.emit(this.tags);
+        const updatedTags = this.tags().filter(t => t.id !== tag.id);
+        this.tagsChange.emit(updatedTags);
     }
 
     createNewTag(): void {
@@ -134,7 +134,7 @@ export class RecipeTagsComponent implements OnInit {
 
             this.recipeTagsService.createTag(newTag).subscribe({
                 next: (createdTag) => {
-                    this.allTags = [...this.allTags, createdTag];
+                    this.allTags.set([...this.allTags(), createdTag]);
                     this.addTag(createdTag);
                     this.tagForm.reset({
                         name: '',
@@ -152,7 +152,7 @@ export class RecipeTagsComponent implements OnInit {
     deleteTag(tag: RecipeTagModel): void {
         this.recipeTagsService.deleteTag(tag.id!).subscribe({
             next: () => {
-                this.allTags = this.allTags.filter(t => t.id !== tag.id);
+                this.allTags.set(this.allTags().filter(t => t.id !== tag.id));
                 this.removeTag(tag);
             },
             error: (error) => {
@@ -162,13 +162,13 @@ export class RecipeTagsComponent implements OnInit {
     }
 
     filterTags(): void {
-        if (!this.searchTerm.trim()) {
-            this.filteredTags = this.allTags;
+        if (!this.searchTerm().trim()) {
+            this.filteredTags.set(this.allTags());
         } else {
-            this.filteredTags = this.allTags.filter(tag =>
-                tag.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                tag.description?.toLowerCase().includes(this.searchTerm.toLowerCase())
-            );
+            this.filteredTags.set(this.allTags().filter(tag =>
+                tag.name.toLowerCase().includes(this.searchTerm().toLowerCase()) ||
+                tag.description?.toLowerCase().includes(this.searchTerm().toLowerCase())
+            ));
         }
     }
 
@@ -192,6 +192,6 @@ export class RecipeTagsComponent implements OnInit {
     }
 
     isTagSelected(tag: RecipeTagModel): boolean {
-        return this.tags.some(t => t.id === tag.id);
+        return this.tags().some(t => t.id === tag.id);
     }
 } 

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, OnInit, input, output, ViewEncapsulation, OnDestroy, inject, signal, effect } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -28,17 +28,17 @@ import { Subject } from 'rxjs';
   styleUrls: ['./person-edit.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
+export class PersonEditComponent implements OnInit, OnDestroy {
   private fb = inject(NonNullableFormBuilder);
 
-  @Input() person: PersonModel | null = null;
-  @Output() formSubmitted = new EventEmitter<PersonModel>();
-  @Output() skipStep = new EventEmitter<void>();
+  person = input<PersonModel | null>(null);
+  formSubmitted = output<PersonModel>();
+  skipStep = output<void>();
 
   personForm: FormGroup;
-  isSubmitting = false;
-  isLoading = false;
-  error: string | null = null;
+  isSubmitting = signal(false);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   pageConfig: BasePageConfig = {
     title: 'Edit Person',
@@ -66,21 +66,23 @@ export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
       name: ['', [Validators.required]],
       // Add other fields as needed
     });
+
+    // Effect to update form when person input changes
+    effect(() => {
+      const currentPerson = this.person();
+      if (currentPerson) {
+        this.personForm.patchValue({
+          name: currentPerson.name || '',
+          // Add other fields as needed
+        });
+      }
+    });
   }
 
   ngOnInit(): void {
-    if (this.person) {
+    if (this.person()) {
       this.personForm.patchValue({
-        name: this.person.name || '',
-        // Add other fields as needed
-      });
-    }
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['person'] && this.person) {
-      this.personForm.patchValue({
-        name: this.person.name || '',
+        name: this.person()!.name || '',
         // Add other fields as needed
       });
     }
@@ -92,22 +94,22 @@ export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   onSubmit(): void {
-    this.isSubmitting = true;
-    this.error = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
     this.personForm.markAllAsTouched();
 
     if (this.personForm.valid) {
       const updatedPerson: PersonModel = new PersonModel({
-        id: this.person?.id || 0,
+        id: this.person()?.id || 0,
         name: this.personForm.get('name')?.value,
         // ... map other form values to PersonModel properties
       });
       this.formSubmitted.emit(updatedPerson);
     } else {
       console.error('Person details form is invalid. Please correct the errors.');
-      this.error = 'Please correct the form errors before submitting.';
+      this.error.set('Please correct the form errors before submitting.');
     }
-    this.isSubmitting = false;
+    this.isSubmitting.set(false);
   }
 
   onCancel(): void {
@@ -127,7 +129,7 @@ export class PersonEditComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   onRetry(): void {
-    this.error = null;
+    this.error.set(null);
   }
 
   submitForm(): void {

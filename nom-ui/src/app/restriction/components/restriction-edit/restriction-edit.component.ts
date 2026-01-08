@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, input, output, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -46,18 +46,18 @@ export class RestrictionEditComponent implements OnInit {
   private fb = inject(NonNullableFormBuilder);
   private restrictionService = inject(RestrictionService);
 
-  @Input() restrictions: RestrictionModel[] = [];
-  @Input() currentPersonId = 0;
-  @Input() allPersonsInPlan: PersonModel[] = [];
-  @Input() restrictionType: RestrictionTypeEnum | undefined = undefined;
+  restrictions = input<RestrictionModel[]>([]);
+  currentPersonId = input(0);
+  allPersonsInPlan = input<PersonModel[]>([]);
+  restrictionType = input<RestrictionTypeEnum | undefined>(undefined);
   // NEW: Input for whether the restriction applies to the entire plan,
   // this is now managed by OnboardingWorkflowComponent
-  @Input() appliesToEntirePlan = false;
+  appliesToEntirePlan = input(false);
   // NEW: Input for explicitly affected person IDs (if appliesToEntirePlan is false)
-  @Input() affectedPersonIds: number[] = [];
+  affectedPersonIds = input<number[]>([]);
 
-  @Output() formSubmitted = new EventEmitter<RestrictionModel>(); // Changed to single RestrictionModel
-  @Output() skipStep = new EventEmitter<void>();
+  formSubmitted = output<RestrictionModel>(); // Changed to single RestrictionModel
+  skipStep = output<void>();
 
   restrictionForm!: FormGroup;
 
@@ -96,7 +96,7 @@ export class RestrictionEditComponent implements OnInit {
       }),
     });
 
-    this.patchFormWithExistingRestrictions(this.restrictions);
+    this.patchFormWithExistingRestrictions(this.restrictions());
   }
 
   private patchFormWithExistingRestrictions(
@@ -116,14 +116,14 @@ export class RestrictionEditComponent implements OnInit {
     });
 
     existingRestrictions.forEach((res) => {
-      if (res.restrictionTypeId === this.restrictionType) {
+      if (res.restrictionTypeId === this.restrictionType()) {
         // Patch the generic name
         this.restrictionForm.patchValue({
           name: res.name || '',
         });
 
         // Patch the relevant nested FormGroup
-        switch (this.restrictionType) {
+        switch (this.restrictionType()) {
           case RestrictionTypeEnum.SocietalReligiousEthical: {
             const societalGroup = this.restrictionForm.get(
               'societalRestrictionForm'
@@ -247,7 +247,7 @@ export class RestrictionEditComponent implements OnInit {
       'personalPreferenceSpiceLevel' | 'dislikedIngredients' | 'dislikedTextures' | 'preferredCookingMethods'
     >> = {};
 
-    switch (this.restrictionType) {
+    switch (this.restrictionType()) {
       case RestrictionTypeEnum.SocietalReligiousEthical:
         formGroupToValidate = this.societalRestrictionFormGroup; // Use getter
         submittedFormValue = formGroupToValidate.value;
@@ -273,19 +273,19 @@ export class RestrictionEditComponent implements OnInit {
     if (formGroupToValidate && formGroupToValidate.valid) {
       const newRestriction = new RestrictionModel({
         // These are now provided as Inputs from OnboardingWorkflowComponent
-        personId: this.appliesToEntirePlan ? null : this.currentPersonId,
-        planId: this.appliesToEntirePlan ? 1 : null, // Mock planId 1 if applies to plan, otherwise null
-        restrictionTypeId: this.restrictionType!,
-        name: this.getRestrictionTypeName(this.restrictionType!) + ' Custom', // Name can be refined later if needed
+        personId: this.appliesToEntirePlan() ? null : this.currentPersonId(),
+        planId: this.appliesToEntirePlan() ? 1 : null, // Mock planId 1 if applies to plan, otherwise null
+        restrictionTypeId: this.restrictionType()!,
+        name: this.getRestrictionTypeName(this.restrictionType()!) + ' Custom', // Name can be refined later if needed
 
         // Populate type-specific properties from the relevant nested form group
         ...submittedFormValue,
 
         // Ensure affectedPersonIds is explicitly set based on input from parent
-        affectedPersonIds: this.appliesToEntirePlan
+        affectedPersonIds: this.appliesToEntirePlan()
           ? []
-          : this.affectedPersonIds,
-        appliesToEntirePlan: this.appliesToEntirePlan, // Pass this original flag back for consistency with DTO
+          : this.affectedPersonIds(),
+        appliesToEntirePlan: this.appliesToEntirePlan(), // Pass this original flag back for consistency with DTO
       });
 
       this.formSubmitted.emit(newRestriction);

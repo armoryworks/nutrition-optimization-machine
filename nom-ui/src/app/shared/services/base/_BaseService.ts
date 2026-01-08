@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/shared/services/base/_BaseService.ts
 
-import { Injectable, OnDestroy, inject } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
+import { Injectable, OnDestroy, inject, signal } from '@angular/core';
+import { Observable, Subject, timer } from 'rxjs';
 import { takeUntil, tap, catchError } from 'rxjs/operators';
 import { _ServiceHealthStatus } from './_ServiceHealthStatus';
 import { _ServiceConfig } from './_ServiceConfig';
@@ -14,14 +14,14 @@ export abstract class BaseService implements OnDestroy {
     protected readonly config = inject(_ServiceConfig) ?? {};
 
     protected readonly destroy$ = new Subject<void>();
-    protected readonly healthStatus$ = new BehaviorSubject<_ServiceHealthStatus>({
+    protected readonly healthStatus = signal<_ServiceHealthStatus>({
         isHealthy: true,
         serviceName: this.getServiceName(),
         timestamp: new Date(),
         errors: []
     });
 
-    public readonly isInitialized = new BehaviorSubject<boolean>(false);
+    protected readonly initialized = signal<boolean>(false);
 
     constructor() {
         this.initialize();
@@ -36,7 +36,7 @@ export abstract class BaseService implements OnDestroy {
      * Gets whether the service is initialized
      */
     get isInitialized(): boolean {
-        return this.isInitialized.value;
+        return this.initialized();
     }
 
     /**
@@ -49,7 +49,7 @@ export abstract class BaseService implements OnDestroy {
             // Perform any initialization logic
             await this.performInitialization();
 
-            this.isInitialized.next(true);
+            this.initialized.set(true);
             this.updateHealthStatus(true);
 
             this.logInfo('Service initialized successfully');
@@ -70,7 +70,7 @@ export abstract class BaseService implements OnDestroy {
             // Perform cleanup logic
             await this.performCleanup();
 
-            this.isInitialized.next(false);
+            this.initialized.set(false);
             this.updateHealthStatus(false);
 
             this.logInfo('Service disposed successfully');
@@ -84,10 +84,10 @@ export abstract class BaseService implements OnDestroy {
     }
 
     /**
-     * Gets the service health status
+     * Gets the service health status as a readonly signal
      */
-    getHealthStatus(): Observable<_ServiceHealthStatus> {
-        return this.healthStatus$.asObservable();
+    getHealthStatus() {
+        return this.healthStatus.asReadonly();
     }
 
     /**
@@ -140,7 +140,7 @@ export abstract class BaseService implements OnDestroy {
      * Updates the health status
      */
     protected updateHealthStatus(isHealthy: boolean, errors: string[] = []): void {
-        this.healthStatus$.next({
+        this.healthStatus.set({
             isHealthy,
             serviceName: this.getServiceName(),
             timestamp: new Date(),

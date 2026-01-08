@@ -6,30 +6,30 @@
 
   <!-- Navigation Tabs -->
   <div class="nav-tabs">
-    <button 
-      class="nav-tab" 
-      [class.active]="activeTab === 'ingredients'"
+    <button
+      class="nav-tab"
+      [class.active]="activeTab() === 'ingredients'"
       (click)="setActiveTab('ingredients')">
       <i class="fas fa-carrot"></i>
       Ingredients
     </button>
-    <button 
-      class="nav-tab" 
-      [class.active]="activeTab === 'ai'"
+    <button
+      class="nav-tab"
+      [class.active]="activeTab() === 'ai'"
       (click)="setActiveTab('ai')">
       <i class="fas fa-robot"></i>
       AI Suggestions
     </button>
-    <button 
-      class="nav-tab" 
-      [class.active]="activeTab === 'trending'"
+    <button
+      class="nav-tab"
+      [class.active]="activeTab() === 'trending'"
       (click)="setActiveTab('trending')">
       <i class="fas fa-fire"></i>
       Trending
     </button>
-    <button 
-      class="nav-tab" 
-      [class.active]="activeTab === 'seasonal'"
+    <button
+      class="nav-tab"
+      [class.active]="activeTab() === 'seasonal'"
       (click)="setActiveTab('seasonal')">
       <i class="fas fa-leaf"></i>
       Seasonal
@@ -37,7 +37,7 @@
   </div>
 
   <!-- Ingredients Tab -->
-  <div *ngIf="activeTab === 'ingredients'" class="tab-content">
+  <div *ngIf="activeTab() === 'ingredients'" class="tab-content">
     <div class="filters-section">
       <form [formGroup]="suggestionForm" class="filters-form">
         <div class="form-row">
@@ -83,7 +83,7 @@
             <label for="maxDifficulty">Max Difficulty</label>
             <select id="maxDifficulty" formControlName="maxDifficulty">
               <option value="">Any</option>
-              <option *ngFor="let difficulty of difficulties" [value]="difficulty.id">
+              <option *ngFor="let difficulty of difficulties()" [value]="difficulty.id">
                 {{ difficulty.name }}
               </option>
             </select>
@@ -94,7 +94,7 @@
           <div class="form-group">
             <label for="dietaryRestrictions">Dietary Restrictions</label>
             <select id="dietaryRestrictions" formControlName="dietaryRestrictions" multiple>
-              <option *ngFor="let option of dietaryOptions" [value]="option">{{option}}</option>
+              <option *ngFor="let option of dietaryOptions()" [value]="option">{{option}}</option>
             </select>
           </div>
           <div class="form-group">
@@ -114,7 +114,7 @@
         <div 
           *ngFor="let ingredient of [1,2,3,4,5,6,7,8,9,10]" 
           class="ingredient-item"
-          [class.selected]="selectedIngredients.includes(ingredient)"
+          [class.selected]="selectedIngredients().includes(ingredient)"
           (click)="toggleIngredient(ingredient)"
           (keyup.enter)="toggleIngredient(ingredient)"
           tabindex="0"
@@ -133,7 +133,7 @@
         <div 
           *ngFor="let tool of [1,2,3,4,5]" 
           class="tool-item"
-          [class.selected]="selectedTools.includes(tool)"
+          [class.selected]="selectedTools().includes(tool)"
           (click)="toggleTool(tool)"
           (keyup.enter)="toggleTool(tool)"
           tabindex="0"
@@ -176,7 +176,7 @@
         <div 
           *ngFor="let item of suggestions.items" 
           class="suggestion-card"
-          [class.loading]="loading">
+          [class.loading]="loading()">
           <div class="card-header">
             <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.recipeName" class="recipe-image">
             <div class="recipe-info">
@@ -265,14 +265,14 @@
       </div>
     </div>
 
-    <div class="loading-spinner" *ngIf="loading">
+    <div class="loading-spinner" *ngIf="loading()">
       <i class="fas fa-spinner fa-spin"></i>
       <span>Finding perfect recipes for you...</span>
     </div>
   </div>
 
   <!-- AI Suggestions Tab -->
-  <div *ngIf="activeTab === 'ai'" class="tab-content">
+  <div *ngIf="activeTab() === 'ai'" class="tab-content">
     <div class="ai-section">
       <h3>AI-Powered Recipe Suggestions</h3>
       <p>Describe what you want to cook and let AI find the perfect recipes for you!</p>
@@ -334,7 +334,7 @@
           <div class="form-group">
             <label for="aiDietaryRestrictions">Dietary Restrictions</label>
             <select id="aiDietaryRestrictions" formControlName="dietaryRestrictions" multiple>
-              <option *ngFor="let option of dietaryOptions" [value]="option">{{option}}</option>
+              <option *ngFor="let option of dietaryOptions()" [value]="option">{{option}}</option>
             </select>
           </div>
         </div>
@@ -357,11 +357,11 @@
         <button 
           type="button" 
           class="btn btn-primary btn-lg"
-          [disabled]="aiSuggestionForm.invalid || aiLoading"
+          [disabled]="aiSuggestionForm.invalid || aiLoading()"
           (click)="generateAISuggestions()">
-          <i class="fas fa-robot" *ngIf="!aiLoading"></i>
-          <i class="fas fa-spinner fa-spin" *ngIf="aiLoading"></i>
-          {{aiLoading ? 'Generating Suggestions...' : 'Generate AI Suggestions'}}
+          <i class="fas fa-robot" *ngIf="!aiLoading()"></i>
+          <i class="fas fa-spinner fa-spin" *ngIf="aiLoading()"></i>
+          {{aiLoading() ? 'Generating Suggestions...' : 'Generate AI Suggestions'}}
         </button>
       </form>
     </div>
@@ -475,13 +475,13 @@
   </div>
 
   <!-- Trending Tab -->
-  <div *ngIf="activeTab === 'trending'" class="tab-content">
+  <div *ngIf="activeTab() === 'trending'" class="tab-content">
     <div class="trending-section">
       <h3>Trending Recipes</h3>
       <p>Discover what's popular right now in the cooking community</p>
 
       <div class="trending-grid">
-        <div *ngFor="let recipe of trendingRecipes" class="trending-card">
+        <div *ngFor="let recipe of trendingRecipes()" class="trending-card">
           <div class="trending-header">
             <h4>{{recipe.recipeName}}</h4>
             <span class="trending-badge">
@@ -513,13 +513,13 @@
   </div>
 
   <!-- Seasonal Tab -->
-  <div *ngIf="activeTab === 'seasonal'" class="tab-content">
+  <div *ngIf="activeTab() === 'seasonal'" class="tab-content">
     <div class="seasonal-section">
       <h3>Seasonal Recipes</h3>
       <p>Discover recipes perfect for the current season</p>
 
       <div class="seasonal-grid">
-        <div *ngFor="let recipe of seasonalRecipes" class="seasonal-card">
+        <div *ngFor="let recipe of seasonalRecipes()" class="seasonal-card">
           <div class="seasonal-header">
             <h4>{{recipe.recipeName}}</h4>
             <span class="season-badge">

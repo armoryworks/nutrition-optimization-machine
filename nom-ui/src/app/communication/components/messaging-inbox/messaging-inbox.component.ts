@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/communication/components/messaging-inbox/messaging-inbox.component.ts
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -53,10 +53,10 @@ export class MessagingInboxComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(NonNullableFormBuilder);
 
-  messageThreads: MessageThreadModel[] = [];
-  loading = false;
-  error = '';
-  searchTerm = '';
+  messageThreads = signal<MessageThreadModel[]>([]);
+  loading = signal(false);
+  error = signal('');
+  searchTerm = signal('');
 
   pageConfig: BasePageConfig = {
     title: 'Messages',
@@ -73,17 +73,17 @@ export class MessagingInboxComponent implements OnInit {
   }
 
   loadMessageThreads(): void {
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     this.messagingService.getMessageThreads().subscribe({
       next: (threads) => {
-        this.messageThreads = threads;
-        this.loading = false;
+        this.messageThreads.set(threads);
+        this.loading.set(false);
       },
       error: (error) => {
-        this.error = 'Failed to load messages';
-        this.loading = false;
+        this.error.set('Failed to load messages');
+        this.loading.set(false);
         console.error('Error loading message threads:', error);
       },
     });
@@ -112,9 +112,11 @@ export class MessagingInboxComponent implements OnInit {
       this.messagingService.markThreadAsRead(thread.id).subscribe({
         next: () => {
           // Update the thread in the list
-          const index = this.messageThreads.findIndex(t => t.id === thread.id);
+          const threads = this.messageThreads();
+          const index = threads.findIndex(t => t.id === thread.id);
           if (index !== -1) {
-            this.messageThreads[index].unreadCount = 0;
+            threads[index].unreadCount = 0;
+            this.messageThreads.set([...threads]);
           }
         },
         error: (error) => {
@@ -129,7 +131,7 @@ export class MessagingInboxComponent implements OnInit {
       this.messagingService.deleteThread(thread.id).subscribe({
         next: () => {
           // Remove the thread from the list
-          this.messageThreads = this.messageThreads.filter(t => t.id !== thread.id);
+          this.messageThreads.set(this.messageThreads().filter(t => t.id !== thread.id));
         },
         error: (error) => {
           console.error('Error deleting thread:', error);

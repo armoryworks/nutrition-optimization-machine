@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { Subject, takeUntil } from 'rxjs';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
@@ -47,12 +48,16 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
+    private destroy$ = new Subject<void>();
 
-    shareTokens: RecipeShareTokenResponseModel[] = [];
-    isLoading = false;
-    error: string | null = null;
+    recipeId = input<number>();
+
+    shareTokens = signal<RecipeShareTokenResponseModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
     shareTokenForm: FormGroup;
-    isAddingShareToken = false;
+    isAddingShareToken = signal(false);
+    isSubmitting = signal(false);
 
 
 
@@ -75,62 +80,62 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
     }
 
     loadShareTokens(): void {
-        this.isLoading = true;
-        this.error = null;
-        this.recipeAdvancedService
-            .getRecipeShareTokens(this.recipeId)
+        this.isLoading.set(true);
+        this.error.set(null);
+        this.recipeService
+            .getRecipeShareTokens(this.recipeId()!)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (shareTokens) => {
-                    this.shareTokens = shareTokens;
-                    this.isLoading = false;
+                    this.shareTokens.set(shareTokens);
+                    this.isLoading.set(false);
                 },
                 error: (error) => {
                     console.error("Error loading share tokens:", error);
-                    this.error = "Failed to load share tokens. Please try again.";
-                    this.isLoading = false;
+                    this.error.set("Failed to load share tokens. Please try again.");
+                    this.isLoading.set(false);
                 },
             });
     }
 
     createShareToken(): void {
-        if (this.shareTokenForm.invalid || this.isSubmitting) {
+        if (this.shareTokenForm.invalid || this.isSubmitting()) {
             return;
         }
 
-        this.isSubmitting = true;
-        this.error = null;
-        const request: RecipeShareTokenCreateModel = {
-            recipeId: this.recipeId,
+        this.isSubmitting.set(true);
+        this.error.set(null);
+        const request: any = {
+            recipeId: this.recipeId(),
             shareName: this.shareTokenForm.get("shareName")!.value || undefined,
             isPublic: this.shareTokenForm.get("isPublic")!.value,
         };
 
-        this.recipeAdvancedService
+        this.recipeService
             .createShareToken(request)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (shareToken) => {
-                    this.shareTokens.unshift(shareToken);
+                    this.shareTokens.set([shareToken, ...this.shareTokens()]);
                     this.shareTokenForm.reset();
                     this.snackBar.open("Share token created successfully", "Close", { duration: 3000 });
-                    this.isSubmitting = false;
+                    this.isSubmitting.set(false);
                 },
                 error: (error) => {
                     console.error("Error creating share token:", error);
-                    this.error = "Failed to create share token. Please try again.";
-                    this.isSubmitting = false;
+                    this.error.set("Failed to create share token. Please try again.");
+                    this.isSubmitting.set(false);
                 },
             });
     }
 
     deleteShareToken(shareTokenId: number): void {
-        this.recipeAdvancedService
+        this.recipeService
             .deleteShareToken(shareTokenId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: () => {
-                    this.shareTokens = this.shareTokens.filter(t => t.id !== shareTokenId);
+                    this.shareTokens.set(this.shareTokens().filter(t => t.id !== shareTokenId));
                     this.snackBar.open("Share token deleted successfully", "Close", { duration: 3000 });
                 },
                 error: (error) => {

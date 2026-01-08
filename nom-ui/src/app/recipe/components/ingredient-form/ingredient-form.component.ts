@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, input, output, signal } from '@angular/core';
 
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -46,16 +46,16 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
   styleUrls: ['./ingredient-form.component.scss']
 })
 export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
-  @Input() mode: 'create' | 'edit' = 'create';
-  @Input() ingredient?: IngredientModel | null = null;
-  @Input() isModal = false;
-  @Input() modalData?: IngredientFormData;
-  @Input() showDuplicateChecking = true;
-  @Input() showNavigation = true;
+  mode = input<'create' | 'edit'>('create');
+  ingredient = input<IngredientModel | null>(null);
+  isModal = input(false);
+  modalData = input<IngredientFormData>();
+  showDuplicateChecking = input(true);
+  showNavigation = input(true);
 
-  @Output() formSubmitted = new EventEmitter<IngredientModel>();
-  @Output() formCancelled = new EventEmitter<void>();
-  @Output() duplicateFound = new EventEmitter<IngredientModel>();
+  formSubmitted = output<IngredientModel>();
+  formCancelled = output<void>();
+  duplicateFound = output<IngredientModel>();
 
   private nonNullableFb = inject(NonNullableFormBuilder);
   private recipeService = inject(RecipeService);
@@ -64,33 +64,33 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   private cdr = inject(ChangeDetectorRef);
 
   ingredientForm: FormGroup;
-  isLoading = false;
-  isSubmitting = false;
-  isCheckingDuplicate = false;
-  existingIngredient: IngredientModel | null = null;
-  measurements: ReferenceItemModel[] = [];
-  nutrientTypes: ReferenceItemModel[] = [];
-  error: string | null = null;
+  isLoading = signal(false);
+  isSubmitting = signal(false);
+  isCheckingDuplicate = signal(false);
+  existingIngredient = signal<IngredientModel | null>(null);
+  measurements = signal<ReferenceItemModel[]>([]);
+  nutrientTypes = signal<ReferenceItemModel[]>([]);
+  error = signal<string | null>(null);
   private destroy$ = new Subject<void>();
 
   // Form configuration based on mode and context
-  formConfig: IngredientFormConfig = {
+  formConfig = signal<IngredientFormConfig>({
     title: 'Create Ingredient',
     subtitle: 'Add a new ingredient to the database',
     submitText: 'Create Ingredient',
     showCancelButton: true,
     cancelText: 'Cancel',
     maxWidth: '600px'
-  };
+  });
 
   // Page configuration for non-modal usage
-  pageConfig: BasePageConfig = {
+  pageConfig = signal<BasePageConfig>({
     title: 'Create New Ingredient',
     subtitle: 'Add ingredient information and nutritional data',
     showBackButton: true,
     showRefreshButton: true,
     refreshButtonText: 'Refresh'
-  };
+  });
 
   constructor() {
     this.ingredientForm = this.nonNullableFb.group({
@@ -134,39 +134,39 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
 
   private initializeForm(): void {
     // Set form configuration based on mode and context
-    if (this.mode === 'edit' && this.ingredient) {
-      this.formConfig = {
+    if (this.mode() === 'edit' && this.ingredient()) {
+      this.formConfig.set({
         title: 'Edit Ingredient',
         subtitle: 'Update the core properties and nutritional information for this ingredient.',
         submitText: 'Save Changes',
         showCancelButton: true,
         cancelText: 'Cancel',
         maxWidth: '600px'
-      };
+      });
 
-      this.pageConfig = {
+      this.pageConfig.set({
         title: 'Edit Ingredient',
         subtitle: 'Update ingredient information and nutritional data',
         showBackButton: true,
         showRefreshButton: true,
         refreshButtonText: 'Refresh'
-      };
+      });
 
       // Populate form with existing data
-      this.ingredientForm.patchValue(this.ingredient);
-      this.populateNutrients(this.ingredient.nutrients || []);
+      this.ingredientForm.patchValue(this.ingredient()!);
+      this.populateNutrients(this.ingredient()?.nutrients || []);
     } else {
       // Create mode
-      if (this.isModal && this.modalData?.ingredientName) {
+      if (this.isModal() && this.modalData()?.ingredientName) {
         this.ingredientForm.patchValue({
-          name: this.modalData.ingredientName
+          name: this.modalData()!.ingredientName
         });
       }
     }
   }
 
   private setupDuplicateChecking(): void {
-    if (!this.showDuplicateChecking || this.mode === 'edit') {
+    if (!this.showDuplicateChecking() || this.mode() === 'edit') {
       return;
     }
 
@@ -175,31 +175,31 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
       distinctUntilChanged(),
       switchMap(name => {
         if (name && name.trim().length > 2) {
-          this.isCheckingDuplicate = true;
+          this.isCheckingDuplicate.set(true);
           return this.recipeService.searchIngredients(name.trim());
         } else {
-          this.existingIngredient = null;
-          this.isCheckingDuplicate = false;
+          this.existingIngredient.set(null);
+          this.isCheckingDuplicate.set(false);
           return of([]);
         }
       }),
       takeUntil(this.destroy$)
     ).subscribe({
       next: (ingredients) => {
-        this.isCheckingDuplicate = false;
+        this.isCheckingDuplicate.set(false);
         // Check if any ingredient has the exact same name (case-insensitive)
         const exactMatch = ingredients.find(ing =>
           ing.name.toLowerCase() === this.ingredientForm.get('name')?.value?.toLowerCase()
         );
-        this.existingIngredient = exactMatch || null;
+        this.existingIngredient.set(exactMatch || null);
 
-        if (this.existingIngredient) {
-          this.duplicateFound.emit(this.existingIngredient);
+        if (this.existingIngredient()) {
+          this.duplicateFound.emit(this.existingIngredient()!);
         }
       },
       error: (error) => {
         console.error('Error checking for duplicate ingredients:', error);
-        this.isCheckingDuplicate = false;
+        this.isCheckingDuplicate.set(false);
       }
     });
   }
@@ -210,13 +210,13 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (measurements) => {
-        this.measurements = measurements;
+        this.measurements.set(measurements);
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading measurement types:', error);
         // Fallback to empty array if API fails
-        this.measurements = [];
+        this.measurements.set([]);
       }
     });
   }
@@ -227,13 +227,13 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (nutrients) => {
-        this.nutrientTypes = nutrients;
+        this.nutrientTypes.set(nutrients);
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading nutrient types:', error);
         // Fallback to empty array if API fails
-        this.nutrientTypes = [];
+        this.nutrientTypes.set([]);
       }
     });
   }
@@ -254,7 +254,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
     });
 
     // Only add a default nutrient in create mode, not edit mode
-    if (this.nutrients.length === 0 && this.mode === 'create') {
+    if (this.nutrients.length === 0 && this.mode() === 'create') {
       this.addNutrient();
     }
   }
@@ -280,7 +280,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   onSubmit(): void {
-    if (this.ingredientForm.invalid || this.isSubmitting) {
+    if (this.ingredientForm.invalid || this.isSubmitting()) {
       this.ingredientForm.markAllAsTouched();
       return;
     }
@@ -292,21 +292,22 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     // Check if ingredient already exists (for create mode with duplicate checking)
-    if (this.showDuplicateChecking && this.existingIngredient && this.mode === 'create') {
+    const existingIng = this.existingIngredient();
+    if (this.showDuplicateChecking() && existingIng && this.mode() === 'create') {
       // Emit the existing ingredient instead of creating a new one
       const result = {
-        id: this.existingIngredient.id,
-        name: this.existingIngredient.name,
+        id: existingIng.id,
+        name: existingIng.name,
         description: this.ingredientForm.get('description')?.value || '',
-        fdcId: this.existingIngredient.fdcId
+        fdcId: existingIng.fdcId
       } as IngredientModel;
 
       this.formSubmitted.emit(result);
       return;
     }
 
-    this.isSubmitting = true;
-    this.error = null;
+    this.isSubmitting.set(true);
+    this.error.set(null);
     const formValue = this.ingredientForm.value;
 
     // Convert string values to numbers for nutrients
@@ -316,9 +317,9 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
       measurementId: parseInt(nutrient.measurementId.toString(), 10)
     }));
 
-    const request$ = this.mode === 'edit' && this.ingredient?.id
-      ? this.recipeService.updateIngredient(this.ingredient.id, {
-        id: this.ingredient.id, // Use ID from form (now includes the ingredient ID)
+    const request$ = this.mode() === 'edit' && this.ingredient()?.id
+      ? this.recipeService.updateIngredient(this.ingredient()!.id, {
+        id: this.ingredient()!.id, // Use ID from form (now includes the ingredient ID)
         name: formValue.name,
         description: formValue.description,
         nutrients: processedNutrients
@@ -331,16 +332,16 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
 
     request$.pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
-        const action = this.mode === 'edit' ? 'updated' : 'created';
+        const action = this.mode() === 'edit' ? 'updated' : 'created';
         this.snackBar.open(`Ingredient ${action} successfully!`, 'Close', { duration: 3000 });
 
         // Emit the result
         this.formSubmitted.emit(result);
       },
       error: (error) => {
-        console.error(`Error ${this.mode === 'edit' ? 'updating' : 'creating'} ingredient:`, error);
-        this.error = `Failed to ${this.mode === 'edit' ? 'update' : 'create'} ingredient. Please try again.`;
-        this.isSubmitting = false;
+        console.error(`Error ${this.mode() === 'edit' ? 'updating' : 'creating'} ingredient:`, error);
+        this.error.set(`Failed to ${this.mode() === 'edit' ? 'update' : 'create'} ingredient. Please try again.`);
+        this.isSubmitting.set(false);
       }
     });
   }
@@ -354,22 +355,23 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   onRefresh(): void {
-    this.error = null;
+    this.error.set(null);
     this.loadIngredient();
   }
 
   onRetry(): void {
-    this.error = null;
+    this.error.set(null);
     this.loadIngredient();
   }
 
   useExistingIngredient(): void {
-    if (this.existingIngredient) {
+    const existingIng = this.existingIngredient();
+    if (existingIng) {
       const result = {
-        id: this.existingIngredient.id,
-        name: this.existingIngredient.name,
+        id: existingIng.id,
+        name: existingIng.name,
         description: this.ingredientForm.get('description')?.value || '',
-        fdcId: this.existingIngredient.fdcId
+        fdcId: existingIng.fdcId
       } as IngredientModel;
 
       this.formSubmitted.emit(result);
@@ -377,21 +379,22 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private loadIngredient(): void {
-    if (this.ingredient?.id) {
-      this.isLoading = true;
-      this.recipeService.getIngredientDetails(this.ingredient.id).pipe(
+    const currentIngredient = this.ingredient();
+    if (currentIngredient?.id) {
+      this.isLoading.set(true);
+      this.recipeService.getIngredientDetails(currentIngredient.id).pipe(
         takeUntil(this.destroy$)
       ).subscribe({
         next: (ingredientData: IngredientModel) => {
-          this.ingredient = ingredientData;
+          // Note: Cannot reassign input signal, but can use the data
           this.ingredientForm.patchValue(ingredientData);
           this.populateNutrients(ingredientData.nutrients || []);
-          this.isLoading = false;
+          this.isLoading.set(false);
         },
         error: () => {
           console.error('Error loading ingredient');
-          this.error = 'Failed to load ingredient. Please try again.';
-          this.isLoading = false;
+          this.error.set('Failed to load ingredient. Please try again.');
+          this.isLoading.set(false);
         }
       });
     }

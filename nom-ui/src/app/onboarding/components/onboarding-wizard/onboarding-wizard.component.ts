@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { Component, OnInit, input, output, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,19 +42,19 @@ interface OnboardingAnswer {
     templateUrl: './onboarding-wizard.component.html',
     styleUrls: ['./onboarding-wizard.component.scss'],
 })
-export class OnboardingWizardComponent implements OnInit, OnChanges {
-    @Input() questions: OnboardingQuestion[] = [];
-    @Input() isLoading = false;
-    @Input() isSubmitting = false;
-    @Input() error: string | null = null;
-    @Input() submitMessage: string | null = null;
+export class OnboardingWizardComponent implements OnInit {
+    questions = input<OnboardingQuestion[]>([]);
+    isLoading = input(false);
+    isSubmitting = input(false);
+    error = input<string | null>(null);
+    submitMessage = input<string | null>(null);
 
-    @Output() answerSubmitted = new EventEmitter<OnboardingAnswer>();
-    @Output() previousQuestion = new EventEmitter<void>();
-    @Output() nextQuestion = new EventEmitter<void>();
-    @Output() goToDashboard = new EventEmitter<void>();
+    answerSubmitted = output<OnboardingAnswer>();
+    previousQuestion = output<void>();
+    nextQuestion = output<void>();
+    goToDashboard = output<void>();
 
-    currentQuestionIndex = 0;
+    currentQuestionIndex = signal(0);
     currentQuestion: OnboardingQuestion | null = null;
     currentAnswerForm: FormGroup;
 
@@ -62,19 +62,20 @@ export class OnboardingWizardComponent implements OnInit, OnChanges {
         this.currentAnswerForm = new FormGroup({
             answer: new FormControl('', [Validators.required])
         });
+
+        // Effect to update current question when questions input or currentQuestionIndex changes
+        effect(() => {
+            this.updateCurrentQuestion();
+        });
     }
 
     ngOnInit(): void {
         this.updateCurrentQuestion();
     }
 
-    ngOnChanges(): void {
-        this.updateCurrentQuestion();
-    }
-
     private updateCurrentQuestion(): void {
-        if (this.questions && this.questions.length > 0 && this.currentQuestionIndex < this.questions.length) {
-            this.currentQuestion = this.questions[this.currentQuestionIndex];
+        if (this.questions() && this.questions().length > 0 && this.currentQuestionIndex() < this.questions().length) {
+            this.currentQuestion = this.questions()[this.currentQuestionIndex()];
             this.resetForm();
         }
     }
@@ -96,8 +97,8 @@ export class OnboardingWizardComponent implements OnInit, OnChanges {
     }
 
     goToPreviousQuestion(): void {
-        if (this.currentQuestionIndex > 0) {
-            this.currentQuestionIndex--;
+        if (this.currentQuestionIndex() > 0) {
+            this.currentQuestionIndex.set(this.currentQuestionIndex() - 1);
             this.updateCurrentQuestion();
             this.previousQuestion.emit();
         }
@@ -107,13 +108,13 @@ export class OnboardingWizardComponent implements OnInit, OnChanges {
         if (this.currentAnswerForm.valid && this.currentQuestion) {
             const answer = this.currentAnswerForm.get('answer')?.value;
             this.answerSubmitted.emit({
-                questionIndex: this.currentQuestionIndex,
+                questionIndex: this.currentQuestionIndex(),
                 question: this.currentQuestion,
                 answer: answer
             });
 
-            if (this.currentQuestionIndex < this.questions.length - 1) {
-                this.currentQuestionIndex++;
+            if (this.currentQuestionIndex() < this.questions().length - 1) {
+                this.currentQuestionIndex.set(this.currentQuestionIndex() + 1);
                 this.updateCurrentQuestion();
                 this.nextQuestion.emit();
             }

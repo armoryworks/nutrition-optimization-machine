@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.ts
 
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -67,38 +67,38 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private referenceDataService = inject(ReferenceDataService);
 
     recipeForm: FormGroup;
-    isEditMode = false;
-    recipeId: number | null = null;
-    isLoading = true;
-    pageTitle = 'Create Recipe';
-    isSubmitting = false;
-    error: string | null = null;
+    isEditMode = signal(false);
+    recipeId = signal<number | null>(null);
+    isLoading = signal(true);
+    pageTitle = signal('Create Recipe');
+    isSubmitting = signal(false);
+    error = signal<string | null>(null);
 
     ingredientSearchCtrl = new FormControl('');
     filteredIngredients$: Observable<IngredientSearchResponseModel[]>;
     measurements$: Observable<any[]>;
 
-    pageConfig: BasePageConfig = {
+    pageConfig = signal<BasePageConfig>({
         title: 'Create Recipe',
         subtitle: 'Add a new recipe to your collection',
         showBackButton: true,
         maxWidth: '800px'
-    };
+    });
 
-    formConfig: BaseFormConfig = {
+    formConfig = signal<BaseFormConfig>({
         title: '',
         subtitle: '',
         submitText: 'Create Recipe',
         showCancelButton: true,
         cancelText: 'Cancel',
         maxWidth: '100%'
-    };
+    });
 
     private destroy$ = new Subject<void>();
 
     // Back navigation properties
-    private referringPage = '/recipes';
-    private referringPageTitle = 'Recipes';
+    private referringPage = signal('/recipes');
+    private referringPageTitle = signal('Recipes');
 
     constructor() {
         this.recipeForm = this.nonNullableFb.group({
@@ -126,16 +126,22 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
             const id = params['id'];
             if (id) {
-                this.recipeId = +id;
-                this.isEditMode = true;
-                this.pageTitle = 'Edit Recipe';
-                this.pageConfig.title = 'Edit Recipe';
-                this.pageConfig.subtitle = 'Update your recipe';
-                this.formConfig.submitText = 'Update Recipe';
+                this.recipeId.set(+id);
+                this.isEditMode.set(true);
+                this.pageTitle.set('Edit Recipe');
+                this.pageConfig.set({
+                    ...this.pageConfig(),
+                    title: 'Edit Recipe',
+                    subtitle: 'Update your recipe'
+                });
+                this.formConfig.set({
+                    ...this.formConfig(),
+                    submitText: 'Update Recipe'
+                });
                 this.loadRecipe();
             } else {
                 // For create mode, set loading to false since no data needs to be loaded
-                this.isLoading = false;
+                this.isLoading.set(false);
             }
         });
     }
@@ -193,7 +199,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             IngredientCreateModalComponent,
             {
                 width: '500px',
-                data: { recipeId: this.recipeId || undefined }
+                data: { recipeId: this.recipeId() || undefined }
             }
         );
 
@@ -267,16 +273,16 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onSubmit(): void {
-        if (this.recipeForm.invalid || this.isSubmitting) {
+        if (this.recipeForm.invalid || this.isSubmitting()) {
             return;
         }
 
-        this.isSubmitting = true;
-        this.error = null;
+        this.isSubmitting.set(true);
+        this.error.set(null);
 
         const formValue = this.recipeForm.value;
         const recipeData: RecipeEditModel = {
-            id: this.recipeId || 0,
+            id: this.recipeId() || 0,
             name: formValue.name,
             description: formValue.description || 'No description provided',
             ingredients: formValue.ingredients.map((ingredient: any, index: number) => ({
@@ -293,9 +299,9 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             }))
         };
 
-        const request$ = this.isEditMode && this.recipeId
-            ? this.recipeService.updateRecipe(this.recipeId, {
-                id: this.recipeId,
+        const request$ = this.isEditMode() && this.recipeId()
+            ? this.recipeService.updateRecipe(this.recipeId()!, {
+                id: this.recipeId()!,
                 name: recipeData.name,
                 description: recipeData.description || 'No description provided',
                 ingredients: recipeData.ingredients,
@@ -309,17 +315,17 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             });
 
         request$.pipe(
-            finalize(() => this.isSubmitting = false),
+            finalize(() => this.isSubmitting.set(false)),
             takeUntil(this.destroy$)
         ).subscribe({
             next: (recipe) => {
-                const action = this.isEditMode ? 'updated' : 'created';
+                const action = this.isEditMode() ? 'updated' : 'created';
                 this.notificationService.success(`Recipe ${action} successfully`);
                 this.router.navigate(['/recipes', recipe.id]);
             },
             error: (error) => {
                 console.error('Error saving recipe:', error);
-                this.error = `Failed to ${this.isEditMode ? 'update' : 'create'} recipe. Please try again.`;
+                this.error.set(`Failed to ${this.isEditMode() ? 'update' : 'create'} recipe. Please try again.`);
             }
         });
     }
@@ -329,34 +335,34 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     submitForCuration(): void {
-        if (this.recipeForm.invalid || this.isSubmitting) {
+        if (this.recipeForm.invalid || this.isSubmitting()) {
             return;
         }
 
-        if (!this.recipeId) {
-            this.error = 'Cannot submit for curation: Recipe not found';
+        if (!this.recipeId()) {
+            this.error.set('Cannot submit for curation: Recipe not found');
             return;
         }
 
-        this.isSubmitting = true;
-        this.error = null;
+        this.isSubmitting.set(true);
+        this.error.set(null);
 
         const request = {
-            entityId: this.recipeId,
+            entityId: this.recipeId()!,
             entityType: 'Recipe' as const
         };
 
         this.curationService.submitForCuration(request).pipe(
-            finalize(() => this.isSubmitting = false),
+            finalize(() => this.isSubmitting.set(false)),
             takeUntil(this.destroy$)
         ).subscribe({
             next: () => {
                 this.notificationService.success('Recipe submitted for curation successfully');
-                this.router.navigate(['/recipes', this.recipeId]);
+                this.router.navigate(['/recipes', this.recipeId()]);
             },
             error: (error) => {
                 console.error('Error submitting recipe for curation:', error);
-                this.error = 'Failed to submit recipe for curation. Please try again.';
+                this.error.set('Failed to submit recipe for curation. Please try again.');
             }
         });
     }
@@ -366,26 +372,26 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     onRefresh(): void {
-        if (this.recipeId) {
+        if (this.recipeId()) {
             this.loadRecipe();
         }
     }
 
     onRetry(): void {
-        this.error = null;
-        if (this.recipeId) {
+        this.error.set(null);
+        if (this.recipeId()) {
             this.loadRecipe();
         }
     }
 
     private loadRecipe(): void {
-        if (!this.recipeId) return;
+        if (!this.recipeId()) return;
 
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
-        this.recipeService.getRecipe(this.recipeId).pipe(
-            finalize(() => this.isLoading = false),
+        this.recipeService.getRecipe(this.recipeId()!).pipe(
+            finalize(() => this.isLoading.set(false)),
             takeUntil(this.destroy$)
         ).subscribe({
             next: (recipe) => {
@@ -393,7 +399,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error loading recipe:', error);
-                this.error = 'Failed to load recipe. Please try again.';
+                this.error.set('Failed to load recipe. Please try again.');
             }
         });
     }
@@ -404,11 +410,11 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         const returnToTitle = this.route.snapshot.queryParams['returnToTitle'];
 
         console.log('CaptureReferringPage - Query params:', { returnTo, returnToTitle });
-        console.log('CaptureReferringPage - Before update - referringPageTitle:', this.referringPageTitle);
+        console.log('CaptureReferringPage - Before update - referringPageTitle:', this.referringPageTitle());
 
         if (returnTo) {
-            this.referringPage = returnTo;
-            this.referringPageTitle = returnToTitle || 'Previous Page';
+            this.referringPage.set(returnTo);
+            this.referringPageTitle.set(returnToTitle || 'Previous Page');
             console.log('CaptureReferringPage - Using query params:', { returnTo, returnToTitle });
         } else {
             // Fallback: try to get from browser history or default to recipes
@@ -419,14 +425,14 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 const url = new URL(referrer);
                 console.log('CaptureReferringPage - Referrer URL:', url.pathname);
                 if (url.pathname !== window.location.pathname) {
-                    this.referringPage = url.pathname;
-                    this.referringPageTitle = this.getPageTitleFromPath(url.pathname);
-                    console.log('CaptureReferringPage - Using referrer:', { referringPage: this.referringPage, referringPageTitle: this.referringPageTitle });
+                    this.referringPage.set(url.pathname);
+                    this.referringPageTitle.set(this.getPageTitleFromPath(url.pathname));
+                    console.log('CaptureReferringPage - Using referrer:', { referringPage: this.referringPage(), referringPageTitle: this.referringPageTitle() });
                 }
             }
         }
 
-        console.log('Final referring page:', this.referringPage, 'Title:', this.referringPageTitle);
+        console.log('Final referring page:', this.referringPage(), 'Title:', this.referringPageTitle());
     }
 
     private getPageTitleFromPath(path: string): string {
@@ -443,13 +449,13 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     }
 
     private navigateBack(): void {
-        console.log('navigateBack called - referringPage:', this.referringPage);
+        console.log('navigateBack called - referringPage:', this.referringPage());
         console.log('navigateBack called - current pathname:', window.location.pathname);
 
         // Try to navigate back to referring page, fallback to browser back
-        if (this.referringPage && this.referringPage !== window.location.pathname) {
-            console.log('navigateBack - navigating to:', this.referringPage);
-            this.router.navigate([this.referringPage]);
+        if (this.referringPage() && this.referringPage() !== window.location.pathname) {
+            console.log('navigateBack - navigating to:', this.referringPage());
+            this.router.navigate([this.referringPage()]);
         } else {
             console.log('navigateBack - using browser back navigation');
             // Fallback to browser back navigation

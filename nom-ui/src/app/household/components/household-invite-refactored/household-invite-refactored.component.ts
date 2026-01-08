@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -34,11 +34,11 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
 
     inviteForm: FormGroup;
-    householdId = 0;
-    isLoading = false;
-    inviteToken: string | null = null;
-    inviteLink: string | null = null;
-    error: string | null = null;
+    householdId = signal(0);
+    isLoading = signal(false);
+    inviteToken = signal<string | null>(null);
+    inviteLink = signal<string | null>(null);
+    error = signal<string | null>(null);
 
     formConfig: BaseFormConfig = {
         title: 'Invite Members to Household',
@@ -57,25 +57,25 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
 
     ngOnInit(): void {
         this.route.params.subscribe(params => {
-            this.householdId = +params['id'];
+            this.householdId.set(+params['id']);
         });
     }
 
     generateInviteToken(): void {
         if (this.inviteForm.valid) {
-            this.isLoading = true;
-            this.error = null;
+            this.isLoading.set(true);
+            this.error.set(null);
 
             const request: HouseholdInviteTokenCreateRequestModel = {
-                householdId: this.householdId,
+                householdId: this.householdId(),
                 expiresAt: new Date(Date.now() + this.inviteForm.value.expiresInDays * 24 * 60 * 60 * 1000)
             };
 
             this.householdService.createInviteToken(request).subscribe({
                 next: (response: HouseholdInviteTokenResponseModel) => {
-                    this.inviteToken = response.token;
-                    this.inviteLink = `${window.location.origin}/household/join?token=${response.token}`;
-                    this.isLoading = false;
+                    this.inviteToken.set(response.token);
+                    this.inviteLink.set(`${window.location.origin}/household/join?token=${response.token}`);
+                    this.isLoading.set(false);
                     this.snackBar.open('Invite token generated successfully', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
@@ -84,8 +84,8 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
                 },
                 error: (error) => {
                     console.error('Error generating invite token:', error);
-                    this.error = 'Failed to generate invite token';
-                    this.isLoading = false;
+                    this.error.set('Failed to generate invite token');
+                    this.isLoading.set(false);
                     this.snackBar.open('Failed to generate invite token', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
@@ -97,8 +97,8 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
     }
 
     copyInviteLink(): void {
-        if (this.inviteLink) {
-            navigator.clipboard.writeText(this.inviteLink).then(() => {
+        if (this.inviteLink()) {
+            navigator.clipboard.writeText(this.inviteLink()!).then(() => {
                 this.snackBar.open('Invite link copied to clipboard', 'Close', {
                     duration: 3000,
                     horizontalPosition: 'center',
@@ -115,8 +115,8 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
     }
 
     copyToken(): void {
-        if (this.inviteToken) {
-            navigator.clipboard.writeText(this.inviteToken).then(() => {
+        if (this.inviteToken()) {
+            navigator.clipboard.writeText(this.inviteToken()!).then(() => {
                 this.snackBar.open('Invite token copied to clipboard', 'Close', {
                     duration: 3000,
                     horizontalPosition: 'center',
@@ -133,6 +133,6 @@ export class HouseholdInviteRefactoredComponent implements OnInit {
     }
 
     onBack(): void {
-        this.router.navigate(['/household', this.householdId]);
+        this.router.navigate(['/household', this.householdId()]);
     }
 } 

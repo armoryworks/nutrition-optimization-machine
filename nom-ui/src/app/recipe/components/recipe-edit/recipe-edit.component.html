@@ -1,15 +1,15 @@
 <nom-base-page
-  [config]="pageConfig"
-  [isLoading]="isLoading"
-  [error]="error"
+  [config]="pageConfig()"
+  [isLoading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (refresh)="onRefresh()"
   (retry)="onRetry()">
 
   <nom-base-form
-    [config]="formConfig"
+    [config]="formConfig()"
     [form]="recipeForm"
-    [isSubmitting]="isSubmitting"
+    [isSubmitting]="isSubmitting()"
     (formSubmit)="onSubmit()"
     (formCancel)="onCancel()">
 
@@ -110,9 +110,9 @@
       }
     </div>
 
-    @if (isEditMode) {
+    @if (isEditMode()) {
     <div class="nom-recipe-edit__additional-actions">
-      <button mat-stroked-button type="button" (click)="submitForCuration()" [disabled]="isSubmitting">
+      <button mat-stroked-button type="button" (click)="submitForCuration()" [disabled]="isSubmitting()">
         <mat-icon>send</mat-icon>
         Submit for Curation
       </button>

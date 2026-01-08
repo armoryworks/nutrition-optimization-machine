@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -54,7 +54,7 @@ export class RegistrationComponent {
   private authManagerService = inject(AuthManagerService);
 
   registrationForm!: FormGroup;
-  isLoading = false;
+  isLoading = signal(false);
 
 
 
@@ -96,7 +96,7 @@ export class RegistrationComponent {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const userData: RegisterUser = this.registrationForm.getRawValue();
 
     this.authService.register(userData).subscribe({
@@ -115,7 +115,7 @@ export class RegistrationComponent {
         // Use AuthManagerService.login() instead of AuthService.login() for proper token storage
         this.authManagerService.login(loginCredentials).subscribe({
           next: () => {
-            this.isLoading = false;
+            this.isLoading.set(false);
             this.notificationService.success(
               'Registration successful! You are now logged in.'
             );
@@ -124,7 +124,7 @@ export class RegistrationComponent {
             this.router.navigate(['/onboarding']); // Redirect to onboarding process
           },
           error: (error) => {
-            this.isLoading = false;
+            this.isLoading.set(false);
             const errorMessage = error.message;
             this.notificationService.error(
               `Registration successful, but login failed: ${errorMessage}`

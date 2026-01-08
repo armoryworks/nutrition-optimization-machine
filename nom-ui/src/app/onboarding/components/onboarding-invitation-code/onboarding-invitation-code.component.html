@@ -16,18 +16,18 @@
       placeholder="Enter code"
     />
   </mat-form-field>
-  @if (errorMessage) {
-  <p class="nom-form__error">{{ errorMessage }}</p>
+  @if (errorMessage()) {
+  <p class="nom-form__error">{{ errorMessage() }}</p>
   }
   <div class="flex justify-center mt-4">
     <button
       mat-raised-button
       color="primary"
       (click)="onSubmit()"
-      [disabled]="!invitationCodeFormControl.value || isLoading"
+      [disabled]="!invitationCodeFormControl.value || isLoading()"
       class="nom-button mr-2"
     >
-      @if (isLoading) {
+      @if (isLoading()) {
       <mat-spinner diameter="20"></mat-spinner>
       } @else {
       <span>Join Plan</span>
@@ -37,7 +37,7 @@
       mat-raised-button
       color="accent"
       (click)="onSkip()"
-      [disabled]="isLoading"
+      [disabled]="isLoading()"
       class="nom-button"
     >
       I have no Invitation Code

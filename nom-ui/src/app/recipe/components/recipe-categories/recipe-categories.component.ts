@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -49,16 +49,16 @@ export class RecipeCategoriesComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    @Output() categoriesChange = new EventEmitter<RecipeCategoryResponseModel[]>();
+    categoriesChange = output<RecipeCategoryResponseModel[]>();
 
-    categories: RecipeCategoryResponseModel[] = [];
-    allCategories: RecipeCategoryResponseModel[] = [];
-    filteredCategories: RecipeCategoryResponseModel[] = [];
-    isLoading = false;
-    error: string | null = null;
+    categories = signal<RecipeCategoryResponseModel[]>([]);
+    allCategories = signal<RecipeCategoryResponseModel[]>([]);
+    filteredCategories = signal<RecipeCategoryResponseModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
     categoryForm: FormGroup;
-    isAddingCategory = false;
-    searchTerm = '';
+    isAddingCategory = signal(false);
+    searchTerm = signal('');
 
 
 
@@ -77,19 +77,19 @@ export class RecipeCategoriesComponent implements OnInit {
     }
 
     loadAllCategories(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         this.recipeService.getAllCategories().subscribe({
             next: (categories) => {
-                this.categories = categories;
-                this.allCategories = categories;
-                this.filteredCategories = categories;
-                this.isLoading = false;
+                this.categories.set(categories);
+                this.allCategories.set(categories);
+                this.filteredCategories.set(categories);
+                this.isLoading.set(false);
             },
             error: (error) => {
-                this.error = 'Failed to load categories';
-                this.isLoading = false;
+                this.error.set('Failed to load categories');
+                this.isLoading.set(false);
                 console.error('Error loading categories:', error);
             },
         });
@@ -104,15 +104,17 @@ export class RecipeCategoriesComponent implements OnInit {
     }
 
     addCategory(category: RecipeCategoryModel): void {
-        if (!this.categories.find(c => c.id === category.id)) {
-            this.categories = [...this.categories, category];
-            this.categoriesChange.emit(this.categories);
+        if (!this.categories().find(c => c.id === category.id)) {
+            const updatedCategories = [...this.categories(), category];
+            this.categories.set(updatedCategories);
+            this.categoriesChange.emit(updatedCategories);
         }
     }
 
     removeCategory(category: RecipeCategoryModel): void {
-        this.categories = this.categories.filter(c => c.id !== category.id);
-        this.categoriesChange.emit(this.categories);
+        const updatedCategories = this.categories().filter(c => c.id !== category.id);
+        this.categories.set(updatedCategories);
+        this.categoriesChange.emit(updatedCategories);
     }
 
     createNewCategory(): void {
@@ -127,7 +129,7 @@ export class RecipeCategoriesComponent implements OnInit {
 
             this.recipeService.createCategory(newCategory).subscribe({
                 next: (createdCategory) => {
-                    this.allCategories = [...this.allCategories, createdCategory];
+                    this.allCategories.set([...this.allCategories(), createdCategory]);
                     this.addCategory(createdCategory);
                     this.categoryForm.reset({
                         name: '',
@@ -147,7 +149,7 @@ export class RecipeCategoriesComponent implements OnInit {
     deleteCategory(category: RecipeCategoryModel): void {
         this.recipeService.deleteCategory(category.id!).subscribe({
             next: () => {
-                this.allCategories = this.allCategories.filter(c => c.id !== category.id);
+                this.allCategories.set(this.allCategories().filter(c => c.id !== category.id));
                 this.removeCategory(category);
             },
             error: (error) => {
@@ -157,13 +159,13 @@ export class RecipeCategoriesComponent implements OnInit {
     }
 
     filterCategories(): void {
-        if (!this.searchTerm.trim()) {
-            this.filteredCategories = this.allCategories;
+        if (!this.searchTerm().trim()) {
+            this.filteredCategories.set(this.allCategories());
         } else {
-            this.filteredCategories = this.allCategories.filter(category =>
-                category.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                category.description?.toLowerCase().includes(this.searchTerm.toLowerCase())
-            );
+            this.filteredCategories.set(this.allCategories().filter(category =>
+                category.name.toLowerCase().includes(this.searchTerm().toLowerCase()) ||
+                category.description?.toLowerCase().includes(this.searchTerm().toLowerCase())
+            ));
         }
     }
 
@@ -187,12 +189,12 @@ export class RecipeCategoriesComponent implements OnInit {
     }
 
     isCategorySelected(category: RecipeCategoryModel): boolean {
-        return this.categories.some(c => c.id === category.id);
+        return this.categories().some(c => c.id === category.id);
     }
 
     getParentCategoryName(category: RecipeCategoryModel): string {
         if (category.parentCategoryId) {
-            const parent = this.allCategories.find(c => c.id === category.parentCategoryId);
+            const parent = this.allCategories().find(c => c.id === category.parentCategoryId);
             return parent ? parent.name : 'Unknown';
         }
         return 'None';

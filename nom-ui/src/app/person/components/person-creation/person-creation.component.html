@@ -1,7 +1,7 @@
 <nom-base-page
   [config]="pageConfig"
-  [isLoading]="isLoading"
-  [error]="error"
+  [isLoading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (refresh)="onRefresh()"
   (retry)="onRetry()">
@@ -9,7 +9,7 @@
   <nom-base-form
     [config]="formConfig"
     [form]="personForm"
-    [isSubmitting]="isSubmitting"
+    [isSubmitting]="isSubmitting()"
     (submit)="onSubmit()">
 
     <mat-form-field appearance="outline" class="full-width">

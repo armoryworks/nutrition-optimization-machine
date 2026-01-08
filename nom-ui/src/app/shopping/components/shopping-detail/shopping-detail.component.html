@@ -1,11 +1,11 @@
 <nom-base-detail
   [config]="detailConfig"
-  [loading]="isLoading"
-  [error]="error"
+  [loading]="isLoading()"
+  [error]="error()"
   (back)="onBack()"
   (retry)="onRetry()"
 >
-  @if (shoppingList && !isLoading) {
+  @if (shoppingList() && !isLoading()) {
     <div class="shopping-detail">
       <div class="shopping-detail__container">
         <!-- Header Actions -->
@@ -36,11 +36,11 @@
               <mat-icon class="shopping-detail__info-icon">shopping_basket</mat-icon>
               <div class="shopping-detail__info-content">
                 <mat-card-title class="shopping-detail__info-title">
-                  {{ shoppingList.name }}
+                  {{ shoppingList()!.name }}
                 </mat-card-title>
-                @if (shoppingList.description) {
+                @if (shoppingList()!.description) {
                   <mat-card-subtitle class="shopping-detail__info-subtitle">
-                    {{ shoppingList.description }}
+                    {{ shoppingList()!.description }}
                   </mat-card-subtitle>
                 }
               </div>
@@ -49,14 +49,14 @@
         </div>
 
         <!-- Progress Section -->
-        @if (shoppingList.totalItems && shoppingList.totalItems > 0) {
+        @if (shoppingList()!.totalItems && shoppingList()!.totalItems > 0) {
           <div class="shopping-detail__progress-section">
             <mat-card class="shopping-detail__progress-card">
               <mat-card-content>
                 <div class="shopping-detail__progress-header">
                   <h3 class="shopping-detail__progress-title">Progress</h3>
                   <span class="shopping-detail__progress-text">
-                    {{ shoppingList.completedItems || 0 }} of {{ shoppingList.totalItems }} items completed
+                    {{ shoppingList()!.completedItems || 0 }} of {{ shoppingList()!.totalItems }} items completed
                   </span>
                 </div>
                 <div class="shopping-detail__progress-bar">
@@ -77,11 +77,11 @@
         <!-- Items Section -->
         <div class="shopping-detail__items-section">
           <h3 class="shopping-detail__items-title">Shopping Items</h3>
-          @if (shoppingList.items && shoppingList.items.length > 0) {
+          @if (shoppingList()!.items && shoppingList()!.items.length > 0) {
             <mat-card class="shopping-detail__items-card">
               <mat-card-content>
                 <div class="shopping-detail__items-list">
-                  @for (item of shoppingList.items; track item.id) {
+                  @for (item of shoppingList()!.items; track item.id) {
                     <div class="shopping-detail__item">
                       <div class="shopping-detail__item-info">
                         <mat-checkbox 

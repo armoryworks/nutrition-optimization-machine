@@ -1,8 +1,8 @@
 <nom-base-list
   [config]="listConfig"
-  [items]="comments"
-  [loading]="isLoading"
-  [error]="error">
+  [items]="comments()"
+  [loading]="isLoading()"
+  [error]="error()">
 
   <!-- Comment Form -->
   <div class="nom-recipe-comments__form-card">
@@ -33,14 +33,14 @@
       </mat-form-field>
 
       <div class="nom-recipe-comments__actions">
-        <button 
-          mat-raised-button 
-          color="primary" 
+        <button
+          mat-raised-button
+          color="primary"
           type="submit"
-          [disabled]="commentForm.invalid || isSubmitting"
+          [disabled]="commentForm.invalid || isSubmitting()"
           class="nom-recipe-comments__submit-btn">
           <mat-icon>comment</mat-icon>
-          {{ isSubmitting ? 'Posting...' : 'Post Comment' }}
+          {{ isSubmitting() ? 'Posting...' : 'Post Comment' }}
         </button>
       </div>
     </form>
@@ -48,14 +48,14 @@
 
   <!-- Comments List -->
   <div class="nom-recipe-comments__list">
-    @if (comments.length === 0 && !isLoading) {
+    @if (comments().length === 0 && !isLoading()) {
       <div class="nom-recipe-comments__empty">
         <mat-icon>chat_bubble_outline</mat-icon>
         <p>No comments yet. Be the first to share your thoughts!</p>
       </div>
     }
 
-    @for (comment of comments; track comment.id) {
+    @for (comment of comments(); track comment.id) {
       <div class="nom-recipe-comments__comment-card">
         <div class="nom-recipe-comments__comment-header">
           <h4 class="nom-recipe-comments__comment-title">

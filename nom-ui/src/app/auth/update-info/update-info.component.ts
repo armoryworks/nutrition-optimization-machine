@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -45,8 +45,8 @@ export class UpdateInfoComponent implements OnInit {
   private notificationService = inject(NotificationService);
 
   updateInfoForm: FormGroup;
-  isLoading = false; // For form submission loading
-  isInitialLoading = true; // For initial data load loading
+  isLoading = signal(false); // For form submission loading
+  isInitialLoading = signal(true); // For initial data load loading
 
   currentEmail: string | null = null;
   isEmailConfirmed: boolean | null = null;
@@ -70,7 +70,7 @@ export class UpdateInfoComponent implements OnInit {
   }
 
   private loadCurrentUserInfo(): void {
-    this.isInitialLoading = true;
+    this.isInitialLoading.set(true);
     this.authService.getInfo().subscribe({
       next: (info: CurrentInfo) => {
         this.currentEmail = info.email;
@@ -79,10 +79,10 @@ export class UpdateInfoComponent implements OnInit {
         this.updateInfoForm.patchValue({
           newEmail: info.email,
         });
-        this.isInitialLoading = false;
+        this.isInitialLoading.set(false);
       },
       error: (error) => {
-        this.isInitialLoading = false;
+        this.isInitialLoading.set(false);
         console.error('Error loading user info:', error);
         this.notificationService.error(
           error.message || 'Failed to load current user information.'
@@ -154,12 +154,12 @@ export class UpdateInfoComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     // updateInfo now returns Observable<void>, so 'response' won't be available in next callback
     this.authService.updateInfo(updateData).subscribe({
       next: () => {
         // No 'response' parameter here as it's Observable<void>
-        this.isLoading = false;
+        this.isLoading.set(false);
         // Generic success message since specific message is not returned by service
         this.notificationService.success(
           'Account information updated successfully!'
@@ -178,7 +178,7 @@ export class UpdateInfoComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Update info error:', error);
         this.notificationService.error(
           error.message ||

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -12,21 +12,21 @@ import { MeasurementModel, MeasurementCategoryModel } from '../../models/measure
     styleUrls: ['./measurement-converter.component.scss']
 })
 export class MeasurementConverterComponent implements OnInit, OnDestroy {
+    private fb = inject(FormBuilder);
+    private measurementService = inject(MeasurementService);
+    private categoryService = inject(MeasurementCategoryService);
+
     converterForm: FormGroup;
-    categories: MeasurementCategoryModel[] = [];
-    fromMeasurements: MeasurementModel[] = [];
-    toMeasurements: MeasurementModel[] = [];
-    result: number | null = null;
-    isLoading = false;
-    error: string | null = null;
+    categories = signal<MeasurementCategoryModel[]>([]);
+    fromMeasurements = signal<MeasurementModel[]>([]);
+    toMeasurements = signal<MeasurementModel[]>([]);
+    result = signal<number | null>(null);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
 
     private destroy$ = new Subject<void>();
 
-    constructor(
-        private fb: FormBuilder,
-        private measurementService: MeasurementService,
-        private categoryService: MeasurementCategoryService
-    ) {
+    constructor() {
         this.converterForm = this.fb.group({
             fromCategoryId: ['', Validators.required],
             fromMeasurementId: ['', Validators.required],
@@ -51,10 +51,10 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (categories) => {
-                    this.categories = categories;
+                    this.categories.set(categories);
                 },
                 error: (error) => {
-                    this.error = 'Failed to load measurement categories';
+                    this.error.set('Failed to load measurement categories');
                     console.error('Error loading categories:', error);
                 }
             });
@@ -88,13 +88,13 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (measurements) => {
                     if (type === 'from') {
-                        this.fromMeasurements = measurements;
+                        this.fromMeasurements.set(measurements);
                     } else {
-                        this.toMeasurements = measurements;
+                        this.toMeasurements.set(measurements);
                     }
                 },
                 error: (error) => {
-                    this.error = `Failed to load measurements for category`;
+                    this.error.set(`Failed to load measurements for category`);
                     console.error('Error loading measurements:', error);
                 }
             });
@@ -104,20 +104,20 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
         if (this.converterForm.valid) {
             const { fromMeasurementId, toMeasurementId, value } = this.converterForm.value;
 
-            this.isLoading = true;
-            this.error = null;
-            this.result = null;
+            this.isLoading.set(true);
+            this.error.set(null);
+            this.result.set(null);
 
             this.measurementService.convertMeasurement(fromMeasurementId, toMeasurementId, value)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (result) => {
-                        this.result = result;
-                        this.isLoading = false;
+                        this.result.set(result);
+                        this.isLoading.set(false);
                     },
                     error: (error) => {
-                        this.error = 'Failed to convert measurement';
-                        this.isLoading = false;
+                        this.error.set('Failed to convert measurement');
+                        this.isLoading.set(false);
                         console.error('Error converting measurement:', error);
                     }
                 });
@@ -137,10 +137,10 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
 
     resetForm(): void {
         this.converterForm.reset();
-        this.result = null;
-        this.error = null;
-        this.fromMeasurements = [];
-        this.toMeasurements = [];
+        this.result.set(null);
+        this.error.set(null);
+        this.fromMeasurements.set([]);
+        this.toMeasurements.set([]);
     }
 }
 

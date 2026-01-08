@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -52,14 +52,14 @@ export class MealPlanRulesComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
-  rules: MealPlanRuleResponseModel[] = [];
-  isLoading = false;
-  error: string | null = null;
+  rules = signal<MealPlanRuleResponseModel[]>([]);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
   ruleForm: FormGroup;
-  isAddingRule = false;
+  isAddingRule = signal(false);
 
-  mealTypes: ReferenceItemModel[] = [];
-  daysOfWeek: ReferenceItemModel[] = [];
+  mealTypes = signal<ReferenceItemModel[]>([]);
+  daysOfWeek = signal<ReferenceItemModel[]>([]);
 
 
 
@@ -80,39 +80,39 @@ export class MealPlanRulesComponent implements OnInit {
     // Load meal types from backend
     this.referenceDataService.getMealTypes().subscribe({
       next: (mealTypes) => {
-        this.mealTypes = mealTypes;
+        this.mealTypes.set(mealTypes);
       },
       error: (error) => {
         console.error('Error loading meal types:', error);
-        this.mealTypes = [];
+        this.mealTypes.set([]);
       }
     });
 
     // Load days of week
     this.referenceDataService.getDaysOfWeek().subscribe({
       next: (days) => {
-        this.daysOfWeek = days;
+        this.daysOfWeek.set(days);
       },
       error: (error) => {
         console.error('Error loading days of week:', error);
-        this.daysOfWeek = [];
+        this.daysOfWeek.set([]);
       }
     });
   }
 
   loadRules(): void {
-    this.isLoading = true;
-    this.error = null;
+    this.isLoading.set(true);
+    this.error.set(null);
 
     this.mealPlanService.getRules().subscribe({
       next: (rules: MealPlanRuleResponseModel[]) => {
-        this.rules = rules;
-        this.isLoading = false;
+        this.rules.set(rules);
+        this.isLoading.set(false);
       },
       error: (error: unknown) => {
         console.error('Error loading rules:', error);
-        this.error = 'Failed to load meal plan rules';
-        this.isLoading = false;
+        this.error.set('Failed to load meal plan rules');
+        this.isLoading.set(false);
         this.snackBar.open('Failed to load meal plan rules', 'Close', { duration: 3000 });
       }
     });
@@ -124,7 +124,7 @@ export class MealPlanRulesComponent implements OnInit {
       return;
     }
 
-    this.isAddingRule = true;
+    this.isAddingRule.set(true);
     const formValue = this.ruleForm.value;
 
     const request: MealPlanRuleCreateRequestModel = {
@@ -141,13 +141,13 @@ export class MealPlanRulesComponent implements OnInit {
       next: () => {
         this.snackBar.open('Rule created successfully!', 'Close', { duration: 3000 });
         this.ruleForm.reset();
-        this.isAddingRule = false;
+        this.isAddingRule.set(false);
         this.loadRules();
       },
       error: (error) => {
         console.error('Error creating rule:', error);
         this.snackBar.open('Failed to create rule. Please try again.', 'Close', { duration: 3000 });
-        this.isAddingRule = false;
+        this.isAddingRule.set(false);
       }
     });
   }
@@ -194,12 +194,12 @@ export class MealPlanRulesComponent implements OnInit {
   }
 
   getMealTypeName(mealTypeId: number): string {
-    const mealType = this.mealTypes.find(type => type.id === mealTypeId);
+    const mealType = this.mealTypes().find(type => type.id === mealTypeId);
     return mealType?.name || 'Unknown';
   }
 
   getDayOfWeekName(dayOfWeekId: number): string {
-    const day = this.daysOfWeek.find(d => d.id === dayOfWeekId);
+    const day = this.daysOfWeek().find(d => d.id === dayOfWeekId);
     return day?.name || 'Unknown';
   }
 

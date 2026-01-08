@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal, computed } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -55,7 +55,7 @@ export class LoginComponent {
     rememberMe: [false],
   });
 
-  isLoading = false;
+  isLoading = signal(false);
 
   constructor() {
     // Form is now initialized at declaration
@@ -77,20 +77,20 @@ export class LoginComponent {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const credentials: LoginUser = this.loginForm.getRawValue();
     this.authManager.rememberMe = !!credentials.rememberMe; // Ensure boolean conversion
 
     // Use AuthManagerService.login() instead of AuthService.login()
     this.authManager.login(credentials).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         // Success notification is handled by AuthManagerService
         // Optionally, navigate to a dashboard or home page after successful login
         // this.router.navigate(['/dashboard']);
       },
       error: (error: unknown) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Login error:', error);
         // The error.message is already processed by the AuthManagerService
         const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'An unexpected error occurred during login. Please try again.';

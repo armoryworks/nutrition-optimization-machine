@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -49,7 +49,7 @@ export class UpdateTwoFactorComponent implements OnInit {
   private notificationService = inject(NotificationService);
 
   twoFactorForm!: FormGroup;
-  isLoading = false; // For form submission
+  isLoading = signal(false); // For form submission
 
   // We cannot fetch initial status from backend without getTwoFactorStatus
   // So, initialize with a default "disabled" status
@@ -152,7 +152,7 @@ export class UpdateTwoFactorComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const formData = this.twoFactorForm.getRawValue();
 
     // Construct updateData according to the UpdateTwoFactor interface
@@ -166,7 +166,7 @@ export class UpdateTwoFactorComponent implements OnInit {
 
     this.authService.updateTwoFactorAuth(updateData).subscribe({
       next: (response: UpdateTwoFactorResponse) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.current2faStatus = response; // Update the component's status with the latest from the backend
         this.twoFactorForm.get('password')?.reset(); // Clear password after operation
         this.twoFactorForm.get('twoFactorCode')?.reset(); // Clear code
@@ -199,7 +199,7 @@ export class UpdateTwoFactorComponent implements OnInit {
         this.twoFactorForm.setErrors(null); // Reset form-level errors
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('2FA update error:', error);
         this.notificationService.error(
           error.message || 'Failed to update 2FA settings.'

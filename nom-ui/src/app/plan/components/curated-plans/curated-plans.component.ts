@@ -1,5 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +9,6 @@ import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/d
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
-import { BehaviorSubject } from 'rxjs';
 import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -19,7 +17,6 @@ import { NotificationService } from '../../../utilities/services/notification.se
     selector: 'nom-curated-plans',
     standalone: true,
     imports: [
-    AsyncPipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -38,34 +35,34 @@ export class CuratedPlansComponent implements OnInit {
     private notificationService = inject(NotificationService);
     private dialog = inject(MatDialog);
 
-    curatedPlans$ = new BehaviorSubject<PlanModel[]>([]);
-    isLoading = false;
-    error: string | null = null;
-    cloningPlanId: number | null = null;
+    curatedPlans = signal<PlanModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
+    cloningPlanId = signal<number | null>(null);
 
     ngOnInit(): void {
         this.loadCuratedPlans();
     }
 
     loadCuratedPlans(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         this.planService.getCuratedPlans().subscribe({
             next: (plans) => {
-                this.curatedPlans$.next(plans);
-                this.isLoading = false;
+                this.curatedPlans.set(plans);
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading curated plans:', error);
-                this.error = 'Failed to load curated plans';
-                this.isLoading = false;
+                this.error.set('Failed to load curated plans');
+                this.isLoading.set(false);
             }
         });
     }
 
     clonePlan(planId: number): void {
-        const plan = this.curatedPlans$.value.find(p => p.id === planId);
+        const plan = this.curatedPlans().find(p => p.id === planId);
         if (!plan) return;
 
         const dialogRef = this.dialog.open(PlanNameDialogComponent, {
@@ -79,17 +76,17 @@ export class CuratedPlansComponent implements OnInit {
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
-                this.cloningPlanId = planId;
+                this.cloningPlanId.set(planId);
                 this.planService.clonePlan(planId, result).subscribe({
                     next: () => {
                         this.notificationService.success('Plan cloned successfully!');
-                        this.cloningPlanId = null;
+                        this.cloningPlanId.set(null);
                         // Optionally navigate to the cloned plan
                     },
                     error: (error) => {
                         console.error('Error cloning plan:', error);
                         this.notificationService.error('Failed to clone plan');
-                        this.cloningPlanId = null;
+                        this.cloningPlanId.set(null);
                     }
                 });
             }

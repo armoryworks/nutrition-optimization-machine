@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -45,7 +45,7 @@ export class ForgotPasswordComponent implements OnInit {
   private notificationService = inject(NotificationService);
 
   forgotPasswordForm!: FormGroup;
-  isLoading = false;
+  isLoading = signal(false);
 
 
 
@@ -68,18 +68,18 @@ export class ForgotPasswordComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const data: ForgotPassword = this.forgotPasswordForm.getRawValue();
 
     this.authService.forgotPassword(data).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.success(
           'Password reset link sent. Please check your inbox!'
         );
       },
       error: (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Forgot password error:', error);
         // The error.message is already processed by the AuthService's handleError
         this.notificationService.error(

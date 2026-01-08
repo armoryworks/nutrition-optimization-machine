@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,22 +17,22 @@ import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
   styleUrls: ['./shopping-list.component.scss']
 })
 export class ShoppingListComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private shoppingReferenceService = inject(ShoppingReferenceService);
+  private configurationService = inject(ConfigurationService);
+
   filtersForm: FormGroup;
-  priorities: any[] = [];
-  categories: any[] = [];
-  filteredItems: any[] = [];
-  allItems: any[] = []; // This would come from your actual shopping service
+  priorities = signal<any[]>([]);
+  categories = signal<any[]>([]);
+  filteredItems = signal<any[]>([]);
+  allItems = signal<any[]>([]); // This would come from your actual shopping service
 
   // Make constants available in template
   readonly REFERENCE_IDS = REFERENCE_IDS;
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private fb: FormBuilder,
-    private shoppingReferenceService: ShoppingReferenceService,
-    private configurationService: ConfigurationService
-  ) {
+  constructor() {
     this.filtersForm = this.fb.group({
       priorityFilter: [''],
       categoryFilter: ['']
@@ -55,15 +55,15 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     this.shoppingReferenceService.getShoppingReferencesBulk()
       .pipe(takeUntil(this.destroy$))
       .subscribe(({ priorities, categories }) => {
-        this.priorities = priorities;
-        this.categories = categories;
+        this.priorities.set(priorities);
+        this.categories.set(categories);
       });
   }
 
   private loadShoppingItems(): void {
     // TODO: Replace with actual shopping service call
     // For now, using empty array until shopping service is implemented
-    this.allItems = [];
+    this.allItems.set([]);
     this.applyFilters();
   }
 
@@ -76,7 +76,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   private applyFilters(): void {
-    let filtered = [...this.allItems];
+    let filtered = [...this.allItems()];
 
     const priorityFilter = this.filtersForm.get('priorityFilter')?.value;
     const categoryFilter = this.filtersForm.get('categoryFilter')?.value;
@@ -89,7 +89,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(item => item.categoryId === categoryFilter);
     }
 
-    this.filteredItems = filtered;
+    this.filteredItems.set(filtered);
   }
 
   get hasActiveFilters(): boolean {
@@ -98,12 +98,12 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   getPriorityName(priorityId: number): string {
-    const priority = this.priorities.find(p => p.referenceId === priorityId);
+    const priority = this.priorities().find(p => p.referenceId === priorityId);
     return priority?.referenceName || 'Unknown';
   }
 
   getCategoryName(categoryId: number): string {
-    const category = this.categories.find(c => c.referenceId === categoryId);
+    const category = this.categories().find(c => c.referenceId === categoryId);
     return category?.referenceName || 'Unknown';
   }
 
@@ -115,7 +115,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
   getPriorityColor(priorityId: number): string {
     // Use dynamic priority data to determine colors
-    const priority = this.priorities.find(p => p.referenceId === priorityId);
+    const priority = this.priorities().find(p => p.referenceId === priorityId);
     if (!priority) return '#9e9e9e'; // Default gray
 
     // Map priority names to colors dynamically
@@ -133,11 +133,11 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   getHighPriorityCount(): number {
-    return this.filteredItems.filter(item => item.priorityId === 11002).length;
+    return this.filteredItems().filter(item => item.priorityId === 11002).length;
   }
 
   getUniqueCategoriesCount(): number {
-    const uniqueCategories = new Set(this.filteredItems.map(item => item.categoryId));
+    const uniqueCategories = new Set(this.filteredItems().map(item => item.categoryId));
     return uniqueCategories.size;
   }
 

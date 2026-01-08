@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,9 +29,9 @@ import { MeasurementModel } from '../../models/measurement.model';
 export class MeasurementListComponent implements OnInit {
     private measurementService = inject(MeasurementService);
 
-    measurements: MeasurementModel[] = [];
-    isLoading = false;
-    error: string | null = null;
+    measurements = signal<MeasurementModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
     displayedColumns: string[] = ['name', 'abbreviation', 'type', 'conversionFactor', 'actions'];
 
     ngOnInit(): void {
@@ -39,18 +39,18 @@ export class MeasurementListComponent implements OnInit {
     }
 
     private loadMeasurements(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         this.measurementService.getAllMeasurements().subscribe({
             next: (measurements) => {
-                this.measurements = measurements;
-                this.isLoading = false;
+                this.measurements.set(measurements);
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading measurements:', error);
-                this.error = 'Failed to load measurements';
-                this.isLoading = false;
+                this.error.set('Failed to load measurements');
+                this.isLoading.set(false);
             }
         });
     }

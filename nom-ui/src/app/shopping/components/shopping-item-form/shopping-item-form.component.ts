@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -72,19 +72,19 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
         </div>
       </form>
     
-      @if (selectedCategory) {
+      @if (selectedCategory()) {
         <div class="selected-info">
-          <strong>Selected Category:</strong> {{ selectedCategory.referenceName }}
+          <strong>Selected Category:</strong> {{ selectedCategory()!.referenceName }}
           <br>
-            <em>{{ selectedCategory.referenceDescription }}</em>
+            <em>{{ selectedCategory()!.referenceDescription }}</em>
           </div>
         }
-    
-        @if (selectedPriority) {
+
+        @if (selectedPriority()) {
           <div class="selected-info">
-            <strong>Selected Priority:</strong> {{ selectedPriority.referenceName }}
+            <strong>Selected Priority:</strong> {{ selectedPriority()!.referenceName }}
             <br>
-              <em>{{ selectedPriority.referenceDescription }}</em>
+              <em>{{ selectedPriority()!.referenceDescription }}</em>
             </div>
           }
         </div>
@@ -92,19 +92,19 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
     styleUrls: ['./shopping-item-form.component.scss']
 })
 export class ShoppingItemFormComponent implements OnInit, OnDestroy {
+    private fb = inject(FormBuilder);
+    private shoppingReferenceService = inject(ShoppingReferenceService);
+
     shoppingItemForm: FormGroup;
-    selectedCategory?: ReferenceItem;
-    selectedPriority?: ReferenceItem;
+    selectedCategory = signal<ReferenceItem | undefined>(undefined);
+    selectedPriority = signal<ReferenceItem | undefined>(undefined);
 
     // Make constants available in template
     readonly REFERENCE_IDS = REFERENCE_IDS;
 
     private destroy$ = new Subject<void>();
 
-    constructor(
-        private fb: FormBuilder,
-        private shoppingReferenceService: ShoppingReferenceService
-    ) {
+    constructor() {
         this.shoppingItemForm = this.fb.group({
             name: ['', Validators.required],
             categoryId: [null, Validators.required],
@@ -126,12 +126,12 @@ export class ShoppingItemFormComponent implements OnInit, OnDestroy {
     }
 
     onCategoryChange(category: ReferenceItem): void {
-        this.selectedCategory = category;
+        this.selectedCategory.set(category);
         console.log('Category selected:', category);
     }
 
     onPriorityChange(priority: ReferenceItem): void {
-        this.selectedPriority = priority;
+        this.selectedPriority.set(priority);
         console.log('Priority selected:', priority);
     }
 
@@ -142,18 +142,18 @@ export class ShoppingItemFormComponent implements OnInit, OnDestroy {
 
             // Here you would typically send the data to your backend
             // For now, we'll just log it
-            alert(`Shopping item added: ${formValue.name} (Category: ${this.selectedCategory?.referenceName}, Priority: ${this.selectedPriority?.referenceName})`);
+            alert(`Shopping item added: ${formValue.name} (Category: ${this.selectedCategory()?.referenceName}, Priority: ${this.selectedPriority()?.referenceName})`);
 
             // Reset form
             this.shoppingItemForm.reset({ quantity: 1 });
-            this.selectedCategory = undefined;
-            this.selectedPriority = undefined;
+            this.selectedCategory.set(undefined);
+            this.selectedPriority.set(undefined);
         }
     }
 
     onCancel(): void {
         this.shoppingItemForm.reset({ quantity: 1 });
-        this.selectedCategory = undefined;
-        this.selectedPriority = undefined;
+        this.selectedCategory.set(undefined);
+        this.selectedPriority.set(undefined);
     }
 }

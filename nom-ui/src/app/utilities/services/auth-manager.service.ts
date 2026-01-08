@@ -1,7 +1,7 @@
 // File: nom-ui/src/app/utilities/services/auth-manager.service.ts
 
-import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Subject, Observable, throwError, of } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Subject, Observable, throwError, of } from 'rxjs';
 import { Router } from '@angular/router';
 import {
   tap,
@@ -26,14 +26,12 @@ export class AuthManagerService {
   private userInfoService = inject(UserInfoService);
   private authService = inject(AuthService);
 
-  public userLogin: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  public userLogin = signal<boolean>(false);
   public openUserMenuSignal: Subject<void> = new Subject<void>();
 
-  // NEW: Observables for administrative roles
-  private _canManageCuration = new BehaviorSubject<boolean>(false);
-  private _canManageUserRoles = new BehaviorSubject<boolean>(false);
-  public readonly canManageCuration$ = this._canManageCuration.asObservable();
-  public readonly canManageUserRoles$ = this._canManageUserRoles.asObservable();
+  // NEW: Signals for administrative roles
+  public canManageCuration = signal<boolean>(false);
+  public canManageUserRoles = signal<boolean>(false);
 
   private readonly TOKEN_KEY = 'nom-token';
   private readonly REFRESH_TOKEN_KEY = 'nom-refresh-token';
@@ -95,7 +93,7 @@ export class AuthManagerService {
       this.storage.removeItem(this.TOKEN_KEY);
       this.clearClaims();
     }
-    this.userLogin.next(!!this._accessToken);
+    this.userLogin.set(!!this._accessToken);
   }
 
   get token(): string | undefined {
@@ -229,8 +227,8 @@ export class AuthManagerService {
   }
 
   private clearClaims(): void {
-    this._canManageCuration.next(false);
-    this._canManageUserRoles.next(false);
+    this.canManageCuration.set(false);
+    this.canManageUserRoles.set(false);
   }
 
   private updateClaimsFromUserInfo(userInfo: { claims?: { type: string }[]; personId?: number }): void {
@@ -250,8 +248,8 @@ export class AuthManagerService {
         allClaims: userInfo.claims
       });
 
-      this._canManageCuration.next(canCure);
-      this._canManageUserRoles.next(canManageRoles);
+      this.canManageCuration.set(canCure);
+      this.canManageUserRoles.set(canManageRoles);
     } else {
       console.log('No user info or claims found, clearing claims');
       this.clearClaims();
@@ -265,8 +263,8 @@ export class AuthManagerService {
     } else {
       this.logout();
     }
-    if (this.userLogin.value !== isLoggedIn) {
-      this.userLogin.next(isLoggedIn);
+    if (this.userLogin() !== isLoggedIn) {
+      this.userLogin.set(isLoggedIn);
     }
   }
 
@@ -326,7 +324,7 @@ export class AuthManagerService {
     this._rememberMe = false;
     this.storage = sessionStorage;
 
-    this.userLogin.next(false);
+    this.userLogin.set(false);
     this.clearClaims();
     this.eventBus.emitLogout();
     this.router.navigate(['/home']);

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -52,7 +52,7 @@ export class MealPlanCreateComponent implements OnInit {
     householdId: [1]
   });
 
-  isLoading = false;
+  isLoading = signal(false);
 
   mealTypes = [
     { value: 'breakfast', label: 'Breakfast' },
@@ -80,7 +80,7 @@ export class MealPlanCreateComponent implements OnInit {
 
   onSubmit(): void {
     if (this.mealPlanForm.valid) {
-      this.isLoading = true;
+      this.isLoading.set(true);
 
       const createRequest = new MealPlanCreateRequestModel({
         recipeName: this.mealPlanForm.value.recipeName,
@@ -91,7 +91,7 @@ export class MealPlanCreateComponent implements OnInit {
 
       this.mealPlanService.createMealPlan(createRequest).subscribe({
         next: (response) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.snackBar.open('Meal plan created successfully!', 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
@@ -100,7 +100,7 @@ export class MealPlanCreateComponent implements OnInit {
           this.router.navigate(['/meal-plan', response.id]);
         },
         error: (error) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           console.error('Error creating meal plan:', error);
           this.snackBar.open('Failed to create meal plan. Please try again.', 'Close', {
             duration: 5000,

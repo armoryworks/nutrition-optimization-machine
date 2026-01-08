@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -46,11 +46,11 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    notes: RecipeNoteResponseModel[] = [];
-    isLoading = false;
-    error: string | null = null;
+    notes = signal<RecipeNoteResponseModel[]>([]);
+    isLoading = signal(false);
+    error = signal<string | null>(null);
     noteForm: FormGroup;
-    isAddingNote = false;
+    isAddingNote = signal(false);
 
     constructor() {
         this.noteForm = this.nonNullableFb.group({
@@ -71,22 +71,22 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
     }
 
     loadNotes(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
         this.recipeAdvancedService
             .getRecipeNotes(this.recipeId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (notes) => {
-                    this.notes = notes.sort((a, b) =>
+                    this.notes.set(notes.sort((a, b) =>
                         new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
-                    );
-                    this.isLoading = false;
+                    ));
+                    this.isLoading.set(false);
                 },
                 error: (error) => {
                     console.error("Error loading notes:", error);
-                    this.error = "Failed to load notes. Please try again.";
-                    this.isLoading = false;
+                    this.error.set("Failed to load notes. Please try again.");
+                    this.isLoading.set(false);
                 },
             });
     }
@@ -110,14 +110,14 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (note) => {
-                    this.notes.unshift(note);
+                    this.notes.set([note, ...this.notes()]);
                     this.noteForm.reset();
                     this.snackBar.open("Note added successfully", "Close", { duration: 3000 });
                     this.isSubmitting = false;
                 },
                 error: (error) => {
                     console.error("Error creating note:", error);
-                    this.error = "Failed to create note. Please try again.";
+                    this.error.set("Failed to create note. Please try again.");
                     this.isSubmitting = false;
                 },
             });
@@ -156,9 +156,11 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (updatedNote) => {
-                    const index = this.notes.findIndex(n => n.id === this.editingNoteId);
+                    const index = this.notes().findIndex(n => n.id === this.editingNoteId);
                     if (index !== -1) {
-                        this.notes[index] = updatedNote;
+                        const updatedNotes = [...this.notes()];
+                        updatedNotes[index] = updatedNote;
+                        this.notes.set(updatedNotes);
                     }
                     this.editingNoteId = null;
                     this.noteForm.reset();
@@ -167,7 +169,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error updating note:", error);
-                    this.error = "Failed to update note. Please try again.";
+                    this.error.set("Failed to update note. Please try again.");
                     this.isSubmitting = false;
                 },
             });
@@ -179,7 +181,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: () => {
-                    this.notes = this.notes.filter(n => n.id !== noteId);
+                    this.notes.set(this.notes().filter(n => n.id !== noteId));
                     this.snackBar.open("Note deleted successfully", "Close", { duration: 3000 });
                 },
                 error: (error) => {

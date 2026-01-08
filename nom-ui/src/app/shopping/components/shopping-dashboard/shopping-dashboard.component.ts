@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -48,10 +48,10 @@ export class ShoppingDashboardComponent implements OnInit {
     private snackBar = inject(MatSnackBar);
     private dialog = inject(MatDialog);
 
-    shoppingLists: ShoppingListResponseModel[] = [];
-    filteredLists: ShoppingListResponseModel[] = [];
-    isLoading = true;
-    error: string | null = null;
+    shoppingLists = signal<ShoppingListResponseModel[]>([]);
+    filteredLists = signal<ShoppingListResponseModel[]>([]);
+    isLoading = signal(true);
+    error = signal<string | null>(null);
     searchControl = new FormControl('');
 
     pageConfig: BasePageConfig = {
@@ -79,32 +79,32 @@ export class ShoppingDashboardComponent implements OnInit {
     }
 
     loadShoppingLists(): void {
-        this.isLoading = true;
-        this.error = null;
+        this.isLoading.set(true);
+        this.error.set(null);
 
         this.shoppingService.getShoppingLists().subscribe({
             next: (shoppingLists) => {
-                this.shoppingLists = shoppingLists;
-                this.filteredLists = [...this.shoppingLists];
-                this.isLoading = false;
+                this.shoppingLists.set(shoppingLists);
+                this.filteredLists.set([...this.shoppingLists()]);
+                this.isLoading.set(false);
             },
             error: (error) => {
                 console.error('Error loading shopping lists:', error);
-                this.error = 'Failed to load shopping lists';
-                this.isLoading = false;
+                this.error.set('Failed to load shopping lists');
+                this.isLoading.set(false);
             }
         });
     }
 
     filterLists(searchTerm: string): void {
         if (!searchTerm.trim()) {
-            this.filteredLists = [...this.shoppingLists];
+            this.filteredLists.set([...this.shoppingLists()]);
         } else {
             const term = searchTerm.toLowerCase();
-            this.filteredLists = this.shoppingLists.filter(list =>
+            this.filteredLists.set(this.shoppingLists().filter(list =>
                 list.name.toLowerCase().includes(term) ||
                 list.description?.toLowerCase().includes(term)
-            );
+            ));
         }
     }
 

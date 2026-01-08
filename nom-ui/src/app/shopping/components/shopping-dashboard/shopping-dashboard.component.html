@@ -1,7 +1,7 @@
 <nom-base-page
   [config]="pageConfig"
-  [isLoading]="isLoading"
-  [error]="error"
+  [isLoading]="isLoading()"
+  [error]="error()"
   (refresh)="onRefresh()"
   (retry)="onRetry()"
 >
@@ -32,7 +32,7 @@
       <!-- Content -->
       <div class="shopping-dashboard__content">
         <!-- Empty State -->
-        @if (!isLoading && !error && filteredLists.length === 0) {
+        @if (!isLoading() && !error() && filteredLists().length === 0) {
           <div class="shopping-dashboard__empty-state">
             <mat-card class="shopping-dashboard__empty-card">
               <mat-card-content>
@@ -55,9 +55,9 @@
         }
 
         <!-- Shopping Lists Grid -->
-        @if (!isLoading && !error && filteredLists.length > 0) {
+        @if (!isLoading() && !error() && filteredLists().length > 0) {
           <div class="shopping-dashboard__lists-grid">
-            @for (list of filteredLists; track list.id) {
+            @for (list of filteredLists(); track list.id) {
               <mat-card class="shopping-dashboard__list-card">
                 <mat-card-header class="shopping-dashboard__list-header">
                   <div class="shopping-dashboard__list-title-section">

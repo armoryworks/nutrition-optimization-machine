@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -40,12 +40,12 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
     data = inject<ShoppingItemDialogData>(MAT_DIALOG_DATA);
 
     itemForm: FormGroup;
-    isSubmitting = false;
+    isSubmitting = signal(false);
 
     // Reference data loaded dynamically
-    categories: any[] = [];
-    units: string[] = [];
-    priorities: any[] = [];
+    categories = signal<any[]>([]);
+    units = signal<string[]>([]);
+    priorities = signal<any[]>([]);
 
     // Make constants available in template
     readonly REFERENCE_IDS = REFERENCE_IDS;
@@ -82,8 +82,8 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
         this.shoppingReferenceService.getShoppingReferencesBulk()
             .pipe(takeUntil(this.destroy$))
             .subscribe(({ categories, priorities }) => {
-                this.categories = categories;
-                this.priorities = priorities;
+                this.categories.set(categories);
+                this.priorities.set(priorities);
             });
 
         // Load measurement units from configuration service
@@ -92,12 +92,12 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
 
     private loadMeasurementUnits(): void {
         // Use configuration service for standard units
-        this.units = this.configurationService.getShoppingUnits();
+        this.units.set(this.configurationService.getShoppingUnits());
     }
 
     onSubmit(): void {
         if (this.itemForm.valid) {
-            this.isSubmitting = true;
+            this.isSubmitting.set(true);
             const formData: ShoppingItemFormData = this.itemForm.value;
 
             this.dialogRef.close(formData);

@@ -5,7 +5,7 @@
         >Create Your Account</mat-card-title
       >
     </mat-card-header>
-    @if (isLoading) {
+    @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       color="primary"
@@ -113,13 +113,13 @@
           mat-raised-button
           color="primary"
           type="submit"
-          [disabled]="registrationForm.invalid || isLoading"
+          [disabled]="registrationForm.invalid || isLoading()"
           class="nom-button"
           data-cy="register-button"
         >
-          @if (!isLoading) {
+          @if (!isLoading()) {
           <span>Register Account</span>
-          } @if (isLoading) {
+          } @if (isLoading()) {
           <mat-spinner
             [diameter]="20"
             class="nom-button__spinner"

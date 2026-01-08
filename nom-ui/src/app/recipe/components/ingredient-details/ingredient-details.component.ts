@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, inject, input, computed } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,40 +22,34 @@ import { ConfigurationService } from '../../../common/services/configuration.ser
 export class IngredientDetailsComponent {
   private configurationService = inject(ConfigurationService);
 
-  // This property will hold the formatted data for the label component
-  public nutritionLabelData: any = null;
+  ingredient = input<IngredientModel | null>(null);
 
-  private _ingredient: IngredientModel | null = null;
+  // Computed signal for nutrition label data derived from ingredient
+  nutritionLabelData = computed(() => {
+    const ing = this.ingredient();
+    return ing ? this.mapToLabelData(ing) : null;
+  });
 
-  detailConfig: any = {
-    title: 'Ingredient Details',
-    subtitle: 'Nutritional information and details',
-    showBackButton: true,
-    backButtonText: 'Back',
-    maxWidth: '800px'
-  };
-
-  @Input()
-  set ingredient(value: IngredientModel | null) {
-    this._ingredient = value;
-    if (value) {
-      // When the ingredient is set, map it to the label data structure
-      this.nutritionLabelData = this.mapToLabelData(value);
-      this.detailConfig = {
-        title: value.name,
-        subtitle: `FDC ID: ${value.fdcId}`,
+  // Computed signal for detail config derived from ingredient
+  detailConfig = computed(() => {
+    const ing = this.ingredient();
+    if (ing) {
+      return {
+        title: ing.name,
+        subtitle: `FDC ID: ${ing.fdcId}`,
         showBackButton: true,
         backButtonText: 'Back',
         maxWidth: '800px'
       };
-    } else {
-      this.nutritionLabelData = null;
     }
-  }
-
-  get ingredient(): IngredientModel | null {
-    return this._ingredient;
-  }
+    return {
+      title: 'Ingredient Details',
+      subtitle: 'Nutritional information and details',
+      showBackButton: true,
+      backButtonText: 'Back',
+      maxWidth: '800px'
+    };
+  });
 
   onBack(): void {
     // This will be handled by the parent component

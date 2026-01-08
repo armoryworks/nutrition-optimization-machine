@@ -43,17 +43,17 @@
       <button
         type="submit"
         class="btn btn-primary"
-        [disabled]="scrapingForm.invalid || isLoading"
+        [disabled]="scrapingForm.invalid || isLoading()"
       >
-        <span *ngIf="isLoading" class="spinner"></span>
-        {{ isLoading ? 'Testing...' : 'Test Scrape' }}
+        <span *ngIf="isLoading()" class="spinner"></span>
+        {{ isLoading() ? 'Testing...' : 'Test Scrape' }}
       </button>
 
       <button
         type="button"
         class="btn btn-secondary"
         (click)="cancel()"
-        [disabled]="isLoading"
+        [disabled]="isLoading()"
       >
         Cancel
       </button>
@@ -61,14 +61,14 @@
   </form>
 
   <!-- Error Display -->
-  <div class="error-message" *ngIf="error">
+  <div class="error-message" *ngIf="error()">
     <div class="alert alert-danger">
-      <strong>Error:</strong> {{ error }}
+      <strong>Error:</strong> {{ error() }}
     </div>
   </div>
 
   <!-- Recipe Preview -->
-  <div class="recipe-preview" *ngIf="scrapedRecipe && showPreview">
+  <div class="recipe-preview" *ngIf="scrapedRecipe() && showPreview()">
     <div class="preview-header">
       <h2>Recipe Preview</h2>
       <p>Review the scraped recipe before importing</p>
@@ -76,25 +76,25 @@
 
     <div class="preview-content">
       <div class="recipe-info">
-        <h3>{{ scrapedRecipe.name }}</h3>
-        <p *ngIf="scrapedRecipe.description">{{ scrapedRecipe.description }}</p>
-        
-        <div class="recipe-meta" *ngIf="scrapedRecipe.prepTime || scrapedRecipe.cookTime || scrapedRecipe.totalTime">
-          <span *ngIf="scrapedRecipe.prepTime">Prep: {{ scrapedRecipe.prepTime }}</span>
-          <span *ngIf="scrapedRecipe.cookTime">Cook: {{ scrapedRecipe.cookTime }}</span>
-          <span *ngIf="scrapedRecipe.totalTime">Total: {{ scrapedRecipe.totalTime }}</span>
+        <h3>{{ scrapedRecipe()!.name }}</h3>
+        <p *ngIf="scrapedRecipe()!.description">{{ scrapedRecipe()!.description }}</p>
+
+        <div class="recipe-meta" *ngIf="scrapedRecipe()!.prepTime || scrapedRecipe()!.cookTime || scrapedRecipe()!.totalTime">
+          <span *ngIf="scrapedRecipe()!.prepTime">Prep: {{ scrapedRecipe()!.prepTime }}</span>
+          <span *ngIf="scrapedRecipe()!.cookTime">Cook: {{ scrapedRecipe()!.cookTime }}</span>
+          <span *ngIf="scrapedRecipe()!.totalTime">Total: {{ scrapedRecipe()!.totalTime }}</span>
         </div>
 
-        <div class="recipe-yield" *ngIf="scrapedRecipe.recipeYield || scrapedRecipe.recipeServings">
-          <span *ngIf="scrapedRecipe.recipeYield">Yield: {{ scrapedRecipe.recipeYield }}</span>
-          <span *ngIf="scrapedRecipe.recipeServings">Servings: {{ scrapedRecipe.recipeServings }}</span>
+        <div class="recipe-yield" *ngIf="scrapedRecipe()!.recipeYield || scrapedRecipe()!.recipeServings">
+          <span *ngIf="scrapedRecipe()!.recipeYield">Yield: {{ scrapedRecipe()!.recipeYield }}</span>
+          <span *ngIf="scrapedRecipe()!.recipeServings">Servings: {{ scrapedRecipe()!.recipeServings }}</span>
         </div>
       </div>
 
-      <div class="recipe-ingredients" *ngIf="scrapedRecipe.ingredients.length > 0">
+      <div class="recipe-ingredients" *ngIf="scrapedRecipe()!.ingredients.length > 0">
         <h4>Ingredients</h4>
         <ul class="ingredients-list">
-          <li *ngFor="let ingredient of scrapedRecipe.ingredients">
+          <li *ngFor="let ingredient of scrapedRecipe()!.ingredients">
             <span *ngIf="ingredient.quantity">{{ ingredient.quantity }}</span>
             <span *ngIf="ingredient.unit">{{ ingredient.unit }}</span>
             <span class="ingredient-name">{{ ingredient.name }}</span>
@@ -103,26 +103,26 @@
         </ul>
       </div>
 
-      <div class="recipe-steps" *ngIf="scrapedRecipe.steps.length > 0">
+      <div class="recipe-steps" *ngIf="scrapedRecipe()!.steps.length > 0">
         <h4>Instructions</h4>
         <ol class="steps-list">
-          <li *ngFor="let step of scrapedRecipe.steps">
+          <li *ngFor="let step of scrapedRecipe()!.steps">
             {{ step.instruction }}
           </li>
         </ol>
       </div>
 
-      <div class="recipe-tags" *ngIf="scrapedRecipe.tags.length > 0">
+      <div class="recipe-tags" *ngIf="scrapedRecipe()!.tags.length > 0">
         <h4>Tags</h4>
         <div class="tags-list">
-          <span *ngFor="let tag of scrapedRecipe.tags" class="tag">{{ tag }}</span>
+          <span *ngFor="let tag of scrapedRecipe()!.tags" class="tag">{{ tag }}</span>
         </div>
       </div>
 
-      <div class="recipe-categories" *ngIf="scrapedRecipe.categories.length > 0">
+      <div class="recipe-categories" *ngIf="scrapedRecipe()!.categories.length > 0">
         <h4>Categories</h4>
         <div class="categories-list">
-          <span *ngFor="let category of scrapedRecipe.categories" class="category">{{ category }}</span>
+          <span *ngFor="let category of scrapedRecipe()!.categories" class="category">{{ category }}</span>
         </div>
       </div>
     </div>
@@ -132,17 +132,17 @@
         type="button"
         class="btn btn-success"
         (click)="createRecipe()"
-        [disabled]="isLoading"
+        [disabled]="isLoading()"
       >
-        <span *ngIf="isLoading" class="spinner"></span>
-        {{ isLoading ? 'Importing...' : 'Import Recipe' }}
+        <span *ngIf="isLoading()" class="spinner"></span>
+        {{ isLoading() ? 'Importing...' : 'Import Recipe' }}
       </button>
 
       <button
         type="button"
         class="btn btn-secondary"
         (click)="reset()"
-        [disabled]="isLoading"
+        [disabled]="isLoading()"
       >
         Try Different URL
       </button>

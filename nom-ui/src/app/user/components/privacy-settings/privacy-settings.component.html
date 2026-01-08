@@ -15,7 +15,7 @@
     </div>
 
     <!-- Loading State -->
-    @if (isLoading) {
+    @if (isLoading()) {
       <div class="privacy-settings__loading">
         <mat-spinner diameter="50"></mat-spinner>
         <p>Loading privacy settings...</p>
@@ -23,7 +23,7 @@
     }
 
     <!-- Privacy Settings Form -->
-    @if (!isLoading) {
+    @if (!isLoading()) {
       <mat-card class="privacy-settings__form-card">
         <mat-card-header>
           <mat-card-title>Consent Preferences</mat-card-title>
@@ -53,14 +53,14 @@
                 mat-raised-button 
                 color="primary" 
                 type="submit"
-                [disabled]="privacyForm.invalid || isSubmitting"
+                [disabled]="privacyForm.invalid || isSubmitting()"
                 class="privacy-settings__submit-btn">
-                @if (!isSubmitting) {
+                @if (!isSubmitting()) {
                   <mat-icon>save</mat-icon>
                 } @else {
                   <mat-spinner diameter="20"></mat-spinner>
                 }
-                {{ isSubmitting ? 'Saving...' : 'Save Privacy Settings' }}
+                {{ isSubmitting() ? 'Saving...' : 'Save Privacy Settings' }}
               </button>
             </div>
           </form>

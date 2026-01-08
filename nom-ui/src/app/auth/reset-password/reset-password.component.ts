@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -47,7 +47,7 @@ export class ResetPasswordComponent implements OnInit {
   private router = inject(Router);
 
   resetPasswordForm: FormGroup;
-  isLoading = false;
+  isLoading = signal(false);
   email = '';
   resetCode = '';
 
@@ -123,7 +123,7 @@ export class ResetPasswordComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     // getRawValue includes disabled fields
     const formData = this.resetPasswordForm.getRawValue();
     const resetData: ResetPassword = {
@@ -134,7 +134,7 @@ export class ResetPasswordComponent implements OnInit {
 
     this.authService.resetPassword(resetData).subscribe(
       () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.success('Your password has been reset successfully!');
         this.resetPasswordForm.reset(); // Clear the form
         this.resetPasswordForm.setErrors(null); // Clear form-level errors after reset
@@ -142,7 +142,7 @@ export class ResetPasswordComponent implements OnInit {
         this.router.navigate(['/login']);
       },
       (error) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         console.error('Password reset error:', error);
         // The error.message is already processed by the AuthService's handleError
         this.notificationService.error(

@@ -1,4 +1,4 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -52,9 +52,9 @@ export class MealPlanEditComponent implements OnInit {
     description: ['', [Validators.maxLength(500)]]
   });
 
-  isLoading = false;
-  mealPlanId = 0;
-  mealPlan: MealPlanResponseModel | null = null;
+  isLoading = signal(false);
+  mealPlanId = signal(0);
+  mealPlan = signal<MealPlanResponseModel | null>(null);
 
   mealTypes = [
     { value: 'breakfast', label: 'Breakfast' },
@@ -78,24 +78,24 @@ export class MealPlanEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.mealPlanId = +params['id'];
+      this.mealPlanId.set(+params['id']);
       this.loadMealPlan();
     });
   }
 
   loadMealPlan(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
 
-    this.mealPlanService.getMealPlan(this.mealPlanId).subscribe({
+    this.mealPlanService.getMealPlan(this.mealPlanId()).subscribe({
       next: (mealPlan) => {
-        this.mealPlan = mealPlan;
+        this.mealPlan.set(mealPlan);
         this.mealPlanForm.patchValue({
           recipeName: mealPlan.recipeName,
           mealType: mealPlan.mealType,
           date: new Date(mealPlan.date),
           description: mealPlan.description || ''
         });
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading meal plan:', error);
@@ -110,8 +110,8 @@ export class MealPlanEditComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.mealPlanForm.valid && this.mealPlan) {
-      this.isLoading = true;
+    if (this.mealPlanForm.valid && this.mealPlan()) {
+      this.isLoading.set(true);
 
       const updateRequest = new MealPlanUpdateRequestModel({
         recipeName: this.mealPlanForm.value.recipeName,
@@ -120,18 +120,18 @@ export class MealPlanEditComponent implements OnInit {
         description: this.mealPlanForm.value.description
       });
 
-      this.mealPlanService.updateMealPlan(this.mealPlanId, updateRequest).subscribe({
+      this.mealPlanService.updateMealPlan(this.mealPlanId(), updateRequest).subscribe({
         next: () => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.snackBar.open('Meal plan updated successfully!', 'Close', {
             duration: 3000,
             horizontalPosition: 'center',
             verticalPosition: 'top'
           });
-          this.router.navigate(['/meal-plan', this.mealPlanId]);
+          this.router.navigate(['/meal-plan', this.mealPlanId()]);
         },
         error: (error) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           console.error('Error updating meal plan:', error);
           this.snackBar.open('Failed to update meal plan. Please try again.', 'Close', {
             duration: 5000,
@@ -144,7 +144,7 @@ export class MealPlanEditComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/meal-plan', this.mealPlanId]);
+    this.router.navigate(['/meal-plan', this.mealPlanId()]);
   }
 
   private getMealTypeId(mealType: string): number {

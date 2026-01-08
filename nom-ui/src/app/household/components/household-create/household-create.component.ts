@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -42,7 +42,7 @@ export class HouseholdCreateComponent implements OnInit {
         description: ['', [Validators.maxLength(500)]]
     });
 
-    isLoading = false;
+    isLoading = signal(false);
 
     formConfig: BaseFormConfig = {
         title: 'Create Household',
@@ -63,7 +63,7 @@ export class HouseholdCreateComponent implements OnInit {
 
     onSubmit(): void {
         if (this.householdForm.valid) {
-            this.isLoading = true;
+            this.isLoading.set(true);
 
             const createRequest = new HouseholdCreateRequestModel({
                 name: this.householdForm.value.name,
@@ -73,7 +73,7 @@ export class HouseholdCreateComponent implements OnInit {
 
             this.householdService.createHousehold(createRequest).subscribe({
                 next: (response) => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     this.snackBar.open('Household created successfully!', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
@@ -82,7 +82,7 @@ export class HouseholdCreateComponent implements OnInit {
                     this.router.navigate(['/household', response.id]);
                 },
                 error: (error) => {
-                    this.isLoading = false;
+                    this.isLoading.set(false);
                     console.error('Error creating household:', error);
                     this.snackBar.open('Failed to create household. Please try again.', 'Close', {
                         duration: 5000,

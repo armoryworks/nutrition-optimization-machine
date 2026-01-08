@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -42,11 +42,11 @@ export class HouseholdInviteComponent implements OnInit {
     private userInfoService = inject(UserInfoService);
 
     inviteForm: FormGroup;
-    isLoading = false;
-    householdId = 0;
-    error: string | null = null;
-    inviteToken: string | null = null;
-    inviteLink: string | null = null;
+    isLoading = signal(false);
+    householdId = signal(0);
+    error = signal<string | null>(null);
+    inviteToken = signal<string | null>(null);
+    inviteLink = signal<string | null>(null);
 
     constructor() {
         this.inviteForm = this.nonNullableFb.group({
@@ -56,25 +56,25 @@ export class HouseholdInviteComponent implements OnInit {
 
     ngOnInit(): void {
         this.route.params.subscribe(params => {
-            this.householdId = +params['id'];
+            this.householdId.set(+params['id']);
         });
     }
 
     generateInviteToken(): void {
         if (this.inviteForm.valid) {
-            this.isLoading = true;
-            this.error = null;
+            this.isLoading.set(true);
+            this.error.set(null);
 
             const request: HouseholdInviteRequestModel = {
-                householdId: this.householdId,
+                householdId: this.householdId(),
                 expiresAt: new Date(Date.now() + this.inviteForm.value.expiresInDays * 24 * 60 * 60 * 1000)
             };
 
             this.householdService.createInviteToken(request).subscribe({
                 next: (response) => {
-                    this.inviteToken = response.token;
-                    this.inviteLink = `${window.location.origin}/household/join?token=${response.token}`;
-                    this.isLoading = false;
+                    this.inviteToken.set(response.token);
+                    this.inviteLink.set(`${window.location.origin}/household/join?token=${response.token}`);
+                    this.isLoading.set(false);
                     this.snackBar.open('Invite token generated successfully', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
@@ -83,8 +83,8 @@ export class HouseholdInviteComponent implements OnInit {
                 },
                 error: (error) => {
                     console.error('Error generating invite token:', error);
-                    this.error = 'Failed to generate invite token';
-                    this.isLoading = false;
+                    this.error.set('Failed to generate invite token');
+                    this.isLoading.set(false);
                     this.snackBar.open('Failed to generate invite token', 'Close', {
                         duration: 3000,
                         horizontalPosition: 'center',
@@ -96,8 +96,8 @@ export class HouseholdInviteComponent implements OnInit {
     }
 
     copyInviteLink(): void {
-        if (this.inviteLink) {
-            navigator.clipboard.writeText(this.inviteLink).then(() => {
+        if (this.inviteLink()) {
+            navigator.clipboard.writeText(this.inviteLink()!).then(() => {
                 this.snackBar.open('Invite link copied to clipboard', 'Close', {
                     duration: 3000,
                     horizontalPosition: 'center',
@@ -114,8 +114,8 @@ export class HouseholdInviteComponent implements OnInit {
     }
 
     copyToken(): void {
-        if (this.inviteToken) {
-            navigator.clipboard.writeText(this.inviteToken).then(() => {
+        if (this.inviteToken()) {
+            navigator.clipboard.writeText(this.inviteToken()!).then(() => {
                 this.snackBar.open('Invite token copied to clipboard', 'Close', {
                     duration: 3000,
                     horizontalPosition: 'center',
@@ -132,7 +132,7 @@ export class HouseholdInviteComponent implements OnInit {
     }
 
     onBack(): void {
-        this.router.navigate(['/household', this.householdId]);
+        this.router.navigate(['/household', this.householdId()]);
     }
 
     onSubmit(): void {
@@ -144,11 +144,11 @@ export class HouseholdInviteComponent implements OnInit {
     }
 
     shareLink(): void {
-        if (this.inviteLink && navigator.share) {
+        if (this.inviteLink() && navigator.share) {
             navigator.share({
                 title: 'Household Invitation',
                 text: 'Join our household',
-                url: this.inviteLink
+                url: this.inviteLink()!
             }).catch((error) => {
                 console.log('Error sharing:', error);
                 // Fallback to copy
