@@ -6,14 +6,7 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { Observable, startWith, map } from 'rxjs';
+import { AmwSelectComponent, AmwTextareaComponent, AmwChipInputComponent } from 'angular-material-wrap';
 import { RestrictionService } from '../../services/restriction.service';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
@@ -22,14 +15,10 @@ import { ReferenceItemModel } from '../../../common/models/reference-item.model'
   selector: 'nom-societal-restriction',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatChipsModule,
-    MatIconModule,
-    MatAutocompleteModule,
+    AmwSelectComponent,
+    AmwTextareaComponent,
+    AmwChipInputComponent,
   ],
   templateUrl: './societal-restriction.component.html',
   styleUrls: ['./societal-restriction.component.scss'],
@@ -41,14 +30,13 @@ export class SocietalRestrictionComponent implements OnInit {
 
   societalRestrictionForm = input.required<FormGroup>(); // Input FormGroup for this section
 
-  // FormControls for autocomplete inputs
-  public ingredientSearchControl = new FormControl<string>('');
-  public filteredCuratedIngredients!: Observable<string[]>;
+  // FormControl for chip input - syncs with FormArray
+  public mandatoryInclusionsControl = new FormControl<{ value: string; label: string }[]>([]);
 
   // Options for select dropdowns - loaded from backend
   public societalReligiousEthicalOptions: ReferenceItemModel[] = [];
 
-  private allCuratedIngredients: string[] = [
+  private _allCuratedIngredients: string[] = [
     'Apple',
     'Banana',
     'Carrot',
@@ -78,24 +66,32 @@ export class SocietalRestrictionComponent implements OnInit {
     'Zucchini',
   ];
 
+  // Getter that converts strings to ChipInputOption format
+  get allCuratedIngredients(): { value: string; label: string }[] {
+    return this._allCuratedIngredients.map(item => ({ value: item, label: item }));
+  }
+
 
   ngOnInit(): void {
-    this.filteredCuratedIngredients =
-      this.ingredientSearchControl.valueChanges.pipe(
-        startWith(''),
-        map((value) =>
-          value
-            ? this._filter(value, this.allCuratedIngredients)
-            : this.allCuratedIngredients
-        )
-      );
-
     // Fetch real data (mocked for now)
     this.restrictionService.getCuratedIngredients().subscribe((data) => {
-      if (data && data.length > 0) this.allCuratedIngredients = data;
+      if (data && data.length > 0) this._allCuratedIngredients = data;
     });
 
     this.loadSocietalRestrictionOptions();
+
+    // Sync chip input control with FormArray
+    this.mandatoryInclusionsControl.valueChanges.subscribe((values) => {
+      const formArray = this.mandatoryInclusionsArray;
+      formArray.clear();
+      (values || []).forEach((chip: { value: string; label: string }) => {
+        formArray.push(this.fb.control(chip.value));
+      });
+    });
+
+    // Initialize control with existing FormArray values (convert strings to ChipInputOption)
+    const initialValues = this.mandatoryInclusionsArray.value.map((v: string) => ({ value: v, label: v }));
+    this.mandatoryInclusionsControl.setValue(initialValues);
   }
 
   private loadSocietalRestrictionOptions(): void {
@@ -111,39 +107,6 @@ export class SocietalRestrictionComponent implements OnInit {
         this.societalReligiousEthicalOptions = [];
       }
     });
-  }
-
-  private _filter(value: string, options: string[]): string[] {
-    const filterValue = value ? value.toLowerCase() : '';
-    return options.filter((option) =>
-      option.toLowerCase().includes(filterValue)
-    );
-  }
-
-  public addChip(event: { input?: HTMLInputElement | null; value?: string }, formArrayName: string): void {
-    const input = event.input;
-    const value = (event.value || '').trim();
-    if (value) {
-      const formArray = this.societalRestrictionForm().get(
-        formArrayName
-      ) as FormArray;
-      if (!formArray.value.includes(value)) {
-        formArray.push(this.fb.control(value));
-      }
-    }
-    if (input) {
-      input.value = '';
-    }
-  }
-
-  public removeChip(chip: string, formArrayName: string): void {
-    const formArray = this.societalRestrictionForm().get(
-      formArrayName
-    ) as FormArray;
-    const index = formArray.value.indexOf(chip);
-    if (index >= 0) {
-      formArray.removeAt(index);
-    }
   }
 
   public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
@@ -167,5 +130,13 @@ export class SocietalRestrictionComponent implements OnInit {
   // Getter for FormArray: mandatoryInclusions
   get mandatoryInclusionsArray(): FormArray {
     return this.societalRestrictionForm().get('mandatoryInclusions') as FormArray;
+  }
+
+  // Helper method for AMW select options
+  getPracticeTypeOptions(): { value: number; label: string }[] {
+    return this.societalReligiousEthicalOptions.map(option => ({
+      value: option.referenceId ?? 0,
+      label: option.referenceName ?? ''
+    }));
   }
 }

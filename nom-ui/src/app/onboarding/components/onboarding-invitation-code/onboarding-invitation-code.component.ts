@@ -1,21 +1,16 @@
 import { Component, OnInit, input, output } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AmwButtonComponent, AmwInputComponent } from 'angular-material-wrap';
 
 @Component({
   selector: 'nom-onboarding-invitation-code',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-],
+    AmwButtonComponent,
+    AmwInputComponent,
+  ],
   templateUrl: './onboarding-invitation-code.component.html',
   styleUrls: ['./onboarding-invitation-code.component.scss'],
 })

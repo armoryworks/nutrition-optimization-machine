@@ -1,15 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatExpansionModule } from '@angular/material/expansion';
+
+import { AmwButtonComponent, AmwInputComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 export interface ListAction {
     label: string;
@@ -70,15 +63,10 @@ export interface BaseListConfig {
     standalone: true,
     imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatExpansionModule
+    AmwButtonComponent,
+    AmwInputComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
 ],
     templateUrl: './base-list.component.html',
     styleUrls: ['./base-list.component.scss']

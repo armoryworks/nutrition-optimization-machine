@@ -1,23 +1,10 @@
-import { Component, OnInit, input, output, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Component, OnInit, input, output, inject, signal, ViewEncapsulation } from '@angular/core';
+import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { ViewEncapsulation } from '@angular/core';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { RecipeTagsService } from '../../services/recipe-tags.service';
 import { RecipeTagModel } from '../../models/recipe-tag.model';
 
@@ -25,22 +12,17 @@ import { RecipeTagModel } from '../../models/recipe-tag.model';
     selector: 'nom-recipe-tags',
     standalone: true,
     imports: [
-        CommonModule,
+        FormsModule,
         ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
         MatChipsModule,
-        MatDividerModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
-        MatTooltipModule,
-        MatAutocompleteModule,
-        BasePageComponent,
+        AmwInputComponent,
+        AmwTextareaComponent,
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconButtonComponent,
+        AmwTooltipDirective,
+        AmwIconComponent,
+        AmwProgressBarComponent,
     ],
     templateUrl: './recipe-tags.component.html',
     styleUrls: ['./recipe-tags.component.scss'],
@@ -48,10 +30,8 @@ import { RecipeTagModel } from '../../models/recipe-tag.model';
 })
 export class RecipeTagsComponent implements OnInit {
     private recipeTagsService = inject(RecipeTagsService);
-    private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
+    private notificationService = inject(NotificationService);
 
     recipeId = input<number>();
     tags = input<RecipeTagModel[]>([]);
@@ -66,13 +46,9 @@ export class RecipeTagsComponent implements OnInit {
     tagForm: FormGroup;
     isAddingTag = signal(false);
 
-    pageConfig: BasePageConfig = {
-        title: 'Recipe Tags',
-        subtitle: 'Manage tags for better recipe organization',
-        showRefreshButton: true,
-        refreshButtonText: 'Refresh',
-        maxWidth: '800px',
-    };
+    // Page title and subtitle
+    pageTitle = 'Recipe Tags';
+    pageSubtitle = 'Manage tags for better recipe organization';
 
     constructor() {
         this.tagForm = this.nonNullableFb.group({

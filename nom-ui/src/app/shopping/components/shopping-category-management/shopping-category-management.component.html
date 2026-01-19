@@ -4,7 +4,7 @@
     <div class="shopping-category-management__header">
       <div class="shopping-category-management__header-content">
         <div class="shopping-category-management__title-section">
-          <mat-icon class="shopping-category-management__title-icon">category</mat-icon>
+          <amw-icon name="category" class="shopping-category-management__title-icon"></amw-icon>
           <div class="shopping-category-management__title-info">
             <h1 class="shopping-category-management__title">Shopping Categories</h1>
             <p class="shopping-category-management__subtitle">Manage categories for organizing your shopping items</p>
@@ -14,72 +14,49 @@
     </div>
 
     <!-- Add Category Form -->
-    <mat-card class="shopping-category-management__form-card">
-      <mat-card-header>
-        <mat-card-title>
-          @if (isEditing()) {
-            Edit Category
-          } @else {
-            Add New Category
-          }
-        </mat-card-title>
-      </mat-card-header>
-
-      <mat-card-content>
+    <amw-card
+      class="shopping-category-management__form-card"
+      [headerTitle]="isEditing() ? 'Edit Category' : 'Add New Category'">
+      <ng-template #contentTemplate>
         <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="shopping-category-management__form">
-          <mat-form-field appearance="outline" class="shopping-category-management__field">
-            <mat-label>Category Name</mat-label>
-            <input 
-              matInput 
-              formControlName="name"
-              placeholder="Enter category name..."
-              class="shopping-category-management__input"
-            />
-            @if (categoryForm.get('name')?.hasError('required')) {
-              <mat-error>Name is required</mat-error>
-            }
-            @if (categoryForm.get('name')?.hasError('maxlength')) {
-              <mat-error>Name cannot exceed 50 characters</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="name"
+            label="Category Name"
+            placeholder="Enter category name..."
+            [required]="true"
+            class="shopping-category-management__field">
+          </amw-input>
 
-          <mat-form-field appearance="outline" class="shopping-category-management__field">
-            <mat-label>Description (Optional)</mat-label>
-            <textarea 
-              matInput 
-              formControlName="description"
-              placeholder="Add a description for this category..."
-              rows="3"
-              class="shopping-category-management__textarea"
-            ></textarea>
-            @if (categoryForm.get('description')?.hasError('maxlength')) {
-              <mat-error>Description cannot exceed 200 characters</mat-error>
-            }
-          </mat-form-field>
+          <amw-textarea
+            formControlName="description"
+            label="Description (Optional)"
+            placeholder="Add a description for this category..."
+            class="shopping-category-management__field">
+          </amw-textarea>
 
           <div class="shopping-category-management__form-actions">
             @if (isEditing()) {
-              <button mat-button type="button" (click)="cancelEdit()">
+              <amw-button
+                type="button"
+                variant="text"
+                (click)="cancelEdit()">
                 Cancel
-              </button>
+              </amw-button>
             }
-            <button 
-              mat-raised-button 
-              color="primary" 
+            <amw-button
               type="submit"
-              [disabled]="categoryForm.invalid || isSubmitting"
+              variant="filled"
+              color="primary"
+              [icon]="isEditing() ? 'save' : 'add'"
+              [disabled]="categoryForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()"
               class="shopping-category-management__submit-btn">
-              @if (!isSubmitting) {
-                <mat-icon>{{ isEditing() ? 'save' : 'add' }}</mat-icon>
-              } @else {
-                <mat-spinner diameter="20"></mat-spinner>
-              }
               {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
-            </button>
+            </amw-button>
           </div>
         </form>
-      </mat-card-content>
-    </mat-card>
+      </ng-template>
+    </amw-card>
 
     <!-- Categories List -->
     <div class="shopping-category-management__list-section">
@@ -87,37 +64,27 @@
 
       @if (loading()) {
         <div class="shopping-category-management__loading">
-          <mat-spinner diameter="40"></mat-spinner>
+          <amw-progress-spinner mode="indeterminate" [diameter]="40"></amw-progress-spinner>
           <p>Loading categories...</p>
         </div>
       }
 
-      @if (!loading && categories.length === 0) {
+      @if (!loading() && categories().length === 0) {
         <div class="shopping-category-management__no-categories">
-          <mat-icon class="shopping-category-management__empty-icon">category</mat-icon>
+          <amw-icon name="category" class="shopping-category-management__empty-icon"></amw-icon>
           <h3>No Categories Yet</h3>
           <p>Create your first shopping category to get started.</p>
         </div>
       }
 
-      @if (!loading && categories.length > 0) {
+      @if (!loading() && categories().length > 0) {
         <div class="shopping-category-management__categories-grid">
           @for (category of categories(); track category.id) {
-            <mat-card class="shopping-category-management__category-card">
-              <mat-card-header>
-                <mat-card-title class="shopping-category-management__category-title">
-                  {{ category.name }}
-                </mat-card-title>
-                <mat-card-subtitle class="shopping-category-management__category-subtitle">
-                  @if (category.description) {
-                    {{ category.description }}
-                  } @else {
-                    No description
-                  }
-                </mat-card-subtitle>
-              </mat-card-header>
-
-              <mat-card-content>
+            <amw-card
+              class="shopping-category-management__category-card"
+              [headerTitle]="category.name"
+              [headerSubtitle]="category.description || 'No description'">
+              <ng-template #contentTemplate>
                 <div class="shopping-category-management__category-stats">
                   <div class="shopping-category-management__stat">
                     <span class="shopping-category-management__stat-value">{{ category.itemCount || 0 }}</span>
@@ -128,30 +95,29 @@
                     <span class="shopping-category-management__stat-label">Lists</span>
                   </div>
                 </div>
-              </mat-card-content>
-
-              <mat-card-actions class="shopping-category-management__category-actions">
-                <button 
-                  mat-button 
-                  color="primary" 
+              </ng-template>
+              <ng-template #actionsTemplate>
+                <amw-button
+                  variant="text"
+                  color="primary"
+                  icon="edit"
                   (click)="editCategory(category)"
                   class="shopping-category-management__edit-btn">
-                  <mat-icon>edit</mat-icon>
                   Edit
-                </button>
-                <button 
-                  mat-button 
-                  color="warn" 
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="warn"
+                  icon="delete"
                   (click)="deleteCategory(category)"
                   class="shopping-category-management__delete-btn">
-                  <mat-icon>delete</mat-icon>
                   Delete
-                </button>
-              </mat-card-actions>
-            </mat-card>
+                </amw-button>
+              </ng-template>
+            </amw-card>
           }
         </div>
       }
     </div>
   </div>
-</div> 
+</div>

@@ -1,23 +1,17 @@
 <div class="nom-page-container">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header nom-section">
-      @if (currentQuestion?.hint) {
-      <p class="nom-instruction-text mb-4">{{ currentQuestion?.hint }}</p>
+  <amw-card
+    [headerTitle]="currentQuestion?.text || ''"
+    [headerSubtitle]="currentQuestion?.hint || ''"
+    class="nom-card">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+      <mat-progress-bar
+        mode="indeterminate"
+        color="primary"
+        class="nom-card__progress-bar"
+      ></mat-progress-bar>
       }
-      <mat-card-title class="nom-card__title">
-        {{ currentQuestion?.text }}
-      </mat-card-title>
-    </mat-card-header>
 
-    @if (isLoading()) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    }
-
-    <mat-card-content class="nom-card__content">
       @if (!isLoading() && error() && !submitMessage()) {
       <div class="nom-form__error form-level-error nom-message-text mb-4">
         {{ error() }}
@@ -32,27 +26,13 @@
         <div class="nom-section mb-8">
           <!-- Dynamic input rendering based on answerType -->
           @switch (currentQuestion.answerType) { @case ('TextInput') {
-          <mat-form-field appearance="outline" class="nom-form__field">
-            <mat-label>Your Answer</mat-label>
-            <input
-              matInput
-              type="text"
-              formControlName="answer"
-              class="nom-form__input"
-              [placeholder]="currentQuestion.hint || 'Type your answer here...'"
-              (ngModelChange)="onAnswerChange($event)"
-            />
-            <!-- Using ngModelChange on Reactive Form -->
-            @if (currentAnswerForm.get('answer')?.hasError('required') &&
-            currentAnswerForm.get('answer')?.touched) {
-            <mat-error class="nom-form__error">
-              This field is required.
-            </mat-error>
-            } @if (currentAnswerForm.get('answer')?.hasError('pattern') &&
-            currentAnswerForm.get('answer')?.touched) {
-            <mat-error class="nom-form__error"> Invalid format. </mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="answer"
+            label="Your Answer"
+            [placeholder]="currentQuestion.hint || 'Type your answer here...'"
+            [required]="true"
+            class="nom-form__field">
+          </amw-input>
           } @case ('YesNo') {
           <mat-radio-group
             aria-label="Select an option"
@@ -83,16 +63,15 @@
             <div
               class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200"
             >
-              <mat-checkbox
+              <amw-checkbox
                 [checked]="
                   (
                     currentAnswerForm.get('answer')?.value | jsonParseCommon
                   )?.includes(option)
                 "
                 (change)="onAnswerChange(option)"
-              >
-                {{ option }}
-              </mat-checkbox>
+                [label]="option">
+              </amw-checkbox>
             </div>
             } } @else {
             <p class="nom-message-text text-red-500">
@@ -139,33 +118,21 @@
         </div>
 
         <div class="flex justify-between items-center mt-6">
-          <button
-            mat-raised-button
+          <amw-button
+            variant="filled"
             color="accent"
             (click)="goToPreviousQuestion()"
-            [disabled]="currentQuestionIndex() === 0 || isSubmitting()"
-            class="nom-button"
-          >
+            [disabled]="currentQuestionIndex() === 0 || isSubmitting()">
             Previous
-          </button>
-          <button
-            mat-raised-button
+          </amw-button>
+          <amw-button
+            variant="filled"
             color="primary"
             (click)="goToNextQuestion()"
             [disabled]="isSubmitting()"
-            class="nom-button"
-          >
-            @if (!isSubmitting()) {
-            <span>{{
-              currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next'
-            }}</span>
-            } @else {
-            <mat-spinner
-              [diameter]="20"
-              class="nom-button__spinner"
-            ></mat-spinner>
-            }
-          </button>
+            [loading]="isSubmitting()">
+            {{ currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next' }}
+          </amw-button>
         </div>
       </form>
       } @else if (!isLoading() && submitMessage()) {
@@ -177,16 +144,15 @@
         }"
       >
         <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
-        <button
-          mat-raised-button
+        <amw-button
+          variant="filled"
           color="primary"
-          (click)="goToDashboard()"
-          class="nom-button mt-4"
-        >
+          (click)="onGoToDashboard()"
+          class="mt-4">
           Go to Dashboard
-        </button>
+        </amw-button>
       </div>
       }
-    </mat-card-content>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

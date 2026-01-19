@@ -1,76 +1,72 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="mealPlanForm"
-  [isSubmitting]="isLoading()"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
->
-  <div class="meal-plan-create">
-    <div class="meal-plan-create__container">
-      <!-- Recipe Name Field -->
-      <mat-form-field appearance="outline" class="meal-plan-create__field">
-        <mat-label>Recipe Name</mat-label>
-        <input 
-          matInput 
+<div class="nom-page-container meal-plan-create">
+  <amw-card
+    class="nom-card"
+    headerTitle="Create Meal Plan"
+    headerSubtitle="Create a new meal plan to organize your meals">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
+
+      <form
+        [formGroup]="mealPlanForm"
+        (ngSubmit)="onSubmit()"
+        class="nom-form">
+        <amw-input
           formControlName="recipeName"
+          label="Recipe Name"
           placeholder="Enter recipe name..."
-          class="meal-plan-create__input"
-        />
-        @if (mealPlanForm.get('recipeName')?.hasError('required')) {
-          <mat-error>Recipe name is required</mat-error>
-        }
-        @if (mealPlanForm.get('recipeName')?.hasError('minlength')) {
-          <mat-error>Recipe name must be at least 2 characters</mat-error>
-        }
-        @if (mealPlanForm.get('recipeName')?.hasError('maxlength')) {
-          <mat-error>Recipe name cannot exceed 100 characters</mat-error>
-        }
-      </mat-form-field>
+          icon="restaurant_menu"
+          [required]="true"
+          class="nom-form__field">
+        </amw-input>
 
-      <!-- Meal Type Field -->
-      <mat-form-field appearance="outline" class="meal-plan-create__field">
-        <mat-label>Meal Type</mat-label>
-        <mat-select formControlName="mealType" class="meal-plan-create__select">
-          @for (mealType of mealTypes; track mealType.value) {
-            <mat-option [value]="mealType.value">{{ mealType.label }}</mat-option>
-          }
-        </mat-select>
-        @if (mealPlanForm.get('mealType')?.hasError('required')) {
-          <mat-error>Meal type is required</mat-error>
-        }
-      </mat-form-field>
+        <amw-select
+          formControlName="mealType"
+          label="Meal Type"
+          [options]="mealTypes"
+          [required]="true"
+          class="nom-form__field">
+        </amw-select>
 
-      <!-- Date Field -->
-      <mat-form-field appearance="outline" class="meal-plan-create__field">
-        <mat-label>Date</mat-label>
-        <input 
-          matInput 
-          [matDatepicker]="picker"
+        <amw-datepicker
           formControlName="date"
-          placeholder="Choose a date"
-          class="meal-plan-create__input"
-        />
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-        @if (mealPlanForm.get('date')?.hasError('required')) {
-          <mat-error>Date is required</mat-error>
-        }
-      </mat-form-field>
+          label="Date"
+          [required]="true"
+          class="nom-form__field">
+        </amw-datepicker>
 
-      <!-- Description Field -->
-      <mat-form-field appearance="outline" class="meal-plan-create__field">
-        <mat-label>Description (Optional)</mat-label>
-        <textarea 
-          matInput 
+        <amw-textarea
           formControlName="description"
+          label="Description (Optional)"
           placeholder="Add a description for your meal plan..."
-          rows="3"
-          class="meal-plan-create__textarea"
-        ></textarea>
-        @if (mealPlanForm.get('description')?.hasError('maxlength')) {
-          <mat-error>Description cannot exceed 500 characters</mat-error>
-        }
-      </mat-form-field>
-    </div>
-  </div>
-</nom-base-form> 
+          [rows]="3"
+          class="nom-form__field">
+        </amw-textarea>
+
+        <div class="nom-form__actions">
+          <amw-button
+            type="button"
+            variant="text"
+            (click)="onCancel()"
+            class="nom-button">
+            Cancel
+          </amw-button>
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            [disabled]="mealPlanForm.invalid || isLoading()"
+            [loading]="isLoading()"
+            class="nom-button">
+            Create Meal Plan
+          </amw-button>
+        </div>
+      </form>
+    </ng-template>
+  </amw-card>
+</div>

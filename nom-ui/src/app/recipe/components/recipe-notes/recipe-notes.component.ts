@@ -1,19 +1,8 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
+
+import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
@@ -22,29 +11,21 @@ import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
     selector: 'nom-recipe-notes',
     standalone: true,
     imports: [
-        CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatChipsModule,
-        MatDividerModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
+        AmwButtonComponent,
+        AmwInputComponent,
+        AmwTextareaComponent,
+        AmwCardComponent,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: './recipe-notes.component.html',
     styleUrls: ['./recipe-notes.component.scss']
 })
 export class RecipeNotesComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
-    private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
 
     notes = signal<RecipeNoteResponseModel[]>([]);
     isLoading = signal(false);

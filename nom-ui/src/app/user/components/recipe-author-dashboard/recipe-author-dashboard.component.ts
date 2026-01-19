@@ -1,23 +1,13 @@
 // File: nom-ui/src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.ts
 
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { Observable, of, catchError, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { MatDialog } from '@angular/material/dialog';
+
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
 
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { CurationService } from '../../../curation/services/curation.service';
@@ -26,7 +16,6 @@ import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboar
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
 import { canSubmitForCuration, CurationStatus, isPendingCuration } from '../../../recipe/models/curation-status.enum';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
 
 // Helper function to convert curation status ID to status string
 function getCurationStatusFromId(statusId: number): string {
@@ -58,19 +47,19 @@ interface MenuItem {
   selector: 'nom-recipe-author-dashboard',
   standalone: true,
   imports: [
-    CommonModule,
+    AsyncPipe,
     RouterLink,
     FormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatMenuModule,
-    MatTooltipModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
+    AmwButtonComponent,
+    AmwInputComponent,
+    AmwSelectComponent,
+    AmwIconButtonComponent,
+    AmwTooltipDirective,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective,
   ],
   templateUrl: './recipe-author-dashboard.component.html',
   styleUrls: ['./recipe-author-dashboard.component.scss']
@@ -79,9 +68,8 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   private recipeService = inject(RecipeService);
   private curationService = inject(CurationService);
   private notificationService = inject(NotificationService);
-  private snackBar = inject(MatSnackBar);
   private router = inject(Router);
-  private dialog = inject(MatDialog);
+  private dialogService = inject(DialogService);
 
   recipes$!: Observable<RecipeDashboardItemModel[]>;
   ingredients$!: Observable<RecipeDashboardItemModel[]>;
@@ -104,6 +92,17 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   ingredientSearchTerm = '';
   recipeStatusFilter = '';
   ingredientStatusFilter = '';
+
+  // Status options for AMW select
+  statusOptions = [
+    { value: '', label: 'All Statuses' },
+    { value: 'DRAFT', label: 'Draft' },
+    { value: 'NONCURATED', label: 'Non-Curated' },
+    { value: 'PENDINGCURATION', label: 'Pending Curation' },
+    { value: 'CURATED', label: 'Curated' },
+    { value: 'REQUIRESREVISION', label: 'Requires Revision' },
+    { value: 'REJECTED', label: 'Rejected' }
+  ];
 
 
 
@@ -269,19 +268,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   }
 
   onDeleteRecipe(recipeId: number): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Recipe',
-        message: 'Are you sure you want to delete this recipe? This action cannot be undone.',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+    this.dialogService.confirm(
+      'Are you sure you want to delete this recipe? This action cannot be undone.',
+      'Delete Recipe'
+    ).subscribe(confirmed => {
+      if (confirmed) {
         this.recipeService.deleteRecipe(recipeId).subscribe({
           next: () => {
             this.notificationService.success('Recipe deleted successfully');
@@ -308,19 +299,11 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   }
 
   onDeleteIngredient(ingredientId: number): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Ingredient',
-        message: 'Are you sure you want to delete this ingredient? This action cannot be undone.',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+    this.dialogService.confirm(
+      'Are you sure you want to delete this ingredient? This action cannot be undone.',
+      'Delete Ingredient'
+    ).subscribe(confirmed => {
+      if (confirmed) {
         this.recipeService.deleteIngredient(ingredientId).subscribe({
           next: () => {
             this.notificationService.success('Ingredient deleted successfully');

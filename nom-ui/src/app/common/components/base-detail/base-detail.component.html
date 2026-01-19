@@ -1,62 +1,56 @@
 <div class="base-detail-container" [style.max-width]="config?.maxWidth">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>{{ config?.title }}</mat-card-title>
-      @if (config?.subtitle) {
-        <mat-card-subtitle>{{ config?.subtitle }}</mat-card-subtitle>
-      }
-      
+  <amw-card
+    [headerTitle]="config?.title || ''"
+    [headerSubtitle]="config?.subtitle">
+    <ng-template #contentTemplate>
       <!-- Action Menu -->
       @if (config?.actions && (config?.actions?.length ?? 0) > 0) {
-        <button 
-          mat-icon-button 
-          [matMenuTriggerFor]="menu" 
-          class="action-menu-button">
-          <mat-icon>more_vert</mat-icon>
-        </button>
-        
-        <mat-menu #menu="matMenu">
-          @for (action of config?.actions; track action.label) {
-            <button 
-              mat-menu-item 
-              (click)="action.action()"
-              [class.mat-warn]="action.color === 'warn'"
-              [class.mat-accent]="action.color === 'accent'"
-              [class.mat-primary]="action.color === 'primary'">
-              <mat-icon>{{ action.icon }}</mat-icon>
-              <span>{{ action.label }}</span>
-            </button>
-          }
-        </mat-menu>
-      }
-    </mat-card-header>
+        <div class="action-menu-container">
+          <amw-icon-button
+            icon="more_vert"
+            [amwMenuTriggerFor]="menu"
+            class="action-menu-button"
+            ariaLabel="Open action menu">
+          </amw-icon-button>
 
-    <mat-card-content>
+          <amw-menu #menu>
+            @for (action of config?.actions; track action.label) {
+              <amw-menu-item
+                [label]="action.label"
+                [icon]="action.icon"
+                (itemClick)="action.action()">
+              </amw-menu-item>
+            }
+          </amw-menu>
+        </div>
+      }
+
       <!-- Detail Content -->
       <div class="detail-content">
         <ng-content></ng-content>
       </div>
-    </mat-card-content>
 
-    <mat-card-actions align="end">
-      @if (config?.showBackButton) {
-        <button 
-          mat-button 
-          (click)="onBack()">
-          <mat-icon>arrow_back</mat-icon>
-          {{ config?.backButtonText || 'Back' }}
-        </button>
-      }
-      
-      @if (config?.showEditButton) {
-        <button 
-          mat-raised-button 
-          color="primary" 
-          (click)="onEdit()">
-          <mat-icon>edit</mat-icon>
-          {{ config?.editButtonText || 'Edit' }}
-        </button>
-      }
-    </mat-card-actions>
-  </mat-card>
-</div> 
+      <!-- Actions -->
+      <div class="detail-actions" align="end">
+        @if (config?.showBackButton) {
+          <amw-button
+            variant="text"
+            (click)="onBack()"
+            icon="arrow_back">
+            {{ config?.backButtonText || 'Back' }}
+          </amw-button>
+        }
+
+        @if (config?.showEditButton) {
+          <amw-button
+            variant="filled"
+            color="primary"
+            (click)="onEdit()"
+            icon="edit">
+            {{ config?.editButtonText || 'Edit' }}
+          </amw-button>
+        }
+      </div>
+    </ng-template>
+  </amw-card>
+</div>

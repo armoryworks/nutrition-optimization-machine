@@ -7,12 +7,6 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-
 // Import new child restriction components
 import { SocietalRestrictionComponent } from '../societal-restriction/societal-restriction.component';
 import { MedicalRestrictionComponent } from '../medical-restriction/medical-restriction.component';
@@ -29,14 +23,9 @@ import { RestrictionTypeEnum } from '../../enums/restriction-type.enum';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatIconModule,
-    MatFormFieldModule,
     SocietalRestrictionComponent,
     MedicalRestrictionComponent,
-    PersonalPreferenceRestrictionComponent
+    PersonalPreferenceRestrictionComponent,
 ],
   templateUrl: './restriction-edit.component.html',
   styleUrls: ['./restriction-edit.component.scss'],

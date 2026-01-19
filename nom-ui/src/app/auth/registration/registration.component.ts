@@ -12,15 +12,9 @@ import {
 import { Router } from '@angular/router'; // Kept Router import if it's used elsewhere in the component beyond navigation
 
 // Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox'; // Kept as it's in your provided starter code
-import { MatToolbarModule } from '@angular/material/toolbar'; // Kept as it's in your provided starter code
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { RegisterUser } from '../models/register-user';
@@ -32,15 +26,10 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCheckboxModule,
-    MatToolbarModule,
-    MatProgressSpinnerModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwCardComponent
 ],
   templateUrl: './registration.component.html',
   styleUrls: ['./registration.component.scss'], // Assuming .scss

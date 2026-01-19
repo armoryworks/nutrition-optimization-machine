@@ -1,154 +1,162 @@
-<nom-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
-  <div class="recipe-tags">
-    <!-- Search and Create Section -->
-    <div class="recipe-tags__header">
-      <div class="recipe-tags__search">
-        <mat-form-field appearance="outline" class="recipe-tags__search-field">
-          <mat-label>Search tags</mat-label>
-          <input matInput [(ngModel)]="searchTerm" (input)="filterTags()" placeholder="Search by name or description">
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-      </div>
-      
-      <div class="recipe-tags__actions">
-        <button mat-raised-button color="primary" (click)="createNewTag()" [disabled]="!tagForm.valid">
-          <mat-icon>add</mat-icon>
-          Create Tag
-        </button>
-      </div>
-    </div>
+<div class="nom-page-container recipe-tags">
+  <amw-card
+    [headerTitle]="pageTitle"
+    [headerSubtitle]="pageSubtitle"
+    headerIcon="label">
+    <ng-template #contentTemplate>
+      @if (loading()) {
+        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+      }
 
-    <!-- Create Tag Form -->
-    <mat-card class="recipe-tags__form-card" *ngIf="tagForm.get('name')?.value">
-      <mat-card-content>
-        <form [formGroup]="tagForm" class="recipe-tags__form">
-          <div class="recipe-tags__form-row">
-            <mat-form-field appearance="outline" class="recipe-tags__form-field">
-              <mat-label>Tag Name</mat-label>
-              <input matInput formControlName="name" placeholder="Enter tag name">
-              <mat-error *ngIf="tagForm.get('name')?.hasError('required')">
-                Tag name is required
-              </mat-error>
-              <mat-error *ngIf="tagForm.get('name')?.hasError('minlength')">
-                Tag name must be at least 2 characters
-              </mat-error>
-              <mat-error *ngIf="tagForm.get('name')?.hasError('maxlength')">
-                Tag name must be less than 50 characters
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="recipe-tags__form-field">
-              <mat-label>Color</mat-label>
-              <input matInput formControlName="color" type="color">
-            </mat-form-field>
+      @if (error()) {
+        <div class="nom-error-state">
+          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+          <p class="nom-error-state__message">{{ error() }}</p>
+          <div class="nom-error-state__actions">
+            <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          </div>
+        </div>
+      } @else {
+        <!-- Search and Create Section -->
+        <div class="recipe-tags__header">
+          <div class="recipe-tags__search">
+            <amw-input
+              [(ngModel)]="searchTerm"
+              (valueChange)="filterTags()"
+              label="Search tags"
+              placeholder="Search by name or description"
+              suffixIcon="search"
+              class="recipe-tags__search-field">
+            </amw-input>
           </div>
 
-          <mat-form-field appearance="outline" class="recipe-tags__form-field">
-            <mat-label>Description (Optional)</mat-label>
-            <textarea matInput formControlName="description" placeholder="Enter tag description" rows="2"></textarea>
-            <mat-error *ngIf="tagForm.get('description')?.hasError('maxlength')">
-              Description must be less than 200 characters
-            </mat-error>
-          </mat-form-field>
-
-          <div class="recipe-tags__form-actions">
-            <button mat-button (click)="tagForm.reset()">
-              Cancel
-            </button>
-            <button mat-raised-button color="primary" (click)="createNewTag()" [disabled]="!tagForm.valid">
+          <div class="recipe-tags__actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              icon="add"
+              (click)="createNewTag()"
+              [disabled]="!tagForm.valid">
               Create Tag
-            </button>
+            </amw-button>
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        </div>
 
-    <!-- Loading State -->
-    <div *ngIf="loading" class="recipe-tags__loading">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading tags...</p>
-    </div>
+        <!-- Create Tag Form -->
+        @if (tagForm.get('name')?.value) {
+          <amw-card
+            headerTitle="Create New Tag"
+            class="recipe-tags__form-card">
+            <ng-template #contentTemplate>
+              <form [formGroup]="tagForm" class="recipe-tags__form">
+                <div class="recipe-tags__form-row">
+                  <amw-input
+                    formControlName="name"
+                    label="Tag Name"
+                    placeholder="Enter tag name"
+                    [required]="true"
+                    class="recipe-tags__form-field">
+                  </amw-input>
 
-    <!-- Error State -->
-    <div *ngIf="error && !loading" class="recipe-tags__error">
-      <mat-card class="recipe-tags__error-card">
-        <mat-card-content>
-          <div class="recipe-tags__error-content">
-            <mat-icon color="warn">error</mat-icon>
-            <p>{{ error }}</p>
-            <button mat-button color="primary" (click)="onRetry()">
-              Try Again
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+                  <amw-input
+                    formControlName="color"
+                    label="Color"
+                    type="color"
+                    class="recipe-tags__form-field">
+                  </amw-input>
+                </div>
 
-    <!-- Available Tags -->
-    <div *ngIf="!loading && !error" class="recipe-tags__content">
-      <mat-card class="recipe-tags__available-card">
-        <mat-card-header>
-          <mat-card-title>Available Tags</mat-card-title>
-          <mat-card-subtitle>Click to add tags to this recipe</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="recipe-tags__available-list">
-            <div 
-              *ngFor="let tag of filteredTags" 
-              class="recipe-tags__available-item"
-              [class.recipe-tags__available-item--selected]="isTagSelected(tag)"
-              (click)="addTag(tag)"
-              (keyup.enter)="addTag(tag)"
-              tabindex="0"
-              role="button"
-              [attr.aria-label]="'Add tag: ' + tag.name"
-            >
-              <mat-chip 
-                [style]="getTagStyle(tag)"
-                class="recipe-tags__chip"
-                [matTooltip]="tag.description || tag.name"
-              >
-                {{ tag.name }}
-              </mat-chip>
-              <button 
-                mat-icon-button 
-                [matTooltip]="'Delete tag'"
-                (click)="deleteTag(tag); $event.stopPropagation()"
-                class="recipe-tags__delete-btn"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+                <amw-textarea
+                  formControlName="description"
+                  label="Description (Optional)"
+                  placeholder="Enter tag description"
+                  [rows]="2"
+                  class="recipe-tags__form-field">
+                </amw-textarea>
 
-      <!-- Selected Tags -->
-      <mat-card class="recipe-tags__selected-card" *ngIf="tags.length > 0">
-        <mat-card-header>
-          <mat-card-title>Selected Tags</mat-card-title>
-          <mat-card-subtitle>Tags assigned to this recipe</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="recipe-tags__selected-list">
-            <mat-chip 
-              *ngFor="let tag of tags" 
-              [style]="getTagStyle(tag)"
-              class="recipe-tags__chip recipe-tags__chip--selected"
-              [matTooltip]="tag.description || tag.name"
-            >
-              {{ tag.name }}
-              <button 
-                matChipRemove 
-                (click)="removeTag(tag)"
-                [matTooltip]="'Remove tag'"
-              >
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </mat-chip>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  </div>
-</nom-base-page> 
+                <div class="recipe-tags__form-actions">
+                  <amw-button variant="text" (click)="tagForm.reset()">Cancel</amw-button>
+                  <amw-button
+                    variant="filled"
+                    color="primary"
+                    (click)="createNewTag()"
+                    [disabled]="!tagForm.valid">
+                    Create Tag
+                  </amw-button>
+                </div>
+              </form>
+            </ng-template>
+          </amw-card>
+        }
+
+        <!-- Available Tags -->
+        @if (!loading()) {
+          <amw-card
+            headerTitle="Available Tags"
+            headerSubtitle="Click to add tags to this recipe"
+            class="recipe-tags__available-card">
+            <ng-template #contentTemplate>
+              <div class="recipe-tags__available-list">
+                @for (tag of filteredTags(); track tag.id) {
+                  <div
+                    class="recipe-tags__available-item"
+                    [class.recipe-tags__available-item--selected]="isTagSelected(tag)"
+                    (click)="addTag(tag)"
+                    (keyup.enter)="addTag(tag)"
+                    tabindex="0"
+                    role="button"
+                    [attr.aria-label]="'Add tag: ' + tag.name"
+                  >
+                    <mat-chip
+                      [style]="getTagStyle(tag)"
+                      class="recipe-tags__chip"
+                      [amwTooltip]="tag.description || tag.name"
+                    >
+                      {{ tag.name }}
+                    </mat-chip>
+                    <amw-icon-button
+                      icon="delete"
+                      ariaLabel="Delete tag"
+                      [amwTooltip]="'Delete tag'"
+                      (buttonClick)="deleteTag(tag); $event.stopPropagation()"
+                      class="recipe-tags__delete-btn">
+                    </amw-icon-button>
+                  </div>
+                }
+              </div>
+            </ng-template>
+          </amw-card>
+
+          <!-- Selected Tags -->
+          @if (tags().length > 0) {
+            <amw-card
+              headerTitle="Selected Tags"
+              headerSubtitle="Tags assigned to this recipe"
+              class="recipe-tags__selected-card">
+              <ng-template #contentTemplate>
+                <div class="recipe-tags__selected-list">
+                  @for (tag of tags(); track tag.id) {
+                    <mat-chip
+                      [style]="getTagStyle(tag)"
+                      class="recipe-tags__chip recipe-tags__chip--selected"
+                      [amwTooltip]="tag.description || tag.name"
+                    >
+                      {{ tag.name }}
+                      <button
+                        matChipRemove
+                        (click)="removeTag(tag)"
+                        [amwTooltip]="'Remove tag'"
+                      >
+                        <amw-icon name="cancel"></amw-icon>
+                      </button>
+                    </mat-chip>
+                  }
+                </div>
+              </ng-template>
+            </amw-card>
+          }
+        }
+      }
+    </ng-template>
+  </amw-card>
+</div>

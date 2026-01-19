@@ -3,21 +3,15 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 import { Router } from '@angular/router';
 import { ViewEncapsulation } from '@angular/core';
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
@@ -29,21 +23,19 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
   imports: [
     ReactiveFormsModule,
     FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatChipsModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    MatDividerModule,
     MatBadgeModule,
-    BasePageComponent
-],
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwInputComponent,
+    AmwIconButtonComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+    BasePageComponent,
+  ],
   templateUrl: './messaging-inbox.component.html',
   styleUrls: ['./messaging-inbox.component.scss'],
   encapsulation: ViewEncapsulation.None,

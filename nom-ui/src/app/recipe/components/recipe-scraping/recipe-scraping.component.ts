@@ -1,15 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeScrapingModel, RecipeScrapingRequestModel } from '../../models/recipe-scraping.model';
@@ -18,15 +11,9 @@ import { RecipeScrapingModel, RecipeScrapingRequestModel } from '../../models/re
     selector: 'nom-recipe-scraping',
     standalone: true,
     imports: [
-        CommonModule,
+        NgFor,
+        NgIf,
         ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatCheckboxModule,
     ],
     templateUrl: './recipe-scraping.component.html',
     styleUrls: ['./recipe-scraping.component.scss']

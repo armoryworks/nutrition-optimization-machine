@@ -1,98 +1,72 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="mealPlanForm"
-  [loading]="isLoading()"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
-  >
-  <div class="meal-plan-edit">
-    <div class="meal-plan-edit__container">
-      <!-- Recipe Name Field -->
-      <div class="meal-plan-edit__field">
-        <mat-form-field class="meal-plan-edit__input">
-          <mat-label>Recipe Name</mat-label>
-          <input
-            matInput
-            formControlName="recipeName"
-            placeholder="Enter recipe name"
-            class="meal-plan-edit__input-field"
-            >
-          @if (mealPlanForm.get('recipeName')?.hasError('required')) {
-            <mat-error>
-              Recipe name is required
-            </mat-error>
-          }
-          @if (mealPlanForm.get('recipeName')?.hasError('minlength')) {
-            <mat-error>
-              Recipe name must be at least 2 characters
-            </mat-error>
-          }
-          @if (mealPlanForm.get('recipeName')?.hasError('maxlength')) {
-            <mat-error>
-              Recipe name cannot exceed 100 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
+<div class="nom-page-container meal-plan-edit">
+  <amw-card
+    class="nom-card"
+    headerTitle="Edit Meal Plan"
+    headerSubtitle="Update your meal plan information">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
 
-      <!-- Meal Type Field -->
-      <div class="meal-plan-edit__field">
-        <mat-form-field class="meal-plan-edit__select">
-          <mat-label>Meal Type</mat-label>
-          <mat-select formControlName="mealType" class="meal-plan-edit__select-field">
-            @for (mealType of mealTypes; track mealType.value) {
-              <mat-option [value]="mealType.value">
-                {{ mealType.label }}
-              </mat-option>
-            }
-          </mat-select>
-          @if (mealPlanForm.get('mealType')?.hasError('required')) {
-            <mat-error>
-              Meal type is required
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
+      <form
+        [formGroup]="mealPlanForm"
+        (ngSubmit)="onSubmit()"
+        class="nom-form">
+        <amw-input
+          formControlName="recipeName"
+          label="Recipe Name"
+          placeholder="Enter recipe name"
+          icon="restaurant_menu"
+          [required]="true"
+          class="nom-form__field">
+        </amw-input>
 
-      <!-- Date Field -->
-      <div class="meal-plan-edit__field">
-        <mat-form-field class="meal-plan-edit__date">
-          <mat-label>Date</mat-label>
-          <input
-            matInput
-            [matDatepicker]="picker"
-            formControlName="date"
-            placeholder="Choose a date"
-            class="meal-plan-edit__date-field"
-            >
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-          @if (mealPlanForm.get('date')?.hasError('required')) {
-            <mat-error>
-              Date is required
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
+        <amw-select
+          formControlName="mealType"
+          label="Meal Type"
+          [options]="mealTypes"
+          [required]="true"
+          class="nom-form__field">
+        </amw-select>
 
-      <!-- Description Field -->
-      <div class="meal-plan-edit__field">
-        <mat-form-field class="meal-plan-edit__textarea">
-          <mat-label>Description (Optional)</mat-label>
-          <textarea
-            matInput
-            formControlName="description"
-            placeholder="Enter meal plan description"
-            rows="4"
-            class="meal-plan-edit__textarea-field"
-          ></textarea>
-          @if (mealPlanForm.get('description')?.hasError('maxlength')) {
-            <mat-error>
-              Description cannot exceed 500 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
-    </div>
-  </div>
-</nom-base-form>
+        <amw-datepicker
+          formControlName="date"
+          label="Date"
+          [required]="true"
+          class="nom-form__field">
+        </amw-datepicker>
+
+        <amw-textarea
+          formControlName="description"
+          label="Description (Optional)"
+          placeholder="Enter meal plan description"
+          [rows]="4"
+          class="nom-form__field">
+        </amw-textarea>
+
+        <div class="nom-form__actions">
+          <amw-button
+            type="button"
+            variant="text"
+            (click)="onCancel()"
+            class="nom-button">
+            Cancel
+          </amw-button>
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            [disabled]="mealPlanForm.invalid || isLoading()"
+            [loading]="isLoading()"
+            class="nom-button">
+            Update Meal Plan
+          </amw-button>
+        </div>
+      </form>
+    </ng-template>
+  </amw-card>
+</div>

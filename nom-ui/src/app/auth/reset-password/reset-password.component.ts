@@ -7,16 +7,11 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-import { ActivatedRoute, Router } from '@angular/router'; // Import Router for navigation
+import { ActivatedRoute, Router } from '@angular/router';
 
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { ResetPassword } from '../models/reset-password';
@@ -27,14 +22,11 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatProgressBarModule
-],
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwCardComponent
+  ],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
   encapsulation: ViewEncapsulation.None,

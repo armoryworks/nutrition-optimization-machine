@@ -4,7 +4,7 @@
     <div class="household-invite__header">
       <div class="household-invite__header-content">
         <div class="household-invite__title-section">
-          <mat-icon class="household-invite__title-icon">person_add</mat-icon>
+          <amw-icon name="person_add" class="household-invite__title-icon"></amw-icon>
           <div class="household-invite__title-info">
             <h1 class="household-invite__title">Invite to Household</h1>
             <p class="household-invite__subtitle">Invite someone to join your household</p>
@@ -14,109 +14,78 @@
     </div>
 
     <!-- Invite Form -->
-    <mat-card class="household-invite__form-card">
-      <mat-card-header>
-        <mat-card-title>Create Invitation</mat-card-title>
-      </mat-card-header>
-
-      <mat-card-content>
+    <amw-card [headerTitle]="'Create Invitation'" headerIcon="mail">
+      <ng-template #contentTemplate>
         <form [formGroup]="inviteForm" (ngSubmit)="onSubmit()" class="household-invite__form">
-          <mat-form-field appearance="outline" class="household-invite__field">
-            <mat-label>Expiration Days</mat-label>
-            <input 
-              matInput 
-              type="number"
-              formControlName="expiresInDays"
-              placeholder="Enter number of days..."
-              class="household-invite__input"
-            />
-            @if (inviteForm.get('expiresInDays')?.hasError('required')) {
-              <mat-error>Expiration days is required</mat-error>
-            }
-            @if (inviteForm.get('expiresInDays')?.hasError('min')) {
-              <mat-error>Must be at least 1 day</mat-error>
-            }
-            @if (inviteForm.get('expiresInDays')?.hasError('max')) {
-              <mat-error>Cannot exceed 30 days</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            type="number"
+            formControlName="expiresInDays"
+            label="Expiration Days"
+            placeholder="Enter number of days..."
+            [required]="true"
+            class="household-invite__field">
+          </amw-input>
 
           <div class="household-invite__form-actions">
-            <button
-              mat-raised-button
-              color="primary"
+            <amw-button
               type="submit"
+              variant="filled"
+              color="primary"
+              [icon]="isLoading() ? 'hourglass_empty' : 'send'"
               [disabled]="inviteForm.invalid || isLoading()"
-              class="household-invite__submit-btn">
-              @if (isLoading()) {
-                <mat-icon>hourglass_empty</mat-icon>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
+              [loading]="isLoading()">
               {{ isLoading() ? 'Creating...' : 'Create Invitation' }}
-            </button>
+            </amw-button>
           </div>
         </form>
-      </mat-card-content>
-    </mat-card>
+      </ng-template>
+    </amw-card>
 
     <!-- Error Message -->
     @if (error()) {
       <div class="household-invite__error">
-        <mat-card class="household-invite__error-card">
-          <mat-card-content>
+        <amw-card [headerTitle]="'Error Creating Invitation'" headerIcon="error">
+          <ng-template #contentTemplate>
             <div class="household-invite__error-content">
-              <mat-icon class="household-invite__error-icon">error</mat-icon>
-              <h3>Error Creating Invitation</h3>
               <p>{{ error() }}</p>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </ng-template>
+        </amw-card>
       </div>
     }
 
     <!-- Invite Link Section -->
     @if (inviteLink()) {
       <div class="household-invite__invite-section">
-        <mat-card class="household-invite__invite-card">
-          <mat-card-header>
-            <mat-card-title>Invitation Link</mat-card-title>
-            <mat-card-subtitle>Share this link with the person you want to invite</mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content>
+        <amw-card [headerTitle]="'Invitation Link'" headerIcon="link">
+          <ng-template #contentTemplate>
+            <p class="household-invite__invite-subtitle">Share this link with the person you want to invite</p>
             <div class="household-invite__link-container">
-              <mat-form-field appearance="outline" class="household-invite__link-field">
-                <mat-label>Invitation Link</mat-label>
-                <input
-                  matInput
-                  [value]="inviteLink()"
-                  readonly
-                  class="household-invite__link-input"
-                />
-                <button 
-                  mat-icon-button 
-                  matSuffix
-                  (click)="copyLink()"
-                  class="household-invite__copy-btn">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </mat-form-field>
+              <amw-input
+                [value]="inviteLink()"
+                label="Invitation Link"
+                [readonly]="true"
+                class="household-invite__link-field">
+              </amw-input>
+              <amw-button
+                variant="icon"
+                (click)="copyLink()">
+                <amw-icon name="content_copy"></amw-icon>
+              </amw-button>
             </div>
 
             <div class="household-invite__link-actions">
-              <button 
-                mat-raised-button 
+              <amw-button
+                variant="filled"
                 color="primary"
-                (click)="shareLink()"
-                class="household-invite__share-btn">
-                <mat-icon>share</mat-icon>
+                icon="share"
+                (click)="shareLink()">
                 Share Link
-              </button>
+              </amw-button>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </ng-template>
+        </amw-card>
       </div>
     }
   </div>
-</div> 
+</div>

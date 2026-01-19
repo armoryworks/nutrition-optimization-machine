@@ -1,10 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDividerModule } from '@angular/material/divider';
+import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective } from 'angular-material-wrap';
 
 export interface DetailAction {
     label: string;
@@ -28,11 +24,13 @@ export interface BaseDetailConfig {
     selector: 'nom-base-detail',
     standalone: true,
     imports: [
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
-    MatDividerModule
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconButtonComponent,
+    AmwIconComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective,
 ],
     templateUrl: './base-detail.component.html',
     styleUrls: ['./base-detail.component.scss']

@@ -5,17 +5,15 @@ import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
+import { NgClass } from '@angular/common';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Subject, takeUntil } from 'rxjs';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwSelectComponent } from 'angular-material-wrap';
+
 import { PersonAttributeModel } from '../../models/person-attribute.model';
-import { MatSelectModule } from '@angular/material/select';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { ReferenceService } from '../../../common/services/reference.service';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
-import { Subject, takeUntil } from 'rxjs';
 
 // Extended interface for attribute types with additional properties
 interface AttributeTypeModel extends ReferenceItemModel {
@@ -30,14 +28,14 @@ interface AttributeTypeModel extends ReferenceItemModel {
   selector: 'nom-person-health-edit',
   standalone: true,
   imports: [
-    CommonModule,
+    NgClass,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatSelectModule,
-    BaseFormComponent,
-    BasePageComponent,
+    MatProgressBarModule,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwInputComponent,
+    AmwSelectComponent,
   ],
   templateUrl: './person-health-edit.component.html',
   styleUrls: ['./person-health-edit.component.scss'],
@@ -62,21 +60,11 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   error = signal<string | null>(null);
 
-  pageConfig: BasePageConfig = {
-    title: 'Health Information',
-    subtitle: 'Provide some health details to help us personalize your plan (Optional)',
-    showBackButton: true,
-    maxWidth: '600px'
-  };
-
-  formConfig: BaseFormConfig = {
-    title: '',
-    subtitle: '',
-    submitText: 'Save Health Info',
-    showCancelButton: true,
-    cancelText: 'Skip',
-    maxWidth: '100%'
-  };
+  // Page configuration
+  pageTitle = 'Health Information';
+  pageSubtitle = 'Provide some health details to help us personalize your plan (Optional)';
+  submitText = 'Save Health Info';
+  cancelText = 'Skip';
 
   private destroy$ = new Subject<void>();
 

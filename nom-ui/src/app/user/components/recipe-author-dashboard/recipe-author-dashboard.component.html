@@ -10,17 +10,17 @@
                 <!-- Stats Pills -->
                 <div class="nom-dashboard__stats-pills">
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>restaurant</mat-icon>
+                        <amw-icon name="restaurant"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ recipesCount$ | async }}</span>
                         <span class="nom-dashboard__stat-label">Recipes</span>
                     </div>
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>eco</mat-icon>
+                        <amw-icon name="eco"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ ingredientsCount$ | async }}</span>
                         <span class="nom-dashboard__stat-label">Ingredients</span>
                     </div>
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>pending</mat-icon>
+                        <amw-icon name="pending"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ pendingCurationCount$ | async }}</span>
                         <span class="nom-dashboard__stat-label">Pending</span>
                     </div>
@@ -39,28 +39,25 @@
                     <div class="nom-dashboard__section-header-compact">
                         <!-- Recipe Filters moved to header -->
                         <div class="nom-dashboard__filters">
-                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
-                                <mat-label>Search My Recipes...</mat-label>
-                                <input matInput [(ngModel)]="recipeSearchTerm" (input)="onRecipeSearch()" placeholder="Search My Recipes...">
-                                <mat-icon matSuffix>search</mat-icon>
-                            </mat-form-field>
-                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
-                                <mat-label>Status</mat-label>
-                                <mat-select [(ngModel)]="recipeStatusFilter" (selectionChange)="onRecipeStatusFilter()">
-                                    <mat-option value="">All Statuses</mat-option>
-                                    <mat-option value="DRAFT">Draft</mat-option>
-                                    <mat-option value="NONCURATED">Non-Curated</mat-option>
-                                    <mat-option value="PENDINGCURATION">Pending Curation</mat-option>
-                                    <mat-option value="CURATED">Curated</mat-option>
-                                    <mat-option value="REQUIRESREVISION">Requires Revision</mat-option>
-                                    <mat-option value="REJECTED">Rejected</mat-option>
-                                </mat-select>
-                            </mat-form-field>
+                            <amw-input
+                                [(ngModel)]="recipeSearchTerm"
+                                (ngModelChange)="onRecipeSearch()"
+                                label="Search My Recipes..."
+                                placeholder="Search My Recipes..."
+                                suffixIcon="search"
+                                class="nom-dashboard__filter-field">
+                            </amw-input>
+                            <amw-select
+                                [(ngModel)]="recipeStatusFilter"
+                                (ngModelChange)="onRecipeStatusFilter()"
+                                label="Status"
+                                [options]="statusOptions"
+                                class="nom-dashboard__filter-field">
+                            </amw-select>
                         </div>
-                        <button mat-stroked-button (click)="navigateToNewRecipe()" class="nom-dashboard__action-button">
-                            <mat-icon>add</mat-icon>
-                            <span>New Recipe</span>
-                        </button>
+                        <amw-button variant="outlined" (click)="navigateToNewRecipe()" class="nom-dashboard__action-button" icon="add">
+                            New Recipe
+                        </amw-button>
                     </div>
 
                     @if (filteredRecipes$ | async; as recipes) {
@@ -69,15 +66,15 @@
                         <div class="nom-dashboard__item-card">
                             <div class="nom-dashboard__item-row">
                                 <div class="nom-dashboard__item-info">
-                                    <h3 class="nom-dashboard__item-title" 
-                                        [matTooltip]="recipe.name" 
-                                        matTooltipPosition="above"
-                                        [matTooltipDisabled]="recipe.name.length <= 30">
+                                    <h3 class="nom-dashboard__item-title"
+                                        [amwTooltip]="recipe.name"
+                                        amwTooltipPosition="above"
+                                        [amwTooltipDisabled]="recipe.name.length <= 30">
                                         {{ recipe.name }}
                                     </h3>
                                     <div class="nom-dashboard__item-status">
                                         @if (isSubmitting(recipe.id)) {
-                                        <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                        <amw-icon name="hourglass_empty" class="nom-dashboard__status-icon"></amw-icon>
                                         <span>Submitting...</span>
                                         } @else {
                                         <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + recipe.curationStatus.toLowerCase()">
@@ -90,44 +87,40 @@
                                     </div>
                                 </div>
                                 <div class="nom-dashboard__item-actions">
-                                    <button mat-icon-button [matMenuTriggerFor]="recipeMenu" class="nom-dashboard__action-btn" title="Actions">
-                                        <mat-icon>more_vert</mat-icon>
-                                    </button>
-                                    <mat-menu #recipeMenu="matMenu">
+                                    <amw-icon-button
+                                        icon="more_vert"
+                                        [amwMenuTriggerFor]="recipeMenu"
+                                        class="nom-dashboard__action-btn"
+                                        ariaLabel="Actions">
+                                    </amw-icon-button>
+                                    <amw-menu #recipeMenu>
                                         @for (item of getRecipeMenuItems(recipe); track item.label) {
-                                        @if (item.routerLink) {
-                                        <button mat-menu-item [routerLink]="item.routerLink">
-                                            <mat-icon>{{ item.icon }}</mat-icon>
-                                            <span>{{ item.label }}</span>
-                                        </button>
-                                        } @else {
-                                        <button mat-menu-item 
-                                                (click)="item.action()"
-                                                [disabled]="item.disabled">
-                                            <mat-icon>{{ item.icon }}</mat-icon>
-                                            <span>{{ item.label }}</span>
-                                        </button>
+                                          <amw-menu-item
+                                            [label]="item.label"
+                                            [icon]="item.icon"
+                                            [routerLink]="item.routerLink"
+                                            [disabled]="item.disabled || false"
+                                            (itemClick)="item.action()">
+                                          </amw-menu-item>
                                         }
-                                        }
-                                    </mat-menu>
+                                    </amw-menu>
                                 </div>
                             </div>
                         </div>
                         } @empty {
                         <div class="nom-dashboard__empty-state">
-                            <mat-icon class="nom-dashboard__empty-icon">restaurant</mat-icon>
+                            <amw-icon name="restaurant" class="nom-dashboard__empty-icon"></amw-icon>
                             <h3>No recipes yet</h3>
                             <p>Start creating your first recipe to build your collection</p>
-                            <button mat-raised-button routerLink="/recipes/new" class="nom-dashboard__empty-action">
-                                <mat-icon>add</mat-icon>
+                            <amw-button variant="filled" routerLink="/recipes/new" class="nom-dashboard__empty-action" icon="add">
                                 Create Your First Recipe
-                            </button>
+                            </amw-button>
                         </div>
                         }
                     </div>
                     } @else {
                     <div class="nom-dashboard__loading-container">
-                        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
                     </div>
                     }
                 </div>
@@ -137,28 +130,25 @@
                     <div class="nom-dashboard__section-header-compact">
                         <!-- Ingredient Filters moved to header -->
                         <div class="nom-dashboard__filters">
-                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
-                                <mat-label>Search My Ingredients...</mat-label>
-                                <input matInput [(ngModel)]="ingredientSearchTerm" (input)="onIngredientSearch()" placeholder="Search My Ingredients...">
-                                <mat-icon matSuffix>search</mat-icon>
-                            </mat-form-field>
-                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
-                                <mat-label>Status</mat-label>
-                                <mat-select [(ngModel)]="ingredientStatusFilter" (selectionChange)="onIngredientStatusFilter()">
-                                    <mat-option value="">All Statuses</mat-option>
-                                    <mat-option value="DRAFT">Draft</mat-option>
-                                    <mat-option value="NONCURATED">Non-Curated</mat-option>
-                                    <mat-option value="PENDINGCURATION">Pending Curation</mat-option>
-                                    <mat-option value="CURATED">Curated</mat-option>
-                                    <mat-option value="REQUIRESREVISION">Requires Revision</mat-option>
-                                    <mat-option value="REJECTED">Rejected</mat-option>
-                                </mat-select>
-                            </mat-form-field>
+                            <amw-input
+                                [(ngModel)]="ingredientSearchTerm"
+                                (ngModelChange)="onIngredientSearch()"
+                                label="Search My Ingredients..."
+                                placeholder="Search My Ingredients..."
+                                suffixIcon="search"
+                                class="nom-dashboard__filter-field">
+                            </amw-input>
+                            <amw-select
+                                [(ngModel)]="ingredientStatusFilter"
+                                (ngModelChange)="onIngredientStatusFilter()"
+                                label="Status"
+                                [options]="statusOptions"
+                                class="nom-dashboard__filter-field">
+                            </amw-select>
                         </div>
-                        <button mat-stroked-button (click)="navigateToNewIngredient()" class="nom-dashboard__action-button">
-                            <mat-icon>add</mat-icon>
-                            <span>New Ingredient</span>
-                        </button>
+                        <amw-button variant="outlined" (click)="navigateToNewIngredient()" class="nom-dashboard__action-button" icon="add">
+                            New Ingredient
+                        </amw-button>
                     </div>
 
                     @if (filteredIngredients$ | async; as ingredients) {
@@ -167,15 +157,15 @@
                         <div class="nom-dashboard__item-card">
                             <div class="nom-dashboard__item-row">
                                 <div class="nom-dashboard__item-info">
-                                    <h3 class="nom-dashboard__item-title" 
-                                        [matTooltip]="ingredient.name" 
-                                        matTooltipPosition="above"
-                                        [matTooltipDisabled]="ingredient.name.length <= 30">
+                                    <h3 class="nom-dashboard__item-title"
+                                        [amwTooltip]="ingredient.name"
+                                        amwTooltipPosition="above"
+                                        [amwTooltipDisabled]="ingredient.name.length <= 30">
                                         {{ ingredient.name }}
                                     </h3>
                                     <div class="nom-dashboard__item-status">
                                         @if (isSubmitting(ingredient.id)) {
-                                        <mat-icon class="nom-dashboard__status-icon">hourglass_empty</mat-icon>
+                                        <amw-icon name="hourglass_empty" class="nom-dashboard__status-icon"></amw-icon>
                                         <span>Submitting...</span>
                                         } @else {
                                         <span class="nom-dashboard__status-badge" [class]="'nom-dashboard__status-badge--' + ingredient.curationStatus.toLowerCase()">
@@ -188,44 +178,40 @@
                                     </div>
                                 </div>
                                 <div class="nom-dashboard__item-actions">
-                                    <button mat-icon-button [matMenuTriggerFor]="ingredientMenu" class="nom-dashboard__action-btn" title="Actions">
-                                        <mat-icon>more_vert</mat-icon>
-                                    </button>
-                                    <mat-menu #ingredientMenu="matMenu">
+                                    <amw-icon-button
+                                        icon="more_vert"
+                                        [amwMenuTriggerFor]="ingredientMenu"
+                                        class="nom-dashboard__action-btn"
+                                        ariaLabel="Actions">
+                                    </amw-icon-button>
+                                    <amw-menu #ingredientMenu>
                                         @for (item of getIngredientMenuItems(ingredient); track item.label) {
-                                        @if (item.routerLink) {
-                                        <button mat-menu-item [routerLink]="item.routerLink">
-                                            <mat-icon>{{ item.icon }}</mat-icon>
-                                            <span>{{ item.label }}</span>
-                                        </button>
-                                        } @else {
-                                        <button mat-menu-item 
-                                                (click)="item.action()"
-                                                [disabled]="item.disabled">
-                                            <mat-icon>{{ item.icon }}</mat-icon>
-                                            <span>{{ item.label }}</span>
-                                        </button>
+                                          <amw-menu-item
+                                            [label]="item.label"
+                                            [icon]="item.icon"
+                                            [routerLink]="item.routerLink"
+                                            [disabled]="item.disabled || false"
+                                            (itemClick)="item.action()">
+                                          </amw-menu-item>
                                         }
-                                        }
-                                    </mat-menu>
+                                    </amw-menu>
                                 </div>
                             </div>
                         </div>
                         } @empty {
                         <div class="nom-dashboard__empty-state">
-                            <mat-icon class="nom-dashboard__empty-icon">eco</mat-icon>
+                            <amw-icon name="eco" class="nom-dashboard__empty-icon"></amw-icon>
                             <h3>No ingredients yet</h3>
                             <p>Create custom ingredients to enhance your recipes</p>
-                            <button mat-raised-button (click)="navigateToNewIngredient()" class="nom-dashboard__empty-action">
-                                <mat-icon>add</mat-icon>
+                            <amw-button variant="filled" (click)="navigateToNewIngredient()" class="nom-dashboard__empty-action" icon="add">
                                 Create Your First Ingredient
-                            </button>
+                            </amw-button>
                         </div>
                         }
                     </div>
                     } @else {
                     <div class="nom-dashboard__loading-container">
-                        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+                        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
                     </div>
                     }
                 </div>
@@ -233,7 +219,7 @@
 
             @if (error) {
             <div class="nom-dashboard__error-message">
-                <mat-icon>error</mat-icon>
+                <amw-icon name="error"></amw-icon>
                 <p>{{ error }}</p>
             </div>
             }

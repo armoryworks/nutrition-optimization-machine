@@ -2,35 +2,43 @@
   <div class="recipe-search__container">
     <!-- Public Landing Page -->
     <div class="recipe-search__public-landing">
-      <mat-card class="recipe-search__welcome-card">
-        <mat-card-header>
-          <mat-card-title>Discover Amazing Recipes</mat-card-title>
-          <mat-card-subtitle>Browse our collection of delicious recipes from around the world</mat-card-subtitle>
-        </mat-card-header>
-        
-        <mat-card-content>
+      <amw-card
+        headerTitle="Discover Amazing Recipes"
+        headerSubtitle="Browse our collection of delicious recipes from around the world"
+        headerIcon="restaurant"
+        class="recipe-search__welcome-card">
+        <ng-template #contentTemplate>
           <div class="recipe-search__public-actions">
-            <button mat-raised-button color="primary" (click)="browsePublicRecipes()">
-              <mat-icon>restaurant</mat-icon>
+            <amw-button
+              variant="filled"
+              color="primary"
+              icon="restaurant"
+              (click)="browsePublicRecipes()">
               Browse Recipes
-            </button>
-            
+            </amw-button>
+
             <div class="recipe-search__auth-prompt">
               <p>Want to create your own recipes and save favorites?</p>
               <div class="recipe-search__auth-buttons">
-                <button mat-button color="accent" (click)="onLogin()">
-                  <mat-icon>login</mat-icon>
+                <amw-button
+                  variant="text"
+                  color="accent"
+                  icon="login"
+                  (click)="onLogin()">
                   Login
-                </button>
-                <button mat-button color="accent" (click)="onRegister()">
-                  <mat-icon>person_add</mat-icon>
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="accent"
+                  icon="person_add"
+                  (click)="onRegister()">
                   Create Account
-                </button>
+                </amw-button>
               </div>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </ng-template>
+      </amw-card>
     </div>
   </div>
-</div> 
+</div>

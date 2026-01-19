@@ -1,16 +1,7 @@
 import { Component, OnInit, input, inject, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subject, takeUntil, startWith, map, Observable } from 'rxjs';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
+import { AmwSelectComponent, AmwChipInputComponent } from 'angular-material-wrap';
+import { Subject, takeUntil } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
@@ -19,17 +10,9 @@ import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
   selector: 'app-personal-preference',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    MatChipsModule,
-    MatIconModule,
-    MatAutocompleteModule,
-    MatTooltipModule
+    AmwSelectComponent,
+    AmwChipInputComponent,
   ],
   templateUrl: './personal-preference.component.html',
   styleUrls: ['./personal-preference.component.scss']
@@ -41,9 +24,16 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
 
   personalPreferenceForm = input.required<FormGroup>();
 
-  // FormControls for autocomplete inputs
-  public ingredientSearchControl = new FormControl<string>('');
-  public filteredCuratedIngredients!: Observable<string[]>;
+  // FormControl for chip input - syncs with FormArray
+  public dislikedIngredientsControl = new FormControl<{ value: string; label: string }[]>([]);
+
+  // Curated ingredients list
+  private _allCuratedIngredients: string[] = [];
+
+  // Getter that converts strings to ChipInputOption format
+  get allCuratedIngredients(): { value: string; label: string }[] {
+    return this._allCuratedIngredients.map(item => ({ value: item, label: item }));
+  }
 
   // Reference data loaded dynamically
   public spiceLevelOptions: any[] = [];
@@ -57,7 +47,8 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
 
   ngOnInit(): void {
     this.loadReferenceData();
-    this.setupIngredientSearch();
+    this.loadCuratedIngredients();
+    this.setupChipSync();
   }
 
   ngOnDestroy(): void {
@@ -88,48 +79,31 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
       });
   }
 
-  private setupIngredientSearch(): void {
-    // Fetch real data from service
-    this.restrictionService.getCuratedIngredients().subscribe((data) => {
-      if (data && data.length > 0) {
-        this.filteredCuratedIngredients = this.ingredientSearchControl.valueChanges.pipe(
-          startWith(''),
-          map((value) =>
-            value
-              ? this._filter(value, data)
-              : data
-          )
-        );
-      }
-    });
+  private loadCuratedIngredients(): void {
+    this.restrictionService.getCuratedIngredients()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data) => {
+        if (data && data.length > 0) {
+          this._allCuratedIngredients = data;
+        }
+      });
   }
 
-  private _filter(value: string, options: string[]): string[] {
-    const filterValue = value ? value.toLowerCase() : '';
-    return options.filter((option) =>
-      option.toLowerCase().includes(filterValue)
-    );
-  }
+  private setupChipSync(): void {
+    // Sync chip input control with FormArray
+    this.dislikedIngredientsControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((values) => {
+        const formArray = this.dislikedIngredientsArray;
+        formArray.clear();
+        (values || []).forEach((chip: { value: string; label: string }) => {
+          formArray.push(this.fb.control(chip.value));
+        });
+      });
 
-  public addChip(event: { input?: HTMLInputElement | null; value?: string }, formArrayName: string): void {
-    const input = event.input;
-    const value = (event.value || '').trim();
-    if (value) {
-      const formArray = this.personalPreferenceForm().get(
-        formArrayName
-      ) as FormArray;
-      formArray.push(this.fb.control(value));
-      if (input) {
-        input.value = '';
-      }
-    }
-  }
-
-  public removeChip(index: number, formArrayName: string): void {
-    const formArray = this.personalPreferenceForm().get(
-      formArrayName
-    ) as FormArray;
-    formArray.removeAt(index);
+    // Initialize control with existing FormArray values (convert strings to ChipInputOption)
+    const initialValues = this.dislikedIngredientsArray.value.map((v: string) => ({ value: v, label: v }));
+    this.dislikedIngredientsControl.setValue(initialValues);
   }
 
   public getFormArray(formArrayName: string): FormArray {
@@ -194,5 +168,27 @@ export class PersonalPreferenceRestrictionComponent implements OnInit, OnDestroy
   public getCookingMethodName(id: number): string {
     const option = this.preferredCookingMethodsOptions.find(o => o.referenceId === id);
     return option?.referenceName || 'Unknown';
+  }
+
+  // Helper methods for AMW select options
+  getSpiceLevelSelectOptions(): { value: number; label: string }[] {
+    return this.spiceLevelOptions.map(option => ({
+      value: option.referenceId ?? 0,
+      label: option.referenceName ?? ''
+    }));
+  }
+
+  getTextureSelectOptions(): { value: number; label: string }[] {
+    return this.texturesDislikedOptions.map(option => ({
+      value: option.referenceId ?? 0,
+      label: option.referenceName ?? ''
+    }));
+  }
+
+  getCookingMethodSelectOptions(): { value: number; label: string }[] {
+    return this.preferredCookingMethodsOptions.map(option => ({
+      value: option.referenceId ?? 0,
+      label: option.referenceName ?? ''
+    }));
   }
 }

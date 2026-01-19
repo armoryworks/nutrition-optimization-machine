@@ -6,37 +6,26 @@ import {
     NonNullableFormBuilder,
 } from '@angular/forms';
 
-
 // Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
 
 import { PersonService } from '../../services/person.service';
 import { PersonModel } from '../../models/person.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
     selector: 'nom-person-profile-edit',
     standalone: true,
     imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatProgressBarModule,
-    BaseFormComponent,
-    BasePageComponent
-],
+        ReactiveFormsModule,
+        MatProgressBarModule,
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconComponent,
+        AmwInputComponent,
+    ],
     templateUrl: './person-profile-edit.component.html',
     styleUrls: ['./person-profile-edit.component.scss'],
     encapsulation: ViewEncapsulation.None,
@@ -49,23 +38,14 @@ export class PersonProfileEditComponent implements OnInit {
     personForm: FormGroup;
     isLoading = signal(false);
     isInitialLoading = signal(true);
+    error = signal<string | null>(null);
     currentPerson: PersonModel | null = null;
 
-    pageConfig: BasePageConfig = {
-        title: 'Edit Profile',
-        subtitle: 'Update your personal information',
-        showBackButton: true,
-        maxWidth: '600px'
-    };
-
-    formConfig: BaseFormConfig = {
-        title: '',
-        subtitle: '',
-        submitText: 'Save Changes',
-        showCancelButton: true,
-        cancelText: 'Cancel',
-        maxWidth: '100%'
-    };
+    // Page configuration
+    pageTitle = 'Edit Profile';
+    pageSubtitle = 'Update your personal information';
+    submitText = 'Save Changes';
+    cancelText = 'Cancel';
 
     constructor() {
         // Initialize the form group
@@ -80,6 +60,7 @@ export class PersonProfileEditComponent implements OnInit {
 
     private loadCurrentPerson(): void {
         this.isInitialLoading.set(true);
+        this.error.set(null);
         this.personService.getCurrentPerson().subscribe({
             next: (person) => {
                 if (person) {
@@ -90,12 +71,10 @@ export class PersonProfileEditComponent implements OnInit {
                 }
                 this.isInitialLoading.set(false);
             },
-            error: (error) => {
+            error: (err) => {
                 this.isInitialLoading.set(false);
-                console.error('Error loading person info:', error);
-                this.notificationService.error(
-                    error.message || 'Failed to load your profile information.'
-                );
+                console.error('Error loading person info:', err);
+                this.error.set(err.message || 'Failed to load your profile information.');
             },
         });
     }
@@ -149,6 +128,7 @@ export class PersonProfileEditComponent implements OnInit {
     }
 
     onRetry(): void {
+        this.error.set(null);
         this.loadCurrentPerson();
     }
 } 

@@ -1,41 +1,21 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, OnInit, inject, signal, ViewEncapsulation } from "@angular/core";
 
-import { ReactiveFormsModule, NonNullableFormBuilder } from "@angular/forms";
-import { MatCardModule } from "@angular/material/card";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatIconModule } from "@angular/material/icon";
-import { MatButtonModule } from "@angular/material/button";
-import { MatTableModule } from "@angular/material/table";
-import { MatPaginatorModule } from "@angular/material/paginator";
-import { MatSortModule } from "@angular/material/sort";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { Router } from "@angular/router";
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from "angular-material-wrap";
+
 import { HouseholdService } from "../../services/household.service";
 import { HouseholdResponseModel } from "../../models/household-response.model";
-import { ViewEncapsulation } from "@angular/core";
-import { BasePageComponent, BasePageConfig } from "../../../common/components/base-page/base-page.component";
 
 @Component({
     selector: "nom-household-dashboard",
     standalone: true,
     imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    BasePageComponent
-],
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent
+    ],
     templateUrl: "./household-dashboard.component.html",
     styleUrls: ["./household-dashboard.component.scss"],
     encapsulation: ViewEncapsulation.None,
@@ -43,19 +23,13 @@ import { BasePageComponent, BasePageConfig } from "../../../common/components/ba
 export class HouseholdDashboardComponent implements OnInit {
     private householdService = inject(HouseholdService);
     private router = inject(Router);
-    private fb = inject(NonNullableFormBuilder);
 
     households = signal<HouseholdResponseModel[]>([]);
     loading = signal(false);
     error = signal("");
 
-    pageConfig: BasePageConfig = {
-        title: "Households",
-        subtitle: "Manage your household groups and coordinate with family members",
-        showRefreshButton: true,
-        refreshButtonText: "Refresh",
-        maxWidth: "1200px",
-    };
+    pageTitle = "Households";
+    pageSubtitle = "Manage your household groups and coordinate with family members";
 
 
 

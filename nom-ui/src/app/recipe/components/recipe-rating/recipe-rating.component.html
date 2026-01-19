@@ -4,7 +4,7 @@
     <div class="recipe-rating__header">
       <div class="recipe-rating__header-content">
         <div class="recipe-rating__title-section">
-          <mat-icon class="recipe-rating__title-icon">star</mat-icon>
+          <amw-icon name="star" class="recipe-rating__title-icon"></amw-icon>
           <div class="recipe-rating__title-info">
             <h2 class="recipe-rating__title">Rate This Recipe</h2>
             <p class="recipe-rating__subtitle">Share your rating and review</p>
@@ -14,29 +14,27 @@
     </div>
 
     <!-- Rating Form -->
-    <mat-card class="recipe-rating__form-card">
-      <mat-card-header>
-        <mat-card-title>Your Rating</mat-card-title>
-      </mat-card-header>
-
-      <mat-card-content>
+    <amw-card
+      headerTitle="Your Rating"
+      headerIcon="star"
+      class="recipe-rating__form-card">
+      <ng-template #contentTemplate>
         <form [formGroup]="ratingForm" (ngSubmit)="onSubmit()" class="recipe-rating__form">
           <!-- Star Rating -->
           <div class="recipe-rating__stars-section">
             <div class="recipe-rating__stars-label">Your Rating:</div>
             <div class="recipe-rating__stars" role="radiogroup" aria-label="Recipe rating from 1 to 5 stars">
               @for (star of [1,2,3,4,5]; track star) {
-                <mat-icon 
-                  [class]="getStarClass(star)"
-                  class="recipe-rating__star recipe-rating__star--clickable"
+                <amw-icon
+                  name="star"
+                  [class]="getStarClass(star) + ' recipe-rating__star recipe-rating__star--clickable'"
                   (click)="setRating(star)"
                   role="radio"
                   [attr.aria-checked]="ratingForm.get('rating')?.value === star"
                   tabindex="0"
                   (keyup.enter)="setRating(star)"
                   (keyup.space)="setRating(star)">
-                  star
-                </mat-icon>
+                </amw-icon>
               }
             </div>
             <span class="recipe-rating__rating-text">
@@ -45,37 +43,28 @@
           </div>
 
           <!-- Review Text -->
-          <mat-form-field appearance="outline" class="recipe-rating__field">
-            <mat-label>Review (Optional)</mat-label>
-            <textarea 
-              matInput 
-              formControlName="reviewText"
-              placeholder="Share your thoughts about this recipe..."
-              rows="4"
-              class="recipe-rating__textarea"
-            ></textarea>
-            @if (ratingForm.get('reviewText')?.hasError('maxlength')) {
-              <mat-error>Review cannot exceed 500 characters</mat-error>
-            }
-          </mat-form-field>
+          <amw-textarea
+            formControlName="reviewText"
+            label="Review (Optional)"
+            placeholder="Share your thoughts about this recipe..."
+            [rows]="4"
+            class="recipe-rating__field">
+          </amw-textarea>
 
           <div class="recipe-rating__form-actions">
-            <button
-              mat-raised-button
+            <amw-button
+              variant="filled"
               color="primary"
               type="submit"
               [disabled]="ratingForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()"
+              icon="star"
               class="recipe-rating__submit-btn">
-              @if (!isSubmitting()) {
-                <mat-icon>star</mat-icon>
-              } @else {
-                <mat-spinner diameter="20"></mat-spinner>
-              }
-              {{ isSubmitting() ? 'Submitting...' : 'Submit Rating' }}
-            </button>
+              Submit Rating
+            </amw-button>
           </div>
         </form>
-      </mat-card-content>
-    </mat-card>
+      </ng-template>
+    </amw-card>
   </div>
 </div> 

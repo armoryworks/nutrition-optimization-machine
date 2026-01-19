@@ -1,8 +1,8 @@
 import { Component, inject, input, computed } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { DecimalPipe } from '@angular/common';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+
 import { IngredientModel } from '../../models/ingredient.model';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 
@@ -10,10 +10,10 @@ import { ConfigurationService } from '../../../common/services/configuration.ser
   selector: 'nom-ingredient-details',
   standalone: true,
   imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
+    DecimalPipe,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
   ],
   providers: [DecimalPipe],
   templateUrl: './ingredient-details.component.html',

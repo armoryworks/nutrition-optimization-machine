@@ -1,18 +1,23 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
 import { Subject, takeUntil } from 'rxjs';
+
+import { AmwSelectComponent, AmwButtonComponent, AmwIconComponent } from 'angular-material-wrap';
+
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
 @Component({
   selector: 'app-shopping-list',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    AmwSelectComponent,
+    AmwButtonComponent,
+    AmwIconComponent
+  ],
   templateUrl: './shopping-list.component.html',
   styleUrls: ['./shopping-list.component.scss']
 })

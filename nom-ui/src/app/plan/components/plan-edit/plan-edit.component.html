@@ -1,36 +1,29 @@
-<mat-card class="nom-card">
-  <mat-card-header class="nom-card__header">
-    <mat-card-title class="nom-card__title">
-      {{ plan ? 'Edit Plan' : 'Create New Plan' }}
-    </mat-card-title>
-  </mat-card-header>
-  <mat-card-content class="nom-card__content">
+<amw-card
+  class="nom-card"
+  [headerTitle]="plan ? 'Edit Plan' : 'Create New Plan'">
+  <ng-template #contentTemplate>
     <form [formGroup]="planForm" class="nom-form">
-      <mat-form-field appearance="outline" class="nom-form__field">
-        <mat-label>Plan Name</mat-label>
-        <input matInput formControlName="name" placeholder="Enter plan name" />
-        @if (planForm.get('name')?.invalid && planForm.get('name')?.touched) {
-        <mat-error>Plan name is required.</mat-error>
-        }
-      </mat-form-field>
+      <amw-input
+        formControlName="name"
+        label="Plan Name"
+        placeholder="Enter plan name"
+        [required]="true"
+        class="nom-form__field">
+      </amw-input>
 
-      <mat-form-field appearance="outline" class="nom-form__field">
-        <mat-label>Description</mat-label>
-        <textarea
-          matInput
-          formControlName="description"
-          placeholder="Describe your plan"
-        ></textarea>
-      </mat-form-field>
+      <amw-textarea
+        formControlName="description"
+        label="Description"
+        placeholder="Describe your plan"
+        class="nom-form__field">
+      </amw-textarea>
 
-      <mat-form-field appearance="outline" class="nom-form__field">
-        <mat-label>Invitation Code</mat-label>
-        <input
-          matInput
-          formControlName="invitationCode"
-          placeholder="Auto-generated or custom code"
-        />
-      </mat-form-field>
+      <amw-input
+        formControlName="invitationCode"
+        label="Invitation Code"
+        placeholder="Auto-generated or custom code"
+        class="nom-form__field">
+      </amw-input>
 
       <!-- Restriction Editing Section -->
       <!-- Temporarily disabled due to type mismatch between plan and restriction models -->
@@ -106,11 +99,12 @@
       }
       <!-- End Restriction Display -->
     </form>
-  </mat-card-content>
-  <mat-card-actions class="nom-card__footer">
-    <button mat-raised-button color="accent" (click)="goBack()">Back</button>
-    <button mat-raised-button color="primary" (click)="submitForm()">
-      Save Plan
-    </button>
-  </mat-card-actions>
-</mat-card>
+
+    <div class="nom-card__footer">
+      <amw-button variant="filled" color="accent" (click)="goBack()">Back</amw-button>
+      <amw-button variant="filled" color="primary" (click)="submitForm()">
+        Save Plan
+      </amw-button>
+    </div>
+  </ng-template>
+</amw-card>

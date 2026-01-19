@@ -1,199 +1,114 @@
 <!-- Unified Ingredient Form Component - Works in both Modal and Page contexts -->
 
 @if (isModal()) {
-  <!-- Modal Context: Use BaseFormComponent -->
-  <nom-base-form
-    [config]="formConfig()"
-    [form]="ingredientForm"
-    [isSubmitting]="isSubmitting()"
-    (submit)="onSubmit()"
-    (cancel)="onCancel()">
+  <!-- Modal Context: Compact form without page chrome -->
+  <div class="nom-ingredient-form nom-ingredient-form--modal">
+    <amw-card
+      [headerTitle]="formConfig().title"
+      [headerSubtitle]="formConfig().subtitle || ''"
+      headerIcon="restaurant">
+      <ng-template #contentTemplate>
+        <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()" class="nom-form">
+          <!-- Hidden ID field for edit mode -->
+          <input type="hidden" formControlName="id">
 
-    <div [formGroup]="ingredientForm">
-      <!-- Hidden ID field for edit mode -->
-      <input type="hidden" formControlName="id">
-
-      @if (isLoading()) {
-        <div class="nom-ingredient-form__loading">
-          <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
-        </div>
-      } @else {
-        <!-- General Information Section -->
-        <div class="nom-ingredient-form__section">
-          <h3 class="nom-ingredient-form__section-title">General Information</h3>
-
-          <mat-form-field class="nom-ingredient-form__form-field">
-            <mat-label>Ingredient Name*</mat-label>
-            <input matInput type="text" formControlName="name" placeholder="Ingredient Name*">
-            <mat-icon matSuffix>info</mat-icon>
-            @if (isCheckingDuplicate()) {
-              <mat-hint>Checking for duplicates...</mat-hint>
-            }
-          </mat-form-field>
-
-          @if (existingIngredient() && showDuplicateChecking()) {
-            <div class="nom-ingredient-form__duplicate-warning">
-              <div class="nom-ingredient-form__duplicate-content">
-                <mat-icon>warning</mat-icon>
-                <span>An ingredient with this name already exists: <strong>{{ existingIngredient()!.name }}</strong></span>
-              </div>
-              <button mat-stroked-button type="button" (click)="useExistingIngredient()" class="nom-ingredient-form__use-existing-btn">
-                Use Existing
-              </button>
+          @if (isLoading()) {
+            <div class="nom-ingredient-form__loading">
+              <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
             </div>
-          }
+          } @else {
+            <!-- General Information Section -->
+            <div class="nom-ingredient-form__section">
+              <h3 class="nom-ingredient-form__section-title">General Information</h3>
 
-          <mat-form-field class="nom-ingredient-form__form-field">
-            <mat-label>Description (Optional)</mat-label>
-            <textarea matInput formControlName="description" placeholder="Description (Optional)" rows="3"></textarea>
-          </mat-form-field>
-        </div>
+              <amw-input
+                formControlName="name"
+                label="Ingredient Name"
+                placeholder="e.g., All-Purpose Flour"
+                [required]="true"
+                class="nom-form__field">
+              </amw-input>
 
-        <!-- Nutritional Information Section -->
-        <div class="nom-ingredient-form__section">
-          <div class="nom-ingredient-form__section-header">
-            <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
-            <button mat-stroked-button type="button" (click)="addNutrient()" class="nom-ingredient-form__add-button">
-              <mat-icon>add</mat-icon>
-              Add Nutrient
-            </button>
-          </div>
+              @if (isCheckingDuplicate()) {
+                <p class="nom-ingredient-form__hint">Checking for duplicates...</p>
+              }
 
-          <div formArrayName="nutrients">
-            @for (nutrient of nutrients.controls; track $index) {
-              <div class="nom-ingredient-form__nutrient-row" [formGroupName]="$index">
-                <mat-form-field class="nom-ingredient-form__nutrient-field">
-                  <mat-label>Nutrient</mat-label>
-                  <mat-select formControlName="nutrientId">
-                    @for (nutrient of nutrientTypes(); track nutrient) {
-                      <mat-option [value]="nutrient.id">
-                        {{ nutrient.name }}
-                      </mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
+              @if (existingIngredient() && showDuplicateChecking()) {
+                <div class="nom-ingredient-form__duplicate-warning">
+                  <div class="nom-ingredient-form__duplicate-content">
+                    <amw-icon name="warning"></amw-icon>
+                    <span>An ingredient with this name already exists: <strong>{{ existingIngredient()!.name }}</strong></span>
+                  </div>
+                  <amw-button
+                    variant="outlined"
+                    type="button"
+                    (click)="useExistingIngredient()"
+                    class="nom-ingredient-form__use-existing-btn">
+                    Use Existing
+                  </amw-button>
+                </div>
+              }
 
-                <mat-form-field class="nom-ingredient-form__nutrient-field">
-                  <mat-label>Amount</mat-label>
-                  <input matInput type="number" formControlName="amount" min="0" step="0.01">
-                </mat-form-field>
+              <amw-textarea
+                formControlName="description"
+                label="Description (Optional)"
+                placeholder="A brief description of the ingredient..."
+                [rows]="3"
+                class="nom-form__field">
+              </amw-textarea>
+            </div>
 
-                <mat-form-field class="nom-ingredient-form__nutrient-field">
-                  <mat-label>Unit</mat-label>
-                  <mat-select formControlName="measurementId">
-                    @for (measurement of measurements(); track measurement) {
-                      <mat-option [value]="measurement.id">
-                        {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
-                      </mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <button mat-icon-button type="button" (click)="removeNutrient($index)" title="Remove Nutrient"
-                  class="nom-ingredient-form__remove-button">
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
-              </div>
-            }
-
-            @if (nutrients.length === 0) {
-              <p class="nom-ingredient-form__empty-message">
-                No nutritional information added yet. Click "Add Nutrient" to get started.
-              </p>
-            }
-          </div>
-        </div>
-      }
-    </div>
-  </nom-base-form>
-} @else {
-  <!-- Page Context: Use BasePageComponent -->
-  <nom-base-page
-    [config]="pageConfig()"
-    [isLoading]="isLoading()"
-    [error]="error()"
-    (back)="onBack()"
-    (refresh)="onRefresh()"
-    (retry)="onRetry()">
-
-    <div class="base-form-container" style="max-width: 600px;">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>{{ formConfig().title }}</mat-card-title>
-          @if (formConfig().subtitle) {
-            <mat-card-subtitle>{{ formConfig().subtitle }}</mat-card-subtitle>
-          }
-        </mat-card-header>
-
-        <mat-card-content>
-          <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
-            <!-- Hidden ID field for edit mode -->
-            <input type="hidden" formControlName="id">
-
-            <!-- Form Content -->
-            <div class="form-content">
-              <!-- General Information Section -->
-              <div class="nom-ingredient-form__section">
-                <h3 class="nom-ingredient-form__section-title">General Information</h3>
-                <mat-form-field class="nom-ingredient-form__form-field">
-                  <mat-label>Ingredient Name</mat-label>
-                  <input matInput type="text" formControlName="name" placeholder="e.g., All-Purpose Flour">
-                </mat-form-field>
-
-                <mat-form-field class="nom-ingredient-form__form-field">
-                  <mat-label>Description (Optional)</mat-label>
-                  <textarea matInput formControlName="description" rows="3"
-                  placeholder="A brief description of the ingredient..."></textarea>
-                </mat-form-field>
+            <!-- Nutritional Information Section -->
+            <div class="nom-ingredient-form__section">
+              <div class="nom-ingredient-form__section-header">
+                <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
+                <amw-button
+                  variant="outlined"
+                  type="button"
+                  icon="add"
+                  (click)="addNutrient()"
+                  class="nom-ingredient-form__add-button">
+                  Add Nutrient
+                </amw-button>
               </div>
 
-              <!-- Nutritional Information Section -->
-              <div class="nom-ingredient-form__section">
-                <div class="nom-ingredient-form__section-header">
-                  <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
-                  <button mat-stroked-button type="button" (click)="addNutrient()">
-                    <mat-icon>add</mat-icon>
-                    Add Nutrient
-                  </button>
-                </div>
+              <div formArrayName="nutrients">
+                @for (nutrient of nutrients.controls; track $index) {
+                  <div class="nom-ingredient-form__nutrient-row" [formGroupName]="$index">
+                    <amw-select
+                      formControlName="nutrientId"
+                      label="Nutrient"
+                      [required]="true"
+                      [options]="getNutrientTypeOptions()"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-select>
 
-                <div formArrayName="nutrients">
-                  @for (nutrient of nutrients.controls; track i; let i = $index) {
-                    <div [formGroupName]="i" class="nom-ingredient-form__nutrient-row">
-                      <mat-form-field class="nom-ingredient-form__nutrient-field">
-                        <mat-label>Nutrient</mat-label>
-                        <mat-select formControlName="nutrientId">
-                          @for (nutrient of nutrientTypes(); track nutrient) {
-                            <mat-option [value]="nutrient.id">
-                              {{ nutrient.name }}
-                            </mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
+                    <amw-input
+                      formControlName="amount"
+                      label="Amount"
+                      type="number"
+                      [required]="true"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-input>
 
-                      <mat-form-field class="nom-ingredient-form__nutrient-field">
-                        <mat-label>Amount</mat-label>
-                        <input matInput type="number" formControlName="amount">
-                      </mat-form-field>
+                    <amw-select
+                      formControlName="measurementId"
+                      label="Unit"
+                      [required]="true"
+                      [options]="getMeasurementOptions()"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-select>
 
-                      <mat-form-field class="nom-ingredient-form__nutrient-field">
-                        <mat-label>Unit</mat-label>
-                        <mat-select formControlName="measurementId">
-                          @for (measurement of measurements(); track measurement) {
-                            <mat-option [value]="measurement.id">
-                              {{ measurement.name }} ({{ measurement.symbol || measurement.name }})
-                            </mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
-
-                      <button mat-icon-button type="button" (click)="removeNutrient(i)" title="Remove Nutrient"
-                        class="nom-ingredient-form__remove-button">
-                        <mat-icon>delete_outline</mat-icon>
-                      </button>
-                    </div>
-                  }
-                </div>
+                    <amw-button
+                      variant="icon"
+                      type="button"
+                      (click)="removeNutrient($index)"
+                      title="Remove Nutrient"
+                      class="nom-ingredient-form__remove-button">
+                      <amw-icon name="delete_outline"></amw-icon>
+                    </amw-button>
+                  </div>
+                }
 
                 @if (nutrients.length === 0) {
                   <p class="nom-ingredient-form__empty-message">
@@ -204,34 +119,159 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="form-actions">
-              <div class="action-buttons">
-                @if (formConfig().showCancelButton) {
-                  <button
-                    mat-button
-                    type="button"
-                    (click)="onCancel()"
-                    [disabled]="isSubmitting()">
-                    <mat-icon>cancel</mat-icon>
-                    {{ formConfig().cancelText || 'Cancel' }}
-                  </button>
-                }
+            <div class="nom-form__actions">
+              @if (formConfig().showCancelButton) {
+                <amw-button
+                  type="button"
+                  variant="text"
+                  (click)="onCancel()"
+                  [disabled]="isSubmitting()">
+                  {{ formConfig().cancelText || 'Cancel' }}
+                </amw-button>
+              }
+              <amw-button
+                type="submit"
+                variant="filled"
+                color="primary"
+                [disabled]="ingredientForm.invalid || isSubmitting()"
+                [loading]="isSubmitting()">
+                {{ formConfig().submitText || 'Save' }}
+              </amw-button>
+            </div>
+          }
+        </form>
+      </ng-template>
+    </amw-card>
+  </div>
+} @else {
+  <!-- Page Context: Full page with card layout -->
+  <div class="nom-page-container nom-ingredient-form">
+    <amw-card
+      [headerTitle]="pageConfig().title"
+      [headerSubtitle]="pageConfig().subtitle || ''"
+      headerIcon="restaurant">
+      <ng-template #contentTemplate>
+        @if (isLoading()) {
+          <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
+        }
 
-                <button
-                  mat-raised-button
-                  color="primary"
-                  type="submit"
-                  [disabled]="ingredientForm.invalid || isSubmitting()">
-                  @if (isSubmitting()) {
-                    <mat-icon>hourglass_empty</mat-icon>
-                  }
-                  <span>{{ isSubmitting() ? 'Saving...' : (formConfig().submitText || 'Save') }}</span>
-                </button>
+        @if (error()) {
+          <div class="nom-error-state">
+            <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+            <p class="nom-error-state__message">{{ error() }}</p>
+            <div class="nom-error-state__actions">
+              <amw-button variant="text" (click)="onBack()">Go Back</amw-button>
+              <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
+            </div>
+          </div>
+        } @else {
+          <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()" class="nom-form">
+            <!-- Hidden ID field for edit mode -->
+            <input type="hidden" formControlName="id">
+
+            <!-- General Information Section -->
+            <div class="nom-ingredient-form__section">
+              <h3 class="nom-ingredient-form__section-title">General Information</h3>
+
+              <amw-input
+                formControlName="name"
+                label="Ingredient Name"
+                placeholder="e.g., All-Purpose Flour"
+                [required]="true"
+                class="nom-form__field">
+              </amw-input>
+
+              <amw-textarea
+                formControlName="description"
+                label="Description (Optional)"
+                placeholder="A brief description of the ingredient..."
+                [rows]="3"
+                class="nom-form__field">
+              </amw-textarea>
+            </div>
+
+            <!-- Nutritional Information Section -->
+            <div class="nom-ingredient-form__section">
+              <div class="nom-ingredient-form__section-header">
+                <h3 class="nom-ingredient-form__section-title">Nutritional Information (per 100g)</h3>
+                <amw-button
+                  variant="outlined"
+                  type="button"
+                  icon="add"
+                  (click)="addNutrient()">
+                  Add Nutrient
+                </amw-button>
               </div>
+
+              <div formArrayName="nutrients">
+                @for (nutrient of nutrients.controls; track $index; let i = $index) {
+                  <div [formGroupName]="i" class="nom-ingredient-form__nutrient-row">
+                    <amw-select
+                      formControlName="nutrientId"
+                      label="Nutrient"
+                      [required]="true"
+                      [options]="getNutrientTypeOptions()"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-select>
+
+                    <amw-input
+                      formControlName="amount"
+                      label="Amount"
+                      type="number"
+                      [required]="true"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-input>
+
+                    <amw-select
+                      formControlName="measurementId"
+                      label="Unit"
+                      [required]="true"
+                      [options]="getMeasurementOptions()"
+                      class="nom-ingredient-form__nutrient-field">
+                    </amw-select>
+
+                    <amw-button
+                      variant="icon"
+                      type="button"
+                      (click)="removeNutrient(i)"
+                      title="Remove Nutrient"
+                      class="nom-ingredient-form__remove-button">
+                      <amw-icon name="delete_outline"></amw-icon>
+                    </amw-button>
+                  </div>
+                }
+              </div>
+
+              @if (nutrients.length === 0) {
+                <p class="nom-ingredient-form__empty-message">
+                  No nutritional information added yet. Click "Add Nutrient" to get started.
+                </p>
+              }
+            </div>
+
+            <!-- Form Actions -->
+            <div class="nom-form__actions">
+              @if (formConfig().showCancelButton) {
+                <amw-button
+                  type="button"
+                  variant="text"
+                  (click)="onCancel()"
+                  [disabled]="isSubmitting()">
+                  {{ formConfig().cancelText || 'Cancel' }}
+                </amw-button>
+              }
+              <amw-button
+                type="submit"
+                variant="filled"
+                color="primary"
+                [disabled]="ingredientForm.invalid || isSubmitting()"
+                [loading]="isSubmitting()">
+                {{ isSubmitting() ? 'Saving...' : (formConfig().submitText || 'Save') }}
+              </amw-button>
             </div>
           </form>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  </nom-base-page>
+        }
+      </ng-template>
+    </amw-card>
+  </div>
 }

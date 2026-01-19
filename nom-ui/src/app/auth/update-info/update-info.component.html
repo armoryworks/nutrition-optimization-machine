@@ -1,121 +1,83 @@
 <div class="nom-page-container update-info">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title">Account Settings</mat-card-title>
-      <mat-card-subtitle class="nom-card__subtitle"
-        >Update your email or password</mat-card-subtitle
-      >
-    </mat-card-header>
+  <amw-card
+    headerTitle="Account Settings"
+    headerSubtitle="Update your email or password"
+    headerIcon="manage_accounts">
+    <ng-template #contentTemplate>
+      <!-- Initial Loading State -->
+      @if (isInitialLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="accent"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      } @else if (isLoading()) {
+        <!-- Form Submission Loading State -->
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
 
-    <!-- Initial Loading State -->
-    @if (isInitialLoading()) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="accent"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    } @else if (isLoading()) {
-    <!-- Form Submission Loading State -->
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    }
-
-    <mat-card-content class="nom-card__content">
       @if (!isInitialLoading()) {
-      <!-- Only show form after initial data is loaded -->
-      <form
-        [formGroup]="updateInfoForm"
-        (ngSubmit)="onSubmit()"
-        class="nom-form"
-      >
-        <p class="nom-instruction-text">
-          Your current email address is: <strong>{{ currentEmail }}</strong>
-          @if (isEmailConfirmed !== null) {
-            ({{ isEmailConfirmed ? 'Confirmed' : 'Not Confirmed' }})
-          }
-          <br />
-          Leave fields blank if you don't want to change them. Your current
-          password is required to save any changes.
-        </p>
+        <!-- Only show form after initial data is loaded -->
+        <form
+          [formGroup]="updateInfoForm"
+          (ngSubmit)="onSubmit()"
+          class="nom-form">
+          <p class="nom-instruction-text">
+            Your current email address is: <strong>{{ currentEmail }}</strong>
+            @if (isEmailConfirmed !== null) {
+              ({{ isEmailConfirmed ? 'Confirmed' : 'Not Confirmed' }})
+            }
+            <br />
+            Leave fields blank if you don't want to change them. Your current
+            password is required to save any changes.
+          </p>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>New Email (Optional)</mat-label>
-          <input
-            matInput
+          <amw-input
             type="email"
             formControlName="newEmail"
-            class="nom-form__input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (updateInfoForm.get('newEmail')?.hasError('email') && updateInfoForm.get('newEmail')?.touched) {
-          <mat-error class="nom-form__error">
-            Please enter a valid email address.
-          </mat-error>
-          }
-        </mat-form-field>
+            label="New Email (Optional)"
+            icon="email"
+            class="nom-form__field">
+          </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>New Password (Optional)</mat-label>
-          <input
-            matInput
+          <amw-input
             type="password"
             formControlName="newPassword"
-            class="nom-form__input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
-          @if (updateInfoForm.get('newPassword')?.hasError('minlength') && updateInfoForm.get('newPassword')?.touched) {
-          <mat-error class="nom-form__error">
-            New Password must be at least 8 characters.
-          </mat-error>
-          }
-        </mat-form-field>
+            label="New Password (Optional)"
+            icon="lock"
+            class="nom-form__field">
+          </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Current Password (Required)</mat-label>
-          <input
-            matInput
+          <amw-input
             type="password"
             formControlName="oldPassword"
-            required
-            class="nom-form__input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">vpn_key</mat-icon>
-          @if (updateInfoForm.get('oldPassword')?.hasError('required') &&
-          updateInfoForm.get('oldPassword')?.touched) {
-          <mat-error class="nom-form__error">
-            Current password is required to confirm changes.
-          </mat-error>
-          }
-        </mat-form-field>
+            label="Current Password (Required)"
+            icon="vpn_key"
+            [required]="true"
+            class="nom-form__field">
+          </amw-input>
 
-        @if (updateInfoForm.hasError('noUpdateFields') &&
-        updateInfoForm.touched) {
-        <mat-error class="nom-form__error update-info__error--form-level">
-          Please provide a new email or a new password to update.
-        </mat-error>
-        }
-
-        <button
-          mat-raised-button
-          color="primary"
-          type="submit"
-          [disabled]="updateInfoForm.invalid || isLoading()"
-          class="nom-button"
-        >
-          @if (!isLoading()) {
-          <span>Save Changes</span>
-          } @if (isLoading()) {
-          <mat-spinner
-            [diameter]="20"
-            class="nom-button__spinner"
-          ></mat-spinner>
+          @if (updateInfoForm.hasError('noUpdateFields') && updateInfoForm.touched) {
+            <div class="nom-form__error-message update-info__error--form-level">
+              Please provide a new email or a new password to update.
+            </div>
           }
-        </button>
-      </form>
+
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            [disabled]="updateInfoForm.invalid || isLoading()"
+            [loading]="isLoading()"
+            class="nom-button">
+            Save Changes
+          </amw-button>
+        </form>
       }
-    </mat-card-content>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

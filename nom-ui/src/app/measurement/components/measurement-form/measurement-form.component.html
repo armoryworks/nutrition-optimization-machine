@@ -1,108 +1,93 @@
 <div class="measurement-form">
-  <mat-card class="measurement-form__card">
-    <mat-card-header>
-      <mat-card-title>Measurement Unit</mat-card-title>
-      <mat-card-subtitle>Create or edit a measurement unit</mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <amw-card
+    class="measurement-form__card"
+    headerTitle="Measurement Unit"
+    headerSubtitle="Create or edit a measurement unit">
+    <ng-template #contentTemplate>
       <form [formGroup]="measurementForm" (ngSubmit)="onSubmit()" class="measurement-form__form">
         <div class="measurement-form__row">
-          <mat-form-field appearance="outline" class="measurement-form__field">
-            <mat-label>Name</mat-label>
-            <input matInput formControlName="name" placeholder="e.g., Kilogram">
-            @if (measurementForm.get('name')?.hasError('required') && measurementForm.get('name')?.touched) {
-              <mat-error>Name is required</mat-error>
-            }
-            @if (measurementForm.get('name')?.hasError('maxlength')) {
-              <mat-error>Name cannot exceed 50 characters</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="name"
+            label="Name"
+            placeholder="e.g., Kilogram"
+            [required]="true"
+            class="measurement-form__field">
+          </amw-input>
 
-          <mat-form-field appearance="outline" class="measurement-form__field">
-            <mat-label>Abbreviation</mat-label>
-            <input matInput formControlName="abbreviation" placeholder="e.g., kg">
-            @if (measurementForm.get('abbreviation')?.hasError('required') && measurementForm.get('abbreviation')?.touched) {
-              <mat-error>Abbreviation is required</mat-error>
-            }
-            @if (measurementForm.get('abbreviation')?.hasError('maxlength')) {
-              <mat-error>Abbreviation cannot exceed 10 characters</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="abbreviation"
+            label="Abbreviation"
+            placeholder="e.g., kg"
+            [required]="true"
+            class="measurement-form__field">
+          </amw-input>
         </div>
 
         <div class="measurement-form__row">
-          <mat-form-field appearance="outline" class="measurement-form__field">
-            <mat-label>Measurement Type</mat-label>
-            <mat-select formControlName="measurementType">
-              @for (type of measurementTypes; track type.value) {
-                <mat-option [value]="type.value">{{ type.label }}</mat-option>
-              }
-            </mat-select>
-            @if (measurementForm.get('measurementType')?.hasError('required') && measurementForm.get('measurementType')?.touched) {
-              <mat-error>Measurement type is required</mat-error>
-            }
-          </mat-form-field>
+          <amw-select
+            formControlName="measurementType"
+            label="Measurement Type"
+            [required]="true"
+            [options]="measurementTypes"
+            class="measurement-form__field">
+          </amw-select>
 
-          <mat-form-field appearance="outline" class="measurement-form__field">
-            <mat-label>Conversion Factor</mat-label>
-            <input matInput type="number" formControlName="conversionFactor" placeholder="1.0">
-            @if (measurementForm.get('conversionFactor')?.hasError('required') && measurementForm.get('conversionFactor')?.touched) {
-              <mat-error>Conversion factor is required</mat-error>
-            }
-            @if (measurementForm.get('conversionFactor')?.hasError('min')) {
-              <mat-error>Conversion factor must be positive</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="conversionFactor"
+            label="Conversion Factor"
+            type="number"
+            placeholder="1.0"
+            [required]="true"
+            class="measurement-form__field">
+          </amw-input>
         </div>
 
-        <mat-form-field appearance="outline" class="measurement-form__description-field">
-          <mat-label>Description (Optional)</mat-label>
-          <textarea matInput formControlName="description" placeholder="Describe this measurement unit..." rows="3"></textarea>
-          @if (measurementForm.get('description')?.hasError('maxlength')) {
-            <mat-error>Description cannot exceed 200 characters</mat-error>
-          }
-        </mat-form-field>
+        <amw-textarea
+          formControlName="description"
+          label="Description (Optional)"
+          class="measurement-form__description-field">
+        </amw-textarea>
 
-        @if (error) {
+        @if (error()) {
           <div class="measurement-form__error">
-            <mat-icon color="warn">error</mat-icon>
-            <span>{{ error }}</span>
+            <amw-icon name="error" color="warn"></amw-icon>
+            <span>{{ error() }}</span>
           </div>
         }
 
         <div class="measurement-form__actions">
-          <button 
-            mat-raised-button 
-            color="primary" 
+          <amw-button
+            variant="filled"
+            color="primary"
             type="submit"
-            [disabled]="measurementForm.invalid || isSubmitting"
+            [disabled]="measurementForm.invalid || isSubmitting()"
+            [loading]="isSubmitting()"
+            icon="save"
             class="measurement-form__submit-btn">
-            <mat-icon>save</mat-icon>
-            {{ isSubmitting ? 'Saving...' : 'Save Measurement' }}
-          </button>
+            Save Measurement
+          </amw-button>
 
-          <button 
-            mat-button 
+          <amw-button
+            variant="text"
             type="button"
             (click)="onReset()"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
+            icon="refresh"
             class="measurement-form__reset-btn">
-            <mat-icon>refresh</mat-icon>
             Reset
-          </button>
+          </amw-button>
 
-          <button 
-            mat-button 
+          <amw-button
+            variant="text"
             type="button"
             (click)="onCancel()"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
+            icon="cancel"
             class="measurement-form__cancel-btn">
-            <mat-icon>cancel</mat-icon>
             Cancel
-          </button>
+          </amw-button>
         </div>
       </form>
-    </mat-card-content>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

@@ -8,40 +8,33 @@
   <div class="nom-recipe-comments__form-card">
     <h3>Add a Comment</h3>
     <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="nom-recipe-comments__form">
-      <mat-form-field appearance="outline" class="nom-recipe-comments__field">
-        <mat-label>Title (Optional)</mat-label>
-        <input matInput formControlName="title" placeholder="Enter a title for your comment">
-        <mat-error *ngIf="commentForm.get('title')?.hasError('maxlength')">
-          Title cannot exceed 511 characters
-        </mat-error>
-      </mat-form-field>
+      <amw-input
+        formControlName="title"
+        label="Title (Optional)"
+        placeholder="Enter a title for your comment"
+        class="nom-recipe-comments__field">
+      </amw-input>
 
-      <mat-form-field appearance="outline" class="nom-recipe-comments__field">
-        <mat-label>Comment</mat-label>
-        <textarea 
-          matInput 
-          formControlName="commentText" 
-          placeholder="Share your thoughts about this recipe..."
-          rows="3">
-        </textarea>
-        <mat-error *ngIf="commentForm.get('commentText')?.hasError('required')">
-          Comment is required
-        </mat-error>
-        <mat-error *ngIf="commentForm.get('commentText')?.hasError('maxlength')">
-          Comment cannot exceed 2047 characters
-        </mat-error>
-      </mat-form-field>
+      <amw-textarea
+        formControlName="commentText"
+        label="Comment"
+        placeholder="Share your thoughts about this recipe..."
+        [rows]="3"
+        [required]="true"
+        class="nom-recipe-comments__field">
+      </amw-textarea>
 
       <div class="nom-recipe-comments__actions">
-        <button
-          mat-raised-button
+        <amw-button
+          variant="filled"
           color="primary"
           type="submit"
           [disabled]="commentForm.invalid || isSubmitting()"
+          [loading]="isSubmitting()"
+          icon="comment"
           class="nom-recipe-comments__submit-btn">
-          <mat-icon>comment</mat-icon>
-          {{ isSubmitting() ? 'Posting...' : 'Post Comment' }}
-        </button>
+          Post Comment
+        </amw-button>
       </div>
     </form>
   </div>
@@ -50,7 +43,7 @@
   <div class="nom-recipe-comments__list">
     @if (comments().length === 0 && !isLoading()) {
       <div class="nom-recipe-comments__empty">
-        <mat-icon>chat_bubble_outline</mat-icon>
+        <amw-icon name="chat_bubble_outline"></amw-icon>
         <p>No comments yet. Be the first to share your thoughts!</p>
       </div>
     }
@@ -76,14 +69,13 @@
         </div>
 
         <div class="nom-recipe-comments__comment-actions">
-          <button 
-            mat-icon-button 
+          <amw-icon-button
+            icon="delete"
             color="warn"
-            (click)="deleteComment(comment.id)"
+            (buttonClick)="deleteComment(comment.id)"
             class="nom-recipe-comments__delete-btn"
-            matTooltip="Delete comment">
-            <mat-icon>delete</mat-icon>
-          </button>
+            ariaLabel="Delete comment">
+          </amw-icon-button>
         </div>
       </div>
     }

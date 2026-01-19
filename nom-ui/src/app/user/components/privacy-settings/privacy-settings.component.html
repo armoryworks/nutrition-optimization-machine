@@ -5,7 +5,7 @@
     <div class="privacy-settings__header">
       <div class="privacy-settings__header-content">
         <div class="privacy-settings__title-section">
-          <mat-icon class="privacy-settings__title-icon">privacy_tip</mat-icon>
+          <amw-icon name="privacy_tip" class="privacy-settings__title-icon"></amw-icon>
           <div class="privacy-settings__title-info">
             <h1 class="privacy-settings__title">Privacy Settings</h1>
             <p class="privacy-settings__subtitle">Manage your data privacy and consent preferences</p>
@@ -17,20 +17,18 @@
     <!-- Loading State -->
     @if (isLoading()) {
       <div class="privacy-settings__loading">
-        <mat-spinner diameter="50"></mat-spinner>
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
         <p>Loading privacy settings...</p>
       </div>
     }
 
     <!-- Privacy Settings Form -->
     @if (!isLoading()) {
-      <mat-card class="privacy-settings__form-card">
-        <mat-card-header>
-          <mat-card-title>Consent Preferences</mat-card-title>
-          <mat-card-subtitle>Control how your data is used</mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
+      <amw-card
+        class="privacy-settings__form-card"
+        headerTitle="Consent Preferences"
+        headerSubtitle="Control how your data is used">
+        <ng-template #contentTemplate>
           <form [formGroup]="privacyForm" (ngSubmit)="onSubmit()" class="privacy-settings__form">
             <div class="privacy-settings__consents-section">
               @for (consent of availableConsents; track consent.id) {
@@ -39,33 +37,30 @@
                     <h3 class="privacy-settings__consent-title">{{ consent.name }}</h3>
                     <p class="privacy-settings__consent-description">{{ consent.description }}</p>
                   </div>
-                  <mat-slide-toggle 
+                  <amw-toggle
                     [formControlName]="consent.name || ''"
                     color="primary"
                     class="privacy-settings__consent-toggle">
-                  </mat-slide-toggle>
+                  </amw-toggle>
                 </div>
               }
             </div>
 
             <div class="privacy-settings__form-actions">
-              <button 
-                mat-raised-button 
-                color="primary" 
+              <amw-button
+                variant="filled"
+                color="primary"
                 type="submit"
                 [disabled]="privacyForm.invalid || isSubmitting()"
-                class="privacy-settings__submit-btn">
-                @if (!isSubmitting()) {
-                  <mat-icon>save</mat-icon>
-                } @else {
-                  <mat-spinner diameter="20"></mat-spinner>
-                }
+                [loading]="isSubmitting()"
+                class="privacy-settings__submit-btn"
+                icon="save">
                 {{ isSubmitting() ? 'Saving...' : 'Save Privacy Settings' }}
-              </button>
+              </amw-button>
             </div>
           </form>
-        </mat-card-content>
-      </mat-card>
+        </ng-template>
+      </amw-card>
     }
   </div>
 </div>

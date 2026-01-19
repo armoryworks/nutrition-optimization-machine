@@ -2,45 +2,29 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwSelectComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, DialogService } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanRuleCreateRequestModel } from '../../models/meal-plan-rule-create-request.model';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { MealPlanRuleResponseModel } from '../../models/meal-plan-rule-response.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'nom-meal-plan-rules',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSelectModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule
-],
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwSelectComponent,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent
+  ],
   templateUrl: './meal-plan-rules.component.html',
   styleUrls: ['./meal-plan-rules.component.scss']
 })
@@ -49,8 +33,8 @@ export class MealPlanRulesComponent implements OnInit {
   private referenceDataService = inject(ReferenceDataService);
   private router = inject(Router);
   private nonNullableFb = inject(NonNullableFormBuilder);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private notificationService = inject(NotificationService);
+  private dialogService = inject(DialogService);
 
   rules = signal<MealPlanRuleResponseModel[]>([]);
   isLoading = signal(false);
@@ -60,6 +44,14 @@ export class MealPlanRulesComponent implements OnInit {
 
   mealTypes = signal<ReferenceItemModel[]>([]);
   daysOfWeek = signal<ReferenceItemModel[]>([]);
+
+  getMealTypeOptions(): { value: number; label: string }[] {
+    return this.mealTypes().map(type => ({ value: type.id, label: type.name }));
+  }
+
+  getDayOfWeekOptions(): { value: number; label: string }[] {
+    return this.daysOfWeek().map(day => ({ value: day.id, label: day.name }));
+  }
 
 
 
@@ -113,14 +105,14 @@ export class MealPlanRulesComponent implements OnInit {
         console.error('Error loading rules:', error);
         this.error.set('Failed to load meal plan rules');
         this.isLoading.set(false);
-        this.snackBar.open('Failed to load meal plan rules', 'Close', { duration: 3000 });
+        this.notificationService.error('Failed to load meal plan rules');
       }
     });
   }
 
   onSubmit(): void {
     if (this.ruleForm.invalid) {
-      this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+      this.notificationService.warning('Please fill in all required fields');
       return;
     }
 
@@ -139,14 +131,14 @@ export class MealPlanRulesComponent implements OnInit {
 
     this.mealPlanService.createRule(request).subscribe({
       next: () => {
-        this.snackBar.open('Rule created successfully!', 'Close', { duration: 3000 });
+        this.notificationService.success('Rule created successfully!');
         this.ruleForm.reset();
         this.isAddingRule.set(false);
         this.loadRules();
       },
       error: (error) => {
         console.error('Error creating rule:', error);
-        this.snackBar.open('Failed to create rule. Please try again.', 'Close', { duration: 3000 });
+        this.notificationService.error('Failed to create rule. Please try again.');
         this.isAddingRule.set(false);
       }
     });
@@ -158,35 +150,19 @@ export class MealPlanRulesComponent implements OnInit {
   }
 
   deleteRule(rule: MealPlanRuleResponseModel): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Rule',
-        message: 'Are you sure you want to delete this meal plan rule?',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    this.dialogService.confirm(
+      'Are you sure you want to delete this meal plan rule?',
+      'Delete Rule'
+    ).subscribe(result => {
       if (result) {
         this.mealPlanService.deleteRule(rule.id).subscribe({
           next: () => {
-            this.snackBar.open('Rule deleted successfully', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.success('Rule deleted successfully');
             this.loadRules();
           },
           error: (error) => {
             console.error('Error deleting rule:', error);
-            this.snackBar.open('Failed to delete rule', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.error('Failed to delete rule');
           }
         });
       }

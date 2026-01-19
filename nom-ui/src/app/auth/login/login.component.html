@@ -1,54 +1,55 @@
 <div class="login">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title">Welcome Back!</mat-card-title>
-      <mat-card-subtitle class="nom-card__subtitle">Sign in to your account</mat-card-subtitle>
-    </mat-card-header>
-    @if (isLoading()) {
-    <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
-    }
-    <mat-card-content class="nom-card__content">
+  <amw-card
+    headerTitle="Welcome Back!"
+    headerSubtitle="Sign in to your account"
+    headerIcon="login">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
+      }
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Email Address</mat-label>
-          <input matInput type="email" formControlName="email" required class="nom-form__input" data-cy="email-input" />
-          <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (loginForm.get('email')?.hasError('required')) {
-          <mat-error class="nom-form__error"> Email is required. </mat-error>
-          } @if (loginForm.get('email')?.hasError('email')) {
-          <mat-error class="nom-form__error">
-            Please enter a valid email address.
-          </mat-error>
-          }
-        </mat-form-field>
+        <amw-input
+          type="email"
+          formControlName="email"
+          label="Email Address"
+          icon="email"
+          [required]="true"
+          class="nom-form__field"
+          data-cy="email-input">
+        </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Password</mat-label>
-          <input matInput type="password" formControlName="password" required class="nom-form__input"
-            data-cy="password-input" />
-          <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
-          @if (loginForm.get('password')?.hasError('required')) {
-          <mat-error class="nom-form__error"> Password is required. </mat-error>
-          }
-        </mat-form-field>
-        <mat-checkbox class="login__options-row" formControlName="rememberMe">Remember Me</mat-checkbox>
-        <a class="login__options-row" routerLink="/forgot-password" class="nom-link">Forgot Password?</a>
+        <amw-input
+          type="password"
+          formControlName="password"
+          label="Password"
+          icon="lock"
+          [required]="true"
+          class="nom-form__field"
+          data-cy="password-input">
+        </amw-input>
 
-        <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || isLoading()"
-          class="nom-button" data-cy="login-button">
-          @if (!isLoading()) {
-          <span>Sign In</span>
-          } @if (isLoading()) {
-          <mat-spinner [diameter]="20" class="nom-button__spinner"></mat-spinner>
-          }
-        </button>
+        <div class="login__options-row">
+          <amw-checkbox formControlName="rememberMe" label="Remember Me"></amw-checkbox>
+          <a routerLink="/forgot-password" class="nom-link">Forgot Password?</a>
+        </div>
+
+        <amw-button
+          type="submit"
+          variant="filled"
+          color="primary"
+          [disabled]="loginForm.invalid || isLoading()"
+          [loading]="isLoading()"
+          class="nom-button"
+          data-cy="login-button">
+          Sign In
+        </amw-button>
       </form>
-    </mat-card-content>
-    <mat-card-footer class="nom-card__footer">
+    </ng-template>
+    <ng-template #actionsTemplate>
       <p class="nom-prompt-text">
         New to our platform?
         <a routerLink="/register" class="nom-link">Create an Account</a>
       </p>
-    </mat-card-footer>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

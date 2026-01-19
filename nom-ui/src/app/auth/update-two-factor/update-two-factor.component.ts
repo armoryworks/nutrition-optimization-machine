@@ -7,17 +7,12 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
+
+import { AmwInputComponent, AmwButtonComponent, AmwToggleComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { UpdateTwoFactorResponse } from '../models/update-two-factor-response';
@@ -29,16 +24,17 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
+    MatIconModule, // Keep for mat-list-item icon
     MatProgressBarModule,
-    MatSlideToggleModule,
-    MatListModule
-],
+    MatListModule,
+    MatDividerModule,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwToggleComponent,
+    AmwCheckboxComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+  ],
   templateUrl: './update-two-factor.component.html',
   styleUrls: ['./update-two-factor.component.scss'],
   encapsulation: ViewEncapsulation.None,

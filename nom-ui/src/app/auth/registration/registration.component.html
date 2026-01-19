@@ -1,138 +1,93 @@
 <div class="nom-page-container registration">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title"
-        >Create Your Account</mat-card-title
-      >
-    </mat-card-header>
-    @if (isLoading()) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    }
-    <mat-card-content class="nom-card__content">
+  <amw-card
+    headerTitle="Create Your Account"
+    headerIcon="person_add">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
       <form
         [formGroup]="registrationForm"
         (ngSubmit)="onSubmit()"
-        class="nom-form"
-      >
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Email Address</mat-label>
-          <input
-            matInput
-            type="email"
-            formControlName="email"
-            required
-            class="nom-form__input"
-            data-cy="email-input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (registrationForm.get('email')?.hasError('required') &&
-          registrationForm.get('email')?.touched) {
-          <mat-error class="nom-form__error"> Email is required. </mat-error>
-          } @if (registrationForm.get('email')?.hasError('email') &&
-          registrationForm.get('email')?.touched) {
-          <mat-error class="nom-form__error">
-            Please enter a valid email address.
-          </mat-error>
-          }
-        </mat-form-field>
+        class="nom-form">
+        <!-- Email Field - Using AMW -->
+        <amw-input
+          type="email"
+          formControlName="email"
+          label="Email Address"
+          placeholder="Enter your email address..."
+          [required]="true"
+          endIcon="email"
+          class="nom-form__field"
+          data-cy="email-input">
+        </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Full Name (Optional)</mat-label>
-          <input
-            matInput
-            type="text"
-            formControlName="fullName"
-            class="nom-form__input"
-            data-cy="full-name-input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">person</mat-icon>
-          @if (registrationForm.get('fullName')?.hasError('maxlength') &&
-          registrationForm.get('fullName')?.touched) {
-          <mat-error class="nom-form__error">
-            Name must be less than 100 characters.
-          </mat-error>
-          }
-        </mat-form-field>
+        <!-- Full Name Field - Using AMW -->
+        <amw-input
+          type="text"
+          formControlName="fullName"
+          label="Full Name (Optional)"
+          placeholder="Enter your full name..."
+          endIcon="person"
+          class="nom-form__field"
+          data-cy="full-name-input">
+        </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Password</mat-label>
-          <input
-            matInput
-            type="password"
-            formControlName="password"
-            required
-            class="nom-form__input"
-            data-cy="password-input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">lock</mat-icon>
-          @if (registrationForm.get('password')?.hasError('required') &&
-          registrationForm.get('password')?.touched) {
-          <mat-error class="nom-form__error"> Password is required. </mat-error>
-          } @if (registrationForm.get('password')?.hasError('minlength') &&
-          registrationForm.get('password')?.touched) {
-          <mat-error class="nom-form__error">
-            Password must be at least 8 characters.
-          </mat-error>
-          }
-        </mat-form-field>
+        <!-- Password Field - Using AMW -->
+        <amw-input
+          type="password"
+          formControlName="password"
+          label="Password"
+          placeholder="Enter your password..."
+          [required]="true"
+          endIcon="lock"
+          [showPasswordToggle]="true"
+          class="nom-form__field"
+          data-cy="password-input">
+        </amw-input>
 
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Confirm Password</mat-label>
-          <input
-            matInput
-            type="password"
-            formControlName="confirmPassword"
-            required
-            class="nom-form__input"
-            data-cy="confirm-password-input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">lock_open</mat-icon>
-          @if (registrationForm.get('confirmPassword')?.hasError('required') &&
-          registrationForm.get('confirmPassword')?.touched) {
-          <mat-error class="nom-form__error">
-            Confirm Password is required.
-          </mat-error>
-          }
-        </mat-form-field>
+        <!-- Confirm Password Field - Using AMW -->
+        <amw-input
+          type="password"
+          formControlName="confirmPassword"
+          label="Confirm Password"
+          placeholder="Confirm your password..."
+          [required]="true"
+          endIcon="lock_open"
+          [showPasswordToggle]="true"
+          class="nom-form__field"
+          data-cy="confirm-password-input">
+        </amw-input>
 
-        <!-- Place the password mismatch error AFTER the confirm password field's mat-form-field -->
+        <!-- Password mismatch error -->
         @if (registrationForm.hasError('mismatch') &&
         registrationForm.get('confirmPassword')?.touched) {
-        <mat-error class="nom-form__error form-level-error">
-          Passwords do not match.
-        </mat-error>
+          <p class="nom-form__error form-level-error">
+            Passwords do not match.
+          </p>
         }
 
-
-
-        <button
-          mat-raised-button
-          color="primary"
+        <amw-button
           type="submit"
-          [disabled]="registrationForm.invalid || isLoading()"
+          variant="filled"
+          color="primary"
+          [loading]="isLoading()"
+          [disabled]="registrationForm.invalid"
           class="nom-button"
-          data-cy="register-button"
-        >
-          @if (!isLoading()) {
-          <span>Register Account</span>
-          } @if (isLoading()) {
-          <mat-spinner
-            [diameter]="20"
-            class="nom-button__spinner"
-          ></mat-spinner>
-          }
-        </button>
+          data-cy="register-button">
+          Register Account
+        </amw-button>
       </form>
-    </mat-card-content>
-    <mat-card-actions class="nom-card__footer">
+    </ng-template>
+    <ng-template #actionsTemplate>
       <p class="nom-prompt-text">
         Already have an account?
         <span class="nom-link" (click)="openUserMenuFromFooter()" (keyup.enter)="openUserMenuFromFooter()" tabindex="0" role="button" aria-label="Login here">Login Here</span>
       </p>
-    </mat-card-actions>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

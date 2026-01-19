@@ -1,111 +1,122 @@
-<nom-base-page
-  [config]="pageConfig"
-  [isLoading]="loading()"
-  [error]="error()"
-  (refresh)="onRefresh()"
-  (retry)="onRetry()"
->
-  <div class="household-dashboard">
-    <div class="household-dashboard__container">
-      <!-- Header Actions -->
-      <div class="household-dashboard__header-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="createHousehold()"
-          class="household-dashboard__create-button"
-        >
-          <mat-icon>add</mat-icon>
-          Create Household
-        </button>
+<div class="household-dashboard">
+  <div class="household-dashboard__container">
+    <!-- Page Header -->
+    <div class="household-dashboard__page-header">
+      <div class="household-dashboard__title-section">
+        <h1>{{ pageTitle }}</h1>
+        <p class="subtitle">{{ pageSubtitle }}</p>
       </div>
+      <div class="household-dashboard__header-actions">
+        <amw-button
+          variant="text"
+          icon="refresh"
+          (click)="onRefresh()"
+          [disabled]="loading()">
+          Refresh
+        </amw-button>
+        <amw-button
+          variant="filled"
+          color="primary"
+          icon="add"
+          (click)="createHousehold()">
+          Create Household
+        </amw-button>
+      </div>
+    </div>
 
-      <!-- Content -->
+    <!-- Loading State -->
+    @if (loading()) {
+      <div class="household-dashboard__loading">
+        <amw-progress-spinner [diameter]="48"></amw-progress-spinner>
+        <p>Loading households...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error() && !loading()) {
+      <div class="household-dashboard__error">
+        <amw-icon name="error_outline"></amw-icon>
+        <p>{{ error() }}</p>
+        <amw-button
+          variant="outlined"
+          color="primary"
+          icon="refresh"
+          (click)="onRetry()">
+          Try Again
+        </amw-button>
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!loading() && !error()) {
       <div class="household-dashboard__content">
         <!-- Empty State -->
-        @if (!loading() && !error() && households().length === 0) {
+        @if (households().length === 0) {
           <div class="household-dashboard__empty-state">
-            <mat-card class="household-dashboard__empty-card">
-              <mat-card-content>
+            <amw-card [headerTitle]="'No Households Found'" headerIcon="home">
+              <ng-template #contentTemplate>
                 <div class="household-dashboard__empty-content">
-                  <mat-icon class="household-dashboard__empty-icon">home</mat-icon>
-                  <h3>No Households Found</h3>
                   <p>Create your first household to get started with shared meal planning and shopping lists.</p>
-                  <button
-                    mat-raised-button
+                  <amw-button
+                    variant="filled"
                     color="primary"
-                    (click)="createHousehold()"
-                    class="household-dashboard__create-button"
-                  >
-                    <mat-icon>add</mat-icon>
+                    icon="add"
+                    (click)="createHousehold()">
                     Create Household
-                  </button>
+                  </amw-button>
                 </div>
-              </mat-card-content>
-            </mat-card>
+              </ng-template>
+            </amw-card>
           </div>
         }
 
         <!-- Households Grid -->
-        @if (!loading() && !error() && households().length > 0) {
+        @if (households().length > 0) {
           <div class="household-dashboard__grid">
             @for (household of households(); track household.id) {
-              <mat-card
+              <amw-card
+                [headerTitle]="household.name"
+                headerIcon="home"
                 class="household-dashboard__household-card"
-                (click)="viewHousehold(household)"
-              >
-                <mat-card-header class="household-dashboard__household-header">
-                  <mat-icon class="household-dashboard__household-icon">home</mat-icon>
-                  <div class="household-dashboard__household-title-info">
-                    <mat-card-title class="household-dashboard__household-title">
-                      {{ household.name }}
-                    </mat-card-title>
-                    @if (household.description) {
-                      <mat-card-subtitle class="household-dashboard__household-subtitle">
-                        {{ household.description }}
-                      </mat-card-subtitle>
-                    }
-                  </div>
-                </mat-card-header>
-
-                <mat-card-content class="household-dashboard__household-content">
+                (click)="viewHousehold(household)">
+                <ng-template #contentTemplate>
+                  @if (household.description) {
+                    <p class="household-dashboard__household-subtitle">
+                      {{ household.description }}
+                    </p>
+                  }
                   <div class="household-dashboard__household-stats">
                     <div class="household-dashboard__household-stat">
-                      <mat-icon class="household-dashboard__stat-icon">people</mat-icon>
+                      <amw-icon name="people" class="household-dashboard__stat-icon"></amw-icon>
                       <span class="household-dashboard__stat-text">{{ household.memberCount || 0 }} members</span>
                     </div>
                     <div class="household-dashboard__household-stat">
-                      <mat-icon class="household-dashboard__stat-icon">restaurant_menu</mat-icon>
+                      <amw-icon name="restaurant_menu" class="household-dashboard__stat-icon"></amw-icon>
                       <span class="household-dashboard__stat-text">{{ household.planCount || 0 }} plans</span>
                     </div>
                   </div>
-                </mat-card-content>
-
-                <mat-card-actions class="household-dashboard__household-actions">
-                  <button
-                    mat-button
-                    color="primary"
-                    (click)="editHousehold(household); $event.stopPropagation()"
-                    class="household-dashboard__action-button"
-                  >
-                    <mat-icon>edit</mat-icon>
-                    Edit
-                  </button>
-                  <button
-                    mat-button
-                    color="accent"
-                    (click)="inviteMembers(household); $event.stopPropagation()"
-                    class="household-dashboard__action-button"
-                  >
-                    <mat-icon>person_add</mat-icon>
-                    Invite
-                  </button>
-                </mat-card-actions>
-              </mat-card>
+                  <div class="household-dashboard__household-actions">
+                    <amw-button
+                      variant="text"
+                      color="primary"
+                      icon="edit"
+                      (click)="editHousehold(household); $event.stopPropagation()">
+                      Edit
+                    </amw-button>
+                    <amw-button
+                      variant="text"
+                      color="accent"
+                      icon="person_add"
+                      (click)="inviteMembers(household); $event.stopPropagation()">
+                      Invite
+                    </amw-button>
+                  </div>
+                </ng-template>
+              </amw-card>
             }
           </div>
         }
       </div>
-    </div>
+    }
   </div>
-</nom-base-page> 
+</div>

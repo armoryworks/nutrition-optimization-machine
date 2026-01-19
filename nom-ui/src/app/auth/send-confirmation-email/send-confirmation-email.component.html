@@ -1,21 +1,16 @@
 <div class="nom-page-container send-confirmation-email">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title"
-        >Resend Confirmation Email</mat-card-title
-      >
-      <mat-card-subtitle class="nom-card__subtitle"
-        >If you haven't received it, we can send another one.</mat-card-subtitle
-      >
-    </mat-card-header>
-    @if (isLoading()) {
-    <mat-progress-bar
-      mode="indeterminate"
-      color="primary"
-      class="nom-card__progress-bar"
-    ></mat-progress-bar>
-    }
-    <mat-card-content class="nom-card__content">
+  <amw-card
+    headerTitle="Resend Confirmation Email"
+    headerSubtitle="If you haven't received it, we can send another one."
+    headerIcon="forward_to_inbox">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
       <p class="nom-instruction-text">
         Enter the email address you registered with to receive a new
         confirmation email.
@@ -23,49 +18,31 @@
       <form
         [formGroup]="sendConfirmationEmailForm"
         (ngSubmit)="onSubmit()"
-        class="nom-form"
-      >
-        <mat-form-field appearance="outline" class="nom-form__field">
-          <mat-label>Email Address</mat-label>
-          <input
-            matInput
-            type="email"
-            formControlName="email"
-            required
-            class="nom-form__input"
-          />
-          <mat-icon matSuffix class="nom-form__icon">email</mat-icon>
-          @if (sendConfirmationEmailForm.get('email')?.hasError('required')) {
-          <mat-error class="nom-form__error"> Email is required. </mat-error>
-          } @if (sendConfirmationEmailForm.get('email')?.hasError('email')) {
-          <mat-error class="nom-form__error">
-            Please enter a valid email address.
-          </mat-error>
-          }
-        </mat-form-field>
+        class="nom-form">
+        <amw-input
+          type="email"
+          formControlName="email"
+          label="Email Address"
+          icon="email"
+          [required]="true"
+          class="nom-form__field">
+        </amw-input>
 
-        <button
-          mat-raised-button
-          color="primary"
+        <amw-button
           type="submit"
+          variant="filled"
+          color="primary"
           [disabled]="sendConfirmationEmailForm.invalid || isLoading()"
-          class="nom-button"
-        >
-          @if (!isLoading()) {
-          <span>Resend Confirmation Email</span>
-          } @if (isLoading()) {
-          <mat-spinner
-            [diameter]="20"
-            class="nom-button__spinner"
-          ></mat-spinner>
-          }
-        </button>
+          [loading]="isLoading()"
+          class="nom-button">
+          Resend Confirmation Email
+        </amw-button>
       </form>
-    </mat-card-content>
-    <mat-card-actions align="end" class="nom-card__footer">
+    </ng-template>
+    <ng-template #actionsTemplate>
       <p class="nom-prompt-text">
         <a routerLink="/login" class="nom-link">Back to Login</a>
       </p>
-    </mat-card-actions>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

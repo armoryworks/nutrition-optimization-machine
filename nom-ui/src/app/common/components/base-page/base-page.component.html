@@ -13,23 +13,23 @@
         @if (config?.showBackButton || config?.showRefreshButton) {
           <div class="header-actions">
             @if (config?.showBackButton) {
-              <button 
-                mat-button 
+              <amw-button
+                variant="text"
                 (click)="onBack()"
-                class="back-button">
-                <mat-icon>arrow_back</mat-icon>
+                class="back-button"
+                icon="arrow_back">
                 {{ backButtonText || config?.backButtonText || 'Back' }}
-              </button>
+              </amw-button>
             }
-            
+
             @if (config?.showRefreshButton) {
-              <button 
-                mat-button 
+              <amw-button
+                variant="text"
                 (click)="onRefresh()"
-                class="refresh-button">
-                <mat-icon>refresh</mat-icon>
+                class="refresh-button"
+                icon="refresh">
                 {{ config?.refreshButtonText || 'Refresh' }}
-              </button>
+              </amw-button>
             }
           </div>
         }
@@ -39,7 +39,7 @@
     <!-- Loading State -->
     @if (isLoading) {
       <div class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
         <p>{{ loadingMessage || 'Loading...' }}</p>
       </div>
     }
@@ -47,17 +47,17 @@
     <!-- Error State -->
     @if (error && !isLoading) {
       <div class="error-container">
-        <mat-icon color="warn">error</mat-icon>
+        <amw-icon name="error" color="warn"></amw-icon>
         <h3>{{ errorTitle || 'Error' }}</h3>
         <p>{{ error }}</p>
         @if (showRetryButton) {
-          <button 
-            mat-raised-button 
-            color="primary" 
-            (click)="onRetry()">
-            <mat-icon>refresh</mat-icon>
+          <amw-button
+            variant="filled"
+            color="primary"
+            (click)="onRetry()"
+            icon="refresh">
             {{ retryButtonText || 'Try Again' }}
-          </button>
+          </amw-button>
         }
       </div>
     }

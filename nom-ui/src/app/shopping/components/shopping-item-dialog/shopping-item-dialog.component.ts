@@ -2,12 +2,10 @@ import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Subject, takeUntil } from 'rxjs';
+
+import { AmwInputComponent, AmwSelectComponent, AmwCheckboxComponent, AmwButtonComponent } from 'angular-material-wrap';
+
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 import { ReferenceSelectorComponent } from '../../../common/components/reference-selector/reference-selector.component';
@@ -20,15 +18,14 @@ import { ShoppingItemFormData } from './shopping-item-form-data.interface';
     selector: 'nom-shopping-item-dialog',
     standalone: true,
     imports: [
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    ReferenceSelectorComponent
-],
+        ReactiveFormsModule,
+        MatDialogModule,
+        AmwInputComponent,
+        AmwSelectComponent,
+        AmwCheckboxComponent,
+        AmwButtonComponent,
+        ReferenceSelectorComponent
+    ],
     templateUrl: './shopping-item-dialog.component.html',
     styleUrls: ['./shopping-item-dialog.component.scss']
 })
@@ -114,5 +111,9 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
 
     getSubmitText(): string {
         return this.data.mode === 'add' ? 'Add' : 'Update';
+    }
+
+    getUnitOptions(): Array<{value: string, label: string}> {
+        return this.units().map(u => ({ value: u, label: u }));
     }
 } 

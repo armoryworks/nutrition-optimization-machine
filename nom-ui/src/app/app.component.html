@@ -10,15 +10,15 @@
       <!-- PUBLIC SECTION - Always visible -->
       <div class="nom-main-nav__public">
         <a routerLink="/home" routerLinkActive="active" class="nom-main-nav__link">
-          <mat-icon>home</mat-icon>
+          <amw-icon name="home"></amw-icon>
           <span>Home</span>
         </a>
         <a routerLink="/register" routerLinkActive="active" class="nom-main-nav__link">
-          <mat-icon>person_add</mat-icon>
+          <amw-icon name="person_add"></amw-icon>
           <span>Get Started</span>
         </a>
         <a routerLink="/home" routerLinkActive="active" class="nom-main-nav__link">
-          <mat-icon>info</mat-icon>
+          <amw-icon name="info"></amw-icon>
           <span>About</span>
         </a>
       </div>
@@ -27,109 +27,63 @@
 
   <div class="nom-header__right">
     <!-- Theme Toggle - Always visible -->
-    <button
-      mat-icon-button
+    <amw-icon-button
+      [icon]="isDarkTheme() ? 'light_mode' : 'dark_mode'"
       class="nom-header__theme-toggle"
       (click)="toggleTheme()"
-      [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
-      <mat-icon>{{ isDarkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-    </button>
+      [ariaLabel]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
+    </amw-icon-button>
 
     <!-- User Menu - Only visible when logged in -->
     @if (isLoggedIn$ | async) {
       <div class="nom-user-menu" data-cy="user-menu">
-        <button 
-          mat-icon-button 
-          [matMenuTriggerFor]="userMenu"
+        <amw-icon-button
+          icon="menu"
+          [amwMenuTriggerFor]="userMenu"
           class="nom-user-menu__trigger"
-          aria-label="User menu">
-          <mat-icon>menu</mat-icon>
-        </button>
+          ariaLabel="User menu">
+        </amw-icon-button>
         
-        <mat-menu #userMenu="matMenu" class="nom-user-menu__dropdown">
+        <amw-menu #userMenu menuClass="nom-user-menu__dropdown">
           <!-- User Profile Section -->
-          <div class="nom-user-menu__section">
-            <div class="nom-user-menu__profile">
-              <mat-icon>account_circle</mat-icon>
-              <span>User Menu</span>
-            </div>
-          </div>
-          
-          <mat-divider></mat-divider>
-          
-          <!-- Main Navigation Section -->
-          <div class="nom-user-menu__section">
-            <a mat-menu-item routerLink="/user/dashboard" class="nom-user-menu__item">
-              <mat-icon>dashboard</mat-icon>
-              <span>Dashboard</span>
-            </a>
-            <a mat-menu-item routerLink="/household" class="nom-user-menu__item">
-              <mat-icon>home</mat-icon>
-              <span>Households</span>
-            </a>
-            <a mat-menu-item routerLink="/shopping" class="nom-user-menu__item">
-              <mat-icon>shopping_cart</mat-icon>
-              <span>Shopping</span>
-            </a>
-            <a mat-menu-item routerLink="/meal-plan" class="nom-user-menu__item">
-              <mat-icon>restaurant_menu</mat-icon>
-              <span>Meal Plans</span>
-            </a>
-            <a mat-menu-item routerLink="/messaging" class="nom-user-menu__item">
-              <mat-icon>message</mat-icon>
-              <span>Messages</span>
-            </a>
-            <a mat-menu-item routerLink="/ingredient-search" class="nom-user-menu__item">
-              <mat-icon>search</mat-icon>
-              <span>Ingredient Search</span>
-            </a>
-            <a mat-menu-item routerLink="/curated-plans" class="nom-user-menu__item">
-              <mat-icon>schedule</mat-icon>
-              <span>Curated Plans</span>
-            </a>
+          <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
+          <amw-menu-item [isDivider]="true"></amw-menu-item>
 
-            @if (authManagerService.canManageCuration()) {
-            <a mat-menu-item routerLink="/curation" class="nom-user-menu__item">
-              <mat-icon>rate_review</mat-icon>
-              <span>Curation Queue</span>
-            </a>
-            }
-          </div>
-          
-          <mat-divider></mat-divider>
-          
+          <!-- Main Navigation Section -->
+          <amw-menu-item label="Dashboard" icon="dashboard" routerLink="/user/dashboard"></amw-menu-item>
+          <amw-menu-item label="Households" icon="home" routerLink="/household"></amw-menu-item>
+          <amw-menu-item label="Shopping" icon="shopping_cart" routerLink="/shopping"></amw-menu-item>
+          <amw-menu-item label="Meal Plans" icon="restaurant_menu" routerLink="/meal-plan"></amw-menu-item>
+          <amw-menu-item label="Messages" icon="message" routerLink="/messaging"></amw-menu-item>
+          <amw-menu-item label="Ingredient Search" icon="search" routerLink="/ingredient-search"></amw-menu-item>
+          <amw-menu-item label="Curated Plans" icon="schedule" routerLink="/curated-plans"></amw-menu-item>
+          @if (authManagerService.canManageCuration()) {
+            <amw-menu-item label="Curation Queue" icon="rate_review" routerLink="/curation"></amw-menu-item>
+          }
+
+          <amw-menu-item [isDivider]="true"></amw-menu-item>
+
           <!-- User Management Section -->
-          <div class="nom-user-menu__section">
-            <a mat-menu-item routerLink="/edit-profile" class="nom-user-menu__item">
-              <mat-icon>person</mat-icon>
-              <span>Edit Profile</span>
-            </a>
-            <a mat-menu-item routerLink="/privacy-settings" class="nom-user-menu__item">
-              <mat-icon>security</mat-icon>
-              <span>Privacy Settings</span>
-            </a>
-            <button mat-menu-item (click)="logout()" class="nom-user-menu__item">
-              <mat-icon>logout</mat-icon>
-              <span>Logout</span>
-            </button>
-          </div>
-        </mat-menu>
+          <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
+          <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
+          <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()"></amw-menu-item>
+        </amw-menu>
       </div>
     }
     
     <!-- Login/Register buttons - Only visible when NOT logged in -->
     @if (!(isLoggedIn$ | async)) {
       <div class="nom-header__auth-buttons">
-        <button 
-          mat-button 
-          color="accent" 
+        <amw-button
+          variant="text"
+          color="accent"
+          icon="login"
           (click)="openLoginPopover()"
           class="nom-header__auth-button">
-          <mat-icon>login</mat-icon>
-          <span>Login</span>
-        </button>
+          Login
+        </amw-button>
         <a routerLink="/register" class="nom-header__auth-button">
-          <mat-icon>person_add</mat-icon>
+          <amw-icon name="person_add"></amw-icon>
           <span>Register</span>
         </a>
       </div>

@@ -1,19 +1,17 @@
 import { Component, inject } from '@angular/core';
 
 import { RouterLink, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
+
+import { AmwButtonComponent, AmwIconComponent } from 'angular-material-wrap';
 
 @Component({
   selector: 'nom-home',
   standalone: true,
   imports: [
     RouterLink,
-    MatButtonModule,
-    MatIconModule,
-    MatCardModule
-],
+    AmwButtonComponent,
+    AmwIconComponent,
+  ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })

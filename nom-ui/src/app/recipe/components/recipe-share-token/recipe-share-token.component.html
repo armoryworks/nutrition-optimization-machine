@@ -7,36 +7,37 @@
     <!-- Create Share Token Form -->
     <form [formGroup]="shareTokenForm" (ngSubmit)="createShareToken()" class="recipe-share-token__form">
       <div class="recipe-share-token__form-row">
-        <mat-form-field class="recipe-share-token__field" appearance="outline">
-          <mat-label>Share Name (Optional)</mat-label>
-          <input matInput formControlName="shareName" placeholder="Enter a name for this share">
-          <mat-error *ngIf="shareTokenForm.get('shareName')?.hasError('maxlength')">
-            Share name cannot exceed 511 characters
-          </mat-error>
-        </mat-form-field>
+        <amw-input
+          formControlName="shareName"
+          label="Share Name (Optional)"
+          placeholder="Enter a name for this share"
+          class="recipe-share-token__field">
+        </amw-input>
       </div>
 
       <div class="recipe-share-token__form-row">
-        <mat-form-field class="recipe-share-token__field" appearance="outline">
-          <mat-label>Access Level</mat-label>
-          <mat-select formControlName="isPublic">
-            <mat-option [value]="false">Private - Only with token</mat-option>
-            <mat-option [value]="true">Public - Anyone can access</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <amw-select
+          formControlName="isPublic"
+          label="Access Level"
+          [options]="[
+            { value: false, label: 'Private - Only with token' },
+            { value: true, label: 'Public - Anyone can access' }
+          ]"
+          class="recipe-share-token__field">
+        </amw-select>
       </div>
 
       <div class="recipe-share-token__form-actions">
-        <button
-          mat-raised-button
+        <amw-button
+          variant="filled"
           color="primary"
           type="submit"
           [disabled]="shareTokenForm.invalid || isSubmitting()"
+          [loading]="isSubmitting()"
+          icon="add"
           class="recipe-share-token__submit-btn">
-          <mat-icon *ngIf="!isSubmitting()">add</mat-icon>
-          <mat-icon *ngIf="isSubmitting()" class="recipe-share-token__loading">hourglass_empty</mat-icon>
           {{ isSubmitting() ? 'Creating...' : 'Create Share Token' }}
-        </button>
+        </amw-button>
       </div>
     </form>
 
@@ -47,7 +48,7 @@
       <h3 class="recipe-share-token__section-title">Active Share Tokens</h3>
 
              <div *ngIf="shareTokens().length === 0 && !isLoading()" class="recipe-share-token__empty">
-         <mat-icon class="recipe-share-token__empty-icon">share</mat-icon>
+         <amw-icon name="share" class="recipe-share-token__empty-icon"></amw-icon>
          <p>No share tokens created yet</p>
        </div>
 
@@ -79,21 +80,21 @@
            </div>
 
            <div class="recipe-share-token__token-actions">
-             <button 
-               mat-icon-button 
-               matTooltip="Copy share URL"
-               (click)="copyShareToken(shareToken.shareToken)"
+             <amw-icon-button
+               icon="content_copy"
+               ariaLabel="Copy share URL"
+               [amwTooltip]="'Copy share URL'"
+               (buttonClick)="copyShareToken(shareToken.shareToken)"
                class="recipe-share-token__copy-btn">
-               <mat-icon>content_copy</mat-icon>
-             </button>
-             <button 
-               mat-icon-button 
+             </amw-icon-button>
+             <amw-icon-button
+               icon="delete"
                color="warn"
-               (click)="deleteShareToken(shareToken.id)"
-               class="recipe-share-token__delete-btn"
-               matTooltip="Delete share token">
-               <mat-icon>delete</mat-icon>
-             </button>
+               ariaLabel="Delete share token"
+               [amwTooltip]="'Delete share token'"
+               (buttonClick)="deleteShareToken(shareToken.id)"
+               class="recipe-share-token__delete-btn">
+             </amw-icon-button>
            </div>
          </div>
        </div>

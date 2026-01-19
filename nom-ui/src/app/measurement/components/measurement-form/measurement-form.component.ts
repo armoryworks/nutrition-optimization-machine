@@ -1,12 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
+
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwIconComponent } from 'angular-material-wrap';
+
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementModel } from '../../models/measurement.model';
 
@@ -14,14 +10,13 @@ import { MeasurementModel } from '../../models/measurement.model';
     selector: 'app-measurement-form',
     standalone: true,
     imports: [
-        CommonModule,
         ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatSelectModule,
-        MatCardModule,
-        MatIconModule
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwInputComponent,
+        AmwSelectComponent,
+        AmwTextareaComponent,
+        AmwIconComponent,
     ],
     templateUrl: './measurement-form.component.html',
     styleUrl: './measurement-form.component.scss'

@@ -1,6 +1,9 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
+
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent } from 'angular-material-wrap';
 
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementCategoryService } from '../../services/measurement-category.service';
@@ -8,6 +11,14 @@ import { MeasurementModel, MeasurementCategoryModel } from '../../models/measure
 
 @Component({
     selector: 'app-measurement-converter',
+    standalone: true,
+    imports: [
+        DecimalPipe,
+        ReactiveFormsModule,
+        AmwButtonComponent,
+        AmwInputComponent,
+        AmwSelectComponent,
+    ],
     templateUrl: './measurement-converter.component.html',
     styleUrls: ['./measurement-converter.component.scss']
 })
@@ -141,6 +152,28 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
         this.error.set(null);
         this.fromMeasurements.set([]);
         this.toMeasurements.set([]);
+    }
+
+    // Helper methods for AMW select options
+    getCategoryOptions(): { value: string | number; label: string }[] {
+        return [
+            { value: '', label: 'Select Category' },
+            ...this.categories().map(cat => ({ value: cat.id, label: cat.name }))
+        ];
+    }
+
+    getFromMeasurementOptions(): { value: string | number; label: string }[] {
+        return [
+            { value: '', label: 'Select Unit' },
+            ...this.fromMeasurements().map(m => ({ value: m.id, label: `${m.name} (${m.symbol})` }))
+        ];
+    }
+
+    getToMeasurementOptions(): { value: string | number; label: string }[] {
+        return [
+            { value: '', label: 'Select Unit' },
+            ...this.toMeasurements().map(m => ({ value: m.id, label: `${m.name} (${m.symbol})` }))
+        ];
     }
 }
 

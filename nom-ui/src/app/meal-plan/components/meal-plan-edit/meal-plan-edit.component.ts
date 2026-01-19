@@ -1,40 +1,29 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwButtonComponent, AmwDatepickerComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { MealPlanUpdateRequestModel } from '../../models/meal-plan-update-request.model';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'nom-meal-plan-edit',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    BaseFormComponent
-],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwSelectComponent,
+    AmwTextareaComponent,
+    AmwButtonComponent,
+    AmwDatepickerComponent,
+    AmwCardComponent
+  ],
   templateUrl: './meal-plan-edit.component.html',
   styleUrls: ['./meal-plan-edit.component.scss']
 })
@@ -43,7 +32,7 @@ export class MealPlanEditComponent implements OnInit {
   private mealPlanService = inject(MealPlanService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
 
   mealPlanForm: FormGroup = this.nonNullableFb.group({
     recipeName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -62,19 +51,6 @@ export class MealPlanEditComponent implements OnInit {
     { value: 'dinner', label: 'Dinner' },
     { value: 'snack', label: 'Snack' }
   ];
-
-  formConfig: BaseFormConfig = {
-    title: 'Edit Meal Plan',
-    subtitle: 'Update your meal plan information',
-    submitText: 'Update Meal Plan',
-    showCancelButton: true,
-    cancelText: 'Cancel',
-    maxWidth: '600px',
-  };
-
-  constructor() {
-    // Form is now initialized at declaration
-  }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -99,11 +75,7 @@ export class MealPlanEditComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading meal plan:', error);
-        this.snackBar.open('Failed to load meal plan details', 'Close', {
-          duration: 5000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
+        this.notificationService.error('Failed to load meal plan details');
         this.router.navigate(['/meal-plan']);
       }
     });
@@ -123,21 +95,13 @@ export class MealPlanEditComponent implements OnInit {
       this.mealPlanService.updateMealPlan(this.mealPlanId(), updateRequest).subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.snackBar.open('Meal plan updated successfully!', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
+          this.notificationService.success('Meal plan updated successfully!');
           this.router.navigate(['/meal-plan', this.mealPlanId()]);
         },
         error: (error) => {
           this.isLoading.set(false);
           console.error('Error updating meal plan:', error);
-          this.snackBar.open('Failed to update meal plan. Please try again.', 'Close', {
-            duration: 5000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
+          this.notificationService.error('Failed to update meal plan. Please try again.');
         }
       });
     }

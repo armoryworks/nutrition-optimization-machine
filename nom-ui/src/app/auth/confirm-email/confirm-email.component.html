@@ -1,52 +1,51 @@
 <div class="nom-page-container confirm-email">
-  <mat-card class="nom-card">
-    <mat-card-header class="nom-card__header">
-      <mat-card-title class="nom-card__title"
-        >Email Confirmation</mat-card-title
-      >
-    </mat-card-header>
-
-    <mat-card-content class="nom-card__content text-center">
-      @if (isLoading()) {
-      <mat-progress-bar
-        mode="indeterminate"
-        color="primary"
-        class="nom-card__progress-bar"
-      ></mat-progress-bar>
-      <div class="status-message loading">
-        <mat-spinner [diameter]="40"></mat-spinner>
-        <p>{{ confirmationMessage }}</p>
+  <amw-card
+    headerTitle="Email Confirmation"
+    headerIcon="mark_email_read">
+    <ng-template #contentTemplate>
+      <div class="text-center">
+        @if (isLoading()) {
+          <mat-progress-bar
+            mode="indeterminate"
+            color="primary"
+            class="nom-card__progress-bar">
+          </mat-progress-bar>
+          <div class="status-message loading">
+            <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+            <p>{{ confirmationMessage }}</p>
+          </div>
+        } @else if (confirmationStatus === 'success') {
+          <div class="status-message success">
+            <amw-icon name="check_circle" color="primary" class="status-icon"></amw-icon>
+            <p>{{ confirmationMessage }}</p>
+            <amw-button
+              variant="filled"
+              color="primary"
+              routerLink="/login"
+              class="mt-4">
+              Go to Login
+            </amw-button>
+          </div>
+        } @else {
+          <div class="status-message failure">
+            <amw-icon name="error" color="warn" class="status-icon"></amw-icon>
+            <p>{{ confirmationMessage }}</p>
+            <amw-button
+              variant="filled"
+              color="accent"
+              routerLink="/resend-confirmation-email"
+              class="mt-4">
+              Resend Confirmation Email
+            </amw-button>
+            <amw-button
+              variant="text"
+              routerLink="/login"
+              class="mt-2">
+              Back to Login
+            </amw-button>
+          </div>
+        }
       </div>
-      } @else if (confirmationStatus === 'success') {
-      <div class="status-message success">
-        <mat-icon color="primary" class="status-icon">check_circle</mat-icon>
-        <p>{{ confirmationMessage }}</p>
-        <button
-          mat-raised-button
-          color="primary"
-          routerLink="/login"
-          class="mt-4"
-        >
-          Go to Login
-        </button>
-      </div>
-      } @else {
-      <div class="status-message failure">
-        <mat-icon color="warn" class="status-icon">error</mat-icon>
-        <p>{{ confirmationMessage }}</p>
-        <button
-          mat-raised-button
-          color="accent"
-          routerLink="/resend-confirmation-email"
-          class="mt-4"
-        >
-          Resend Confirmation Email
-        </button>
-        <button mat-button routerLink="/login" class="mt-2">
-          Back to Login
-        </button>
-      </div>
-      }
-    </mat-card-content>
-  </mat-card>
+    </ng-template>
+  </amw-card>
 </div>

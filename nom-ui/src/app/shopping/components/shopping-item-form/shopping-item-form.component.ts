@@ -1,30 +1,40 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+import { AmwInputComponent, AmwButtonComponent } from 'angular-material-wrap';
+
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 import { ReferenceItem } from '../../../common/services/reference-data.service';
+import { ReferenceSelectorComponent } from '../../../common/components/reference-selector/reference-selector.component';
 
 @Component({
     selector: 'app-shopping-item-form',
+    standalone: true,
+    imports: [
+        ReactiveFormsModule,
+        AmwInputComponent,
+        AmwButtonComponent,
+        ReferenceSelectorComponent
+    ],
     template: `
     <div class="shopping-item-form">
       <h3>Add Shopping Item</h3>
-    
+
       <form [formGroup]="shoppingItemForm" (ngSubmit)="onSubmit()">
         <div class="form-row">
-          <mat-form-field class="form-field">
-            <mat-label>Item Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter item name">
-            @if (shoppingItemForm.get('name')?.hasError('required')) {
-              <mat-error>
-                Item name is required
-              </mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            type="text"
+            formControlName="name"
+            label="Item Name"
+            placeholder="Enter item name"
+            [required]="true"
+            class="form-field">
+          </amw-input>
         </div>
-    
+
         <div class="form-row">
           <app-reference-selector
             [discriminatorId]="REFERENCE_IDS.SHOPPING_CATEGORY_TYPE"
@@ -35,7 +45,7 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
             (selectionChange)="onCategoryChange($event)">
           </app-reference-selector>
         </div>
-    
+
         <div class="form-row">
           <app-reference-selector
             [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
@@ -46,48 +56,50 @@ import { ReferenceItem } from '../../../common/services/reference-data.service';
             (selectionChange)="onPriorityChange($event)">
           </app-reference-selector>
         </div>
-    
+
         <div class="form-row">
-          <mat-form-field class="form-field">
-            <mat-label>Quantity</mat-label>
-            <input matInput type="number" formControlName="quantity" min="1">
-            @if (shoppingItemForm.get('quantity')?.hasError('required')) {
-              <mat-error>
-                Quantity is required
-              </mat-error>
-            }
-            @if (shoppingItemForm.get('quantity')?.hasError('min')) {
-              <mat-error>
-                Quantity must be at least 1
-              </mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            type="number"
+            formControlName="quantity"
+            label="Quantity"
+            [required]="true"
+            class="form-field">
+          </amw-input>
         </div>
-    
+
         <div class="form-actions">
-          <button mat-button type="button" (click)="onCancel()">Cancel</button>
-          <button mat-raised-button color="primary" type="submit" [disabled]="shoppingItemForm.invalid">
+          <amw-button
+            type="button"
+            variant="text"
+            (click)="onCancel()">
+            Cancel
+          </amw-button>
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            [disabled]="shoppingItemForm.invalid">
             Add Item
-          </button>
+          </amw-button>
         </div>
       </form>
-    
+
       @if (selectedCategory()) {
         <div class="selected-info">
           <strong>Selected Category:</strong> {{ selectedCategory()!.referenceName }}
           <br>
-            <em>{{ selectedCategory()!.referenceDescription }}</em>
-          </div>
-        }
-
-        @if (selectedPriority()) {
-          <div class="selected-info">
-            <strong>Selected Priority:</strong> {{ selectedPriority()!.referenceName }}
-            <br>
-              <em>{{ selectedPriority()!.referenceDescription }}</em>
-            </div>
-          }
+          <em>{{ selectedCategory()!.referenceDescription }}</em>
         </div>
+      }
+
+      @if (selectedPriority()) {
+        <div class="selected-info">
+          <strong>Selected Priority:</strong> {{ selectedPriority()!.referenceName }}
+          <br>
+          <em>{{ selectedPriority()!.referenceDescription }}</em>
+        </div>
+      }
+    </div>
     `,
     styleUrls: ['./shopping-item-form.component.scss']
 })

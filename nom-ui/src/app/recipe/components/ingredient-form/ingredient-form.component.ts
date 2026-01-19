@@ -1,27 +1,29 @@
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, input, output, signal } from '@angular/core';
 
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientModel } from '../../models/ingredient.model';
-import { UpdateIngredientRequestModel } from '../../models/update-ingredient-request.model';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { IngredientFormData } from './ingredient-form-data.interface';
 import { IngredientFormConfig } from './ingredient-form-config.interface';
+
+// Local interface for page configuration (replaces BasePageConfig)
+interface PageConfig {
+  title: string;
+  subtitle?: string;
+  showBackButton?: boolean;
+  showRefreshButton?: boolean;
+  refreshButtonText?: string;
+}
 
 // Re-export the interfaces for components that need them
 export type { IngredientFormData } from './ingredient-form-data.interface';
@@ -32,16 +34,14 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatSelectModule,
-    BaseFormComponent,
-    BasePageComponent
-],
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwTextareaComponent,
+    AmwButtonComponent,
+    AmwSelectComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+  ],
   templateUrl: './ingredient-form.component.html',
   styleUrls: ['./ingredient-form.component.scss']
 })
@@ -60,7 +60,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private recipeService = inject(RecipeService);
   private referenceDataService = inject(ReferenceDataService);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private cdr = inject(ChangeDetectorRef);
 
   ingredientForm: FormGroup;
@@ -84,7 +84,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   });
 
   // Page configuration for non-modal usage
-  pageConfig = signal<BasePageConfig>({
+  pageConfig = signal<PageConfig>({
     title: 'Create New Ingredient',
     subtitle: 'Add ingredient information and nutritional data',
     showBackButton: true,
@@ -333,7 +333,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
     request$.pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         const action = this.mode() === 'edit' ? 'updated' : 'created';
-        this.snackBar.open(`Ingredient ${action} successfully!`, 'Close', { duration: 3000 });
+        this.notificationService.success(`Ingredient ${action} successfully!`);
 
         // Emit the result
         this.formSubmitted.emit(result);
@@ -398,5 +398,14 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
         }
       });
     }
+  }
+
+  // Helper methods for AMW select options
+  getNutrientTypeOptions(): { value: number; label: string }[] {
+    return this.nutrientTypes().map(type => ({ value: type.id, label: type.name }));
+  }
+
+  getMeasurementOptions(): { value: number; label: string }[] {
+    return this.measurements().map(m => ({ value: m.id, label: `${m.name} (${m.symbol || m.name})` }));
   }
 }

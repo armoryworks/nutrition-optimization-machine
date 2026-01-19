@@ -1,16 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent } from 'angular-material-wrap';
+
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { PrivacyAnalyticsService } from '../../services/privacy-analytics.service';
 import { PrivacyAnalyticsModel } from '../../models/i-privacy-analytics.model';
@@ -20,19 +15,15 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
     selector: 'nom-privacy-analytics',
     standalone: true,
     imports: [
-        CommonModule,
-        MatCardModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
         MatTableModule,
         MatPaginatorModule,
         MatSortModule,
         MatChipsModule,
-        MatTooltipModule,
-        MatDialogModule,
-        MatSnackBarModule,
-        BasePageComponent
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwTooltipDirective,
+        AmwIconComponent,
+        BasePageComponent,
     ],
     templateUrl: './privacy-analytics.component.html',
     styleUrls: ['./privacy-analytics.component.scss']
@@ -40,7 +31,6 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
 export class PrivacyAnalyticsComponent implements OnInit {
     private privacyAnalyticsService = inject(PrivacyAnalyticsService);
     private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
 
     analytics: PrivacyAnalyticsModel | null = null;
     processingLogs: DataProcessingLogModel[] = [];

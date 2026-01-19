@@ -1,8 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { AmwButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 export interface BasePageConfig {
     title: string;
@@ -20,10 +18,10 @@ export interface BasePageConfig {
     selector: 'nom-base-page',
     standalone: true,
     imports: [
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatButtonModule
-],
+    AmwButtonComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+  ],
     templateUrl: './base-page.component.html',
     styleUrls: ['./base-page.component.scss']
 })

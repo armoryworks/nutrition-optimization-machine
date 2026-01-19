@@ -1,27 +1,22 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
 import { Router } from '@angular/router';
+
+import { MatDividerModule } from '@angular/material/divider';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+
 import { AuthService } from '../../auth.service';
 
 @Component({
   selector: 'nom-login-popover',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule
+    MatDividerModule,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwCardComponent
   ],
   templateUrl: './login-popover.component.html',
   styleUrls: ['./login-popover.component.scss']
@@ -32,8 +27,8 @@ export class LoginPopoverComponent {
   private router = inject(Router);
 
   loginForm: FormGroup;
-  isLoading = false;
-  errorMessage = '';
+  isLoading = signal(false);
+  errorMessage = signal('');
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -44,8 +39,8 @@ export class LoginPopoverComponent {
 
   onSubmit(): void {
     if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = '';
+      this.isLoading.set(true);
+      this.errorMessage.set('');
 
       const credentials = {
         email: this.loginForm.value.email,
@@ -54,13 +49,13 @@ export class LoginPopoverComponent {
 
       this.authService.login(credentials).subscribe({
         next: () => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           // Close popover and navigate to dashboard
           this.router.navigate(['/user/dashboard']);
         },
         error: (error) => {
-          this.isLoading = false;
-          this.errorMessage = error.message || 'Login failed. Please try again.';
+          this.isLoading.set(false);
+          this.errorMessage.set(error.message || 'Login failed. Please try again.');
         }
       });
     }

@@ -6,24 +6,18 @@ import {
   signal,
   effect,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AmwButtonComponent, AmwInputComponent } from 'angular-material-wrap';
+
 import { PersonModel } from '../../../person/models/person.model';
 
 @Component({
   selector: 'nom-onboarding-additional-participants',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
+    AmwButtonComponent,
+    AmwInputComponent,
   ],
   templateUrl: './onboarding-additional-participants.component.html',
   styleUrls: ['./onboarding-additional-participants.component.scss'],
@@ -169,6 +163,13 @@ export class OnboardingAdditionalParticipantsComponent
     const name = inputElement.value;
     if (this.internalAdditionalParticipantDetails[index]) {
       this.internalAdditionalParticipantDetails[index].name = name;
+    }
+  }
+
+  // Handler for AMW input valueChange
+  onParticipantNameChange(index: number, name: string | null): void {
+    if (this.internalAdditionalParticipantDetails[index]) {
+      this.internalAdditionalParticipantDetails[index].name = name || '';
     }
   }
 

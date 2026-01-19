@@ -1,8 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, AbstractControl } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import { AmwSelectComponent } from 'angular-material-wrap';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil, startWith, map } from 'rxjs/operators';
 import { ReferenceDataService } from '../../services/reference-data.service';
@@ -12,10 +10,8 @@ import { ReferenceItemModel } from '../../models/reference-item.model';
   selector: 'app-reference-selector',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatSelectModule
+    AmwSelectComponent,
   ],
   template: `
     <div class="reference-selector">
@@ -24,43 +20,16 @@ import { ReferenceItemModel } from '../../models/reference-item.model';
           {{ label }}
         </label>
       }
-    
-      @if (!isMultiSelect) {
-        <mat-form-field class="reference-selector__field">
-          <mat-label>{{ placeholder || 'Select option' }}</mat-label>
-          <mat-select [formControl]="formControl" [id]="controlId">
-            @for (item of filteredOptions$ | async; track item) {
-              <mat-option [value]="item.referenceId">
-                {{ item.referenceName }}
-              </mat-option>
-            }
-          </mat-select>
-          @if (control.hasError('required')) {
-            <mat-error>
-              {{ requiredErrorMessage || 'This field is required' }}
-            </mat-error>
-          }
-        </mat-form-field>
-      }
-    
-      @if (isMultiSelect) {
-        <mat-form-field class="reference-selector__field">
-          <mat-label>{{ placeholder || 'Select options' }}</mat-label>
-          <mat-select [formControl]="formControl" [id]="controlId" multiple>
-            @for (item of filteredOptions$ | async; track item) {
-              <mat-option [value]="item.referenceId">
-                {{ item.referenceName }}
-              </mat-option>
-            }
-          </mat-select>
-          @if (control.hasError('required')) {
-            <mat-error>
-              {{ requiredErrorMessage || 'This field is required' }}
-            </mat-error>
-          }
-        </mat-form-field>
-      }
-    
+
+      <amw-select
+        [formControl]="formControl"
+        [label]="placeholder || (isMultiSelect ? 'Select options' : 'Select option')"
+        [options]="getSelectOptions()"
+        [multiple]="isMultiSelect"
+        [required]="control.hasError('required')"
+        class="reference-selector__field">
+      </amw-select>
+
       @if (showDescription && selectedItemDescription) {
         <div class="reference-selector__description">
           {{ selectedItemDescription }}
@@ -173,5 +142,18 @@ export class ReferenceSelectorComponent implements OnInit, OnDestroy {
       items = filteredItems;
     });
     return items;
+  }
+
+  // Helper method for AMW select options
+  private cachedOptions: { value: number; label: string }[] = [];
+
+  getSelectOptions(): { value: number; label: string }[] {
+    this.filteredOptions$?.pipe(takeUntil(this.destroy$)).subscribe(items => {
+      this.cachedOptions = items.map(item => ({
+        value: item.referenceId!,
+        label: item.referenceName || ''
+      }));
+    });
+    return this.cachedOptions;
   }
 }

@@ -1,14 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
+
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+
 import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -17,16 +14,14 @@ import { NotificationService } from '../../../utilities/services/notification.se
     selector: 'nom-curated-plans',
     standalone: true,
     imports: [
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatProgressSpinnerModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule
-],
+        MatChipsModule,
+        MatDialogModule,
+        FormsModule,
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent,
+    ],
     templateUrl: './curated-plans.component.html',
     styleUrls: ['./curated-plans.component.scss']
 })
@@ -131,21 +126,23 @@ export class CuratedPlansComponent implements OnInit {
 @Component({
     selector: 'nom-plan-name-dialog',
     standalone: true,
-    imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, FormsModule],
+    imports: [MatDialogModule, FormsModule, AmwInputComponent, AmwButtonComponent],
     template: `
     <h2 mat-dialog-title>{{ data.title }}</h2>
     <mat-dialog-content>
       <p>{{ data.message }}</p>
-      <mat-form-field appearance="outline" style="width: 100%;">
-        <mat-label>Plan Name</mat-label>
-        <input matInput [(ngModel)]="planName" placeholder="Enter plan name">
-      </mat-form-field>
+      <amw-input
+        [(ngModel)]="planName"
+        label="Plan Name"
+        placeholder="Enter plan name"
+        style="width: 100%;">
+      </amw-input>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-raised-button color="primary" [mat-dialog-close]="planName" [disabled]="!planName.trim()">
+      <amw-button variant="text" mat-dialog-close>Cancel</amw-button>
+      <amw-button variant="filled" color="primary" [mat-dialog-close]="planName" [disabled]="!planName.trim()">
         Clone
-      </button>
+      </amw-button>
     </mat-dialog-actions>
   `
 })

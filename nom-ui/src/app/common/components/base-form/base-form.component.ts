@@ -1,10 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 import { ReactiveFormsModule, FormGroup } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 export interface BaseFormConfig {
     title: string;
@@ -22,10 +20,8 @@ export interface BaseFormConfig {
     standalone: true,
     imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    AmwButtonComponent,
+    AmwCardComponent,
 ],
     templateUrl: './base-form.component.html',
     styleUrls: ['./base-form.component.scss']

@@ -7,11 +7,10 @@ import {
 } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
+
+import { AmwButtonComponent, AmwSelectComponent } from 'angular-material-wrap';
+
 import { PersonModel } from '../../../person/models/person.model';
 
 @Component({
@@ -19,12 +18,10 @@ import { PersonModel } from '../../../person/models/person.model';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
     MatRadioModule,
-    MatSelectModule
-],
+    AmwButtonComponent,
+    AmwSelectComponent,
+  ],
   templateUrl: './onboarding-restriction-scope.component.html',
   styleUrls: ['./onboarding-restriction-scope.component.scss'],
 })
@@ -149,5 +146,10 @@ export class OnboardingRestrictionScopeComponent implements OnInit {
 
   isPreviousSubStepAvailable(): boolean {
     return this.currentSubStep === 'selectPeople';
+  }
+
+  // Helper method for AMW select options
+  getPersonOptions(): { value: number; label: string }[] {
+    return this.allPersonsInPlan().map(person => ({ value: person.id!, label: person.name || '' }));
   }
 }

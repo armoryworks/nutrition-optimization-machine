@@ -1,31 +1,50 @@
-<nom-base-page [config]="pageConfig">
-  <nom-base-form [config]="formConfig" [form]="personForm" (formSubmitted)="onSubmit()" (formCancelled)="onCancel()">
-    <div class="nom-form__content">
+<div class="nom-page-container person-profile-edit">
+  <amw-card
+    [headerTitle]="pageTitle"
+    [headerSubtitle]="pageSubtitle"
+    class="nom-card">
+    <ng-template #contentTemplate>
       @if (isInitialLoading()) {
-      <div class="nom-loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p class="nom-loading-text">Loading your profile...</p>
-      </div>
-      } @else {
-      <mat-form-field appearance="outline" class="nom-form__field">
-        <mat-label>Your Name</mat-label>
-        <input matInput 
-               formControlName="name" 
-               placeholder="Enter your name"
-               class="nom-form__input"
-               required>
-        <mat-icon matPrefix>person</mat-icon>
-        @if (personForm.get('name')?.invalid && personForm.get('name')?.touched) {
-        <mat-error>
-          @if (personForm.get('name')?.errors?.['required']) {
-          Name is required.
-          } @else if (personForm.get('name')?.errors?.['minlength']) {
-          Name must be at least 2 characters long.
-          }
-        </mat-error>
-        }
-      </mat-form-field>
+        <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
       }
-    </div>
-  </nom-base-form>
-</nom-base-page> 
+
+      @if (error()) {
+        <div class="nom-error-state">
+          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+          <p class="nom-error-state__message">{{ error() }}</p>
+          <div class="nom-error-state__actions">
+            <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          </div>
+        </div>
+      } @else if (!isInitialLoading()) {
+        <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form">
+          <amw-input
+            formControlName="name"
+            label="Your Name"
+            placeholder="Enter your name"
+            icon="person"
+            [required]="true"
+            class="nom-form__field">
+          </amw-input>
+
+          <div class="nom-form__actions">
+            <amw-button
+              type="button"
+              variant="text"
+              (click)="onCancel()">
+              {{ cancelText }}
+            </amw-button>
+            <amw-button
+              type="submit"
+              variant="filled"
+              color="primary"
+              [disabled]="personForm.invalid || isLoading()"
+              [loading]="isLoading()">
+              {{ submitText }}
+            </amw-button>
+          </div>
+        </form>
+      }
+    </ng-template>
+  </amw-card>
+</div>

@@ -1,40 +1,29 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+
+import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
-import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-item-dialog.component';
 
 @Component({
   selector: 'nom-shopping-detail',
   standalone: true,
   imports: [
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatDividerModule,
     MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-    MatCheckboxModule,
-    BaseDetailComponent
-],
+    AmwButtonComponent,
+    AmwCheckboxComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective
+  ],
   templateUrl: './shopping-detail.component.html',
   styleUrls: ['./shopping-detail.component.scss']
 })
@@ -42,7 +31,8 @@ export class ShoppingDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private shoppingService = inject(ShoppingService);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
+  private dialogService = inject(DialogService);
   private dialog = inject(MatDialog);
 
   shoppingList = signal<ShoppingListResponseModel | null>(null);
@@ -50,12 +40,8 @@ export class ShoppingDetailComponent implements OnInit {
   error = signal<string | null>(null);
   shoppingListId = signal(0);
 
-  detailConfig: BaseDetailConfig = {
-    title: 'Shopping List Details',
-    subtitle: 'View and manage shopping list items',
-    showBackButton: true,
-    maxWidth: '800px',
-  };
+  pageTitle = 'Shopping List Details';
+  pageSubtitle = 'View and manage shopping list items';
 
 
   ngOnInit(): void {
@@ -97,35 +83,19 @@ export class ShoppingDetailComponent implements OnInit {
   onDeleteShoppingList(): void {
     if (!this.shoppingList()) return;
 
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Shopping List',
-        message: `Are you sure you want to delete "${this.shoppingList()!.name}"? This action cannot be undone.`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    this.dialogService.confirm(
+      `Are you sure you want to delete "${this.shoppingList()!.name}"? This action cannot be undone.`,
+      'Delete Shopping List'
+    ).subscribe(result => {
       if (result) {
         this.shoppingService.deleteShoppingList(this.shoppingListId()).subscribe({
           next: () => {
-            this.snackBar.open('Shopping list deleted successfully', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.success('Shopping list deleted successfully');
             this.router.navigate(['/shopping']);
           },
           error: (error: Error | string | unknown) => {
             console.error('Error deleting shopping list:', error);
-            this.snackBar.open('Failed to delete shopping list', 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.error('Failed to delete shopping list');
           }
         });
       }
@@ -133,7 +103,7 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   onAddItem(): void {
-    // Open dialog to add new item
+    // Open dialog to add new item (keeping MatDialog for custom component dialog)
     const dialogRef = this.dialog.open(ShoppingItemDialogComponent, {
       width: '500px',
       data: {
@@ -146,20 +116,12 @@ export class ShoppingDetailComponent implements OnInit {
       if (result) {
         this.shoppingService.addShoppingListItem(this.shoppingListId(), result).subscribe({
           next: () => {
-            this.snackBar.open('Item added successfully', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
-            this.loadShoppingList(); // Refresh the list
+            this.notificationService.success('Item added successfully');
+            this.loadShoppingList();
           },
           error: (error: Error | string | unknown) => {
             console.error('Error adding item:', error);
-            this.snackBar.open('Failed to add item', 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.error('Failed to add item');
           }
         });
       }
@@ -186,58 +148,32 @@ export class ShoppingDetailComponent implements OnInit {
 
     this.shoppingService.updateShoppingListItem(this.shoppingListId(), itemId, updatedItem).subscribe({
       next: () => {
-        this.snackBar.open(
-          updatedItem.isCompleted ? 'Item marked as complete' : 'Item marked as incomplete',
-          'Close',
-          {
-            duration: 2000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          }
+        this.notificationService.success(
+          updatedItem.isCompleted ? 'Item marked as complete' : 'Item marked as incomplete'
         );
-        this.loadShoppingList(); // Refresh the list
+        this.loadShoppingList();
       },
       error: (error: Error | string | unknown) => {
         console.error('Error updating item:', error);
-        this.snackBar.open('Failed to update item', 'Close', {
-          duration: 5000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
+        this.notificationService.error('Failed to update item');
       }
     });
   }
 
   onDeleteItem(itemId: number): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Item',
-        message: 'Are you sure you want to delete this item?',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    this.dialogService.confirm(
+      'Are you sure you want to delete this item?',
+      'Delete Item'
+    ).subscribe(result => {
       if (result) {
         this.shoppingService.deleteShoppingListItem(this.shoppingListId(), itemId).subscribe({
           next: () => {
-            this.snackBar.open('Item deleted successfully', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
-            this.loadShoppingList(); // Refresh the list
+            this.notificationService.success('Item deleted successfully');
+            this.loadShoppingList();
           },
           error: (error: Error | string | unknown) => {
             console.error('Error deleting item:', error);
-            this.snackBar.open('Failed to delete item', 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.error('Failed to delete item');
           }
         });
       }

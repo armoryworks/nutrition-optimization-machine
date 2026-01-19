@@ -1,21 +1,16 @@
 // File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.ts
 
 import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, ViewChild, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { NgClass } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatIconModule } from '@angular/material/icon';
 import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
+
+import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 // Import all child components for ViewChild references
 import { PersonHealthEditComponent } from '../../../person/components/person-health-edit/person-health-edit.component';
@@ -40,17 +35,12 @@ import { OnboardingWorkflowStep } from '../../models/onboarding-workflow-step';
   selector: 'nom-onboarding-workflow',
   standalone: true,
   imports: [
-    CommonModule,
+    NgClass,
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatRadioModule,
-    MatSelectModule,
+    AmwButtonComponent,
+    AmwCardComponent,
     PersonHealthEditComponent,
     RestrictionEditComponent,
     OnboardingInvitationCodeComponent,

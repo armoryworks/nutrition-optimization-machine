@@ -1,124 +1,181 @@
-<nom-base-page
-  [config]="pageConfig()"
-  [isLoading]="isLoading()"
-  [error]="error()"
-  (back)="onBack()"
-  (refresh)="onRefresh()"
-  (retry)="onRetry()">
+<div class="nom-page-container recipe-edit">
+  <amw-card
+    [headerTitle]="pageTitle()"
+    [headerSubtitle]="isEditMode() ? 'Update your recipe' : 'Add a new recipe to your collection'"
+    headerIcon="restaurant">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
 
-  <nom-base-form
-    [config]="formConfig()"
-    [form]="recipeForm"
-    [isSubmitting]="isSubmitting()"
-    (formSubmit)="onSubmit()"
-    (formCancel)="onCancel()">
-
-    <div [formGroup]="recipeForm">
-      <div class="nom-recipe-edit__section">
-        <h3 class="nom-recipe-edit__section-title">General Information</h3>
-        <mat-form-field class="nom-recipe-edit__form-field">
-          <mat-label>Recipe Name</mat-label>
-          <input matInput formControlName="name" placeholder="e.g., Classic Lasagna">
-        </mat-form-field>
-        <mat-form-field class="nom-recipe-edit__form-field">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" rows="4"
-            placeholder="A short summary of the recipe..."></textarea>
-        </mat-form-field>
-      </div>
-
-      <div class="nom-recipe-edit__section">
-        <div class="nom-recipe-edit__section-header">
-          <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
+      @if (error()) {
+        <div class="nom-error-state">
+          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+          <p class="nom-error-state__message">{{ error() }}</p>
+          <div class="nom-error-state__actions">
+            <amw-button variant="text" (click)="onBack()">Go Back</amw-button>
+            <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
+          </div>
         </div>
-        <div class="nom-ingredient-search">
-          <mat-form-field class="nom-ingredient-search__form-field">
-            <mat-label>Add an Ingredient</mat-label>
-            <input matInput type="text" placeholder="Start typing to search..."
-              [formControl]="ingredientSearchCtrl" [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onIngredientSelected($event)"
-              [displayWith]="displayIngredient">
-              @for (ingredient of filteredIngredients$ | async; track ingredient.id) {
-              <mat-option [value]="ingredient">{{ ingredient.name }}</mat-option>
+      } @else {
+        <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="nom-form">
+          <!-- General Information -->
+          <div class="nom-recipe-edit__section">
+            <h3 class="nom-recipe-edit__section-title">General Information</h3>
+
+            <amw-input
+              formControlName="name"
+              label="Recipe Name"
+              placeholder="e.g., Classic Lasagna"
+              [required]="true"
+              class="nom-form__field">
+            </amw-input>
+
+            <amw-textarea
+              formControlName="description"
+              label="Description"
+              placeholder="A short summary of the recipe..."
+              [rows]="4"
+              class="nom-form__field">
+            </amw-textarea>
+          </div>
+
+          <!-- Ingredients Section -->
+          <div class="nom-recipe-edit__section">
+            <div class="nom-recipe-edit__section-header">
+              <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
+            </div>
+            <div class="nom-ingredient-search">
+              <amw-autocomplete
+                [formControl]="ingredientSearchCtrl"
+                label="Add an Ingredient"
+                placeholder="Start typing to search..."
+                [options]="ingredientAutocompleteOptions()"
+                [displayWith]="displayIngredient"
+                (inputChanged)="onIngredientInputChanged($event)"
+                (optionSelected)="onIngredientAutocompleteSelected($event)"
+                class="nom-ingredient-search__form-field">
+              </amw-autocomplete>
+              <amw-button
+                variant="outlined"
+                type="button"
+                (click)="openCreateIngredientModal()">
+                Create New Ingredient
+              </amw-button>
+            </div>
+
+            <div class="nom-ingredient-list" formArrayName="ingredients">
+              @for (ingredient of ingredients.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="nom-ingredient-list__item">
+                  <span class="nom-ingredient-list__item-name">{{ ingredient.get('name')?.value }}</span>
+                  <div class="nom-ingredient-list__item-inputs">
+                    <amw-input
+                      type="number"
+                      formControlName="quantity"
+                      label="Qty"
+                      class="nom-ingredient-list__quantity-field">
+                    </amw-input>
+                    <amw-select
+                      formControlName="measurementId"
+                      label="Unit"
+                      [options]="getMeasurementOptions()"
+                      class="nom-ingredient-list__unit-field">
+                    </amw-select>
+                  </div>
+                  <amw-button
+                    variant="icon"
+                    type="button"
+                    (click)="removeIngredient(i)"
+                    title="Remove Ingredient">
+                    <amw-icon name="delete_outline"></amw-icon>
+                  </amw-button>
+                </div>
               }
-            </mat-autocomplete>
-          </mat-form-field>
-          <button mat-stroked-button type="button" (click)="openCreateIngredientModal()">
-            Create New Ingredient
-          </button>
-        </div>
-        <div class="nom-ingredient-list" formArrayName="ingredients">
-        @for (ingredient of ingredients.controls; track i; let i = $index) {
-        <div [formGroupName]="i" class="nom-ingredient-list__item">
-          <span class="nom-ingredient-list__item-name">{{ ingredient.get('name')?.value }}</span>
-          <div class="nom-ingredient-list__item-inputs">
-            <mat-form-field appearance="outline" class="nom-ingredient-list__quantity-field">
-              <mat-label>Qty</mat-label>
-              <input matInput type="number" formControlName="quantity">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="nom-ingredient-list__unit-field">
-              <mat-label>Unit</mat-label>
-                              <mat-select formControlName="measurementId">
-                    @for (unit of measurements$ | async; track unit.id) {
-                        <mat-option [value]="unit.id">{{ unit.name }}</mat-option>
-                    }
-                </mat-select>         
-            </mat-form-field>
+            </div>
+            @if (ingredients.length === 0) {
+              <p class="nom-ingredient-list__empty-message">No ingredients added yet.</p>
+            }
           </div>
-          <button mat-icon-button type="button" (click)="removeIngredient(i)"
-            title="Remove Ingredient">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
-        </div>
-        }
-      </div>
-      @if (ingredients.length === 0) {
-      <p class="nom-ingredient-list__empty-message">No ingredients added yet.</p>
-      }
-    </div>
 
-    <div class="nom-recipe-edit__section">
-      <div class="nom-recipe-edit__section-header">
-        <h3 class="nom-recipe-edit__section-title">Instructions</h3>
-        <button mat-stroked-button type="button" (click)="addStep()">
-          <mat-icon>add</mat-icon>
-          Add Step
-        </button>
-      </div>
-      <div class="nom-step-list" cdkDropList (cdkDropListDropped)="dropStep($event)"
-        formArrayName="steps">
-        @for (step of steps.controls; track i; let i = $index) {
-        <div [formGroupName]="i" class="nom-step-list__item" cdkDrag>
-          <div class="nom-step-list__drag-handle" cdkDragHandle>
-            <mat-icon>drag_indicator</mat-icon>
+          <!-- Instructions Section -->
+          <div class="nom-recipe-edit__section">
+            <div class="nom-recipe-edit__section-header">
+              <h3 class="nom-recipe-edit__section-title">Instructions</h3>
+              <amw-button
+                variant="outlined"
+                type="button"
+                icon="add"
+                (click)="addStep()">
+                Add Step
+              </amw-button>
+            </div>
+            <div class="nom-step-list" cdkDropList (cdkDropListDropped)="dropStep($event)"
+              formArrayName="steps">
+              @for (step of steps.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="nom-step-list__item" cdkDrag>
+                  <div class="nom-step-list__drag-handle" cdkDragHandle>
+                    <amw-icon name="drag_indicator"></amw-icon>
+                  </div>
+                  <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
+                  <amw-textarea
+                    formControlName="description"
+                    label="Step"
+                    [autoResize]="true"
+                    [minRows]="3"
+                    class="nom-step-list__item-field">
+                  </amw-textarea>
+                  <amw-button
+                    variant="icon"
+                    type="button"
+                    (click)="removeStep(i)"
+                    title="Remove Step"
+                    class="nom-step-list__remove-button">
+                    <amw-icon name="delete_outline"></amw-icon>
+                  </amw-button>
+                </div>
+              }
+            </div>
+            @if (steps.length === 0) {
+              <p class="nom-step-list__empty-message">No steps added yet.</p>
+            }
           </div>
-          <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
-          <mat-form-field class="nom-step-list__item-field">
-            <mat-label>Step</mat-label>
-            <textarea matInput formControlName="description" cdkTextareaAutosize
-              #autosize="cdkTextareaAutosize" cdkAutosizeMinRows="3"></textarea>
-          </mat-form-field>
-          <button mat-icon-button type="button" (click)="removeStep(i)" title="Remove Step"
-            class="nom-step-list__remove-button">
-            <mat-icon>delete_outline</mat-icon>
-          </button>
-        </div>
-        }
-      </div>
-      @if (steps.length === 0) {
-      <p class="nom-step-list__empty-message">No steps added yet.</p>
+
+          @if (isEditMode()) {
+            <div class="nom-recipe-edit__additional-actions">
+              <amw-button
+                variant="outlined"
+                type="button"
+                icon="send"
+                (click)="submitForCuration()"
+                [disabled]="isSubmitting()">
+                Submit for Curation
+              </amw-button>
+            </div>
+          }
+
+          <!-- Form Actions -->
+          <div class="nom-form__actions">
+            <amw-button
+              type="button"
+              variant="text"
+              (click)="onCancel()">
+              Cancel
+            </amw-button>
+            <amw-button
+              type="submit"
+              variant="filled"
+              color="primary"
+              [disabled]="recipeForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()">
+              {{ isEditMode() ? 'Update Recipe' : 'Create Recipe' }}
+            </amw-button>
+          </div>
+        </form>
       }
-    </div>
-
-    @if (isEditMode()) {
-    <div class="nom-recipe-edit__additional-actions">
-      <button mat-stroked-button type="button" (click)="submitForCuration()" [disabled]="isSubmitting()">
-        <mat-icon>send</mat-icon>
-        Submit for Curation
-      </button>
-    </div>
-    }
-
-    </div>
-  </nom-base-form>
-</nom-base-page>
+    </ng-template>
+  </amw-card>
+</div>

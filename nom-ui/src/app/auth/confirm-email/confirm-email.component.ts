@@ -1,13 +1,10 @@
 import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'; // Import ActivatedRoute and Router
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatIconModule } from '@angular/material/icon'; // Often used for status icons
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { ConfirmEmail } from '../models/confirm-email';
@@ -17,13 +14,13 @@ import { NotificationService } from '../../utilities/services/notification.servi
   selector: 'nom-confirm-email',
   standalone: true,
   imports: [
-    MatCardModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
-    MatIconModule,
-    RouterLink
-],
+    RouterLink,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+  ],
   templateUrl: './confirm-email.component.html',
   styleUrls: ['./confirm-email.component.scss'],
   encapsulation: ViewEncapsulation.None,

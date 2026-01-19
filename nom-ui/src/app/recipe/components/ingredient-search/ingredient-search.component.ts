@@ -1,131 +1,116 @@
 // File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.ts
 
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  Observable,
-  Subject,
-  of,
-  debounceTime,
-  distinctUntilChanged,
-  switchMap,
-  catchError,
-  takeUntil,
-  tap,
-} from 'rxjs';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+import { Subject, of, catchError, takeUntil, finalize } from 'rxjs';
+
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { IngredientModel } from '../../models/ingredient.model';
-import { BaseListConfig } from '../../../common/components/base-list/base-list.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component';
-import { MatIconModule } from '@angular/material/icon';
+
+interface AutocompleteOption {
+  value: any;
+  label: string;
+  disabled?: boolean;
+}
 
 @Component({
   selector: 'nom-ingredient-search',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatAutocompleteModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    BasePageComponent,
+    MatProgressBarModule,
+    AmwAutocompleteComponent,
+    AmwCardComponent,
+    AmwIconComponent,
     IngredientDetailsComponent,
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './ingredient-search.component.html',
   styleUrls: ['./ingredient-search.component.scss'],
 })
-export class IngredientSearchComponent implements OnInit, OnDestroy {
+export class IngredientSearchComponent implements OnDestroy {
   private recipeService = inject(RecipeService);
 
-  searchControl = new FormControl('');
-  filteredIngredients$: Observable<IngredientSearchResponseModel[]> | undefined;
-  selectedIngredient: IngredientModel | null = null;
-  isLoading = false;
-  error: string | null = null;
+  searchControl = new FormControl<IngredientSearchResponseModel | null>(null);
+  autocompleteOptions = signal<AutocompleteOption[]>([]);
+  selectedIngredient = signal<IngredientModel | null>(null);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
   private destroy$ = new Subject<void>();
 
-  // Page configuration - no title/subtitle for more compact layout
-  pageConfig: BasePageConfig = {
-    title: '', // Hide title for more space
-    subtitle: '', // Hide subtitle for more space
-    maxWidth: '1000px',
-  };
-
-  // List configuration (keeping for nested base-list if needed)
-  listConfig: BaseListConfig = {
-    title: '',
-    subtitle: '',
-    showSearch: false,
-    maxWidth: '100%'
-  };
-
-
-  ngOnInit(): void {
-    this.filteredIngredients$ = this.searchControl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((term) => {
-        if (term && typeof term === 'string' && term.length > 2) {
-          this.isLoading = true;
-          this.error = null;
-          const retObs = this.recipeService.searchIngredients(term).pipe(
-            catchError((error) => {
-              console.error('Error searching ingredients:', error);
-              this.error = 'Failed to search ingredients. Please try again.';
-              this.isLoading = false;
-              return of([]);
-            })
-          );
-          retObs.subscribe(() => {
-            this.isLoading = false;
-          });
-          return retObs;
-        } else {
-          return of([]);
-        }
-      }),
-      tap(() => (this.isLoading = false)),
-      takeUntil(this.destroy$)
-    );
-  }
+  // Store the full ingredient data for lookup
+  private ingredientCache = new Map<number, IngredientSearchResponseModel>();
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  displayFn(ingredient: IngredientSearchResponseModel): string {
-    return ingredient && ingredient.name ? ingredient.name : '';
+  displayFn = (value: any): string => {
+    if (value && typeof value === 'object' && value.name) {
+      return value.name;
+    }
+    return value?.label || '';
+  };
+
+  onInputChanged(term: string): void {
+    if (term && term.length > 2) {
+      this.isLoading.set(true);
+      this.error.set(null);
+
+      this.recipeService.searchIngredients(term)
+        .pipe(
+          takeUntil(this.destroy$),
+          finalize(() => this.isLoading.set(false)),
+          catchError((error) => {
+            console.error('Error searching ingredients:', error);
+            this.error.set('Failed to search ingredients. Please try again.');
+            return of([]);
+          })
+        )
+        .subscribe((ingredients) => {
+          // Cache the ingredients and convert to AutocompleteOption format
+          this.ingredientCache.clear();
+          const options = ingredients.map((ingredient) => {
+            this.ingredientCache.set(ingredient.id, ingredient);
+            return {
+              value: ingredient.id,
+              label: ingredient.name
+            };
+          });
+          this.autocompleteOptions.set(options);
+        });
+    } else {
+      this.autocompleteOptions.set([]);
+    }
   }
 
-  onIngredientSelected(event: MatAutocompleteSelectedEvent): void {
-    const selected: IngredientSearchResponseModel = event.option.value;
-    this.isLoading = true;
-    this.error = null;
+  onOptionSelected(option: AutocompleteOption): void {
+    const ingredientId = option.value;
+    const ingredient = this.ingredientCache.get(ingredientId);
+
+    if (!ingredient) {
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.error.set(null);
     this.recipeService
-      .getIngredientDetails(selected.id)
+      .getIngredientDetails(ingredient.id)
       .pipe(
         takeUntil(this.destroy$),
+        finalize(() => this.isLoading.set(false)),
         catchError((error) => {
           console.error('Error loading ingredient details:', error);
-          this.error = 'Failed to load ingredient details.';
-          this.isLoading = false;
+          this.error.set('Failed to load ingredient details.');
           return of(null);
         })
       )
       .subscribe((details) => {
-        this.selectedIngredient = details;
-        this.isLoading = false;
+        this.selectedIngredient.set(details);
       });
   }
 }

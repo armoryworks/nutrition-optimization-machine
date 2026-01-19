@@ -9,24 +9,24 @@
 
     @if (isLoading()) {
       <div class="curated-plans__loading">
-        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
         <p>Loading curated plans...</p>
       </div>
     } @else if (error()) {
       <div class="curated-plans__error">
-        <mat-icon>error</mat-icon>
+        <amw-icon name="error"></amw-icon>
         <p>{{ error() }}</p>
-        <button mat-raised-button color="primary" (click)="loadCuratedPlans()">
-          <mat-icon>refresh</mat-icon>
+        <amw-button variant="filled" color="primary" (click)="loadCuratedPlans()" icon="refresh">
           Try Again
-        </button>
+        </amw-button>
       </div>
     } @else {
       <div class="curated-plans__content">
         @if (curatedPlans().length > 0) {
           <div class="curated-plans__grid">
             @for (plan of curatedPlans(); track plan.id) {
-                <mat-card class="curated-plans__plan-card">
+              <amw-card class="curated-plans__plan-card">
+                <ng-template #contentTemplate>
                   <div class="curated-plans__plan-header">
                     <div class="curated-plans__plan-info">
                       <h3 class="curated-plans__plan-title">{{ plan.name }}</h3>
@@ -49,19 +49,19 @@
                   <div class="curated-plans__plan-stats">
                     @if (getPlanStats(plan).goals > 0) {
                       <div class="curated-plans__stat">
-                        <mat-icon>flag</mat-icon>
+                        <amw-icon name="flag"></amw-icon>
                         <span>{{ getPlanStats(plan).goals }} Goals</span>
                       </div>
                     }
                     @if (getPlanStats(plan).meals > 0) {
                       <div class="curated-plans__stat">
-                        <mat-icon>restaurant</mat-icon>
+                        <amw-icon name="restaurant"></amw-icon>
                         <span>{{ getPlanStats(plan).meals }} Meals</span>
                       </div>
                     }
                     @if (getPlanStats(plan).recipes > 0) {
                       <div class="curated-plans__stat">
-                        <mat-icon>menu_book</mat-icon>
+                        <amw-icon name="menu_book"></amw-icon>
                         <span>{{ getPlanStats(plan).recipes }} Recipes</span>
                       </div>
                     }
@@ -73,7 +73,7 @@
                       <div class="curated-plans__goals-list">
                         @for (goal of plan.goals; track goal.id) {
                           <div class="curated-plans__goal">
-                            <mat-icon>flag</mat-icon>
+                            <amw-icon name="flag"></amw-icon>
                             <span>{{ goal.name }}</span>
                           </div>
                         }
@@ -87,7 +87,7 @@
                       <div class="curated-plans__restrictions-list">
                         @for (restriction of plan.restrictions; track restriction.id) {
                           <div class="curated-plans__restriction">
-                            <mat-icon>warning</mat-icon>
+                            <amw-icon name="warning"></amw-icon>
                             <span>{{ restriction.name }}</span>
                           </div>
                         }
@@ -96,31 +96,28 @@
                   }
 
                   <div class="curated-plans__plan-actions">
-                    <button
-                      mat-raised-button
+                    <amw-button
+                      variant="filled"
                       color="primary"
                       [disabled]="cloningPlanId() === plan.id"
+                      [loading]="cloningPlanId() === plan.id"
                       (click)="clonePlan(plan.id)"
-                      class="curated-plans__clone-btn">
-                      @if (cloningPlanId() === plan.id) {
-                        <mat-icon>hourglass_empty</mat-icon>
-                      }
-                      @if (cloningPlanId() !== plan.id) {
-                        <mat-icon>content_copy</mat-icon>
-                      }
-                      <span>{{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}</span>
-                    </button>
+                      class="curated-plans__clone-btn"
+                      icon="content_copy">
+                      {{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}
+                    </amw-button>
                   </div>
-                </mat-card>
-              }
-            </div>
-          } @else {
-            <div class="curated-plans__empty">
-              <mat-icon class="curated-plans__empty-icon">schedule</mat-icon>
-              <h3>No curated plans available</h3>
-              <p>Check back later for professionally curated meal plans</p>
-            </div>
-          }
+                </ng-template>
+              </amw-card>
+            }
+          </div>
+        } @else {
+          <div class="curated-plans__empty">
+            <amw-icon name="schedule" class="curated-plans__empty-icon"></amw-icon>
+            <h3>No curated plans available</h3>
+            <p>Check back later for professionally curated meal plans</p>
+          </div>
+        }
       </div>
     }
   </div>

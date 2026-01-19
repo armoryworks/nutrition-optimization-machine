@@ -6,16 +6,11 @@ import {
   NonNullableFormBuilder,
 } from '@angular/forms';
 
-import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
+import { RouterLink } from '@angular/router';
 
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { SendConfirmationEmail } from '../models/send-confirmation-email';
@@ -26,15 +21,12 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
-    RouterLink
-],
+    RouterLink,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwCardComponent
+  ],
   templateUrl: './send-confirmation-email.component.html',
   styleUrls: ['./send-confirmation-email.component.scss'],
   encapsulation: ViewEncapsulation.None,

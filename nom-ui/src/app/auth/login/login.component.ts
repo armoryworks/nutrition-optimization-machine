@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal, computed } from '@angular/core';
+import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -6,17 +6,11 @@ import {
   NonNullableFormBuilder,
 } from '@angular/forms';
 
-import { RouterLink } from '@angular/router'; // Import RouterLink for button navigation
+import { RouterLink } from '@angular/router';
 
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 
@@ -29,16 +23,13 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCheckboxModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
-    RouterLink
-],
+    RouterLink,
+    AmwInputComponent,
+    AmwCheckboxComponent,
+    AmwButtonComponent,
+    AmwCardComponent
+  ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   encapsulation: ViewEncapsulation.None,

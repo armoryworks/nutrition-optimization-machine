@@ -1,24 +1,20 @@
 import { Component, OnInit, inject } from '@angular/core';
 
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
+
+import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 @Component({
   selector: 'nom-recipe-search',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule
-],
+    AmwButtonComponent,
+    AmwCardComponent
+  ],
   templateUrl: './recipe-search.component.html',
   styleUrls: ['./recipe-search.component.scss']
 })

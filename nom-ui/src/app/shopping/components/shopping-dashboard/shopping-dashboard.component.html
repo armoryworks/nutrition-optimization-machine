@@ -1,143 +1,156 @@
-<nom-base-page
-  [config]="pageConfig"
-  [isLoading]="isLoading()"
-  [error]="error()"
-  (refresh)="onRefresh()"
-  (retry)="onRetry()"
->
-  <div class="shopping-dashboard">
-    <div class="shopping-dashboard__container">
-      <!-- Header Actions -->
+<div class="shopping-dashboard">
+  <div class="shopping-dashboard__container">
+    <!-- Page Header -->
+    <div class="shopping-dashboard__page-header">
+      <div class="shopping-dashboard__title-section">
+        <h1>{{ pageTitle }}</h1>
+        <p class="subtitle">{{ pageSubtitle }}</p>
+      </div>
       <div class="shopping-dashboard__header-actions">
-        <button mat-raised-button color="primary" (click)="onCreateList()" class="shopping-dashboard__create-button">
-          <mat-icon>add</mat-icon>
+        <amw-button
+          variant="text"
+          icon="refresh"
+          (click)="onRefresh()"
+          [disabled]="isLoading()">
+          Refresh
+        </amw-button>
+        <amw-button
+          variant="filled"
+          color="primary"
+          icon="add"
+          (click)="onCreateList()">
           Create List
-        </button>
-      </div>
-
-      <!-- Search and Filters -->
-      <div class="shopping-dashboard__search-section">
-        <mat-form-field class="shopping-dashboard__search-field">
-          <mat-label>Search shopping lists</mat-label>
-          <input 
-            matInput 
-            [formControl]="searchControl"
-            placeholder="Search by name or description..."
-            class="shopping-dashboard__search-input"
-          />
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-      </div>
-
-      <!-- Content -->
-      <div class="shopping-dashboard__content">
-        <!-- Empty State -->
-        @if (!isLoading() && !error() && filteredLists().length === 0) {
-          <div class="shopping-dashboard__empty-state">
-            <mat-card class="shopping-dashboard__empty-card">
-              <mat-card-content>
-                <div class="shopping-dashboard__empty-content">
-                  <mat-icon class="shopping-dashboard__empty-icon">shopping_cart</mat-icon>
-                  <h3>No Shopping Lists Found</h3>
-                  @if (searchControl.value) {
-                    <p>No shopping lists match your search criteria.</p>
-                  } @else {
-                    <p>Create your first shopping list to get started.</p>
-                  }
-                  <button mat-raised-button color="primary" (click)="onCreateList()">
-                    <mat-icon>add</mat-icon>
-                    Create Shopping List
-                  </button>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-        }
-
-        <!-- Shopping Lists Grid -->
-        @if (!isLoading() && !error() && filteredLists().length > 0) {
-          <div class="shopping-dashboard__lists-grid">
-            @for (list of filteredLists(); track list.id) {
-              <mat-card class="shopping-dashboard__list-card">
-                <mat-card-header class="shopping-dashboard__list-header">
-                  <div class="shopping-dashboard__list-title-section">
-                    <mat-icon class="shopping-dashboard__list-icon">shopping_basket</mat-icon>
-                    <div class="shopping-dashboard__list-title-info">
-                      <mat-card-title class="shopping-dashboard__list-title">
-                        {{ list.name }}
-                      </mat-card-title>
-                      @if (list.description) {
-                        <mat-card-subtitle class="shopping-dashboard__list-subtitle">
-                          {{ list.description }}
-                        </mat-card-subtitle>
-                      }
-                    </div>
-                  </div>
-                </mat-card-header>
-
-                <mat-card-content class="shopping-dashboard__list-content">
-                  <div class="shopping-dashboard__list-stats">
-                    <div class="shopping-dashboard__list-stat">
-                      <mat-icon class="shopping-dashboard__stat-icon">list</mat-icon>
-                      <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
-                    </div>
-                    <div class="shopping-dashboard__list-stat">
-                      <mat-icon class="shopping-dashboard__stat-icon">check_circle</mat-icon>
-                      <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
-                    </div>
-                  </div>
-
-                  <!-- Progress Bar -->
-                  @if (list.totalItems && list.totalItems > 0) {
-                    <div class="shopping-dashboard__progress-section">
-                      <div class="shopping-dashboard__progress-bar">
-                        <div 
-                          class="shopping-dashboard__progress-fill"
-                          [style.width.%]="getProgressPercentage(list)"
-                          [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"
-                        ></div>
-                      </div>
-                      <span class="shopping-dashboard__progress-text">
-                        {{ getProgressPercentage(list) }}% complete
-                      </span>
-                    </div>
-                  }
-                </mat-card-content>
-
-                <mat-card-actions class="shopping-dashboard__list-actions">
-                  <button
-                    mat-button
-                    color="primary"
-                    (click)="onViewList(list.id); $event.stopPropagation()"
-                    class="shopping-dashboard__action-button"
-                  >
-                    <mat-icon>visibility</mat-icon>
-                    View
-                  </button>
-                  <button
-                    mat-button
-                    color="accent"
-                    (click)="onEditList(list.id); $event.stopPropagation()"
-                    class="shopping-dashboard__action-button"
-                  >
-                    <mat-icon>edit</mat-icon>
-                    Edit
-                  </button>
-                  <button
-                    mat-button
-                    color="warn"
-                    (click)="onDeleteList(list.id); $event.stopPropagation()"
-                    class="shopping-dashboard__action-button"
-                  >
-                    <mat-icon>delete</mat-icon>
-                    Delete
-                  </button>
-                </mat-card-actions>
-              </mat-card>
-            }
-          </div>
-        }
+        </amw-button>
       </div>
     </div>
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="shopping-dashboard__loading">
+        <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
+        <p>Loading shopping lists...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error() && !isLoading()) {
+      <div class="shopping-dashboard__error">
+        <amw-icon name="error_outline"></amw-icon>
+        <p>{{ error() }}</p>
+        <amw-button
+          variant="outlined"
+          color="primary"
+          icon="refresh"
+          (click)="onRefresh()">
+          Try Again
+        </amw-button>
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!isLoading() && !error()) {
+      <!-- Search -->
+      <div class="shopping-dashboard__search-section">
+        <amw-input
+          type="text"
+          [formControl]="searchControl"
+          label="Search shopping lists"
+          placeholder="Search by name or description..."
+          icon="search"
+          class="shopping-dashboard__search-field">
+        </amw-input>
+      </div>
+
+      <!-- Empty State -->
+      @if (filteredLists().length === 0) {
+        <div class="shopping-dashboard__empty-state">
+          <amw-card class="shopping-dashboard__empty-card">
+            <ng-template #contentTemplate>
+              <div class="shopping-dashboard__empty-content">
+                <amw-icon name="shopping_cart" class="shopping-dashboard__empty-icon"></amw-icon>
+                <h3>No Shopping Lists Found</h3>
+                @if (searchControl.value) {
+                  <p>No shopping lists match your search criteria.</p>
+                } @else {
+                  <p>Create your first shopping list to get started.</p>
+                }
+                <amw-button
+                  variant="filled"
+                  color="primary"
+                  icon="add"
+                  (click)="onCreateList()">
+                  Create Shopping List
+                </amw-button>
+              </div>
+            </ng-template>
+          </amw-card>
+        </div>
+      }
+
+      <!-- Shopping Lists Grid -->
+      @if (filteredLists().length > 0) {
+        <div class="shopping-dashboard__lists-grid">
+          @for (list of filteredLists(); track list.id) {
+            <amw-card
+              class="shopping-dashboard__list-card"
+              [headerTitle]="list.name"
+              [headerSubtitle]="list.description || ''"
+              headerIcon="shopping_basket">
+              <ng-template #contentTemplate>
+                <div class="shopping-dashboard__list-stats">
+                  <div class="shopping-dashboard__list-stat">
+                    <amw-icon name="list" class="shopping-dashboard__stat-icon"></amw-icon>
+                    <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
+                  </div>
+                  <div class="shopping-dashboard__list-stat">
+                    <amw-icon name="check_circle" class="shopping-dashboard__stat-icon"></amw-icon>
+                    <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
+                  </div>
+                </div>
+
+                <!-- Progress Bar -->
+                @if (list.totalItems && list.totalItems > 0) {
+                  <div class="shopping-dashboard__progress-section">
+                    <div class="shopping-dashboard__progress-bar">
+                      <div
+                        class="shopping-dashboard__progress-fill"
+                        [style.width.%]="getProgressPercentage(list)"
+                        [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"
+                      ></div>
+                    </div>
+                    <span class="shopping-dashboard__progress-text">
+                      {{ getProgressPercentage(list) }}% complete
+                    </span>
+                  </div>
+                }
+              </ng-template>
+              <ng-template #actionsTemplate>
+                <amw-button
+                  variant="text"
+                  color="primary"
+                  icon="visibility"
+                  (click)="onViewList(list.id); $event.stopPropagation()">
+                  View
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="accent"
+                  icon="edit"
+                  (click)="onEditList(list.id); $event.stopPropagation()">
+                  Edit
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="warn"
+                  icon="delete"
+                  (click)="onDeleteList(list.id); $event.stopPropagation()">
+                  Delete
+                </amw-button>
+              </ng-template>
+            </amw-card>
+          }
+        </div>
+      }
+    }
   </div>
-</nom-base-page> 
+</div>

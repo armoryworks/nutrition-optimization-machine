@@ -1,6 +1,7 @@
 // File: nom-ui/src/styles.scss
 
 @use '@angular/material' as mat;
+// Note: angular-material-wrap styles are embedded in components
 @use 'nom-theme';
 @use 'variables' as vars;
 

@@ -1,44 +1,41 @@
 <div class="shopping-list">
   <div class="shopping-list__header">
     <h2>Shopping List</h2>
-    <button mat-raised-button color="primary" (click)="addNewItem()">
-      <mat-icon>add</mat-icon>
+    <amw-button
+      variant="filled"
+      color="primary"
+      icon="add"
+      (click)="addNewItem()">
       Add Item
-    </button>
+    </amw-button>
   </div>
 
   <!-- Dynamic Filters -->
   <div class="shopping-list__filters">
-    <mat-form-field class="filter-field">
-      <mat-label>Filter by Priority</mat-label>
-      <mat-select [formControl]="filtersForm.get('priorityFilter')" (selectionChange)="onPriorityFilterChange($event)">
-        <mat-option value="">All Priorities</mat-option>
-        @for (priority of priorities; track priority) {
-          <mat-option [value]="priority.referenceId">
-            {{ priority.referenceName }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <amw-select
+      [formControl]="filtersForm.get('priorityFilter')"
+      label="Filter by Priority"
+      [options]="[{value: '', label: 'All Priorities'}].concat(priorities().map(p => ({value: p.referenceId, label: p.referenceName})))"
+      class="filter-field">
+    </amw-select>
 
-    <mat-form-field class="filter-field">
-      <mat-label>Filter by Category</mat-label>
-      <mat-select [formControl]="filtersForm.get('categoryFilter')" (selectionChange)="onCategoryFilterChange($event)">
-        <mat-option value="">All Categories</mat-option>
-        @for (category of categories; track category) {
-          <mat-option [value]="category.referenceId">
-            {{ category.referenceName }}
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <amw-select
+      [formControl]="filtersForm.get('categoryFilter')"
+      label="Filter by Category"
+      [options]="[{value: '', label: 'All Categories'}].concat(categories().map(c => ({value: c.referenceId, label: c.referenceName})))"
+      class="filter-field">
+    </amw-select>
 
-    <button mat-button (click)="clearFilters()">Clear Filters</button>
+    <amw-button
+      variant="text"
+      (click)="clearFilters()">
+      Clear Filters
+    </amw-button>
   </div>
 
   <!-- Shopping Items List -->
   <div class="shopping-list__items">
-    @for (item of filteredItems; track item) {
+    @for (item of filteredItems(); track item) {
       <div class="shopping-item" [class]="'priority-' + getPriorityClass(item.priorityId)">
         <div class="shopping-item__content">
           <div class="shopping-item__name">{{ item.name }}</div>
@@ -53,19 +50,23 @@
           </div>
         </div>
         <div class="shopping-item__actions">
-          <button mat-icon-button (click)="editItem(item)">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button (click)="deleteItem(item)">
-            <mat-icon>delete</mat-icon>
-          </button>
+          <amw-button
+            variant="icon"
+            icon="edit"
+            (click)="editItem(item)">
+          </amw-button>
+          <amw-button
+            variant="icon"
+            icon="delete"
+            (click)="deleteItem(item)">
+          </amw-button>
         </div>
       </div>
     }
 
-    @if (filteredItems.length === 0) {
+    @if (filteredItems().length === 0) {
       <div class="no-items">
-        <mat-icon>shopping_cart</mat-icon>
+        <amw-icon name="shopping_cart"></amw-icon>
         <p>No shopping items found</p>
         @if (hasActiveFilters) {
           <p>Try adjusting your filters</p>
@@ -78,7 +79,7 @@
   <div class="shopping-list__summary">
     <div class="summary-stat">
       <span class="stat-label">Total Items:</span>
-      <span class="stat-value">{{ filteredItems.length }}</span>
+      <span class="stat-value">{{ filteredItems().length }}</span>
     </div>
     <div class="summary-stat">
       <span class="stat-label">High Priority:</span>
@@ -90,4 +91,3 @@
     </div>
   </div>
 </div>
-

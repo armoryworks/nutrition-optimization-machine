@@ -3,10 +3,7 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDividerModule } from '@angular/material/divider';
+import { AmwButtonComponent, AmwIconButtonComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective } from 'angular-material-wrap';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './auth/auth.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
@@ -19,10 +16,12 @@ import { LoginComponent } from './auth/login/login.component';
   imports: [
     CommonModule,
     RouterModule,
-    MatIconModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatDividerModule,
+    AmwButtonComponent,
+    AmwIconButtonComponent,
+    AmwIconComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective,
     LoginComponent
   ],
   templateUrl: './app.component.html',

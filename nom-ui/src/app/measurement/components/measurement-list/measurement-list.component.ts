@@ -1,12 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementModel } from '../../models/measurement.model';
 
@@ -14,14 +11,13 @@ import { MeasurementModel } from '../../models/measurement.model';
     selector: 'app-measurement-list',
     standalone: true,
     imports: [
-        CommonModule,
         MatTableModule,
-        MatButtonModule,
-        MatIconModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        ReactiveFormsModule
+        ReactiveFormsModule,
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconButtonComponent,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: './measurement-list.component.html',
     styleUrl: './measurement-list.component.scss'

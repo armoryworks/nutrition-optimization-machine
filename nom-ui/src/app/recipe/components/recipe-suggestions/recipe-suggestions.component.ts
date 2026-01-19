@@ -1,17 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgFor, NgIf, KeyValuePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { RecipeSuggestionService } from '../../services/recipe-suggestion.service';
 import { RecipeService } from '../../services/recipe.service';
@@ -24,19 +13,10 @@ import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
     selector: 'app-recipe-suggestions',
     standalone: true,
     imports: [
-        CommonModule,
+        NgFor,
+        NgIf,
+        KeyValuePipe,
         ReactiveFormsModule,
-        MatTabsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatSelectModule,
-        MatCheckboxModule,
-        MatChipsModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatCardModule,
-        MatTooltipModule
     ],
     templateUrl: './recipe-suggestions.component.html',
     styleUrls: ['./recipe-suggestions.component.scss']

@@ -3,26 +3,25 @@ import {
   FormGroup,
   Validators,
   NonNullableFormBuilder,
+  ReactiveFormsModule,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { PersonModel } from '../../models/person.model';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject } from 'rxjs';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+
+import { PersonModel } from '../../models/person.model';
 
 @Component({
   selector: 'nom-person-edit',
   standalone: true,
   imports: [
-    CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    BaseFormComponent,
-    BasePageComponent,
+    ReactiveFormsModule,
+    MatProgressBarModule,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwInputComponent,
   ],
   templateUrl: './person-edit.component.html',
   styleUrls: ['./person-edit.component.scss'],
@@ -40,21 +39,11 @@ export class PersonEditComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   error = signal<string | null>(null);
 
-  pageConfig: BasePageConfig = {
-    title: 'Edit Person',
-    subtitle: 'Update your personal information',
-    showBackButton: true,
-    maxWidth: '600px',
-  };
-
-  formConfig: BaseFormConfig = {
-    title: '',
-    subtitle: '',
-    submitText: 'Save Changes',
-    showCancelButton: true,
-    cancelText: 'Cancel',
-    maxWidth: '100%',
-  };
+  // Page configuration
+  pageTitle = 'Edit Person';
+  pageSubtitle = 'Update your personal information';
+  submitText = 'Save Changes';
+  cancelText = 'Cancel';
 
   private destroy$ = new Subject<void>();
 

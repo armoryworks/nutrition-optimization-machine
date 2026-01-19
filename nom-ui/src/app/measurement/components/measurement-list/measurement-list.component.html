@@ -1,21 +1,19 @@
 <div class="measurement-list">
-  <mat-card class="measurement-list__card">
-    <mat-card-header>
-      <mat-card-title>Measurement Units</mat-card-title>
-      <mat-card-subtitle>Manage measurement units and conversion factors</mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <amw-card
+    class="measurement-list__card"
+    headerTitle="Measurement Units"
+    headerSubtitle="Manage measurement units and conversion factors">
+    <ng-template #contentTemplate>
       @if (isLoading()) {
         <div class="measurement-list__loading">
-          <mat-spinner diameter="40"></mat-spinner>
+          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
           <p>Loading measurements...</p>
         </div>
       } @else if (error()) {
         <div class="measurement-list__error">
-          <mat-icon color="warn">error</mat-icon>
+          <amw-icon name="error" color="warn"></amw-icon>
           <p>{{ error() }}</p>
-          <button mat-button color="primary" (click)="onRefresh()">Retry</button>
+          <amw-button variant="text" color="primary" (click)="onRefresh()">Retry</amw-button>
         </div>
       } @else {
         <div class="measurement-list__table-container">
@@ -48,12 +46,18 @@
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let measurement">
-                <button mat-icon-button color="primary" (click)="onEdit(measurement)" matTooltip="Edit">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button mat-icon-button color="warn" (click)="onDelete(measurement)" matTooltip="Delete">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                <amw-icon-button
+                  icon="edit"
+                  color="primary"
+                  (click)="onEdit(measurement)"
+                  ariaLabel="Edit">
+                </amw-icon-button>
+                <amw-icon-button
+                  icon="delete"
+                  color="warn"
+                  (click)="onDelete(measurement)"
+                  ariaLabel="Delete">
+                </amw-icon-button>
               </td>
             </ng-container>
 
@@ -63,19 +67,18 @@
 
           @if (measurements().length === 0) {
             <div class="measurement-list__empty">
-              <mat-icon>inbox</mat-icon>
+              <amw-icon name="inbox"></amw-icon>
               <p>No measurements found</p>
             </div>
           }
         </div>
       }
-    </mat-card-content>
 
-    <mat-card-actions>
-      <button mat-raised-button color="primary" (click)="onRefresh()">
-        <mat-icon>refresh</mat-icon>
-        Refresh
-      </button>
-    </mat-card-actions>
-  </mat-card>
+      <div class="measurement-list__actions">
+        <amw-button variant="filled" color="primary" (click)="onRefresh()" icon="refresh">
+          Refresh
+        </amw-button>
+      </div>
+    </ng-template>
+  </amw-card>
 </div>

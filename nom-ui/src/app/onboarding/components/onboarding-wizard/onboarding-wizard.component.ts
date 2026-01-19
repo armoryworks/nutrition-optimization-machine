@@ -1,14 +1,10 @@
 import { Component, OnInit, input, output, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatCardModule } from '@angular/material/card';
+
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwCheckboxComponent } from 'angular-material-wrap';
 
 interface OnboardingQuestion {
     id: string;
@@ -28,16 +24,14 @@ interface OnboardingAnswer {
     selector: 'nom-onboarding-wizard',
     standalone: true,
     imports: [
-        CommonModule,
+        NgClass,
         ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatProgressSpinnerModule,
         MatProgressBarModule,
         MatRadioModule,
-        MatCheckboxModule,
-        MatCardModule,
+        AmwButtonComponent,
+        AmwCheckboxComponent,
+        AmwCardComponent,
+        AmwInputComponent,
     ],
     templateUrl: './onboarding-wizard.component.html',
     styleUrls: ['./onboarding-wizard.component.scss'],

@@ -1,11 +1,4 @@
 import { Component, OnInit, input, output, ViewEncapsulation, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
 import {
   FormGroup,
   FormControl,
@@ -13,6 +6,8 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwTextareaComponent } from 'angular-material-wrap';
 
 import { PersonModel } from '../../../person/models/person.model';
 import { PlanModel, RestrictionModel } from '../../models/plan.model';
@@ -22,14 +17,11 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
   selector: 'nom-plan-edit',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSelectModule
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwInputComponent,
+    AmwTextareaComponent,
   ],
   templateUrl: './plan-edit.component.html',
   styleUrls: ['./plan-edit.component.scss'],

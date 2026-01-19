@@ -1,87 +1,53 @@
 <div class="household-create">
   <div class="household-create__container">
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>home</mat-icon>
-          {{ formConfig.title }}
-        </mat-card-title>
-        @if (formConfig.subtitle) {
-        <mat-card-subtitle>{{ formConfig.subtitle }}</mat-card-subtitle>
-        }
-      </mat-card-header>
-
-      <mat-card-content>
+    <amw-card [headerTitle]="formConfig.title" headerIcon="home">
+      <ng-template #contentTemplate>
         <form [formGroup]="householdForm" (ngSubmit)="onSubmit()">
-          <!-- Household Name Field -->
-          <mat-form-field appearance="outline" class="household-create__field">
-            <mat-label>
-              <mat-icon>edit</mat-icon>
-              Household Name
-            </mat-label>
-            <input matInput formControlName="name" placeholder="Enter a name for your household..."
-              class="household-create__input" required />
-            @if (householdForm.get('name')?.hasError('required')) {
-            <mat-error>
-              <mat-icon>error</mat-icon>
-              Name is required
-            </mat-error>
-            }
-            @if (householdForm.get('name')?.hasError('minlength')) {
-            <mat-error>
-              <mat-icon>error</mat-icon>
-              Name must be at least 2 characters
-            </mat-error>
-            }
-            @if (householdForm.get('name')?.hasError('maxlength')) {
-            <mat-error>
-              <mat-icon>error</mat-icon>
-              Name cannot exceed 100 characters
-            </mat-error>
-            }
-          </mat-form-field>
+          <!-- Household Name Field - Using AMW -->
+          <amw-input
+            type="text"
+            formControlName="name"
+            placeholder="Enter a name for your household..."
+            label="Household Name"
+            [required]="true"
+            class="household-create__field">
+          </amw-input>
 
-          <!-- Description Field -->
-          <mat-form-field appearance="outline" class="household-create__field">
-            <mat-label>
-              <mat-icon>description</mat-icon>
-              Description (Optional)
-            </mat-label>
-            <textarea matInput formControlName="description"
-              placeholder="Add a description to help identify your household..." rows="4"
-              class="household-create__textarea"></textarea>
-            @if (householdForm.get('description')?.hasError('maxlength')) {
-            <mat-error>
-              <mat-icon>error</mat-icon>
-              Description cannot exceed 500 characters
-            </mat-error>
-            }
-          </mat-form-field>
+          <!-- Description Field - Using AMW -->
+          <amw-textarea
+            formControlName="description"
+            placeholder="Add a description to help identify your household..."
+            label="Description (Optional)"
+            class="household-create__field">
+          </amw-textarea>
 
           <!-- Form Actions -->
           <div class="form-actions">
             <div class="action-buttons">
-              <button mat-button type="button" (click)="onCancel()" [disabled]="isLoading" class="cancel-button">
-                <mat-icon>close</mat-icon>
+              <amw-button
+                type="button"
+                variant="text"
+                icon="close"
+                [disabled]="isLoading()"
+                (click)="onCancel()"
+                class="cancel-button">
                 {{ formConfig.cancelText || 'Cancel' }}
-              </button>
+              </amw-button>
 
-              <button mat-raised-button color="primary" type="submit" [disabled]="householdForm.invalid || isLoading"
+              <amw-button
+                type="submit"
+                variant="filled"
+                color="primary"
+                icon="check"
+                [loading]="isLoading()"
+                [disabled]="householdForm.invalid"
                 class="submit-button">
-                @if (isLoading()) {
-                <mat-spinner diameter="20" class="household-create__loading"></mat-spinner>
-                <span>Saving...</span>
-                } @else {
-                <ng-container>
-                  <mat-icon>check</mat-icon>
-                  <span>{{ formConfig.submitText || 'Create Household' }}</span>
-                </ng-container>
-                }
-              </button>
+                {{ formConfig.submitText || 'Create Household' }}
+              </amw-button>
             </div>
           </div>
         </form>
-      </mat-card-content>
-    </mat-card>
+      </ng-template>
+    </amw-card>
   </div>
 </div>

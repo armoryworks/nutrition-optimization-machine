@@ -3,34 +3,27 @@
 import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'; // Import MatDialog and MatDialogModule
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
+
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { UpdateConsentRequest } from '../../../privacy/models/update-consent.request';
-import { ConfirmationDialogComponent } from '../../../common/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'nom-privacy-settings',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatSlideToggleModule,
-    MatButtonModule,
-    MatDividerModule,
     MatProgressBarModule,
-    MatDialogModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-],
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwToggleComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+  ],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
   encapsulation: ViewEncapsulation.None,
@@ -39,7 +32,7 @@ export class PrivacySettingsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private privacyService = inject(PrivacyService);
   private notificationService = inject(NotificationService);
-  private dialog = inject(MatDialog);
+  private dialogService = inject(DialogService);
 
   consentForm: FormGroup;
   privacyForm: FormGroup;
@@ -147,18 +140,11 @@ export class PrivacySettingsComponent implements OnInit {
   }
 
   onDeleteAccount(): void {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Confirm Account Deletion',
-        message:
-          'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.',
-        confirmButtonText: 'Delete My Account',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
+    this.dialogService.confirm(
+      'Are you sure you want to permanently delete your account and all associated data? This action cannot be undone.',
+      'Confirm Account Deletion'
+    ).subscribe((confirmed) => {
+      if (confirmed) {
         // User confirmed the action
         this.isLoading.set(true);
         this.privacyService.requestDataDeletion({ confirm: true }).subscribe({

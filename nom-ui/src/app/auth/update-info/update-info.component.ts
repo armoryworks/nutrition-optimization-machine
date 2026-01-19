@@ -7,15 +7,9 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-
-// Angular Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { UpdateInfo } from '../models/update-info';
@@ -27,14 +21,11 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatProgressBarModule
-],
+    MatProgressBarModule,
+    AmwInputComponent,
+    AmwButtonComponent,
+    AmwCardComponent
+  ],
   templateUrl: './update-info.component.html',
   styleUrls: ['./update-info.component.scss'],
   encapsulation: ViewEncapsulation.None,

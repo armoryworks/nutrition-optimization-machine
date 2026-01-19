@@ -1,23 +1,15 @@
 // File: nom-ui/src/app/curation/components/curation-queue/curation-queue.component.ts
 
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatMenuModule } from '@angular/material/menu';
 import { Subject, takeUntil, finalize } from 'rxjs';
+
+import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective } from 'angular-material-wrap';
+
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
 import { CurationDecisionRequestModel } from '../../models/curation-decision-request.model';
@@ -28,23 +20,21 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
   selector: 'nom-curation-queue',
   standalone: true,
   imports: [
-    CommonModule,
+    NgClass,
     FormsModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
     MatExpansionModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatDialogModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-    MatMenuModule,
-    BaseListComponent
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwTextareaComponent,
+    AmwIconButtonComponent,
+    AmwTooltipDirective,
+    AmwIconComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective,
+    BaseListComponent,
   ],
   templateUrl: './curation-queue.component.html',
   styleUrls: ['./curation-queue.component.scss']
@@ -52,8 +42,6 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
 export class CurationQueueComponent implements OnInit, OnDestroy {
   private curationService = inject(CurationService);
   private notificationService = inject(NotificationService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
   private fb = inject(NonNullableFormBuilder);
 
   queueItems = signal<CurationQueueItemModel[]>([]);

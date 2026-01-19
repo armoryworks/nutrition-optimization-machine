@@ -8,63 +8,55 @@
   <div class="recipe-assets__container">
     <!-- Upload Form (Edit Mode Only) -->
     @if (isEditMode()) {
-      <mat-card class="recipe-assets__upload-card">
-        <mat-card-header>
-          <mat-card-title>Upload New Asset</mat-card-title>
-          <mat-card-subtitle>Add files, images, or documents to this recipe</mat-card-subtitle>
-        </mat-card-header>
-        
-        <mat-card-content>
+      <amw-card
+        headerTitle="Upload New Asset"
+        headerSubtitle="Add files, images, or documents to this recipe"
+        headerIcon="cloud_upload"
+        class="recipe-assets__upload-card">
+        <ng-template #contentTemplate>
           <form [formGroup]="assetForm" (ngSubmit)="onSubmit()" class="recipe-assets__form">
             <div class="recipe-assets__form-row">
-              <mat-form-field appearance="outline" class="recipe-assets__name-field">
-                <mat-label>Asset Name</mat-label>
-                <input matInput formControlName="name" placeholder="Enter asset name">
-                @if (assetForm.get('name')?.hasError('required') && assetForm.get('name')?.touched) {
-                  <mat-error>Asset name is required</mat-error>
-                }
-                @if (assetForm.get('name')?.hasError('maxlength')) {
-                  <mat-error>Asset name cannot exceed 100 characters</mat-error>
-                }
-              </mat-form-field>
+              <amw-input
+                formControlName="name"
+                label="Asset Name"
+                placeholder="Enter asset name"
+                [required]="true"
+                class="recipe-assets__name-field">
+              </amw-input>
 
-              <mat-form-field appearance="outline" class="recipe-assets__icon-field">
-                <mat-label>Icon Type</mat-label>
-                <mat-select formControlName="icon">
-                  @for (option of iconOptions; track option.value) {
-                    <mat-option [value]="option.value">
-                      <mat-icon>{{ option.icon }}</mat-icon>
-                      <span class="recipe-assets__option-text">{{ option.label }}</span>
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <amw-select
+                formControlName="icon"
+                label="Icon Type"
+                [required]="true"
+                [options]="iconOptions.map(o => ({ value: o.value, label: o.label }))"
+                class="recipe-assets__icon-field">
+              </amw-select>
             </div>
 
-            <mat-form-field appearance="outline" class="recipe-assets__description-field">
-              <mat-label>Description (Optional)</mat-label>
-              <textarea matInput formControlName="description" placeholder="Describe this asset..." rows="2"></textarea>
-              @if (assetForm.get('description')?.hasError('maxlength')) {
-                <mat-error>Description cannot exceed 500 characters</mat-error>
-              }
-            </mat-form-field>
+            <amw-textarea
+              formControlName="description"
+              label="Description (Optional)"
+              placeholder="Describe this asset..."
+              [rows]="2"
+              class="recipe-assets__description-field">
+            </amw-textarea>
 
             <div class="recipe-assets__file-upload">
               <label class="recipe-assets__file-label">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   id="fileInput"
                   (change)="onFileSelected($event)"
                   class="recipe-assets__file-input"
                   accept="*/*">
                 <div class="recipe-assets__file-button">
-                  <mat-icon>cloud_upload</mat-icon>
+                  <amw-icon name="cloud_upload"></amw-icon>
                   <span>Choose File</span>
                 </div>
               </label>
               @if (selectedFile) {
                 <div class="recipe-assets__file-info">
-                  <mat-icon>attach_file</mat-icon>
+                  <amw-icon name="attach_file"></amw-icon>
                   <span>{{ selectedFile.name }}</span>
                   <span class="recipe-assets__file-size">({{ getFileSizeDisplay(selectedFile.size) }})</span>
                 </div>
@@ -72,19 +64,20 @@
             </div>
 
             <div class="recipe-assets__form-actions">
-              <button
-                mat-raised-button
+              <amw-button
+                variant="filled"
                 color="primary"
                 type="submit"
                 [disabled]="assetForm.invalid || !selectedFile || isSubmitting()"
+                [loading]="isSubmitting()"
+                icon="upload"
                 class="recipe-assets__submit-btn">
-                <mat-icon>upload</mat-icon>
                 {{ isSubmitting() ? 'Uploading...' : 'Upload Asset' }}
-              </button>
+              </amw-button>
             </div>
           </form>
-        </mat-card-content>
-      </mat-card>
+        </ng-template>
+      </amw-card>
     }
 
     <!-- Assets List -->
@@ -93,14 +86,14 @@
 
       @if (isLoading()) {
         <div class="recipe-assets__loading">
-          <mat-spinner diameter="40"></mat-spinner>
+          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
           <p>Loading assets...</p>
         </div>
       }
 
       @if (!isLoading() && assets().length === 0) {
         <div class="recipe-assets__empty">
-          <mat-icon class="recipe-assets__empty-icon">folder_open</mat-icon>
+          <amw-icon name="folder_open" class="recipe-assets__empty-icon"></amw-icon>
           <p>No assets uploaded yet.</p>
           @if (isEditMode()) {
             <p>Upload files, images, or documents to share with this recipe.</p>
@@ -113,9 +106,8 @@
           @for (asset of assets(); track asset.id) {
             <mat-list-item class="recipe-assets__list-item">
               <div matListItemIcon class="recipe-assets__item-icon">
-                <mat-icon [matTooltip]="getIconClass(asset.icon)" matTooltipPosition="above">
-                  {{ getIconClass(asset.icon) }}
-                </mat-icon>
+                <amw-icon [name]="getIconClass(asset.icon)" [amwTooltip]="getIconClass(asset.icon)" amwTooltipPosition="above">
+                </amw-icon>
               </div>
               
               <div matListItemTitle class="recipe-assets__item-title">
@@ -131,24 +123,22 @@
               </div>
 
               <div matListItemMeta class="recipe-assets__item-actions">
-                <button
-                  mat-icon-button
+                <amw-icon-button
+                  icon="download"
                   color="primary"
                   (click)="onDownloadAsset(asset)"
                   class="recipe-assets__download-btn"
-                  matTooltip="Download asset">
-                  <mat-icon>download</mat-icon>
-                </button>
+                  ariaLabel="Download asset">
+                </amw-icon-button>
 
                 @if (isEditMode()) {
-                  <button
-                    mat-icon-button
+                  <amw-icon-button
+                    icon="delete"
                     color="warn"
                     (click)="onDeleteAsset(asset.id)"
                     class="recipe-assets__delete-btn"
-                    matTooltip="Delete asset">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                    ariaLabel="Delete asset">
+                  </amw-icon-button>
                 }
               </div>
             </mat-list-item>

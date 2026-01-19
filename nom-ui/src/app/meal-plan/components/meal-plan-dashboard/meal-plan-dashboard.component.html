@@ -10,17 +10,17 @@
                 <!-- Stats Pills -->
                 <div class="nom-dashboard__stats-pills">
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>schedule</mat-icon>
+                        <amw-icon name="schedule"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ filteredPlans().length }}</span>
                         <span class="nom-dashboard__stat-label">Plans</span>
                     </div>
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>restaurant</mat-icon>
+                        <amw-icon name="restaurant"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ getTotalMeals() }}</span>
                         <span class="nom-dashboard__stat-label">Meals</span>
                     </div>
                     <div class="nom-dashboard__stat-pill">
-                        <mat-icon>calendar_today</mat-icon>
+                        <amw-icon name="calendar_today"></amw-icon>
                         <span class="nom-dashboard__stat-number">{{ getUpcomingMeals() }}</span>
                         <span class="nom-dashboard__stat-label">This Week</span>
                     </div>
@@ -38,26 +38,31 @@
                         <div class="nom-dashboard__filters">
                             <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()" class="nom-dashboard__view-toggle">
                                 <mat-button-toggle value="week">
-                                    <mat-icon>view_week</mat-icon>
+                                    <amw-icon name="view_week"></amw-icon>
                                     <span>Week View</span>
                                 </mat-button-toggle>
                                 <mat-button-toggle value="month">
-                                    <mat-icon>view_module</mat-icon>
+                                    <amw-icon name="view_module"></amw-icon>
                                     <span>Month View</span>
                                 </mat-button-toggle>
                             </mat-button-toggle-group>
-                            
-                            <mat-form-field appearance="outline" class="nom-dashboard__filter-field">
-                                <mat-label>Search Meal Plans...</mat-label>
-                                <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search Meal Plans...">
-                                <mat-icon matSuffix>search</mat-icon>
-                            </mat-form-field>
+
+                            <amw-input
+                                [formControl]="searchControl"
+                                label="Search Meal Plans..."
+                                placeholder="Search Meal Plans..."
+                                icon="search"
+                                class="nom-dashboard__filter-field">
+                            </amw-input>
                         </div>
-                        
-                        <button mat-stroked-button (click)="createMealPlan()" class="nom-dashboard__action-button">
-                            <mat-icon>add</mat-icon>
-                            <span>Create Plan</span>
-                        </button>
+
+                        <amw-button
+                            variant="outlined"
+                            icon="add"
+                            (click)="createMealPlan()"
+                            class="nom-dashboard__action-button">
+                            Create Plan
+                        </amw-button>
                     </div>
 
                     @if (filteredPlans.length > 0) {
@@ -81,19 +86,19 @@
                                                 @for (plan of getPlansForDay(day.date); track plan.id) {
                                                     <div class="nom-dashboard__plan-item">
                                                         <div class="nom-dashboard__plan-header">
-                                                            <mat-icon class="nom-dashboard__plan-icon">restaurant</mat-icon>
+                                                            <amw-icon name="restaurant" class="nom-dashboard__plan-icon"></amw-icon>
                                                             <div class="nom-dashboard__plan-info">
                                                                 <h4 class="nom-dashboard__plan-title">{{ plan.title || plan.recipeName }}</h4>
                                                                 <p class="nom-dashboard__plan-description">{{ plan.description }}</p>
                                                             </div>
                                                         </div>
                                                         <div class="nom-dashboard__plan-actions">
-                                                            <button mat-icon-button (click)="editMealPlan(plan)" title="Edit">
-                                                                <mat-icon>edit</mat-icon>
-                                                            </button>
-                                                            <button mat-icon-button (click)="deleteMealPlan(plan)" title="Delete">
-                                                                <mat-icon>delete</mat-icon>
-                                                            </button>
+                                                            <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
+                                                                <amw-icon name="edit"></amw-icon>
+                                                            </amw-button>
+                                                            <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
+                                                                <amw-icon name="delete"></amw-icon>
+                                                            </amw-button>
                                                         </div>
                                                     </div>
                                                 }
@@ -122,12 +127,12 @@
                                                     </div>
                                                 </div>
                                                 <div class="nom-dashboard__item-actions">
-                                                    <button mat-icon-button (click)="editMealPlan(plan)" class="nom-dashboard__action-btn" title="Edit">
-                                                        <mat-icon>edit</mat-icon>
-                                                    </button>
-                                                    <button mat-icon-button (click)="deleteMealPlan(plan)" class="nom-dashboard__action-btn" title="Delete">
-                                                        <mat-icon>delete</mat-icon>
-                                                    </button>
+                                                    <amw-button variant="icon" (click)="editMealPlan(plan)" class="nom-dashboard__action-btn" title="Edit">
+                                                        <amw-icon name="edit"></amw-icon>
+                                                    </amw-button>
+                                                    <amw-button variant="icon" (click)="deleteMealPlan(plan)" class="nom-dashboard__action-btn" title="Delete">
+                                                        <amw-icon name="delete"></amw-icon>
+                                                    </amw-button>
                                                 </div>
                                             </div>
                                         </div>
@@ -137,15 +142,18 @@
                         }
                     } @else {
                         <div class="nom-dashboard__empty-state">
-                            <mat-icon class="nom-dashboard__empty-icon">schedule</mat-icon>
+                            <amw-icon name="schedule" class="nom-dashboard__empty-icon"></amw-icon>
                             <h3>No meal plans yet</h3>
                             <p>Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
                             @if (searchTerm()) {
                                 <div class="nom-dashboard__empty-actions">
-                                    <button mat-stroked-button (click)="clearSearch()" class="nom-dashboard__empty-action">
-                                        <mat-icon>clear</mat-icon>
+                                    <amw-button
+                                        variant="outlined"
+                                        icon="clear"
+                                        (click)="clearSearch()"
+                                        class="nom-dashboard__empty-action">
                                         Clear Search
-                                    </button>
+                                    </amw-button>
                                 </div>
                             }
                         </div>
@@ -155,8 +163,8 @@
 
             @if (error()) {
                 <div class="nom-dashboard__error-message">
-                    <mat-icon>error</mat-icon>
-                    <p>{{ error }}</p>
+                    <amw-icon name="error"></amw-icon>
+                    <p>{{ error() }}</p>
                 </div>
             }
         </div>

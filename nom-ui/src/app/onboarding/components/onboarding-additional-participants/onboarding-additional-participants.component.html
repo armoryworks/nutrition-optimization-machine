@@ -6,67 +6,51 @@
     members, roommates)?
   </p>
   <div class="nom-horizontal-group flex-wrap justify-center my-4">
-    <button
-      mat-raised-button
+    <amw-button
+      variant="filled"
       color="primary"
       (click)="onHasParticipantsAnswer(true)"
       [disabled]="isLoading()"
-      class="nom-button mr-2"
-    >
+      class="mr-2">
       Yes
-    </button>
-    <button
-      mat-raised-button
+    </amw-button>
+    <amw-button
+      variant="filled"
       color="accent"
       (click)="onHasParticipantsAnswer(false)"
-      [disabled]="isLoading()"
-      class="nom-button"
-    >
+      [disabled]="isLoading()">
       No
-    </button>
+    </amw-button>
   </div>
   } @else if (currentSubStep === 'howMany') {
   <h3 class="nom-section__heading">How Many People?</h3>
   <p class="nom-instruction-text">
     How many additional people will be participating?
   </p>
-  <mat-form-field
-    appearance="outline"
-    class="nom-form__field nom-form__field--centered"
-  >
-    <mat-label>Number of People</mat-label>
-    <input
-      matInput
-      type="number"
-      [formControl]="numberOfAdditionalParticipantsControl"
-      class="nom-form__input"
-      placeholder="Enter a number"
-      min="0"
-    />
-    @if (numberOfAdditionalParticipantsControl.invalid &&
-    numberOfAdditionalParticipantsControl.touched) {
-    <mat-error>Please enter a valid number (0 or more).</mat-error>
-    }
-  </mat-form-field>
+  <amw-input
+    [formControl]="numberOfAdditionalParticipantsControl"
+    label="Number of People"
+    type="number"
+    placeholder="Enter a number"
+    [required]="true"
+    class="nom-form__field nom-form__field--centered">
+  </amw-input>
   <div class="flex justify-center mt-4">
-    <button
-      mat-raised-button
+    <amw-button
+      variant="filled"
       color="accent"
       (click)="goToPreviousSubStep()"
       [disabled]="isLoading()"
-      class="nom-button mr-2"
-    >
+      class="mr-2">
       Previous
-    </button>
-    <button
-      mat-raised-button
+    </amw-button>
+    <amw-button
+      variant="filled"
       color="primary"
       (click)="onHowManySubmit()"
-      [disabled]="isLoading() || numberOfAdditionalParticipantsControl.invalid"
-      class="nom-button"
-    >
+      [disabled]="isLoading() || numberOfAdditionalParticipantsControl.invalid">
       Next
-    </button>
+    </amw-button>
   </div>
   } @else if (currentSubStep === 'names') {
   <h3 class="nom-section__heading">Participant Names</h3>
@@ -75,37 +59,30 @@
   </p>
   @for (person of internalAdditionalParticipantDetails; let i = $index; track i)
   {
-  <mat-form-field appearance="outline" class="nom-form__field">
-    <mat-label>Person {{ i + 2 }} Name</mat-label>
-    <input
-      matInput
-      type="text"
-      [value]="person.name"
-      (input)="updateParticipantName(i, $event)"
-      class="nom-form__input"
-      required
-    />
-  </mat-form-field>
+  <amw-input
+    [value]="person.name"
+    (valueChange)="onParticipantNameChange(i, $event)"
+    [label]="'Person ' + (i + 2) + ' Name'"
+    [required]="true"
+    class="nom-form__field">
+  </amw-input>
   }
   <div class="flex justify-center mt-4">
-    <button
-      mat-raised-button
+    <amw-button
+      variant="filled"
       color="accent"
       (click)="goToPreviousSubStep()"
       [disabled]="isLoading()"
-      class="nom-button mr-2"
-    >
+      class="mr-2">
       Previous
-    </button>
-    <button
-      mat-raised-button
+    </amw-button>
+    <amw-button
+      variant="filled"
       color="primary"
       (click)="onNamesSubmit()"
-      [disabled]="isLoading() || !areAllParticipantNamesValid"
-      class="nom-button"
-    >
+      [disabled]="isLoading() || !areAllParticipantNamesValid">
       Next
-    </button>
+    </amw-button>
   </div>
   }
 </div>

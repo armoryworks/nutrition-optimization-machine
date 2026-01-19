@@ -10,28 +10,26 @@
           Your Nutrition Optimization Machine - Discover, create, and share amazing recipes
         </p>
         <div class="home__hero-actions">
-          <button mat-raised-button color="primary" class="home__hero-btn" routerLink="/register">
-            <mat-icon>person_add</mat-icon>
+          <amw-button variant="filled" color="primary" class="home__hero-btn" routerLink="/register" icon="person_add">
             Get Started
-          </button>
-          <button mat-stroked-button class="home__hero-btn" (click)="onBrowseRecipesClick()">
-            <mat-icon>search</mat-icon>
+          </amw-button>
+          <amw-button variant="outlined" class="home__hero-btn" (click)="onBrowseRecipesClick()" icon="search">
             Browse Recipes
-          </button>
+          </amw-button>
         </div>
       </div>
       <div class="home__hero-visual">
         <div class="home__hero-cards">
           <div class="home__hero-card home__hero-card--recipe" (click)="onRecipeCardClick()" style="cursor: pointer;">
-            <mat-icon>restaurant</mat-icon>
+            <amw-icon name="restaurant"></amw-icon>
             <span>Recipes</span>
           </div>
           <div class="home__hero-card home__hero-card--ingredient" (click)="onIngredientCardClick()" style="cursor: pointer;">
-            <mat-icon>eco</mat-icon>
+            <amw-icon name="eco"></amw-icon>
             <span>Ingredients</span>
           </div>
           <div class="home__hero-card home__hero-card--nutrition" (click)="onNutritionCardClick()" style="cursor: pointer;">
-            <mat-icon>monitor_heart</mat-icon>
+            <amw-icon name="monitor_heart"></amw-icon>
             <span>Nutrition</span>
           </div>
         </div>
@@ -44,28 +42,28 @@
       <div class="home__features-grid">
         <div class="home__feature-card">
           <div class="home__feature-icon">
-            <mat-icon>verified</mat-icon>
+            <amw-icon name="verified"></amw-icon>
           </div>
           <h3>Curated Quality</h3>
           <p>Every recipe and ingredient is carefully reviewed by our nutrition experts to ensure quality and accuracy.</p>
         </div>
         <div class="home__feature-card">
           <div class="home__feature-icon">
-            <mat-icon>community</mat-icon>
+            <amw-icon name="community"></amw-icon>
           </div>
           <h3>Community Driven</h3>
           <p>Share your own recipes and discover creations from our growing community of food enthusiasts.</p>
         </div>
         <div class="home__feature-card">
           <div class="home__feature-icon">
-            <mat-icon>insights</mat-icon>
+            <amw-icon name="insights"></amw-icon>
           </div>
           <h3>Nutrition Insights</h3>
           <p>Get detailed nutritional information for every recipe, helping you make informed dietary choices.</p>
         </div>
         <div class="home__feature-card">
           <div class="home__feature-icon">
-            <mat-icon>search</mat-icon>
+            <amw-icon name="search"></amw-icon>
           </div>
           <h3>Smart Search</h3>
           <p>Find exactly what you're looking for with our powerful search across recipes, ingredients, and nutrition data.</p>
@@ -78,25 +76,25 @@
       <h2 class="home__section-title">Get Started Today</h2>
       <div class="home__actions-grid">
         <div class="home__action-card" (click)="onBrowseRecipesClick()" style="cursor: pointer;">
-          <mat-icon>search</mat-icon>
+          <amw-icon name="search"></amw-icon>
           <h3>Browse Recipes</h3>
           <p>Explore our curated collection of delicious recipes</p>
           <span class="home__action-arrow">→</span>
         </div>
         <div class="home__action-card" routerLink="/curated-plans">
-          <mat-icon>schedule</mat-icon>
+          <amw-icon name="schedule"></amw-icon>
           <h3>Discover Meal Plans</h3>
           <p>Find professionally curated meal plans and customize them for your needs</p>
           <span class="home__action-arrow">→</span>
         </div>
         <div class="home__action-card" routerLink="/register">
-          <mat-icon>person_add</mat-icon>
+          <amw-icon name="person_add"></amw-icon>
           <h3>Join Community</h3>
           <p>Create an account to share your own recipes</p>
           <span class="home__action-arrow">→</span>
         </div>
         <div class="home__action-card" (click)="onFindIngredientsClick()" style="cursor: pointer;">
-          <mat-icon>eco</mat-icon>
+          <amw-icon name="eco"></amw-icon>
           <h3>Find Ingredients</h3>
           <p>Search our comprehensive ingredient database</p>
           <span class="home__action-arrow">→</span>

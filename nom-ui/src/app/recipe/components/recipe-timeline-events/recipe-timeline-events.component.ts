@@ -1,48 +1,31 @@
 import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
 import { Subject, takeUntil } from 'rxjs';
+
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
 import { RecipeAdvancedService } from '../../services/recipe-advanced.service';
+import { BaseDetailComponent } from '../../../common/components/base-detail/base-detail.component';
 
 @Component({
     selector: 'nom-recipe-timeline-events',
     standalone: true,
     imports: [
-        CommonModule,
         ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        MatChipsModule,
         MatDividerModule,
-        MatSelectModule,
-        MatDatepickerModule,
-        MatNativeDateModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
+        AmwButtonComponent,
+        AmwInputComponent,
+        AmwSelectComponent,
+        AmwTextareaComponent,
+        AmwDatepickerComponent,
+        AmwIconButtonComponent,
+        AmwTooltipDirective,
+        AmwIconComponent,
+        BaseDetailComponent,
     ],
     templateUrl: './recipe-timeline-events.component.html',
     styleUrls: ['./recipe-timeline-events.component.scss']
@@ -50,10 +33,8 @@ import { RecipeAdvancedService } from '../../services/recipe-advanced.service';
 export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private recipeAdvancedService = inject(RecipeAdvancedService);
-    private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
     private destroy$ = new Subject<void>();
 
     recipeId = input.required<number>();

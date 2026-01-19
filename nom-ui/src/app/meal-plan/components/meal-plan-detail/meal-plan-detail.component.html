@@ -1,150 +1,193 @@
-<nom-base-detail
-  [config]="detailConfig"
-  [loading]="isLoading()"
-  [error]="error()"
-  (back)="onBack()"
-  (retry)="onRetry()"
->
-  @if (mealPlan() && !isLoading()) {
-    <div class="meal-plan-detail">
-      <div class="meal-plan-detail__container">
-        <!-- Header Actions -->
-        <div class="meal-plan-detail__header-actions">
-          <button mat-raised-button color="primary" (click)="onEditMealPlan()" class="meal-plan-detail__edit-button">
-            <mat-icon>edit</mat-icon>
-            Edit Plan
-          </button>
-          <button mat-button color="accent" (click)="onDuplicateMealPlan()" class="meal-plan-detail__duplicate-button">
-            <mat-icon>content_copy</mat-icon>
-            Duplicate
-          </button>
-          <button mat-icon-button [matMenuTriggerFor]="menu" class="meal-plan-detail__menu-button">
-            <mat-icon>more_vert</mat-icon>
-          </button>
-          <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onDeleteMealPlan()" class="meal-plan-detail__delete-button">
-              <mat-icon>delete</mat-icon>
-              <span>Delete Plan</span>
-            </button>
-          </mat-menu>
+<div class="nom-page-container meal-plan-detail">
+  <amw-card
+    class="nom-card"
+    headerTitle="Meal Plan Details"
+    headerSubtitle="View and manage meal plan information">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
+      @if (error()) {
+        <div class="nom-error-state">
+          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+          <p class="nom-error-state__message">{{ error() }}</p>
+          <div class="nom-error-state__actions">
+            <amw-button
+              variant="text"
+              (click)="onBack()">
+              Go Back
+            </amw-button>
+            <amw-button
+              variant="filled"
+              color="primary"
+              (click)="onRetry()">
+              Retry
+            </amw-button>
+          </div>
         </div>
+      } @else if (mealPlan() && !isLoading()) {
+        <div class="meal-plan-detail__container">
+          <!-- Header Actions -->
+          <div class="meal-plan-detail__header-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              icon="edit"
+              (click)="onEditMealPlan()">
+              Edit Plan
+            </amw-button>
+            <amw-button
+              variant="text"
+              color="accent"
+              icon="content_copy"
+              (click)="onDuplicateMealPlan()">
+              Duplicate
+            </amw-button>
+            <amw-button
+              variant="icon"
+              [amwMenuTriggerFor]="menu">
+              <amw-icon name="more_vert"></amw-icon>
+            </amw-button>
+            <amw-menu #menu>
+              <amw-menu-item
+                label="Delete Plan"
+                icon="delete"
+                (itemClick)="onDeleteMealPlan()">
+              </amw-menu-item>
+            </amw-menu>
+          </div>
 
-        <!-- Meal Plan Info -->
-        <div class="meal-plan-detail__info-section">
-          <mat-card class="meal-plan-detail__info-card">
-            <mat-card-header class="meal-plan-detail__info-header">
-              <mat-icon class="meal-plan-detail__info-icon">restaurant_menu</mat-icon>
-              <div class="meal-plan-detail__info-content">
-                <mat-card-title class="meal-plan-detail__info-title">
-                  {{ mealPlan()!.recipeName }}
-                </mat-card-title>
-                <mat-card-subtitle class="meal-plan-detail__info-subtitle">
-                  {{ formatDate(mealPlan()!.date) }}
-                </mat-card-subtitle>
-              </div>
-            </mat-card-header>
-          </mat-card>
-        </div>
+          <!-- Meal Plan Info -->
+          <div class="meal-plan-detail__info-section">
+            <amw-card
+              class="meal-plan-detail__info-card"
+              [headerTitle]="mealPlan()!.recipeName || ''"
+              [headerSubtitle]="formatDate(mealPlan()!.date)"
+              headerIcon="restaurant_menu">
+            </amw-card>
+          </div>
 
-        <!-- Meal Details -->
-        <div class="meal-plan-detail__details-section">
-          <mat-card class="meal-plan-detail__details-card">
-            <mat-card-content>
-              <div class="meal-plan-detail__details-grid">
-                <!-- Meal Type -->
-                <div class="meal-plan-detail__detail-item">
-                  <div class="meal-plan-detail__detail-label">Meal Type</div>
-                  <div class="meal-plan-detail__detail-value">
-                    <mat-chip 
-                      [color]="getMealTypeColor(mealPlan()!.mealType)"
-                      class="meal-plan-detail__meal-type-chip"
-                    >
-                      <mat-icon class="meal-plan-detail__meal-type-icon">
-                        {{ getMealTypeIcon(mealPlan()!.mealType) }}
-                      </mat-icon>
-                      {{ mealPlan()!.mealType | titlecase }}
-                    </mat-chip>
-                  </div>
-                </div>
-
-                <!-- Date -->
-                <div class="meal-plan-detail__detail-item">
-                  <div class="meal-plan-detail__detail-label">Date</div>
-                  <div class="meal-plan-detail__detail-value">
-                    <span class="meal-plan-detail__date-text" 
-                          [class.today]="isToday(mealPlan()!.date)"
-                          [class.past]="isPast(mealPlan()!.date)">
-                      {{ formatDate(mealPlan()!.date) }}
-                    </span>
-                    @if (isToday(mealPlan()!.date)) {
-                      <mat-chip color="accent" class="meal-plan-detail__today-chip">
-                        Today
+          <!-- Meal Details -->
+          <div class="meal-plan-detail__details-section">
+            <amw-card class="meal-plan-detail__details-card">
+              <ng-template #contentTemplate>
+                <div class="meal-plan-detail__details-grid">
+                  <!-- Meal Type -->
+                  <div class="meal-plan-detail__detail-item">
+                    <div class="meal-plan-detail__detail-label">Meal Type</div>
+                    <div class="meal-plan-detail__detail-value">
+                      <mat-chip
+                        [color]="getMealTypeColor(mealPlan()!.mealType)"
+                        class="meal-plan-detail__meal-type-chip">
+                        <amw-icon [name]="getMealTypeIcon(mealPlan()!.mealType)" class="meal-plan-detail__meal-type-icon"></amw-icon>
+                        {{ mealPlan()!.mealType | titlecase }}
                       </mat-chip>
-                    }
+                    </div>
                   </div>
+
+                  <!-- Date -->
+                  <div class="meal-plan-detail__detail-item">
+                    <div class="meal-plan-detail__detail-label">Date</div>
+                    <div class="meal-plan-detail__detail-value">
+                      <span class="meal-plan-detail__date-text"
+                            [class.today]="isToday(mealPlan()!.date)"
+                            [class.past]="isPast(mealPlan()!.date)">
+                        {{ formatDate(mealPlan()!.date) }}
+                      </span>
+                      @if (isToday(mealPlan()!.date)) {
+                        <mat-chip color="accent" class="meal-plan-detail__today-chip">
+                          Today
+                        </mat-chip>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Description -->
+                  @if (mealPlan()!.description) {
+                    <div class="meal-plan-detail__detail-item meal-plan-detail__detail-item--full">
+                      <div class="meal-plan-detail__detail-label">Description</div>
+                      <div class="meal-plan-detail__detail-value">
+                        <p class="meal-plan-detail__description">{{ mealPlan()!.description }}</p>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Author -->
+                  @if (mealPlan()!.authorName) {
+                    <div class="meal-plan-detail__detail-item">
+                      <div class="meal-plan-detail__detail-label">Created By</div>
+                      <div class="meal-plan-detail__detail-value">
+                        <span class="meal-plan-detail__author">{{ mealPlan()!.authorName }}</span>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Group -->
+                  @if (mealPlan()!.groupName) {
+                    <div class="meal-plan-detail__detail-item">
+                      <div class="meal-plan-detail__detail-label">Household</div>
+                      <div class="meal-plan-detail__detail-value">
+                        <span class="meal-plan-detail__group">{{ mealPlan()!.groupName }}</span>
+                      </div>
+                    </div>
+                  }
                 </div>
+              </ng-template>
+            </amw-card>
+          </div>
 
-                <!-- Description -->
-                @if (mealPlan()!.description) {
-                  <div class="meal-plan-detail__detail-item meal-plan-detail__detail-item--full">
-                    <div class="meal-plan-detail__detail-label">Description</div>
-                    <div class="meal-plan-detail__detail-value">
-                      <p class="meal-plan-detail__description">{{ mealPlan()!.description }}</p>
-                    </div>
-                  </div>
-                }
-
-                <!-- Author -->
-                @if (mealPlan()!.authorName) {
-                  <div class="meal-plan-detail__detail-item">
-                    <div class="meal-plan-detail__detail-label">Created By</div>
-                    <div class="meal-plan-detail__detail-value">
-                      <span class="meal-plan-detail__author">{{ mealPlan()!.authorName }}</span>
-                    </div>
-                  </div>
-                }
-
-                <!-- Group -->
-                @if (mealPlan()!.groupName) {
-                  <div class="meal-plan-detail__detail-item">
-                    <div class="meal-plan-detail__detail-label">Household</div>
-                    <div class="meal-plan-detail__detail-value">
-                      <span class="meal-plan-detail__group">{{ mealPlan()!.groupName }}</span>
-                    </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
+          <!-- Actions Section -->
+          <div class="meal-plan-detail__actions-section">
+            <amw-card class="meal-plan-detail__actions-card">
+              <ng-template #contentTemplate>
+                <h3 class="meal-plan-detail__actions-title">Quick Actions</h3>
+                <div class="meal-plan-detail__actions-grid">
+                  <amw-button
+                    variant="filled"
+                    color="primary"
+                    icon="shopping_cart"
+                    class="meal-plan-detail__action-button">
+                    Add to Shopping List
+                  </amw-button>
+                  <amw-button
+                    variant="filled"
+                    color="accent"
+                    icon="share"
+                    class="meal-plan-detail__action-button">
+                    Share Recipe
+                  </amw-button>
+                  <amw-button
+                    variant="outlined"
+                    icon="print"
+                    class="meal-plan-detail__action-button">
+                    Print Recipe
+                  </amw-button>
+                  <amw-button
+                    variant="outlined"
+                    icon="favorite"
+                    class="meal-plan-detail__action-button">
+                    Add to Favorites
+                  </amw-button>
+                </div>
+              </ng-template>
+            </amw-card>
+          </div>
         </div>
+      }
 
-        <!-- Actions Section -->
-        <div class="meal-plan-detail__actions-section">
-          <mat-card class="meal-plan-detail__actions-card">
-            <mat-card-content>
-              <h3 class="meal-plan-detail__actions-title">Quick Actions</h3>
-              <div class="meal-plan-detail__actions-grid">
-                <button mat-raised-button color="primary" class="meal-plan-detail__action-button">
-                  <mat-icon>shopping_cart</mat-icon>
-                  Add to Shopping List
-                </button>
-                <button mat-raised-button color="accent" class="meal-plan-detail__action-button">
-                  <mat-icon>share</mat-icon>
-                  Share Recipe
-                </button>
-                <button mat-raised-button class="meal-plan-detail__action-button">
-                  <mat-icon>print</mat-icon>
-                  Print Recipe
-                </button>
-                <button mat-raised-button class="meal-plan-detail__action-button">
-                  <mat-icon>favorite</mat-icon>
-                  Add to Favorites
-                </button>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
+      <div class="nom-form__actions">
+        <amw-button
+          type="button"
+          variant="text"
+          icon="arrow_back"
+          (click)="onBack()">
+          Back to Meal Plans
+        </amw-button>
       </div>
-    </div>
-  }
-</nom-base-detail> 
+    </ng-template>
+  </amw-card>
+</div>

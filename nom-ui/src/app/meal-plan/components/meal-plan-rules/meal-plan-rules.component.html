@@ -1,141 +1,108 @@
-<div class="meal-plan-rules">
-  <div class="meal-plan-rules__container">
-    <!-- Header -->
-    <div class="meal-plan-rules__header">
-      <div class="meal-plan-rules__header-content">
-        <div class="meal-plan-rules__title-section">
-          <mat-icon class="meal-plan-rules__title-icon">rule</mat-icon>
-          <div class="meal-plan-rules__title-info">
-            <h1 class="meal-plan-rules__title">Meal Plan Rules</h1>
-            <p class="meal-plan-rules__subtitle">Configure automatic meal planning rules</p>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="nom-page-container meal-plan-rules">
+  <amw-card
+    class="nom-card"
+    headerTitle="Meal Plan Rules"
+    headerSubtitle="Configure automatic meal planning rules"
+    headerIcon="rule">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          color="primary"
+          class="nom-card__progress-bar">
+        </mat-progress-bar>
+      }
+      <!-- Add Rule Form -->
+      <div class="meal-plan-rules__form-section">
+        <h3 class="meal-plan-rules__section-title">Add New Rule</h3>
+        <form [formGroup]="ruleForm" (ngSubmit)="onSubmit()" class="nom-form">
+          <amw-select
+            formControlName="dayOfWeekId"
+            label="Day of Week"
+            [options]="getDayOfWeekOptions()"
+            [required]="true"
+            class="nom-form__field">
+          </amw-select>
 
-    <!-- Add Rule Form -->
-    <mat-card class="meal-plan-rules__form-card">
-      <mat-card-header>
-        <mat-card-title>Add New Rule</mat-card-title>
-      </mat-card-header>
+          <amw-select
+            formControlName="mealTypeId"
+            label="Meal Type"
+            [options]="getMealTypeOptions()"
+            [required]="true"
+            class="nom-form__field">
+          </amw-select>
 
-      <mat-card-content>
-        <form [formGroup]="ruleForm" (ngSubmit)="onSubmit()" class="meal-plan-rules__form">
-          <mat-form-field appearance="outline" class="meal-plan-rules__field">
-            <mat-label>Day of Week</mat-label>
-            <mat-select formControlName="dayOfWeekId" class="meal-plan-rules__select">
-              @for (day of daysOfWeek(); track day.id) {
-                <mat-option [value]="day.id">
-                  {{ day.name }}
-                </mat-option>
-              }
-            </mat-select>
-            @if (ruleForm.get('dayOfWeekId')?.hasError('required')) {
-              <mat-error>Day of week is required</mat-error>
-            }
-          </mat-form-field>
+          <amw-input
+            formControlName="queryFilterString"
+            label="Query Filter (Optional)"
+            placeholder="Enter search terms to filter recipes..."
+            class="nom-form__field">
+          </amw-input>
 
-          <mat-form-field appearance="outline" class="meal-plan-rules__field">
-            <mat-label>Meal Type</mat-label>
-            <mat-select formControlName="mealTypeId" class="meal-plan-rules__select">
-              @for (mealType of mealTypes(); track mealType.id) {
-                <mat-option [value]="mealType.id">
-                  {{ mealType.name }}
-                </mat-option>
-              }
-            </mat-select>
-            @if (ruleForm.get('mealTypeId')?.hasError('required')) {
-              <mat-error>Meal type is required</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="meal-plan-rules__field">
-            <mat-label>Query Filter (Optional)</mat-label>
-            <input 
-              matInput 
-              formControlName="queryFilterString"
-              placeholder="Enter search terms to filter recipes..."
-              class="meal-plan-rules__input"
-            />
-          </mat-form-field>
-
-          <div class="meal-plan-rules__form-actions">
-            <button 
-              mat-raised-button 
-              color="primary" 
+          <div class="nom-form__actions">
+            <amw-button
               type="submit"
-              [disabled]="ruleForm.invalid || isAddingRule"
-              class="meal-plan-rules__submit-btn">
-              @if (isAddingRule()) {
-                <mat-icon>hourglass_empty</mat-icon>
-              } @else {
-                <mat-icon>add</mat-icon>
-              }
+              variant="filled"
+              color="primary"
+              icon="add"
+              [disabled]="ruleForm.invalid || isAddingRule()"
+              [loading]="isAddingRule()">
               {{ isAddingRule() ? 'Adding...' : 'Add Rule' }}
-            </button>
+            </amw-button>
           </div>
         </form>
-      </mat-card-content>
-    </mat-card>
+      </div>
 
-    <!-- Rules List -->
-    <div class="meal-plan-rules__list-section">
-      <h2 class="meal-plan-rules__list-title">Existing Rules</h2>
+      <!-- Rules List -->
+      <div class="meal-plan-rules__list-section">
+        <h3 class="meal-plan-rules__section-title">Existing Rules</h3>
 
-      @if (isLoading()) {
-        <div class="meal-plan-rules__loading">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading rules...</p>
-        </div>
-      }
+        @if (!isLoading() && rules().length === 0) {
+          <div class="nom-empty-state">
+            <amw-icon name="rule" class="nom-empty-state__icon"></amw-icon>
+            <h3 class="nom-empty-state__title">No Rules Yet</h3>
+            <p class="nom-empty-state__description">Create your first meal plan rule to get started.</p>
+          </div>
+        }
 
-      @if (!isLoading && rules.length === 0) {
-        <div class="meal-plan-rules__no-rules">
-          <mat-icon class="meal-plan-rules__empty-icon">rule</mat-icon>
-          <h3>No Rules Yet</h3>
-          <p>Create your first meal plan rule to get started.</p>
-        </div>
-      }
+        @if (!isLoading() && rules().length > 0) {
+          <div class="meal-plan-rules__rules-list">
+            @for (rule of rules(); track rule.id) {
+              <amw-card
+                class="meal-plan-rules__rule-card"
+                [headerTitle]="rule.dayOfWeekName + ' - ' + rule.mealTypeName"
+                [headerSubtitle]="rule.queryFilterString || 'No filter applied'">
+                <ng-template #actionsTemplate>
+                  <amw-button
+                    variant="text"
+                    color="primary"
+                    icon="edit"
+                    (click)="editRule(rule)">
+                    Edit
+                  </amw-button>
+                  <amw-button
+                    variant="text"
+                    color="warn"
+                    icon="delete"
+                    (click)="deleteRule(rule)">
+                    Delete
+                  </amw-button>
+                </ng-template>
+              </amw-card>
+            }
+          </div>
+        }
+      </div>
 
-      @if (!isLoading && rules.length > 0) {
-        <div class="meal-plan-rules__rules-list">
-          @for (rule of rules(); track rule.id) {
-            <mat-card class="meal-plan-rules__rule-card">
-              <mat-card-header>
-                <mat-card-title class="meal-plan-rules__rule-title">
-                  {{ rule.dayOfWeekName }} - {{ rule.mealTypeName }}
-                </mat-card-title>
-                <mat-card-subtitle class="meal-plan-rules__rule-subtitle">
-                  @if (rule.queryFilterString) {
-                    <p class="meal-plan-rules__filter-text">{{ rule.queryFilterString }}</p>
-                  } @else {
-                    <p>No filter applied</p>
-                  }
-                </mat-card-subtitle>
-              </mat-card-header>
-
-              <mat-card-actions class="meal-plan-rules__rule-actions">
-                <button 
-                  mat-button 
-                  color="primary" 
-                  (click)="editRule(rule)"
-                  class="meal-plan-rules__edit-btn">
-                  <mat-icon>edit</mat-icon>
-                  Edit
-                </button>
-                <button 
-                  mat-button 
-                  color="warn" 
-                  (click)="deleteRule(rule)"
-                  class="meal-plan-rules__delete-btn">
-                  <mat-icon>delete</mat-icon>
-                  Delete
-                </button>
-              </mat-card-actions>
-            </mat-card>
-          }
-        </div>
-      }
-    </div>
-  </div>
-</div> 
+      <div class="nom-form__actions">
+        <amw-button
+          type="button"
+          variant="text"
+          icon="arrow_back"
+          (click)="onBack()">
+          Back to Meal Plans
+        </amw-button>
+      </div>
+    </ng-template>
+  </amw-card>
+</div>

@@ -1,20 +1,9 @@
 import { Component, OnInit, inject, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NgFor, NgIf } from '@angular/common';
+import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
+
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/i-recipe-category.model';
@@ -24,30 +13,27 @@ import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/i
     selector: 'nom-recipe-categories',
     standalone: true,
     imports: [
-        CommonModule,
+        NgFor,
+        NgIf,
         ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
+        FormsModule,
         MatChipsModule,
-        MatDividerModule,
-        MatSelectModule,
-        MatDialogModule,
-        MatListModule,
-        MatMenuModule,
+        AmwButtonComponent,
+        AmwInputComponent,
+        AmwSelectComponent,
+        AmwTextareaComponent,
+        AmwCardComponent,
+        AmwIconButtonComponent,
+        AmwTooltipDirective,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: './recipe-categories.component.html',
     styleUrls: ['./recipe-categories.component.scss']
 })
 export class RecipeCategoriesComponent implements OnInit {
     private recipeService = inject(RecipeService);
-    private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
 
     categoriesChange = output<RecipeCategoryResponseModel[]>();
 

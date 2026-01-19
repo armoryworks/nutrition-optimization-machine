@@ -1,46 +1,56 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="shoppingForm"
-  [isSubmitting]="isLoading()"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
->
-  <div class="shopping-create">
-    <div class="shopping-create__container">
-      <!-- Shopping List Name Field -->
-      <mat-form-field appearance="outline" class="shopping-create__field">
-        <mat-label>Shopping List Name</mat-label>
-        <input 
-          matInput 
-          formControlName="name"
-          placeholder="Enter shopping list name..."
-          class="shopping-create__input"
-        />
-        @if (shoppingForm.get('name')?.hasError('required')) {
-          <mat-error>Name is required</mat-error>
-        }
-        @if (shoppingForm.get('name')?.hasError('minlength')) {
-          <mat-error>Name must be at least 2 characters</mat-error>
-        }
-        @if (shoppingForm.get('name')?.hasError('maxlength')) {
-          <mat-error>Name cannot exceed 100 characters</mat-error>
-        }
-      </mat-form-field>
+<div class="shopping-create">
+  <div class="shopping-create__container">
+    <amw-card
+      [headerTitle]="formConfig.title"
+      [headerSubtitle]="formConfig.subtitle || ''"
+      headerIcon="shopping_cart">
+      <ng-template #contentTemplate>
+        <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()">
+          <!-- Shopping List Name Field - Using AMW -->
+          <amw-input
+            type="text"
+            formControlName="name"
+            placeholder="Enter a name for your shopping list..."
+            label="Shopping List Name"
+            [required]="true"
+            class="shopping-create__field">
+          </amw-input>
 
-      <!-- Description Field -->
-      <mat-form-field appearance="outline" class="shopping-create__field">
-        <mat-label>Description (Optional)</mat-label>
-        <textarea 
-          matInput 
-          formControlName="description"
-          placeholder="Add a description for your shopping list..."
-          rows="3"
-          class="shopping-create__textarea"
-        ></textarea>
-        @if (shoppingForm.get('description')?.hasError('maxlength')) {
-          <mat-error>Description cannot exceed 500 characters</mat-error>
-        }
-      </mat-form-field>
-    </div>
+          <!-- Description Field - Using AMW -->
+          <amw-textarea
+            formControlName="description"
+            placeholder="Add a description for your shopping list..."
+            label="Description (Optional)"
+            class="shopping-create__field">
+          </amw-textarea>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <div class="action-buttons">
+              <amw-button
+                type="button"
+                variant="text"
+                icon="close"
+                [disabled]="isLoading()"
+                (click)="onCancel()"
+                class="cancel-button">
+                {{ formConfig.cancelText || 'Cancel' }}
+              </amw-button>
+
+              <amw-button
+                type="submit"
+                variant="filled"
+                color="primary"
+                icon="check"
+                [loading]="isLoading()"
+                [disabled]="shoppingForm.invalid"
+                class="submit-button">
+                {{ formConfig.submitText || 'Create Shopping List' }}
+              </amw-button>
+            </div>
+          </div>
+        </form>
+      </ng-template>
+    </amw-card>
   </div>
-</nom-base-form> 
+</div>

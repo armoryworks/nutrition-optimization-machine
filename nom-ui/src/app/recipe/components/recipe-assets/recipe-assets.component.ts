@@ -1,33 +1,36 @@
 import { Component, OnInit, inject, OnDestroy, signal, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject, takeUntil } from 'rxjs';
+
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 import { ConfirmDeleteDialogComponent } from '../confirm-delete-dialog/confirm-delete-dialog.component';
+import { BasePageComponent } from '../../../common/components/base-page/base-page.component';
 
 @Component({
     selector: 'app-recipe-assets',
     standalone: true,
     imports: [
-        CommonModule,
         ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatSelectModule,
-        MatIconModule,
+        MatListModule,
         MatDialogModule,
-        MatSnackBarModule,
-        MatProgressBarModule
+        MatProgressBarModule,
+        AmwButtonComponent,
+        AmwInputComponent,
+        AmwSelectComponent,
+        AmwTextareaComponent,
+        AmwCardComponent,
+        AmwIconButtonComponent,
+        AmwTooltipDirective,
+        AmwIconComponent,
+        AmwProgressSpinnerComponent,
+        BasePageComponent,
     ],
     templateUrl: './recipe-assets.component.html',
     styleUrls: ['./recipe-assets.component.scss']

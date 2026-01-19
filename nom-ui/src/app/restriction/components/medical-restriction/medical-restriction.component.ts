@@ -1,4 +1,4 @@
-import { Component, OnInit, input, inject } from '@angular/core';
+import { Component, OnInit, input, inject, OnDestroy } from '@angular/core';
 import {
   FormGroup,
   FormControl,
@@ -6,15 +6,8 @@ import {
   ReactiveFormsModule,
   NonNullableFormBuilder,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { Observable, startWith, map } from 'rxjs';
+import { AmwSelectComponent, AmwCheckboxComponent, AmwTextareaComponent, AmwChipInputComponent } from 'angular-material-wrap';
+import { Subject, takeUntil } from 'rxjs';
 import { RestrictionService } from '../../services/restriction.service';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
@@ -24,29 +17,26 @@ import { ReferenceItemModel } from '../../../common/models/reference-item.model'
   selector: 'nom-medical-restriction',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    MatChipsModule,
-    MatIconModule,
-    MatAutocompleteModule,
+    AmwSelectComponent,
+    AmwCheckboxComponent,
+    AmwTextareaComponent,
+    AmwChipInputComponent,
   ],
   templateUrl: './medical-restriction.component.html',
   styleUrls: ['./medical-restriction.component.scss'],
 })
-export class MedicalRestrictionComponent implements OnInit {
+export class MedicalRestrictionComponent implements OnInit, OnDestroy {
   private fb = inject(NonNullableFormBuilder);
   private restrictionService = inject(RestrictionService);
   private referenceDataService = inject(ReferenceDataService);
 
   medicalRestrictionForm = input.required<FormGroup>(); // Input FormGroup for this section
 
-  // FormControls for autocomplete inputs
-  public micronutrientSearchControl = new FormControl<string>('');
-  public filteredMicronutrients!: Observable<string[]>;
+  // FormControl for chip input - syncs with FormArray
+  public vitaminMineralDeficienciesControl = new FormControl<{ value: string; label: string }[]>([]);
+
+  private destroy$ = new Subject<void>();
 
   // Options for select dropdowns and checkboxes - loaded from backend
   public allergyOptions: ReferenceItemModel[] = [];
@@ -61,7 +51,7 @@ export class MedicalRestrictionComponent implements OnInit {
     'Fluids',
   ];
 
-  private allMicronutrients: string[] = [
+  private _allMicronutrients: string[] = [
     'Vitamin A',
     'Vitamin B1 (Thiamine)',
     'Vitamin B2 (Riboflavin)',
@@ -92,24 +82,44 @@ export class MedicalRestrictionComponent implements OnInit {
     'Zinc',
   ];
 
+  // Getter that converts strings to ChipInputOption format
+  get allMicronutrientOptions(): { value: string; label: string }[] {
+    return this._allMicronutrients.map(item => ({ value: item, label: item }));
+  }
+
 
   ngOnInit(): void {
-    this.filteredMicronutrients =
-      this.micronutrientSearchControl.valueChanges.pipe(
-        startWith(''),
-        map((value) =>
-          value
-            ? this._filter(value, this.allMicronutrients)
-            : this.allMicronutrients
-        )
-      );
-
     // Fetch real data (mocked for now)
-    this.restrictionService.getMicronutrients().subscribe((data) => {
-      if (data && data.length > 0) this.allMicronutrients = data;
-    });
+    this.restrictionService.getMicronutrients()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data) => {
+        if (data && data.length > 0) this._allMicronutrients = data;
+      });
 
     this.loadMedicalRestrictionOptions();
+    this.setupChipSync();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupChipSync(): void {
+    // Sync chip input control with FormArray
+    this.vitaminMineralDeficienciesControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((values) => {
+        const formArray = this.vitaminMineralDeficienciesArray;
+        formArray.clear();
+        (values || []).forEach((chip: { value: string; label: string }) => {
+          formArray.push(this.fb.control(chip.value));
+        });
+      });
+
+    // Initialize control with existing FormArray values (convert strings to ChipInputOption)
+    const initialValues = this.vitaminMineralDeficienciesArray.value.map((v: string) => ({ value: v, label: v }));
+    this.vitaminMineralDeficienciesControl.setValue(initialValues);
   }
 
   private loadMedicalRestrictionOptions(): void {
@@ -131,39 +141,6 @@ export class MedicalRestrictionComponent implements OnInit {
         this.gastrointestinalConditionsOptions = [];
       }
     });
-  }
-
-  private _filter(value: string, options: string[]): string[] {
-    const filterValue = value ? value.toLowerCase() : '';
-    return options.filter((option) =>
-      option.toLowerCase().includes(filterValue)
-    );
-  }
-
-  public addChip(event: { input?: HTMLInputElement | null; value?: string }, formArrayName: string): void {
-    const input = event.input;
-    const value = (event.value || '').trim();
-    if (value) {
-      const formArray = this.medicalRestrictionForm().get(
-        formArrayName
-      ) as FormArray;
-      if (!formArray.value.includes(value)) {
-        formArray.push(this.fb.control(value));
-      }
-    }
-    if (input) {
-      input.value = '';
-    }
-  }
-
-  public removeChip(chip: string, formArrayName: string): void {
-    const formArray = this.medicalRestrictionForm().get(
-      formArrayName
-    ) as FormArray;
-    const index = formArray.value.indexOf(chip);
-    if (index >= 0) {
-      formArray.removeAt(index);
-    }
   }
 
   public onMultiSelectChange(formControlName: string, event: { value: string[] }): void {
@@ -232,5 +209,27 @@ export class MedicalRestrictionComponent implements OnInit {
     return this.medicalRestrictionForm().get(
       'vitaminMineralDeficiencies'
     ) as FormArray;
+  }
+
+  // Helper methods for AMW select options
+  getAllergyOptions(): { value: string; label: string }[] {
+    return this.allergyOptions.map(option => ({
+      value: option.referenceName ?? '',
+      label: option.referenceName ?? ''
+    }));
+  }
+
+  getGIConditionOptions(): { value: number; label: string }[] {
+    return this.gastrointestinalConditionsOptions.map(option => ({
+      value: option.referenceId ?? 0,
+      label: option.referenceName ?? ''
+    }));
+  }
+
+  getKidneyRestrictionOptions(): { value: string; label: string }[] {
+    return this.kidneyDiseaseRestrictionsOptions.map(option => ({
+      value: option,
+      label: option
+    }));
   }
 }

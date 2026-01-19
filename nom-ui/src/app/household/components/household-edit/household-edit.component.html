@@ -1,58 +1,60 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="householdForm"
-  [loading]="isLoading()"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
-  >
-  <div class="household-edit">
-    <div class="household-edit__container">
-      <!-- Name Field -->
-      <div class="household-edit__field">
-        <mat-form-field class="household-edit__input">
-          <mat-label>Household Name</mat-label>
-          <input
-            matInput
-            formControlName="name"
-            placeholder="Enter household name"
-            class="household-edit__input-field"
-            >
-          @if (householdForm.get('name')?.hasError('required')) {
-            <mat-error>
-              Household name is required
-            </mat-error>
-          }
-          @if (householdForm.get('name')?.hasError('minlength')) {
-            <mat-error>
-              Household name must be at least 2 characters
-            </mat-error>
-          }
-          @if (householdForm.get('name')?.hasError('maxlength')) {
-            <mat-error>
-              Household name cannot exceed 100 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
+<div class="household-edit">
+  <div class="household-edit__container">
+    <amw-card [headerTitle]="formConfig.title" headerIcon="home">
+      <ng-template #contentTemplate>
+        @if (isLoading() && !household()) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading household...</p>
+          </div>
+        } @else {
+          <form [formGroup]="householdForm" (ngSubmit)="onSubmit()">
+            <!-- Household Name Field - Using AMW -->
+            <amw-input
+              type="text"
+              formControlName="name"
+              placeholder="Enter a name for your household..."
+              label="Household Name"
+              [required]="true"
+              class="household-edit__field">
+            </amw-input>
 
-      <!-- Description Field -->
-      <div class="household-edit__field">
-        <mat-form-field class="household-edit__textarea">
-          <mat-label>Description (Optional)</mat-label>
-          <textarea
-            matInput
-            formControlName="description"
-            placeholder="Enter household description"
-            rows="4"
-            class="household-edit__textarea-field"
-          ></textarea>
-          @if (householdForm.get('description')?.hasError('maxlength')) {
-            <mat-error>
-              Description cannot exceed 500 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
-    </div>
+            <!-- Description Field - Using AMW -->
+            <amw-textarea
+              formControlName="description"
+              placeholder="Add a description to help identify your household..."
+              label="Description (Optional)"
+              class="household-edit__field">
+            </amw-textarea>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+              <div class="action-buttons">
+                <amw-button
+                  type="button"
+                  variant="text"
+                  icon="close"
+                  [disabled]="isLoading()"
+                  (click)="onCancel()"
+                  class="cancel-button">
+                  {{ formConfig.cancelText || 'Cancel' }}
+                </amw-button>
+
+                <amw-button
+                  type="submit"
+                  variant="filled"
+                  color="primary"
+                  icon="check"
+                  [loading]="isLoading()"
+                  [disabled]="householdForm.invalid"
+                  class="submit-button">
+                  {{ formConfig.submitText || 'Update Household' }}
+                </amw-button>
+              </div>
+            </div>
+          </form>
+        }
+      </ng-template>
+    </amw-card>
   </div>
-</nom-base-form>
+</div>

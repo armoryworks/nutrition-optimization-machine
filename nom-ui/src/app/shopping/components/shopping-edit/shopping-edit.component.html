@@ -1,58 +1,63 @@
-<nom-base-form
-  [config]="formConfig"
-  [form]="shoppingForm"
-  [loading]="isLoading()"
-  (submit)="onSubmit()"
-  (cancel)="onCancel()"
-  >
-  <div class="shopping-edit">
-    <div class="shopping-edit__container">
-      <!-- Name Field -->
-      <div class="shopping-edit__field">
-        <mat-form-field class="shopping-edit__input">
-          <mat-label>Shopping List Name</mat-label>
-          <input
-            matInput
-            formControlName="name"
-            placeholder="Enter shopping list name"
-            class="shopping-edit__input-field"
-            >
-          @if (shoppingForm.get('name')?.hasError('required')) {
-            <mat-error>
-              Shopping list name is required
-            </mat-error>
-          }
-          @if (shoppingForm.get('name')?.hasError('minlength')) {
-            <mat-error>
-              Shopping list name must be at least 2 characters
-            </mat-error>
-          }
-          @if (shoppingForm.get('name')?.hasError('maxlength')) {
-            <mat-error>
-              Shopping list name cannot exceed 100 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
+<div class="shopping-edit">
+  <div class="shopping-edit__container">
+    <amw-card
+      [headerTitle]="formConfig.title"
+      [headerSubtitle]="formConfig.subtitle || ''"
+      headerIcon="shopping_cart">
+      <ng-template #contentTemplate>
+        @if (isLoading() && !shoppingList()) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading shopping list...</p>
+          </div>
+        } @else {
+          <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()">
+            <!-- Shopping List Name Field - Using AMW -->
+            <amw-input
+              type="text"
+              formControlName="name"
+              placeholder="Enter a name for your shopping list..."
+              label="Shopping List Name"
+              [required]="true"
+              class="shopping-edit__field">
+            </amw-input>
 
-      <!-- Description Field -->
-      <div class="shopping-edit__field">
-        <mat-form-field class="shopping-edit__textarea">
-          <mat-label>Description (Optional)</mat-label>
-          <textarea
-            matInput
-            formControlName="description"
-            placeholder="Enter shopping list description"
-            rows="4"
-            class="shopping-edit__textarea-field"
-          ></textarea>
-          @if (shoppingForm.get('description')?.hasError('maxlength')) {
-            <mat-error>
-              Description cannot exceed 500 characters
-            </mat-error>
-          }
-        </mat-form-field>
-      </div>
-    </div>
+            <!-- Description Field - Using AMW -->
+            <amw-textarea
+              formControlName="description"
+              placeholder="Add a description for your shopping list..."
+              label="Description (Optional)"
+              class="shopping-edit__field">
+            </amw-textarea>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+              <div class="action-buttons">
+                <amw-button
+                  type="button"
+                  variant="text"
+                  icon="close"
+                  [disabled]="isLoading()"
+                  (click)="onCancel()"
+                  class="cancel-button">
+                  {{ formConfig.cancelText || 'Cancel' }}
+                </amw-button>
+
+                <amw-button
+                  type="submit"
+                  variant="filled"
+                  color="primary"
+                  icon="check"
+                  [loading]="isLoading()"
+                  [disabled]="shoppingForm.invalid"
+                  class="submit-button">
+                  {{ formConfig.submitText || 'Update Shopping List' }}
+                </amw-button>
+              </div>
+            </div>
+          </form>
+        }
+      </ng-template>
+    </amw-card>
   </div>
-</nom-base-form>
+</div>

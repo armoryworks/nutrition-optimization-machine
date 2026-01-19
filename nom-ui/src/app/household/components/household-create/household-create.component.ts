@@ -2,13 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdCreateRequestModel } from '../../models/household-create-request.model';
@@ -20,12 +16,10 @@ import { BaseFormConfig } from '../../../common/components/base-form/base-form.c
     standalone: true,
     imports: [
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    AmwInputComponent,
+    AmwTextareaComponent,
+    AmwButtonComponent,
+    AmwCardComponent
 ],
     templateUrl: './household-create.component.html',
     styleUrls: ['./household-create.component.scss']

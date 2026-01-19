@@ -4,63 +4,44 @@
   <form [formGroup]="itemForm" (ngSubmit)="onSubmit()">
     <mat-dialog-content>
       <div class="form-row">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Item Name *</mat-label>
-          <input matInput formControlName="name" placeholder="Enter item name">
-          @if (itemForm.get('name')?.hasError('required')) {
-            <mat-error>
-              Item name is required
-            </mat-error>
-          }
-          @if (itemForm.get('name')?.hasError('maxlength')) {
-            <mat-error>
-              Item name cannot exceed 255 characters
-            </mat-error>
-          }
-        </mat-form-field>
+        <amw-input
+          type="text"
+          formControlName="name"
+          label="Item Name"
+          placeholder="Enter item name"
+          [required]="true"
+          class="full-width">
+        </amw-input>
       </div>
 
       <div class="form-row">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" placeholder="Optional description" rows="2"></textarea>
-          @if (itemForm.get('description')?.hasError('maxlength')) {
-            <mat-error>
-              Description cannot exceed 1000 characters
-            </mat-error>
-          }
-        </mat-form-field>
+        <amw-input
+          type="text"
+          formControlName="description"
+          label="Description"
+          placeholder="Enter description (optional)"
+          class="full-width">
+        </amw-input>
       </div>
 
-      <div class="form-row">
-        <mat-form-field appearance="outline" class="quantity-field">
-          <mat-label>Quantity *</mat-label>
-          <input matInput type="number" formControlName="quantity" min="0.01" step="0.01">
-          @if (itemForm.get('quantity')?.hasError('required')) {
-            <mat-error>
-              Quantity is required
-            </mat-error>
-          }
-          @if (itemForm.get('quantity')?.hasError('min')) {
-            <mat-error>
-              Quantity must be greater than 0
-            </mat-error>
-          }
-        </mat-form-field>
+      <div class="form-row two-columns">
+        <amw-input
+          type="number"
+          formControlName="quantity"
+          label="Quantity"
+          [required]="true"
+          class="quantity-field">
+        </amw-input>
 
-        <mat-form-field appearance="outline" class="unit-field">
-          <mat-label>Unit</mat-label>
-          <mat-select formControlName="unit">
-            @for (unit of units(); track unit) {
-              <mat-option [value]="unit">
-                {{ unit }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <amw-select
+          formControlName="unit"
+          label="Unit"
+          [options]="getUnitOptions()"
+          class="unit-field">
+        </amw-select>
       </div>
 
-      <div class="form-row">
+      <div class="form-row two-columns">
         <app-reference-selector
           [discriminatorId]="REFERENCE_IDS.SHOPPING_CATEGORY_TYPE"
           [control]="itemForm.get('categoryId')!"
@@ -79,19 +60,28 @@
       </div>
 
       <div class="form-row">
-        <mat-checkbox formControlName="isCompleted">
-          Mark as completed
-        </mat-checkbox>
+        <amw-checkbox
+          formControlName="isCompleted"
+          label="Mark as completed">
+        </amw-checkbox>
       </div>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting()">
+      <amw-button
+        type="button"
+        variant="text"
+        (click)="onCancel()"
+        [disabled]="isSubmitting()">
         Cancel
-      </button>
-      <button mat-raised-button color="primary" type="submit" [disabled]="itemForm.invalid || isSubmitting()">
+      </amw-button>
+      <amw-button
+        type="submit"
+        variant="filled"
+        color="primary"
+        [disabled]="itemForm.invalid || isSubmitting()">
         {{ getSubmitText() }}
-      </button>
+      </amw-button>
     </mat-dialog-actions>
   </form>
 </div>

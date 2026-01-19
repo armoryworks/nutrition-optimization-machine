@@ -33,10 +33,10 @@
 
     <div class="header-actions">
       @if (config?.showCreateButton) {
-      <button mat-raised-button color="primary" (click)="onCreate()">
-        <mat-icon>{{ config?.createButtonIcon || 'add' }}</mat-icon>
+      <amw-button variant="filled" color="primary" (click)="onCreate()"
+        [icon]="config?.createButtonIcon || 'add'">
         {{ config?.createButtonText || 'Create' }}
-      </button>
+      </amw-button>
       }
 
       @if (config?.showRefreshButton) {
@@ -44,10 +44,9 @@
         @if (config?.showLastUpdated && config?.lastUpdated) {
         <span class="last-updated">{{ formatRelativeTime(config!.lastUpdated!) }}</span>
         }
-        <button mat-button (click)="onRefresh()" class="refresh-btn">
-          <mat-icon>refresh</mat-icon>
+        <amw-button variant="text" (click)="onRefresh()" class="refresh-btn" icon="refresh">
           {{ config?.refreshButtonText || 'Refresh' }}
-        </button>
+        </amw-button>
       </div>
       }
 
@@ -55,11 +54,10 @@
         @if (config?.showControlButtons && config?.controlButtons) {
         <div class="control-buttons-group">
           @for (button of config!.controlButtons!; track button.label) {
-          <button mat-stroked-button [color]="button.color" size="small" [disabled]="button.disabled"
-            (click)="button.action()" class="control-btn">
-            <mat-icon>{{ button.icon }}</mat-icon>
+          <amw-button variant="outlined" [color]="button.color" [disabled]="button.disabled ?? false"
+            (click)="button.action()" class="control-btn" [icon]="button.icon">
             {{ button.label }}
-          </button>
+          </amw-button>
           }
         </div>
         }
@@ -67,11 +65,10 @@
         @if (config?.showCustomActions && config?.customActions) {
         <div class="custom-actions-group">
           @for (action of config!.customActions!; track action.label) {
-          <button mat-stroked-button [color]="action.color" size="small" [disabled]="action.disabled"
-            (click)="action.action()" class="custom-action-btn">
-            <mat-icon>{{ action.icon }}</mat-icon>
+          <amw-button variant="outlined" [color]="action.color" [disabled]="action.disabled ?? false"
+            (click)="action.action()" class="custom-action-btn" [icon]="action.icon">
             {{ action.label }}
-          </button>
+          </amw-button>
           }
         </div>
         }
@@ -82,18 +79,20 @@
   <!-- Search Bar -->
   @if (config?.showSearch) {
   <div class="search-section">
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search</mat-label>
-      <input matInput [formControl]="searchControl" [placeholder]="config?.searchPlaceholder || 'Search...'">
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
+    <amw-input
+      [formControl]="searchControl"
+      label="Search"
+      [placeholder]="config?.searchPlaceholder || 'Search...'"
+      suffixIcon="search"
+      class="search-field">
+    </amw-input>
   </div>
   }
 
   <!-- Loading State -->
   @if (isLoading) {
   <div class="loading-container">
-    <mat-spinner diameter="40"></mat-spinner>
+    <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
     <p>{{ loadingMessage || 'Loading...' }}</p>
   </div>
   }
@@ -101,14 +100,13 @@
   <!-- Error State -->
   @if (error && !isLoading) {
   <div class="error-container">
-    <mat-icon color="warn">error</mat-icon>
+    <amw-icon name="error" color="warn"></amw-icon>
     <h3>{{ errorTitle || 'Error' }}</h3>
     <p>{{ error }}</p>
     @if (showRetryButton) {
-    <button mat-raised-button color="primary" (click)="onRetry()">
-      <mat-icon>refresh</mat-icon>
+    <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
       {{ retryButtonText || 'Try Again' }}
-    </button>
+    </amw-button>
     }
   </div>
   }
@@ -116,14 +114,14 @@
   <!-- Empty State -->
   @if (!isLoading && !error && isEmpty) {
   <div class="empty-container">
-    <mat-icon>inbox</mat-icon>
+    <amw-icon name="inbox"></amw-icon>
     <h3>{{ emptyTitle || 'No Items' }}</h3>
     <p>{{ emptyMessage || 'No items found.' }}</p>
     @if (config?.showCreateButton) {
-    <button mat-raised-button color="primary" (click)="onCreate()">
-      <mat-icon>{{ config?.createButtonIcon || 'add' }}</mat-icon>
+    <amw-button variant="filled" color="primary" (click)="onCreate()"
+      [icon]="config?.createButtonIcon || 'add'">
       {{ config?.createButtonText || 'Create' }}
-    </button>
+    </amw-button>
     }
   </div>
   }

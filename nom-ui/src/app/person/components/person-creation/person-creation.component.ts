@@ -6,28 +6,25 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { finalize, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+
 import { PersonService } from '../../services/person.service';
 import { PersonCreateResponseModel } from '../../models/person-create-response.model';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 
 @Component({
   selector: 'nom-person-creation',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-    BaseFormComponent,
-    BasePageComponent,
+    MatProgressBarModule,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwInputComponent,
   ],
   templateUrl: './person-creation.component.html',
   styleUrls: ['./person-creation.component.scss'],
@@ -62,20 +59,10 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   error = signal<string | null>(null);
 
-  pageConfig: BasePageConfig = {
-    title: 'Create Your Profile',
-    subtitle: 'Set up your personal profile to get started',
-    showBackButton: false,
-    maxWidth: '600px'
-  };
-
-  formConfig: BaseFormConfig = {
-    title: '',
-    subtitle: '',
-    submitText: 'Create Profile',
-    showCancelButton: false,
-    maxWidth: '100%'
-  };
+  // Page configuration
+  pageTitle = 'Create Your Profile';
+  pageSubtitle = 'Set up your personal profile to get started';
+  submitText = 'Create Profile';
 
   private destroy$ = new Subject<void>();
 

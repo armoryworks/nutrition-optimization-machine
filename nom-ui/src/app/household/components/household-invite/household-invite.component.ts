@@ -2,34 +2,28 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
+import { NotificationService } from '../../../utilities/services/notification.service';
+
 // Using inline interface instead of missing model
 interface HouseholdInviteRequestModel {
     householdId: number;
     expiresAt: Date;
 }
-import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'nom-household-invite',
     standalone: true,
     imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-],
+        ReactiveFormsModule,
+        AmwInputComponent,
+        AmwButtonComponent,
+        AmwCardComponent,
+        AmwIconComponent
+    ],
     templateUrl: './household-invite.component.html',
     styleUrls: ['./household-invite.component.scss']
 })
@@ -38,8 +32,7 @@ export class HouseholdInviteComponent implements OnInit {
     private householdService = inject(HouseholdService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
-    private snackBar = inject(MatSnackBar);
-    private userInfoService = inject(UserInfoService);
+    private notificationService = inject(NotificationService);
 
     inviteForm: FormGroup;
     isLoading = signal(false);
@@ -75,21 +68,13 @@ export class HouseholdInviteComponent implements OnInit {
                     this.inviteToken.set(response.token);
                     this.inviteLink.set(`${window.location.origin}/household/join?token=${response.token}`);
                     this.isLoading.set(false);
-                    this.snackBar.open('Invite token generated successfully', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.success('Invite token generated successfully');
                 },
                 error: (error) => {
                     console.error('Error generating invite token:', error);
                     this.error.set('Failed to generate invite token');
                     this.isLoading.set(false);
-                    this.snackBar.open('Failed to generate invite token', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.error('Failed to generate invite token');
                 }
             });
         }
@@ -98,17 +83,9 @@ export class HouseholdInviteComponent implements OnInit {
     copyInviteLink(): void {
         if (this.inviteLink()) {
             navigator.clipboard.writeText(this.inviteLink()!).then(() => {
-                this.snackBar.open('Invite link copied to clipboard', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.success('Invite link copied to clipboard');
             }).catch(() => {
-                this.snackBar.open('Failed to copy invite link', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.error('Failed to copy invite link');
             });
         }
     }
@@ -116,17 +93,9 @@ export class HouseholdInviteComponent implements OnInit {
     copyToken(): void {
         if (this.inviteToken()) {
             navigator.clipboard.writeText(this.inviteToken()!).then(() => {
-                this.snackBar.open('Invite token copied to clipboard', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.success('Invite token copied to clipboard');
             }).catch(() => {
-                this.snackBar.open('Failed to copy invite token', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.error('Failed to copy invite token');
             });
         }
     }

@@ -1,39 +1,29 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
+
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
-import { ConfirmDialogComponent } from '../../../common/components/confirm-dialog/confirm-dialog.component';
-import { BaseDetailComponent, BaseDetailConfig } from '../../../common/components/base-detail/base-detail.component';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 @Component({
   selector: 'nom-meal-plan-detail',
   standalone: true,
   imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
+    TitleCasePipe,
+    MatProgressBarModule,
     MatChipsModule,
-    MatDividerModule,
-    MatDialogModule,
-    MatListModule,
-    MatMenuModule,
-    BaseDetailComponent,
+    AmwButtonComponent,
+    AmwCardComponent,
+    AmwIconComponent,
+    AmwMenuComponent,
+    AmwMenuItemComponent,
+    AmwMenuTriggerForDirective
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './meal-plan-detail.component.html',
   styleUrls: ['./meal-plan-detail.component.scss']
 })
@@ -41,22 +31,13 @@ export class MealPlanDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private mealPlanService = inject(MealPlanService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private notificationService = inject(NotificationService);
+  private dialogService = inject(DialogService);
 
   mealPlan = signal<MealPlanResponseModel | null>(null);
   isLoading = signal(true);
   error = signal<string | null>(null);
   mealPlanId = signal(0);
-
-  detailConfig: BaseDetailConfig = {
-    title: 'Meal Plan Details',
-    subtitle: 'View and manage meal plan information',
-    showBackButton: true,
-    maxWidth: '800px',
-  };
-
-
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -97,35 +78,19 @@ export class MealPlanDetailComponent implements OnInit {
   onDeleteMealPlan(): void {
     if (!this.mealPlan()) return;
 
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Meal Plan',
-        message: `Are you sure you want to delete "${this.mealPlan()!.recipeName}"? This action cannot be undone.`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    this.dialogService.confirm(
+      `Are you sure you want to delete "${this.mealPlan()!.recipeName}"? This action cannot be undone.`,
+      'Delete Meal Plan'
+    ).subscribe(result => {
       if (result) {
         this.mealPlanService.deleteMealPlan(this.mealPlanId()).subscribe({
           next: () => {
-            this.snackBar.open('Meal plan deleted successfully', 'Close', {
-              duration: 3000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.success('Meal plan deleted successfully');
             this.router.navigate(['/meal-plan']);
           },
           error: (error) => {
             console.error('Error deleting meal plan:', error);
-            this.snackBar.open('Failed to delete meal plan', 'Close', {
-              duration: 5000,
-              horizontalPosition: 'center',
-              verticalPosition: 'top'
-            });
+            this.notificationService.error('Failed to delete meal plan');
           }
         });
       }
@@ -135,25 +100,13 @@ export class MealPlanDetailComponent implements OnInit {
   onDuplicateMealPlan(): void {
     if (!this.mealPlan()) return;
 
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Duplicate Meal Plan',
-        message: `Are you sure you want to duplicate "${this.mealPlan()!.recipeName}"?`,
-        confirmText: 'Duplicate',
-        cancelText: 'Cancel',
-        confirmColor: 'primary'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    this.dialogService.confirm(
+      `Are you sure you want to duplicate "${this.mealPlan()!.recipeName}"?`,
+      'Duplicate Meal Plan'
+    ).subscribe(result => {
       if (result) {
         // TODO: Implement duplicate meal plan functionality
-        this.snackBar.open('Duplicate functionality coming soon', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
+        this.notificationService.info('Duplicate functionality coming soon');
       }
     });
   }

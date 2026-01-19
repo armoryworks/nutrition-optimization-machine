@@ -1,55 +1,50 @@
 // File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.ts
 
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Location } from '@angular/common';
 import { RecipeService } from '../../services/recipe.service';
-import { Observable, of, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, startWith, finalize, takeUntil, take } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { finalize, takeUntil, take, catchError } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
-import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { RecipeModel } from '../../models/recipe.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { IngredientCreateModalComponent, IngredientCreateModalData } from '../ingredient-create-modal/ingredient-create-modal.component';
 import { IngredientModel } from '../../models/ingredient.model';
 import { RecipeEditModel } from '../../models/recipe-edit.model';
-import { RecipeIngredientModel } from '../../models/recipe-ingredient.model';
 import { RecipeStepModel } from '../../models/recipe-step.model';
 import { CurationService } from '../../../curation/services/curation.service';
-import { UserInfoService } from '../../../utilities/services/user-info.service';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
-import { BaseFormComponent, BaseFormConfig } from '../../../common/components/base-form/base-form.component';
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
+
+interface AutocompleteOption {
+    value: any;
+    label: string;
+    disabled?: boolean;
+}
 
 @Component({
     selector: 'nom-recipe-edit',
     standalone: true,
     imports: [
-        CommonModule,
         ReactiveFormsModule,
         RouterModule,
         DragDropModule,
-        MatProgressSpinnerModule,
-        MatIconModule,
-        MatAutocompleteModule,
-        MatButtonModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSelectModule,
+        MatProgressBarModule,
         MatDialogModule,
-        BaseFormComponent,
-        BasePageComponent
+        AmwInputComponent,
+        AmwTextareaComponent,
+        AmwButtonComponent,
+        AmwSelectComponent,
+        AmwAutocompleteComponent,
+        AmwCardComponent,
+        AmwIconComponent
     ],
     templateUrl: './recipe-edit.component.html',
     styleUrls: ['./recipe-edit.component.scss']
@@ -63,7 +58,6 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private notificationService = inject(NotificationService);
     private dialog = inject(MatDialog);
     private curationService = inject(CurationService);
-    private userInfoService = inject(UserInfoService);
     private referenceDataService = inject(ReferenceDataService);
 
     recipeForm: FormGroup;
@@ -74,25 +68,11 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     isSubmitting = signal(false);
     error = signal<string | null>(null);
 
-    ingredientSearchCtrl = new FormControl('');
-    filteredIngredients$: Observable<IngredientSearchResponseModel[]>;
-    measurements$: Observable<any[]>;
-
-    pageConfig = signal<BasePageConfig>({
-        title: 'Create Recipe',
-        subtitle: 'Add a new recipe to your collection',
-        showBackButton: true,
-        maxWidth: '800px'
-    });
-
-    formConfig = signal<BaseFormConfig>({
-        title: '',
-        subtitle: '',
-        submitText: 'Create Recipe',
-        showCancelButton: true,
-        cancelText: 'Cancel',
-        maxWidth: '100%'
-    });
+    ingredientSearchCtrl = new FormControl<IngredientSearchResponseModel | null>(null);
+    ingredientAutocompleteOptions = signal<AutocompleteOption[]>([]);
+    private ingredientCache = new Map<number, IngredientSearchResponseModel>();
+    measurements$: any;
+    private measurementsCache: any[] = [];
 
     private destroy$ = new Subject<void>();
 
@@ -108,15 +88,19 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             steps: this.nonNullableFb.array([])
         });
 
-        this.filteredIngredients$ = this.ingredientSearchCtrl.valueChanges.pipe(
-            startWith(''),
-            debounceTime(300),
-            distinctUntilChanged(),
-            switchMap(value => (value && typeof value === 'string' && value.length > 1) ? this.recipeService.searchIngredients(value) : of([]))
-        );
-
         // Load measurements from the reference data service
         this.measurements$ = this.referenceDataService.getMeasurementTypes();
+        this.measurements$.pipe(takeUntil(this.destroy$)).subscribe((measurements: any) => {
+            this.measurementsCache = measurements;
+        });
+    }
+
+    // Helper method for AMW select options
+    getMeasurementOptions(): { value: number; label: string }[] {
+        return this.measurementsCache.map(m => ({
+            value: m.id,
+            label: m.name
+        }));
     }
 
     ngOnInit(): void {
@@ -129,15 +113,6 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 this.recipeId.set(+id);
                 this.isEditMode.set(true);
                 this.pageTitle.set('Edit Recipe');
-                this.pageConfig.set({
-                    ...this.pageConfig(),
-                    title: 'Edit Recipe',
-                    subtitle: 'Update your recipe'
-                });
-                this.formConfig.set({
-                    ...this.formConfig(),
-                    submitText: 'Update Recipe'
-                });
                 this.loadRecipe();
             } else {
                 // For create mode, set loading to false since no data needs to be loaded
@@ -164,8 +139,32 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         });
     }
 
-    onIngredientSelected(event: MatAutocompleteSelectedEvent): void {
-        const ingredient = event.option.value as IngredientSearchResponseModel;
+    onIngredientInputChanged(term: string): void {
+        if (term && term.length > 1) {
+            this.recipeService.searchIngredients(term)
+                .pipe(
+                    takeUntil(this.destroy$),
+                    catchError(() => of([]))
+                )
+                .subscribe((ingredients) => {
+                    this.ingredientCache.clear();
+                    const options = ingredients.map((ingredient) => {
+                        this.ingredientCache.set(ingredient.id, ingredient);
+                        return {
+                            value: ingredient.id,
+                            label: ingredient.name
+                        };
+                    });
+                    this.ingredientAutocompleteOptions.set(options);
+                });
+        } else {
+            this.ingredientAutocompleteOptions.set([]);
+        }
+    }
+
+    onIngredientAutocompleteSelected(option: AutocompleteOption): void {
+        const ingredient = this.ingredientCache.get(option.value);
+        if (!ingredient) return;
 
         // Check if ingredient is already added
         const existingIndex = this.ingredients.controls.findIndex(
@@ -183,16 +182,20 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             this.ingredients.push(this.createIngredientGroup(ingredient));
         }
 
-        this.ingredientSearchCtrl.setValue('');
+        this.ingredientSearchCtrl.setValue(null);
+        this.ingredientAutocompleteOptions.set([]);
     }
 
     removeIngredient(index: number): void {
         this.ingredients.removeAt(index);
     }
 
-    displayIngredient(ingredient: IngredientSearchResponseModel): string {
-        return ingredient ? ingredient.name : '';
-    }
+    displayIngredient = (value: any): string => {
+        if (value && typeof value === 'object' && value.name) {
+            return value.name;
+        }
+        return value?.label || '';
+    };
 
     openCreateIngredientModal(): void {
         const dialogRef = this.dialog.open<IngredientCreateModalComponent, IngredientCreateModalData, IngredientModel>(

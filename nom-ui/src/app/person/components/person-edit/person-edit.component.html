@@ -1,30 +1,50 @@
-<nom-base-page
-  [config]="pageConfig"
-  [isLoading]="isLoading()"
-  [error]="error()"
-  (back)="onBack()"
-  (refresh)="onRefresh()"
-  (retry)="onRetry()">
-
-  <nom-base-form
-    [config]="formConfig"
-    [form]="personForm"
-    [isSubmitting]="isSubmitting()"
-    (submit)="onSubmit()"
-    (cancel)="onCancel()">
-    
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Your Name</mat-label>
-      <input
-        matInput
-        type="text"
-        formControlName="name"
-        placeholder="Enter your full name"
-      />
-      <mat-icon matSuffix>person</mat-icon>
-      @if (personForm.get('name')?.hasError('required') && personForm.get('name')?.touched) {
-        <mat-error>Name is required.</mat-error>
+<div class="nom-page-container person-edit">
+  <amw-card
+    [headerTitle]="pageTitle"
+    [headerSubtitle]="pageSubtitle"
+    class="nom-card">
+    <ng-template #contentTemplate>
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
       }
-    </mat-form-field>
-  </nom-base-form>
-</nom-base-page>
+
+      @if (error()) {
+        <div class="nom-error-state">
+          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
+          <p class="nom-error-state__message">{{ error() }}</p>
+          <div class="nom-error-state__actions">
+            <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          </div>
+        </div>
+      } @else {
+        <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form">
+          <amw-input
+            formControlName="name"
+            label="Your Name"
+            placeholder="Enter your full name"
+            icon="person"
+            [required]="true"
+            class="nom-form__field">
+          </amw-input>
+
+          <div class="nom-form__actions">
+            <amw-button
+              type="button"
+              variant="text"
+              (click)="onCancel()">
+              {{ cancelText }}
+            </amw-button>
+            <amw-button
+              type="submit"
+              variant="filled"
+              color="primary"
+              [disabled]="personForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()">
+              {{ submitText }}
+            </amw-button>
+          </div>
+        </form>
+      }
+    </ng-template>
+  </amw-card>
+</div>
