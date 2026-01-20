@@ -7,4 +7,3 @@ export interface ShoppingItemFormData {
     priority: string;
     isCompleted: boolean;
 }
-

@@ -34,9 +34,11 @@
                       <p class="curated-plans__plan-duration">{{ getPlanDuration(plan) }}</p>
                     </div>
                     <div class="curated-plans__plan-status">
-                      <mat-chip [color]="getStatusColor(plan.curationStatus)" selected>
-                        {{ plan.curationStatus }}
-                      </mat-chip>
+                      <amw-chip
+                        [label]="plan.curationStatus"
+                        [color]="getStatusColor(plan.curationStatus)"
+                        [selected]="true">
+                      </amw-chip>
                     </div>
                   </div>
 

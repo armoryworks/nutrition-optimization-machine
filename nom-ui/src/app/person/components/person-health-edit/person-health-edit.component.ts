@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { NgClass } from '@angular/common';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AmwProgressBarComponent } from 'angular-material-wrap';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwSelectComponent } from 'angular-material-wrap';
@@ -30,7 +30,7 @@ interface AttributeTypeModel extends ReferenceItemModel {
   imports: [
     NgClass,
     ReactiveFormsModule,
-    MatProgressBarModule,
+    AmwProgressBarComponent,
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,

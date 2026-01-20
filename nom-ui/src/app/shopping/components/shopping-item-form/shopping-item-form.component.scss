@@ -2,13 +2,10 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 24px;
-  background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   h3 {
     margin: 0 0 24px 0;
-    color: #1976d2;
     font-size: 24px;
     font-weight: 500;
   }
@@ -27,7 +24,6 @@
     justify-content: flex-end;
     margin-top: 32px;
     padding-top: 20px;
-    border-top: 1px solid #e0e0e0;
 
     button {
       min-width: 100px;
@@ -37,24 +33,12 @@
   .selected-info {
     margin-top: 20px;
     padding: 16px;
-    background-color: #f5f5f5;
     border-radius: 6px;
-    border-left: 4px solid #4caf50;
     font-size: 14px;
     line-height: 1.5;
-
-    strong {
-      color: #2e7d32;
-    }
-
-    em {
-      color: #666;
-      font-style: italic;
-    }
   }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .shopping-item-form {
     padding: 16px;
@@ -68,7 +52,7 @@
 
     .form-actions {
       flex-direction: column;
-      
+
       button {
         width: 100%;
       }

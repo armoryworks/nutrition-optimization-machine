@@ -14,7 +14,7 @@
 
           @if (isLoading()) {
             <div class="nom-ingredient-form__loading">
-              <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+              <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
             </div>
           } @else {
             <!-- General Information Section -->
@@ -152,7 +152,7 @@
       headerIcon="restaurant">
       <ng-template #contentTemplate>
         @if (isLoading()) {
-          <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
+          <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
         }
 
         @if (error()) {

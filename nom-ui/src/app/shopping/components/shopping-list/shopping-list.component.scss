@@ -1,11 +1,6 @@
-// Component styles following Material Design principles and theme system
-
 .shopping-list {
   min-height: 100vh;
-  background-color: var(--mat-sys-background);
-  color: var(--mat-sys-on-background);
   padding: 2rem 1rem;
-  animation: fadeIn 0.3s ease-out;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
@@ -15,7 +10,6 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 16px;
-    animation: slideUp 0.4s ease-out 0.1s both;
   }
 
   &__header {
@@ -23,7 +17,6 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    animation: fadeInUp 0.4s ease-out 0.2s both;
 
     @media (max-width: 768px) {
       flex-direction: column;
@@ -33,22 +26,15 @@
   }
 
   &__title {
-    font: var(--mat-sys-headline-large);
-    color: var(--mat-sys-on-background);
     margin: 0;
     display: flex;
     align-items: center;
     gap: 0.75rem;
   }
 
-  &__title-icon {
-    color: var(--mat-sys-primary);
-  }
-
   &__header-actions {
     display: flex;
     gap: 1rem;
-    animation: fadeInUp 0.4s ease-out 0.3s both;
   }
 
   &__action-button {
@@ -60,38 +46,12 @@
     font-weight: 600;
     text-transform: none;
     letter-spacing: 0.025em;
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
     border: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(var(--mat-sys-primary), 0.3);
-
-    &:hover {
-      background-color: var(--mat-sys-primary);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
-    }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &__content {
-    animation: fadeInUp 0.4s ease-out 0.4s both;
   }
 
   &__filters {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
     border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
     margin-bottom: 2rem;
   }
 
@@ -109,26 +69,12 @@
   }
 
   &__filter-label {
-    font: var(--mat-sys-label-medium);
-    color: var(--mat-sys-on-surface-variant);
     font-weight: 600;
   }
 
   &__filter-input {
     padding: 8px 12px;
-    border: 2px solid var(--mat-sys-outline-variant);
     border-radius: 8px;
-    font: var(--mat-sys-body-medium);
-    background-color: var(--mat-sys-surface-container-low);
-    color: var(--mat-sys-on-surface);
-    transition: all 0.3s ease;
-
-    &:focus {
-      outline: none;
-      border-color: var(--mat-sys-primary);
-      background-color: var(--mat-sys-surface-container);
-      box-shadow: 0 0 0 4px rgba(var(--mat-sys-primary), 0.12);
-    }
   }
 
   &__items {
@@ -138,39 +84,11 @@
   }
 
   &__item {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    border: 1px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 1rem;
-
-    &:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-      transform: translateY(-1px);
-    }
-
-    &.priority-high {
-      border-left: 4px solid var(--mat-sys-error);
-      background-color: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
-    }
-
-    &.priority-medium {
-      border-left: 4px solid var(--mat-sys-tertiary);
-      background-color: var(--mat-sys-tertiary-container);
-      color: var(--mat-sys-on-tertiary-container);
-    }
-
-    &.priority-low {
-      border-left: 4px solid var(--mat-sys-tertiary);
-      background-color: var(--mat-sys-tertiary-container);
-      color: var(--mat-sys-on-tertiary-container);
-    }
   }
 
   &__content {
@@ -179,8 +97,6 @@
   }
 
   &__name {
-    font: var(--mat-sys-title-medium);
-    color: inherit;
     margin-bottom: 0.5rem;
     font-weight: 600;
   }
@@ -195,19 +111,13 @@
     .priority-badge {
       padding: 0.25rem 0.75rem;
       border-radius: 12px;
-      font: var(--mat-sys-label-small);
       font-weight: 600;
-      color: var(--mat-sys-on-primary);
       text-transform: uppercase;
       letter-spacing: 0.025em;
-      background-color: var(--mat-sys-primary);
     }
 
     .quantity {
-      font: var(--mat-sys-body-medium);
-      color: inherit;
       font-weight: 500;
-      opacity: 0.8;
     }
   }
 
@@ -221,88 +131,30 @@
     padding: 0.5rem;
     border-radius: 8px;
     border: none;
-    background-color: var(--mat-sys-surface-container-high);
-    color: var(--mat-sys-on-surface-variant);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      color: var(--mat-sys-on-surface);
-      transform: scale(1.1);
-    }
-
-    &--danger {
-      color: var(--mat-sys-error);
-
-      &:hover {
-        background-color: var(--mat-sys-error-container);
-        color: var(--mat-sys-on-error-container);
-      }
-    }
   }
 
   &__empty-state {
     text-align: center;
     padding: 3rem 2rem;
-    color: var(--mat-sys-on-surface-variant);
-    animation: fadeInUp 0.4s ease-out 0.5s both;
   }
 
   &__empty-icon {
     font-size: 4rem;
     width: 4rem;
     height: 4rem;
-    color: var(--mat-sys-outline-variant);
     margin-bottom: 1rem;
   }
 
   &__empty-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0 0 0.5rem;
   }
 
   &__empty-description {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
     margin: 0 0 1.5rem;
     line-height: 1.5;
   }
 }
 
-// Animations
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// Responsive adjustments
 @media (max-width: 768px) {
   .shopping-list {
     &__container {
@@ -325,16 +177,6 @@
       &__actions {
         justify-content: center;
       }
-    }
-  }
-}
-
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .shopping-list {
-    &__filters,
-    &__item {
-      border: 2px solid var(--mat-sys-outline);
     }
   }
 }

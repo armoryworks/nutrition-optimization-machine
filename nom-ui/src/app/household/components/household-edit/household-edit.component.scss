@@ -31,26 +31,10 @@
   }
 }
 
-// Material 3 theme overrides
-mat-form-field {
-  .mat-mdc-form-field {
-    width: 100%;
-  }
-
-  .mat-mdc-text-field-wrapper {
-    border-radius: 8px;
-  }
-
-  .mat-mdc-form-field-focus-overlay {
-    background-color: transparent;
-  }
-}
-
-// Responsive Design
 @media (max-width: 768px) {
   .household-edit {
     &__container {
       padding: 0 16px;
     }
   }
-} 
+}

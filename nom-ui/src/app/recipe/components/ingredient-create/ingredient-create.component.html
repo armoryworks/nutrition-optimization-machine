@@ -1,12 +1,12 @@
-<!-- Ingredient Create Modal - Now uses unified ingredient form component -->
+<!-- Ingredient Create - Uses unified ingredient form component -->
 
 <nom-ingredient-form
   [mode]="'create'"
   [isModal]="true"
-  [modalData]="data"
+  [modalData]="modalData()"
   [showDuplicateChecking]="true"
   [showNavigation]="false"
   (formSubmitted)="onFormSubmitted($event)"
   (formCancelled)="onFormCancelled()"
   (duplicateFound)="onDuplicateFound($event)">
-</nom-ingredient-form> 
+</nom-ingredient-form>

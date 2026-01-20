@@ -1,9 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDividerModule } from '@angular/material/divider';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwDividerComponent } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdInviteTokenCreateRequestModel } from '../../models/household-invite-token-create-request.model';
@@ -15,11 +13,11 @@ import { NotificationService } from '../../../utilities/services/notification.se
     standalone: true,
     imports: [
         ReactiveFormsModule,
-        MatDividerModule,
         AmwInputComponent,
         AmwButtonComponent,
         AmwCardComponent,
-        AmwIconComponent
+        AmwIconComponent,
+        AmwDividerComponent
     ],
     templateUrl: './household-invite-refactored.component.html',
     styleUrls: ['./household-invite-refactored.component.scss']

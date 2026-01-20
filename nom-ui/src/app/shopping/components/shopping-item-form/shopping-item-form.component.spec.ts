@@ -1,22 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
+import { ReactiveFormsModule } from '@angular/forms';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { ShoppingItemFormComponent } from './shopping-item-form.component';
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
-import { ConfigurationService } from '../../../common/services/configuration.service';
+import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { of } from 'rxjs';
 
 describe('ShoppingItemFormComponent', () => {
     let component: ShoppingItemFormComponent;
     let fixture: ComponentFixture<ShoppingItemFormComponent>;
     let mockShoppingReferenceService: jasmine.SpyObj<ShoppingReferenceService>;
-    let mockConfigurationService: jasmine.SpyObj<ConfigurationService>;
+    let mockReferenceDataService: jasmine.SpyObj<ReferenceDataService>;
 
     const mockCategories = [
         { referenceId: 1, referenceName: 'Produce', referenceDescription: 'Fresh fruits and vegetables' },
@@ -28,34 +22,29 @@ describe('ShoppingItemFormComponent', () => {
         { referenceId: 2, referenceName: 'High', referenceDescription: 'High priority items' }
     ];
 
-    const mockUnits = ['g', 'kg', 'oz', 'lb'];
-
     beforeEach(async () => {
         mockShoppingReferenceService = jasmine.createSpyObj('ShoppingReferenceService', [
-            'getShoppingCategories',
-            'getShoppingPriorities'
+            'getShoppingReferencesBulk'
         ]);
-        mockConfigurationService = jasmine.createSpyObj('ConfigurationService', ['getMassUnits']);
+        mockReferenceDataService = jasmine.createSpyObj('ReferenceDataService', [
+            'getReferencesByGroup'
+        ]);
 
-        mockShoppingReferenceService.getShoppingCategories.and.returnValue(of(mockCategories));
-        mockShoppingReferenceService.getShoppingPriorities.and.returnValue(of(mockPriorities));
-        mockConfigurationService.getMassUnits.and.returnValue(mockUnits);
+        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(of({
+            priorities: mockPriorities,
+            categories: mockCategories
+        }));
+        mockReferenceDataService.getReferencesByGroup.and.returnValue(of(mockCategories));
 
         await TestBed.configureTestingModule({
-            declarations: [ShoppingItemFormComponent],
             imports: [
-                ReactiveFormsModule,
-                BrowserAnimationsModule,
-                MatFormFieldModule,
-                MatInputModule,
-                MatButtonModule,
-                MatSelectModule,
-                MatIconModule,
-                MatCardModule
+                ShoppingItemFormComponent,
+                ReactiveFormsModule
             ],
             providers: [
+                provideAnimations(),
                 { provide: ShoppingReferenceService, useValue: mockShoppingReferenceService },
-                { provide: ConfigurationService, useValue: mockConfigurationService }
+                { provide: ReferenceDataService, useValue: mockReferenceDataService }
             ]
         }).compileComponents();
 
@@ -68,142 +57,131 @@ describe('ShoppingItemFormComponent', () => {
     });
 
     it('should initialize form with default values', () => {
-        expect(component.itemForm).toBeDefined();
-        expect(component.itemForm.get('name')?.value).toBe('');
-        expect(component.itemForm.get('quantity')?.value).toBe(1);
-        expect(component.itemForm.get('unit')?.value).toBe('g');
-        expect(component.itemForm.get('categoryId')?.value).toBeNull();
-        expect(component.itemForm.get('priorityId')?.value).toBeNull();
-        expect(component.itemForm.get('notes')?.value).toBe('');
+        expect(component.shoppingItemForm).toBeDefined();
+        expect(component.shoppingItemForm.get('name')?.value).toBe('');
+        expect(component.shoppingItemForm.get('quantity')?.value).toBe(1);
+        expect(component.shoppingItemForm.get('categoryId')?.value).toBeNull();
+        expect(component.shoppingItemForm.get('priorityId')?.value).toBeNull();
     });
 
-    it('should load shopping categories and priorities on init', () => {
-        component.ngOnInit();
+    it('should load shopping references on init', () => {
+        fixture.detectChanges();
 
-        expect(mockShoppingReferenceService.getShoppingCategories).toHaveBeenCalled();
-        expect(mockShoppingReferenceService.getShoppingPriorities).toHaveBeenCalled();
-        expect(mockConfigurationService.getMassUnits).toHaveBeenCalled();
-    });
-
-    it('should populate categories and priorities arrays', () => {
-        component.ngOnInit();
-
-        expect(component.categories).toEqual(mockCategories);
-        expect(component.priorities).toEqual(mockPriorities);
-        expect(component.units).toEqual(mockUnits);
+        expect(mockShoppingReferenceService.getShoppingReferencesBulk).toHaveBeenCalled();
     });
 
     it('should validate required fields', () => {
-        const nameControl = component.itemForm.get('name');
-        const quantityControl = component.itemForm.get('quantity');
+        const nameControl = component.shoppingItemForm.get('name');
+        const quantityControl = component.shoppingItemForm.get('quantity');
 
         expect(nameControl?.hasError('required')).toBeTruthy();
         expect(quantityControl?.hasError('required')).toBeFalsy(); // Has default value
     });
 
-    it('should validate name length constraints', () => {
-        const nameControl = component.itemForm.get('name');
-
-        nameControl?.setValue('a'); // Too short
-        expect(nameControl?.hasError('minlength')).toBeTruthy();
-
-        nameControl?.setValue('a'.repeat(101)); // Too long
-        expect(nameControl?.hasError('maxlength')).toBeTruthy();
-
-        nameControl?.setValue('Valid Name'); // Valid length
-        expect(nameControl?.errors).toBeNull();
-    });
-
     it('should validate quantity constraints', () => {
-        const quantityControl = component.itemForm.get('quantity');
+        const quantityControl = component.shoppingItemForm.get('quantity');
 
         quantityControl?.setValue(0); // Too low
         expect(quantityControl?.hasError('min')).toBeTruthy();
-
-        quantityControl?.setValue(1001); // Too high
-        expect(quantityControl?.hasError('max')).toBeTruthy();
 
         quantityControl?.setValue(50); // Valid
         expect(quantityControl?.errors).toBeNull();
     });
 
-    it('should emit form submission when valid', () => {
-        spyOn(component.formSubmit, 'emit');
+    it('should handle form submission when valid', () => {
+        fixture.detectChanges();
 
-        component.itemForm.patchValue({
+        spyOn(console, 'log');
+        spyOn(window, 'alert');
+
+        component.shoppingItemForm.patchValue({
             name: 'Test Item',
             quantity: 5,
-            unit: 'kg',
             categoryId: 1,
-            priorityId: 2,
-            notes: 'Test notes'
+            priorityId: 2
         });
 
         component.onSubmit();
 
-        expect(component.formSubmit.emit).toHaveBeenCalledWith({
-            name: 'Test Item',
-            quantity: 5,
-            unit: 'kg',
-            categoryId: 1,
-            priorityId: 2,
-            notes: 'Test notes'
-        });
+        expect(console.log).toHaveBeenCalledWith('Form submitted:', jasmine.any(Object));
+        expect(window.alert).toHaveBeenCalled();
     });
 
     it('should not emit form submission when invalid', () => {
-        spyOn(component.formSubmit, 'emit');
+        fixture.detectChanges();
 
-        component.itemForm.patchValue({
+        spyOn(console, 'log');
+        spyOn(window, 'alert');
+
+        component.shoppingItemForm.patchValue({
             name: '', // Invalid - required field empty
-            quantity: 5,
-            unit: 'kg'
+            quantity: 5
         });
 
         component.onSubmit();
 
-        expect(component.formSubmit.emit).not.toHaveBeenCalled();
+        expect(console.log).not.toHaveBeenCalled();
+        expect(window.alert).not.toHaveBeenCalled();
     });
 
     it('should reset form after successful submission', () => {
-        component.itemForm.patchValue({
+        fixture.detectChanges();
+
+        spyOn(window, 'alert');
+
+        component.shoppingItemForm.patchValue({
             name: 'Test Item',
             quantity: 5,
-            unit: 'kg',
             categoryId: 1,
-            priorityId: 2,
-            notes: 'Test notes'
+            priorityId: 2
         });
 
         component.onSubmit();
 
-        expect(component.itemForm.get('name')?.value).toBe('');
-        expect(component.itemForm.get('quantity')?.value).toBe(1);
-        expect(component.itemForm.get('unit')?.value).toBe('g');
-        expect(component.itemForm.get('categoryId')?.value).toBeNull();
-        expect(component.itemForm.get('priorityId')?.value).toBeNull();
-        expect(component.itemForm.get('notes')?.value).toBe('');
+        expect(component.shoppingItemForm.get('name')?.value).toBe('');
+        expect(component.shoppingItemForm.get('quantity')?.value).toBe(1);
+        expect(component.shoppingItemForm.get('categoryId')?.value).toBeNull();
+        expect(component.shoppingItemForm.get('priorityId')?.value).toBeNull();
     });
 
-    it('should handle form reset', () => {
-        component.itemForm.patchValue({
+    it('should handle form cancel', () => {
+        fixture.detectChanges();
+
+        component.shoppingItemForm.patchValue({
             name: 'Test Item',
-            quantity: 5,
-            unit: 'kg'
+            quantity: 5
         });
-
-        component.onReset();
-
-        expect(component.itemForm.get('name')?.value).toBe('');
-        expect(component.itemForm.get('quantity')?.value).toBe(1);
-        expect(component.itemForm.get('unit')?.value).toBe('g');
-    });
-
-    it('should emit cancel event', () => {
-        spyOn(component.cancel, 'emit');
 
         component.onCancel();
 
-        expect(component.cancel.emit).toHaveBeenCalled();
+        expect(component.shoppingItemForm.get('name')?.value).toBe('');
+        expect(component.shoppingItemForm.get('quantity')?.value).toBe(1);
+        expect(component.selectedCategory()).toBeUndefined();
+        expect(component.selectedPriority()).toBeUndefined();
+    });
+
+    it('should update selectedCategory signal on category change', () => {
+        fixture.detectChanges();
+
+        const mockCategory = { referenceId: 1, referenceName: 'Produce', referenceDescription: 'Fresh fruits and vegetables' };
+        component.onCategoryChange(mockCategory as any);
+
+        expect(component.selectedCategory()).toEqual(mockCategory as any);
+    });
+
+    it('should update selectedPriority signal on priority change', () => {
+        fixture.detectChanges();
+
+        const mockPriority = { referenceId: 2, referenceName: 'High', referenceDescription: 'High priority items' };
+        component.onPriorityChange(mockPriority as any);
+
+        expect(component.selectedPriority()).toEqual(mockPriority as any);
+    });
+
+    it('should clean up subscriptions on destroy', () => {
+        fixture.detectChanges();
+
+        // Should not throw on destroy
+        expect(() => component.ngOnDestroy()).not.toThrow();
     });
 });

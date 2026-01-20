@@ -5,11 +5,11 @@
     headerSubtitle="View and manage meal plan information">
     <ng-template #contentTemplate>
       @if (isLoading()) {
-        <mat-progress-bar
+        <amw-progress-bar
           mode="indeterminate"
           color="primary"
           class="nom-card__progress-bar">
-        </mat-progress-bar>
+        </amw-progress-bar>
       }
       @if (error()) {
         <div class="nom-error-state">
@@ -80,12 +80,12 @@
                   <div class="meal-plan-detail__detail-item">
                     <div class="meal-plan-detail__detail-label">Meal Type</div>
                     <div class="meal-plan-detail__detail-value">
-                      <mat-chip
+                      <amw-chip
+                        [label]="mealPlan()!.mealType | titlecase"
+                        [icon]="getMealTypeIcon(mealPlan()!.mealType)"
                         [color]="getMealTypeColor(mealPlan()!.mealType)"
-                        class="meal-plan-detail__meal-type-chip">
-                        <amw-icon [name]="getMealTypeIcon(mealPlan()!.mealType)" class="meal-plan-detail__meal-type-icon"></amw-icon>
-                        {{ mealPlan()!.mealType | titlecase }}
-                      </mat-chip>
+                        chipClass="meal-plan-detail__meal-type-chip">
+                      </amw-chip>
                     </div>
                   </div>
 
@@ -99,9 +99,11 @@
                         {{ formatDate(mealPlan()!.date) }}
                       </span>
                       @if (isToday(mealPlan()!.date)) {
-                        <mat-chip color="accent" class="meal-plan-detail__today-chip">
-                          Today
-                        </mat-chip>
+                        <amw-chip
+                          label="Today"
+                          color="accent"
+                          chipClass="meal-plan-detail__today-chip">
+                        </amw-chip>
                       }
                     </div>
                   </div>

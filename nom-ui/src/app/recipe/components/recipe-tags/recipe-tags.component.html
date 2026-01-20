@@ -101,19 +101,16 @@
                   <div
                     class="recipe-tags__available-item"
                     [class.recipe-tags__available-item--selected]="isTagSelected(tag)"
-                    (click)="addTag(tag)"
-                    (keyup.enter)="addTag(tag)"
-                    tabindex="0"
-                    role="button"
-                    [attr.aria-label]="'Add tag: ' + tag.name"
                   >
-                    <mat-chip
-                      [style]="getTagStyle(tag)"
-                      class="recipe-tags__chip"
+                    <amw-chip
+                      [label]="tag.name"
+                      [selectable]="true"
+                      [selected]="isTagSelected(tag)"
+                      (selectionChange)="addTag(tag)"
                       [amwTooltip]="tag.description || tag.name"
-                    >
-                      {{ tag.name }}
-                    </mat-chip>
+                      [style]="getTagStyle(tag)"
+                      chipClass="recipe-tags__chip">
+                    </amw-chip>
                     <amw-icon-button
                       icon="delete"
                       ariaLabel="Delete tag"
@@ -136,20 +133,14 @@
               <ng-template #contentTemplate>
                 <div class="recipe-tags__selected-list">
                   @for (tag of tags(); track tag.id) {
-                    <mat-chip
-                      [style]="getTagStyle(tag)"
-                      class="recipe-tags__chip recipe-tags__chip--selected"
+                    <amw-chip
+                      [label]="tag.name"
+                      [removable]="true"
+                      (removed)="removeTag(tag)"
                       [amwTooltip]="tag.description || tag.name"
-                    >
-                      {{ tag.name }}
-                      <button
-                        matChipRemove
-                        (click)="removeTag(tag)"
-                        [amwTooltip]="'Remove tag'"
-                      >
-                        <amw-icon name="cancel"></amw-icon>
-                      </button>
-                    </mat-chip>
+                      [style]="getTagStyle(tag)"
+                      chipClass="recipe-tags__chip recipe-tags__chip--selected">
+                    </amw-chip>
                   }
                 </div>
               </ng-template>

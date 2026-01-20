@@ -3,14 +3,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
 import { Router } from '@angular/router';
 import { ViewEncapsulation } from '@angular/core';
-import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwBadgeDirective } from 'angular-material-wrap';
 
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { MessagingService } from '../../services/messaging.service';
@@ -23,17 +18,13 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
   imports: [
     ReactiveFormsModule,
     FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatChipsModule,
-    MatBadgeModule,
     AmwButtonComponent,
     AmwCardComponent,
     AmwInputComponent,
     AmwIconButtonComponent,
     AmwIconComponent,
     AmwProgressSpinnerComponent,
+    AmwBadgeDirective,
     BasePageComponent,
   ],
   templateUrl: './messaging-inbox.component.html',

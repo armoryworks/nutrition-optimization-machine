@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeScrapingModel, RecipeScrapingRequestModel } from '../../models/recipe-scraping.model';
@@ -22,7 +22,7 @@ export class RecipeScrapingComponent {
     private recipeService = inject(RecipeService);
     private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
 
     scrapingForm: FormGroup;
     isLoading = signal(false);

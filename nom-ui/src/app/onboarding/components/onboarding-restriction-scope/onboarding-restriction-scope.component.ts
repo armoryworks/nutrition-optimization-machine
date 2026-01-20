@@ -7,9 +7,8 @@ import {
 } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatRadioModule } from '@angular/material/radio';
 
-import { AmwButtonComponent, AmwSelectComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwSelectComponent, AmwRadioGroupComponent } from 'angular-material-wrap';
 
 import { PersonModel } from '../../../person/models/person.model';
 
@@ -18,9 +17,9 @@ import { PersonModel } from '../../../person/models/person.model';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatRadioModule,
     AmwButtonComponent,
     AmwSelectComponent,
+    AmwRadioGroupComponent,
   ],
   templateUrl: './onboarding-restriction-scope.component.html',
   styleUrls: ['./onboarding-restriction-scope.component.scss'],
@@ -151,5 +150,13 @@ export class OnboardingRestrictionScopeComponent implements OnInit {
   // Helper method for AMW select options
   getPersonOptions(): { value: number; label: string }[] {
     return this.allPersonsInPlan().map(person => ({ value: person.id!, label: person.name || '' }));
+  }
+
+  // Helper method for AMW radio group options
+  getScopeOptions(): { value: string; label: string }[] {
+    return [
+      { value: 'plan', label: 'Apply to Entire Plan' },
+      { value: 'specific', label: 'Apply to Specific People' }
+    ];
   }
 }

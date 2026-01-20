@@ -1,8 +1,6 @@
-<div class="shopping-item-dialog">
-  <h2 mat-dialog-title>{{ getTitle() }}</h2>
-
+<div class="shopping-item-editor">
   <form [formGroup]="itemForm" (ngSubmit)="onSubmit()">
-    <mat-dialog-content>
+    <div class="editor-content">
       <div class="form-row">
         <amw-input
           type="text"
@@ -65,9 +63,9 @@
           label="Mark as completed">
         </amw-checkbox>
       </div>
-    </mat-dialog-content>
+    </div>
 
-    <mat-dialog-actions align="end">
+    <div class="editor-actions">
       <amw-button
         type="button"
         variant="text"
@@ -82,6 +80,6 @@
         [disabled]="itemForm.invalid || isSubmitting()">
         {{ getSubmitText() }}
       </amw-button>
-    </mat-dialog-actions>
+    </div>
   </form>
 </div>

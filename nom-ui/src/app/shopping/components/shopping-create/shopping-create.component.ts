@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
@@ -28,7 +28,7 @@ export class ShoppingCreateComponent implements OnInit {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private shoppingService = inject(ShoppingService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private notificationService = inject(NotificationService);
   private userInfoService = inject(UserInfoService);
 
   shoppingForm: FormGroup = this.nonNullableFb.group({
@@ -69,21 +69,13 @@ export class ShoppingCreateComponent implements OnInit {
       this.shoppingService.createShoppingList(createRequest).subscribe({
         next: (response) => {
           this.isLoading.set(false);
-          this.snackBar.open('Shopping list created successfully!', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
+          this.notificationService.success('Shopping list created successfully!');
           this.router.navigate(['/shopping', response.id]);
         },
         error: (error) => {
           this.isLoading.set(false);
           console.error('Error creating shopping list:', error);
-          this.snackBar.open('Failed to create shopping list. Please try again.', 'Close', {
-            duration: 5000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
+          this.notificationService.error('Failed to create shopping list. Please try again.');
         }
       });
     }

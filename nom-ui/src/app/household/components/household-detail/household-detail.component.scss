@@ -1,11 +1,6 @@
-// Component styles following Material Design principles and theme system
-
 .household-detail {
   min-height: 100vh;
-  background-color: var(--mat-sys-background);
-  color: var(--mat-sys-on-background);
   padding: 2rem 1rem;
-  animation: fadeIn 0.3s ease-out;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
@@ -15,12 +10,10 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 16px;
-    animation: slideUp 0.4s ease-out 0.1s both;
   }
 
   &__header {
     margin-bottom: 2rem;
-    animation: fadeInUp 0.4s ease-out 0.2s both;
   }
 
   &__header-content {
@@ -47,12 +40,6 @@
     font-size: 3rem;
     width: 3rem;
     height: 3rem;
-    color: var(--mat-sys-primary);
-    transition: transform 0.3s ease;
-
-    &:hover {
-      transform: scale(1.1);
-    }
 
     @media (max-width: 768px) {
       font-size: 2.5rem;
@@ -66,20 +53,12 @@
   }
 
   &__title {
-    font: var(--mat-sys-headline-large);
-    color: var(--mat-sys-on-background);
     margin: 0 0 0.5rem;
     line-height: 1.2;
     font-weight: 700;
-
-    @media (max-width: 768px) {
-      font: var(--mat-sys-headline-medium);
-    }
   }
 
   &__subtitle {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
     margin: 0;
     line-height: 1.5;
   }
@@ -89,7 +68,6 @@
     justify-content: flex-end;
     margin-bottom: 24px;
     gap: 12px;
-    animation: fadeInUp 0.4s ease-out 0.3s both;
   }
 
   &__action-button {
@@ -101,67 +79,19 @@
     font-weight: 600;
     text-transform: none;
     letter-spacing: 0.025em;
-    background-color: var(--mat-sys-surface-container-high);
-    color: var(--mat-sys-on-surface-variant);
-    border: 2px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
-      color: var(--mat-sys-on-surface);
-      transform: translateY(-1px);
-    }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: scale(1.1);
-    }
-
-    &--primary {
-      background-color: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
-      border-color: var(--mat-sys-primary);
-      box-shadow: 0 4px 12px rgba(var(--mat-sys-primary), 0.3);
-
-      &:hover {
-        background-color: var(--mat-sys-primary);
-        border-color: var(--mat-sys-primary);
-        color: var(--mat-sys-on-primary);
-        box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
-        transform: translateY(-2px);
-      }
-    }
-  }
-
-  &__content {
-    animation: fadeInUp 0.4s ease-out 0.4s both;
   }
 
   &__info-section {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
     border-radius: 16px;
     padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
     margin-bottom: 2rem;
   }
 
   &__section-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0 0 1.5rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-  }
-
-  &__section-icon {
-    color: var(--mat-sys-primary);
   }
 
   &__info-grid {
@@ -177,24 +107,16 @@
   }
 
   &__info-label {
-    font: var(--mat-sys-label-medium);
-    color: var(--mat-sys-on-surface-variant);
     font-weight: 600;
   }
 
   &__info-value {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface);
     line-height: 1.5;
   }
 
   &__members-section {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
     border-radius: 16px;
     padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
     margin-bottom: 2rem;
   }
 
@@ -206,8 +128,6 @@
   }
 
   &__members-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0;
     display: flex;
     align-items: center;
@@ -215,19 +135,10 @@
   }
 
   &__add-member-button {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
     border: none;
     border-radius: 12px;
     padding: 0.75rem 1.5rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(var(--mat-sys-primary), 0.3);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
-    }
   }
 
   &__members-grid {
@@ -237,17 +148,8 @@
   }
 
   &__member-card {
-    background-color: var(--mat-sys-surface-container-low);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
-      transform: translateY(-1px);
-    }
   }
 
   &__member-header {
@@ -261,12 +163,9 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
     display: flex;
     align-items: center;
     justify-content: center;
-    font: var(--mat-sys-title-large);
     font-weight: 600;
   }
 
@@ -275,15 +174,11 @@
   }
 
   &__member-name {
-    font: var(--mat-sys-title-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0;
     font-weight: 600;
   }
 
   &__member-role {
-    font: var(--mat-sys-body-medium);
-    color: var(--mat-sys-on-surface-variant);
     margin: 0.25rem 0 0;
   }
 
@@ -297,33 +192,11 @@
     padding: 0.5rem;
     border-radius: 8px;
     border: none;
-    background-color: var(--mat-sys-surface-container-high);
-    color: var(--mat-sys-on-surface-variant);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      color: var(--mat-sys-on-surface);
-      transform: scale(1.1);
-    }
-
-    &--danger {
-      color: var(--mat-sys-error);
-
-      &:hover {
-        background-color: var(--mat-sys-error-container);
-        color: var(--mat-sys-on-error-container);
-      }
-    }
   }
 
   &__invitations-section {
-    background-color: var(--mat-sys-surface-container);
-    color: var(--mat-sys-on-surface);
     border-radius: 16px;
     padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--mat-sys-outline-variant);
     margin-bottom: 2rem;
   }
 
@@ -335,8 +208,6 @@
   }
 
   &__invitations-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0;
     display: flex;
     align-items: center;
@@ -344,19 +215,10 @@
   }
 
   &__invite-button {
-    background-color: var(--mat-sys-secondary);
-    color: var(--mat-sys-on-secondary);
     border: none;
     border-radius: 12px;
     padding: 0.75rem 1.5rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(var(--mat-sys-secondary), 0.3);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(var(--mat-sys-secondary), 0.4);
-    }
   }
 
   &__invitations-grid {
@@ -366,11 +228,8 @@
   }
 
   &__invitation-card {
-    background-color: var(--mat-sys-surface-container-low);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--mat-sys-outline-variant);
-    transition: all 0.3s ease;
   }
 
   &__invitation-header {
@@ -381,18 +240,13 @@
   }
 
   &__invitation-email {
-    font: var(--mat-sys-title-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0;
     font-weight: 600;
   }
 
   &__invitation-status {
-    background-color: var(--mat-sys-tertiary-container);
-    color: var(--mat-sys-on-tertiary-container);
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
-    font: var(--mat-sys-label-small);
     font-weight: 600;
   }
 
@@ -407,90 +261,30 @@
     border-radius: 8px;
     border: none;
     font-weight: 600;
-    transition: all 0.3s ease;
-
-    &--accept {
-      background-color: var(--mat-sys-tertiary);
-      color: var(--mat-sys-on-tertiary);
-
-      &:hover {
-        background-color: var(--mat-sys-tertiary);
-        transform: scale(1.05);
-      }
-    }
-
-    &--decline {
-      background-color: var(--mat-sys-error);
-      color: var(--mat-sys-on-error);
-
-      &:hover {
-        background-color: var(--mat-sys-error);
-        transform: scale(1.05);
-      }
-    }
   }
 
   &__empty-state {
     text-align: center;
     padding: 3rem 2rem;
-    color: var(--mat-sys-on-surface-variant);
   }
 
   &__empty-icon {
     font-size: 4rem;
     width: 4rem;
     height: 4rem;
-    color: var(--mat-sys-outline-variant);
     margin-bottom: 1rem;
   }
 
   &__empty-title {
-    font: var(--mat-sys-headline-medium);
-    color: var(--mat-sys-on-surface);
     margin: 0 0 0.5rem;
   }
 
   &__empty-description {
-    font: var(--mat-sys-body-large);
-    color: var(--mat-sys-on-surface-variant);
     margin: 0 0 1.5rem;
     line-height: 1.5;
   }
 }
 
-// Animations
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-// Responsive adjustments
 @media (max-width: 768px) {
   .household-detail {
     &__container {
@@ -513,16 +307,3 @@
     }
   }
 }
-
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .household-detail {
-    &__info-section,
-    &__members-section,
-    &__invitations-section,
-    &__member-card,
-    &__invitation-card {
-      border: 2px solid var(--mat-sys-outline);
-    }
-  }
-} 

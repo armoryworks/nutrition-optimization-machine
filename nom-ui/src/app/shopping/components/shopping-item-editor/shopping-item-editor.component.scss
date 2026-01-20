@@ -1,4 +1,4 @@
-.shopping-item-dialog {
+.shopping-item-editor {
   min-width: 500px;
   max-width: 600px;
 
@@ -28,15 +28,18 @@
     }
   }
 
-  mat-dialog-content {
+  .editor-content {
     padding: 16px 0;
   }
 
-  mat-dialog-actions {
+  .editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
     padding: 16px 0;
   }
 
-  mat-checkbox {
+  amw-checkbox {
     margin-top: 8px;
   }
-} 
+}

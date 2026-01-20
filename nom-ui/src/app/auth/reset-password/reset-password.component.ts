@@ -9,9 +9,7 @@ import {
 
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { ResetPassword } from '../models/reset-password';
@@ -22,10 +20,10 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressBarComponent
   ],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],

@@ -1,10 +1,8 @@
 import { Component, OnInit, input, output, signal, effect } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatRadioModule } from '@angular/material/radio';
 
-import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwCheckboxComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwCheckboxComponent, AmwProgressBarComponent, AmwRadioGroupComponent } from 'angular-material-wrap';
 
 interface OnboardingQuestion {
     id: string;
@@ -26,12 +24,12 @@ interface OnboardingAnswer {
     imports: [
         NgClass,
         ReactiveFormsModule,
-        MatProgressBarModule,
-        MatRadioModule,
         AmwButtonComponent,
         AmwCheckboxComponent,
         AmwCardComponent,
         AmwInputComponent,
+        AmwProgressBarComponent,
+        AmwRadioGroupComponent,
     ],
     templateUrl: './onboarding-wizard.component.html',
     styleUrls: ['./onboarding-wizard.component.scss'],
@@ -117,5 +115,24 @@ export class OnboardingWizardComponent implements OnInit {
 
     onGoToDashboard(): void {
         this.goToDashboard.emit();
+    }
+
+    // Helper method for YesNo radio options
+    getYesNoOptions(): { value: string; label: string }[] {
+        return [
+            { value: 'true', label: 'Yes' },
+            { value: 'false', label: 'No' }
+        ];
+    }
+
+    // Helper method for SingleSelect radio options
+    getSingleSelectOptions(): { value: string; label: string }[] {
+        if (this.currentQuestion?.options) {
+            return this.currentQuestion.options.map(option => ({
+                value: option,
+                label: option
+            }));
+        }
+        return [];
     }
 } 

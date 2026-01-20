@@ -1,8 +1,7 @@
 import { Component, OnInit, input, output, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatChipsModule } from '@angular/material/chips';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressBarComponent, AmwChipComponent } from 'angular-material-wrap';
 
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { RecipeTagsService } from '../../services/recipe-tags.service';
@@ -14,7 +13,6 @@ import { RecipeTagModel } from '../../models/recipe-tag.model';
     imports: [
         FormsModule,
         ReactiveFormsModule,
-        MatChipsModule,
         AmwInputComponent,
         AmwTextareaComponent,
         AmwButtonComponent,
@@ -23,6 +21,7 @@ import { RecipeTagModel } from '../../models/recipe-tag.model';
         AmwTooltipDirective,
         AmwIconComponent,
         AmwProgressBarComponent,
+        AmwChipComponent,
     ],
     templateUrl: './recipe-tags.component.html',
     styleUrls: ['./recipe-tags.component.scss'],

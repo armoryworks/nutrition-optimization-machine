@@ -7,18 +7,14 @@
     text-align: center;
     margin-bottom: 32px;
     padding-bottom: 24px;
-    border-bottom: 2px solid #e0e0e0;
 
     h2 {
       margin: 0 0 8px 0;
-      color: #333;
       font-size: 32px;
-      font-weight: 500;
     }
 
     .subtitle {
       margin: 0;
-      color: #666;
       font-size: 16px;
     }
   }
@@ -27,17 +23,12 @@
     .form-section {
       margin-bottom: 32px;
       padding: 24px;
-      background: #f8f9fa;
       border-radius: 8px;
-      border: 1px solid #e9ecef;
 
       h3 {
         margin: 0 0 20px 0;
-        color: #333;
         font-size: 20px;
-        font-weight: 500;
         padding-bottom: 12px;
-        border-bottom: 1px solid #dee2e6;
       }
 
       .form-row {
@@ -65,7 +56,6 @@
   gap: 16px;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
 
   button {
     min-width: 120px;
@@ -75,15 +65,11 @@
 .selected-options {
   margin-top: 32px;
   padding: 20px;
-  background: #e8f5e8;
   border-radius: 8px;
-  border: 1px solid #c8e6c9;
 
   h4 {
     margin: 0 0 16px 0;
-    color: #2e7d32;
     font-size: 18px;
-    font-weight: 500;
   }
 
   .options-grid {
@@ -93,20 +79,16 @@
 
     .option-item {
       padding: 8px 12px;
-      background: white;
       border-radius: 4px;
-      border: 1px solid #c8e6c9;
       font-size: 14px;
 
       strong {
-        color: #2e7d32;
         margin-right: 8px;
       }
     }
   }
 }
 
-// Spinning animation for submit button
 .spinning {
   animation: spin 1s linear infinite;
 }
@@ -120,7 +102,6 @@
   }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .recipe-form {
     padding: 16px;

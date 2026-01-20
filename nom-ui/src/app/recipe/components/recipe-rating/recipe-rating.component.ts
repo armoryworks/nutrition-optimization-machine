@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AmwButtonComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
@@ -25,7 +25,7 @@ import { RecipeRatingResponseModel } from '../../models/recipe-rating.model';
 export class RecipeRatingComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private destroy$ = new Subject<void>();
 
     recipeId = input<number>();
@@ -117,7 +117,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (rating) => {
                     this.userRating.set(rating);
-                    this.snackBar.open("Rating submitted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Rating submitted successfully");
                     this.isSubmitting.set(false);
                     // Reload average rating
                     this.loadRatingData();
@@ -149,7 +149,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (rating) => {
                     this.userRating.set(rating);
-                    this.snackBar.open("Rating updated successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Rating updated successfully");
                     this.isSubmitting.set(false);
                     // Reload average rating
                     this.loadRatingData();
@@ -176,7 +176,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
                 next: () => {
                     this.userRating.set(null);
                     this.ratingForm.reset();
-                    this.snackBar.open("Rating deleted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Rating deleted successfully");
                     this.isSubmitting.set(false);
                     // Reload average rating
                     this.loadRatingData();

@@ -7,8 +7,6 @@ body {
   font-family: Inter, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
   height: 100vh;
-  color: var(--mat-sys-on-background);
-  background-color: var(--mat-sys-background);
 }
 
 :host {
@@ -18,52 +16,16 @@ body {
   height: 100vh;
 }
 
-mat-card {
-  background-color: var(--mat-sys-surface-container) !important;
-  color: var(--mat-sys-on-surface) !important;
-}
-
-mat-form-field {
-  .mat-form-field-wrapper {
-    background-color: var(--mat-sys-surface-container-low) !important;
-    border-radius: 4px;
-  }
-
-  .mat-form-field-label,
-  .mat-form-field-hint,
-  .mat-form-field-prefix,
-  .mat-form-field-suffix,
-  .mat-form-field-ripple,
-  .mat-form-field-subscript-wrapper {
-    color: var(--mat-sys-on-surface) !important;
-  }
-
-  input.mat-input-element {
-    color: var(--mat-sys-on-surface) !important;
-
-    &::placeholder {
-      color: var(--mat-sys-outline) !important;
-    }
-  }
-
-  mat-error {
-    color: var(--mat-sys-error) !important;
-  }
-}
-
 .nom-header {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: 72px !important; // Reduced height since we only have one navigation row now
-  background-color: var(--mat-sys-surface-container-high, #3d3d3d) !important;
-  color: var(--mat-sys-on-surface, #ffffff) !important;
+  height: 72px !important;
   padding: 0 !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  box-shadow: 0 2px 5px rgba(var(--mat-sys-shadow, 0, 0, 0), 0.2) !important;
   flex-shrink: 0 !important;
   z-index: 1000 !important;
 
@@ -81,14 +43,13 @@ mat-form-field {
     align-items: center;
     flex: 1;
     padding: 0 20px;
-    min-width: 0; // Allow flex item to shrink below content size
+    min-width: 0;
   }
 
   &__title {
     margin: 0;
     font-size: 24px;
     font-weight: 700;
-    color: var(--mat-sys-primary);
     margin-right: 12px;
     white-space: nowrap;
   }
@@ -97,11 +58,10 @@ mat-form-field {
     margin: 0;
     font-size: 14px;
     font-weight: 400;
-    color: var(--mat-sys-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px; // Prevent text from being too long
+    max-width: 200px;
 
     // Responsive adjustments
     @media (max-width: 768px) {
@@ -122,8 +82,7 @@ mat-form-field {
     flex: 2;
     gap: 20px;
     padding: 0 20px;
-    min-width: 0; // Allow flex item to shrink
-    // Removed flex-direction: column since we only have one navigation row now
+    min-width: 0;
 
     @media (max-width: 768px) {
       padding: 0 16px;
@@ -143,11 +102,11 @@ mat-form-field {
     gap: 10px;
     padding: 15px 20px;
     flex-shrink: 0;
-    min-width: 0; // Allow flex item to shrink
+    min-width: 0;
   }
 
   &__theme-toggle {
-    color: var(--mat-sys-on-surface);
+    // Inherits theme colors
   }
 
   &__auth-buttons {
@@ -162,7 +121,6 @@ mat-form-field {
     gap: 8px;
     padding: 10px 16px;
     border-radius: 6px;
-    font: var(--mat-sys-body-medium, 14px);
     font-weight: 500;
     text-decoration: none;
     transition: all 0.2s ease;
@@ -171,35 +129,18 @@ mat-form-field {
     line-height: 1;
     box-sizing: border-box;
     justify-content: center;
-    border: 1px solid var(--mat-sys-outline-variant, #666666);
-    background-color: var(--mat-sys-surface-container, #2d2d2d);
-    color: var(--mat-sys-on-surface, #ffffff);
 
     &:hover {
-      background-color: var(--mat-sys-surface-container-high, #3d3d3d);
-      border-color: var(--mat-sys-outline, #888888);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     &:active {
       transform: translateY(0);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-      color: var(--mat-sys-on-surface, #ffffff);
-      line-height: 1;
     }
 
     span {
       font-weight: 500;
       white-space: nowrap;
-      color: var(--mat-sys-on-surface, #ffffff);
       line-height: 1;
     }
   }
@@ -210,7 +151,7 @@ mat-form-field {
   display: flex !important;
   align-items: center !important;
   gap: 16px !important;
-  flex-wrap: wrap !important; // Allow wrapping on small screens
+  flex-wrap: wrap !important;
   justify-content: center !important;
   width: 100% !important;
 
@@ -233,9 +174,8 @@ mat-form-field {
     align-items: center !important;
     gap: 16px !important;
     padding-right: 16px !important;
-    border-right: 1px solid var(--mat-sys-outline-variant, #666666) !important;
     flex-wrap: wrap !important;
-    justify-content: center !important; // Center the public navigation
+    justify-content: center !important;
 
     @media (max-width: 768px) {
       gap: 8px !important;
@@ -254,7 +194,7 @@ mat-form-field {
     gap: 16px !important;
     padding-left: 16px !important;
     flex-wrap: wrap !important;
-    justify-content: center !important; // Center the authenticated navigation
+    justify-content: center !important;
 
     @media (max-width: 768px) {
       gap: 8px !important;
@@ -288,14 +228,12 @@ mat-form-field {
     gap: 6px !important;
     padding: 8px 12px !important;
     text-decoration: none !important;
-    color: var(--mat-sys-on-surface, #ffffff) !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
-    font: var(--mat-sys-body-medium, 14px) !important;
     white-space: nowrap !important;
     font-weight: 500 !important;
-    min-width: 0 !important; // Allow flex item to shrink
-    height: 40px !important; // Ensure consistent height for alignment
+    min-width: 0 !important;
+    height: 40px !important;
 
     // Responsive adjustments
     @media (max-width: 768px) {
@@ -310,35 +248,11 @@ mat-form-field {
       height: 32px !important;
     }
 
-    &:hover {
-      background-color: var(--mat-sys-surface-container-low, #2d2d2d) !important;
-      color: var(--mat-sys-primary, #90caf9) !important;
-    }
-
-    mat-icon {
-      font-size: 18px !important;
-      width: 18px !important;
-      height: 18px !important;
-      flex-shrink: 0 !important; // Prevent icon from shrinking
-
-      @media (max-width: 768px) {
-        font-size: 16px !important;
-        width: 16px !important;
-        height: 16px !important;
-      }
-
-      @media (max-width: 480px) {
-        font-size: 14px !important;
-        width: 14px !important;
-        height: 14px !important;
-      }
-    }
-
     span {
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
-      min-width: 0 !important; // Allow text to shrink
+      min-width: 0 !important;
 
       @media (max-width: 768px) {
         font-size: 13px !important;
@@ -360,40 +274,9 @@ mat-form-field {
   &__field {
     width: 100%;
 
-    .mat-form-field-wrapper {
-      background-color: var(--mat-sys-surface-container-low) !important;
-      border-radius: 8px;
-      border: 1px solid var(--mat-sys-outline-variant);
-    }
-
-    .mat-form-field-outline {
-      border: none !important;
-    }
-
     input {
       padding: 8px 12px;
       font-size: 14px;
-      color: var(--mat-sys-on-surface);
-      
-      &::placeholder {
-        color: var(--mat-sys-on-surface-variant);
-      }
-    }
-
-    .mat-form-field-prefix {
-      margin-right: 8px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .mat-form-field-suffix {
-      margin-left: 8px;
-    }
-
-    &:focus-within {
-      .mat-form-field-wrapper {
-        border-color: var(--mat-sys-primary);
-        box-shadow: 0 0 0 2px rgba(var(--mat-sys-primary), 0.1);
-      }
     }
   }
 }
@@ -409,45 +292,11 @@ mat-form-field {
   z-index: 100;
 
   &__trigger {
-    color: var(--mat-sys-on-surface);
-    
-    &:hover {
-      background-color: var(--mat-sys-surface-container-low);
-    }
+    // Inherits theme colors
   }
 
   &__dropdown {
-    .mat-menu-panel {
-      background-color: var(--mat-sys-surface-container);
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.15);
-      width: 350px !important;
-      max-width: 350px !important;
-      overflow-x: hidden !important;
-    }
-
-    .mat-menu-item {
-      color: var(--mat-sys-on-surface);
-      
-      &:hover {
-        background-color: var(--mat-sys-surface-container-low);
-      }
-
-      mat-icon {
-        color: var(--mat-sys-on-surface-variant);
-        margin-right: 12px;
-      }
-
-      span {
-        font-weight: 500;
-      }
-    }
-
-    .mat-divider {
-      border-color: var(--mat-sys-outline-variant);
-      margin: 8px 0;
-    }
+    // Handled by theme
   }
 
   &__section {
@@ -462,18 +311,8 @@ mat-form-field {
     border-radius: 8px;
     cursor: pointer;
 
-    &:hover {
-      background-color: var(--mat-sys-surface-container-low);
-    }
-
-    mat-icon {
-      font-size: 24px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-
     span {
       font-weight: 500;
-      color: var(--mat-sys-on-surface);
     }
   }
 
@@ -483,10 +322,8 @@ mat-form-field {
     gap: 12px !important;
     padding: 8px 12px !important;
     text-decoration: none !important;
-    color: var(--mat-sys-on-surface, #ffffff) !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
-    font: var(--mat-sys-body-medium, 14px) !important;
     cursor: pointer !important;
     border: none !important;
     background: transparent !important;
@@ -494,30 +331,16 @@ mat-form-field {
     text-align: left !important;
 
     &:hover {
-      background-color: var(--mat-sys-surface-container-low, #2d2d2d) !important;
-      color: var(--mat-sys-primary, #90caf9) !important;
       transform: translateX(4px) !important;
     }
 
     &:active {
-      background-color: var(--mat-sys-surface-container, #1e1e1e) !important;
       transform: translateX(2px) !important;
-    }
-
-    mat-icon {
-      font-size: 18px !important;
-      color: var(--mat-sys-on-surface-variant, #cccccc) !important;
-      transition: color 0.2s ease !important;
     }
 
     span {
       font-weight: 500 !important;
       transition: color 0.2s ease !important;
-    }
-
-    &:hover mat-icon,
-    &:hover span {
-      color: var(--mat-sys-primary, #90caf9) !important;
     }
   }
 }
@@ -528,10 +351,7 @@ mat-form-field {
   right: -250px;
   width: 250px;
   height: 100%;
-  background-color: var(--mat-sys-surface-container-highest);
-  color: var(--mat-sys-on-surface);
   padding-top: 60px;
-  box-shadow: -2px 0 5px rgba(var(--mat-sys-shadow), 0.3);
   transition: right 0.3s ease-in-out;
   z-index: 1000;
 
@@ -549,14 +369,7 @@ mat-form-field {
         display: block;
         padding: 15px 20px;
         text-decoration: none;
-        color: var(--mat-sys-on-surface);
-        border-bottom: 1px solid var(--mat-sys-outline-variant);
         transition: background-color 0.2s ease;
-        font: var(--mat-sys-body-large);
-
-        &:hover {
-          background-color: var(--mat-sys-surface-container-low);
-        }
       }
     }
   }
@@ -581,9 +394,6 @@ mat-form-field {
   transform: translate(-50%, -50%);
   z-index: 9999;
   margin: 0;
-  background-color: var(--mat-sys-surface-container, #2d2d2d);
-  border: 1px solid var(--mat-sys-outline-variant, #666666);
-  box-shadow: 0 8px 24px rgba(var(--mat-sys-shadow, 0, 0, 0), 0.15);
   min-width: 400px;
   max-width: 500px;
   max-height: 90vh;
@@ -597,21 +407,18 @@ mat-form-field {
   bottom: 0;
   left: 0;
   right: 0;
-  height:55px;
-  text-align: center;;
-  
-  background-color: var(--mat-sys-surface-container-high);
-  color: var(--mat-sys-on-surface-variant);
+  height: 55px;
+  text-align: center;
+
   p {
     margin: 8px 0;
     font-size: 9px;
     line-height: 1.5;
   }
-  
+
   a {
-    color: var(--mat-sys-primary);
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: underline;
     }
@@ -632,23 +439,8 @@ mat-form-field {
     }
   }
 
-  // Remove the rule that hides main nav on mobile
-  // .nom-main-nav {
-  //   display: none; // Hide main nav on mobile, use user menu instead
-  // }
-
   .nom-search {
-    width: 200px; // Smaller search on mobile
-  }
-
-  .nom-user-menu {
-    &__dropdown {
-      .mat-menu-panel {
-        width: 300px !important;
-        max-width: 300px !important;
-        overflow-x: hidden !important;
-      }
-    }
+    width: 200px;
   }
 }
 
@@ -669,15 +461,5 @@ mat-form-field {
     padding-top: 0;
     box-shadow: none;
     flex-shrink: 0;
-  }
-
-  .nom-user-menu {
-    &__dropdown {
-      .mat-menu-panel {
-        width: 350px !important;
-        max-width: 350px !important;
-        overflow-x: hidden !important;
-      }
-    }
   }
 }

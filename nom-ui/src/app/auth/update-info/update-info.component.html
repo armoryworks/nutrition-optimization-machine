@@ -6,18 +6,18 @@
     <ng-template #contentTemplate>
       <!-- Initial Loading State -->
       @if (isInitialLoading()) {
-        <mat-progress-bar
+        <amw-progress-bar
           mode="indeterminate"
           color="accent"
           class="nom-card__progress-bar">
-        </mat-progress-bar>
+        </amw-progress-bar>
       } @else if (isLoading()) {
         <!-- Form Submission Loading State -->
-        <mat-progress-bar
+        <amw-progress-bar
           mode="indeterminate"
           color="primary"
           class="nom-card__progress-bar">
-        </mat-progress-bar>
+        </amw-progress-bar>
       }
 
       @if (!isInitialLoading()) {

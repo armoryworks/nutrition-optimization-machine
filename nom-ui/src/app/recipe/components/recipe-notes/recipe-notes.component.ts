@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
@@ -25,7 +25,7 @@ import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
 export class RecipeNotesComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
 
     notes = signal<RecipeNoteResponseModel[]>([]);
     isLoading = signal(false);
@@ -93,7 +93,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 next: (note) => {
                     this.notes.set([note, ...this.notes()]);
                     this.noteForm.reset();
-                    this.snackBar.open("Note added successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Note added successfully");
                     this.isSubmitting = false;
                 },
                 error: (error) => {
@@ -145,7 +145,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                     }
                     this.editingNoteId = null;
                     this.noteForm.reset();
-                    this.snackBar.open("Note updated successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Note updated successfully");
                     this.isSubmitting = false;
                 },
                 error: (error) => {
@@ -163,11 +163,11 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.notes.set(this.notes().filter(n => n.id !== noteId));
-                    this.snackBar.open("Note deleted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Note deleted successfully");
                 },
                 error: (error) => {
                     console.error("Error deleting note:", error);
-                    this.snackBar.open("Failed to delete note", "Close", { duration: 3000 });
+                    this.notificationService.error("Failed to delete note");
                 },
             });
     }

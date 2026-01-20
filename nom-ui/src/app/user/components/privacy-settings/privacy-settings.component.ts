@@ -3,7 +3,6 @@
 import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
 
@@ -17,7 +16,6 @@ import { UpdateConsentRequest } from '../../../privacy/models/update-consent.req
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwButtonComponent,
     AmwCardComponent,
     AmwToggleComponent,

@@ -166,9 +166,11 @@
                     </div>
                     <div class="household-detail__member-actions">
                       @if (member.role) {
-                        <mat-chip color="primary" class="household-detail__member-role">
-                          {{ member.role }}
-                        </mat-chip>
+                        <amw-chip
+                          [label]="member.role"
+                          color="primary"
+                          chipClass="household-detail__member-role">
+                        </amw-chip>
                       }
                       <amw-button
                         variant="icon"

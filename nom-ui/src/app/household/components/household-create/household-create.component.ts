@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
 
@@ -28,7 +28,7 @@ export class HouseholdCreateComponent implements OnInit {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private householdService = inject(HouseholdService);
     private router = inject(Router);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private userInfoService = inject(UserInfoService);
 
     householdForm: FormGroup = this.nonNullableFb.group({
@@ -68,21 +68,13 @@ export class HouseholdCreateComponent implements OnInit {
             this.householdService.createHousehold(createRequest).subscribe({
                 next: (response) => {
                     this.isLoading.set(false);
-                    this.snackBar.open('Household created successfully!', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.success('Household created successfully!');
                     this.router.navigate(['/household', response.id]);
                 },
                 error: (error) => {
                     this.isLoading.set(false);
                     console.error('Error creating household:', error);
-                    this.snackBar.open('Failed to create household. Please try again.', 'Close', {
-                        duration: 5000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.error('Failed to create household. Please try again.');
                 }
             });
         }

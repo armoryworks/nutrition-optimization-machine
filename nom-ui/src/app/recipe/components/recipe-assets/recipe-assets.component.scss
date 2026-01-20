@@ -6,9 +6,7 @@
   }
 
   &__upload-card {
-    background: var(--mat-card-background-color);
     border-radius: 12px;
-    box-shadow: var(--mat-card-elevation-shadow);
   }
 
   &__form {
@@ -63,16 +61,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border: 2px dashed var(--mat-button-outlined-outline-color);
     border-radius: 8px;
-    background: var(--mat-button-outlined-background-color);
-    color: var(--mat-button-outlined-foreground-color);
-    transition: all 0.2s ease;
-
-    &:hover {
-      border-color: var(--mat-button-outlined-outline-color-hover);
-      background: var(--mat-button-outlined-background-color-hover);
-    }
   }
 
   &__file-info {
@@ -80,14 +69,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: var(--mat-chip-background-color);
     border-radius: 6px;
     font-size: 0.875rem;
-  }
-
-  &__file-size {
-    color: var(--mat-chip-foreground-color);
-    opacity: 0.7;
   }
 
   &__form-actions {
@@ -109,8 +92,6 @@
   &__section-title {
     margin: 0;
     font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--mat-card-title-text-color);
   }
 
   &__loading {
@@ -119,7 +100,6 @@
     align-items: center;
     gap: 1rem;
     padding: 2rem;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__empty {
@@ -129,7 +109,6 @@
     gap: 1rem;
     padding: 3rem 1rem;
     text-align: center;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__empty-icon {
@@ -140,17 +119,8 @@
   }
 
   &__list {
-    background: var(--mat-card-background-color);
     border-radius: 8px;
     overflow: hidden;
-  }
-
-  &__list-item {
-    border-bottom: 1px solid var(--mat-divider-color);
-
-    &:last-child {
-      border-bottom: none;
-    }
   }
 
   &__item-icon {
@@ -160,13 +130,10 @@
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    background: var(--mat-chip-background-color);
-    color: var(--mat-chip-foreground-color);
   }
 
   &__item-title {
     font-weight: 500;
-    color: var(--mat-card-title-text-color);
   }
 
   &__item-meta {
@@ -175,36 +142,18 @@
     gap: 0.5rem;
     margin-top: 0.25rem;
     font-size: 0.875rem;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__item-description {
     font-style: italic;
   }
 
-  &__item-size {
-    opacity: 0.7;
-  }
-
-  &__item-date {
-    opacity: 0.7;
-  }
-
   &__item-actions {
     display: flex;
     gap: 0.25rem;
   }
-
-  &__download-btn {
-    color: var(--mat-primary-color);
-  }
-
-  &__delete-btn {
-    color: var(--mat-warn-color);
-  }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .recipe-assets {
     &__form-row {
@@ -222,29 +171,3 @@
     }
   }
 }
-
-// Dark theme adjustments
-@media (prefers-color-scheme: dark) {
-  .recipe-assets {
-    &__file-button {
-      border-color: var(--mat-button-outlined-outline-color-dark);
-      background: var(--mat-button-outlined-background-color-dark);
-      color: var(--mat-button-outlined-foreground-color-dark);
-
-      &:hover {
-        border-color: var(--mat-button-outlined-outline-color-hover-dark);
-        background: var(--mat-button-outlined-background-color-hover-dark);
-      }
-    }
-
-    &__file-info {
-      background: var(--mat-chip-background-color-dark);
-      color: var(--mat-chip-foreground-color-dark);
-    }
-
-    &__item-icon {
-      background: var(--mat-chip-background-color-dark);
-      color: var(--mat-chip-foreground-color-dark);
-    }
-  }
-} 

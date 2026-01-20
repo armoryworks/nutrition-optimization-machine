@@ -5,11 +5,11 @@
     class="nom-card">
     <ng-template #contentTemplate>
       @if (isLoading()) {
-      <mat-progress-bar
+      <amw-progress-bar
         mode="indeterminate"
         color="primary"
         class="nom-card__progress-bar"
-      ></mat-progress-bar>
+      ></amw-progress-bar>
       }
 
       @if (!isLoading() && error() && !submitMessage()) {
@@ -34,28 +34,18 @@
             class="nom-form__field">
           </amw-input>
           } @case ('YesNo') {
-          <mat-radio-group
-            aria-label="Select an option"
+          <amw-radio-group
             formControlName="answer"
-            class="nom-horizontal-group flex-wrap justify-center my-4"
-            (change)="onAnswerChange($event.value)"
-          >
-            <mat-radio-button
-              [value]="'true'"
-              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
-              >Yes</mat-radio-button
-            >
-            <mat-radio-button
-              [value]="'false'"
-              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
-              >No</mat-radio-button
-            >
-          </mat-radio-group>
+            [options]="getYesNoOptions()"
+            orientation="horizontal"
+            (selectionChange)="onAnswerChange($event.value)"
+            class="nom-horizontal-group flex-wrap justify-center my-4">
+          </amw-radio-group>
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <mat-error class="nom-form__error text-center">
+          <p class="nom-form__error text-center">
             This field is required.
-          </mat-error>
+          </p>
           } } @case ('MultiSelect') {
           <div class="my-4 grid grid-cols-2 gap-4">
             @if (currentQuestion.options; as options) { @for (option of options;
@@ -81,35 +71,28 @@
           </div>
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <mat-error class="nom-form__error text-center">
+          <p class="nom-form__error text-center">
             Please select at least one option.
-          </mat-error>
+          </p>
           } } @case ('SingleSelect') {
-          <mat-radio-group
-            aria-label="Select an option"
+          @if (currentQuestion.options && currentQuestion.options.length > 0) {
+          <amw-radio-group
             formControlName="answer"
-            class="nom-horizontal-group flex-wrap justify-center my-4"
-            (change)="onAnswerChange($event.value)"
-          >
-            @if (currentQuestion.options; as options) { @for (option of options;
-            track option) {
-            <mat-radio-button
-              [value]="option"
-              class="m-2 p-3 bg-gray-100 rounded-md hover:bg-gray-200"
-            >
-              {{ option }}
-            </mat-radio-button>
-            } } @else {
-            <p class="nom-message-text text-red-500">
-              No options available for this single-select question.
-            </p>
-            }
-          </mat-radio-group>
+            [options]="getSingleSelectOptions()"
+            orientation="horizontal"
+            (selectionChange)="onAnswerChange($event.value)"
+            class="nom-horizontal-group flex-wrap justify-center my-4">
+          </amw-radio-group>
+          } @else {
+          <p class="nom-message-text text-red-500">
+            No options available for this single-select question.
+          </p>
+          }
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <mat-error class="nom-form__error text-center">
+          <p class="nom-form__error text-center">
             Please select an option.
-          </mat-error>
+          </p>
           } } @default {
           <p class="nom-message-text text-red-500">
             Unsupported answer type: {{ currentQuestion.answerType }}

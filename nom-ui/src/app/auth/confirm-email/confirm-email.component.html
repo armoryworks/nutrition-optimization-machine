@@ -5,11 +5,11 @@
     <ng-template #contentTemplate>
       <div class="text-center">
         @if (isLoading()) {
-          <mat-progress-bar
+          <amw-progress-bar
             mode="indeterminate"
             color="primary"
             class="nom-card__progress-bar">
-          </mat-progress-bar>
+          </amw-progress-bar>
           <div class="status-message loading">
             <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
             <p>{{ confirmationMessage }}</p>

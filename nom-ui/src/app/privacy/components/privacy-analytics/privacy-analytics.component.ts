@@ -1,10 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn } from 'angular-material-wrap';
+
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { PrivacyAnalyticsService } from '../../services/privacy-analytics.service';
@@ -15,14 +12,12 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
     selector: 'nom-privacy-analytics',
     standalone: true,
     imports: [
-        MatTableModule,
-        MatPaginatorModule,
-        MatSortModule,
-        MatChipsModule,
         AmwButtonComponent,
         AmwCardComponent,
         AmwTooltipDirective,
         AmwIconComponent,
+        AmwChipComponent,
+        AmwDataTableComponent,
         BasePageComponent,
     ],
     templateUrl: './privacy-analytics.component.html',
@@ -30,7 +25,7 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
 })
 export class PrivacyAnalyticsComponent implements OnInit {
     private privacyAnalyticsService = inject(PrivacyAnalyticsService);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
 
     analytics: PrivacyAnalyticsModel | null = null;
     processingLogs: DataProcessingLogModel[] = [];
@@ -45,7 +40,19 @@ export class PrivacyAnalyticsComponent implements OnInit {
         maxWidth: 'none'
     };
 
-    displayedColumns: string[] = ['timestamp', 'actionType', 'actorId', 'ipAddress', 'details'];
+    tableConfig: DataTableConfig = {
+        enableSearch: false,
+        enablePagination: true,
+        pageSize: 10
+    };
+
+    tableColumns: DataTableColumn[] = [
+        { key: 'timestamp', label: 'Timestamp', sortable: true },
+        { key: 'actionType', label: 'Action', sortable: true },
+        { key: 'actorId', label: 'Actor', sortable: true },
+        { key: 'ipAddress', label: 'IP Address' },
+        { key: 'details', label: 'Details' }
+    ];
 
 
 
@@ -66,7 +73,7 @@ export class PrivacyAnalyticsComponent implements OnInit {
                 console.error('Error loading privacy analytics:', error);
                 this.error = 'Failed to load privacy analytics';
                 this.isLoading = false;
-                this.snackBar.open('Failed to load privacy analytics', 'Close', { duration: 3000 });
+                this.notificationService.error('Failed to load privacy analytics');
             }
         });
 
@@ -165,12 +172,12 @@ export class PrivacyAnalyticsComponent implements OnInit {
     onGenerateComplianceReport(): void {
         this.privacyAnalyticsService.generateComplianceReport().subscribe({
             next: () => {
-                this.snackBar.open('Compliance report generated successfully', 'Close', { duration: 3000 });
+                this.notificationService.success('Compliance report generated successfully');
                 // Handle report download or display
             },
             error: (error) => {
                 console.error('Error generating compliance report:', error);
-                this.snackBar.open('Failed to generate compliance report', 'Close', { duration: 3000 });
+                this.notificationService.error('Failed to generate compliance report');
             }
         });
     }
@@ -185,11 +192,11 @@ export class PrivacyAnalyticsComponent implements OnInit {
                 link.download = 'privacy-analytics.json';
                 link.click();
                 window.URL.revokeObjectURL(url);
-                this.snackBar.open('Analytics exported successfully', 'Close', { duration: 3000 });
+                this.notificationService.success('Analytics exported successfully');
             },
             error: (error) => {
                 console.error('Error exporting analytics:', error);
-                this.snackBar.open('Failed to export analytics', 'Close', { duration: 3000 });
+                this.notificationService.error('Failed to export analytics');
             }
         });
     }

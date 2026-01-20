@@ -1,9 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatChipsModule } from '@angular/material/chips';
-
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
@@ -13,10 +11,10 @@ import { NotificationService } from '../../../utilities/services/notification.se
     selector: 'nom-household-detail',
     standalone: true,
     imports: [
-        MatChipsModule,
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
+        AmwChipComponent,
         AmwProgressSpinnerComponent,
         AmwMenuComponent,
         AmwMenuItemComponent,

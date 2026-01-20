@@ -5,7 +5,7 @@
     class="nom-card">
     <ng-template #contentTemplate>
       @if (isLoading() || isSubmitting()) {
-      <mat-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></mat-progress-bar>
+      <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
       } @if (error() && !submitMessage()) {
       <div class="nom-card__content">
         <div class="nom-form__error form-level-error nom-message-text mb-4">

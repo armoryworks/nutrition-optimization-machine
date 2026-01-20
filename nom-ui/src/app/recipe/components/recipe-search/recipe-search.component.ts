@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
 
 import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
@@ -11,7 +10,6 @@ import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatIconModule,
     AmwButtonComponent,
     AmwCardComponent
   ],

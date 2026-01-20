@@ -1,11 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { RecipeFormComponent } from './recipe-form.component';
 import { RecipeReferenceService } from '../../services/recipe-reference.service';
 import { of } from 'rxjs';
@@ -51,17 +46,12 @@ describe('RecipeFormComponent', () => {
         ]);
 
         await TestBed.configureTestingModule({
-            declarations: [RecipeFormComponent],
             imports: [
-                ReactiveFormsModule,
-                MatFormFieldModule,
-                MatSelectModule,
-                MatInputModule,
-                MatButtonModule,
-                MatIconModule,
-                BrowserAnimationsModule
+                RecipeFormComponent,
+                ReactiveFormsModule
             ],
             providers: [
+                provideAnimations(),
                 FormBuilder,
                 { provide: RecipeReferenceService, useValue: mockRecipeReferenceService }
             ]

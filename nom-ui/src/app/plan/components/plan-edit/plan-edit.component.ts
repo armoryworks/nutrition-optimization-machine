@@ -10,8 +10,10 @@ import {
 import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwTextareaComponent } from 'angular-material-wrap';
 
 import { PersonModel } from '../../../person/models/person.model';
-import { PlanModel, RestrictionModel } from '../../models/plan.model';
-import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum'; // Import RestrictionTypeEnum
+import { PlanModel } from '../../models/plan.model';
+import { RestrictionModel } from '../../../restriction/models/restriction.model';
+import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type.enum';
+import { RestrictionEditComponent } from '../../../restriction/components/restriction-edit/restriction-edit.component';
 
 @Component({
   selector: 'nom-plan-edit',
@@ -22,6 +24,7 @@ import { RestrictionTypeEnum } from '../../../restriction/enums/restriction-type
     AmwCardComponent,
     AmwInputComponent,
     AmwTextareaComponent,
+    RestrictionEditComponent,
   ],
   templateUrl: './plan-edit.component.html',
   styleUrls: ['./plan-edit.component.scss'],
@@ -102,7 +105,7 @@ export class PlanEditComponent implements OnInit {
     // This logic needs to manage adding/updating the single restriction in the temporary list
     const index = this.tempRestrictions.findIndex(
       (r) =>
-        r.restrictionType === restriction.restrictionType &&
+        r.restrictionTypeId === restriction.restrictionTypeId &&
         r.name === restriction.name
     );
 
@@ -140,9 +143,9 @@ export class PlanEditComponent implements OnInit {
     if (this.currentRestrictionType === undefined) {
       return [];
     }
-    // Filter for current type
+    // Filter for current type using restrictionTypeId (enum value)
     return this.tempRestrictions.filter(
-      (r) => r.restrictionType === this.getRestrictionTypeName(this.currentRestrictionType!)
+      (r) => r.restrictionTypeId === this.currentRestrictionType
     );
   }
 }

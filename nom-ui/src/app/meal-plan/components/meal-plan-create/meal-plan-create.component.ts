@@ -2,9 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwButtonComponent, AmwDatepickerComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwButtonComponent, AmwDatepickerComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanCreateRequestModel } from '../../models/meal-plan-create-request.model';
@@ -15,7 +13,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
+    AmwProgressBarComponent,
     AmwInputComponent,
     AmwSelectComponent,
     AmwTextareaComponent,

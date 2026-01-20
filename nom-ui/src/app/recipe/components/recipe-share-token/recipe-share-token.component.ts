@@ -1,12 +1,10 @@
 import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDividerComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
@@ -18,14 +16,14 @@ import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.m
         NgFor,
         NgIf,
         ReactiveFormsModule,
-        MatChipsModule,
-        MatDividerModule,
         AmwButtonComponent,
         AmwInputComponent,
         AmwSelectComponent,
         AmwIconButtonComponent,
         AmwTooltipDirective,
         AmwIconComponent,
+        AmwChipComponent,
+        AmwDividerComponent,
     ],
     templateUrl: './recipe-share-token.component.html',
     styleUrls: ['./recipe-share-token.component.scss']
@@ -33,7 +31,7 @@ import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.m
 export class RecipeShareTokenComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private destroy$ = new Subject<void>();
 
     recipeId = input<number>();
@@ -104,7 +102,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
                 next: (shareToken) => {
                     this.shareTokens.set([shareToken, ...this.shareTokens()]);
                     this.shareTokenForm.reset();
-                    this.snackBar.open("Share token created successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Share token created successfully");
                     this.isSubmitting.set(false);
                 },
                 error: (error) => {
@@ -122,18 +120,18 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.shareTokens.set(this.shareTokens().filter(t => t.id !== shareTokenId));
-                    this.snackBar.open("Share token deleted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Share token deleted successfully");
                 },
                 error: (error) => {
                     console.error("Error deleting share token:", error);
-                    this.snackBar.open("Failed to delete share token", "Close", { duration: 3000 });
+                    this.notificationService.error("Failed to delete share token");
                 },
             });
     }
 
     copyShareToken(shareToken: string): void {
         navigator.clipboard.writeText(this.getShareUrl(shareToken)).then(() => {
-            this.snackBar.open("Share URL copied to clipboard", "Close", { duration: 3000 });
+            this.notificationService.success("Share URL copied to clipboard");
         });
     }
 

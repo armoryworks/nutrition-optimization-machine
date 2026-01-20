@@ -2,8 +2,6 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
 import {
   AmwInputComponent,
   AmwSelectComponent,
@@ -13,7 +11,8 @@ import {
   AmwDatepickerComponent,
   AmwCardComponent,
   AmwIconComponent,
-  DialogService
+  DialogService,
+  AmwProgressBarComponent
 } from 'angular-material-wrap';
 
 import { MealPlanReferenceService } from '../../services/meal-plan-reference.service';
@@ -25,7 +24,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
+    AmwProgressBarComponent,
     AmwInputComponent,
     AmwSelectComponent,
     AmwTextareaComponent,

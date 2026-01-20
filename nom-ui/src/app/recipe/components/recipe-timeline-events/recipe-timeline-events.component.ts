@@ -1,10 +1,9 @@
 import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwDividerComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
@@ -16,7 +15,6 @@ import { BaseDetailComponent } from '../../../common/components/base-detail/base
     standalone: true,
     imports: [
         ReactiveFormsModule,
-        MatDividerModule,
         AmwButtonComponent,
         AmwInputComponent,
         AmwSelectComponent,
@@ -25,6 +23,7 @@ import { BaseDetailComponent } from '../../../common/components/base-detail/base
         AmwIconButtonComponent,
         AmwTooltipDirective,
         AmwIconComponent,
+        AmwDividerComponent,
         BaseDetailComponent,
     ],
     templateUrl: './recipe-timeline-events.component.html',
@@ -34,7 +33,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private recipeAdvancedService = inject(RecipeAdvancedService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private destroy$ = new Subject<void>();
 
     recipeId = input.required<number>();
@@ -119,7 +118,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 next: (timelineEvent) => {
                     this.timelineEvents.set([timelineEvent, ...this.timelineEvents()]);
                     this.timelineEventForm.reset();
-                    this.snackBar.open("Timeline event added successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Timeline event added successfully");
                     this.isSubmitting.set(false);
                 },
                 error: (error) => {
@@ -137,11 +136,11 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.timelineEvents.set(this.timelineEvents().filter(e => e.id !== eventId));
-                    this.snackBar.open("Timeline event deleted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Timeline event deleted successfully");
                 },
                 error: (error) => {
                     console.error("Error deleting timeline event:", error);
-                    this.snackBar.open("Failed to delete timeline event", "Close", { duration: 3000 });
+                    this.notificationService.error("Failed to delete timeline event");
                 },
             });
     }

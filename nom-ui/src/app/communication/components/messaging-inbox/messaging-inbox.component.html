@@ -80,9 +80,10 @@
                   >
                   <div class="messaging-inbox__thread-avatar">
                     <div class="messaging-inbox__avatar"
-                      [matBadge]="hasUnreadMessages(thread) ? thread.unreadCount : null"
-                      matBadgeColor="accent"
-                      matBadgeSize="small">
+                      [amwBadge]="thread.unreadCount || 0"
+                      amwBadgeColor="accent"
+                      amwBadgeSize="small"
+                      [amwBadgeHidden]="!hasUnreadMessages(thread)">
                       <amw-icon name="person"></amw-icon>
                     </div>
                   </div>

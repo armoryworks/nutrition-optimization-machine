@@ -2,8 +2,7 @@
 
 import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+import { AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 import { Subject, of, catchError, takeUntil, finalize } from 'rxjs';
 
 import { RecipeService } from '../../services/recipe.service';
@@ -22,10 +21,10 @@ interface AutocompleteOption {
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwAutocompleteComponent,
     AmwCardComponent,
     AmwIconComponent,
+    AmwProgressBarComponent,
     IngredientDetailsComponent,
   ],
   templateUrl: './ingredient-search.component.html',

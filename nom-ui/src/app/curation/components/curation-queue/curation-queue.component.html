@@ -108,23 +108,17 @@
             <!-- Recipe Details Section -->
             @if (selectedItem()!.entityType === 'Recipe') {
             <div class="recipe-details">
-              <mat-accordion>
+              <amw-accordion>
                 <!-- General Information -->
                 @if (selectedItem()!.description) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Description</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Description">
                   <p class="detail-value">{{ selectedItem()!.description }}</p>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
 
                 <!-- Ingredients Section -->
                 @if (selectedItem()!.rawIngredientsString) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Ingredients</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Ingredients">
                   <div class="ingredients-list">
                     @for (ingredient of parseIngredients(selectedItem()!.rawIngredientsString); track ingredient.name) {
                     <div class="ingredient-item">
@@ -133,14 +127,11 @@
                     </div>
                     }
                   </div>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
 
                 <!-- Instructions Section -->
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Instructions</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Instructions">
                   <div class="instructions-list">
                     @for (instruction of getRecipeSteps(selectedItem()!); track $index) {
                     <div class="instruction-item">
@@ -149,76 +140,61 @@
                     </div>
                     }
                   </div>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
 
                 <!-- Additional Information -->
                 @if (selectedItem()!.sourceUrl) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Source</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Source">
                   <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
                     {{ selectedItem()!.sourceUrl }}
                   </a>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
 
                 <!-- No Details Available -->
                 @if (!selectedItem()!.description && !selectedItem()!.rawIngredientsString && !selectedItem()!.instructions &&
                 !selectedItem()!.sourceUrl) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Additional Information</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Additional Information">
                   <div class="no-details__content">
                     <amw-icon name="info" class="no-details__icon"></amw-icon>
                     <h3 class="no-details__title">No Additional Details</h3>
                     <p class="no-details__text">This recipe only contains basic information. Consider requesting more
                       details from the author.</p>
                   </div>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
-              </mat-accordion>
+              </amw-accordion>
             </div>
             }
 
             <!-- Ingredient Details Section -->
             @if (selectedItem()!.entityType === 'Ingredient') {
             <div class="ingredient-details">
-              <mat-accordion>
+              <amw-accordion>
                 @if (selectedItem()!.description) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Description</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Description">
                   <p class="detail-value">{{ selectedItem()!.description }}</p>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
 
                 @if (selectedItem()!.sourceUrl) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Source</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Source">
                   <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
                     {{ selectedItem()!.sourceUrl }}
                   </a>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
 
                 @if (!selectedItem()!.description && !selectedItem()!.sourceUrl) {
-                <mat-expansion-panel>
-                  <mat-expansion-panel-header>
-                    <mat-panel-title>Additional Information</mat-panel-title>
-                  </mat-expansion-panel-header>
+                <amw-accordion-panel amwTitle="Additional Information">
                   <div class="no-details__content">
                     <amw-icon name="info" class="no-details__icon"></amw-icon>
                     <h3 class="no-details__title">No Additional Details</h3>
                     <p class="no-details__text">This ingredient only contains basic information.</p>
                   </div>
-                </mat-expansion-panel>
+                </amw-accordion-panel>
                 }
-              </mat-accordion>
+              </amw-accordion>
             </div>
             }
 

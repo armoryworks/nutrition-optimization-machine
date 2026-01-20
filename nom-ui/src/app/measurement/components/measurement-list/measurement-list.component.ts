@@ -1,8 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { MatTableModule } from '@angular/material/table';
 import { ReactiveFormsModule } from '@angular/forms';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn } from 'angular-material-wrap';
 
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementModel } from '../../models/measurement.model';
@@ -11,13 +10,13 @@ import { MeasurementModel } from '../../models/measurement.model';
     selector: 'app-measurement-list',
     standalone: true,
     imports: [
-        MatTableModule,
         ReactiveFormsModule,
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconButtonComponent,
         AmwIconComponent,
         AmwProgressSpinnerComponent,
+        AmwDataTableComponent,
     ],
     templateUrl: './measurement-list.component.html',
     styleUrl: './measurement-list.component.scss'
@@ -28,7 +27,20 @@ export class MeasurementListComponent implements OnInit {
     measurements = signal<MeasurementModel[]>([]);
     isLoading = signal(false);
     error = signal<string | null>(null);
-    displayedColumns: string[] = ['name', 'abbreviation', 'type', 'conversionFactor', 'actions'];
+
+    tableConfig: DataTableConfig = {
+        enableSearch: true,
+        enablePagination: true,
+        enableSorting: true,
+        pageSize: 10
+    };
+
+    tableColumns: DataTableColumn[] = [
+        { key: 'name', label: 'Name', sortable: true },
+        { key: 'abbreviation', label: 'Abbreviation', sortable: true },
+        { key: 'measurementType', label: 'Type', sortable: true },
+        { key: 'conversionFactor', label: 'Conversion Factor', sortable: true }
+    ];
 
     ngOnInit(): void {
         this.loadMeasurements();

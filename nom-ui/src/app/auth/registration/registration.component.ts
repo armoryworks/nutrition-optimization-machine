@@ -11,10 +11,7 @@ import {
 // RouterLink is kept in imports if needed by the HTML template, but not for direct TS logic.
 import { Router } from '@angular/router'; // Kept Router import if it's used elsewhere in the component beyond navigation
 
-// Angular Material Imports
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { RegisterUser } from '../models/register-user';
@@ -26,10 +23,10 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressBarComponent
 ],
   templateUrl: './registration.component.html',
   styleUrls: ['./registration.component.scss'], // Assuming .scss

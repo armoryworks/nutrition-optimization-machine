@@ -1,115 +1,73 @@
 @use '../../../variables' as vars;
 
 .two-factor {
-  // All core layout, typography, and color styling for generic elements are now managed by .nom- classes from system.scss.
-  // This component's SCSS primarily handles specific overrides or unique child elements.
-
   &__toggle-section {
-    // Inherits .nom-section for display: flex, flex-direction: column, gap
-    margin-bottom: 20px; // Retaining specific margin
+    margin-bottom: 20px;
   }
 
   &__toggle {
-    width: 100%; // Specific width for toggle
-    margin-bottom: 10px; // Specific margin for toggle
-    font: var(--mat-sys-body-large); // Apply body-large typography
-    color: var(--mat-sys-on-surface); // Text color for toggle
+    width: 100%;
+    margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
 
-    @media (max-width: 360px) {
-      font-size: var(
-        --mat-sys-body-small-size
-      ); // Smaller font for toggle on small screens
-    }
-
     @media (min-width: vars.$breakpoint-mobile) {
-      font-size: var(
-        --mat-sys-headline-small-size
-      ); // Larger font for toggle on desktop
       margin-bottom: 10px;
     }
   }
 
   &__setup-section {
-    // Inherits .nom-section
-    margin-top: 20px; // Retaining specific margin
-    margin-bottom: 20px; // Retaining specific margin
+    margin-top: 20px;
+    margin-bottom: 20px;
 
     @media (min-width: vars.$breakpoint-mobile) {
-      margin-top: 30px; // Desktop margin
-      margin-bottom: 30px; // Desktop margin
+      margin-top: 30px;
+      margin-bottom: 30px;
     }
   }
 
   &__qr-code-placeholder {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px; // Retaining specific margin
-
-    @media (min-width: vars.$breakpoint-mobile) {
-      // Desktop adjustments to this element might be handled by .nom-horizontal-group direct children
-    }
+    margin-bottom: 20px;
   }
 
   &__shared-key-details {
-    // Inherits .nom-section for display: flex, flex-direction: column, gap
-    margin-top: 15px; // Retaining specific margin
-    text-align: center; // Mobile text align
+    margin-top: 15px;
+    text-align: center;
 
     @media (min-width: vars.$breakpoint-mobile) {
-      flex-grow: 1; // Allow details to take remaining space
-      margin-top: 0; // Reset mobile margin
-      text-align: left; // Align left on desktop
+      flex-grow: 1;
+      margin-top: 0;
+      text-align: left;
     }
   }
 
   &__copy-button {
-    margin-left: 10px; // Specific margin for copy button
-    flex-shrink: 0; // Prevent shrinking
-    color: var(--mat-sys-on-surface); // Icon color
+    margin-left: 10px;
+    flex-shrink: 0;
   }
 
   &__option-checkbox {
-    width: 100%; // Specific width for checkbox
-    margin-bottom: 10px; // Specific margin for checkbox
-    font: var(--mat-sys-body-medium); // Apply body-medium typography
-    color: var(--mat-sys-on-surface);
-
-    @media (max-width: 360px) {
-      font-size: var(
-        --mat-sys-body-small-size
-      ); // Smaller font for checkbox on small screens
-    }
-
-    @media (min-width: vars.$breakpoint-mobile) {
-      font-size: var(
-        --mat-sys-body-large-size
-      ); // Larger font for checkbox on desktop
-    }
+    width: 100%;
+    margin-bottom: 10px;
   }
 
   &__copy-codes-button {
-    margin-top: 15px; // Specific margin for copy codes button from codes
-    // Material accent button will handle its own color
-    mat-icon {
-      font-size: var(
-        --mat-sys-body-large-size
-      ); // Match icon size to body-large
-      height: var(--mat-sys-body-large-size);
-      width: var(--mat-sys-body-large-size);
+    margin-top: 15px;
+
+    amw-icon {
       margin-right: 5px;
     }
   }
 
   &__options-section {
-    // Inherits .nom-section
-    margin-top: 20px; // Retaining specific margin
-    margin-bottom: 20px; // Retaining specific margin
+    margin-top: 20px;
+    margin-bottom: 20px;
 
     @media (min-width: vars.$breakpoint-mobile) {
-      margin-top: 30px; // Desktop margin
-      margin-bottom: 20px; // Desktop margin
+      margin-top: 30px;
+      margin-bottom: 20px;
     }
   }
 }

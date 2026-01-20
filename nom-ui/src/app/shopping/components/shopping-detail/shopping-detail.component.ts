@@ -1,20 +1,18 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, Injector } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
-import { ShoppingItemDialogComponent } from '../shopping-item-dialog/shopping-item-dialog.component';
+import { ShoppingItemEditorComponent } from '../shopping-item-editor/shopping-item-editor.component';
 
 @Component({
   selector: 'nom-shopping-detail',
   standalone: true,
   imports: [
-    MatDialogModule,
     AmwButtonComponent,
     AmwCheckboxComponent,
     AmwCardComponent,
@@ -33,7 +31,7 @@ export class ShoppingDetailComponent implements OnInit {
   private shoppingService = inject(ShoppingService);
   private notificationService = inject(NotificationService);
   private dialogService = inject(DialogService);
-  private dialog = inject(MatDialog);
+  private injector = inject(Injector);
 
   shoppingList = signal<ShoppingListResponseModel | null>(null);
   isLoading = signal(true);
@@ -103,14 +101,26 @@ export class ShoppingDetailComponent implements OnInit {
   }
 
   onAddItem(): void {
-    // Open dialog to add new item (keeping MatDialog for custom component dialog)
-    const dialogRef = this.dialog.open(ShoppingItemDialogComponent, {
-      width: '500px',
-      data: {
-        shoppingListId: this.shoppingListId(),
-        mode: 'add'
-      }
+    const dialogRef = this.dialogService.open('Add Item', ShoppingItemEditorComponent, {
+      width: '500px'
     });
+
+    // Set data via instance signals
+    dialogRef.instance.mode.set('add');
+
+    // Signal-based communication with the editor component
+    effect(() => {
+      const formData = dialogRef.instance.confirmed();
+      if (formData) {
+        dialogRef.close(formData);
+      }
+    }, { injector: this.injector });
+
+    effect(() => {
+      if (dialogRef.instance.cancelled()) {
+        dialogRef.close();
+      }
+    }, { injector: this.injector });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {

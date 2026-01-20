@@ -5,11 +5,11 @@
     headerIcon="security">
     <ng-template #contentTemplate>
       @if (isLoading()) {
-        <mat-progress-bar
+        <amw-progress-bar
           mode="indeterminate"
           color="primary"
           class="nom-card__progress-bar">
-        </mat-progress-bar>
+        </amw-progress-bar>
       }
 
       <form
@@ -73,7 +73,7 @@
 
       <!-- Section to display Shared Key and Recovery Codes after successful enablement -->
       @if (sharedKeyToDisplay && recoveryCodesToDisplay.length > 0) {
-        <mat-divider class="my-4"></mat-divider>
+        <amw-divider dividerClass="my-4"></amw-divider>
         <h3 class="mt-4 mb-2 text-center">Two-Factor Authentication Setup</h3>
 
         <p class="nom-instruction-text text-center">
@@ -104,14 +104,14 @@
           codes can be used to log in if you lose access to your authenticator
           app.
         </p>
-        <mat-list class="recovery-codes-list">
+        <amw-list listClass="recovery-codes-list">
           @for (code of recoveryCodesToDisplay; track code) {
-            <mat-list-item class="font-mono">
-              <mat-icon matListItemIcon>security</mat-icon>
-              {{ code }}
-            </mat-list-item>
+            <amw-list-item itemClass="font-mono">
+              <amw-icon amwListItemIcon name="security"></amw-icon>
+              <span amwListItemTitle>{{ code }}</span>
+            </amw-list-item>
           }
-        </mat-list>
+        </amw-list>
         <amw-button
           variant="filled"
           color="accent"

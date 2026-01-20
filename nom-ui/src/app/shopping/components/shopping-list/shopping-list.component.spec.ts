@@ -1,13 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatMenuModule } from '@angular/material/menu';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ShoppingListComponent } from './shopping-list.component';
 import { ShoppingReferenceService } from '../../services/shopping-reference.service';
@@ -20,65 +12,36 @@ describe('ShoppingListComponent', () => {
     let mockShoppingReferenceService: jasmine.SpyObj<ShoppingReferenceService>;
     let mockConfigurationService: jasmine.SpyObj<ConfigurationService>;
 
+    const mockPriorities = [
+        { referenceId: 11000, referenceName: 'Low', referenceDescription: 'Low priority items' },
+        { referenceId: 11001, referenceName: 'Medium', referenceDescription: 'Medium priority items' },
+        { referenceId: 11002, referenceName: 'High', referenceDescription: 'High priority items' }
+    ];
+
     const mockCategories = [
         { referenceId: 1, referenceName: 'Produce', referenceDescription: 'Fresh fruits and vegetables' },
         { referenceId: 2, referenceName: 'Dairy', referenceDescription: 'Milk, cheese, and dairy products' }
     ];
 
-    const mockPriorities = [
-        { referenceId: 1, referenceName: 'Low', referenceDescription: 'Low priority items' },
-        { referenceId: 2, referenceName: 'High', referenceDescription: 'High priority items' }
-    ];
-
-    const mockItems = [
-        {
-            id: 1,
-            name: 'Apples',
-            quantity: 5,
-            unit: 'kg',
-            categoryId: 1,
-            priorityId: 1,
-            notes: 'Fresh red apples',
-            isCompleted: false
-        },
-        {
-            id: 2,
-            name: 'Milk',
-            quantity: 2,
-            unit: 'L',
-            categoryId: 2,
-            priorityId: 2,
-            notes: 'Whole milk',
-            isCompleted: true
-        }
-    ];
-
     beforeEach(async () => {
         mockShoppingReferenceService = jasmine.createSpyObj('ShoppingReferenceService', [
-            'getShoppingCategories',
-            'getShoppingPriorities'
+            'getShoppingReferencesBulk'
         ]);
-        mockConfigurationService = jasmine.createSpyObj('ConfigurationService', ['getColorPalette']);
+        mockConfigurationService = jasmine.createSpyObj('ConfigurationService', ['getCategoryColor']);
 
-        mockShoppingReferenceService.getShoppingCategories.and.returnValue(of(mockCategories));
-        mockShoppingReferenceService.getShoppingPriorities.and.returnValue(of(mockPriorities));
-        mockConfigurationService.getColorPalette.and.returnValue(['#1976d2', '#388e3c', '#f57c00', '#d32f2f']);
+        mockShoppingReferenceService.getShoppingReferencesBulk.and.returnValue(of({
+            priorities: mockPriorities,
+            categories: mockCategories
+        }));
+        mockConfigurationService.getCategoryColor.and.returnValue('#1976d2');
 
         await TestBed.configureTestingModule({
-            declarations: [ShoppingListComponent],
             imports: [
-                BrowserAnimationsModule,
-                MatCardModule,
-                MatButtonModule,
-                MatIconModule,
-                MatChipsModule,
-                MatFormFieldModule,
-                MatInputModule,
-                MatSelectModule,
-                MatMenuModule,
+                ShoppingListComponent,
                 ReactiveFormsModule
             ],
             providers: [
+                provideAnimations(),
                 { provide: ShoppingReferenceService, useValue: mockShoppingReferenceService },
                 { provide: ConfigurationService, useValue: mockConfigurationService }
             ]
@@ -93,203 +56,165 @@ describe('ShoppingListComponent', () => {
     });
 
     it('should initialize with default values', () => {
-        expect(component.items).toEqual([]);
-        expect(component.filteredItems).toEqual([]);
-        expect(component.categories).toEqual([]);
-        expect(component.priorities).toEqual([]);
-        expect(component.selectedCategory).toBeNull();
-        expect(component.selectedPriority).toBeNull();
-        expect(component.searchTerm).toBe('');
-        expect(component.showCompleted).toBe(true);
+        expect(component.filteredItems()).toEqual([]);
+        expect(component.categories()).toEqual([]);
+        expect(component.priorities()).toEqual([]);
     });
 
     it('should load reference data on init', () => {
-        component.ngOnInit();
+        fixture.detectChanges();
 
-        expect(mockShoppingReferenceService.getShoppingCategories).toHaveBeenCalled();
-        expect(mockShoppingReferenceService.getShoppingPriorities).toHaveBeenCalled();
-        expect(mockConfigurationService.getColorPalette).toHaveBeenCalled();
+        expect(mockShoppingReferenceService.getShoppingReferencesBulk).toHaveBeenCalled();
     });
 
-    it('should populate categories and priorities arrays', () => {
-        component.ngOnInit();
+    it('should populate priorities and categories signals', () => {
+        fixture.detectChanges();
 
-        expect(component.categories).toEqual(mockCategories);
-        expect(component.priorities).toEqual(mockPriorities);
-    });
-
-    it('should set items and filtered items', () => {
-        component.items = mockItems;
-        component.ngOnInit();
-
-        expect(component.filteredItems).toEqual(mockItems);
-    });
-
-    it('should filter items by category', () => {
-        component.items = mockItems;
-        component.categories = mockCategories;
-        component.selectedCategory = 1;
-
-        component.filterItems();
-
-        expect(component.filteredItems.length).toBe(1);
-        expect(component.filteredItems[0].categoryId).toBe(1);
+        expect(component.priorities()).toEqual(mockPriorities);
+        expect(component.categories()).toEqual(mockCategories);
     });
 
     it('should filter items by priority', () => {
-        component.items = mockItems;
-        component.priorities = mockPriorities;
-        component.selectedPriority = 2;
+        fixture.detectChanges();
 
-        component.filterItems();
+        const mockItems = [
+            { id: 1, name: 'Apples', priorityId: 11000, categoryId: 1 },
+            { id: 2, name: 'Milk', priorityId: 11002, categoryId: 2 }
+        ];
+        component.allItems.set(mockItems);
+        component.filtersForm.patchValue({ priorityFilter: 11002 });
 
-        expect(component.filteredItems.length).toBe(1);
-        expect(component.filteredItems[0].priorityId).toBe(2);
+        expect(component.filteredItems().length).toBe(1);
+        expect(component.filteredItems()[0].priorityId).toBe(11002);
     });
 
-    it('should filter items by search term', () => {
-        component.items = mockItems;
-        component.searchTerm = 'apples';
+    it('should filter items by category', () => {
+        fixture.detectChanges();
 
-        component.filterItems();
+        const mockItems = [
+            { id: 1, name: 'Apples', priorityId: 11000, categoryId: 1 },
+            { id: 2, name: 'Milk', priorityId: 11002, categoryId: 2 }
+        ];
+        component.allItems.set(mockItems);
+        component.filtersForm.patchValue({ categoryFilter: 1 });
 
-        expect(component.filteredItems.length).toBe(1);
-        expect(component.filteredItems[0].name.toLowerCase()).toContain('apples');
-    });
-
-    it('should filter completed items', () => {
-        component.items = mockItems;
-        component.showCompleted = false;
-
-        component.filterItems();
-
-        expect(component.filteredItems.length).toBe(1);
-        expect(component.filteredItems[0].isCompleted).toBe(false);
+        expect(component.filteredItems().length).toBe(1);
+        expect(component.filteredItems()[0].categoryId).toBe(1);
     });
 
     it('should combine multiple filters', () => {
-        component.items = mockItems;
-        component.categories = mockCategories;
-        component.priorities = mockPriorities;
-        component.selectedCategory = 1;
-        component.selectedPriority = 1;
-        component.searchTerm = 'apples';
-        component.showCompleted = false;
+        fixture.detectChanges();
 
-        component.filterItems();
+        const mockItems = [
+            { id: 1, name: 'Apples', priorityId: 11000, categoryId: 1 },
+            { id: 2, name: 'Milk', priorityId: 11002, categoryId: 2 },
+            { id: 3, name: 'Oranges', priorityId: 11002, categoryId: 1 }
+        ];
+        component.allItems.set(mockItems);
+        component.filtersForm.patchValue({ priorityFilter: 11002, categoryFilter: 1 });
 
-        expect(component.filteredItems.length).toBe(1);
-        expect(component.filteredItems[0].name).toBe('Apples');
-        expect(component.filteredItems[0].categoryId).toBe(1);
-        expect(component.filteredItems[0].priorityId).toBe(1);
-        expect(component.filteredItems[0].isCompleted).toBe(false);
+        expect(component.filteredItems().length).toBe(1);
+        expect(component.filteredItems()[0].name).toBe('Oranges');
     });
 
     it('should clear all filters', () => {
-        component.selectedCategory = 1;
-        component.selectedPriority = 2;
-        component.searchTerm = 'test';
-        component.showCompleted = false;
+        fixture.detectChanges();
 
+        component.filtersForm.patchValue({ priorityFilter: 11002, categoryFilter: 1 });
         component.clearFilters();
 
-        expect(component.selectedCategory).toBeNull();
-        expect(component.selectedPriority).toBeNull();
-        expect(component.searchTerm).toBe('');
-        expect(component.showCompleted).toBe(true);
+        expect(component.filtersForm.get('priorityFilter')?.value).toBe('');
+        expect(component.filtersForm.get('categoryFilter')?.value).toBe('');
+    });
+
+    it('should get priority name by id', () => {
+        fixture.detectChanges();
+
+        const priorityName = component.getPriorityName(11002);
+        expect(priorityName).toBe('High');
+    });
+
+    it('should return unknown for invalid priority id', () => {
+        fixture.detectChanges();
+
+        const priorityName = component.getPriorityName(999);
+        expect(priorityName).toBe('Unknown');
     });
 
     it('should get category name by id', () => {
-        component.categories = mockCategories;
+        fixture.detectChanges();
 
         const categoryName = component.getCategoryName(1);
         expect(categoryName).toBe('Produce');
     });
 
     it('should return unknown for invalid category id', () => {
-        component.categories = mockCategories;
+        fixture.detectChanges();
 
         const categoryName = component.getCategoryName(999);
         expect(categoryName).toBe('Unknown');
     });
 
-    it('should get priority name by id', () => {
-        component.priorities = mockPriorities;
+    it('should get priority color correctly', () => {
+        fixture.detectChanges();
 
-        const priorityName = component.getPriorityName(2);
-        expect(priorityName).toBe('High');
+        const highColor = component.getPriorityColor(11002);
+        expect(highColor).toBe('#f44336'); // Red for high
+
+        const mediumColor = component.getPriorityColor(11001);
+        expect(mediumColor).toBe('#ff9800'); // Orange for medium
+
+        const lowColor = component.getPriorityColor(11000);
+        expect(lowColor).toBe('#4caf50'); // Green for low
     });
 
-    it('should return unknown for invalid priority id', () => {
-        component.priorities = mockPriorities;
+    it('should get category color from configuration service', () => {
+        fixture.detectChanges();
 
-        const priorityName = component.getPriorityName(999);
-        expect(priorityName).toBe('Unknown');
+        const color = component.getCategoryColor(1);
+        expect(mockConfigurationService.getCategoryColor).toHaveBeenCalledWith(1);
+        expect(color).toBe('#1976d2');
     });
 
-    it('should generate color for item', () => {
-        component.items = mockItems;
-        component.colorPalette = ['#1976d2', '#388e3c', '#f57c00', '#d32f2f'];
+    it('should detect active filters', () => {
+        fixture.detectChanges();
 
-        const color = component.getItemColor(mockItems[0]);
-        expect(color).toBeDefined();
-        expect(component.colorPalette).toContain(color);
+        expect(component.hasActiveFilters).toBe(false);
+
+        component.filtersForm.patchValue({ priorityFilter: 11002 });
+        expect(component.hasActiveFilters).toBe(true);
     });
 
-    it('should toggle item completion status', () => {
-        const item = { ...mockItems[0] };
-        spyOn(component.itemStatusChange, 'emit');
+    it('should get high priority count', () => {
+        fixture.detectChanges();
 
-        component.toggleItemStatus(item);
+        const mockItems = [
+            { id: 1, name: 'Apples', priorityId: 11000, categoryId: 1 },
+            { id: 2, name: 'Milk', priorityId: 11002, categoryId: 2 },
+            { id: 3, name: 'Bread', priorityId: 11002, categoryId: 1 }
+        ];
+        component.allItems.set(mockItems);
 
-        expect(item.isCompleted).toBe(true);
-        expect(component.itemStatusChange.emit).toHaveBeenCalledWith(item);
+        expect(component.getHighPriorityCount()).toBe(2);
     });
 
-    it('should emit edit item event', () => {
-        const item = mockItems[0];
-        spyOn(component.editItem, 'emit');
+    it('should get unique categories count', () => {
+        fixture.detectChanges();
 
-        component.onEditItem(item);
+        const mockItems = [
+            { id: 1, name: 'Apples', priorityId: 11000, categoryId: 1 },
+            { id: 2, name: 'Milk', priorityId: 11002, categoryId: 2 },
+            { id: 3, name: 'Bread', priorityId: 11002, categoryId: 1 }
+        ];
+        component.allItems.set(mockItems);
 
-        expect(component.editItem.emit).toHaveBeenCalledWith(item);
+        expect(component.getUniqueCategoriesCount()).toBe(2);
     });
 
-    it('should emit delete item event', () => {
-        const item = mockItems[0];
-        spyOn(component.deleteItem, 'emit');
+    it('should clean up subscriptions on destroy', () => {
+        fixture.detectChanges();
 
-        component.onDeleteItem(item);
-
-        expect(component.deleteItem.emit).toHaveBeenCalledWith(item);
-    });
-
-    it('should emit add item event', () => {
-        spyOn(component.addItem, 'emit');
-
-        component.onAddItem();
-
-        expect(component.addItem.emit).toHaveBeenCalled();
-    });
-
-    it('should get filtered items count', () => {
-        component.filteredItems = mockItems;
-
-        const count = component.getFilteredItemsCount();
-        expect(count).toBe(2);
-    });
-
-    it('should get completed items count', () => {
-        component.items = mockItems;
-
-        const count = component.getCompletedItemsCount();
-        expect(count).toBe(1);
-    });
-
-    it('should get total items count', () => {
-        component.items = mockItems;
-
-        const count = component.getTotalItemsCount();
-        expect(count).toBe(2);
+        // Should not throw on destroy
+        expect(() => component.ngOnDestroy()).not.toThrow();
     });
 });

@@ -7,7 +7,7 @@
       <ng-template #contentTemplate>
         @if (isLoading() && !shoppingList()) {
           <div class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
+            <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
             <p>Loading shopping list...</p>
           </div>
         } @else {

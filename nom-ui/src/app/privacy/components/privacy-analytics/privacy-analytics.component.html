@@ -23,9 +23,11 @@
                 </div>
                 <div class="privacy-analytics__metric-value">
                   <span class="privacy-analytics__score">{{ analytics.complianceScore }}%</span>
-                  <mat-chip [color]="getComplianceColor()" selected>
-                    {{ getComplianceStatus() }}
-                  </mat-chip>
+                  <amw-chip
+                    [label]="getComplianceStatus()"
+                    [color]="getComplianceColor()"
+                    [selected]="true">
+                  </amw-chip>
                 </div>
               </div>
 
@@ -37,9 +39,11 @@
                 </div>
                 <div class="privacy-analytics__metric-value">
                   <span class="privacy-analytics__score">{{ analytics.riskScore }}%</span>
-                  <mat-chip [color]="getRiskColor()" selected>
-                    {{ getRiskLevel() }}
-                  </mat-chip>
+                  <amw-chip
+                    [label]="getRiskLevel()"
+                    [color]="getRiskColor()"
+                    [selected]="true">
+                  </amw-chip>
                 </div>
               </div>
 
@@ -104,15 +108,19 @@
               <div class="privacy-analytics__detail-metrics">
                 <div class="privacy-analytics__detail-metric">
                   <span class="privacy-analytics__detail-label">GDPR Status</span>
-                  <mat-chip [color]="analytics.gdprComplianceStatus === 'Compliant' ? 'accent' : 'warn'" selected>
-                    {{ analytics.gdprComplianceStatus }}
-                  </mat-chip>
+                  <amw-chip
+                    [label]="analytics.gdprComplianceStatus"
+                    [color]="analytics.gdprComplianceStatus === 'Compliant' ? 'accent' : 'warn'"
+                    [selected]="true">
+                  </amw-chip>
                 </div>
                 <div class="privacy-analytics__detail-metric">
                   <span class="privacy-analytics__detail-label">Retention Compliance</span>
-                  <mat-chip [color]="analytics.dataRetentionCompliance === 'Compliant' ? 'accent' : 'warn'" selected>
-                    {{ analytics.dataRetentionCompliance }}
-                  </mat-chip>
+                  <amw-chip
+                    [label]="analytics.dataRetentionCompliance"
+                    [color]="analytics.dataRetentionCompliance === 'Compliant' ? 'accent' : 'warn'"
+                    [selected]="true">
+                  </amw-chip>
                 </div>
                 <div class="privacy-analytics__detail-metric">
                   <span class="privacy-analytics__detail-label">Last Check</span>
@@ -181,54 +189,12 @@
               <p>No processing logs available</p>
             </div>
           } @else {
-            <table mat-table [dataSource]="processingLogs" class="privacy-analytics__table">
-              <!-- Timestamp Column -->
-              <ng-container matColumnDef="timestamp">
-                <th mat-header-cell *matHeaderCellDef>Timestamp</th>
-                <td mat-cell *matCellDef="let log">
-                  <div class="privacy-analytics__timestamp">
-                    <div>{{ formatDate(log.timestamp) }}</div>
-                    <div class="privacy-analytics__time">{{ formatTime(log.timestamp) }}</div>
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Action Type Column -->
-              <ng-container matColumnDef="actionType">
-                <th mat-header-cell *matHeaderCellDef>Action</th>
-                <td mat-cell *matCellDef="let log">
-                  <div class="privacy-analytics__action">
-                    <amw-icon [name]="getActionTypeIcon(log.actionType)" [color]="getActionTypeColor(log.actionType)"></amw-icon>
-                    <span>{{ log.actionType }}</span>
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Actor ID Column -->
-              <ng-container matColumnDef="actorId">
-                <th mat-header-cell *matHeaderCellDef>Actor</th>
-                <td mat-cell *matCellDef="let log">{{ log.actorId }}</td>
-              </ng-container>
-
-              <!-- IP Address Column -->
-              <ng-container matColumnDef="ipAddress">
-                <th mat-header-cell *matHeaderCellDef>IP Address</th>
-                <td mat-cell *matCellDef="let log">{{ log.ipAddress }}</td>
-              </ng-container>
-
-              <!-- Details Column -->
-              <ng-container matColumnDef="details">
-                <th mat-header-cell *matHeaderCellDef>Details</th>
-                <td mat-cell *matCellDef="let log">
-                  <span class="privacy-analytics__details-text" [amwTooltip]="log.details">
-                    {{ log.details.length > 50 ? log.details.substring(0, 50) + '...' : log.details }}
-                  </span>
-                </td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-            </table>
+            <amw-data-table
+              [config]="tableConfig"
+              [columns]="tableColumns"
+              [data]="processingLogs"
+              class="privacy-analytics__table">
+            </amw-data-table>
           }
         </ng-template>
       </amw-card>

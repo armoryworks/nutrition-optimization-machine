@@ -36,16 +36,10 @@
                     <div class="nom-dashboard__section-header-compact">
                         <!-- View Toggle and Search -->
                         <div class="nom-dashboard__filters">
-                            <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()" class="nom-dashboard__view-toggle">
-                                <mat-button-toggle value="week">
-                                    <amw-icon name="view_week"></amw-icon>
-                                    <span>Week View</span>
-                                </mat-button-toggle>
-                                <mat-button-toggle value="month">
-                                    <amw-icon name="view_module"></amw-icon>
-                                    <span>Month View</span>
-                                </mat-button-toggle>
-                            </mat-button-toggle-group>
+                            <amw-button-toggle-group [(ngModel)]="viewMode" (valueChange)="onViewModeChange($event)" groupClass="nom-dashboard__view-toggle">
+                                <amw-button-toggle value="week" icon="view_week">Week View</amw-button-toggle>
+                                <amw-button-toggle value="month" icon="view_module">Month View</amw-button-toggle>
+                            </amw-button-toggle-group>
 
                             <amw-input
                                 [formControl]="searchControl"
@@ -79,7 +73,7 @@
                                                 <h3 class="nom-dashboard__day-title">{{ day.name }}</h3>
                                                 <p class="nom-dashboard__day-date">{{ day.date | date:'MMM d' }}</p>
                                                 @if (isToday(day.date)) {
-                                                    <mat-chip class="nom-dashboard__today-chip">Today</mat-chip>
+                                                    <amw-chip label="Today" chipClass="nom-dashboard__today-chip"></amw-chip>
                                                 }
                                             </div>
                                             <div class="nom-dashboard__day-plans">

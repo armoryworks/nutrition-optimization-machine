@@ -1,210 +1,185 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+import { AmwInputComponent, AmwTextareaComponent, AmwSelectComponent, AmwButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+
 import { RecipeReferenceService } from '../../services/recipe-reference.service';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
 @Component({
   selector: 'app-recipe-form',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    AmwInputComponent,
+    AmwTextareaComponent,
+    AmwSelectComponent,
+    AmwButtonComponent,
+    AmwIconComponent,
+    AmwProgressSpinnerComponent,
+  ],
   template: `
     <div class="recipe-form">
       <div class="recipe-form__header">
         <h2>{{ isEditMode ? 'Edit Recipe' : 'Create New Recipe' }}</h2>
         <p class="subtitle">Fill in the details below to {{ isEditMode ? 'update' : 'create' }} your recipe</p>
       </div>
-    
+
       <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="recipe-form__content">
         <!-- Basic Information -->
         <div class="form-section">
           <h3>Basic Information</h3>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Recipe Name</mat-label>
-              <input matInput formControlName="name" placeholder="Enter recipe name">
-              @if (recipeForm.get('name')?.hasError('required')) {
-                <mat-error>
-                  Recipe name is required
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-input
+              formControlName="name"
+              label="Recipe Name"
+              placeholder="Enter recipe name"
+              [required]="true"
+              [errorMessage]="recipeForm.get('name')?.hasError('required') ? 'Recipe name is required' : ''"
+              class="form-field">
+            </amw-input>
           </div>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Description</mat-label>
-              <textarea matInput formControlName="description" rows="3" placeholder="Describe your recipe"></textarea>
-              @if (recipeForm.get('description')?.hasError('required')) {
-                <mat-error>
-                  Description is required
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-textarea
+              formControlName="description"
+              label="Description"
+              placeholder="Describe your recipe"
+              [rows]="3"
+              [required]="true"
+              [errorMessage]="recipeForm.get('description')?.hasError('required') ? 'Description is required' : ''"
+              class="form-field">
+            </amw-textarea>
           </div>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Preparation Time (minutes)</mat-label>
-              <input matInput type="number" formControlName="prepTime" min="1">
-              @if (recipeForm.get('prepTime')?.hasError('required')) {
-                <mat-error>
-                  Preparation time is required
-                </mat-error>
-              }
-              @if (recipeForm.get('prepTime')?.hasError('min')) {
-                <mat-error>
-                  Preparation time must be at least 1 minute
-                </mat-error>
-              }
-            </mat-form-field>
-    
-            <mat-form-field class="form-field">
-              <mat-label>Cook Time (minutes)</mat-label>
-              <input matInput type="number" formControlName="cookTime" min="0">
-              @if (recipeForm.get('cookTime')?.hasError('min')) {
-                <mat-error>
-                  Cook time cannot be negative
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-input
+              formControlName="prepTime"
+              label="Preparation Time (minutes)"
+              type="number"
+              [required]="true"
+              [errorMessage]="getPrepTimeError()"
+              class="form-field">
+            </amw-input>
+
+            <amw-input
+              formControlName="cookTime"
+              label="Cook Time (minutes)"
+              type="number"
+              [errorMessage]="recipeForm.get('cookTime')?.hasError('min') ? 'Cook time cannot be negative' : ''"
+              class="form-field">
+            </amw-input>
           </div>
         </div>
-    
+
         <!-- Recipe Classification -->
         <div class="form-section">
           <h3>Recipe Classification</h3>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Difficulty Level</mat-label>
-              <mat-select formControlName="difficultyId" [showDescription]="true">
-                @for (difficulty of difficulties; track difficulty) {
-                  <mat-option [value]="difficulty.referenceId">
-                    {{ difficulty.referenceName }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (recipeForm.get('difficultyId')?.hasError('required')) {
-                <mat-error>
-                  Difficulty level is required
-                </mat-error>
-              }
-            </mat-form-field>
-    
-            <mat-form-field class="form-field">
-              <mat-label>Cuisine Type</mat-label>
-              <mat-select formControlName="cuisineTypeId" [showDescription]="true">
-                @for (cuisine in cuisines; track cuisine in cuisines) {
-                  <mat-option [value]="cuisine.referenceId">
-                    {{ cuisine.referenceName }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (recipeForm.get('cuisineTypeId')?.hasError('required')) {
-                <mat-error>
-                  Cuisine type is required
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-select
+              formControlName="difficultyId"
+              label="Difficulty Level"
+              [required]="true"
+              [options]="getDifficultyOptions()"
+              [errorMessage]="recipeForm.get('difficultyId')?.hasError('required') ? 'Difficulty level is required' : ''"
+              class="form-field">
+            </amw-select>
+
+            <amw-select
+              formControlName="cuisineTypeId"
+              label="Cuisine Type"
+              [required]="true"
+              [options]="getCuisineOptions()"
+              [errorMessage]="recipeForm.get('cuisineTypeId')?.hasError('required') ? 'Cuisine type is required' : ''"
+              class="form-field">
+            </amw-select>
           </div>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Meal Type</mat-label>
-              <mat-select formControlName="mealTypeId" [showDescription]="true">
-                @for (mealType in mealTypes; track mealType in mealTypes) {
-                  <mat-option [value]="mealType.referenceId">
-                    {{ mealType.referenceName }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (recipeForm.get('mealTypeId')?.hasError('required')) {
-                <mat-error>
-                  Meal type is required
-                </mat-error>
-              }
-            </mat-form-field>
-    
-            <mat-form-field class="form-field">
-              <mat-label>Servings</mat-label>
-              <input matInput type="number" formControlName="servings" min="1">
-              @if (recipeForm.get('servings')?.hasError('required')) {
-                <mat-error>
-                  Number of servings is required
-                </mat-error>
-              }
-              @if (recipeForm.get('servings')?.hasError('min')) {
-                <mat-error>
-                  Servings must be at least 1
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-select
+              formControlName="mealTypeId"
+              label="Meal Type"
+              [required]="true"
+              [options]="getMealTypeOptions()"
+              [errorMessage]="recipeForm.get('mealTypeId')?.hasError('required') ? 'Meal type is required' : ''"
+              class="form-field">
+            </amw-select>
+
+            <amw-input
+              formControlName="servings"
+              label="Servings"
+              type="number"
+              [required]="true"
+              [errorMessage]="getServingsError()"
+              class="form-field">
+            </amw-input>
           </div>
         </div>
-    
+
         <!-- Dietary Information -->
         <div class="form-section">
           <h3>Dietary Information</h3>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Dietary Options</mat-label>
-              <mat-select formControlName="dietaryOptionIds" multiple [showDescription]="true">
-                @for (option in dietaryOptions; track option in dietaryOptions) {
-                  <mat-option [value]="option.referenceId">
-                    {{ option.referenceName }}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-hint>Select all that apply</mat-hint>
-            </mat-form-field>
+            <amw-select
+              formControlName="dietaryOptionIds"
+              label="Dietary Options"
+              [multiple]="true"
+              [options]="getDietaryOptions()"
+              hint="Select all that apply"
+              class="form-field">
+            </amw-select>
           </div>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Allergen Information</mat-label>
-              <mat-select formControlName="allergenIds" multiple [showDescription]="true">
-                @for (allergen in allergens; track allergen in allergens) {
-                  <mat-option [value]="allergen.referenceId">
-                    {{ allergen.referenceName }}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-hint>Select allergens this recipe contains</mat-hint>
-            </mat-form-field>
+            <amw-select
+              formControlName="allergenIds"
+              label="Allergen Information"
+              [multiple]="true"
+              [options]="getAllergenOptions()"
+              hint="Select allergens this recipe contains"
+              class="form-field">
+            </amw-select>
           </div>
         </div>
-    
+
         <!-- Instructions -->
         <div class="form-section">
           <h3>Cooking Instructions</h3>
-    
+
           <div class="form-row">
-            <mat-form-field class="form-field">
-              <mat-label>Instructions</mat-label>
-              <textarea matInput formControlName="instructions" rows="6" placeholder="Enter step-by-step cooking instructions"></textarea>
-              @if (recipeForm.get('instructions')?.hasError('required')) {
-                <mat-error>
-                  Cooking instructions are required
-                </mat-error>
-              }
-            </mat-form-field>
+            <amw-textarea
+              formControlName="instructions"
+              label="Instructions"
+              placeholder="Enter step-by-step cooking instructions"
+              [rows]="6"
+              [required]="true"
+              [errorMessage]="recipeForm.get('instructions')?.hasError('required') ? 'Cooking instructions are required' : ''"
+              class="form-field">
+            </amw-textarea>
           </div>
         </div>
-    
+
         <!-- Form Actions -->
         <div class="form-actions">
-          <button mat-button type="button" (click)="onCancel()">Cancel</button>
-          <button mat-raised-button color="primary" type="submit" [disabled]="recipeForm.invalid || isSubmitting">
+          <amw-button variant="text" type="button" (click)="onCancel()">Cancel</amw-button>
+          <amw-button
+            variant="filled"
+            color="primary"
+            type="submit"
+            [disabled]="recipeForm.invalid || isSubmitting">
             @if (isSubmitting) {
-              <mat-icon class="spinning">refresh</mat-icon>
+              <amw-icon name="refresh" class="spinning"></amw-icon>
             }
             {{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update Recipe' : 'Create Recipe') }}
-          </button>
+          </amw-button>
         </div>
       </form>
-    
+
       <!-- Selected Options Display -->
       @if (hasSelectedOptions()) {
         <div class="selected-options">
@@ -372,6 +347,42 @@ export class RecipeFormComponent implements OnInit, OnDestroy {
     } else {
       this.resetForm();
     }
+  }
+
+  // Helper methods for AMW select options
+  getDifficultyOptions(): Array<{ value: any; label: string }> {
+    return this.difficulties.map(d => ({ value: d.referenceId, label: d.referenceName }));
+  }
+
+  getCuisineOptions(): Array<{ value: any; label: string }> {
+    return this.cuisines.map(c => ({ value: c.referenceId, label: c.referenceName }));
+  }
+
+  getMealTypeOptions(): Array<{ value: any; label: string }> {
+    return this.mealTypes.map(m => ({ value: m.referenceId, label: m.referenceName }));
+  }
+
+  getDietaryOptions(): Array<{ value: any; label: string }> {
+    return this.dietaryOptions.map(d => ({ value: d.referenceId, label: d.referenceName }));
+  }
+
+  getAllergenOptions(): Array<{ value: any; label: string }> {
+    return this.allergens.map(a => ({ value: a.referenceId, label: a.referenceName }));
+  }
+
+  // Helper methods for error messages
+  getPrepTimeError(): string {
+    const control = this.recipeForm.get('prepTime');
+    if (control?.hasError('required')) return 'Preparation time is required';
+    if (control?.hasError('min')) return 'Preparation time must be at least 1 minute';
+    return '';
+  }
+
+  getServingsError(): string {
+    const control = this.recipeForm.get('servings');
+    if (control?.hasError('required')) return 'Number of servings is required';
+    if (control?.hasError('min')) return 'Servings must be at least 1';
+    return '';
   }
 
   private resetForm(): void {

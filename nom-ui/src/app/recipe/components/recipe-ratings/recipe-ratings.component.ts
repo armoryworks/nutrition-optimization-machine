@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, input } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { AmwButtonComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
@@ -26,7 +26,7 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
 export class RecipeRatingsComponent implements OnInit {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private userInfoService = inject(UserInfoService);
 
     recipeId = input.required<number>();
@@ -62,11 +62,7 @@ export class RecipeRatingsComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading ratings:', error);
-                this.snackBar.open('Failed to load ratings', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.error('Failed to load ratings');
                 this.isLoading.set(false);
             }
         });
@@ -102,11 +98,7 @@ export class RecipeRatingsComponent implements OnInit {
 
             const currentPersonId = this.userInfoService.getCurrentUserInfoValue()?.personId;
             if (!currentPersonId) {
-                this.snackBar.open('User information not available. Please log in again.', 'Close', {
-                    duration: 3000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.error('User information not available. Please log in again.');
                 return;
             }
 
@@ -129,19 +121,11 @@ export class RecipeRatingsComponent implements OnInit {
                         this.userRating.set(updatedRating);
                         this.calculateAverageRating();
                         this.isSubmitting.set(false);
-                        this.snackBar.open('Rating updated successfully!', 'Close', {
-                            duration: 3000,
-                            horizontalPosition: 'center',
-                            verticalPosition: 'top'
-                        });
+                        this.notificationService.success('Rating updated successfully!');
                     },
                     error: (error) => {
                         console.error('Error updating rating:', error);
-                        this.snackBar.open('Failed to update rating', 'Close', {
-                            duration: 3000,
-                            horizontalPosition: 'center',
-                            verticalPosition: 'top'
-                        });
+                        this.notificationService.error('Failed to update rating');
                         this.isSubmitting.set(false);
                     }
                 });
@@ -153,19 +137,11 @@ export class RecipeRatingsComponent implements OnInit {
                         this.userRating.set(newRating);
                         this.calculateAverageRating();
                         this.isSubmitting.set(false);
-                        this.snackBar.open('Rating added successfully!', 'Close', {
-                            duration: 3000,
-                            horizontalPosition: 'center',
-                            verticalPosition: 'top'
-                        });
+                        this.notificationService.success('Rating added successfully!');
                     },
                     error: (error) => {
                         console.error('Error adding rating:', error);
-                        this.snackBar.open('Failed to add rating', 'Close', {
-                            duration: 3000,
-                            horizontalPosition: 'center',
-                            verticalPosition: 'top'
-                        });
+                        this.notificationService.error('Failed to add rating');
                         this.isSubmitting.set(false);
                     }
                 });
@@ -181,19 +157,11 @@ export class RecipeRatingsComponent implements OnInit {
                     this.userRating.set(null);
                     this.calculateAverageRating();
                     this.ratingForm.reset();
-                    this.snackBar.open('Rating deleted successfully!', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.success('Rating deleted successfully!');
                 },
                 error: (error) => {
                     console.error('Error deleting rating:', error);
-                    this.snackBar.open('Failed to delete rating', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.error('Failed to delete rating');
                 }
             });
         }

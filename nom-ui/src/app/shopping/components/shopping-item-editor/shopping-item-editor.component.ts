@@ -1,7 +1,6 @@
-import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal, effect } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AmwInputComponent, AmwSelectComponent, AmwCheckboxComponent, AmwButtonComponent } from 'angular-material-wrap';
@@ -11,30 +10,34 @@ import { ConfigurationService } from '../../../common/services/configuration.ser
 import { ReferenceSelectorComponent } from '../../../common/components/reference-selector/reference-selector.component';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 
-import { ShoppingItemDialogData } from './shopping-item-dialog-data.interface';
 import { ShoppingItemFormData } from './shopping-item-form-data.interface';
 
 @Component({
-    selector: 'nom-shopping-item-dialog',
+    selector: 'nom-shopping-item-editor',
     standalone: true,
     imports: [
         ReactiveFormsModule,
-        MatDialogModule,
         AmwInputComponent,
         AmwSelectComponent,
         AmwCheckboxComponent,
         AmwButtonComponent,
         ReferenceSelectorComponent
     ],
-    templateUrl: './shopping-item-dialog.component.html',
-    styleUrls: ['./shopping-item-dialog.component.scss']
+    templateUrl: './shopping-item-editor.component.html',
+    styleUrls: ['./shopping-item-editor.component.scss']
 })
-export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
+export class ShoppingItemEditorComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
-    private dialogRef = inject<MatDialogRef<ShoppingItemDialogComponent>>(MatDialogRef);
     private shoppingReferenceService = inject(ShoppingReferenceService);
     private configurationService = inject(ConfigurationService);
-    data = inject<ShoppingItemDialogData>(MAT_DIALOG_DATA);
+
+    // Input signals for data (set by parent via instance)
+    mode = signal<'add' | 'edit'>('add');
+    item = signal<any>(null);
+
+    // Signal-based outputs for container communication
+    confirmed = signal<ShoppingItemFormData | null>(null);
+    cancelled = signal(false);
 
     itemForm: FormGroup;
     isSubmitting = signal(false);
@@ -64,8 +67,9 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         this.loadReferenceData();
 
-        if (this.data.mode === 'edit' && this.data.item) {
-            this.itemForm.patchValue(this.data.item);
+        // Populate form if editing existing item
+        if (this.mode() === 'edit' && this.item()) {
+            this.itemForm.patchValue(this.item());
         }
     }
 
@@ -96,24 +100,23 @@ export class ShoppingItemDialogComponent implements OnInit, OnDestroy {
         if (this.itemForm.valid) {
             this.isSubmitting.set(true);
             const formData: ShoppingItemFormData = this.itemForm.value;
-
-            this.dialogRef.close(formData);
+            this.confirmed.set(formData);
         }
     }
 
     onCancel(): void {
-        this.dialogRef.close();
+        this.cancelled.set(true);
     }
 
     getTitle(): string {
-        return this.data.mode === 'add' ? 'Add Item' : 'Edit Item';
+        return this.mode() === 'add' ? 'Add Item' : 'Edit Item';
     }
 
     getSubmitText(): string {
-        return this.data.mode === 'add' ? 'Add' : 'Update';
+        return this.mode() === 'add' ? 'Add' : 'Update';
     }
 
     getUnitOptions(): Array<{value: string, label: string}> {
         return this.units().map(u => ({ value: u, label: u }));
     }
-} 
+}

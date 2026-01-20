@@ -1,12 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ReactiveFormsModule, FormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwButtonComponent, AmwIconComponent, DialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwIconComponent, AmwChipComponent, AmwButtonToggleGroupComponent, AmwButtonToggleComponent, DialogService } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
@@ -17,13 +15,14 @@ import { NotificationService } from '../../../utilities/services/notification.se
     standalone: true,
     imports: [
         DatePipe,
-        MatChipsModule,
-        MatButtonToggleModule,
         ReactiveFormsModule,
         FormsModule,
         AmwInputComponent,
         AmwButtonComponent,
-        AmwIconComponent
+        AmwIconComponent,
+        AmwChipComponent,
+        AmwButtonToggleGroupComponent,
+        AmwButtonToggleComponent
     ],
     templateUrl: './meal-plan-dashboard.component.html',
     styleUrls: ['./meal-plan-dashboard.component.scss']

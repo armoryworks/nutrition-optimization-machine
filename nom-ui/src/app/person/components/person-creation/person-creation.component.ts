@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { finalize, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
 
@@ -20,7 +20,7 @@ import { PersonCreateResponseModel } from '../../models/person-create-response.m
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
+    AmwProgressBarComponent,
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,

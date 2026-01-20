@@ -15,10 +15,8 @@
   }
 
   &__section {
-    background-color: var(--mat-sys-surface-container);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--mat-sys-outline-variant);
     margin-bottom: 1.5rem;
   }
 
@@ -33,7 +31,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
-    color: var(--mat-sys-on-surface);
   }
 
   &__nutrient-row {
@@ -42,16 +39,9 @@
     gap: 1rem;
     align-items: center;
     padding: 1rem;
-    background-color: var(--mat-sys-surface-container-low);
-    border: 1px solid var(--mat-sys-outline-variant);
     border-radius: 8px;
     transition: all 0.2s ease;
     margin-bottom: 0.75rem;
-
-    &:hover {
-      background-color: var(--mat-sys-surface-container);
-      border-color: var(--mat-sys-outline);
-    }
   }
 
   &__nutrient-field {
@@ -59,31 +49,24 @@
   }
 
   &__remove-button {
-    color: var(--mat-sys-error);
+    // Inherits error color from theme
   }
 
   &__empty-message {
     text-align: center;
     padding: 2rem;
     font-style: italic;
-    color: var(--mat-sys-on-surface-variant);
-    border: 1px dashed var(--mat-sys-outline-variant);
     border-radius: 8px;
-    background-color: var(--mat-sys-surface-container-low);
   }
 
   &__add-button {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--mat-sys-primary);
-    border-color: var(--mat-sys-primary);
   }
 
   // Duplicate warning styles (for modal context)
   &__duplicate-warning {
-    background-color: var(--mat-sys-error-container);
-    border: 1px solid var(--mat-sys-error);
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -97,11 +80,6 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--mat-sys-on-error-container);
-
-    mat-icon {
-      color: var(--mat-sys-error);
-    }
 
     strong {
       font-weight: 600;
@@ -109,8 +87,6 @@
   }
 
   &__use-existing-btn {
-    color: var(--mat-sys-primary);
-    border-color: var(--mat-sys-primary);
     white-space: nowrap;
   }
 }
@@ -119,7 +95,6 @@
 .form-actions {
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
 .action-buttons {

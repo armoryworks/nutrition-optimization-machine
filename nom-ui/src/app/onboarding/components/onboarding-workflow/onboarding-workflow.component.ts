@@ -2,15 +2,13 @@
 
 import { Component, OnInit, Output, EventEmitter, ViewEncapsulation, ViewChild, OnDestroy, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
-import { MatRadioModule } from '@angular/material/radio';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 // Import all child components for ViewChild references
 import { PersonHealthEditComponent } from '../../../person/components/person-health-edit/person-health-edit.component';
@@ -37,10 +35,9 @@ import { OnboardingWorkflowStep } from '../../models/onboarding-workflow-step';
   imports: [
     NgClass,
     ReactiveFormsModule,
-    MatProgressBarModule,
-    MatRadioModule,
     AmwButtonComponent,
     AmwCardComponent,
+    AmwProgressBarComponent,
     PersonHealthEditComponent,
     RestrictionEditComponent,
     OnboardingInvitationCodeComponent,

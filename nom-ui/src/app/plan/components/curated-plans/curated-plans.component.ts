@@ -1,25 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, Injector } from '@angular/core';
 
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { FormsModule } from '@angular/forms';
-
-import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
 
 import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { PlanNameComponent } from '../plan-name/plan-name.component';
 
 @Component({
     selector: 'nom-curated-plans',
     standalone: true,
     imports: [
-        MatChipsModule,
-        MatDialogModule,
-        FormsModule,
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
+        AmwChipComponent,
         AmwProgressSpinnerComponent,
     ],
     templateUrl: './curated-plans.component.html',
@@ -28,7 +23,8 @@ import { NotificationService } from '../../../utilities/services/notification.se
 export class CuratedPlansComponent implements OnInit {
     private planService = inject(PlanService);
     private notificationService = inject(NotificationService);
-    private dialog = inject(MatDialog);
+    private dialogService = inject(DialogService);
+    private injector = inject(Injector);
 
     curatedPlans = signal<PlanModel[]>([]);
     isLoading = signal(false);
@@ -60,14 +56,28 @@ export class CuratedPlansComponent implements OnInit {
         const plan = this.curatedPlans().find(p => p.id === planId);
         if (!plan) return;
 
-        const dialogRef = this.dialog.open(PlanNameDialogComponent, {
-            width: '400px',
-            data: {
-                title: 'Clone Plan',
-                message: 'Enter a name for your cloned plan:',
-                defaultValue: `${plan.name} (Copy)`
-            }
+        const dialogRef = this.dialogService.open('Clone Plan', PlanNameComponent, {
+            width: '400px'
         });
+
+        // Set data via instance signals
+        dialogRef.instance.title.set('Clone Plan');
+        dialogRef.instance.message.set('Enter a name for your cloned plan:');
+        dialogRef.instance.defaultValue.set(`${plan.name} (Copy)`);
+
+        // Signal-based communication with the dialog component
+        effect(() => {
+            const confirmedName = dialogRef.instance.confirmed();
+            if (confirmedName) {
+                dialogRef.close(confirmedName);
+            }
+        }, { injector: this.injector });
+
+        effect(() => {
+            if (dialogRef.instance.cancelled()) {
+                dialogRef.close();
+            }
+        }, { injector: this.injector });
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
@@ -76,7 +86,6 @@ export class CuratedPlansComponent implements OnInit {
                     next: () => {
                         this.notificationService.success('Plan cloned successfully!');
                         this.cloningPlanId.set(null);
-                        // Optionally navigate to the cloned plan
                     },
                     error: (error) => {
                         console.error('Error cloning plan:', error);
@@ -112,49 +121,12 @@ export class CuratedPlansComponent implements OnInit {
         };
     }
 
-    getStatusColor(status: string): string {
+    getStatusColor(status: string): 'primary' | 'accent' | 'warn' {
         switch (status) {
             case 'Curated': return 'primary';
             case 'PendingCuration': return 'warn';
             case 'RequiresRevision': return 'accent';
-            default: return 'default';
+            default: return 'primary';
         }
     }
 }
-
-// Simple dialog component for plan name input
-@Component({
-    selector: 'nom-plan-name-dialog',
-    standalone: true,
-    imports: [MatDialogModule, FormsModule, AmwInputComponent, AmwButtonComponent],
-    template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      <p>{{ data.message }}</p>
-      <amw-input
-        [(ngModel)]="planName"
-        label="Plan Name"
-        placeholder="Enter plan name"
-        style="width: 100%;">
-      </amw-input>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <amw-button variant="text" mat-dialog-close>Cancel</amw-button>
-      <amw-button variant="filled" color="primary" [mat-dialog-close]="planName" [disabled]="!planName.trim()">
-        Clone
-      </amw-button>
-    </mat-dialog-actions>
-  `
-})
-export class PlanNameDialogComponent {
-    dialogRef = inject(MatDialog);
-    data = inject(MAT_DIALOG_DATA);
-
-    planName = '';
-
-    constructor() {
-        const data = this.data;
-
-        this.planName = data.defaultValue || '';
-    }
-} 

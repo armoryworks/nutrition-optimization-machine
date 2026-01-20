@@ -7,7 +7,7 @@ import {
 } from '@angular/forms';
 
 // Angular Material Imports
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
 
@@ -20,7 +20,7 @@ import { NotificationService } from '../../../utilities/services/notification.se
     standalone: true,
     imports: [
         ReactiveFormsModule,
-        MatProgressBarModule,
+        AmwProgressBarComponent,
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,

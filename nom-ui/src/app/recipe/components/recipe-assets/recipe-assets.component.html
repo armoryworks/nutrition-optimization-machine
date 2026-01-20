@@ -102,19 +102,17 @@
       }
 
       @if (!isLoading() && assets().length > 0) {
-        <mat-list class="recipe-assets__list">
+        <amw-list listClass="recipe-assets__list">
           @for (asset of assets(); track asset.id) {
-            <mat-list-item class="recipe-assets__list-item">
-              <div matListItemIcon class="recipe-assets__item-icon">
-                <amw-icon [name]="getIconClass(asset.icon)" [amwTooltip]="getIconClass(asset.icon)" amwTooltipPosition="above">
-                </amw-icon>
-              </div>
-              
-              <div matListItemTitle class="recipe-assets__item-title">
+            <amw-list-item itemClass="recipe-assets__list-item">
+              <amw-icon amwListItemIcon [name]="getIconClass(asset.icon)" [amwTooltip]="getIconClass(asset.icon)" amwTooltipPosition="above" class="recipe-assets__item-icon">
+              </amw-icon>
+
+              <span amwListItemTitle class="recipe-assets__item-title">
                 {{ asset.name }}
-              </div>
-              
-              <div matListItemLine class="recipe-assets__item-meta">
+              </span>
+
+              <div amwListItemSubtitle class="recipe-assets__item-meta">
                 @if (asset.description) {
                   <span class="recipe-assets__item-description">{{ asset.description }}</span>
                 }
@@ -122,7 +120,7 @@
                 <span class="recipe-assets__item-date">{{ formatDate(asset.createdDate) }}</span>
               </div>
 
-              <div matListItemMeta class="recipe-assets__item-actions">
+              <div amwListItemMeta class="recipe-assets__item-actions">
                 <amw-icon-button
                   icon="download"
                   color="primary"
@@ -141,9 +139,9 @@
                   </amw-icon-button>
                 }
               </div>
-            </mat-list-item>
+            </amw-list-item>
           }
-        </mat-list>
+        </amw-list>
       }
     </div>
   </div>

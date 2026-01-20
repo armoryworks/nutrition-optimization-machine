@@ -7,9 +7,7 @@
 
   &__overview {
     .privacy-analytics__card {
-      background: var(--mat-card-background-color);
       border-radius: 12px;
-      box-shadow: var(--mat-card-elevation-shadow);
     }
   }
 
@@ -26,15 +24,12 @@
     gap: 0.5rem;
     padding: 1rem;
     border-radius: 8px;
-    background: var(--mat-card-background-color);
-    border: 1px solid var(--mat-divider-color);
   }
 
   &__metric-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--mat-card-subtitle-text-color);
     font-size: 0.875rem;
   }
 
@@ -48,18 +43,15 @@
   &__score {
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--mat-card-title-text-color);
   }
 
   &__number {
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--mat-card-title-text-color);
   }
 
   &__label {
     font-size: 0.875rem;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__details {
@@ -71,9 +63,7 @@
   }
 
   &__detail-card {
-    background: var(--mat-card-background-color);
     border-radius: 12px;
-    box-shadow: var(--mat-card-elevation-shadow);
   }
 
   &__detail-metrics {
@@ -87,7 +77,6 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--mat-divider-color);
 
     &:last-child {
       border-bottom: none;
@@ -96,12 +85,10 @@
 
   &__detail-label {
     font-weight: 500;
-    color: var(--mat-card-title-text-color);
   }
 
   &__detail-value {
     font-weight: 600;
-    color: var(--mat-card-title-text-color);
   }
 
   &__actions {
@@ -117,9 +104,7 @@
 
   &__logs {
     .privacy-analytics__logs-card {
-      background: var(--mat-card-background-color);
       border-radius: 12px;
-      box-shadow: var(--mat-card-elevation-shadow);
     }
   }
 
@@ -136,7 +121,6 @@
 
   &__time {
     font-size: 0.75rem;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__action {
@@ -159,7 +143,6 @@
     gap: 1rem;
     padding: 3rem 1rem;
     text-align: center;
-    color: var(--mat-card-subtitle-text-color);
   }
 
   &__empty-icon {
@@ -200,21 +183,3 @@
     }
   }
 }
-
-// Dark theme adjustments
-@media (prefers-color-scheme: dark) {
-  .privacy-analytics {
-    &__metric {
-      background: var(--mat-card-background-color-dark);
-      border-color: var(--mat-divider-color-dark);
-    }
-
-    &__detail-card {
-      background: var(--mat-card-background-color-dark);
-    }
-
-    &__logs-card {
-      background: var(--mat-card-background-color-dark);
-    }
-  }
-} 

@@ -17,59 +17,19 @@
         </div>
       } @else {
         <div class="measurement-list__table-container">
-          <table mat-table [dataSource]="measurements()" class="measurement-list__table">
-            <!-- Name Column -->
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Name</th>
-              <td mat-cell *matCellDef="let measurement">{{ measurement.name }}</td>
-            </ng-container>
-
-            <!-- Abbreviation Column -->
-            <ng-container matColumnDef="abbreviation">
-              <th mat-header-cell *matHeaderCellDef>Abbreviation</th>
-              <td mat-cell *matCellDef="let measurement">{{ measurement.abbreviation }}</td>
-            </ng-container>
-
-            <!-- Type Column -->
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
-              <td mat-cell *matCellDef="let measurement">{{ measurement.measurementType }}</td>
-            </ng-container>
-
-            <!-- Conversion Factor Column -->
-            <ng-container matColumnDef="conversionFactor">
-              <th mat-header-cell *matHeaderCellDef>Conversion Factor</th>
-              <td mat-cell *matCellDef="let measurement">{{ measurement.conversionFactor }}</td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let measurement">
-                <amw-icon-button
-                  icon="edit"
-                  color="primary"
-                  (click)="onEdit(measurement)"
-                  ariaLabel="Edit">
-                </amw-icon-button>
-                <amw-icon-button
-                  icon="delete"
-                  color="warn"
-                  (click)="onDelete(measurement)"
-                  ariaLabel="Delete">
-                </amw-icon-button>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-
           @if (measurements().length === 0) {
             <div class="measurement-list__empty">
               <amw-icon name="inbox"></amw-icon>
               <p>No measurements found</p>
             </div>
+          } @else {
+            <amw-data-table
+              [config]="tableConfig"
+              [columns]="tableColumns"
+              [data]="measurements()"
+              (rowClick)="onEdit($event)"
+              class="measurement-list__table">
+            </amw-data-table>
           }
         </div>
       }

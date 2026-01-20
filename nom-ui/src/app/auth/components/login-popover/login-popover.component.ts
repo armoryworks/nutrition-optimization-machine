@@ -2,9 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { MatDividerModule } from '@angular/material/divider';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwDividerComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../../auth.service';
 
@@ -13,10 +11,10 @@ import { AuthService } from '../../auth.service';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatDividerModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwDividerComponent
   ],
   templateUrl: './login-popover.component.html',
   styleUrls: ['./login-popover.component.scss']

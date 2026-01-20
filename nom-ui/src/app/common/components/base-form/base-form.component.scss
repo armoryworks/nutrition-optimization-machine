@@ -11,7 +11,6 @@
 .form-actions {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
 
   .action-buttons {
     display: flex;
@@ -29,27 +28,3 @@
     }
   }
 }
-
-mat-card {
-  background-color: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-}
-
-mat-card-header {
-  margin-bottom: 16px;
-}
-
-mat-card-title {
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-headline-medium);
-  font-weight: 600;
-}
-
-mat-card-subtitle {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-large);
-}
-
-mat-card-content {
-  padding: 0;
-} 

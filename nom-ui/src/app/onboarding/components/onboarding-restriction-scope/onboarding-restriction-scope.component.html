@@ -5,18 +5,12 @@
     Will the dietary restrictions and preferences you are about to enter apply
     to the **entire plan** (all participants), or to **specific people**?
   </p>
-  <mat-radio-group
-    aria-label="Restriction Scope"
+  <amw-radio-group
     [formControl]="internalRestrictionScopeControl"
-    class="nom-radio-group"
-  >
-    <mat-radio-button value="plan" class="nom-radio-button">
-      Apply to Entire Plan
-    </mat-radio-button>
-    <mat-radio-button value="specific" class="nom-radio-button">
-      Apply to Specific People
-    </mat-radio-button>
-  </mat-radio-group>
+    [options]="getScopeOptions()"
+    orientation="vertical"
+    class="nom-radio-group">
+  </amw-radio-group>
   @if (internalRestrictionScopeControl.invalid && internalRestrictionScopeControl.touched) {
   <p class="nom-form__error">Please select a restriction scope.</p>
   }

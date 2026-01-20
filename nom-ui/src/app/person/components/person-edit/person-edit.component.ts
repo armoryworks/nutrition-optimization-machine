@@ -5,7 +5,7 @@ import {
   NonNullableFormBuilder,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AmwProgressBarComponent } from 'angular-material-wrap';
 import { Subject } from 'rxjs';
 
 import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
@@ -17,7 +17,7 @@ import { PersonModel } from '../../models/person.model';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
+    AmwProgressBarComponent,
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,

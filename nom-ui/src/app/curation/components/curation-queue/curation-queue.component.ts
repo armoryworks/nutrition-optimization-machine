@@ -4,11 +4,9 @@ import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular
 import { NgClass } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatChipsModule } from '@angular/material/chips';
 import { Subject, takeUntil, finalize } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwAccordionComponent, AmwAccordionPanelComponent } from 'angular-material-wrap';
 
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
@@ -23,8 +21,6 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     NgClass,
     FormsModule,
     ReactiveFormsModule,
-    MatExpansionModule,
-    MatChipsModule,
     AmwButtonComponent,
     AmwCardComponent,
     AmwTextareaComponent,
@@ -34,6 +30,8 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     AmwMenuComponent,
     AmwMenuItemComponent,
     AmwMenuTriggerForDirective,
+    AmwAccordionComponent,
+    AmwAccordionPanelComponent,
     BaseListComponent,
   ],
   templateUrl: './curation-queue.component.html',

@@ -8,9 +8,7 @@ import {
 
 import { RouterLink } from '@angular/router';
 
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { SendConfirmationEmail } from '../models/send-confirmation-email';
@@ -21,11 +19,11 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     RouterLink,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressBarComponent
   ],
   templateUrl: './send-confirmation-email.component.html',
   styleUrls: ['./send-confirmation-email.component.scss'],

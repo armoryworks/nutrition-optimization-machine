@@ -18,27 +18,20 @@
   align-items: center;
   padding: 0 1rem;
   gap: 1rem;
-  background-color: var(--mat-sys-surface);
   z-index: 10;
 
   .header-content {
     flex-shrink: 0;
 
-
     .list-title {
       width: grow;
       float: left;
       margin: 0 0 8px 0;
-      font: var(--mat-sys-headline-large);
-      color: var(--mat-sys-on-surface);
-      font-weight: 600;
     }
 
     .list-subtitle {
       margin: 15px 0 0 15px;
       float: left;
-      font: var(--mat-sys-body-large);
-      color: var(--mat-sys-on-surface-variant);
     }
   }
 
@@ -67,39 +60,7 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
         border-radius: 8px;
-        font-weight: 500;
-        border: 1px solid var(--mat-sys-outline-variant);
-        transition: all 0.2s ease;
         white-space: nowrap;
-
-        &--pending {
-          background-color: var(--mat-sys-primary-container);
-          color: var(--mat-sys-on-primary-container);
-          border-color: var(--mat-sys-primary);
-        }
-
-        &--recipe {
-          background-color: var(--mat-sys-secondary-container);
-          color: var(--mat-sys-on-secondary-container);
-          border-color: var(--mat-sys-secondary);
-        }
-
-        &--ingredient {
-          background-color: var(--mat-sys-tertiary-container);
-          color: var(--mat-sys-on-tertiary-container);
-          border-color: var(--mat-sys-tertiary);
-        }
-
-        &--plan {
-          background-color: var(--mat-sys-primary-container);
-          color: var(--mat-sys-on-primary-container);
-          border-color: var(--mat-sys-primary);
-        }
-
-        &:hover {
-          background-color: var(--mat-sys-surface-container-high);
-          border-color: var(--mat-sys-outline);
-        }
       }
     }
 
@@ -109,8 +70,6 @@
 
       .progress-text {
         font-size: 0.875rem;
-        color: var(--mat-sys-on-surface-variant);
-        font-weight: 500;
         white-space: nowrap;
       }
     }
@@ -154,12 +113,6 @@
       padding: 0.25rem 0.5rem;
       height: 28px;
       line-height: 28px;
-
-      mat-icon {
-        font-size: 1rem;
-        width: 1rem;
-        height: 1rem;
-      }
     }
 
     .custom-actions-group {
@@ -173,18 +126,10 @@
       padding: 0.25rem 0.5rem;
       height: 28px;
       line-height: 28px;
-
-      mat-icon {
-        font-size: 1rem;
-        width: 1rem;
-        height: 1rem;
-      }
     }
 
     .last-updated {
       font-size: 0.75rem;
-      color: var(--mat-sys-on-surface-variant);
-      font-style: italic;
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -201,6 +146,7 @@
   overflow-y: hidden;
   padding: 0 1rem;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .search-section {
@@ -218,11 +164,9 @@
   align-items: center;
   gap: 16px;
   padding: 40px;
-  color: var(--mat-sys-on-surface-variant);
 
   p {
     margin: 0;
-    font: var(--mat-sys-body-large);
   }
 }
 
@@ -233,24 +177,13 @@
   gap: 16px;
   padding: 40px;
   text-align: center;
-  color: var(--mat-sys-error);
-
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
-  }
 
   h3 {
     margin: 0;
-    color: var(--mat-sys-error);
-    font: var(--mat-sys-headline-medium);
   }
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
-    font: var(--mat-sys-body-large);
   }
 }
 
@@ -261,33 +194,16 @@
   gap: 16px;
   padding: 40px;
   text-align: center;
-  color: var(--mat-sys-on-surface-variant);
-
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
-    color: var(--mat-sys-outline);
-  }
 
   h3 {
     margin: 0;
-    color: var(--mat-sys-on-surface);
-    font: var(--mat-sys-headline-medium);
   }
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
-    font: var(--mat-sys-body-large);
   }
 }
 
-.list-content {
-  width: 100%;
-}
-
-// Responsive adjustments
 @media (max-width: 768px) {
   .list-header {
     flex-direction: column;
@@ -297,4 +213,4 @@
       align-self: flex-end;
     }
   }
-} 
+}

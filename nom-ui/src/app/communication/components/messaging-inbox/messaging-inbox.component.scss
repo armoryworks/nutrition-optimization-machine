@@ -41,7 +41,6 @@
 
     p {
       margin-top: 1rem;
-      color: var(--mat-mdc-card-subtitle-text-color);
     }
   }
 
@@ -50,7 +49,7 @@
   }
 
   &__error-card {
-    border-left: 4px solid var(--mat-mdc-standard-focus-indicator-color);
+    // Inherits theme styles
   }
 
   &__error-content {
@@ -60,16 +59,8 @@
     text-align: center;
     padding: 1rem;
 
-    mat-icon {
-      font-size: 3rem;
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 1rem;
-    }
-
     p {
       margin: 0 0 1rem 0;
-      color: var(--mat-mdc-card-subtitle-text-color);
     }
   }
 
@@ -78,7 +69,6 @@
   }
 
   &__empty-card {
-    border: 2px dashed var(--mat-mdc-card-subtitle-text-color);
     background: transparent;
   }
 
@@ -89,22 +79,12 @@
     text-align: center;
     padding: 3rem 1rem;
 
-    mat-icon {
-      font-size: 4rem;
-      width: 4rem;
-      height: 4rem;
-      margin-bottom: 1rem;
-      color: var(--mat-mdc-card-subtitle-text-color);
-    }
-
     h3 {
       margin: 0 0 0.5rem 0;
-      color: var(--mat-mdc-card-title-text-color);
     }
 
     p {
       margin: 0 0 1.5rem 0;
-      color: var(--mat-mdc-card-subtitle-text-color);
     }
   }
 
@@ -125,23 +105,14 @@
     display: flex;
     align-items: center;
     padding: 1rem;
-    border-bottom: 1px solid var(--mat-mdc-card-subtitle-text-color);
     cursor: pointer;
     transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: var(--mat-mdc-card-subtitle-text-color);
-      opacity: 0.8;
-    }
 
     &:last-child {
       border-bottom: none;
     }
 
     &--unread {
-      background-color: var(--mat-mdc-standard-focus-indicator-color);
-      opacity: 0.1;
-
       .messaging-inbox__participant {
         font-weight: 600;
       }
@@ -162,17 +133,9 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: var(--mat-mdc-standard-focus-indicator-color);
     display: flex;
     align-items: center;
     justify-content: center;
-
-    mat-icon {
-      color: white;
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-    }
   }
 
   &__badge {
@@ -198,7 +161,6 @@
     margin: 0;
     font-size: 1rem;
     font-weight: 500;
-    color: var(--mat-mdc-card-title-text-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -206,7 +168,6 @@
 
   &__timestamp {
     font-size: 0.875rem;
-    color: var(--mat-mdc-card-subtitle-text-color);
     white-space: nowrap;
     margin-left: 0.5rem;
   }
@@ -214,7 +175,6 @@
   &__preview {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--mat-mdc-card-subtitle-text-color);
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -243,12 +203,6 @@
     &__avatar {
       width: 40px;
       height: 40px;
-
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
     }
 
     &__participant {

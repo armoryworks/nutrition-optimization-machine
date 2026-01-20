@@ -2,10 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
@@ -17,11 +16,11 @@ import { BaseFormConfig } from '../../../common/components/base-form/base-form.c
     standalone: true,
     imports: [
     ReactiveFormsModule,
-    MatProgressSpinnerModule,
     AmwInputComponent,
     AmwTextareaComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressSpinnerComponent
 ],
     templateUrl: './household-edit.component.html',
     styleUrls: ['./household-edit.component.scss']
@@ -31,7 +30,7 @@ export class HouseholdEditComponent implements OnInit {
     private householdService = inject(HouseholdService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
 
     householdForm: FormGroup = this.nonNullableFb.group({
         name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -76,11 +75,7 @@ export class HouseholdEditComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading household:', error);
-                this.snackBar.open('Failed to load household details', 'Close', {
-                    duration: 5000,
-                    horizontalPosition: 'center',
-                    verticalPosition: 'top'
-                });
+                this.notificationService.error('Failed to load household details');
                 this.router.navigate(['/household']);
             }
         });
@@ -98,21 +93,13 @@ export class HouseholdEditComponent implements OnInit {
             this.householdService.updateHousehold(this.householdId(), updateRequest).subscribe({
                 next: () => {
                     this.isLoading.set(false);
-                    this.snackBar.open('Household updated successfully!', 'Close', {
-                        duration: 3000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.success('Household updated successfully!');
                     this.router.navigate(['/household', this.householdId()]);
                 },
                 error: (error) => {
                     this.isLoading.set(false);
                     console.error('Error updating household:', error);
-                    this.snackBar.open('Failed to update household. Please try again.', 'Close', {
-                        duration: 5000,
-                        horizontalPosition: 'center',
-                        verticalPosition: 'top'
-                    });
+                    this.notificationService.error('Failed to update household. Please try again.');
                 }
             });
         }

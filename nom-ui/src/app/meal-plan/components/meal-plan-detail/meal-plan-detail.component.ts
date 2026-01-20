@@ -1,10 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatChipsModule } from '@angular/material/chips';
-
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
@@ -15,11 +12,11 @@ import { NotificationService } from '../../../utilities/services/notification.se
   standalone: true,
   imports: [
     TitleCasePipe,
-    MatProgressBarModule,
-    MatChipsModule,
+    AmwProgressBarComponent,
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,
+    AmwChipComponent,
     AmwMenuComponent,
     AmwMenuItemComponent,
     AmwMenuTriggerForDirective
@@ -121,7 +118,7 @@ export class MealPlanDetailComponent implements OnInit {
     }
   }
 
-  getMealTypeColor(mealType: string): string {
+  getMealTypeColor(mealType: string): 'primary' | 'accent' | 'warn' {
     switch (mealType?.toLowerCase()) {
       case 'breakfast': return 'primary';
       case 'lunch': return 'accent';

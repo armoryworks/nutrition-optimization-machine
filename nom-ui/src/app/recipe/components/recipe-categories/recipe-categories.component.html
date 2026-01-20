@@ -91,18 +91,18 @@
     </amw-card>
 
     <!-- Loading State -->
-    <div *ngIf="loading" class="recipe-categories__loading">
+    <div *ngIf="isLoading()" class="recipe-categories__loading">
       <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
       <p>Loading categories...</p>
     </div>
 
     <!-- Error State -->
-    <div *ngIf="error && !loading" class="recipe-categories__error">
+    <div *ngIf="error() && !isLoading()" class="recipe-categories__error">
       <amw-card class="recipe-categories__error-card">
         <ng-template #contentTemplate>
           <div class="recipe-categories__error-content">
             <amw-icon name="error" color="warn"></amw-icon>
-            <p>{{ error }}</p>
+            <p>{{ error() }}</p>
             <amw-button variant="text" color="primary" (click)="onRetry()">
               Try Again
             </amw-button>
@@ -112,7 +112,7 @@
     </div>
 
     <!-- Available Categories -->
-    <div *ngIf="!loading && !error" class="recipe-categories__content">
+    <div *ngIf="!isLoading() && !error()" class="recipe-categories__content">
       <amw-card
         headerTitle="Available Categories"
         headerSubtitle="Click to add categories to this recipe"
@@ -120,7 +120,7 @@
         <ng-template #contentTemplate>
           <div class="recipe-categories__available-list">
             <div
-              *ngFor="let category of filteredCategories"
+              *ngFor="let category of filteredCategories()"
               class="recipe-categories__available-item"
               [class.recipe-categories__available-item--selected]="isCategorySelected(category)"
               (click)="addCategory(category)"
@@ -130,14 +130,16 @@
               [attr.aria-label]="'Add category: ' + category.name"
             >
               <div class="recipe-categories__category-info">
-                <mat-chip
+                <amw-chip
+                  [label]="category.name"
+                  [icon]="category.icon"
+                  [selectable]="true"
+                  [selected]="isCategorySelected(category)"
+                  (selectionChange)="addCategory(category)"
                   [style]="getCategoryStyle(category)"
-                  class="recipe-categories__chip"
                   [amwTooltip]="category.description || category.name"
-                >
-                  <amw-icon [name]="category.icon" class="recipe-categories__chip-icon"></amw-icon>
-                  {{ category.name }}
-                </mat-chip>
+                  chipClass="recipe-categories__chip">
+                </amw-chip>
                 <div class="recipe-categories__category-details">
                   <span class="recipe-categories__parent" *ngIf="category.parentCategoryId">
                     Parent: {{ getParentCategoryName(category) }}
@@ -160,28 +162,22 @@
 
       <!-- Selected Categories -->
       <amw-card
-        *ngIf="categories.length > 0"
+        *ngIf="categories().length > 0"
         headerTitle="Selected Categories"
         headerSubtitle="Categories assigned to this recipe"
         class="recipe-categories__selected-card">
         <ng-template #contentTemplate>
           <div class="recipe-categories__selected-list">
-            <mat-chip
-              *ngFor="let category of categories"
+            <amw-chip
+              *ngFor="let category of categories()"
+              [label]="category.name"
+              [icon]="category.icon"
+              [removable]="true"
+              (removed)="removeCategory(category)"
               [style]="getCategoryStyle(category)"
-              class="recipe-categories__chip recipe-categories__chip--selected"
               [amwTooltip]="category.description || category.name"
-            >
-              <amw-icon [name]="category.icon" class="recipe-categories__chip-icon"></amw-icon>
-              {{ category.name }}
-              <button
-                matChipRemove
-                (click)="removeCategory(category)"
-                [amwTooltip]="'Remove category'"
-              >
-                <amw-icon name="cancel"></amw-icon>
-              </button>
-            </mat-chip>
+              chipClass="recipe-categories__chip recipe-categories__chip--selected">
+            </amw-chip>
           </div>
         </ng-template>
       </amw-card>

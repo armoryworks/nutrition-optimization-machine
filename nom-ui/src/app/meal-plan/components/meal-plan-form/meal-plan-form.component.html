@@ -8,11 +8,11 @@
 
   <ng-template #contentTemplate>
     @if (isSubmitting()) {
-      <mat-progress-bar
+      <amw-progress-bar
         mode="indeterminate"
         color="primary"
         class="nom-card__progress-bar">
-      </mat-progress-bar>
+      </amw-progress-bar>
     }
       <form [formGroup]="mealPlanForm" (ngSubmit)="onSubmit()" class="nom-form">
         <!-- Plan Information -->

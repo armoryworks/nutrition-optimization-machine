@@ -6,9 +6,7 @@
   &__average-card,
   &__form-card,
   &__user-rating-card {
-    background-color: var(--mat-sys-surface-container);
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(var(--mat-sys-shadow), 0.1);
   }
 
   &__average-display {
@@ -27,23 +25,9 @@
     font-size: 24px;
     width: 24px;
     height: 24px;
-    transition: all 0.2s ease;
-
-    &.star-filled {
-      color: var(--mat-sys-primary);
-    }
-
-    &.star-empty {
-      color: var(--mat-sys-outline);
-    }
 
     &--clickable {
       cursor: pointer;
-
-      &:hover {
-        transform: scale(1.2);
-        color: var(--mat-sys-primary);
-      }
     }
   }
 
@@ -55,13 +39,10 @@
 
   &__average-score {
     font-size: 24px;
-    font-weight: 600;
-    color: var(--mat-sys-on-surface);
   }
 
   &__average-text {
     font-size: 14px;
-    color: var(--mat-sys-on-surface-variant);
   }
 
   &__form {
@@ -78,43 +59,16 @@
   }
 
   &__star-label {
-    font-weight: 500;
-    color: var(--mat-sys-on-surface);
     min-width: 80px;
   }
 
   &__rating-text {
     font-size: 16px;
-    color: var(--mat-sys-on-surface-variant);
     min-width: 100px;
   }
 
   &__field {
     width: 100%;
-
-    .mat-form-field-wrapper {
-      background-color: var(--mat-sys-surface-container-low);
-      border-radius: 8px;
-    }
-
-    .mat-form-field-label,
-    .mat-form-field-hint,
-    .mat-form-field-prefix,
-    .mat-form-field-suffix {
-      color: var(--mat-sys-on-surface);
-    }
-
-    textarea.mat-input-element {
-      color: var(--mat-sys-on-surface);
-
-      &::placeholder {
-        color: var(--mat-sys-outline);
-      }
-    }
-
-    mat-error {
-      color: var(--mat-sys-error);
-    }
   }
 
   &__actions {
@@ -123,55 +77,10 @@
     align-items: center;
   }
 
-  &__submit-btn {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-    border-radius: 8px;
-    padding: 8px 24px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-      background-color: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.2);
-    }
-
-    &:disabled {
-      background-color: var(--mat-sys-outline);
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    mat-icon {
-      margin-right: 8px;
-    }
-  }
-
+  &__submit-btn,
   &__delete-btn {
-    color: var(--mat-sys-error);
-    border-color: var(--mat-sys-error);
     border-radius: 8px;
     padding: 8px 24px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-
-    &:hover:not(:disabled) {
-      background-color: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
-      border-color: var(--mat-sys-error-container);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(var(--mat-sys-shadow), 0.2);
-    }
-
-    &:disabled {
-      color: var(--mat-sys-outline);
-      border-color: var(--mat-sys-outline);
-    }
-
-    mat-icon {
-      margin-right: 8px;
-    }
   }
 
   &__user-rating-display {
@@ -190,13 +99,10 @@
 
   &__user-score {
     font-size: 18px;
-    font-weight: 600;
-    color: var(--mat-sys-on-surface);
   }
 
   &__user-review {
     margin: 0;
-    color: var(--mat-sys-on-surface);
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -208,9 +114,7 @@
     align-items: center;
     justify-content: center;
     padding: 48px 24px;
-    background-color: var(--mat-sys-surface-container-low);
     border-radius: 12px;
-    color: var(--mat-sys-on-surface-variant);
     text-align: center;
 
     p {
@@ -221,7 +125,6 @@
   }
 }
 
-// Responsive design
 @media (max-width: 768px) {
   .nom-recipe-rating {
     gap: 16px;
@@ -271,22 +174,3 @@
     }
   }
 }
-
-// Dark theme adjustments
-@media (prefers-color-scheme: dark) {
-  .nom-recipe-rating {
-    &__average-card,
-    &__form-card,
-    &__user-rating-card {
-      background-color: var(--mat-sys-surface-container-high);
-    }
-
-    &__field .mat-form-field-wrapper {
-      background-color: var(--mat-sys-surface-container);
-    }
-
-    &__loading {
-      background-color: var(--mat-sys-surface-container);
-    }
-  }
-} 

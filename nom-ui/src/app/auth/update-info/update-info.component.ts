@@ -7,9 +7,7 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { UpdateInfo } from '../models/update-info';
@@ -21,10 +19,10 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressBarComponent
   ],
   templateUrl: './update-info.component.html',
   styleUrls: ['./update-info.component.scss'],

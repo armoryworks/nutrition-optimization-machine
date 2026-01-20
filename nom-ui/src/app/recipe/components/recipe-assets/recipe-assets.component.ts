@@ -1,16 +1,12 @@
 import { Component, OnInit, inject, OnDestroy, signal, input, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatListModule } from '@angular/material/list';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, DialogService } from 'angular-material-wrap';
 
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
-import { ConfirmDeleteDialogComponent } from '../confirm-delete-dialog/confirm-delete-dialog.component';
 import { BasePageComponent } from '../../../common/components/base-page/base-page.component';
 
 @Component({
@@ -18,9 +14,6 @@ import { BasePageComponent } from '../../../common/components/base-page/base-pag
     standalone: true,
     imports: [
         ReactiveFormsModule,
-        MatListModule,
-        MatDialogModule,
-        MatProgressBarModule,
         AmwButtonComponent,
         AmwInputComponent,
         AmwSelectComponent,
@@ -30,6 +23,8 @@ import { BasePageComponent } from '../../../common/components/base-page/base-pag
         AmwTooltipDirective,
         AmwIconComponent,
         AmwProgressSpinnerComponent,
+        AmwListComponent,
+        AmwListItemComponent,
         BasePageComponent,
     ],
     templateUrl: './recipe-assets.component.html',
@@ -38,8 +33,8 @@ import { BasePageComponent } from '../../../common/components/base-page/base-pag
 export class RecipeAssetsComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private recipeAssetsService = inject(RecipeAssetsService);
-    private snackBar = inject(MatSnackBar);
-    private dialog = inject(MatDialog);
+    private notificationService = inject(NotificationService);
+    private dialogService = inject(DialogService);
     private configurationService = inject(ConfigurationService);
 
     // Input properties
@@ -103,7 +98,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                     console.error('Error loading assets:', error);
                     this.error.set('Failed to load assets. Please try again.');
                     this.isLoading.set(false);
-                    this.snackBar.open('Failed to load assets', 'Close', { duration: 3000 });
+                    this.notificationService.error('Failed to load assets');
                 }
             });
     }
@@ -113,12 +108,12 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
         if (file) {
             // Validate file type and size
             if (!this.configurationService.isFileTypeAllowed(file.name, 'image')) {
-                this.snackBar.open('Invalid file type. Please select an image file.', 'Close', { duration: 3000 });
+                this.notificationService.error('Invalid file type. Please select an image file.');
                 return;
             }
 
             if (!this.configurationService.isFileSizeAllowed(file.size)) {
-                this.snackBar.open('File size too large. Maximum size is 10MB.', 'Close', { duration: 3000 });
+                this.notificationService.error('File size too large. Maximum size is 10MB.');
                 return;
             }
 
@@ -148,12 +143,12 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                     next: (newAsset: any) => {
                         this.assets.set([...this.assets(), newAsset]);
                         this.resetForm();
-                        this.snackBar.open('Asset uploaded successfully', 'Close', { duration: 3000 });
+                        this.notificationService.success('Asset uploaded successfully');
                         this.isSubmitting.set(false);
                     },
                     error: (error: any) => {
                         console.error('Error uploading asset:', error);
-                        this.snackBar.open('Failed to upload asset', 'Close', { duration: 3000 });
+                        this.notificationService.error('Failed to upload asset');
                         this.isSubmitting.set(false);
                     }
                 });
@@ -161,25 +156,22 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     }
 
     onDeleteAsset(assetId: number): void {
-        const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
-            width: '400px',
-            data: { message: 'Are you sure you want to delete this asset?' }
-        });
-
-        dialogRef.afterClosed().subscribe((result: any) => {
-            if (result) {
-                this.recipeAssetsService.deleteRecipeAsset(assetId).subscribe({
-                    next: () => {
-                        this.assets.set(this.assets().filter(asset => asset.id !== assetId));
-                        this.snackBar.open('Asset deleted successfully', 'Close', { duration: 3000 });
-                    },
-                    error: (error: any) => {
-                        console.error('Error deleting asset:', error);
-                        this.snackBar.open('Failed to delete asset', 'Close', { duration: 3000 });
-                    }
-                });
-            }
-        });
+        this.dialogService.confirm('Are you sure you want to delete this asset?', 'Confirm Delete')
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((confirmed) => {
+                if (confirmed) {
+                    this.recipeAssetsService.deleteRecipeAsset(assetId).subscribe({
+                        next: () => {
+                            this.assets.set(this.assets().filter(asset => asset.id !== assetId));
+                            this.notificationService.success('Asset deleted successfully');
+                        },
+                        error: (error: any) => {
+                            console.error('Error deleting asset:', error);
+                            this.notificationService.error('Failed to delete asset');
+                        }
+                    });
+                }
+            });
     }
 
     onDownloadAsset(asset: any): void {
@@ -194,7 +186,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             },
             error: (error: any) => {
                 console.error('Error downloading asset:', error);
-                this.snackBar.open('Failed to download asset', 'Close', { duration: 3000 });
+                this.notificationService.error('Failed to download asset');
             }
         });
     }

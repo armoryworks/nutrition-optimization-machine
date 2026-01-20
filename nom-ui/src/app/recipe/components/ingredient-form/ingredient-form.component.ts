@@ -1,11 +1,10 @@
 import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef, inject, input, output, signal } from '@angular/core';
 
 import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientModel } from '../../models/ingredient.model';
@@ -34,13 +33,13 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     AmwInputComponent,
     AmwTextareaComponent,
     AmwButtonComponent,
     AmwSelectComponent,
     AmwCardComponent,
     AmwIconComponent,
+    AmwProgressBarComponent,
   ],
   templateUrl: './ingredient-form.component.html',
   styleUrls: ['./ingredient-form.component.scss']

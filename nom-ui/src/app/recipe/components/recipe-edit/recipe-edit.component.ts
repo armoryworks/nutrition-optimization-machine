@@ -1,6 +1,6 @@
 // File: nom-ui/src/app/recipe/components/recipe-edit/recipe-edit.component.ts
 
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, effect, Injector } from '@angular/core';
 import { FormArray, NonNullableFormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Location } from '@angular/common';
@@ -8,15 +8,12 @@ import { RecipeService } from '../../services/recipe.service';
 import { of, Subject } from 'rxjs';
 import { finalize, takeUntil, take, catchError } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, DialogService } from 'angular-material-wrap';
 
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { RecipeModel } from '../../models/recipe.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
-import { IngredientCreateModalComponent, IngredientCreateModalData } from '../ingredient-create-modal/ingredient-create-modal.component';
+import { IngredientCreateComponent } from '../ingredient-create/ingredient-create.component';
 import { IngredientModel } from '../../models/ingredient.model';
 import { RecipeEditModel } from '../../models/recipe-edit.model';
 import { RecipeStepModel } from '../../models/recipe-step.model';
@@ -36,15 +33,14 @@ interface AutocompleteOption {
         ReactiveFormsModule,
         RouterModule,
         DragDropModule,
-        MatProgressBarModule,
-        MatDialogModule,
         AmwInputComponent,
         AmwTextareaComponent,
         AmwButtonComponent,
         AmwSelectComponent,
         AmwAutocompleteComponent,
         AmwCardComponent,
-        AmwIconComponent
+        AmwIconComponent,
+        AmwProgressBarComponent
     ],
     templateUrl: './recipe-edit.component.html',
     styleUrls: ['./recipe-edit.component.scss']
@@ -56,9 +52,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private location = inject(Location);
     private recipeService = inject(RecipeService);
     private notificationService = inject(NotificationService);
-    private dialog = inject(MatDialog);
+    private dialogService = inject(DialogService);
     private curationService = inject(CurationService);
     private referenceDataService = inject(ReferenceDataService);
+    private injector = inject(Injector);
 
     recipeForm: FormGroup;
     isEditMode = signal(false);
@@ -198,13 +195,26 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     };
 
     openCreateIngredientModal(): void {
-        const dialogRef = this.dialog.open<IngredientCreateModalComponent, IngredientCreateModalData, IngredientModel>(
-            IngredientCreateModalComponent,
-            {
-                width: '500px',
-                data: { recipeId: this.recipeId() || undefined }
+        const dialogRef = this.dialogService.open('Create Ingredient', IngredientCreateComponent, {
+            width: '500px'
+        });
+
+        // Set data via instance signals
+        dialogRef.instance.recipeId.set(this.recipeId() || undefined);
+
+        // Signal-based communication with the create component
+        effect(() => {
+            const ingredient = dialogRef.instance.confirmed();
+            if (ingredient) {
+                dialogRef.close(ingredient);
             }
-        );
+        }, { injector: this.injector });
+
+        effect(() => {
+            if (dialogRef.instance.cancelled()) {
+                dialogRef.close();
+            }
+        }, { injector: this.injector });
 
         dialogRef.afterClosed().pipe(take(1)).subscribe(result => {
             if (result) {

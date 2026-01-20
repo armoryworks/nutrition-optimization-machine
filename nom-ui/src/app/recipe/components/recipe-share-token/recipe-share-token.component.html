@@ -41,7 +41,7 @@
       </div>
     </form>
 
-    <mat-divider class="recipe-share-token__divider"></mat-divider>
+    <amw-divider dividerClass="recipe-share-token__divider"></amw-divider>
 
     <!-- Share Tokens List -->
     <div class="recipe-share-token__tokens-section">
@@ -59,13 +59,11 @@
                <h4 class="recipe-share-token__token-name">
                  {{ shareToken.shareName || 'Unnamed Share' }}
                </h4>
-               <mat-chip-set class="recipe-share-token__token-chips">
-                 <mat-chip 
-                   [color]="shareToken.isPublic ? 'accent' : 'primary'" 
-                   class="recipe-share-token__token-chip">
-                   {{ shareToken.isPublic ? 'Public' : 'Private' }}
-                 </mat-chip>
-               </mat-chip-set>
+               <amw-chip
+                 [label]="shareToken.isPublic ? 'Public' : 'Private'"
+                 [color]="shareToken.isPublic ? 'accent' : 'primary'"
+                 chipClass="recipe-share-token__token-chip">
+               </amw-chip>
              </div>
              
              <div class="recipe-share-token__token-details">

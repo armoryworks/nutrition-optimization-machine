@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal, input } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwIconComponent, AmwIconButtonComponent } from 'angular-material-wrap';
@@ -26,7 +26,7 @@ import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recip
 export class RecipeCommentsComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
-    private snackBar = inject(MatSnackBar);
+    private notificationService = inject(NotificationService);
     private destroy$ = new Subject<void>();
 
     recipeId = input.required<number>();
@@ -97,7 +97,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 next: (comment) => {
                     this.comments.set([comment, ...this.comments()]);
                     this.commentForm.reset();
-                    this.snackBar.open("Comment added successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Comment added successfully");
                     this.isSubmitting.set(false);
                 },
                 error: (error) => {
@@ -115,11 +115,11 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.comments.set(this.comments().filter(c => c.id !== commentId));
-                    this.snackBar.open("Comment deleted successfully", "Close", { duration: 3000 });
+                    this.notificationService.success("Comment deleted successfully");
                 },
                 error: (error: any) => {
                     console.error("Error deleting comment:", error);
-                    this.snackBar.open("Failed to delete comment", "Close", { duration: 3000 });
+                    this.notificationService.error("Failed to delete comment");
                 },
             });
     }

@@ -8,9 +8,7 @@ import {
 
 import { RouterLink } from '@angular/router';
 
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 
@@ -23,12 +21,12 @@ import { NotificationService } from '../../utilities/services/notification.servi
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatProgressBarModule,
     RouterLink,
     AmwInputComponent,
     AmwCheckboxComponent,
     AmwButtonComponent,
-    AmwCardComponent
+    AmwCardComponent,
+    AmwProgressBarComponent
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],

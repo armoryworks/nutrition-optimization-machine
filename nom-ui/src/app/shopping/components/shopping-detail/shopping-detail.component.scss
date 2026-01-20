@@ -24,10 +24,6 @@
     gap: 8px;
   }
 
-  &__menu-button {
-    color: var(--mat-form-field-filled-supporting-text-color);
-  }
-
   &__info-section {
     margin-bottom: 24px;
   }
@@ -48,7 +44,6 @@
     font-size: 32px;
     width: 32px;
     height: 32px;
-    color: var(--mat-form-field-filled-container-color);
     margin-top: 4px;
   }
 
@@ -61,14 +56,12 @@
     font-size: 24px;
     font-weight: 600;
     line-height: 1.3;
-    color: var(--mat-form-field-filled-label-text-color);
   }
 
   &__info-subtitle {
     margin: 8px 0 0 0;
     font-size: 16px;
     line-height: 1.4;
-    color: var(--mat-form-field-filled-supporting-text-color);
   }
 
   &__progress-section {
@@ -91,18 +84,15 @@
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: var(--mat-form-field-filled-label-text-color);
   }
 
   &__progress-text {
     font-size: 14px;
-    color: var(--mat-form-field-filled-supporting-text-color);
   }
 
   &__progress-bar {
     width: 100%;
     height: 8px;
-    background-color: var(--mat-form-field-filled-outline-color);
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 8px;
@@ -112,24 +102,11 @@
     height: 100%;
     border-radius: 4px;
     transition: width 0.3s ease;
-
-    &--primary {
-      background-color: var(--mat-form-field-filled-container-color);
-    }
-
-    &--accent {
-      background-color: var(--mat-form-field-filled-label-text-color);
-    }
-
-    &--warn {
-      background-color: var(--mat-form-field-filled-error-text-color);
-    }
   }
 
   &__progress-percentage {
     font-size: 14px;
     font-weight: 600;
-    color: var(--mat-form-field-filled-label-text-color);
     text-align: center;
   }
 
@@ -141,7 +118,6 @@
     margin: 0 0 16px 0;
     font-size: 18px;
     font-weight: 600;
-    color: var(--mat-form-field-filled-label-text-color);
   }
 
   &__items-card {
@@ -160,7 +136,6 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background-color: var(--mat-form-field-filled-container-color);
     border-radius: 8px;
   }
 
@@ -183,12 +158,10 @@
     margin: 0 0 4px 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--mat-form-field-filled-label-text-color);
     line-height: 1.3;
 
     &.completed {
       text-decoration: line-through;
-      color: var(--mat-form-field-filled-supporting-text-color);
     }
   }
 
@@ -196,7 +169,6 @@
     display: flex;
     gap: 12px;
     font-size: 14px;
-    color: var(--mat-form-field-filled-supporting-text-color);
   }
 
   &__item-quantity {
@@ -237,15 +209,9 @@
     font-size: 64px;
     width: 64px;
     height: 64px;
-    color: var(--mat-form-field-filled-container-color);
-  }
-
-  &__delete-button {
-    color: var(--mat-form-field-filled-error-text-color);
   }
 }
 
-// Responsive Design
 @media (max-width: 768px) {
   .shopping-detail {
     &__container {
@@ -273,4 +239,4 @@
       align-self: flex-end;
     }
   }
-} 
+}
