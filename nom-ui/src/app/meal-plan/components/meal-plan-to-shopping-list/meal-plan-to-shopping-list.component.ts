@@ -14,9 +14,12 @@ import { ShoppingService } from '../../../shopping/services/shopping.service';
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { IngredientModel } from '../../../recipe/models/ingredient.model';
-import { ShoppingListCreateRequestModel } from '../../../shopping/models/shopping-list-create-request.model';
-import { ShoppingListItemCreateRequestModel } from '../../../shopping/models/shopping-list-item-create-request.model';
+import {
+  ShoppingListCreateRequestModel,
+  ShoppingListItemCreateRequestModel
+} from '../../../shopping/models/shopping.interfaces';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 interface ConsolidatedIngredient {
   name: string;
@@ -46,6 +49,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
   private shoppingService = inject(ShoppingService);
   private recipeService = inject(RecipeService);
   private notificationService = inject(NotificationService);
+  private userInfoService = inject(UserInfoService);
 
   // Signals
   mealPlanId = signal<number>(0);
@@ -185,19 +189,22 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
       if (!recipe.ingredients) return;
 
       recipe.ingredients.forEach((ingredient: IngredientModel) => {
-        const key = `${ingredient.name}-${ingredient.measurementUnit || ''}`.toLowerCase();
+        // Note: IngredientModel is master data and doesn't contain recipe-specific quantities
+        // In a full implementation, quantities would come from RecipeIngredient join table
+        // For now, using default values
+        const key = ingredient.name.toLowerCase();
 
         if (ingredientMap.has(key)) {
           const existing = ingredientMap.get(key)!;
-          existing.quantity += ingredient.quantity || 0;
+          existing.quantity += 1; // Default increment
           if (!existing.recipeNames.includes(recipeNames[index])) {
             existing.recipeNames.push(recipeNames[index]);
           }
         } else {
           ingredientMap.set(key, {
             name: ingredient.name,
-            quantity: ingredient.quantity || 0,
-            unit: ingredient.measurementUnit || '',
+            quantity: 1, // Default quantity
+            unit: 'serving', // Default unit
             recipeNames: [recipeNames[index]],
             isSelected: true,
           });
@@ -236,6 +243,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
       : `Meal Plan - Week of ${new Date().toLocaleDateString()}`;
 
     const createRequest: ShoppingListCreateRequestModel = {
+      householdId: this.getCurrentHouseholdId(),
       name: listName,
       description: `Generated from meal plan(s)`,
     };
@@ -267,7 +275,6 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
         quantity: ingredient.quantity,
         measurementUnit: ingredient.unit,
         notes: `From: ${ingredient.recipeNames.join(', ')}`,
-        isCompleted: false,
       };
       return this.shoppingService.addItem(request);
     });
@@ -302,5 +309,9 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
     } else {
       this.loadAllMealPlans();
     }
+  }
+
+  private getCurrentHouseholdId(): number {
+    return this.userInfoService.getHouseholdId();
   }
 }

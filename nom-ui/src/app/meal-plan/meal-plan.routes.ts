@@ -58,6 +58,18 @@ export const MEAL_PLAN_ROUTES: Routes = [
         canActivate: [AuthGuard],
     },
     {
+        path: ":id/print",
+        loadComponent: () => import("./components/meal-plan-print/meal-plan-print.component").then(m => m.MealPlanPrintComponent),
+        title: "Print Meal Plan",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: "print",
+        loadComponent: () => import("./components/meal-plan-print/meal-plan-print.component").then(m => m.MealPlanPrintComponent),
+        title: "Print Weekly Meal Plan",
+        canActivate: [AuthGuard],
+    },
+    {
         path: ":id/nutrition",
         loadComponent: () => import("./components/meal-plan-nutrition/meal-plan-nutrition.component").then(m => m.MealPlanNutritionComponent),
         title: "Nutrition Information",

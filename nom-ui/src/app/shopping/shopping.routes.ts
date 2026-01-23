@@ -51,4 +51,10 @@ export const SHOPPING_ROUTES: Routes = [
         title: "Share Shopping List",
         canActivate: [AuthGuard],
     },
+    {
+        path: ":id/export",
+        loadComponent: () => import("./components/shopping-list-export/shopping-list-export.component").then(m => m.ShoppingListExportComponent),
+        title: "Export Shopping List",
+        canActivate: [AuthGuard],
+    },
 ]; 

@@ -15,6 +15,7 @@ import { MealPlanService } from '../../services/meal-plan.service';
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { MealPlanCreateRequestModel } from '../../models/meal-plan-create-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
   selector: 'nom-meal-plan-recipe-selection',
@@ -22,10 +23,8 @@ import { NotificationService } from '../../../utilities/services/notification.se
   imports: [
     ReactiveFormsModule,
     AmwCardComponent,
-    AmwButtonComponent,
     AmwInputComponent,
     AmwProgressSpinnerComponent,
-    AmwIconComponent,
   ],
   templateUrl: './meal-plan-recipe-selection.component.html',
   styleUrl: './meal-plan-recipe-selection.component.scss',
@@ -36,6 +35,7 @@ export class MealPlanRecipeSelectionComponent implements OnInit, OnDestroy {
   private recipeService = inject(RecipeService);
   private mealPlanService = inject(MealPlanService);
   private notificationService = inject(NotificationService);
+  private userInfoService = inject(UserInfoService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -150,6 +150,7 @@ export class MealPlanRecipeSelectionComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     const request: MealPlanCreateRequestModel = {
+      householdId: this.getCurrentHouseholdId(),
       date: date,
       mealTypeId: this.mealTypeId(),
       recipeId: recipe.id,
@@ -201,5 +202,9 @@ export class MealPlanRecipeSelectionComponent implements OnInit, OnDestroy {
   getRatingDisplay(recipe: RecipeModel): string {
     if (!recipe.rating || recipe.rating === 0) return 'No ratings';
     return `${recipe.rating.toFixed(1)} ★ (${recipe.ratingCount || 0} ratings)`;
+  }
+
+  private getCurrentHouseholdId(): number {
+    return this.userInfoService.getHouseholdId();
   }
 }

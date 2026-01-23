@@ -96,5 +96,23 @@ namespace Nom.Api.Controllers
 
             throw new UnauthorizedAccessException("Username claim is missing, invalid, or could not be parsed from the user's token.");
         }
+
+        /// <summary>
+        /// Gets the default household ID of the currently authenticated user from their claims.
+        /// Returns null if the user doesn't have a default household set.
+        /// </summary>
+        /// <returns>The user's default household ID as an int, or null if not available.</returns>
+        protected int? GetCurrentHouseholdId()
+        {
+            // The "HouseholdId" claim is added by CustomClaimsPrincipalFactory if user has a default household
+            var householdIdClaim = User.Claims.FirstOrDefault(c => c.Type == "HouseholdId")?.Value;
+
+            if (int.TryParse(householdIdClaim, out int householdId))
+            {
+                return householdId;
+            }
+
+            return null;
+        }
     }
 }

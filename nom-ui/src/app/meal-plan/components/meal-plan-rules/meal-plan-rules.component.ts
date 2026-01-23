@@ -10,6 +10,7 @@ import { ReferenceDataService } from '../../../common/services/reference-data.se
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { MealPlanRuleResponseModel } from '../../models/meal-plan-rule-response.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
   selector: 'nom-meal-plan-rules',
@@ -33,6 +34,7 @@ export class MealPlanRulesComponent implements OnInit {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private notificationService = inject(NotificationService);
   private dialogService = inject(AmwDialogService);
+  private userInfoService = inject(UserInfoService);
 
   rules = signal<MealPlanRuleResponseModel[]>([]);
   isLoading = signal(false);
@@ -182,14 +184,10 @@ export class MealPlanRulesComponent implements OnInit {
   }
 
   private getCurrentHouseholdId(): number {
-    // TODO: Get from user context service
-    // For now, return a default value
-    return 1;
+    return this.userInfoService.getHouseholdId();
   }
 
   private getCurrentUserId(): number {
-    // TODO: Get from user context service
-    // For now, return a default value
-    return 1;
+    return this.userInfoService.getPersonId() || 1;
   }
 } 

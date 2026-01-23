@@ -91,6 +91,12 @@ export class UserInfoService {
         return userInfo?.personId || null;
     }
 
+    getHouseholdId(): number {
+        const userInfo = this.currentUserInfo();
+        // Return household ID if available, otherwise default to 1
+        return userInfo?.householdId || 1;
+    }
+
     clearUserInfo(): void {
         this.currentUserInfo.set(null);
     }

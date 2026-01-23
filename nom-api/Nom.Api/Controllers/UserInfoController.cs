@@ -49,6 +49,7 @@ namespace Nom.Api.Controllers
                     Status = "Complete",
                     RegistrationStatus = registrationStatus,
                     PersonId = personId.Value,
+                    HouseholdId = GetCurrentHouseholdId(),
                     UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
                     Email = User.FindFirst(ClaimTypes.Email)?.Value,
                     UserName = User.FindFirst(ClaimTypes.Name)?.Value,

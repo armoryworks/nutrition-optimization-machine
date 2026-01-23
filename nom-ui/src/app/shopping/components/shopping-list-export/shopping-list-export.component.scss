@@ -1,0 +1,119 @@
+.nom-loading,
+.nom-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+  text-align: center;
+}
+
+.nom-export-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-list-name {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 0.5rem 0;
+}
+
+.nom-list-description {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 2rem 0;
+}
+
+.nom-export-options {
+  margin: 2rem 0;
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+    margin: 0 0 1rem 0;
+  }
+}
+
+.nom-option-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  background-color: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-high);
+    border-color: var(--mat-sys-primary);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.nom-option-info {
+  flex: 1;
+  margin-right: 1rem;
+
+  h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.nom-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+@media (max-width: 768px) {
+  .nom-export-container {
+    padding: 0.5rem;
+  }
+
+  .nom-option-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .nom-option-info {
+    margin-right: 0;
+  }
+
+  amw-button {
+    width: 100%;
+  }
+}
