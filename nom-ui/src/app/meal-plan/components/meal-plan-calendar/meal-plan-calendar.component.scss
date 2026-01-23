@@ -1,0 +1,271 @@
+.nom-loading-container,
+.nom-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+  text-align: center;
+}
+
+.nom-calendar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.nom-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nom-calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nom-calendar-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1rem;
+  min-height: 600px;
+}
+
+.nom-day-column {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mat-sys-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &--today {
+    border-color: var(--mat-sys-primary);
+    border-width: 2px;
+    background-color: var(--mat-sys-primary-container);
+  }
+
+  &--past {
+    opacity: 0.7;
+  }
+}
+
+.nom-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-day-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+}
+
+.nom-day-number {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-day-column--today .nom-day-number {
+  color: var(--mat-sys-primary);
+}
+
+.nom-meal-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  flex: 1;
+}
+
+.nom-meal-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 80px;
+}
+
+.nom-meal-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
+  padding: 0.25rem 0;
+}
+
+.nom-meal-icon {
+  font-size: 16px !important;
+  width: 16px;
+  height: 16px;
+
+  &--breakfast {
+    color: #FFA000;
+  }
+
+  &--lunch {
+    color: #43A047;
+  }
+
+  &--dinner {
+    color: #E53935;
+  }
+
+  &--snack {
+    color: #8E24AA;
+  }
+}
+
+.nom-meal-card {
+  padding: 0.5rem;
+  background-color: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-high);
+    border-color: var(--mat-sys-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+.nom-meal-notes {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-add-meal-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: none;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.75rem;
+  flex: 1;
+  min-height: 60px;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-primary);
+  }
+
+  amw-icon {
+    font-size: 20px !important;
+  }
+}
+
+// Responsive design
+@media (max-width: 1400px) {
+  .nom-calendar-grid {
+    gap: 0.75rem;
+  }
+
+  .nom-day-header {
+    padding: 0.5rem;
+  }
+
+  .nom-day-number {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nom-calendar-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .nom-calendar-container {
+    padding: 0.5rem;
+  }
+
+  .nom-calendar-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nom-calendar-title {
+    font-size: 1.25rem;
+  }
+
+  .nom-calendar-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .nom-day-column {
+    min-height: auto;
+  }
+
+  .nom-meal-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .nom-meal-slot {
+    min-height: 60px;
+  }
+}

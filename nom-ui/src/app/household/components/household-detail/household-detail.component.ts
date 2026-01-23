@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
@@ -28,7 +28,7 @@ export class HouseholdDetailComponent implements OnInit {
     private router = inject(Router);
     private householdService = inject(HouseholdService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
 
     household = signal<HouseholdResponseModel | null>(null);
     isLoading = signal(true);

@@ -10,6 +10,8 @@ This guide documents the migration from custom base components to angular-materi
 
 ## Component Mappings
 
+### Base Components
+
 | Current Base Component | AMW Replacement | Complexity |
 |---|---|---|
 | `<nom-base-page>` | `<amw-detail-page>` | Simple |
@@ -17,7 +19,6 @@ This guide documents the migration from custom base components to angular-materi
 | `<nom-base-list>` | `<amw-list-page>` | Moderate |
 | `<nom-base-detail>` | `<amw-detail-page>` | Simple |
 
----
 
 ## Pattern 1: nom-base-page → AmwDetailPageComponent
 
@@ -103,65 +104,25 @@ export class MyComponent {
 
 ## Pattern 2: nom-base-form → AmwFormPageComponent
 
-### Current Implementation (base-form)
-
-**Template** (58 lines):
-```html
-<nom-base-form
-  [config]="formConfig"
-  [form]="myForm"
-  [isSubmitting]="isSubmitting"
-  (formSubmit)="onSubmit()"
-  (formCancel)="onCancel()">
-
-  <div>
-    <mat-form-field>
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" />
-    </mat-form-field>
-
-    <mat-form-field>
-      <mat-label>Email</mat-label>
-      <input matInput formControlName="email" type="email" />
-    </mat-form-field>
-  </div>
-</nom-base-form>
-```
+### AMW Implementation
 
 **Component**:
-```typescript
-export class MyFormComponent {
-  @Input() formConfig: BaseFormConfig = {
-    title: 'Edit Item',
-    submitText: 'Save',
-    showCancelButton: true
-  };
-
-  myForm = this.fb.group({
-    name: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]]
-  });
-
-  isSubmitting = false;
-}
-```
-
-### New Implementation (AMW)
-
-**Template** (~25 lines):
 ```html
 <amw-form-page
   [config]="formConfig()"
   [dataSource]="formData()"
   (formSubmit)="onSubmit($event)">
 
+  <!-- AMW Input Components with [config] pattern -->
   <amw-input
-    [config]="{ label: 'Name', required: true }"
-    [(ngModel)]="name" />
+    [config]="{ label: 'Name', required: true, formControlName: 'name' }"
+  />
 
   <amw-input
-    [config]="{ label: 'Email', type: 'email', required: true }"
-    [(ngModel)]="email" />
+    [config]="{ label: 'Email', type: 'email', required: true, formControlName: 'email' }"
+  />
+
+  <!-- Buttons are handled by amw-form-page automatically -->
 </amw-form-page>
 ```
 
@@ -208,67 +169,15 @@ export class MyFormComponent {
 
 ## Pattern 3: nom-base-list → AmwListPageComponent
 
-### Current Implementation (base-list)
+### AMW Implementation
 
-**Template** (136 lines):
-```html
-<nom-base-list
-  [config]="listConfig"
-  [isLoading]="isLoading"
-  [isEmpty]="items.length === 0"
-  (create)="onCreate()"
-  (refresh)="onRefresh()">
-
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (item of items; track item.id) {
-        <tr>
-          <td>{{ item.name }}</td>
-          <td>{{ item.email }}</td>
-          <td>
-            <button mat-icon-button (click)="onEdit(item)">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button (click)="onDelete(item)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</nom-base-list>
-```
-
-**Component**:
-```typescript
-export class MyListComponent {
-  @Input() items: Item[] = [];
-  isLoading = false;
-
-  listConfig: BaseListConfig = {
-    title: 'Items',
-    showCreateButton: true,
-    showSearch: true
-  };
-}
-```
-
-### New Implementation (AMW)
-
-**Template** (~15 lines):
+**Template**:
 ```html
 <amw-list-page
   [config]="pageConfig"
   [dataSource]="pageData()"
   (actionClick)="onAction($event)">
+  <!-- Table and actions handled automatically -->
 </amw-list-page>
 ```
 
@@ -321,56 +230,15 @@ export class MyListComponent {
 
 ## Pattern 4: nom-base-detail → AmwDetailPageComponent
 
-### Current Implementation (base-detail)
+### AMW Implementation
 
-**Template** (62 lines):
-```html
-<nom-base-detail
-  [config]="detailConfig"
-  (back)="onBack()"
-  (edit)="onEdit()">
-
-  <div class="detail-grid">
-    <div class="detail-row">
-      <label>Name:</label>
-      <span>{{ item.name }}</span>
-    </div>
-    <div class="detail-row">
-      <label>Email:</label>
-      <span>{{ item.email }}</span>
-    </div>
-    <div class="detail-row">
-      <label>Status:</label>
-      <span>{{ item.status }}</span>
-    </div>
-  </div>
-</nom-base-detail>
-```
-
-**Component**:
-```typescript
-export class MyDetailComponent {
-  @Input() item: Item;
-
-  detailConfig: BaseDetailConfig = {
-    title: 'Item Details',
-    showBackButton: true,
-    showEditButton: true,
-    actions: [
-      { label: 'Delete', icon: 'delete', color: 'warn', action: () => this.delete() }
-    ]
-  };
-}
-```
-
-### New Implementation (AMW)
-
-**Template** (~15 lines):
+**Template**:
 ```html
 <amw-detail-page
   [config]="pageConfig"
   [dataSource]="detailData()"
   (actionClick)="onAction($event)">
+  <!-- Layout handled automatically by AMW -->
 </amw-detail-page>
 ```
 
@@ -546,14 +414,151 @@ onAction(event: ActionEvent) {
 
 ---
 
+## Complete Migration Examples
+
+### Example 1: Simple Form Migration
+
+**AMW Implementation**:
+```html
+<amw-form-page
+  [config]="formConfig()"
+  [dataSource]="formData()"
+  (formSubmit)="onSave($event)">
+
+  <amw-input
+    [config]="{ label: 'Name', required: true, formControlName: 'name' }"
+  />
+
+  <amw-input
+    [config]="{ label: 'Email', type: 'email', required: true, formControlName: 'email' }"
+  />
+
+  <amw-select
+    [config]="{ label: 'Role', options: roles, formControlName: 'role' }"
+  />
+</amw-form-page>
+```
+
+**Benefits**: 11 lines, no Material imports, config-driven, automatic validation handling
+
+---
+
+### Example 2: List with Cards Migration
+
+**AMW Implementation**:
+```html
+<amw-list-page
+  [config]="pageConfig"
+  [dataSource]="pageData()"
+  (actionClick)="onAction($event)">
+</amw-list-page>
+```
+
+```typescript
+pageConfig: ListPageConfig = {
+  title: 'Recipes',
+  enableSearch: true,
+  actions: [
+    { id: 'create', label: 'Create Recipe', icon: 'add', color: 'primary' }
+  ]
+};
+
+pageData = computed<ListPageData>(() => ({
+  columns: [
+    { key: 'title', label: 'Title' },
+    { key: 'difficulty', label: 'Difficulty' },
+    { key: 'description', label: 'Description' }
+  ],
+  data: this.recipes(),
+  rowActions: [
+    { id: 'view', label: 'View', icon: 'visibility' },
+    { id: 'edit', label: 'Edit', icon: 'edit' },
+    { id: 'delete', label: 'Delete', icon: 'delete', color: 'warn' }
+  ],
+  isLoading: this.loading()
+}));
+```
+
+**Benefits**: 5 lines HTML, automatic loading states, built-in table, automatic row actions
+
+---
+
+### Example 3: Complex Form with Multiple Field Types
+
+**AMW Implementation**:
+```html
+<amw-form-page
+  [config]="formConfig()"
+  [dataSource]="formData()"
+  (formSubmit)="onSave($event)">
+
+  <amw-input
+    [config]="{ label: 'Recipe Name', required: true, formControlName: 'name' }"
+  />
+
+  <amw-input
+    [config]="{ label: 'Description', type: 'textarea', rows: 4, formControlName: 'description' }"
+  />
+
+  <amw-select
+    [config]="{
+      label: 'Difficulty',
+      options: [
+        { value: 'easy', label: 'Easy' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'hard', label: 'Hard' }
+      ],
+      formControlName: 'difficulty'
+    }"
+  />
+
+  <amw-input
+    [config]="{ label: 'Prep Time (minutes)', type: 'number', formControlName: 'prepTime' }"
+  />
+
+  <amw-checkbox
+    [config]="{ label: 'Make Public', formControlName: 'isPublic' }"
+  />
+
+  <amw-datepicker
+    [config]="{ label: 'Publish Date', formControlName: 'publishDate' }"
+  />
+</amw-form-page>
+```
+
+**Benefits**: 28 lines, no datepicker setup, form actions automatic, built-in validation
+
+---
+
+## Key Takeaways
+
+### Architecture Principles
+1. **Configuration-driven approach**: All settings passed via `[config]` object
+2. **Single component patterns**: One AMW component replaces multi-tag structures
+3. **Automatic features**: Loading states, validation, error handling built-in
+4. **Page components handle layout**: Headers, actions, and error states managed automatically
+5. **Signals everywhere**: Use signals instead of `@Input`/`@Output` decorators
+
+### AMW Component Usage
+- ✅ `<amw-input [config]="{ ... }">`
+- ✅ `<amw-select [config]="{ ... }">`
+- ✅ `<amw-button [config]="{ ... }">`
+- ✅ `<amw-card [config]="{ ... }">`
+- ✅ Page components (`amw-detail-page`, `amw-form-page`, `amw-list-page`) handle loading/error states automatically
+- ✅ Icons passed via config: `{ icon: 'edit' }`
+
+---
+
 ## Questions & Support
 
 For questions about this migration, refer to:
 - **AMW Documentation**: `/node_modules/angular-material-wrap/docs/`
 - **Plan File**: `~/.claude/plans/purring-hatching-sonnet.md`
 - **Section 1 Complete**: Foundation services migrated to signals ✅
+- **Component Architecture**: `/docs/architecture/component-architecture.md`
+- **Training Materials**: `/TRAINING-MATERIALS.md`
 
 ---
 
-**Last Updated**: Section 1 complete (2026-01-06)
+**Last Updated**: Documentation updated with complete AMW migration examples (2026-01-22)
 **Next Section**: Section 3 - Authentication & User Module

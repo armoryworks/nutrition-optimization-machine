@@ -1,0 +1,90 @@
+@if (isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-loading">
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+        <p>Loading ingredients...</p>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+@if (error() && !isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-error">
+        <p class="nom-error-message">{{ error() }}</p>
+        <div class="nom-error-actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
+          <amw-button variant="outlined" color="primary" (click)="onBack()">Back</amw-button>
+        </div>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+@if (!isLoading() && !error()) {
+  <div class="nom-container">
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-header">
+          <div class="nom-header-info">
+            <amw-icon name="shopping_cart"></amw-icon>
+            <h2>Generate Shopping List</h2>
+          </div>
+          <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">Back</amw-button>
+        </div>
+      </ng-template>
+    </amw-card>
+
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-selection-bar">
+          <amw-checkbox
+            [checked]="allSelected()"
+            [indeterminate]="selectedCount() > 0 && !allSelected()"
+            (change)="onToggleAll($event)">
+            Select All
+          </amw-checkbox>
+          <span>{{ selectedCount() }} of {{ totalCount() }} selected</span>
+        </div>
+
+        @if (totalCount() === 0) {
+          <div class="nom-empty">
+            <amw-icon name="shopping_basket"></amw-icon>
+            <p>No ingredients found in meal plans</p>
+          </div>
+        }
+
+        @if (totalCount() > 0) {
+          <div class="nom-ingredients">
+            @for (ingredient of ingredients(); track $index) {
+              <div class="nom-ingredient">
+                <amw-checkbox
+                  [checked]="ingredient.isSelected"
+                  (change)="onToggleIngredient($index, $event)">
+                </amw-checkbox>
+                <div class="nom-ingredient-info">
+                  <strong>{{ ingredient.name }}</strong>
+                  <span class="nom-quantity">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                  <span class="nom-recipes">From: {{ ingredient.recipeNames.join(', ') }}</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="nom-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              icon="add_shopping_cart"
+              [disabled]="selectedCount() === 0 || isCreating()"
+              (click)="onCreateShoppingList()">
+              {{ isCreating() ? 'Creating...' : 'Create Shopping List' }}
+            </amw-button>
+          </div>
+        }
+      </ng-template>
+    </amw-card>
+  </div>
+}

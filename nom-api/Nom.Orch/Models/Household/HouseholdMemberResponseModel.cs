@@ -8,7 +8,9 @@ namespace Nom.Orch.Models.Household
         public long HouseholdId { get; set; }
         public long PersonId { get; set; }
         public string PersonName { get; set; } = string.Empty;
+        public string? PersonEmail { get; set; }
         public string Role { get; set; } = string.Empty;
         public DateTime JoinedDate { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 } 

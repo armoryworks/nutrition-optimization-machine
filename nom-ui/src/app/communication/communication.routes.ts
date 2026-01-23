@@ -2,6 +2,8 @@
 
 import { Routes } from '@angular/router';
 import { MessagingInboxComponent } from './components/messaging-inbox/messaging-inbox.component';
+import { MessageThreadDetailComponent } from './components/message-thread-detail/message-thread-detail.component';
+import { MessageComposeComponent } from './components/message-compose/message-compose.component';
 
 export const COMMUNICATION_ROUTES: Routes = [
   {
@@ -11,12 +13,12 @@ export const COMMUNICATION_ROUTES: Routes = [
   },
   {
     path: 'new',
-    component: MessagingInboxComponent, // For now, redirect to inbox - can be replaced with a create component later
+    component: MessageComposeComponent,
     title: 'New Conversation'
   },
   {
     path: 'thread/:id',
-    component: MessagingInboxComponent, // For now, redirect to inbox - can be replaced with a thread component later
+    component: MessageThreadDetailComponent,
     title: 'Conversation'
   }
 ];

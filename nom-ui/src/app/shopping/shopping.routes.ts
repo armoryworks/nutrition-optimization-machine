@@ -33,4 +33,22 @@ export const SHOPPING_ROUTES: Routes = [
         title: "Edit Shopping List",
         canActivate: [AuthGuard],
     },
+    {
+        path: ":id/recipes",
+        loadComponent: () => import("./components/shopping-recipe-integration/shopping-recipe-integration.component").then(m => m.ShoppingRecipeIntegrationComponent),
+        title: "Add Recipe to Shopping List",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: ":id/bulk-edit",
+        loadComponent: () => import("./components/shopping-bulk-editor/shopping-bulk-editor.component").then(m => m.ShoppingBulkEditorComponent),
+        title: "Bulk Edit Shopping List",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: ":id/share",
+        loadComponent: () => import("./components/shopping-list-share/shopping-list-share.component").then(m => m.ShoppingListShareComponent),
+        title: "Share Shopping List",
+        canActivate: [AuthGuard],
+    },
 ]; 

@@ -30,7 +30,7 @@ This document tracks the implementation of compact headers across all desktop in
 
   .header-actions-section {
     flex-shrink: 0;
-    // Action buttons and controls
+    // AMW buttons and controls (amw-button, amw-icon, etc.)
   }
 }
 ```
@@ -62,6 +62,7 @@ listConfig: BaseListConfig = {
       color: "primary",
       disabled: false,
       action: () => this.performAction(),
+      // Rendered using amw-button with icon variant
     },
   ],
   showLastUpdated: true,

@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AmwInputComponent, AmwSelectComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, DialogService, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwSelectComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwDialogService, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanRuleCreateRequestModel } from '../../models/meal-plan-rule-create-request.model';
@@ -32,7 +32,7 @@ export class MealPlanRulesComponent implements OnInit {
   private router = inject(Router);
   private nonNullableFb = inject(NonNullableFormBuilder);
   private notificationService = inject(NotificationService);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
 
   rules = signal<MealPlanRuleResponseModel[]>([]);
   isLoading = signal(false);

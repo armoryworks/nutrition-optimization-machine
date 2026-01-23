@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, effect, Injector } from '@angular/core';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
@@ -23,7 +23,7 @@ import { PlanNameComponent } from '../plan-name/plan-name.component';
 export class CuratedPlansComponent implements OnInit {
     private planService = inject(PlanService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
     private injector = inject(Injector);
 
     curatedPlans = signal<PlanModel[]>([]);

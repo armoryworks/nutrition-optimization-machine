@@ -2,212 +2,166 @@
 
 ## Overview
 
-This document summarizes the migration from Angular's legacy structural directives (`*ngIf`, `*ngFor`, `*ngSwitch`) to the modern control flow syntax (`@if`, `@for`, `@switch`) across the NOM (Nutrition Optimization Machine) application.
+This document tracks the migration from Angular's legacy structural directives (`*ngIf`, `*ngFor`, `*ngSwitch`) to the modern control flow syntax (`@if`, `@for`, `@switch`) across the NOM (Nutrition Optimization Machine) application.
 
 ## Migration Status
 
-### ✅ COMPLETED COMPONENTS
+### ✅ COMPLETED COMPONENTS (62 files migrated)
 
-The following components have been successfully migrated to use modern Angular control flow syntax:
+The vast majority of components have been successfully migrated to use modern Angular control flow syntax, including:
 
-#### Shopping Components
+- Shopping components (shopping-dashboard, shopping-detail, shopping-create, shopping-edit, shopping-category-management, shopping-list, shopping-item-form)
+- Recipe components (recipe-ratings, recipe-notes, recipe-rating, recipe-search, recipe-comments, recipe-timeline-events, recipe-edit, recipe-detail, recipe-create, recipe-assets)
+- Household components (household-invite, household-edit, household-create, household-detail, household-dashboard, household-invite-refactored)
+- Meal Plan components (meal-plan-edit, meal-plan-rules, meal-plan-dashboard, meal-plan-detail, meal-plan-form)
+- User components (privacy-settings, privacy-analytics, recipe-author-dashboard, update-info, update-two-factor)
+- Auth components (login, registration, login-popover)
+- Person components (person-creation, person-edit, person-health-edit, person-profile-edit)
+- Plan components (curated-plans)
+- Curation components (curation-queue)
+- Ingredient components (ingredient-form, ingredient-search, ingredient-details, ingredient-edit, ingredient-create-modal)
+- Nutrient components (nutrition-label)
+- Communication components (messaging-inbox)
+- Common components (reference-selector)
 
-- `shopping-dashboard.component.html` - Shopping dashboard with list management
-- `shopping-detail.component.html` - Shopping list detail view
-- `shopping-create.component.html` - Create new shopping list form
-- `shopping-edit.component.html` - Edit shopping list form
-- `shopping-category-management.component.html` - Shopping category management
-
-#### Recipe Components
-
-- `recipe-ratings.component.html` - Recipe ratings and reviews
-- `recipe-notes.component.html` - Recipe notes management
-- `recipe-rating.component.html` - Individual recipe rating form
-
-#### Household Components
-
-- `household-invite.component.html` - Household invitation system
-- `household-edit.component.html` - Edit household form
-- `household-create.component.html` - Create household form
-- `household-detail.component.html` - Household detail view
-
-#### Meal Plan Components
-
-- `meal-plan-edit.component.html` - Edit meal plan form
-- `meal-plan-rules.component.html` - Meal plan rules management
-- `meal-plan-dashboard.component.html` - Meal plan dashboard with week/month views
-- `meal-plan-detail.component.html` - Meal plan detail view
-
-#### User Components
-
-- `privacy-settings.component.html` - Privacy settings and consent management
-
-### 🔄 REMAINING COMPONENTS
+### 🔄 REMAINING COMPONENTS (6 files)
 
 The following components still need to be migrated:
 
-#### Meal Plan Components
-
-- `meal-plan-dashboard.component.html` - Additional sections may need updates
+#### Shared/Base Components
+- `shared/components/base/_BaseButtonComponent.html` - Legacy button base component
+- `shared/components/base/_BaseInputComponent.html` - Legacy input base component
 
 #### Recipe Components
-
-- `recipe-search.component.html` - Search functionality
 - `recipe-share-token.component.html` - Share token management
-- `recipe-timeline-events.component.html` - Timeline events
-- `recipe-comments.component.html` - Recipe comments
+- `recipe-scraping.component.html` - Recipe scraping functionality
+- `recipe-suggestions.component.html` - Recipe suggestions
+- `recipe-categories.component.html` - Recipe categories management
 
-#### Plan Components
+**Note**: Base components may be intentionally left with legacy syntax if they're scheduled for removal during the AMW migration.
 
-- `curated-plans.component.html` - Curated plans display
+## Migration Progress
 
-#### Person Components
-
-- `person-creation.component.html` - Person creation form
-
-#### Curation Components
-
-- `curation-queue.component.html` - Curation queue management
-
-#### Household Components
-
-- `household-dashboard.component.html` - Household dashboard
-
-#### App Component
-
-- `app.component.html` - Main app component
+- **Total HTML Files**: 68
+- **Migrated**: 62 (91%)
+- **Remaining**: 6 (9%)
 
 ## Migration Patterns Applied
 
 ### 1. Conditional Rendering
 
 **Before:**
-
 ```html
 <div *ngIf="isLoading" class="loading">
-  <mat-spinner diameter="50"></mat-spinner>
+  Loading...
 </div>
 ```
 
 **After:**
-
 ```html
 @if (isLoading) {
-<div class="loading">
-  <mat-spinner diameter="50"></mat-spinner>
-</div>
+  <div class="loading">
+    Loading...
+  </div>
 }
 ```
+
+**Note:** AMW page components (`amw-detail-page`, `amw-form-page`, `amw-list-page`) handle loading states automatically through their `[dataSource]` binding with `isLoading` property, so manual loading indicators are rarely needed.
 
 ### 2. Iteration with Tracking
 
 **Before:**
-
 ```html
-<div *ngFor="let item of items" class="item">{{ item.name }}</div>
+<div *ngFor="let item of items; trackBy: trackById" class="item">
+  {{ item.name }}
+</div>
 ```
 
 **After:**
-
 ```html
 @for (item of items; track item.id) {
-<div class="item">{{ item.name }}</div>
+  <div class="item">{{ item.name }}</div>
 }
 ```
 
-### 3. Complex Conditionals
+### 3. If-Else Chains
 
 **Before:**
-
 ```html
-<div *ngIf="condition1 && condition2" class="content">Content</div>
-<div *ngIf="condition1 && !condition2" class="alternative">Alternative</div>
+<div *ngIf="status === 'loading'">Loading...</div>
+<div *ngIf="status === 'error'">Error!</div>
+<div *ngIf="status === 'success'">Success!</div>
 ```
 
 **After:**
-
 ```html
-@if (condition1 && condition2) {
-<div class="content">Content</div>
-} @else if (condition1 && !condition2) {
-<div class="alternative">Alternative</div>
+@if (status === 'loading') {
+  <div>Loading...</div>
+} @else if (status === 'error') {
+  <div>Error!</div>
+} @else if (status === 'success') {
+  <div>Success!</div>
 }
 ```
 
-### 4. Form Validation Errors
+### 4. Empty State Handling
 
 **Before:**
-
 ```html
-<mat-error *ngIf="form.get('field')?.hasError('required')">
-  Field is required
-</mat-error>
+<div *ngIf="items.length > 0; else emptyTemplate">
+  <!-- Items list -->
+</div>
+<ng-template #emptyTemplate>
+  <div>No items found</div>
+</ng-template>
 ```
 
 **After:**
-
 ```html
-@if (form.get('field')?.hasError('required')) {
-<mat-error>Field is required</mat-error>
+@if (items.length > 0) {
+  <!-- Items list -->
+} @else {
+  <div>No items found</div>
 }
 ```
 
 ## Benefits Achieved
 
 ### 1. Performance Improvements
-
 - Better tree-shaking capabilities
 - Improved runtime performance
 - More efficient change detection
+- Reduced bundle size
 
 ### 2. Type Safety
-
 - Enhanced TypeScript integration
 - Better type checking for conditional rendering
 - Improved IDE support and autocomplete
 
-### 3. Future-Proof Code
-
-- Aligned with Angular's development direction
-- Ready for future Angular features
-- Reduced technical debt
-
-### 4. Code Quality
-
+### 3. Developer Experience
 - More readable and maintainable templates
 - Cleaner syntax with better structure
 - Improved error messages and debugging
+- Less cognitive overhead
 
-## Documentation Updates
-
-The following documentation has been updated to reflect the modern control flow requirements:
-
-### Updated Files
-
-- `docs/development/conventions.md` - Added comprehensive modern control flow guidelines
-- Added migration priority and benefits sections
-- Included examples of correct and forbidden patterns
-
-### Key Documentation Additions
-
-1. **Migration Priority** - Clear steps for migrating remaining components
-2. **Benefits Section** - Detailed explanation of why modern control flow is preferred
-3. **Examples** - Comprehensive examples of before/after patterns
-4. **Forbidden Patterns** - Clear guidance on what NOT to use
+### 4. Future-Proof Code
+- Aligned with Angular's development direction
+- Ready for future Angular features
+- Reduced technical debt
 
 ## Next Steps
 
 ### Immediate Actions
 
-1. **Complete Remaining Components** - Migrate all remaining components using the established patterns
-2. **Testing** - Thoroughly test all migrated components for functionality
-3. **Code Review** - Review all changes for consistency and best practices
+1. **Complete Remaining Recipe Components** - Migrate the 4 remaining recipe components
+2. **Review Base Components** - Determine if base components should be migrated or removed as part of AMW migration
+3. **Testing** - Verify all migrated components work correctly
 
 ### Long-term Maintenance
 
 1. **Enforcement** - Ensure all new components use modern control flow syntax
-2. **Documentation** - Keep documentation updated with new patterns
-3. **Training** - Educate team members on modern control flow usage
+2. **Documentation** - Keep this document updated as remaining components are migrated
+3. **Code Reviews** - Reject PRs that introduce legacy structural directives
 
 ## Migration Checklist
 
@@ -216,6 +170,7 @@ The following documentation has been updated to reflect the modern control flow 
 - [ ] Replace `*ngIf` with `@if`
 - [ ] Replace `*ngFor` with `@for` and add `track` expressions
 - [ ] Replace `*ngSwitch` with `@switch` if applicable
+- [ ] Replace `ng-template` + `*ngIf` with `@if/@else`
 - [ ] Test all conditional rendering scenarios
 - [ ] Test all iteration scenarios
 - [ ] Verify form validation error displays
@@ -224,7 +179,7 @@ The following documentation has been updated to reflect the modern control flow 
 
 ### Quality Assurance
 
-- [ ] No legacy structural directives remain
+- [ ] No legacy structural directives remain (except intentional)
 - [ ] All `@for` loops have proper tracking
 - [ ] All conditional logic works correctly
 - [ ] Performance is maintained or improved
@@ -233,6 +188,11 @@ The following documentation has been updated to reflect the modern control flow 
 
 ## Conclusion
 
-The migration to modern Angular control flow syntax represents a significant improvement in code quality, performance, and maintainability. The established patterns provide a clear roadmap for completing the remaining components and ensuring consistency across the entire application.
+With **91% of components migrated**, the application has largely adopted modern Angular control flow syntax. The remaining 6 components represent a small final effort to complete the migration.
 
-This migration positions the NOM application to take full advantage of Angular's modern features while maintaining excellent developer experience and application performance.
+This migration has improved code quality, performance, and maintainability across the application while positioning it to take full advantage of Angular's modern features.
+
+---
+
+**Last Updated**: 2026-01-22
+**Progress**: 62/68 files migrated (91% complete)

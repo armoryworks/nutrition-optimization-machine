@@ -127,5 +127,52 @@ namespace Nom.Api.Controllers
                 return StatusCode(500, new { message = "Failed to add member", error = ex.Message });
             }
         }
+
+        [HttpDelete("{householdId}/member/{memberId}")]
+        public async Task<ActionResult> RemoveMember(long householdId, long memberId)
+        {
+            try
+            {
+                var success = await _householdService.RemoveMemberAsync(householdId, memberId);
+                if (!success)
+                {
+                    return NotFound(new { message = "Member not found in household" });
+                }
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to remove member", error = ex.Message });
+            }
+        }
+
+        [HttpPost("join")]
+        public async Task<ActionResult<HouseholdMemberResponseModel>> JoinHousehold([FromBody] JoinHouseholdRequestModel request)
+        {
+            try
+            {
+                // Get the current authenticated user's person ID from claims
+                var personId = GetCurrentPersonIdRequired();
+
+                var response = await _householdService.JoinHouseholdAsync(request.Token, personId);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to join household", error = ex.Message });
+            }
+        }
     }
 } 

@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
@@ -28,7 +28,7 @@ export class ShoppingDashboardComponent implements OnInit {
     private router = inject(Router);
     private shoppingService = inject(ShoppingService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
 
     shoppingLists = signal<ShoppingListResponseModel[]>([]);
     filteredLists = signal<ShoppingListResponseModel[]>([]);

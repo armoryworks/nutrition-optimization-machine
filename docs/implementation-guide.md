@@ -459,51 +459,33 @@ export class RecipeService
 @Component({
   selector: "nom-recipe-name-input",
   template: `
-    <mat-form-field [appearance]="appearance" [class]="getCssClasses()">
-      <mat-label>{{ label }}</mat-label>
-      <input
-        matInput
-        [type]="type"
-        [placeholder]="placeholder"
-        [required]="required"
-        [disabled]="disabled"
-        [readonly]="readonly"
-        [maxlength]="maxlength"
-        [minlength]="minlength"
-        [pattern]="pattern"
-        [autocomplete]="autocomplete"
-        [autofocus]="autofocus"
-        [spellcheck]="spellcheck"
-        [autocapitalize]="autocapitalize"
-        [autocorrect]="autocorrect"
-        [tabindex]="tabindex"
-        [formControl]="formControl"
-        (focus)="onFocus($event)"
-        (blur)="onBlur($event)"
-        (click)="onClick($event)"
-        (dblclick)="onDblClick($event)"
-        (keydown)="onKeyDown($event)"
-        (keyup)="onKeyUp($event)"
-        [ngStyle]="getInputStyles()"
-      />
-
-      <mat-icon matPrefix *ngIf="showPrefixIcon">{{ prefixIcon }}</mat-icon>
-      <mat-icon matSuffix *ngIf="showSuffixIcon">{{ suffixIcon }}</mat-icon>
-
-      <button
-        matSuffix
-        mat-icon-button
-        *ngIf="showClearButton && value"
-        (click)="onClear()"
-        type="button"
-      >
-        <mat-icon>clear</mat-icon>
-      </button>
-
-      <mat-hint *ngIf="showHint">{{ hint }}</mat-hint>
-      <mat-error *ngIf="showError">{{ error }}</mat-error>
-      <mat-error *ngIf="showSuccess">{{ success }}</mat-error>
-    </mat-form-field>
+    <amw-input
+      [config]="{
+        label: label,
+        placeholder: placeholder,
+        type: type,
+        required: required,
+        disabled: disabled,
+        readonly: readonly,
+        maxlength: maxlength,
+        minlength: minlength,
+        pattern: pattern,
+        autocomplete: autocomplete,
+        autofocus: autofocus,
+        showHint: showHint,
+        hint: hint,
+        showError: showError,
+        error: error,
+        prefixIcon: showPrefixIcon ? prefixIcon : undefined,
+        suffixIcon: showSuffixIcon ? suffixIcon : undefined,
+        showClearButton: showClearButton
+      }"
+      [formControl]="formControl"
+      (focus)="onFocus($event)"
+      (blur)="onBlur($event)"
+      (keydown)="onKeyDown($event)"
+      (keyup)="onKeyUp($event)"
+    />
   `,
   styleUrls: ["./recipe-name-input.component.scss"],
 })

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
@@ -29,7 +29,7 @@ export class MealPlanDetailComponent implements OnInit {
   private router = inject(Router);
   private mealPlanService = inject(MealPlanService);
   private notificationService = inject(NotificationService);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
 
   mealPlan = signal<MealPlanResponseModel | null>(null);
   isLoading = signal(true);

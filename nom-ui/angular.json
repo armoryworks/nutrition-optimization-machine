@@ -33,8 +33,7 @@
               }
             ],
             "styles": [
-              "src/_styles.scss",
-              "node_modules/@fortawesome/fontawesome-free/css/all.min.css"
+              "src/_styles.scss"
             ],
             "scripts": []
           },
@@ -43,8 +42,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1MB",
-                  "maximumError": "10MB"
+                  "maximumWarning": "1.8MB",
+                  "maximumError": "2.5MB"
                 },
                 {
                   "type": "anyComponentStyle",

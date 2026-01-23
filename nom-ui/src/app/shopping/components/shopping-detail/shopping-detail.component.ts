@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, effect, Injector } from '@angular/co
 
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
@@ -30,7 +30,7 @@ export class ShoppingDetailComponent implements OnInit {
   private router = inject(Router);
   private shoppingService = inject(ShoppingService);
   private notificationService = inject(NotificationService);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
   private injector = inject(Injector);
 
   shoppingList = signal<ShoppingListResponseModel | null>(null);

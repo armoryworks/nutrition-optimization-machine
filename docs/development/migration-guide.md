@@ -43,35 +43,7 @@ Before starting migration, ensure you have:
 
 ### Pattern 1: Simple Dropdown Replacement
 
-**Before (Hardcoded):**
-
-```typescript
-// Component
-export class ShoppingComponent {
-  priorities = [
-    { id: 1, name: 'Low' },
-    { id: 2, name: 'Medium' },
-    { id: 3, name: 'High' }
-  ];
-
-  getPriorityName(id: number): string {
-    const priority = this.priorities.find(p => p.id === id);
-    return priority ? priority.name : 'Unknown';
-  }
-}
-
-// Template
-<mat-form-field>
-  <mat-label>Priority</mat-label>
-  <mat-select [(ngModel)]="selectedPriority">
-    <mat-option *ngFor="let priority of priorities" [value]="priority.id">
-      {{ priority.name }}
-    </mat-option>
-  </mat-select>
-</mat-form-field>
-```
-
-**After (Dynamic):**
+**Using AMW with Dynamic Data:**
 
 ```typescript
 // Component
@@ -91,7 +63,7 @@ export class ShoppingComponent implements OnInit {
   }
 }
 
-// Template
+// Template (AMW + Reference Selector)
 <app-reference-selector
   [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
   [control]="priorityControl"
@@ -102,35 +74,7 @@ export class ShoppingComponent implements OnInit {
 
 ### Pattern 2: Form Control Integration
 
-**Before (Hardcoded):**
-
-```typescript
-// Component
-export class RecipeFormComponent {
-  difficulties = [
-    { id: 1, name: 'Easy' },
-    { id: 2, name: 'Medium' },
-    { id: 3, name: 'Hard' }
-  ];
-
-  recipeForm = this.fb.group({
-    name: ['', Validators.required],
-    difficulty: [null, Validators.required]
-  });
-}
-
-// Template
-<mat-form-field>
-  <mat-label>Difficulty</mat-label>
-  <mat-select formControlName="difficulty">
-    <mat-option *ngFor="let diff of difficulties" [value]="diff.id">
-      {{ diff.name }}
-    </mat-option>
-  </mat-select>
-</mat-form-field>
-```
-
-**After (Dynamic):**
+**Using AMW with Dynamic Data:**
 
 ```typescript
 // Component
@@ -153,7 +97,7 @@ export class RecipeFormComponent implements OnInit {
   }
 }
 
-// Template
+// Template (AMW + Reference Selector)
 <app-reference-selector
   [discriminatorId]="REFERENCE_IDS.RECIPE_DIFFICULTY_TYPE"
   [control]="recipeForm.get('difficultyId')!"

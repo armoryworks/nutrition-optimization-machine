@@ -91,4 +91,20 @@ export class ShoppingService {
             map(() => void 0)
         );
     }
+
+    // Recipe integration methods
+    addRecipeIngredients(shoppingListId: number, recipeId: number, servings?: number): Observable<void> {
+        const options = servings
+            ? { params: { servings: servings.toString() } }
+            : {};
+        return this.http.post(`${this.apiUrl}/${shoppingListId}/recipe/${recipeId}`, {}, options).pipe(
+            map(() => void 0)
+        );
+    }
+
+    removeRecipeIngredients(shoppingListId: number, recipeId: number): Observable<void> {
+        return this.http.delete(`${this.apiUrl}/${shoppingListId}/recipe/${recipeId}`).pipe(
+            map(() => void 0)
+        );
+    }
 } 

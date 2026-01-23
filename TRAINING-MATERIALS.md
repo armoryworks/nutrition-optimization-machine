@@ -420,20 +420,22 @@ export class NewComponent implements OnInit {
 #### Step 4: Update Templates
 
 ```html
-<!-- Before -->
-<mat-select [(ngModel)]="selectedPriority">
-  <mat-option *ngFor="let priority of priorities" [value]="priority.id">
-    {{ priority.name }}
-  </mat-option>
-</mat-select>
-
-<!-- After -->
+<!-- AMW Reference Selector (RECOMMENDED) -->
 <app-reference-selector
   [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
   [control]="priorityControl"
   label="Priority"
 >
 </app-reference-selector>
+
+<!-- ALTERNATIVE - AMW Select with manual options -->
+<amw-select
+  [config]="{
+    label: 'Priority',
+    options: priorities,
+    formControlName: 'priority'
+  }"
+/>
 ```
 
 ### 5.2 Migration Checklist

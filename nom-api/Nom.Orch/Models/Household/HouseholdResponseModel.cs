@@ -10,5 +10,14 @@ namespace Nom.Orch.Models.Household
         public long GroupId { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+
+        // Members
+        public List<HouseholdMemberResponseModel>? Members { get; set; }
+
+        // Statistics
+        public int MemberCount { get; set; }
+        public int RecipeCount { get; set; }
+        public int MealPlanCount { get; set; }
+        public int ShoppingListCount { get; set; }
     }
 } 

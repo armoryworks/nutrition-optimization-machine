@@ -135,29 +135,6 @@ listConfig: BaseListConfig = {
 
 ### Form Component Pattern
 
-**Before Migration**:
-
-```html
-<div class="nom-page-container">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>{{ pageTitle }}</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()">
-        <!-- Form fields -->
-      </form>
-    </mat-card-content>
-    <mat-card-actions>
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button mat-raised-button (click)="onSubmit()">Save</button>
-    </mat-card-actions>
-  </mat-card>
-</div>
-```
-
-**After Migration**:
-
 ```html
 <nom-base-form
   [config]="formConfig"
@@ -166,7 +143,23 @@ listConfig: BaseListConfig = {
   (submit)="onSubmit()"
   (cancel)="onCancel()"
 >
-  <!-- Form fields -->
+  <!-- AMW Form Fields -->
+  <amw-input
+    [config]="{ label: 'Field Name', formControlName: 'field' }"
+  />
+
+  <amw-select
+    [config]="{
+      label: 'Category',
+      options: categories,
+      formControlName: 'category'
+    }"
+  />
+
+  <div class="form-actions">
+    <amw-button [config]="{ label: 'Cancel' }"></amw-button>
+    <amw-button [config]="{ label: 'Save', variant: 'raised' }"></amw-button>
+  </div>
 </nom-base-form>
 ```
 
@@ -197,26 +190,6 @@ For full-page forms, use both base components:
 
 ### List Component Pattern
 
-**Before Migration**:
-
-```html
-<div class="list-container">
-  <div class="list-header">
-    <h2>{{ listTitle }}</h2>
-    <button mat-button (click)="onRefresh()">Refresh</button>
-  </div>
-  @if (loading) {
-  <mat-spinner></mat-spinner>
-  } @else {
-  <div class="list-content">
-    <!-- List items -->
-  </div>
-  }
-</div>
-```
-
-**After Migration**:
-
 ```html
 <nom-base-list
   [config]="listConfig"
@@ -228,7 +201,16 @@ For full-page forms, use both base components:
   [pageSize]="pageSize"
   (pageChange)="onPageChange($event)"
 >
-  <!-- List content -->
+  <!-- AMW Components for List Content -->
+  @for (item of items; track item.id) {
+    <amw-card [config]="{ title: item.title }">
+      <p>{{ item.description }}</p>
+      <div class="card-actions">
+        <amw-button [config]="{ label: 'View' }"></amw-button>
+        <amw-button [config]="{ icon: 'edit', variant: 'icon' }"></amw-button>
+      </div>
+    </amw-card>
+  }
 </nom-base-list>
 ```
 

@@ -33,4 +33,40 @@ export const MEAL_PLAN_ROUTES: Routes = [
         title: "Meal Plan Rules",
         canActivate: [AuthGuard],
     },
+    {
+        path: "calendar",
+        loadComponent: () => import("./components/meal-plan-calendar/meal-plan-calendar.component").then(m => m.MealPlanCalendarComponent),
+        title: "Meal Plan Calendar",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: "recipe-selection",
+        loadComponent: () => import("./components/meal-plan-recipe-selection/meal-plan-recipe-selection.component").then(m => m.MealPlanRecipeSelectionComponent),
+        title: "Add Recipe to Meal Plan",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: ":id/shopping-list",
+        loadComponent: () => import("./components/meal-plan-to-shopping-list/meal-plan-to-shopping-list.component").then(m => m.MealPlanToShoppingListComponent),
+        title: "Generate Shopping List",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: "shopping-list",
+        loadComponent: () => import("./components/meal-plan-to-shopping-list/meal-plan-to-shopping-list.component").then(m => m.MealPlanToShoppingListComponent),
+        title: "Generate Shopping List from Week",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: ":id/nutrition",
+        loadComponent: () => import("./components/meal-plan-nutrition/meal-plan-nutrition.component").then(m => m.MealPlanNutritionComponent),
+        title: "Nutrition Information",
+        canActivate: [AuthGuard],
+    },
+    {
+        path: "nutrition",
+        loadComponent: () => import("./components/meal-plan-nutrition/meal-plan-nutrition.component").then(m => m.MealPlanNutritionComponent),
+        title: "Weekly Nutrition",
+        canActivate: [AuthGuard],
+    },
 ]; 

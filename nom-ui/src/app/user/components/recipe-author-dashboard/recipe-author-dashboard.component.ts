@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { Observable, of, catchError, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
 
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { CurationService } from '../../../curation/services/curation.service';
@@ -69,7 +69,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
   private curationService = inject(CurationService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
 
   recipes$!: Observable<RecipeDashboardItemModel[]>;
   ingredients$!: Observable<RecipeDashboardItemModel[]>;

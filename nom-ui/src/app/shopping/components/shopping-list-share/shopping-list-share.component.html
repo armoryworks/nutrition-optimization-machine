@@ -1,0 +1,165 @@
+<!-- Loading State -->
+@if (isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-loading-container">
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+        <p>Loading sharing options...</p>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Error State -->
+@if (error() && !isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-error-container">
+        <p class="nom-error-message">{{ error() }}</p>
+        <div class="nom-error-actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()">
+            Retry
+          </amw-button>
+          <amw-button variant="outlined" color="primary" (click)="onBack()">
+            Back to Shopping List
+          </amw-button>
+        </div>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Main Content -->
+@if (!isLoading() && !error()) {
+  <div class="nom-share-container">
+    <!-- Header -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-header">
+          <div class="nom-header-info">
+            <amw-icon name="share"></amw-icon>
+            <div>
+              <h2>Share Shopping List</h2>
+              <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
+            </div>
+          </div>
+          <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
+            Back
+          </amw-button>
+        </div>
+      </ng-template>
+    </amw-card>
+
+    <!-- Share Link -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <h3>Share via Link</h3>
+        <p class="nom-description">
+          Anyone with this link can view this shopping list
+        </p>
+
+        <div class="nom-link-container">
+          <div class="nom-link-display">
+            <amw-icon name="link"></amw-icon>
+            <span class="nom-link-text">{{ shareLink() }}</span>
+          </div>
+          <amw-button
+            variant="filled"
+            color="primary"
+            [icon]="linkCopied() ? 'check' : 'content_copy'"
+            (click)="onCopyLink()">
+            {{ linkCopied() ? 'Copied!' : 'Copy Link' }}
+          </amw-button>
+        </div>
+      </ng-template>
+    </amw-card>
+
+    <!-- Household Members (Placeholder) -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <h3>Share with Household</h3>
+        <p class="nom-description">
+          Select household members to share this shopping list with
+        </p>
+
+        <div class="nom-notice">
+          <amw-icon name="info"></amw-icon>
+          <div>
+            <strong>Feature Under Development</strong>
+            <p>
+              Household member integration is currently being implemented.
+              For now, all household members have access to shopping lists
+              within the same household.
+            </p>
+          </div>
+        </div>
+
+        @if (hasTargets()) {
+          <div class="nom-targets-list">
+            @for (target of shareTargets(); track target.id) {
+              <div class="nom-target-item">
+                <amw-checkbox
+                  [checked]="target.isShared"
+                  (change)="onToggleShare(target.id, $event)">
+                </amw-checkbox>
+                <div class="nom-target-info">
+                  <span class="nom-target-name">{{ target.name }}</span>
+                  <span class="nom-target-email">{{ target.email }}</span>
+                </div>
+                @if (target.isShared) {
+                  <amw-icon name="check_circle" color="primary"></amw-icon>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="nom-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              icon="save"
+              [disabled]="isSaving()"
+              (click)="onSaveSharing()">
+              {{ isSaving() ? 'Saving...' : 'Save Sharing Preferences' }}
+            </amw-button>
+          </div>
+
+          <div class="nom-summary">
+            <amw-icon name="people"></amw-icon>
+            <span>Shared with {{ sharedCount() }} member(s)</span>
+          </div>
+        }
+      </ng-template>
+    </amw-card>
+
+    <!-- Help Card -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <h3>About Sharing</h3>
+        <div class="nom-help-content">
+          <div class="nom-help-item">
+            <amw-icon name="visibility"></amw-icon>
+            <div>
+              <strong>View Access</strong>
+              <p>Shared members can view and edit the shopping list</p>
+            </div>
+          </div>
+          <div class="nom-help-item">
+            <amw-icon name="sync"></amw-icon>
+            <div>
+              <strong>Real-time Updates</strong>
+              <p>Changes are synchronized across all users with access</p>
+            </div>
+          </div>
+          <div class="nom-help-item">
+            <amw-icon name="security"></amw-icon>
+            <div>
+              <strong>Privacy</strong>
+              <p>Only household members you select can access this list</p>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </amw-card>
+  </div>
+}

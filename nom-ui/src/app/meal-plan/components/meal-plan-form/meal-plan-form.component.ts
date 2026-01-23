@@ -11,7 +11,7 @@ import {
   AmwDatepickerComponent,
   AmwCardComponent,
   AmwIconComponent,
-  DialogService,
+  AmwDialogService,
   AmwProgressBarComponent
 } from 'angular-material-wrap';
 
@@ -41,7 +41,7 @@ export class MealPlanFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private mealPlanReferenceService = inject(MealPlanReferenceService);
   private notificationService = inject(NotificationService);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
 
   mealPlanForm!: FormGroup;
   isEditMode = false;

@@ -3,7 +3,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
@@ -34,7 +34,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private recipeAssetsService = inject(RecipeAssetsService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
     private configurationService = inject(ConfigurationService);
 
     // Input properties

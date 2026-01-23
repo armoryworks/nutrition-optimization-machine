@@ -112,14 +112,6 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(var(--mat-sys-primary), 0.4);
     }
-
-    .mat-icon {
-      transition: transform 0.3s ease;
-    }
-
-    &:hover .mat-icon {
-      transform: scale(1.1);
-    }
   }
 
   &__content {

@@ -694,14 +694,9 @@ listConfig: BaseListConfig = {
 **Implementation:**
 
 ```html
-<mat-accordion>
-  <mat-expansion-panel>
-    <mat-expansion-panel-header>
-      <mat-panel-title>Section Title</mat-panel-title>
-    </mat-expansion-panel-header>
-    <!-- Section content -->
-  </mat-expansion-panel>
-</mat-accordion>
+<amw-expansion-panel [config]="{ title: 'Section Title' }">
+  <!-- Section content -->
+</amw-expansion-panel>
 ```
 
 **Scrollable Content Pattern:**
@@ -757,15 +752,13 @@ listConfig: BaseListConfig = {
 
 ```html
 <div class="form-fields-row">
-  <mat-form-field appearance="outline" class="form-field form-field--half">
-    <mat-label>First Field</mat-label>
-    <textarea matInput formControlName="field1" rows="3"></textarea>
-  </mat-form-field>
+  <amw-input
+    [config]="{ label: 'First Field', formControlName: 'field1', type: 'textarea', rows: 3 }"
+    class="form-field form-field--half" />
 
-  <mat-form-field appearance="outline" class="form-field form-field--half">
-    <mat-label>Second Field</mat-label>
-    <textarea matInput formControlName="field2" rows="3"></textarea>
-  </mat-form-field>
+  <amw-input
+    [config]="{ label: 'Second Field', formControlName: 'field2', type: 'textarea', rows: 3 }"
+    class="form-field form-field--half" />
 </div>
 ```
 
@@ -952,90 +945,69 @@ When any component content approaches the footer at 10px above it, the content m
 **Implementation:**
 
 ```html
-<mat-card-header class="review-header">
-  <mat-card-title>Review {{ entityType }} - {{ entityName }}</mat-card-title>
-
-  <div class="review-header__actions">
+<amw-card [config]="{ title: 'Review ' + entityType + ' - ' + entityName }">
+  <div class="review-header__actions" slot="actions">
     <!-- Control Buttons Context Menu -->
-    <button
-      mat-icon-button
+    <amw-button
+      [config]="{ icon: 'more_vert', variant: 'icon' }"
       [matMenuTriggerFor]="controlMenu"
       class="control-menu-trigger"
-      aria-label="Open control menu"
-    >
-      <mat-icon>more_vert</mat-icon>
-    </button>
+      aria-label="Open control menu" />
 
-    <mat-menu #controlMenu="matMenu" class="control-menu">
-      <button mat-menu-item (click)="approve()">
-        <mat-icon>check_circle</mat-icon>
+    <amw-menu #controlMenu class="control-menu">
+      <amw-menu-item (click)="approve()">
+        <amw-icon [config]="{ icon: 'check_circle' }" />
         <span>Approve</span>
-      </button>
-      <button mat-menu-item (click)="requestRevision()">
-        <mat-icon>edit</mat-icon>
+      </amw-menu-item>
+      <amw-menu-item (click)="requestRevision()">
+        <amw-icon [config]="{ icon: 'edit' }" />
         <span>Request Revision</span>
-      </button>
-      <button mat-menu-item (click)="reject()">
-        <mat-icon>cancel</mat-icon>
+      </amw-menu-item>
+      <amw-menu-item (click)="reject()">
+        <amw-icon [config]="{ icon: 'cancel' }" />
         <span>Reject</span>
-      </button>
-      <button mat-menu-item (click)="cancel()">
-        <mat-icon>close</mat-icon>
+      </amw-menu-item>
+      <amw-menu-item (click)="cancel()">
+        <amw-icon [config]="{ icon: 'close' }" />
         <span>Cancel</span>
-      </button>
-    </mat-menu>
+      </amw-menu-item>
+    </amw-menu>
 
     <!-- Navigation Buttons -->
     <div class="review-header__navigation">
-      <button mat-icon-button (click)="previous()">
-        <mat-icon>keyboard_arrow_up</mat-icon>
-      </button>
+      <amw-button [config]="{ icon: 'keyboard_arrow_up', variant: 'icon' }" (clicked)="previous()" />
       <span class="navigation-counter">1 of 5</span>
-      <button mat-icon-button (click)="next()">
-        <mat-icon>keyboard_arrow_down</mat-icon>
-      </button>
+      <amw-button [config]="{ icon: 'keyboard_arrow_down', variant: 'icon' }" (clicked)="next()" />
     </div>
   </div>
-</mat-card-header>
+</amw-card>
 ```
 
 **CSS Pattern:**
 
 ```scss
-.review-header {
+.review-header__actions {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
 
-  mat-card-title {
-    flex: 1;
-    min-width: 0;
+  .control-menu-trigger {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    color: var(--mat-sys-on-surface-variant);
+
+    &:hover {
+      color: var(--mat-sys-on-surface);
+      background-color: var(--mat-sys-surface-container);
+    }
   }
 
-  .review-header__actions {
+  .review-header__navigation {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    flex-shrink: 0;
-    margin-left: 1rem;
-
-    .control-menu-trigger {
-      width: 32px;
-      height: 32px;
-      line-height: 32px;
-      color: var(--mat-sys-on-surface-variant);
-
-      &:hover {
-        color: var(--mat-sys-on-surface);
-        background-color: var(--mat-sys-surface-container);
-      }
-    }
-
-    .review-header__navigation {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-    }
+    gap: 0.375rem;
   }
 }
 ```
@@ -2499,27 +2471,19 @@ body.dark-theme,
 }
 ```
 
-### Material Component Overrides
+### AMW Component Overrides
 
 ```scss
-// Material component theme overrides
-mat-card {
+// AMW component theme overrides
+amw-card {
   background-color: var(--mat-sys-surface-container) !important;
   color: var(--mat-sys-on-surface) !important;
 }
 
-mat-form-field {
-  .mat-form-field-wrapper {
-    background-color: var(--mat-sys-surface-container-low) !important;
-    border-radius: 4px;
-  }
-
-  .mat-form-field-label,
-  .mat-form-field-hint,
-  .mat-form-field-prefix,
-  .mat-form-field-suffix {
-    color: var(--mat-sys-on-surface) !important;
-  }
+amw-input {
+  background-color: var(--mat-sys-surface-container-low) !important;
+  border-radius: 4px;
+  color: var(--mat-sys-on-surface) !important;
 
   input.mat-input-element {
     color: var(--mat-sys-on-surface) !important;

@@ -1,0 +1,189 @@
+<!-- Loading State -->
+@if (isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-loading-container">
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+        <p>Loading shopping list...</p>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Error State -->
+@if (error() && !isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-error-container">
+        <p class="nom-error-message">{{ error() }}</p>
+        <div class="nom-error-actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()">
+            Retry
+          </amw-button>
+          <amw-button variant="outlined" color="primary" (click)="onBack()">
+            Back to Shopping List
+          </amw-button>
+        </div>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Main Content -->
+@if (!isLoading() && !error()) {
+  <div class="nom-bulk-editor-container">
+    <!-- Header -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-header">
+          <div class="nom-header-info">
+            <amw-icon name="checklist"></amw-icon>
+            <div>
+              <h2>Bulk Edit Shopping List</h2>
+              <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
+            </div>
+          </div>
+          <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
+            Back
+          </amw-button>
+        </div>
+      </ng-template>
+    </amw-card>
+
+    <!-- Bulk Actions Bar -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-actions-bar">
+          <div class="nom-selection-info">
+            <amw-checkbox
+              [checked]="allSelected()"
+              [indeterminate]="hasSelection() && !allSelected()"
+              (change)="onToggleAll($event)">
+              Select All
+            </amw-checkbox>
+            <span class="nom-selection-count">
+              {{ selectedCount() }} item(s) selected
+            </span>
+          </div>
+
+          @if (hasSelection()) {
+            <div class="nom-bulk-actions">
+              <div class="nom-action-group">
+                <amw-button
+                  variant="filled"
+                  color="primary"
+                  icon="check"
+                  [disabled]="isProcessing()"
+                  (click)="onMarkComplete()">
+                  Mark Complete
+                </amw-button>
+                <amw-button
+                  variant="outlined"
+                  color="primary"
+                  icon="close"
+                  [disabled]="isProcessing()"
+                  (click)="onMarkIncomplete()">
+                  Mark Incomplete
+                </amw-button>
+              </div>
+
+              <div class="nom-category-action">
+                <form [formGroup]="bulkActionForm" class="nom-category-form">
+                  <amw-select
+                    label="Change Category"
+                    placeholder="Select category..."
+                    formControlName="targetCategory">
+                    <option value="">-- Select Category --</option>
+                    @for (category of categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </amw-select>
+                </form>
+                <amw-button
+                  variant="filled"
+                  color="accent"
+                  icon="category"
+                  [disabled]="isProcessing() || !bulkActionForm.value.targetCategory"
+                  (click)="onChangeCategory()">
+                  Apply
+                </amw-button>
+              </div>
+
+              <amw-button
+                variant="filled"
+                color="warn"
+                icon="delete"
+                [disabled]="isProcessing()"
+                (click)="onDeleteSelected()">
+                Delete Selected
+              </amw-button>
+            </div>
+          }
+        </div>
+
+        @if (isProcessing()) {
+          <div class="nom-processing-overlay">
+            <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+            <p>Processing...</p>
+          </div>
+        }
+      </ng-template>
+    </amw-card>
+
+    <!-- Items List -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <h3>Shopping List Items</h3>
+
+        @if (!shoppingList()?.items || shoppingList()!.items!.length === 0) {
+          <div class="nom-empty-state">
+            <amw-icon name="shopping_cart"></amw-icon>
+            <p>No items in this shopping list</p>
+            <amw-button variant="filled" color="primary" icon="add" (click)="onBack()">
+              Add Items
+            </amw-button>
+          </div>
+        }
+
+        @if (shoppingList()?.items && shoppingList()!.items!.length > 0) {
+          <div class="nom-items-list">
+            @for (item of shoppingList()!.items; track item.id) {
+              <div class="nom-item" [class.nom-item--completed]="item.isCompleted">
+                <amw-checkbox
+                  [checked]="isItemSelected(item.id)"
+                  (change)="onToggleItem(item.id, $event)">
+                </amw-checkbox>
+
+                <div class="nom-item-content">
+                  <div class="nom-item-header">
+                    <h4 [class.nom-strikethrough]="item.isCompleted">{{ item.name }}</h4>
+                    @if (item.isCompleted) {
+                      <amw-icon name="check_circle" color="primary"></amw-icon>
+                    }
+                  </div>
+
+                  <div class="nom-item-details">
+                    @if (item.quantity && item.measurementUnit) {
+                      <span class="nom-quantity">
+                        <amw-icon name="scale"></amw-icon>
+                        {{ item.quantity }} {{ item.measurementUnit }}
+                      </span>
+                    }
+                    <span class="nom-category">
+                      <amw-icon name="category"></amw-icon>
+                      {{ getCategoryName(item.categoryId) }}
+                    </span>
+                  </div>
+
+                  @if (item.notes) {
+                    <p class="nom-notes">{{ item.notes }}</p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </ng-template>
+    </amw-card>
+  </div>
+}

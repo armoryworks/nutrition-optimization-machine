@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwButtonComponent, AmwIconComponent, AmwChipComponent, AmwButtonToggleGroupComponent, AmwButtonToggleComponent, DialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwIconComponent, AmwChipComponent, AmwButtonToggleGroupComponent, AmwButtonToggleComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
@@ -31,7 +31,7 @@ export class MealPlanDashboardComponent implements OnInit {
     private router = inject(Router);
     private mealPlanService = inject(MealPlanService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
 
     mealPlans = signal<MealPlanResponseModel[]>([]);
     filteredPlans = signal<MealPlanResponseModel[]>([]);

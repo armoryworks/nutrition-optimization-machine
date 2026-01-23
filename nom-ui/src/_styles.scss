@@ -5,6 +5,9 @@
 @use 'nom-theme';
 @use 'variables' as vars;
 
+// Import FontAwesome (must come after @use statements)
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
 // 1. Angular Material Core and Theming
 // ------------------------------------
 @include mat.elevation-classes();

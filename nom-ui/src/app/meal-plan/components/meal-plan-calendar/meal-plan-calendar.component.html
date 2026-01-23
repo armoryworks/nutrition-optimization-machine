@@ -1,0 +1,154 @@
+<!-- Loading State -->
+@if (isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-loading-container">
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+        <p>Loading meal plans...</p>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Error State -->
+@if (error() && !isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-error-container">
+        <p class="nom-error-message">{{ error() }}</p>
+        <amw-button variant="filled" color="primary" (click)="onRetry()">
+          Retry
+        </amw-button>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+<!-- Calendar View -->
+@if (!isLoading() && !error()) {
+  <div class="nom-calendar-container">
+    <!-- Header Controls -->
+    <amw-card>
+      <ng-template #contentTemplate>
+        <div class="nom-calendar-header">
+          <div class="nom-calendar-nav">
+            <amw-icon-button
+              icon="chevron_left"
+              ariaLabel="Previous week"
+              (click)="onPreviousWeek()">
+            </amw-icon-button>
+            <amw-button variant="outlined" color="primary" (click)="onToday()">
+              Today
+            </amw-button>
+            <amw-icon-button
+              icon="chevron_right"
+              ariaLabel="Next week"
+              (click)="onNextWeek()">
+            </amw-icon-button>
+          </div>
+          <h2 class="nom-calendar-title">{{ getCurrentWeekLabel() }}</h2>
+        </div>
+      </ng-template>
+    </amw-card>
+
+    <!-- Weekly Calendar Grid -->
+    <div class="nom-calendar-grid">
+      @for (day of weekMeals(); track day.date.toISOString()) {
+        <div class="nom-day-column" [class.nom-day-column--today]="day.isToday" [class.nom-day-column--past]="day.isPast">
+          <!-- Day Header -->
+          <div class="nom-day-header">
+            <span class="nom-day-name">{{ day.dayName }}</span>
+            <span class="nom-day-number">{{ day.dayNumber }}</span>
+          </div>
+
+          <!-- Meal Slots -->
+          <div class="nom-meal-slots">
+            <!-- Breakfast -->
+            <div class="nom-meal-slot">
+              <div class="nom-meal-slot-header">
+                <amw-icon name="wb_sunny" class="nom-meal-icon nom-meal-icon--breakfast"></amw-icon>
+                <span>Breakfast</span>
+              </div>
+              @if (day.breakfast) {
+                <div class="nom-meal-card" (click)="onViewMeal(day.breakfast.id)">
+                  <h4>{{ day.breakfast.recipeName || day.breakfast.title }}</h4>
+                  @if (day.breakfast.notes) {
+                    <p class="nom-meal-notes">{{ day.breakfast.notes }}</p>
+                  }
+                </div>
+              } @else {
+                <button class="nom-add-meal-button" (click)="onAddMeal(day.date, 'breakfast')">
+                  <amw-icon name="add"></amw-icon>
+                  <span>Add meal</span>
+                </button>
+              }
+            </div>
+
+            <!-- Lunch -->
+            <div class="nom-meal-slot">
+              <div class="nom-meal-slot-header">
+                <amw-icon name="restaurant" class="nom-meal-icon nom-meal-icon--lunch"></amw-icon>
+                <span>Lunch</span>
+              </div>
+              @if (day.lunch) {
+                <div class="nom-meal-card" (click)="onViewMeal(day.lunch.id)">
+                  <h4>{{ day.lunch.recipeName || day.lunch.title }}</h4>
+                  @if (day.lunch.notes) {
+                    <p class="nom-meal-notes">{{ day.lunch.notes }}</p>
+                  }
+                </div>
+              } @else {
+                <button class="nom-add-meal-button" (click)="onAddMeal(day.date, 'lunch')">
+                  <amw-icon name="add"></amw-icon>
+                  <span>Add meal</span>
+                </button>
+              }
+            </div>
+
+            <!-- Dinner -->
+            <div class="nom-meal-slot">
+              <div class="nom-meal-slot-header">
+                <amw-icon name="dinner_dining" class="nom-meal-icon nom-meal-icon--dinner"></amw-icon>
+                <span>Dinner</span>
+              </div>
+              @if (day.dinner) {
+                <div class="nom-meal-card" (click)="onViewMeal(day.dinner.id)">
+                  <h4>{{ day.dinner.recipeName || day.dinner.title }}</h4>
+                  @if (day.dinner.notes) {
+                    <p class="nom-meal-notes">{{ day.dinner.notes }}</p>
+                  }
+                </div>
+              } @else {
+                <button class="nom-add-meal-button" (click)="onAddMeal(day.date, 'dinner')">
+                  <amw-icon name="add"></amw-icon>
+                  <span>Add meal</span>
+                </button>
+              }
+            </div>
+
+            <!-- Snack -->
+            <div class="nom-meal-slot">
+              <div class="nom-meal-slot-header">
+                <amw-icon name="local_cafe" class="nom-meal-icon nom-meal-icon--snack"></amw-icon>
+                <span>Snack</span>
+              </div>
+              @if (day.snack) {
+                <div class="nom-meal-card" (click)="onViewMeal(day.snack.id)">
+                  <h4>{{ day.snack.recipeName || day.snack.title }}</h4>
+                  @if (day.snack.notes) {
+                    <p class="nom-meal-notes">{{ day.snack.notes }}</p>
+                  }
+                </div>
+              } @else {
+                <button class="nom-add-meal-button" (click)="onAddMeal(day.date, 'snack')">
+                  <amw-icon name="add"></amw-icon>
+                  <span>Add meal</span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

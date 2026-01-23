@@ -4,7 +4,7 @@ import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/c
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 
-import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, DialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
@@ -30,7 +30,7 @@ export class PrivacySettingsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private privacyService = inject(PrivacyService);
   private notificationService = inject(NotificationService);
-  private dialogService = inject(DialogService);
+  private dialogService = inject(AmwDialogService);
 
   consentForm: FormGroup;
   privacyForm: FormGroup;

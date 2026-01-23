@@ -1,0 +1,276 @@
+.nom-loading-container,
+.nom-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+  text-align: center;
+}
+
+.nom-error-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nom-recipe-integration-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.nom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-header-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.nom-subtitle {
+  margin: 0.25rem 0 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.nom-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.nom-recipe-list-section {
+  h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.nom-recipe-item {
+  padding: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container);
+    border-color: var(--mat-sys-primary);
+  }
+
+  &--selected {
+    background-color: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.nom-recipe-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nom-recipe-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-recipe-description {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.nom-recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
+
+.nom-empty-state,
+.nom-no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+
+  amw-icon {
+    font-size: 48px;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.nom-hint {
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.nom-selection-panel {
+  position: sticky;
+  top: 1rem;
+
+  h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-selected-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--mat-sys-on-surface);
+  }
+
+  > p {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+}
+
+.nom-ingredients-preview {
+  padding: 1rem;
+  background-color: var(--mat-sys-surface-container);
+  border-radius: 8px;
+
+  h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-ingredient-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: disc;
+
+  li {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+}
+
+.nom-more-ingredients {
+  font-style: italic;
+  color: var(--mat-sys-primary);
+}
+
+.nom-no-ingredients {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.nom-servings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .nom-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nom-selection-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .nom-recipe-integration-container {
+    padding: 0.5rem;
+  }
+
+  .nom-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nom-recipe-list {
+    max-height: 400px;
+  }
+
+  .nom-recipe-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

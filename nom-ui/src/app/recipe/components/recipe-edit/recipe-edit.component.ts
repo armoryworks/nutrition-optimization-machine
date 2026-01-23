@@ -8,7 +8,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { of, Subject } from 'rxjs';
 import { finalize, takeUntil, take, catchError } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, DialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { RecipeModel } from '../../models/recipe.model';
@@ -52,7 +52,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private location = inject(Location);
     private recipeService = inject(RecipeService);
     private notificationService = inject(NotificationService);
-    private dialogService = inject(DialogService);
+    private dialogService = inject(AmwDialogService);
     private curationService = inject(CurationService);
     private referenceDataService = inject(ReferenceDataService);
     private injector = inject(Injector);
