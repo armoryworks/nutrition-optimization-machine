@@ -1,12 +1,27 @@
 <div class="shopping-dashboard">
   <div class="shopping-dashboard__container">
-    <!-- Page Header -->
-    <div class="shopping-dashboard__page-header">
-      <div class="shopping-dashboard__title-section">
-        <h1>{{ pageTitle }}</h1>
-        <p class="subtitle">{{ pageSubtitle }}</p>
+    <!-- Compact Page Header -->
+    <div class="shopping-dashboard__page-header shopping-dashboard__page-header--compact">
+      <div class="shopping-dashboard__header-left">
+        <h1 class="shopping-dashboard__title">{{ pageTitle }}</h1>
+        <span class="shopping-dashboard__subtitle">{{ pageSubtitle }}</span>
       </div>
-      <div class="shopping-dashboard__header-actions">
+      <div class="shopping-dashboard__header-center">
+        @if (!isLoading() && !error()) {
+          <amw-input
+            type="text"
+            [formControl]="searchControl"
+            placeholder="Search lists..."
+            icon="search"
+            class="shopping-dashboard__search-field">
+          </amw-input>
+          <div class="shopping-dashboard__stats-pill">
+            <amw-icon name="shopping_cart" class="shopping-dashboard__stats-icon"></amw-icon>
+            <span class="shopping-dashboard__stats-text">{{ filteredLists().length }} list{{ filteredLists().length !== 1 ? 's' : '' }}</span>
+          </div>
+        }
+      </div>
+      <div class="shopping-dashboard__header-right">
         <amw-button
           variant="text"
           icon="refresh"
@@ -49,17 +64,6 @@
 
     <!-- Content -->
     @if (!isLoading() && !error()) {
-      <!-- Search -->
-      <div class="shopping-dashboard__search-section">
-        <amw-input
-          type="text"
-          [formControl]="searchControl"
-          label="Search shopping lists"
-          placeholder="Search by name or description..."
-          icon="search"
-          class="shopping-dashboard__search-field">
-        </amw-input>
-      </div>
 
       <!-- Empty State -->
       @if (filteredLists().length === 0) {

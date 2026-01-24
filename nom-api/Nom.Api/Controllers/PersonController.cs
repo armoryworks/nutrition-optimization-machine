@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
@@ -68,12 +69,107 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpGet("{id}", Name = "GetPersonById")]
-        public IActionResult GetPersonById(long id)
+        /// <summary>
+        /// Gets all persons in the system
+        /// </summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAllPersons()
         {
-            // Placeholder implementation
-            _logger.LogInformation("Attempting to get person with ID: {PersonId}", id);
-            return NotFound();
+            try
+            {
+                var persons = await _personOrchestrationService.GetAllPersonsAsync();
+                return Ok(persons);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all persons");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
+        /// Gets a specific person by ID
+        /// </summary>
+        [HttpGet("{id}", Name = "GetPersonById")]
+        [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPersonById(long id)
+        {
+            try
+            {
+                var person = await _personOrchestrationService.GetPersonByIdAsync(id);
+                if (person == null)
+                {
+                    return NotFound();
+                }
+                return Ok(person);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving person {PersonId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
+        /// Updates a person's information
+        /// </summary>
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdatePerson(long id, [FromBody] UpdatePersonRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (id != request.Id)
+            {
+                return BadRequest("ID mismatch");
+            }
+
+            try
+            {
+                var updatedPerson = await _personOrchestrationService.UpdatePersonAsync(request);
+                return Ok(updatedPerson);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating person {PersonId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
+        /// Deletes a person
+        /// </summary>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeletePerson(long id)
+        {
+            try
+            {
+                var result = await _personOrchestrationService.DeletePersonAsync(id);
+                if (!result)
+                {
+                    return NotFound();
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting person {PersonId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
         }
 
         [HttpGet("onboarding-state")]

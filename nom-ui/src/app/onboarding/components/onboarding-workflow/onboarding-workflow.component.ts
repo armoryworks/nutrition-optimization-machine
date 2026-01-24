@@ -23,6 +23,7 @@ import { PersonAttributeModel } from '../../../person/models/person-attribute.mo
 import { RestrictionModel } from '../../../restriction/models/restriction.model';
 import { OnboardingCompleteRequestModel } from '../../models/onboarding-complete-request.model';
 import { PersonService } from '../../../person/services/person.service';
+import { InvitationService } from '../../../person/services/invitation.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
 import { OnboardingService } from '../../services/onboarding.service';
@@ -50,6 +51,7 @@ import { OnboardingWorkflowStep } from '../../models/onboarding-workflow-step';
 })
 export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   private personService = inject(PersonService);
+  private invitationService = inject(InvitationService);
   private notificationService = inject(NotificationService);
   private onboardingService = inject(OnboardingService);
   private router = inject(Router);
@@ -279,32 +281,47 @@ export class OnboardingWorkflowComponent implements OnInit, OnDestroy {
   onInvitationCodeSubmitted(code: string): void {
     this.error.set(null);
     this.isLoading.set(true);
-    setTimeout(() => {
-      this.isLoading.set(false);
-      const isValid = code === 'PLAN123';
-      if (isValid) {
-        this.onboardingService.updateOnboardingProperty(
-          'planInvitationCode',
-          code
-        );
-        if (!this.onboardingData.personDetails?.id) {
-          this.onboardingService.updateOnboardingProperty(
-            'personDetails',
-            new PersonModel({ id: 100, name: 'Existing User' })
+
+    this.invitationService
+      .validateInvitationCode(code)
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: (isValid) => {
+          if (isValid) {
+            this.onboardingService.updateOnboardingProperty(
+              'planInvitationCode',
+              code
+            );
+            if (!this.onboardingData.personDetails?.id) {
+              this.onboardingService.updateOnboardingProperty(
+                'personDetails',
+                new PersonModel({ id: 100, name: 'Existing User' })
+              );
+              this.onboardingService.updateOnboardingProperty('personId', 100);
+              this._principalPersonId = 100;
+            }
+            this.nextStepInternal();
+          } else {
+            const errorMsg = 'Invalid invitation code. Please try again or create a new plan.';
+            this.error.set(errorMsg);
+            this.notificationService.error(errorMsg);
+            this.onboardingInvitationCodeComponent?.invitationCodeFormControl.setErrors(
+              { invalidCode: true }
+            );
+          }
+        },
+        error: (err) => {
+          console.error('Invitation validation error:', err);
+          const errorMsg =
+            err.error?.message ||
+            'Unable to validate invitation code. Please try again.';
+          this.error.set(errorMsg);
+          this.notificationService.error(errorMsg);
+          this.onboardingInvitationCodeComponent?.invitationCodeFormControl.setErrors(
+            { invalidCode: true }
           );
-          this.onboardingService.updateOnboardingProperty('personId', 100);
-          this._principalPersonId = 100;
-        }
-        this.nextStepInternal();
-      } else {
-        const errorMsg = 'Invalid invitation code. Please try again or create a new plan.';
-        this.error.set(errorMsg);
-        this.notificationService.error(errorMsg);
-        this.onboardingInvitationCodeComponent?.invitationCodeFormControl.setErrors(
-          { invalidCode: true }
-        );
-      }
-    }, 1000);
+        },
+      });
   }
 
   onNoInvitationCodeSelected(): void {

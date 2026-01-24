@@ -18,6 +18,11 @@ namespace Nom.Orch.Models.Person
         [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Health attributes for this person (e.g., height, weight, dietary preferences)
+        /// </summary>
+        public List<PersonAttributeRequest> Attributes { get; set; } = new();
+
         // Add other core person properties as needed for onboarding
         // e.g., public DateTime? DateOfBirth { get; set; }
         // e.g., public string? Gender { get; set; } // Consider using Reference Data for gender

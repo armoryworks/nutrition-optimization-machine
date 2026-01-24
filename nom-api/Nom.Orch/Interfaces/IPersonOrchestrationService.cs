@@ -20,6 +20,7 @@ namespace Nom.Orch.Interfaces
 
         Task<PersonModel> GetPersonByUserIdAsync(string userId);
         Task<PersonModel> GetPersonByIdAsync(long personId);
+        Task<List<PersonModel>> GetAllPersonsAsync();
         Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId);
         Task<PersonModel> UpdatePersonAsync(UpdatePersonRequest request);
         Task<bool> DeletePersonAsync(long personId);

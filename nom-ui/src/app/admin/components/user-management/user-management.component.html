@@ -1,0 +1,161 @@
+<div class="user-management">
+  <div class="user-management__container">
+    <!-- Compact Page Header -->
+    <div class="user-management__page-header user-management__page-header--compact">
+      <div class="user-management__header-left">
+        <h1 class="user-management__title">{{ pageTitle }}</h1>
+        <span class="user-management__subtitle">{{ pageSubtitle }}</span>
+      </div>
+      <div class="user-management__header-center">
+        @if (!isLoading() && !error()) {
+          <amw-input
+            type="text"
+            [formControl]="searchControl"
+            placeholder="Search users..."
+            icon="search"
+            class="user-management__search-field">
+          </amw-input>
+          <div class="user-management__stats-pill">
+            <amw-icon name="people" class="user-management__stats-icon"></amw-icon>
+            <span class="user-management__stats-text">{{ filteredPersons().length }} user{{ filteredPersons().length !== 1 ? 's' : '' }}</span>
+          </div>
+        }
+      </div>
+      <div class="user-management__header-right">
+        <amw-button
+          variant="text"
+          icon="refresh"
+          (click)="onRefresh()"
+          [disabled]="isLoading()">
+          Refresh
+        </amw-button>
+        <amw-button
+          variant="filled"
+          color="primary"
+          icon="add"
+          (click)="onCreateUser()">
+          Create User
+        </amw-button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="user-management__loading">
+        <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
+        <p>Loading users...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error() && !isLoading()) {
+      <div class="user-management__error">
+        <amw-icon name="error_outline"></amw-icon>
+        <p>{{ error() }}</p>
+        <amw-button
+          variant="outlined"
+          color="primary"
+          icon="refresh"
+          (click)="onRetry()">
+          Try Again
+        </amw-button>
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!isLoading() && !error()) {
+
+      <!-- Empty State -->
+      @if (filteredPersons().length === 0) {
+        <div class="user-management__empty-state">
+          <amw-card class="user-management__empty-card">
+            <ng-template #contentTemplate>
+              <div class="user-management__empty-content">
+                <amw-icon name="people" class="user-management__empty-icon"></amw-icon>
+                <h3>No Users Found</h3>
+                @if (searchControl.value) {
+                  <p>No users match your search criteria.</p>
+                } @else {
+                  <p>Create your first user to get started.</p>
+                }
+                <amw-button
+                  variant="filled"
+                  color="primary"
+                  icon="add"
+                  (click)="onCreateUser()">
+                  Create User
+                </amw-button>
+              </div>
+            </ng-template>
+          </amw-card>
+        </div>
+      }
+
+      <!-- Users Grid -->
+      @if (filteredPersons().length > 0) {
+        <div class="user-management__users-grid">
+          @for (person of filteredPersons(); track person.id) {
+            <amw-card
+              class="user-management__user-card"
+              [headerTitle]="person.name"
+              [headerSubtitle]="getUserIdDisplay(person)"
+              headerIcon="person">
+              <ng-template #contentTemplate>
+                <div class="user-management__user-stats">
+                  <div class="user-management__user-stat">
+                    <amw-icon name="restaurant_menu" class="user-management__stat-icon"></amw-icon>
+                    <span class="user-management__stat-text">{{ getPlanCount(person) }} plans</span>
+                  </div>
+                  <div class="user-management__user-stat">
+                    <amw-icon name="category" class="user-management__stat-icon"></amw-icon>
+                    <span class="user-management__stat-text">{{ getAttributeCount(person) }} attributes</span>
+                  </div>
+                </div>
+
+                <!-- Attributes Display -->
+                @if (person.attributes && person.attributes.length > 0) {
+                  <div class="user-management__attributes-section">
+                    <div class="user-management__attributes-label">
+                      <amw-icon name="label" class="user-management__attributes-icon"></amw-icon>
+                      <span>Attributes</span>
+                    </div>
+                    <div class="user-management__attributes-list">
+                      @for (attr of person.attributes; track attr.attributeTypeRefId) {
+                        <span class="user-management__attribute-chip">
+                          {{ attr.value }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </ng-template>
+              <ng-template #actionsTemplate>
+                <amw-button
+                  variant="text"
+                  color="primary"
+                  icon="visibility"
+                  (click)="onViewUser(person.id); $event.stopPropagation()">
+                  View
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="accent"
+                  icon="edit"
+                  (click)="onEditUser(person.id); $event.stopPropagation()">
+                  Edit
+                </amw-button>
+                <amw-button
+                  variant="text"
+                  color="warn"
+                  icon="delete"
+                  (click)="onDeleteUser(person); $event.stopPropagation()">
+                  Delete
+                </amw-button>
+              </ng-template>
+            </amw-card>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>

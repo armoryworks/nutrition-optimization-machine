@@ -56,6 +56,34 @@ export class PersonService {
   }
 
   /**
+   * Gets all persons in the system (admin only)
+   */
+  getAllPersons(): Observable<PersonModel[]> {
+    return this.http.get<PersonModel[]>(`${this.apiUrl}`);
+  }
+
+  /**
+   * Gets a specific person by ID
+   */
+  getPersonById(id: number): Observable<PersonModel> {
+    return this.http.get<PersonModel>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Updates a person's information
+   */
+  updatePerson(id: number, model: { id: number; name: string; userId?: string }): Observable<PersonModel> {
+    return this.http.put<PersonModel>(`${this.apiUrl}/${id}`, model);
+  }
+
+  /**
+   * Deletes a person
+   */
+  deletePerson(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
    * Submits the complete onboarding data for a user.
    * This includes Person details, attributes, and all collected restrictions.
    * Ensures nested objects like PersonModel and RestrictionModel are converted to plain

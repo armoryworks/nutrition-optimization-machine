@@ -1,25 +1,30 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-
+import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwSelectComponent } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { UserInfoService } from '../../../utilities/services/user-info.service';
 
 @Component({
     selector: 'nom-shopping-category-management',
     standalone: true,
     imports: [
+        CommonModule,
         ReactiveFormsModule,
+        DragDropModule,
         AmwInputComponent,
         AmwTextareaComponent,
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent
+        AmwProgressSpinnerComponent,
+        AmwSelectComponent
     ],
     templateUrl: './shopping-category-management.component.html',
     styleUrls: ['./shopping-category-management.component.scss']
@@ -30,6 +35,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private notificationService = inject(NotificationService);
     private dialogService = inject(AmwDialogService);
+    private userInfoService = inject(UserInfoService);
 
     categories = signal<ShoppingListCategory[]>([]);
     isLoading = signal(false);
@@ -39,11 +45,51 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     isEditing = signal(false);
     isSubmitting = signal(false);
     loading = signal(false);
+    editingCategoryId = signal<number | null>(null);
+
+    // Available icons for category selection
+    availableIcons = [
+        { value: 'shopping_cart', label: 'Shopping Cart' },
+        { value: 'local_grocery_store', label: 'Grocery' },
+        { value: 'restaurant', label: 'Restaurant' },
+        { value: 'fastfood', label: 'Fast Food' },
+        { value: 'local_dining', label: 'Dining' },
+        { value: 'cake', label: 'Bakery' },
+        { value: 'local_cafe', label: 'Cafe' },
+        { value: 'local_bar', label: 'Beverages' },
+        { value: 'outdoor_grill', label: 'Grill' },
+        { value: 'ramen_dining', label: 'Ramen' },
+        { value: 'breakfast_dining', label: 'Breakfast' },
+        { value: 'dinner_dining', label: 'Dinner' },
+        { value: 'set_meal', label: 'Meal' },
+        { value: 'egg', label: 'Eggs' },
+        { value: 'liquor', label: 'Liquor' },
+        { value: 'icecream', label: 'Ice Cream' },
+        { value: 'emoji_food_beverage', label: 'Food & Beverage' },
+        { value: 'category', label: 'Category' },
+    ];
+
+    // Preset colors for categories
+    availableColors = [
+        '#1976d2', // Blue
+        '#388e3c', // Green
+        '#d32f2f', // Red
+        '#f57c00', // Orange
+        '#7b1fa2', // Purple
+        '#0097a7', // Cyan
+        '#c2185b', // Pink
+        '#5d4037', // Brown
+        '#616161', // Gray
+        '#fbc02d', // Yellow
+    ];
 
     constructor() {
         this.categoryForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-            description: ['', [Validators.maxLength(200)]]
+            description: ['', [Validators.maxLength(200)]],
+            color: ['#1976d2'],
+            icon: ['category'],
+            sortOrder: [0]
         });
     }
 
@@ -56,7 +102,9 @@ export class ShoppingCategoryManagementComponent implements OnInit {
         this.loading.set(true);
         this.shoppingService.getCategories().subscribe({
             next: (categories: ShoppingListCategory[]) => {
-                this.categories.set(categories);
+                // Sort by sortOrder
+                const sorted = categories.sort((a, b) => a.sortOrder - b.sortOrder);
+                this.categories.set(sorted);
                 this.isLoading.set(false);
                 this.loading.set(false);
             },
@@ -70,48 +118,48 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     }
 
     onSubmit(): void {
-        if (this.categoryForm.valid) {
-            this.isAddingCategory.set(true);
-            this.isSubmitting.set(true);
-            const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
+        if (this.categoryForm.invalid) {
+            return;
+        }
 
-            this.shoppingService.createCategory(categoryData).subscribe({
-                next: (category: ShoppingListCategory) => {
-                    this.categories.set([...this.categories(), category]);
-                    this.categoryForm.reset();
-                    this.notificationService.success('Category created successfully');
-                    this.isAddingCategory.set(false);
-                    this.isSubmitting.set(false);
+        this.isSubmitting.set(true);
+
+        const categoryData: ShoppingListCategoryCreate = {
+            ...this.categoryForm.value,
+            householdId: this.userInfoService.getHouseholdId()
+        };
+
+        if (this.isEditing() && this.editingCategoryId()) {
+            // Update existing category
+            this.shoppingService.updateCategory(this.editingCategoryId()!, categoryData).subscribe({
+                next: (updatedCategory: ShoppingListCategory) => {
+                    const categories = this.categories();
+                    const index = categories.findIndex(c => c.id === updatedCategory.id);
+                    if (index !== -1) {
+                        categories[index] = updatedCategory;
+                        this.categories.set([...categories].sort((a, b) => a.sortOrder - b.sortOrder));
+                    }
+                    this.resetForm();
+                    this.notificationService.success('Category updated successfully');
                 },
                 error: (error: Error | string | unknown) => {
-                    console.error('Error creating category:', error);
-                    this.notificationService.error('Error creating category');
-                    this.isAddingCategory.set(false);
+                    console.error('Error updating category:', error);
+                    this.notificationService.error('Error updating category');
                     this.isSubmitting.set(false);
                 }
             });
-        }
-    }
-
-    createCategory(): void {
-        if (this.categoryForm.valid) {
-            const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
-            this.isLoading.set(true);
-            this.loading.set(true);
-
+        } else {
+            // Create new category
             this.shoppingService.createCategory(categoryData).subscribe({
                 next: (category: ShoppingListCategory) => {
-                    this.categories.set([...this.categories(), category]);
-                    this.categoryForm.reset();
+                    this.categories.set([...this.categories(), category].sort((a, b) => a.sortOrder - b.sortOrder));
+                    this.resetForm();
                     this.notificationService.success('Category created successfully');
-                    this.isLoading.set(false);
-                    this.loading.set(false);
                 },
                 error: (error: Error | string | unknown) => {
                     console.error('Error creating category:', error);
                     this.notificationService.error('Error creating category');
-                    this.isLoading.set(false);
-                    this.loading.set(false);
+                    this.isSubmitting.set(false);
                 }
             });
         }
@@ -120,43 +168,19 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     editCategory(category: ShoppingListCategory): void {
         this.isAddingCategory.set(true);
         this.isEditing.set(true);
+        this.editingCategoryId.set(category.id);
         this.categoryForm.patchValue({
             name: category.name,
-            description: category.description
+            description: category.description || '',
+            color: category.color || '#1976d2',
+            icon: 'category', // Default icon, backend doesn't support icon storage yet
+            sortOrder: category.sortOrder
         });
-    }
 
-    updateCategory(): void {
-        if (this.categoryForm.valid && this.isEditing()) {
-            const categoryData: ShoppingListCategoryCreate = this.categoryForm.value;
-            this.isLoading.set(true);
-            this.loading.set(true);
-
-            // For now, we'll treat this as create since we don't have the category ID
-            // In a real implementation, you'd need to track the category being edited
-            this.shoppingService.createCategory(categoryData).subscribe({
-                next: (updatedCategory: ShoppingListCategory) => {
-                    const categories = this.categories();
-                    const index = categories.findIndex(c => c.id === updatedCategory.id);
-                    if (index !== -1) {
-                        categories[index] = updatedCategory;
-                        this.categories.set([...categories]);
-                    }
-                    this.categoryForm.reset();
-                    this.isAddingCategory.set(false);
-                    this.isEditing.set(false);
-                    this.notificationService.success('Category updated successfully');
-                    this.isLoading.set(false);
-                    this.loading.set(false);
-                },
-                error: (error: Error | string | unknown) => {
-                    console.error('Error updating category:', error);
-                    this.notificationService.error('Error updating category');
-                    this.isLoading.set(false);
-                    this.loading.set(false);
-                }
-            });
-        }
+        // Scroll form into view
+        setTimeout(() => {
+            document.querySelector('.shopping-category-management__form-card')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     }
 
     deleteCategory(category: ShoppingListCategory): void {
@@ -186,12 +210,53 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     }
 
     cancelEdit(): void {
-        this.categoryForm.reset();
+        this.resetForm();
+    }
+
+    private resetForm(): void {
+        this.categoryForm.reset({
+            name: '',
+            description: '',
+            color: '#1976d2',
+            icon: 'category',
+            sortOrder: 0
+        });
         this.isAddingCategory.set(false);
         this.isEditing.set(false);
+        this.isSubmitting.set(false);
+        this.editingCategoryId.set(null);
     }
 
     getCategoryColor(category: ShoppingListCategory): string {
         return category.color || '#1976d2';
+    }
+
+    getCategoryIcon(category: ShoppingListCategory): string {
+        return 'category'; // Default icon - backend doesn't support icon storage yet
+    }
+
+    // Drag-drop reordering
+    drop(event: CdkDragDrop<ShoppingListCategory[]>): void {
+        const categories = [...this.categories()];
+        moveItemInArray(categories, event.previousIndex, event.currentIndex);
+
+        // Update sortOrder for all categories
+        const updates = categories.map((category, index) => {
+            const updated = { ...category, sortOrder: index };
+            return this.shoppingService.updateCategory(category.id, {
+                householdId: category.householdId,
+                name: category.name,
+                description: category.description,
+                color: category.color,
+                sortOrder: index
+            });
+        });
+
+        // Update local state immediately for smooth UX
+        this.categories.set(categories);
+
+        // Optionally, you could wait for all updates to complete
+        // but this provides better UX with immediate feedback
+        this.notificationService.success('Category order updated');
     }
 } 

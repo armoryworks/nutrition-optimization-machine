@@ -1,12 +1,20 @@
 <div class="household-dashboard">
   <div class="household-dashboard__container">
-    <!-- Page Header -->
-    <div class="household-dashboard__page-header">
-      <div class="household-dashboard__title-section">
-        <h1>{{ pageTitle }}</h1>
-        <p class="subtitle">{{ pageSubtitle }}</p>
+    <!-- Compact Page Header -->
+    <div class="household-dashboard__page-header household-dashboard__page-header--compact">
+      <div class="household-dashboard__header-left">
+        <h1 class="household-dashboard__title">{{ pageTitle }}</h1>
+        <span class="household-dashboard__subtitle">{{ pageSubtitle }}</span>
       </div>
-      <div class="household-dashboard__header-actions">
+      <div class="household-dashboard__header-center">
+        @if (!loading() && !error()) {
+          <div class="household-dashboard__stats-pill">
+            <amw-icon name="home" class="household-dashboard__stats-icon"></amw-icon>
+            <span class="household-dashboard__stats-text">{{ households().length }} household{{ households().length !== 1 ? 's' : '' }}</span>
+          </div>
+        }
+      </div>
+      <div class="household-dashboard__header-right">
         <amw-button
           variant="text"
           icon="refresh"

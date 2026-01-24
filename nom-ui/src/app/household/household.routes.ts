@@ -17,6 +17,11 @@ export const HOUSEHOLD_ROUTES: Routes = [
                 title: 'Create Household'
             },
             {
+                path: 'join/:token',
+                loadComponent: () => import('./components/household-join/household-join.component').then(m => m.HouseholdJoinComponent),
+                title: 'Join Household'
+            },
+            {
                 path: ':id',
                 loadComponent: () => import('./components/household-detail/household-detail.component').then(m => m.HouseholdDetailComponent),
                 title: 'Household Details'
@@ -30,6 +35,11 @@ export const HOUSEHOLD_ROUTES: Routes = [
                 path: ':id/invite',
                 loadComponent: () => import('./components/household-invite/household-invite.component').then(m => m.HouseholdInviteComponent),
                 title: 'Invite Members'
+            },
+            {
+                path: ':id/settings',
+                loadComponent: () => import('./components/household-settings/household-settings.component').then(m => m.HouseholdSettingsComponent),
+                title: 'Household Settings'
             }
         ]
     }

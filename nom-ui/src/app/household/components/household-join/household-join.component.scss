@@ -1,0 +1,140 @@
+.nom-loading,
+.nom-error,
+.nom-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  gap: 1rem;
+  text-align: center;
+}
+
+.nom-error-icon,
+.nom-success-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+}
+
+.nom-error-icon {
+  color: var(--mat-sys-error);
+}
+
+.nom-success-icon {
+  color: var(--mat-sys-tertiary);
+}
+
+.nom-error-message {
+  color: var(--mat-sys-on-surface);
+  margin: 0;
+}
+
+.nom-success-message {
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 1rem 0;
+}
+
+.nom-join-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.nom-join-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.nom-invite-icon {
+  font-size: 72px;
+  width: 72px;
+  height: 72px;
+  color: var(--mat-sys-primary);
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-invite-message {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 500px;
+}
+
+.nom-token-info {
+  background-color: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  width: 100%;
+  max-width: 500px;
+}
+
+.nom-token-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 0.5rem 0;
+}
+
+.nom-token {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--mat-sys-primary);
+  background-color: var(--mat-sys-surface);
+  padding: 0.5rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.nom-join-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nom-actions {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .nom-join-container {
+    margin: 1rem auto;
+  }
+
+  .nom-join-content {
+    padding: 1.5rem;
+  }
+
+  .nom-invite-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .nom-join-actions {
+    flex-direction: column;
+    width: 100%;
+
+    amw-button {
+      width: 100%;
+    }
+  }
+}

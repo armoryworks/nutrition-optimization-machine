@@ -1,0 +1,168 @@
+@if (isLoading()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-loading">
+        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+        <p>Loading household settings...</p>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+@if (!isLoading() && error()) {
+  <amw-card>
+    <ng-template #contentTemplate>
+      <div class="nom-error">
+        <p class="nom-error-message">{{ error() }}</p>
+        <div class="nom-error-actions">
+          <amw-button
+            variant="filled"
+            color="primary"
+            (click)="onRetry()">
+            Retry
+          </amw-button>
+          <amw-button
+            variant="text"
+            color="primary"
+            (click)="onBack()">
+            Back
+          </amw-button>
+        </div>
+      </div>
+    </ng-template>
+  </amw-card>
+}
+
+@if (!isLoading() && !error() && household()) {
+  <div class="nom-settings-container">
+    <div class="nom-settings-header">
+      <amw-button
+        variant="text"
+        icon="arrow_back"
+        (click)="onBack()">
+        Back
+      </amw-button>
+      <h1>Household Settings</h1>
+      <p class="nom-settings-subtitle">Manage preferences, notifications, and privacy for {{ household()!.name }}</p>
+    </div>
+
+    <!-- Preferences Section -->
+    <amw-card>
+      <ng-template #headerTemplate>
+        <h2>Household Preferences</h2>
+      </ng-template>
+      <ng-template #contentTemplate>
+        <form [formGroup]="preferencesForm" class="nom-settings-form">
+          <amw-input
+            label="Household Name"
+            formControlName="name"
+            placeholder="Enter household name"
+            [required]="true">
+          </amw-input>
+
+          <amw-textarea
+            label="Description"
+            formControlName="description"
+            placeholder="Enter a description (optional)"
+            [rows]="4">
+          </amw-textarea>
+
+          <div class="nom-form-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              [disabled]="preferencesForm.invalid || isSaving()"
+              (click)="onSavePreferences()">
+              @if (isSaving()) {
+                <span>Saving...</span>
+              } @else {
+                <span>Save Preferences</span>
+              }
+            </amw-button>
+          </div>
+        </form>
+      </ng-template>
+    </amw-card>
+
+    <!-- Notification Settings Section -->
+    <amw-card>
+      <ng-template #headerTemplate>
+        <h2>Notification Settings</h2>
+      </ng-template>
+      <ng-template #contentTemplate>
+        <form [formGroup]="notificationForm" class="nom-settings-form">
+          <div class="nom-info-banner">
+            <p>Note: Notification settings are currently in development. These settings will be saved locally but not synced to the server.</p>
+          </div>
+
+          <amw-checkbox
+            formControlName="emailNotifications"
+            label="Email Notifications">
+          </amw-checkbox>
+
+          <amw-checkbox
+            formControlName="newMemberNotifications"
+            label="New Member Notifications">
+          </amw-checkbox>
+
+          <amw-checkbox
+            formControlName="mealPlanReminders"
+            label="Meal Plan Reminders">
+          </amw-checkbox>
+
+          <amw-checkbox
+            formControlName="shoppingListUpdates"
+            label="Shopping List Updates">
+          </amw-checkbox>
+
+          <div class="nom-form-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              (click)="onSaveNotifications()">
+              Save Notifications
+            </amw-button>
+          </div>
+        </form>
+      </ng-template>
+    </amw-card>
+
+    <!-- Privacy Settings Section -->
+    <amw-card>
+      <ng-template #headerTemplate>
+        <h2>Privacy Settings</h2>
+      </ng-template>
+      <ng-template #contentTemplate>
+        <form [formGroup]="privacyForm" class="nom-settings-form">
+          <div class="nom-info-banner">
+            <p>Note: Privacy settings are currently in development. These settings will be saved locally but not synced to the server.</p>
+          </div>
+
+          <amw-checkbox
+            formControlName="allowMemberInvites"
+            label="Allow members to send invites">
+          </amw-checkbox>
+
+          <amw-checkbox
+            formControlName="shareRecipes"
+            label="Share recipes with household members">
+          </amw-checkbox>
+
+          <amw-checkbox
+            formControlName="publicProfile"
+            label="Make household profile public">
+          </amw-checkbox>
+
+          <div class="nom-form-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              (click)="onSavePrivacy()">
+              Save Privacy Settings
+            </amw-button>
+          </div>
+        </form>
+      </ng-template>
+    </amw-card>
+  </div>
+}

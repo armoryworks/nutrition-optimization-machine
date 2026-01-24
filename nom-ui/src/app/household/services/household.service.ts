@@ -11,6 +11,7 @@ import { HouseholdInviteTokenCreateRequestModel } from '../models/household-invi
 import { HouseholdInviteTokenResponseModel } from '../models/household-invite-token-response.model';
 import { HouseholdMemberCreateRequestModel } from '../models/household-member-create-request.model';
 import { HouseholdMemberResponseModel } from '../models/household-member-response.model';
+import { JoinHouseholdRequestModel } from '../models/join-household-request.model';
 
 @Injectable({
     providedIn: 'root'
@@ -52,5 +53,10 @@ export class HouseholdService {
 
     removeMember(householdId: number, memberId: number): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${householdId}/member/${memberId}`);
+    }
+
+    joinHousehold(token: string): Observable<HouseholdMemberResponseModel> {
+        const request: JoinHouseholdRequestModel = { token };
+        return this.http.post<HouseholdMemberResponseModel>(`${this.apiUrl}/join`, request);
     }
 } 

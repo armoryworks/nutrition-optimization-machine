@@ -212,6 +212,7 @@ namespace Nom.Orch.Services
             _dbContext.PlanParticipants.Add(primaryParticipant);
 
             // Add additional participants if provided
+            var additionalParticipantPersonIds = new Dictionary<long, long>(); // Maps TempId to actual PersonId
             if (request.HasAdditionalParticipants && request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
             {
                 foreach (var participantDetails in request.AdditionalParticipantDetails)
@@ -225,6 +226,9 @@ namespace Nom.Orch.Services
                     _dbContext.Persons.Add(newParticipant);
                     await _dbContext.SaveChangesAsync();
 
+                    // Track the mapping from TempId to actual PersonId
+                    additionalParticipantPersonIds[participantDetails.Id] = newParticipant.Id;
+
                     var participant = new PlanParticipantEntity
                     {
                         PlanId = defaultPlan.Id,
@@ -233,6 +237,88 @@ namespace Nom.Orch.Services
                         JoinedDate = DateTime.UtcNow
                     };
                     _dbContext.PlanParticipants.Add(participant);
+                }
+            }
+
+            // Persist primary person attributes
+            if (request.Attributes != null && request.Attributes.Any())
+            {
+                foreach (var attr in request.Attributes)
+                {
+                    var personAttribute = new PersonAttributeEntity
+                    {
+                        PersonId = primaryPerson.Id,
+                        AttributeTypeId = attr.AttributeTypeRefId,
+                        Value = attr.Value,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = primaryPerson.Id
+                    };
+                    _dbContext.PersonAttributes.Add(personAttribute);
+                }
+            }
+
+            // Persist additional participant attributes
+            if (request.AdditionalParticipantDetails != null && request.AdditionalParticipantDetails.Any())
+            {
+                foreach (var detail in request.AdditionalParticipantDetails)
+                {
+                    if (additionalParticipantPersonIds.ContainsKey(detail.Id) && detail.Attributes != null && detail.Attributes.Any())
+                    {
+                        var actualPersonId = additionalParticipantPersonIds[detail.Id];
+                        foreach (var attr in detail.Attributes)
+                        {
+                            var personAttribute = new PersonAttributeEntity
+                            {
+                                PersonId = actualPersonId,
+                                AttributeTypeId = attr.AttributeTypeRefId,
+                                Value = attr.Value,
+                                CreatedDate = DateTime.UtcNow,
+                                CreatedByPersonId = primaryPerson.Id
+                            };
+                            _dbContext.PersonAttributes.Add(personAttribute);
+                        }
+                    }
+                }
+            }
+
+            // Persist restrictions
+            if (request.Restrictions != null && request.Restrictions.Any())
+            {
+                foreach (var restriction in request.Restrictions)
+                {
+                    if (restriction.AppliesToEntirePlan)
+                    {
+                        // Create a single restriction for the entire plan
+                        var restrictionEntity = new RestrictionEntity
+                        {
+                            PlanId = defaultPlan.Id,
+                            PersonId = null, // Plan-wide restriction
+                            Name = restriction.Name,
+                            Description = restriction.Description,
+                            RestrictionTypeId = restriction.RestrictionTypeId,
+                            CreatedDate = DateTime.UtcNow,
+                            CreatedByPersonId = primaryPerson.Id
+                        };
+                        _dbContext.Restrictions.Add(restrictionEntity);
+                    }
+                    else if (restriction.AffectedPersonIds != null && restriction.AffectedPersonIds.Any())
+                    {
+                        // Create individual restrictions for each affected person
+                        foreach (var personId in restriction.AffectedPersonIds)
+                        {
+                            var restrictionEntity = new RestrictionEntity
+                            {
+                                PlanId = defaultPlan.Id,
+                                PersonId = personId,
+                                Name = restriction.Name,
+                                Description = restriction.Description,
+                                RestrictionTypeId = restriction.RestrictionTypeId,
+                                CreatedDate = DateTime.UtcNow,
+                                CreatedByPersonId = primaryPerson.Id
+                            };
+                            _dbContext.Restrictions.Add(restrictionEntity);
+                        }
+                    }
                 }
             }
 
@@ -401,6 +487,21 @@ namespace Nom.Orch.Services
         public async Task<PersonModel> GetPersonByIdAsync(long personId)
         {
             return await GetPersonModelAsync(personId);
+        }
+
+        public async Task<List<PersonModel>> GetAllPersonsAsync()
+        {
+            var persons = await _dbContext.Persons
+                .OrderByDescending(p => p.CreatedDate)
+                .ToListAsync();
+
+            var personModels = new List<PersonModel>();
+            foreach (var person in persons)
+            {
+                personModels.Add(await GetPersonModelAsync(person.Id));
+            }
+
+            return personModels;
         }
 
         public async Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId)

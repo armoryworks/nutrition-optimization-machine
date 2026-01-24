@@ -2,12 +2,11 @@
 
 import { Component, OnInit, inject, signal } from '@angular/core';
 
-import { ReactiveFormsModule, NonNullableFormBuilder, FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ViewEncapsulation } from '@angular/core';
 import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwBadgeDirective } from 'angular-material-wrap';
 
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
 
@@ -16,7 +15,6 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
   selector: 'nom-messaging-inbox',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
     FormsModule,
     AmwButtonComponent,
     AmwCardComponent,
@@ -25,7 +23,6 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
     AmwIconComponent,
     AmwProgressSpinnerComponent,
     AmwBadgeDirective,
-    BasePageComponent,
   ],
   templateUrl: './messaging-inbox.component.html',
   styleUrls: ['./messaging-inbox.component.scss'],
@@ -34,22 +31,11 @@ import { MessageThreadModel } from '../../models/i-message-thread.model';
 export class MessagingInboxComponent implements OnInit {
   private messagingService = inject(MessagingService);
   private router = inject(Router);
-  private fb = inject(NonNullableFormBuilder);
 
   messageThreads = signal<MessageThreadModel[]>([]);
   loading = signal(false);
   error = signal('');
-  searchTerm = signal('');
-
-  pageConfig: BasePageConfig = {
-    title: 'Messages',
-    subtitle: 'View and manage your conversations',
-    showRefreshButton: true,
-    refreshButtonText: 'Refresh',
-    maxWidth: '1200px',
-  };
-
-  displayedColumns: string[] = ['participant', 'lastMessage', 'unreadCount', 'lastActivity', 'actions'];
+  searchTerm = '';
 
   ngOnInit(): void {
     this.loadMessageThreads();
@@ -160,5 +146,11 @@ export class MessagingInboxComponent implements OnInit {
 
   hasUnreadMessages(thread: MessageThreadModel): boolean {
     return !!(thread.unreadCount && thread.unreadCount > 0);
+  }
+
+  getUnreadCount(): number {
+    return this.messageThreads().reduce((total, thread) => {
+      return total + (thread.unreadCount || 0);
+    }, 0);
   }
 }

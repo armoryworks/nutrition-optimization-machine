@@ -1,20 +1,45 @@
-<nom-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
-  <div class="messaging-inbox">
-    <!-- Header Actions -->
-    <div class="messaging-inbox__header">
-      <div class="messaging-inbox__search">
-        <amw-input
-          [(ngModel)]="searchTerm"
-          label="Search messages"
-          placeholder="Search by participant or message content"
-          suffixIcon="search"
-          class="messaging-inbox__search-field">
-        </amw-input>
+<div class="messaging-inbox">
+  <div class="messaging-inbox__container">
+    <!-- Compact Page Header -->
+    <div class="messaging-inbox__page-header messaging-inbox__page-header--compact">
+      <div class="messaging-inbox__header-left">
+        <h1 class="messaging-inbox__title">Messages</h1>
+        <span class="messaging-inbox__subtitle">View and manage your conversations</span>
       </div>
-
-      <div class="messaging-inbox__actions">
-        <amw-button variant="filled" color="primary" (click)="startNewConversation()" icon="add">
-          New Conversation
+      <div class="messaging-inbox__header-center">
+        @if (!loading() && !error()) {
+          <amw-input
+            [(ngModel)]="searchTerm"
+            placeholder="Search messages..."
+            icon="search"
+            class="messaging-inbox__search-field">
+          </amw-input>
+          <div class="messaging-inbox__stats-pill">
+            <amw-icon name="chat_bubble_outline" class="messaging-inbox__stats-icon"></amw-icon>
+            <span class="messaging-inbox__stats-text">{{ messageThreads().length }} conversation{{ messageThreads().length !== 1 ? 's' : '' }}</span>
+          </div>
+          @if (getUnreadCount() > 0) {
+            <div class="messaging-inbox__stats-pill messaging-inbox__stats-pill--unread">
+              <amw-icon name="mark_email_unread" class="messaging-inbox__stats-icon"></amw-icon>
+              <span class="messaging-inbox__stats-text">{{ getUnreadCount() }} unread</span>
+            </div>
+          }
+        }
+      </div>
+      <div class="messaging-inbox__header-right">
+        <amw-button
+          variant="text"
+          icon="refresh"
+          (click)="onRefresh()"
+          [disabled]="loading()">
+          Refresh
+        </amw-button>
+        <amw-button
+          variant="filled"
+          color="primary"
+          icon="add"
+          (click)="startNewConversation()">
+          New Message
         </amw-button>
       </div>
     </div>
@@ -22,7 +47,7 @@
     <!-- Loading State -->
     @if (loading()) {
       <div class="messaging-inbox__loading">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+        <amw-progress-spinner [diameter]="48"></amw-progress-spinner>
         <p>Loading messages...</p>
       </div>
     }
@@ -30,30 +55,28 @@
     <!-- Error State -->
     @if (error() && !loading()) {
       <div class="messaging-inbox__error">
-        <amw-card class="messaging-inbox__error-card">
-          <ng-template #contentTemplate>
-            <div class="messaging-inbox__error-content">
-              <amw-icon name="error" color="warn"></amw-icon>
-              <p>{{ error() }}</p>
-              <amw-button variant="text" color="primary" (click)="onRetry()">
-                Try Again
-              </amw-button>
-            </div>
-          </ng-template>
-        </amw-card>
+        <amw-icon name="error_outline"></amw-icon>
+        <p>{{ error() }}</p>
+        <amw-button
+          variant="outlined"
+          color="primary"
+          icon="refresh"
+          (click)="onRetry()">
+          Try Again
+        </amw-button>
       </div>
     }
 
     <!-- Empty State -->
     @if (!loading() && !error() && messageThreads().length === 0) {
-      <div class="messaging-inbox__empty">
+      <div class="messaging-inbox__empty-state">
         <amw-card class="messaging-inbox__empty-card">
           <ng-template #contentTemplate>
             <div class="messaging-inbox__empty-content">
-              <amw-icon name="chat_bubble_outline"></amw-icon>
+              <amw-icon name="chat_bubble_outline" class="messaging-inbox__empty-icon"></amw-icon>
               <h3>No messages yet</h3>
               <p>Start a conversation to begin messaging with other users.</p>
-              <amw-button variant="filled" color="primary" (click)="startNewConversation()">
+              <amw-button variant="filled" color="primary" icon="add" (click)="startNewConversation()">
                 Start Conversation
               </amw-button>
             </div>
@@ -122,4 +145,4 @@
       </div>
     }
   </div>
-</nom-base-page>
+</div>
