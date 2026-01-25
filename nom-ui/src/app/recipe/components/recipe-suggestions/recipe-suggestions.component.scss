@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-suggestions {
   min-height: 100vh;
   padding: 2rem 1rem;
@@ -103,9 +105,7 @@
   }
 
   &__form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    @include nom-form-field(0.5rem);
   }
 
   &__form-label {
@@ -283,12 +283,8 @@
 
   &__loading,
   &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    @include nom-loading-state(2rem);
     min-height: 400px;
-    text-align: center;
   }
 
   &__error-card {

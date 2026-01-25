@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .shopping-item-form {
   max-width: 600px;
   margin: 0 auto;
@@ -19,9 +21,7 @@
   }
 
   .form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
+    @include nom-action-group(12px, flex-end);
     margin-top: 32px;
     padding-top: 20px;
 

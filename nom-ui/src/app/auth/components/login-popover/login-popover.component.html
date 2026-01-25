@@ -1,49 +1,28 @@
 <div class="login-popover">
-  <amw-card
-    headerTitle="Sign In"
-    headerIcon="login">
-    <ng-template #contentTemplate>
+  <amw-card headerTitle="Sign In" headerIcon="login">
+    <ng-template #cardContent>
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-popover__form">
-        <amw-input
-          type="email"
-          formControlName="email"
-          label="Email"
-          icon="email"
-          [required]="true"
+        <amw-input type="email" formControlName="email" label="Email" icon="email" [required]="true"
           class="login-popover__field">
         </amw-input>
 
-        <amw-input
-          type="password"
-          formControlName="password"
-          label="Password"
-          icon="lock"
-          [required]="true"
+        <amw-input type="password" formControlName="password" label="Password" icon="lock" [required]="true"
           class="login-popover__field">
         </amw-input>
 
         @if (errorMessage()) {
-          <div class="login-popover__error">{{ errorMessage() }}</div>
+        <div class="login-popover__error">{{ errorMessage() }}</div>
         }
 
-        <amw-button
-          type="submit"
-          variant="filled"
-          color="primary"
-          [disabled]="loginForm.invalid || isLoading()"
-          [loading]="isLoading()"
-          class="login-popover__submit">
+        <amw-button type="submit" variant="filled" color="primary" [disabled]="loginForm.invalid || isLoading()"
+          [loading]="isLoading()" class="login-popover__submit">
           Sign In
         </amw-button>
       </form>
 
       <amw-divider dividerClass="login-popover__divider"></amw-divider>
 
-      <amw-button
-        variant="text"
-        color="accent"
-        (click)="onRegister()"
-        class="login-popover__register">
+      <amw-button variant="text" color="accent" (click)="onRegister()" class="login-popover__register">
         Create Account
       </amw-button>
     </ng-template>

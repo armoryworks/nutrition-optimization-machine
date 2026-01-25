@@ -1,5 +1,6 @@
 @use '../../_variables' as vars;
 @use '../../_mixins' as mixins;
+@use '../../_utilities' as *;
 
 .home {
   max-width: 1400px;
@@ -151,7 +152,9 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    @include mixins.flex-center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin: 0 auto vars.$spacing-medium;
   }
 

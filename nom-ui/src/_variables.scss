@@ -3,7 +3,15 @@
 // Breakpoints
 $breakpoint-mobile: 768px;
 
-// Spacing
+// Spacing Scale (8px base, standardized)
+$spacing-xs: 0.5rem;   // 8px
+$spacing-sm: 1rem;     // 16px
+$spacing-md: 1.5rem;   // 24px
+$spacing-lg: 2rem;     // 32px
+$spacing-xl: 3rem;     // 48px
+$spacing-2xl: 4rem;    // 64px
+
+// Legacy spacing (maintained for backward compatibility)
 $spacing-xsmall: 0.25rem;
 $spacing-small: 0.5rem;
 $spacing-medium: 1rem;
@@ -73,8 +81,51 @@ $nom-border-color-light: $nom-neutral-100;
 $nom-text-color-light: $nom-neutral-600;
 $nom-background-color-light: $nom-neutral-50;
 
+// Typography Scale
+$font-size-xs: 0.75rem;   // 12px
+$font-size-sm: 0.875rem;  // 14px
+$font-size-md: 1rem;      // 16px (base)
+$font-size-lg: 1.25rem;   // 20px
+$font-size-xl: 1.5rem;    // 24px
+$font-size-2xl: 2rem;     // 32px
+$font-size-3xl: 2.5rem;   // 40px
+
+// Line Heights
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// Font Weights
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Component Sizing
+$button-height: 40px;           // Standard button height (touch-friendly)
+$button-height-sm: 32px;        // Small button height
+$button-height-lg: 48px;        // Large button height
+$button-padding-x: 1.5rem;      // 24px horizontal padding
+$button-padding-x-sm: 1rem;     // 16px for small buttons
+
+$input-height: 48px;            // Form field height (touch-friendly)
+$input-padding-x: 1rem;         // 16px horizontal padding
+$input-padding-y: 0.75rem;      // 12px vertical padding
+
+$card-padding: 1.5rem;          // 24px card padding
+$card-padding-sm: 1rem;         // 16px for compact cards
+$card-min-height: 200px;        // Minimum card height
+
+// Transitions
+$transition-duration-fast: 0.15s;
+$transition-duration-normal: 0.2s;
+$transition-duration-slow: 0.3s;
+$transition-timing: ease;
+
 // Borders
 $nom-border-radius: 8px;
+$nom-border-radius-sm: 4px;
+$nom-border-radius-lg: 12px;
 
 // Card/Panel backgrounds
 $nom-card-bg-light: $nom-neutral-100;

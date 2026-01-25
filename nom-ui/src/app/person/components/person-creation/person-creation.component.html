@@ -1,42 +1,41 @@
 <div class="nom-page-container person-creation">
-  <amw-card
-    [headerTitle]="pageTitle"
-    [headerSubtitle]="pageSubtitle"
-    class="nom-card">
-    <ng-template #contentTemplate>
+  <amw-card [headerTitle]="pageTitle" [headerSubtitle]="pageSubtitle" class="nom-card">
+    <ng-template #cardContent>
       @if (isLoading()) {
+      <div role="status" aria-live="polite" aria-label="Loading">
         <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+        <span class="sr-only">Loading, please wait...</span>
+      </div>
       }
 
       @if (error()) {
-        <div class="nom-error-state">
-          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
-          <p class="nom-error-state__message">{{ error() }}</p>
-          <div class="nom-error-state__actions">
-            <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
-          </div>
+      <div class="nom-error-state" role="alert" aria-live="assertive">
+        <amw-icon name="error_outline" class="nom-error-state__icon" aria-hidden="true"></amw-icon>
+        <p class="nom-error-state__message">{{ error() }}</p>
+        <div class="nom-error-state__actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()" aria-label="Retry action">Try Again</amw-button>
         </div>
+      </div>
       } @else {
-        <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form">
-          <amw-input
-            formControlName="name"
-            label="Your Name"
-            placeholder="Enter your name"
-            [required]="true"
-            class="nom-form__field">
-          </amw-input>
+      <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form">
+        <amw-input formControlName="name" label="Your Name" placeholder="Enter your name" [required]="true"
+          class="nom-form__field"
+          [attr.aria-invalid]="personForm.get('name')?.invalid && personForm.get('name')?.touched"
+          [attr.aria-describedby]="personForm.get('name')?.invalid && personForm.get('name')?.touched ? 'person-name-error' : null">
+        </amw-input>
+        @if (personForm.get('name')?.invalid && personForm.get('name')?.touched) {
+          <span id="person-name-error" class="nom-form__error" role="alert">
+            Your name is required
+          </span>
+        }
 
-          <div class="nom-form__actions">
-            <amw-button
-              type="submit"
-              variant="filled"
-              color="primary"
-              [disabled]="personForm.invalid || isSubmitting()"
-              [loading]="isSubmitting()">
-              {{ submitText }}
-            </amw-button>
-          </div>
-        </form>
+        <div class="nom-form__actions">
+          <amw-button type="submit" variant="filled" color="primary" [disabled]="personForm.invalid || isSubmitting()"
+            [loading]="isSubmitting()">
+            {{ submitText }}
+          </amw-button>
+        </div>
+      </form>
       }
     </ng-template>
   </amw-card>

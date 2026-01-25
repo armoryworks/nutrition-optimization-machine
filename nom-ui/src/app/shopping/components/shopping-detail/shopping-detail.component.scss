@@ -1,8 +1,20 @@
+@use '../../../../_utilities' as *;
+
 .shopping-detail {
-  &__container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 16px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem;
+  }
+
+  &__loading {
+    @include nom-loading-state(3rem);
+  }
+
+  &__error {
+    @include nom-empty-state(3rem);
   }
 
   &__header-actions {
@@ -195,9 +207,6 @@
   &__empty-card {
     max-width: 400px;
     text-align: center;
-  }
-
-  &__empty-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -209,14 +218,14 @@
     font-size: 64px;
     width: 64px;
     height: 64px;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.7;
   }
 }
 
 @media (max-width: 768px) {
   .shopping-detail {
-    &__container {
-      padding: 0 12px;
-    }
+    padding: 1rem 0.5rem;
 
     &__header-actions {
       flex-direction: column;

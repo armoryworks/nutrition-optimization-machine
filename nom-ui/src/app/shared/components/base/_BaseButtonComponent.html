@@ -8,12 +8,16 @@
     (focus)="onFocus($event)"
     (blur)="onBlur($event)"
     (keydown)="onKeyDown($event)">
-    <ng-container *ngIf="config.showLoading && (isLoading$ | async)">
-        <span class="loading-spinner"></span>
-    </ng-container>
-    <ng-container *ngIf="!config.showLoading || (isLoading$ | async) === false">
-        <i *ngIf="config.icon" [class]="config.icon"></i>
-        <span *ngIf="config.text">{{ config.text }}</span>
-        <ng-content></ng-content>
-    </ng-container>
-</button> 
+    @if (config.showLoading && (isLoading$ | async)) {
+      <span class="loading-spinner"></span>
+    }
+    @if (!config.showLoading || (isLoading$ | async) === false) {
+      @if (config.icon) {
+        <i [class]="config.icon"></i>
+      }
+      @if (config.text) {
+        <span>{{ config.text }}</span>
+      }
+      <ng-content></ng-content>
+    }
+</button>

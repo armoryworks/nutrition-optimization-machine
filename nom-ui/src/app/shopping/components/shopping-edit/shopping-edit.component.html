@@ -1,63 +1,44 @@
 <div class="shopping-edit">
-  <div class="shopping-edit__container">
-    <amw-card
-      [headerTitle]="formConfig.title"
-      [headerSubtitle]="formConfig.subtitle || ''"
-      headerIcon="shopping_cart">
-      <ng-template #contentTemplate>
-        @if (isLoading() && !shoppingList()) {
-          <div class="loading-container">
-            <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-            <p>Loading shopping list...</p>
-          </div>
-        } @else {
-          <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()">
-            <!-- Shopping List Name Field - Using AMW -->
-            <amw-input
-              type="text"
-              formControlName="name"
-              placeholder="Enter a name for your shopping list..."
-              label="Shopping List Name"
-              [required]="true"
-              class="shopping-edit__field">
-            </amw-input>
-
-            <!-- Description Field - Using AMW -->
-            <amw-textarea
-              formControlName="description"
-              placeholder="Add a description for your shopping list..."
-              label="Description (Optional)"
-              class="shopping-edit__field">
-            </amw-textarea>
-
-            <!-- Form Actions -->
-            <div class="form-actions">
-              <div class="action-buttons">
-                <amw-button
-                  type="button"
-                  variant="text"
-                  icon="close"
-                  [disabled]="isLoading()"
-                  (click)="onCancel()"
-                  class="cancel-button">
-                  {{ formConfig.cancelText || 'Cancel' }}
-                </amw-button>
-
-                <amw-button
-                  type="submit"
-                  variant="filled"
-                  color="primary"
-                  icon="check"
-                  [loading]="isLoading()"
-                  [disabled]="shoppingForm.invalid"
-                  class="submit-button">
-                  {{ formConfig.submitText || 'Update Shopping List' }}
-                </amw-button>
-              </div>
-            </div>
-          </form>
+  <amw-card [headerTitle]="formConfig.title" [headerSubtitle]="formConfig.subtitle || ''" headerIcon="shopping_cart"
+    class="shopping-edit__card">
+    <ng-template #cardContent>
+      @if (isLoading() && !shoppingList()) {
+      <div class="shopping-edit__loading" role="status" aria-live="polite" aria-label="Loading shopping list">
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+        <p>Loading shopping list...</p>
+      </div>
+      } @else {
+      <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()" class="shopping-edit__form">
+        <!-- Shopping List Name Field - Using AMW -->
+        <amw-input type="text" formControlName="name" placeholder="Enter a name for your shopping list..."
+          label="Shopping List Name" [required]="true" class="shopping-edit__field"
+          [attr.aria-invalid]="shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched"
+          [attr.aria-describedby]="shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched ? 'shopping-edit-name-error' : null">
+        </amw-input>
+        @if (shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched) {
+          <span id="shopping-edit-name-error" class="nom-form__error" role="alert">
+            Shopping list name is required
+          </span>
         }
-      </ng-template>
-    </amw-card>
-  </div>
+
+        <!-- Description Field - Using AMW -->
+        <amw-textarea formControlName="description" placeholder="Add a description for your shopping list..."
+          label="Description (Optional)" class="shopping-edit__field">
+        </amw-textarea>
+
+        <!-- Form Actions -->
+        <div class="shopping-edit__actions">
+          <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
+            {{ formConfig.cancelText || 'Cancel' }}
+          </amw-button>
+
+          <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+            [disabled]="shoppingForm.invalid">
+            {{ formConfig.submitText || 'Update Shopping List' }}
+          </amw-button>
+        </div>
+      </form>
+      }
+    </ng-template>
+  </amw-card>
 </div>

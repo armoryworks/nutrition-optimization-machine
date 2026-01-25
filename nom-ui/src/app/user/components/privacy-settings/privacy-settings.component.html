@@ -1,8 +1,7 @@
 <!-- File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.html -->
 <div class="privacy-settings">
-  <div class="privacy-settings__container">
-    <!-- Header -->
-    <div class="privacy-settings__header">
+  <!-- Header -->
+  <div class="privacy-settings__header">
       <div class="privacy-settings__header-content">
         <div class="privacy-settings__title-section">
           <amw-icon name="privacy_tip" class="privacy-settings__title-icon"></amw-icon>
@@ -16,51 +15,41 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-      <div class="privacy-settings__loading">
-        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-        <p>Loading privacy settings...</p>
-      </div>
+    <div class="privacy-settings__loading">
+      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+      <p>Loading privacy settings...</p>
+    </div>
     }
 
     <!-- Privacy Settings Form -->
     @if (!isLoading()) {
-      <amw-card
-        class="privacy-settings__form-card"
-        headerTitle="Consent Preferences"
-        headerSubtitle="Control how your data is used">
-        <ng-template #contentTemplate>
-          <form [formGroup]="privacyForm" (ngSubmit)="onSubmit()" class="privacy-settings__form">
-            <div class="privacy-settings__consents-section">
-              @for (consent of availableConsents; track consent.id) {
-                <div class="privacy-settings__consent-item">
-                  <div class="privacy-settings__consent-info">
-                    <h3 class="privacy-settings__consent-title">{{ consent.name }}</h3>
-                    <p class="privacy-settings__consent-description">{{ consent.description }}</p>
-                  </div>
-                  <amw-toggle
-                    [formControlName]="consent.name || ''"
-                    color="primary"
-                    class="privacy-settings__consent-toggle">
-                  </amw-toggle>
-                </div>
-              }
+    <amw-card class="privacy-settings__form-card" headerTitle="Consent Preferences"
+      headerSubtitle="Control how your data is used">
+      <ng-template #cardContent>
+        <form [formGroup]="privacyForm" (ngSubmit)="onSubmit()" class="privacy-settings__form">
+          <div class="privacy-settings__consents-section">
+            @for (consent of availableConsents; track consent.id) {
+            <div class="privacy-settings__consent-item">
+              <div class="privacy-settings__consent-info">
+                <h3 class="privacy-settings__consent-title">{{ consent.name }}</h3>
+                <p class="privacy-settings__consent-description">{{ consent.description }}</p>
+              </div>
+              <amw-toggle [formControlName]="consent.name || ''" color="primary"
+                class="privacy-settings__consent-toggle">
+              </amw-toggle>
             </div>
+            }
+          </div>
 
-            <div class="privacy-settings__form-actions">
-              <amw-button
-                variant="filled"
-                color="primary"
-                type="submit"
-                [disabled]="privacyForm.invalid || isSubmitting()"
-                [loading]="isSubmitting()"
-                class="privacy-settings__submit-btn"
-                icon="save">
-                {{ isSubmitting() ? 'Saving...' : 'Save Privacy Settings' }}
-              </amw-button>
-            </div>
-          </form>
-        </ng-template>
-      </amw-card>
+          <div class="privacy-settings__form-actions">
+            <amw-button variant="filled" color="primary" type="submit"
+              [disabled]="privacyForm.invalid || isSubmitting()" [loading]="isSubmitting()"
+              class="privacy-settings__submit-btn" icon="save">
+              {{ isSubmitting() ? 'Saving...' : 'Save Privacy Settings' }}
+            </amw-button>
+          </div>
+        </form>
+      </ng-template>
+    </amw-card>
     }
-  </div>
 </div>

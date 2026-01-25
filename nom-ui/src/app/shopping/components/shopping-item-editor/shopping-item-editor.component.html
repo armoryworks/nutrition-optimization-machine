@@ -8,8 +8,15 @@
           label="Item Name"
           placeholder="Enter item name"
           [required]="true"
-          class="full-width">
+          class="full-width"
+          [attr.aria-invalid]="itemForm.get('name')?.invalid && itemForm.get('name')?.touched"
+          [attr.aria-describedby]="itemForm.get('name')?.invalid && itemForm.get('name')?.touched ? 'item-name-error' : null">
         </amw-input>
+        @if (itemForm.get('name')?.invalid && itemForm.get('name')?.touched) {
+          <span id="item-name-error" class="nom-form__error" role="alert">
+            Item name is required
+          </span>
+        }
       </div>
 
       <div class="form-row">
@@ -28,8 +35,15 @@
           formControlName="quantity"
           label="Quantity"
           [required]="true"
-          class="quantity-field">
+          class="quantity-field"
+          [attr.aria-invalid]="itemForm.get('quantity')?.invalid && itemForm.get('quantity')?.touched"
+          [attr.aria-describedby]="itemForm.get('quantity')?.invalid && itemForm.get('quantity')?.touched ? 'item-quantity-error' : null">
         </amw-input>
+        @if (itemForm.get('quantity')?.invalid && itemForm.get('quantity')?.touched) {
+          <span id="item-quantity-error" class="nom-form__error" role="alert">
+            Quantity is required
+          </span>
+        }
 
         <amw-select
           formControlName="unit"

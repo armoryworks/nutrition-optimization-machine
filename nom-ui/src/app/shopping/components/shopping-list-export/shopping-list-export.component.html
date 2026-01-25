@@ -1,95 +1,77 @@
 @if (isLoading()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-loading">
-        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-        <p>Loading shopping list...</p>
-      </div>
-    </ng-template>
-  </amw-card>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-loading">
+      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+      <p>Loading shopping list...</p>
+    </div>
+  </ng-template>
+</amw-card>
 }
 
 @if (!isLoading() && error()) {
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-error">
+      <p class="nom-error-message">{{ error() }}</p>
+      <amw-button variant="filled" color="primary" (click)="onBack()">
+        Back to List
+      </amw-button>
+    </div>
+  </ng-template>
+</amw-card>
+}
+
+@if (!isLoading() && !error() && list()) {
+<div class="nom-export-container">
   <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-error">
-        <p class="nom-error-message">{{ error() }}</p>
-        <amw-button
-          variant="filled"
-          color="primary"
-          (click)="onBack()">
-          Back to List
+    <ng-template #cardContent>
+      <h2>Export Shopping List</h2>
+      <p class="nom-list-name">{{ list()!.name }}</p>
+      @if (list()!.description) {
+      <p class="nom-list-description">{{ list()!.description }}</p>
+      }
+
+      <div class="nom-export-options">
+        <h3>Export Options</h3>
+
+        <div class="nom-option-card">
+          <div class="nom-option-info">
+            <h4>Print / Save as PDF</h4>
+            <p>Open a print dialog to print or save as PDF</p>
+          </div>
+          <amw-button variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportPDF()">
+            Export PDF
+          </amw-button>
+        </div>
+
+        <div class="nom-option-card">
+          <div class="nom-option-info">
+            <h4>Export to CSV</h4>
+            <p>Download as CSV file for use in spreadsheets</p>
+          </div>
+          <amw-button variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportCSV()">
+            Export CSV
+          </amw-button>
+        </div>
+
+        <div class="nom-option-card">
+          <div class="nom-option-info">
+            <h4>Email List</h4>
+            <p>Send shopping list via email</p>
+          </div>
+          <amw-button variant="outlined" color="primary" [disabled]="isExporting()" (click)="onEmailList()">
+            Email
+          </amw-button>
+        </div>
+      </div>
+
+      <div class="nom-actions">
+        <amw-button variant="text" color="primary" (click)="onBack()">
+          Back
         </amw-button>
       </div>
     </ng-template>
   </amw-card>
-}
-
-@if (!isLoading() && !error() && list()) {
-  <div class="nom-export-container">
-    <amw-card>
-      <ng-template #contentTemplate>
-        <h2>Export Shopping List</h2>
-        <p class="nom-list-name">{{ list()!.name }}</p>
-        @if (list()!.description) {
-          <p class="nom-list-description">{{ list()!.description }}</p>
-        }
-
-        <div class="nom-export-options">
-          <h3>Export Options</h3>
-
-          <div class="nom-option-card">
-            <div class="nom-option-info">
-              <h4>Print / Save as PDF</h4>
-              <p>Open a print dialog to print or save as PDF</p>
-            </div>
-            <amw-button
-              variant="filled"
-              color="primary"
-              [disabled]="isExporting()"
-              (click)="onExportPDF()">
-              Export PDF
-            </amw-button>
-          </div>
-
-          <div class="nom-option-card">
-            <div class="nom-option-info">
-              <h4>Export to CSV</h4>
-              <p>Download as CSV file for use in spreadsheets</p>
-            </div>
-            <amw-button
-              variant="filled"
-              color="primary"
-              [disabled]="isExporting()"
-              (click)="onExportCSV()">
-              Export CSV
-            </amw-button>
-          </div>
-
-          <div class="nom-option-card">
-            <div class="nom-option-info">
-              <h4>Email List</h4>
-              <p>Send shopping list via email</p>
-            </div>
-            <amw-button
-              variant="outlined"
-              color="primary"
-              [disabled]="isExporting()"
-              (click)="onEmailList()">
-              Email
-            </amw-button>
-          </div>
-        </div>
-
-        <div class="nom-actions">
-          <amw-button
-            variant="text"
-            color="primary"
-            (click)="onBack()">
-            Back
-          </amw-button>
-        </div>
-      </ng-template>
-    </amw-card>
-  </div>
+</div>
 }

@@ -1,88 +1,77 @@
 @if (isLoading()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-loading">
-        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-        <p>Validating invite token...</p>
-      </div>
-    </ng-template>
-  </amw-card>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-loading">
+      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+      <p>Validating invite token...</p>
+    </div>
+  </ng-template>
+</amw-card>
 }
 
 @if (!isLoading() && error() && !joined()) {
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-error">
+      <amw-icon class="nom-error-icon">error</amw-icon>
+      <h2>Invalid Invite</h2>
+      <p class="nom-error-message">{{ error() }}</p>
+      <div class="nom-actions">
+        <amw-button variant="filled" color="primary" (click)="onBack()">
+          Back to Households
+        </amw-button>
+      </div>
+    </div>
+  </ng-template>
+</amw-card>
+}
+
+@if (!isLoading() && !error() && !joined()) {
+<div class="nom-join-container">
   <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-error">
-        <amw-icon class="nom-error-icon">error</amw-icon>
-        <h2>Invalid Invite</h2>
-        <p class="nom-error-message">{{ error() }}</p>
-        <div class="nom-actions">
-          <amw-button
-            variant="filled"
-            color="primary"
-            (click)="onBack()">
-            Back to Households
+    <ng-template #cardContent>
+      <div class="nom-join-content">
+        <amw-icon class="nom-invite-icon">mail</amw-icon>
+        <h2>Join Household</h2>
+        <p class="nom-invite-message">
+          You've been invited to join a household. Click the button below to accept the invitation and become a member.
+        </p>
+
+        <div class="nom-token-info">
+          <p class="nom-token-label">Invite Token:</p>
+          <code class="nom-token">{{ token() }}</code>
+        </div>
+
+        <div class="nom-join-actions">
+          <amw-button variant="filled" color="primary" [disabled]="isJoining()" (click)="onJoinHousehold()">
+            @if (isJoining()) {
+            <span>Joining...</span>
+            } @else {
+            <span>Join Household</span>
+            }
+          </amw-button>
+
+          <amw-button variant="text" color="primary" [disabled]="isJoining()" (click)="onBack()">
+            Cancel
           </amw-button>
         </div>
       </div>
     </ng-template>
   </amw-card>
-}
-
-@if (!isLoading() && !error() && !joined()) {
-  <div class="nom-join-container">
-    <amw-card>
-      <ng-template #contentTemplate>
-        <div class="nom-join-content">
-          <amw-icon class="nom-invite-icon">mail</amw-icon>
-          <h2>Join Household</h2>
-          <p class="nom-invite-message">
-            You've been invited to join a household. Click the button below to accept the invitation and become a member.
-          </p>
-
-          <div class="nom-token-info">
-            <p class="nom-token-label">Invite Token:</p>
-            <code class="nom-token">{{ token() }}</code>
-          </div>
-
-          <div class="nom-join-actions">
-            <amw-button
-              variant="filled"
-              color="primary"
-              [disabled]="isJoining()"
-              (click)="onJoinHousehold()">
-              @if (isJoining()) {
-                <span>Joining...</span>
-              } @else {
-                <span>Join Household</span>
-              }
-            </amw-button>
-
-            <amw-button
-              variant="text"
-              color="primary"
-              [disabled]="isJoining()"
-              (click)="onBack()">
-              Cancel
-            </amw-button>
-          </div>
-        </div>
-      </ng-template>
-    </amw-card>
-  </div>
+</div>
 }
 
 @if (joined() && memberInfo()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-success">
-        <amw-icon class="nom-success-icon">check_circle</amw-icon>
-        <h2>Successfully Joined!</h2>
-        <p class="nom-success-message">
-          You are now a member of the household. Redirecting to household details...
-        </p>
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      </div>
-    </ng-template>
-  </amw-card>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-success">
+      <amw-icon class="nom-success-icon">check_circle</amw-icon>
+      <h2>Successfully Joined!</h2>
+      <p class="nom-success-message">
+        You are now a member of the household. Redirecting to household details...
+      </p>
+      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+    </div>
+  </ng-template>
+</amw-card>
 }

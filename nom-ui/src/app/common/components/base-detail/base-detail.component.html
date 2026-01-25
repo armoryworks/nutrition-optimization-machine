@@ -1,28 +1,20 @@
 <div class="base-detail-container" [style.max-width]="config?.maxWidth">
-  <amw-card
-    [headerTitle]="config?.title || ''"
-    [headerSubtitle]="config?.subtitle">
-    <ng-template #contentTemplate>
+  <amw-card [headerTitle]="config?.title || ''" [headerSubtitle]="config?.subtitle">
+    <ng-template #cardContent>
       <!-- Action Menu -->
       @if (config?.actions && (config?.actions?.length ?? 0) > 0) {
-        <div class="action-menu-container">
-          <amw-icon-button
-            icon="more_vert"
-            [amwMenuTriggerFor]="menu"
-            class="action-menu-button"
-            ariaLabel="Open action menu">
-          </amw-icon-button>
+      <div class="action-menu-container">
+        <amw-icon-button icon="more_vert" [amwMenuTriggerFor]="menu" class="action-menu-button"
+          ariaLabel="Open action menu">
+        </amw-icon-button>
 
-          <amw-menu #menu>
-            @for (action of config?.actions; track action.label) {
-              <amw-menu-item
-                [label]="action.label"
-                [icon]="action.icon"
-                (itemClick)="action.action()">
-              </amw-menu-item>
-            }
-          </amw-menu>
-        </div>
+        <amw-menu #menu>
+          @for (action of config?.actions; track action.label) {
+          <amw-menu-item [label]="action.label" [icon]="action.icon" (itemClick)="action.action()">
+          </amw-menu-item>
+          }
+        </amw-menu>
+      </div>
       }
 
       <!-- Detail Content -->
@@ -33,22 +25,15 @@
       <!-- Actions -->
       <div class="detail-actions" align="end">
         @if (config?.showBackButton) {
-          <amw-button
-            variant="text"
-            (click)="onBack()"
-            icon="arrow_back">
-            {{ config?.backButtonText || 'Back' }}
-          </amw-button>
+        <amw-button variant="text" (click)="onBack()" icon="arrow_back">
+          {{ config?.backButtonText || 'Back' }}
+        </amw-button>
         }
 
         @if (config?.showEditButton) {
-          <amw-button
-            variant="filled"
-            color="primary"
-            (click)="onEdit()"
-            icon="edit">
-            {{ config?.editButtonText || 'Edit' }}
-          </amw-button>
+        <amw-button variant="filled" color="primary" (click)="onEdit()" icon="edit">
+          {{ config?.editButtonText || 'Edit' }}
+        </amw-button>
         }
       </div>
     </ng-template>

@@ -1,3 +1,5 @@
+@use '../../../_utilities' as *;
+
 .registration {
   .nom-card {
     max-width: 500px;
@@ -5,9 +7,7 @@
   }
 
   .nom-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    @include nom-form-field(20px);
   }
 
   .nom-form__field {

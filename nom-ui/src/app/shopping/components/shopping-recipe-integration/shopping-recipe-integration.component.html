@@ -1,192 +1,173 @@
 <!-- Loading State -->
 @if (isLoading()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-loading-container">
-        <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-        <p>Loading recipes...</p>
-      </div>
-    </ng-template>
-  </amw-card>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-loading-container">
+      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+      <p>Loading recipes...</p>
+    </div>
+  </ng-template>
+</amw-card>
 }
 
 <!-- Error State -->
 @if (error() && !isLoading()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-error-container">
-        <p class="nom-error-message">{{ error() }}</p>
-        <div class="nom-error-actions">
-          <amw-button variant="filled" color="primary" (click)="onRetry()">
-            Retry
-          </amw-button>
-          <amw-button variant="outlined" color="primary" (click)="onBack()">
-            Back to Shopping List
-          </amw-button>
-        </div>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-error-container">
+      <p class="nom-error-message">{{ error() }}</p>
+      <div class="nom-error-actions">
+        <amw-button variant="filled" color="primary" (click)="onRetry()">
+          Retry
+        </amw-button>
+        <amw-button variant="outlined" color="primary" (click)="onBack()">
+          Back to Shopping List
+        </amw-button>
       </div>
-    </ng-template>
-  </amw-card>
+    </div>
+  </ng-template>
+</amw-card>
 }
 
 <!-- Main Content -->
 @if (!isLoading() && !error()) {
-  <div class="nom-recipe-integration-container">
-    <!-- Header -->
-    <amw-card>
-      <ng-template #contentTemplate>
-        <div class="nom-header">
-          <div class="nom-header-info">
-            <amw-icon name="restaurant"></amw-icon>
-            <div>
-              <h2>Add Recipe to Shopping List</h2>
-              <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
-            </div>
+<div class="nom-recipe-integration-container">
+  <!-- Header -->
+  <amw-card>
+    <ng-template #cardContent>
+      <div class="nom-header">
+        <div class="nom-header-info">
+          <amw-icon name="restaurant"></amw-icon>
+          <div>
+            <h2>Add Recipe to Shopping List</h2>
+            <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
           </div>
-          <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
-            Back
-          </amw-button>
         </div>
-      </ng-template>
-    </amw-card>
-
-    <!-- Search Bar -->
-    <amw-card>
-      <ng-template #contentTemplate>
-        <amw-input
-          label="Search Recipes"
-          placeholder="Search by name, description, or author..."
-          suffixIcon="search"
-          (input)="onSearch($event)">
-        </amw-input>
-      </ng-template>
-    </amw-card>
-
-    <div class="nom-content-grid">
-      <!-- Recipe List -->
-      <div class="nom-recipe-list-section">
-        <amw-card>
-          <ng-template #contentTemplate>
-            <h3>Available Recipes</h3>
-
-            @if (!hasRecipes()) {
-              <div class="nom-empty-state">
-                <amw-icon name="search_off"></amw-icon>
-                <p>No recipes found</p>
-                @if (searchTerm()) {
-                  <p class="nom-hint">Try a different search term</p>
-                }
-              </div>
-            }
-
-            @if (hasRecipes()) {
-              <div class="nom-recipe-list">
-                @for (recipe of filteredRecipes(); track recipe.id) {
-                  <div
-                    class="nom-recipe-item"
-                    [class.nom-recipe-item--selected]="selectedRecipe()?.id === recipe.id"
-                    (click)="onSelectRecipe(recipe)">
-                    <div class="nom-recipe-item-content">
-                      <div class="nom-recipe-item-header">
-                        <h4>{{ recipe.name }}</h4>
-                        @if (selectedRecipe()?.id === recipe.id) {
-                          <amw-icon name="check_circle" color="primary"></amw-icon>
-                        }
-                      </div>
-                      <p class="nom-recipe-description">{{ recipe.description }}</p>
-                      <div class="nom-recipe-meta">
-                        <span class="nom-recipe-author">
-                          <amw-icon name="person"></amw-icon>
-                          {{ recipe.authorName }}
-                        </span>
-                        <span class="nom-recipe-rating">{{ getRatingDisplay(recipe) }}</span>
-                        <span class="nom-recipe-ingredients">
-                          <amw-icon name="shopping_basket"></amw-icon>
-                          {{ getIngredientCount(recipe) }} ingredients
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </ng-template>
-        </amw-card>
+        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
+          Back
+        </amw-button>
       </div>
+    </ng-template>
+  </amw-card>
 
-      <!-- Selected Recipe Panel -->
-      <div class="nom-selection-panel">
-        @if (selectedRecipe()) {
-          <amw-card>
-            <ng-template #contentTemplate>
-              <h3>Selected Recipe</h3>
-              <div class="nom-selected-recipe">
-                <h4>{{ selectedRecipe()!.name }}</h4>
-                <p>{{ selectedRecipe()!.description }}</p>
+  <!-- Search Bar -->
+  <amw-card>
+    <ng-template #cardContent>
+      <amw-input label="Search Recipes" placeholder="Search by name, description, or author..." suffixIcon="search"
+        (input)="onSearch($event)">
+      </amw-input>
+    </ng-template>
+  </amw-card>
 
-                <div class="nom-ingredients-preview">
-                  <h5>Ingredients ({{ getIngredientCount(selectedRecipe()!) }})</h5>
-                  @if (selectedRecipe()!.ingredients && selectedRecipe()!.ingredients!.length > 0) {
-                    <ul class="nom-ingredient-list">
-                      @for (ingredient of selectedRecipe()!.ingredients; track ingredient.id; let i = $index) {
-                        @if (i < 5) {
-                          <li>{{ ingredient.name }}</li>
-                        }
-                      }
-                      @if (selectedRecipe()!.ingredients!.length > 5) {
-                        <li class="nom-more-ingredients">
-                          and {{ selectedRecipe()!.ingredients!.length - 5 }} more...
-                        </li>
-                      }
-                    </ul>
-                  } @else {
-                    <p class="nom-no-ingredients">No ingredients listed</p>
+  <div class="nom-content-grid">
+    <!-- Recipe List -->
+    <div class="nom-recipe-list-section">
+      <amw-card>
+        <ng-template #cardContent>
+          <h3>Available Recipes</h3>
+
+          @if (!hasRecipes()) {
+          <div class="nom-empty-state">
+            <amw-icon name="search_off"></amw-icon>
+            <p>No recipes found</p>
+            @if (searchTerm()) {
+            <p class="nom-hint">Try a different search term</p>
+            }
+          </div>
+          }
+
+          @if (hasRecipes()) {
+          <div class="nom-recipe-list">
+            @for (recipe of filteredRecipes(); track recipe.id) {
+            <div class="nom-recipe-item" [class.nom-recipe-item--selected]="selectedRecipe()?.id === recipe.id"
+              (click)="onSelectRecipe(recipe)">
+              <div class="nom-recipe-item-content">
+                <div class="nom-recipe-item-header">
+                  <h4>{{ recipe.name }}</h4>
+                  @if (selectedRecipe()?.id === recipe.id) {
+                  <amw-icon name="check_circle" color="primary"></amw-icon>
                   }
                 </div>
-
-                <form [formGroup]="servingsForm" class="nom-servings-form">
-                  <amw-input
-                    label="Number of Servings"
-                    type="number"
-                    placeholder="4"
-                    [min]="1"
-                    [max]="100"
-                    hint="Adjust the quantity of ingredients based on servings"
-                    formControlName="servings">
-                  </amw-input>
-                </form>
-
-                <div class="nom-actions">
-                  <amw-button
-                    variant="filled"
-                    color="primary"
-                    icon="add_shopping_cart"
-                    [disabled]="servingsForm.invalid || isAdding()"
-                    (click)="onAddToShoppingList()">
-                    {{ isAdding() ? 'Adding...' : 'Add to Shopping List' }}
-                  </amw-button>
-                  <amw-button
-                    variant="outlined"
-                    color="primary"
-                    (click)="onClearSelection()">
-                    Clear Selection
-                  </amw-button>
+                <p class="nom-recipe-description">{{ recipe.description }}</p>
+                <div class="nom-recipe-meta">
+                  <span class="nom-recipe-author">
+                    <amw-icon name="person"></amw-icon>
+                    {{ recipe.authorName }}
+                  </span>
+                  <span class="nom-recipe-rating">{{ getRatingDisplay(recipe) }}</span>
+                  <span class="nom-recipe-ingredients">
+                    <amw-icon name="shopping_basket"></amw-icon>
+                    {{ getIngredientCount(recipe) }} ingredients
+                  </span>
                 </div>
               </div>
-            </ng-template>
-          </amw-card>
-        } @else {
-          <amw-card>
-            <ng-template #contentTemplate>
-              <div class="nom-no-selection">
-                <amw-icon name="touch_app"></amw-icon>
-                <h3>Select a Recipe</h3>
-                <p>Click on a recipe from the list to add its ingredients to your shopping list</p>
-              </div>
-            </ng-template>
-          </amw-card>
-        }
-      </div>
+            </div>
+            }
+          </div>
+          }
+        </ng-template>
+      </amw-card>
+    </div>
+
+    <!-- Selected Recipe Panel -->
+    <div class="nom-selection-panel">
+      @if (selectedRecipe()) {
+      <amw-card>
+        <ng-template #cardContent>
+          <h3>Selected Recipe</h3>
+          <div class="nom-selected-recipe">
+            <h4>{{ selectedRecipe()!.name }}</h4>
+            <p>{{ selectedRecipe()!.description }}</p>
+
+            <div class="nom-ingredients-preview">
+              <h5>Ingredients ({{ getIngredientCount(selectedRecipe()!) }})</h5>
+              @if (selectedRecipe()!.ingredients && selectedRecipe()!.ingredients!.length > 0) {
+              <ul class="nom-ingredient-list">
+                @for (ingredient of selectedRecipe()!.ingredients; track ingredient.id; let i = $index) {
+                @if (i < 5) { <li>{{ ingredient.name }}</li>
+                  }
+                  }
+                  @if (selectedRecipe()!.ingredients!.length > 5) {
+                  <li class="nom-more-ingredients">
+                    and {{ selectedRecipe()!.ingredients!.length - 5 }} more...
+                  </li>
+                  }
+              </ul>
+              } @else {
+              <p class="nom-no-ingredients">No ingredients listed</p>
+              }
+            </div>
+
+            <form [formGroup]="servingsForm" class="nom-servings-form">
+              <amw-input label="Number of Servings" type="number" placeholder="4" [min]="1" [max]="100"
+                hint="Adjust the quantity of ingredients based on servings" formControlName="servings">
+              </amw-input>
+            </form>
+
+            <div class="nom-actions">
+              <amw-button variant="filled" color="primary" icon="add_shopping_cart"
+                [disabled]="servingsForm.invalid || isAdding()" (click)="onAddToShoppingList()">
+                {{ isAdding() ? 'Adding...' : 'Add to Shopping List' }}
+              </amw-button>
+              <amw-button variant="outlined" color="primary" (click)="onClearSelection()">
+                Clear Selection
+              </amw-button>
+            </div>
+          </div>
+        </ng-template>
+      </amw-card>
+      } @else {
+      <amw-card>
+        <ng-template #cardContent>
+          <div class="nom-no-selection">
+            <amw-icon name="touch_app"></amw-icon>
+            <h3>Select a Recipe</h3>
+            <p>Click on a recipe from the list to add its ingredients to your shopping list</p>
+          </div>
+        </ng-template>
+      </amw-card>
+      }
     </div>
   </div>
+</div>
 }

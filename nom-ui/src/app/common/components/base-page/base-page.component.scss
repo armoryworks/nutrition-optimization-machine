@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .base-page-content {
   width: 100%;
   max-width: 800px;
@@ -24,9 +26,8 @@
   }
 
   .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+    @include nom-action-group(8px, flex-end);
+    margin-top: 0;
 
     .back-button,
     .refresh-button {
@@ -38,11 +39,7 @@
 }
 
 .loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
+  @include nom-loading-state(40px);
 
   p {
     margin: 0;
@@ -50,11 +47,7 @@
 }
 
 .error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
+  @include nom-empty-state(40px);
   text-align: center;
 
   h3 {

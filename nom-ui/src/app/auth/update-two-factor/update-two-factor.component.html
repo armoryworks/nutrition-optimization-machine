@@ -1,132 +1,113 @@
 <div class="nom-page-container update-two-factor">
-  <amw-card
-    headerTitle="Two-Factor Authentication"
-    headerSubtitle="Secure your account with 2FA"
-    headerIcon="security">
-    <ng-template #contentTemplate>
+  <amw-card headerTitle="Two-Factor Authentication" headerSubtitle="Secure your account with 2FA" headerIcon="security">
+    <ng-template #cardContent>
       @if (isLoading()) {
-        <amw-progress-bar
-          mode="indeterminate"
-          color="primary"
-          class="nom-card__progress-bar">
+      <div role="status" aria-live="polite" aria-label="Saving 2FA settings">
+        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
         </amw-progress-bar>
+        <span class="sr-only">Saving 2FA settings, please wait...</span>
+      </div>
       }
 
-      <form
-        [formGroup]="twoFactorForm"
-        (ngSubmit)="onSubmit()"
-        class="nom-form">
+      <form [formGroup]="twoFactorForm" (ngSubmit)="onSubmit()" class="nom-form">
         <p class="nom-instruction-text">
           Two-Factor Authentication adds an extra layer of security to your
           account. When enabled, you'll need both your password and a code from
           an authenticator app (like Google Authenticator) to log in.
         </p>
 
-        <amw-toggle
-          formControlName="enable2fa"
-          color="primary"
-          class="two-factor-toggle">
+        <amw-toggle formControlName="enable2fa" color="primary" class="two-factor-toggle">
           @if (current2faStatus.isTwoFactorEnabled) {
-            2FA is <span class="text-success">Enabled</span>
+          2FA is <span class="text-success">Enabled</span>
           } @else {
-            2FA is <span class="text-error">Disabled</span>
+          2FA is <span class="text-error">Disabled</span>
           }
         </amw-toggle>
 
-        <amw-checkbox
-          formControlName="rememberMachine"
-          label="Remember this browser for 30 days"
+        <amw-checkbox formControlName="rememberMachine" label="Remember this browser for 30 days"
           class="two-factor-remember-checkbox">
         </amw-checkbox>
 
-        <amw-input
-          type="password"
-          formControlName="password"
-          label="Current Password"
-          icon="vpn_key"
-          [required]="true"
-          class="nom-form__field">
+        <amw-input type="password" formControlName="password" label="Current Password" icon="vpn_key" [required]="true"
+          class="nom-form__field"
+          [attr.aria-invalid]="twoFactorForm.get('password')?.invalid && twoFactorForm.get('password')?.touched"
+          [attr.aria-describedby]="twoFactorForm.get('password')?.invalid && twoFactorForm.get('password')?.touched ? '2fa-password-error' : null">
         </amw-input>
-
-        @if (!twoFactorForm.get('enable2fa')?.value) {
-          <!-- Show 2FA code field only when disabling 2FA -->
-          <amw-input
-            type="text"
-            formControlName="twoFactorCode"
-            label="Authenticator Code (to disable)"
-            placeholder="Enter 6-digit code"
-            icon="numbers"
-            class="nom-form__field">
-          </amw-input>
+        @if (twoFactorForm.get('password')?.invalid && twoFactorForm.get('password')?.touched) {
+        <span id="2fa-password-error" class="nom-form__error" role="alert">
+          Current password is required
+        </span>
         }
 
-        <amw-button
-          type="submit"
-          variant="filled"
-          color="primary"
-          [disabled]="twoFactorForm.invalid || isLoading()"
-          [loading]="isLoading()"
-          class="nom-button">
+        @if (!twoFactorForm.get('enable2fa')?.value) {
+        <!-- Show 2FA code field only when disabling 2FA -->
+        <amw-input type="text" formControlName="twoFactorCode" label="Authenticator Code (to disable)"
+          placeholder="Enter 6-digit code" icon="numbers" class="nom-form__field"
+          [attr.aria-invalid]="twoFactorForm.get('twoFactorCode')?.invalid && twoFactorForm.get('twoFactorCode')?.touched"
+          [attr.aria-describedby]="twoFactorForm.get('twoFactorCode')?.invalid && twoFactorForm.get('twoFactorCode')?.touched ? '2fa-code-error' : null">
+        </amw-input>
+        @if (twoFactorForm.get('twoFactorCode')?.invalid && twoFactorForm.get('twoFactorCode')?.touched) {
+        <span id="2fa-code-error" class="nom-form__error" role="alert">
+          Authenticator code is required to disable 2FA
+        </span>
+        }
+        }
+
+        <amw-button type="submit" variant="filled" color="primary" [disabled]="twoFactorForm.invalid || isLoading()"
+          [loading]="isLoading()" class="nom-button">
           Save 2FA Settings
         </amw-button>
       </form>
 
       <!-- Section to display Shared Key and Recovery Codes after successful enablement -->
       @if (sharedKeyToDisplay && recoveryCodesToDisplay.length > 0) {
-        <amw-divider dividerClass="my-4"></amw-divider>
-        <h3 class="mt-4 mb-2 text-center">Two-Factor Authentication Setup</h3>
+      <amw-divider dividerClass="my-4"></amw-divider>
+      <h3 class="mt-4 mb-2 text-center">Two-Factor Authentication Setup</h3>
 
-        <p class="nom-instruction-text text-center">
-          Scan the QR code below with your authenticator app (e.g., Google
-          Authenticator, Microsoft Authenticator) or manually enter the setup key.
-        </p>
+      <p class="nom-instruction-text text-center">
+        Scan the QR code below with your authenticator app (e.g., Google
+        Authenticator, Microsoft Authenticator) or manually enter the setup key.
+      </p>
 
-        <div class="qr-code-section text-center mb-4">
-          <div
-            class="qr-code-placeholder mx-auto"
-            style="width: 200px; height: 200px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
-            <p>QR Code Here</p>
-          </div>
+      <div class="qr-code-section text-center mb-4">
+        <div class="qr-code-placeholder mx-auto"
+          style="width: 200px; height: 200px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; background-color: #f9f9f9;">
+          <p>QR Code Here</p>
         </div>
+      </div>
 
-        <p class="text-center">
-          Manual Setup Key:
-          <code class="font-mono bg-gray-100 p-1 rounded">{{ sharedKeyToDisplay }}</code>
-          <amw-button
-            variant="icon"
-            (click)="copySharedKey()">
-            <amw-icon name="content_copy"></amw-icon>
-          </amw-button>
-        </p>
-
-        <p class="nom-instruction-text text-center mt-4">
-          **IMPORTANT:** Please save your recovery codes in a safe place. These
-          codes can be used to log in if you lose access to your authenticator
-          app.
-        </p>
-        <amw-list listClass="recovery-codes-list">
-          @for (code of recoveryCodesToDisplay; track code) {
-            <amw-list-item itemClass="font-mono">
-              <amw-icon amwListItemIcon name="security"></amw-icon>
-              <span amwListItemTitle>{{ code }}</span>
-            </amw-list-item>
-          }
-        </amw-list>
-        <amw-button
-          variant="filled"
-          color="accent"
-          (click)="copyRecoveryCodes()"
-          icon="content_copy"
-          class="nom-button nom-button--small mt-3">
-          Copy All Codes
+      <p class="text-center">
+        Manual Setup Key:
+        <code class="font-mono bg-gray-100 p-1 rounded">{{ sharedKeyToDisplay }}</code>
+        <amw-button variant="icon" (click)="copySharedKey()">
+          <amw-icon name="content_copy"></amw-icon>
         </amw-button>
+      </p>
+
+      <p class="nom-instruction-text text-center mt-4">
+        **IMPORTANT:** Please save your recovery codes in a safe place. These
+        codes can be used to log in if you lose access to your authenticator
+        app.
+      </p>
+      <amw-list listClass="recovery-codes-list">
+        @for (code of recoveryCodesToDisplay; track code) {
+        <amw-list-item itemClass="font-mono">
+          <amw-icon amwListItemIcon name="security"></amw-icon>
+          <span amwListItemTitle>{{ code }}</span>
+        </amw-list-item>
+        }
+      </amw-list>
+      <amw-button variant="filled" color="accent" (click)="copyRecoveryCodes()" icon="content_copy"
+        class="nom-button nom-button--small mt-3">
+        Copy All Codes
+      </amw-button>
       } @else if (current2faStatus.isTwoFactorEnabled && !sharedKeyToDisplay) {
-        <!-- If 2FA is enabled but sharedKeyToDisplay is null (meaning not just newly enabled) -->
-        <p class="nom-instruction-text text-center mt-4">
-          Two-Factor Authentication is currently enabled. You can disable it above
-          or generate new recovery codes if your backend provides that
-          functionality.
-        </p>
+      <!-- If 2FA is enabled but sharedKeyToDisplay is null (meaning not just newly enabled) -->
+      <p class="nom-instruction-text text-center mt-4">
+        Two-Factor Authentication is currently enabled. You can disable it above
+        or generate new recovery codes if your backend provides that
+        functionality.
+      </p>
       }
     </ng-template>
   </amw-card>

@@ -1,4 +1,5 @@
 // File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.scss
+@use '../../../../_utilities' as *;
 
 .privacy-settings {
   &__consent-item {

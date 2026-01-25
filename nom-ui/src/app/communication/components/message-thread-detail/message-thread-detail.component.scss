@@ -1,11 +1,8 @@
+@use '../../../../_utilities' as *;
+
 .nom-loading-container,
 .nom-error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  gap: 1rem;
+  @include nom-empty-state(2rem);
 }
 
 .nom-error-message {
@@ -15,15 +12,12 @@
 }
 
 .nom-error-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  @include nom-action-group(1rem, center);
+  margin-top: 0;
 }
 
 .nom-thread-detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  @include nom-form-field(1rem);
   max-width: 1000px;
   margin: 0 auto;
   padding: 1rem;
@@ -79,14 +73,8 @@
 }
 
 .nom-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  gap: 1rem;
+  @include nom-empty-state(3rem);
   color: var(--mat-sys-on-surface-variant);
-  text-align: center;
 
   p {
     margin: 0;
@@ -169,15 +157,11 @@
 }
 
 .nom-reply-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  @include nom-form-field(1rem);
 }
 
 .nom-reply-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  @include nom-action-group(1rem, flex-end);
 }
 
 // Responsive design

@@ -1,9 +1,9 @@
+@use '../../../../_utilities' as *;
+
 .messaging-inbox {
-  &__container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
-  }
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
 
   // Compact Page Header
   &__page-header {
@@ -96,38 +96,20 @@
   }
 
   &__loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 1rem;
-    gap: 1rem;
-    text-align: center;
+    @include nom-loading-state(3rem);
   }
 
   &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 2rem;
-    gap: 1rem;
-    text-align: center;
+    @include nom-empty-state(3rem);
   }
 
   &__empty-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 400px;
+    @include nom-centered-container(400px);
   }
 
   &__empty-card {
     max-width: 400px;
     text-align: center;
-  }
-
-  &__empty-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -139,6 +121,8 @@
     font-size: 64px;
     width: 64px;
     height: 64px;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.5;
   }
 
   &__content {
@@ -288,9 +272,7 @@
 
 @media (max-width: 768px) {
   .messaging-inbox {
-    &__container {
-      padding: 0 12px;
-    }
+    padding: 0 12px;
 
     &__page-header--compact {
       flex-direction: column;

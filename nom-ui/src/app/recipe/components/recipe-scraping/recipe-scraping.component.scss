@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-scraping-container {
   max-width: 800px;
   margin: 0 auto;
@@ -85,9 +87,7 @@
     }
 
     .form-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
+      @include nom-action-group(1rem, center);
 
       .btn {
         padding: 0.75rem 1.5rem;
@@ -237,9 +237,7 @@
     }
 
     .preview-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
+      @include nom-action-group(1rem, center);
       padding-top: 2rem;
 
       .btn {

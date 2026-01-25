@@ -1,52 +1,30 @@
 <div class="nom-page-container meal-plan-rules">
-  <amw-card
-    class="nom-card"
-    headerTitle="Meal Plan Rules"
-    headerSubtitle="Configure automatic meal planning rules"
+  <amw-card class="nom-card" headerTitle="Meal Plan Rules" headerSubtitle="Configure automatic meal planning rules"
     headerIcon="rule">
-    <ng-template #contentTemplate>
+    <ng-template #cardContent>
       @if (isLoading()) {
-        <amw-progress-bar
-          mode="indeterminate"
-          color="primary"
-          class="nom-card__progress-bar">
-        </amw-progress-bar>
+      <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
+      </amw-progress-bar>
       }
       <!-- Add Rule Form -->
       <div class="meal-plan-rules__form-section">
         <h3 class="meal-plan-rules__section-title">Add New Rule</h3>
         <form [formGroup]="ruleForm" (ngSubmit)="onSubmit()" class="nom-form">
-          <amw-select
-            formControlName="dayOfWeekId"
-            label="Day of Week"
-            [options]="getDayOfWeekOptions()"
-            [required]="true"
+          <amw-select formControlName="dayOfWeekId" label="Day of Week" [options]="getDayOfWeekOptions()"
+            [required]="true" class="nom-form__field">
+          </amw-select>
+
+          <amw-select formControlName="mealTypeId" label="Meal Type" [options]="getMealTypeOptions()" [required]="true"
             class="nom-form__field">
           </amw-select>
 
-          <amw-select
-            formControlName="mealTypeId"
-            label="Meal Type"
-            [options]="getMealTypeOptions()"
-            [required]="true"
-            class="nom-form__field">
-          </amw-select>
-
-          <amw-input
-            formControlName="queryFilterString"
-            label="Query Filter (Optional)"
-            placeholder="Enter search terms to filter recipes..."
-            class="nom-form__field">
+          <amw-input formControlName="queryFilterString" label="Query Filter (Optional)"
+            placeholder="Enter search terms to filter recipes..." class="nom-form__field">
           </amw-input>
 
           <div class="nom-form__actions">
-            <amw-button
-              type="submit"
-              variant="filled"
-              color="primary"
-              icon="add"
-              [disabled]="ruleForm.invalid || isAddingRule()"
-              [loading]="isAddingRule()">
+            <amw-button type="submit" variant="filled" color="primary" icon="add"
+              [disabled]="ruleForm.invalid || isAddingRule()" [loading]="isAddingRule()">
               {{ isAddingRule() ? 'Adding...' : 'Add Rule' }}
             </amw-button>
           </div>
@@ -58,48 +36,34 @@
         <h3 class="meal-plan-rules__section-title">Existing Rules</h3>
 
         @if (!isLoading() && rules().length === 0) {
-          <div class="nom-empty-state">
-            <amw-icon name="rule" class="nom-empty-state__icon"></amw-icon>
-            <h3 class="nom-empty-state__title">No Rules Yet</h3>
-            <p class="nom-empty-state__description">Create your first meal plan rule to get started.</p>
-          </div>
+        <div class="nom-empty-state">
+          <amw-icon name="rule" class="nom-empty-state__icon"></amw-icon>
+          <h3 class="nom-empty-state__title">No Rules Yet</h3>
+          <p class="nom-empty-state__description">Create your first meal plan rule to get started.</p>
+        </div>
         }
 
         @if (!isLoading() && rules().length > 0) {
-          <div class="meal-plan-rules__rules-list">
-            @for (rule of rules(); track rule.id) {
-              <amw-card
-                class="meal-plan-rules__rule-card"
-                [headerTitle]="rule.dayOfWeekName + ' - ' + rule.mealTypeName"
-                [headerSubtitle]="rule.queryFilterString || 'No filter applied'">
-                <ng-template #actionsTemplate>
-                  <amw-button
-                    variant="text"
-                    color="primary"
-                    icon="edit"
-                    (click)="editRule(rule)">
-                    Edit
-                  </amw-button>
-                  <amw-button
-                    variant="text"
-                    color="warn"
-                    icon="delete"
-                    (click)="deleteRule(rule)">
-                    Delete
-                  </amw-button>
-                </ng-template>
-              </amw-card>
-            }
-          </div>
+        <div class="meal-plan-rules__rules-list">
+          @for (rule of rules(); track rule.id) {
+          <amw-card class="meal-plan-rules__rule-card" [headerTitle]="rule.dayOfWeekName + ' - ' + rule.mealTypeName"
+            [headerSubtitle]="rule.queryFilterString || 'No filter applied'">
+            <ng-template #actionsTemplate>
+              <amw-button variant="text" color="primary" icon="edit" (click)="editRule(rule)">
+                Edit
+              </amw-button>
+              <amw-button variant="text" color="warn" icon="delete" (click)="deleteRule(rule)">
+                Delete
+              </amw-button>
+            </ng-template>
+          </amw-card>
+          }
+        </div>
         }
       </div>
 
       <div class="nom-form__actions">
-        <amw-button
-          type="button"
-          variant="text"
-          icon="arrow_back"
-          (click)="onBack()">
+        <amw-button type="button" variant="text" icon="arrow_back" (click)="onBack()">
           Back to Meal Plans
         </amw-button>
       </div>

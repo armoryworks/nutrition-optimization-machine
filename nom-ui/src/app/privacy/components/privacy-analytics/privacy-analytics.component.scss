@@ -1,9 +1,9 @@
+@use '../../../../_utilities' as *;
+
 .privacy-analytics {
-  &__container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 
   &__overview {
     .privacy-analytics__card {
@@ -137,18 +137,14 @@
   }
 
   &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    padding: 3rem 1rem;
-    text-align: center;
+    @include nom-empty-state(3rem);
   }
 
   &__empty-icon {
     font-size: 3rem;
     width: 3rem;
     height: 3rem;
+    color: var(--mat-sys-on-surface-variant);
     opacity: 0.5;
   }
 }

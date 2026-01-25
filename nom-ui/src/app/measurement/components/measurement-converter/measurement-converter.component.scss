@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .measurement-converter {
   max-width: 800px;
   margin: 0 auto;
@@ -69,9 +71,7 @@
 }
 
 .form-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
+  @include nom-action-group(15px, center);
   margin-top: 25px;
 
   @media (max-width: 768px) {

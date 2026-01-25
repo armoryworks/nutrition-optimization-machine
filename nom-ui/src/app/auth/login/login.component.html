@@ -1,46 +1,47 @@
 <div class="login">
-  <amw-card
-    headerTitle="Welcome Back!"
-    headerSubtitle="Sign in to your account"
-    headerIcon="login">
-    <ng-template #contentTemplate>
+  <amw-card headerTitle="Welcome Back!" headerSubtitle="Sign in to your account" headerIcon="login">
+    <ng-template #cardContent>
       @if (isLoading()) {
+      <div role="status" aria-live="polite" aria-label="Signing in">
         <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+        <span class="sr-only">Signing you in, please wait...</span>
+      </div>
       }
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <amw-input
-          type="email"
-          formControlName="email"
-          label="Email Address"
-          icon="email"
-          [required]="true"
-          class="nom-form__field"
-          data-cy="email-input">
+        <amw-input type="email" formControlName="email" label="Email Address" icon="email" [required]="true"
+          class="nom-form__field" data-cy="email-input"
+          [attr.aria-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+          [attr.aria-describedby]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'login-email-error' : null">
         </amw-input>
+        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <span id="login-email-error" class="nom-form__error" role="alert">
+            @if (loginForm.get('email')?.hasError('required')) {
+              Email is required
+            }
+            @if (loginForm.get('email')?.hasError('email')) {
+              Please enter a valid email address
+            }
+          </span>
+        }
 
-        <amw-input
-          type="password"
-          formControlName="password"
-          label="Password"
-          icon="lock"
-          [required]="true"
-          class="nom-form__field"
-          data-cy="password-input">
+        <amw-input type="password" formControlName="password" label="Password" icon="lock" [required]="true"
+          class="nom-form__field" data-cy="password-input"
+          [attr.aria-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          [attr.aria-describedby]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched ? 'login-password-error' : null">
         </amw-input>
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <span id="login-password-error" class="nom-form__error" role="alert">
+            Password is required
+          </span>
+        }
 
         <div class="login__options-row">
           <amw-checkbox formControlName="rememberMe" label="Remember Me"></amw-checkbox>
           <a routerLink="/forgot-password" class="nom-link">Forgot Password?</a>
         </div>
 
-        <amw-button
-          type="submit"
-          variant="filled"
-          color="primary"
-          [disabled]="loginForm.invalid || isLoading()"
-          [loading]="isLoading()"
-          class="nom-button"
-          data-cy="login-button">
+        <amw-button type="submit" variant="filled" color="primary" [disabled]="loginForm.invalid || isLoading()"
+          [loading]="isLoading()" class="nom-button" data-cy="login-button">
           Sign In
         </amw-button>
       </form>

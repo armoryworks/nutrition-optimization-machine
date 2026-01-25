@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-timeline-events {
   &__card {
     border-radius: 12px;
@@ -42,8 +44,7 @@
   }
 
   &__form-actions {
-    display: flex;
-    justify-content: flex-end;
+    @include nom-action-group(1rem, flex-end);
     margin-top: 16px;
   }
 
@@ -73,11 +74,7 @@
   }
 
   &__loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
+    @include nom-loading-state(32px);
   }
 
   &__loading-icon {
@@ -89,12 +86,7 @@
   }
 
   &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    text-align: center;
+    @include nom-empty-state(32px);
   }
 
   &__empty-icon {

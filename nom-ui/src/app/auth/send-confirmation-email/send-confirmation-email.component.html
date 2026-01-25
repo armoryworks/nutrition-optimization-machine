@@ -1,40 +1,37 @@
 <div class="nom-page-container send-confirmation-email">
-  <amw-card
-    headerTitle="Resend Confirmation Email"
-    headerSubtitle="If you haven't received it, we can send another one."
-    headerIcon="forward_to_inbox">
-    <ng-template #contentTemplate>
+  <amw-card headerTitle="Resend Confirmation Email"
+    headerSubtitle="If you haven't received it, we can send another one." headerIcon="forward_to_inbox">
+    <ng-template #cardContent>
       @if (isLoading()) {
-        <amw-progress-bar
-          mode="indeterminate"
-          color="primary"
-          class="nom-card__progress-bar">
+      <div role="status" aria-live="polite" aria-label="Sending confirmation email">
+        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
         </amw-progress-bar>
+        <span class="sr-only">Sending confirmation email, please wait...</span>
+      </div>
       }
       <p class="nom-instruction-text">
         Enter the email address you registered with to receive a new
         confirmation email.
       </p>
-      <form
-        [formGroup]="sendConfirmationEmailForm"
-        (ngSubmit)="onSubmit()"
-        class="nom-form">
-        <amw-input
-          type="email"
-          formControlName="email"
-          label="Email Address"
-          icon="email"
-          [required]="true"
-          class="nom-form__field">
+      <form [formGroup]="sendConfirmationEmailForm" (ngSubmit)="onSubmit()" class="nom-form">
+        <amw-input type="email" formControlName="email" label="Email Address" icon="email" [required]="true"
+          class="nom-form__field"
+          [attr.aria-invalid]="sendConfirmationEmailForm.get('email')?.invalid && sendConfirmationEmailForm.get('email')?.touched"
+          [attr.aria-describedby]="sendConfirmationEmailForm.get('email')?.invalid && sendConfirmationEmailForm.get('email')?.touched ? 'confirm-email-error' : null">
         </amw-input>
+        @if (sendConfirmationEmailForm.get('email')?.invalid && sendConfirmationEmailForm.get('email')?.touched) {
+        <span id="confirm-email-error" class="nom-form__error" role="alert">
+          @if (sendConfirmationEmailForm.get('email')?.hasError('required')) {
+            Email is required
+          }
+          @if (sendConfirmationEmailForm.get('email')?.hasError('email')) {
+            Please enter a valid email address
+          }
+        </span>
+        }
 
-        <amw-button
-          type="submit"
-          variant="filled"
-          color="primary"
-          [disabled]="sendConfirmationEmailForm.invalid || isLoading()"
-          [loading]="isLoading()"
-          class="nom-button">
+        <amw-button type="submit" variant="filled" color="primary"
+          [disabled]="sendConfirmationEmailForm.invalid || isLoading()" [loading]="isLoading()" class="nom-button">
           Resend Confirmation Email
         </amw-button>
       </form>

@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .shopping-item-editor {
   min-width: 500px;
   max-width: 600px;
@@ -33,9 +35,7 @@
   }
 
   .editor-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+    @include nom-action-group(8px, flex-end);
     padding: 16px 0;
   }
 

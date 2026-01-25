@@ -9,10 +9,12 @@
     [formControl]="internalRestrictionScopeControl"
     [options]="getScopeOptions()"
     orientation="vertical"
-    class="nom-radio-group">
+    class="nom-radio-group"
+    [attr.aria-invalid]="internalRestrictionScopeControl.invalid && internalRestrictionScopeControl.touched"
+    [attr.aria-describedby]="internalRestrictionScopeControl.invalid && internalRestrictionScopeControl.touched ? 'restriction-scope-error' : null">
   </amw-radio-group>
   @if (internalRestrictionScopeControl.invalid && internalRestrictionScopeControl.touched) {
-  <p class="nom-form__error">Please select a restriction scope.</p>
+  <p id="restriction-scope-error" class="nom-form__error" role="alert">Please select a restriction scope.</p>
   }
   <div class="flex justify-center mt-4">
     <!-- No "Previous" button for the first sub-step, parent handles global back -->
@@ -34,10 +36,12 @@
     label="Affected People"
     [options]="getPersonOptions()"
     [multiple]="true"
-    class="nom-form__field">
+    class="nom-form__field"
+    [attr.aria-invalid]="internalAffectedPersonIdsControl.invalid && internalAffectedPersonIdsControl.touched"
+    [attr.aria-describedby]="internalAffectedPersonIdsControl.invalid && internalAffectedPersonIdsControl.touched ? 'affected-people-error' : null">
   </amw-select>
   @if (internalAffectedPersonIdsControl.invalid && internalAffectedPersonIdsControl.touched) {
-  <p class="nom-form__error">Please select at least one person.</p>
+  <p id="affected-people-error" class="nom-form__error" role="alert">Please select at least one person.</p>
   }
   <div class="flex justify-center mt-4">
     <amw-button

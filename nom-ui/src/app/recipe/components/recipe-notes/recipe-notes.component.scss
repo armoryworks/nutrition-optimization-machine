@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-notes {
   &__card {
     border-radius: 12px;
@@ -26,6 +28,7 @@
   }
 
   &__form {
+    @include nom-form-field(1.5rem);
     margin-bottom: 24px;
   }
 
@@ -46,9 +49,7 @@
   }
 
   &__form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    @include nom-action-group(12px, flex-end);
     margin-top: 16px;
   }
 
@@ -83,11 +84,7 @@
   }
 
   &__loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
+    @include nom-loading-state(2rem);
   }
 
   &__loading-icon {
@@ -99,19 +96,14 @@
   }
 
   &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    text-align: center;
+    @include nom-empty-state(2rem);
   }
 
   &__empty-icon {
     font-size: 3rem;
     width: 3rem;
     height: 3rem;
-    margin-bottom: 16px;
+    color: var(--mat-sys-on-surface-variant);
     opacity: 0.5;
   }
 

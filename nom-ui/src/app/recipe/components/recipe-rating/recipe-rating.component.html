@@ -1,6 +1,5 @@
 <div class="recipe-rating">
-  <div class="recipe-rating__container">
-    <!-- Header -->
+  <!-- Header -->
     <div class="recipe-rating__header">
       <div class="recipe-rating__header-content">
         <div class="recipe-rating__title-section">
@@ -14,27 +13,18 @@
     </div>
 
     <!-- Rating Form -->
-    <amw-card
-      headerTitle="Your Rating"
-      headerIcon="star"
-      class="recipe-rating__form-card">
-      <ng-template #contentTemplate>
+    <amw-card headerTitle="Your Rating" headerIcon="star" class="recipe-rating__form-card">
+      <ng-template #cardContent>
         <form [formGroup]="ratingForm" (ngSubmit)="onSubmit()" class="recipe-rating__form">
           <!-- Star Rating -->
           <div class="recipe-rating__stars-section">
             <div class="recipe-rating__stars-label">Your Rating:</div>
             <div class="recipe-rating__stars" role="radiogroup" aria-label="Recipe rating from 1 to 5 stars">
               @for (star of [1,2,3,4,5]; track star) {
-                <amw-icon
-                  name="star"
-                  [class]="getStarClass(star) + ' recipe-rating__star recipe-rating__star--clickable'"
-                  (click)="setRating(star)"
-                  role="radio"
-                  [attr.aria-checked]="ratingForm.get('rating')?.value === star"
-                  tabindex="0"
-                  (keyup.enter)="setRating(star)"
-                  (keyup.space)="setRating(star)">
-                </amw-icon>
+              <amw-icon name="star" [class]="getStarClass(star) + ' recipe-rating__star recipe-rating__star--clickable'"
+                (click)="setRating(star)" role="radio" [attr.aria-checked]="ratingForm.get('rating')?.value === star"
+                tabindex="0" (keyup.enter)="setRating(star)" (keyup.space)="setRating(star)">
+              </amw-icon>
               }
             </div>
             <span class="recipe-rating__rating-text">
@@ -43,28 +33,17 @@
           </div>
 
           <!-- Review Text -->
-          <amw-textarea
-            formControlName="reviewText"
-            label="Review (Optional)"
-            placeholder="Share your thoughts about this recipe..."
-            [rows]="4"
-            class="recipe-rating__field">
+          <amw-textarea formControlName="reviewText" label="Review (Optional)"
+            placeholder="Share your thoughts about this recipe..." [rows]="4" class="recipe-rating__field">
           </amw-textarea>
 
           <div class="recipe-rating__form-actions">
-            <amw-button
-              variant="filled"
-              color="primary"
-              type="submit"
-              [disabled]="ratingForm.invalid || isSubmitting()"
-              [loading]="isSubmitting()"
-              icon="star"
-              class="recipe-rating__submit-btn">
+            <amw-button variant="filled" color="primary" type="submit" [disabled]="ratingForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()" icon="star" class="recipe-rating__submit-btn">
               Submit Rating
             </amw-button>
           </div>
         </form>
       </ng-template>
     </amw-card>
-  </div>
-</div> 
+</div>

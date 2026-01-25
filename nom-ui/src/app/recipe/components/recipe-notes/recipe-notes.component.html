@@ -1,6 +1,5 @@
 <div class="recipe-notes">
-  <div class="recipe-notes__container">
-    <!-- Header -->
+  <!-- Header -->
     <div class="recipe-notes__header">
       <div class="recipe-notes__header-content">
         <div class="recipe-notes__title-section">
@@ -14,36 +13,27 @@
     </div>
 
     <!-- Add Note Form -->
-    <amw-card
-      headerTitle="Add New Note"
-      headerIcon="note_add">
-      <ng-template #contentTemplate>
+    <amw-card headerTitle="Add New Note" headerIcon="note_add">
+      <ng-template #cardContent>
         <form [formGroup]="noteForm" (ngSubmit)="onSubmit()" class="recipe-notes__form">
-          <amw-input
-            formControlName="noteTitle"
-            label="Note Title"
-            placeholder="Enter a title for your note..."
-            [required]="true"
-            class="recipe-notes__field">
+          <amw-input formControlName="noteTitle" label="Note Title" placeholder="Enter a title for your note..."
+            [required]="true" class="recipe-notes__field"
+            [attr.aria-invalid]="noteForm.get('noteTitle')?.invalid && noteForm.get('noteTitle')?.touched"
+            [attr.aria-describedby]="noteForm.get('noteTitle')?.invalid && noteForm.get('noteTitle')?.touched ? 'note-title-error' : null">
           </amw-input>
+          @if (noteForm.get('noteTitle')?.invalid && noteForm.get('noteTitle')?.touched) {
+          <span id="note-title-error" class="nom-form__error" role="alert">
+            Note title is required
+          </span>
+          }
 
-          <amw-textarea
-            formControlName="noteText"
-            label="Note Content"
-            placeholder="Write your note here..."
-            [rows]="4"
+          <amw-textarea formControlName="noteText" label="Note Content" placeholder="Write your note here..." [rows]="4"
             class="recipe-notes__field">
           </amw-textarea>
 
           <div class="recipe-notes__form-actions">
-            <amw-button
-              variant="filled"
-              color="primary"
-              type="submit"
-              [disabled]="noteForm.invalid || isSubmitting"
-              [loading]="isSubmitting"
-              icon="add"
-              class="recipe-notes__submit-btn">
+            <amw-button variant="filled" color="primary" type="submit" [disabled]="noteForm.invalid || isSubmitting"
+              [loading]="isSubmitting" icon="add" class="recipe-notes__submit-btn">
               {{ isSubmitting ? 'Adding...' : 'Add Note' }}
             </amw-button>
           </div>
@@ -56,53 +46,42 @@
       <h3 class="recipe-notes__list-title">Your Notes</h3>
 
       @if (isLoading) {
-        <div class="recipe-notes__loading">
-          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-          <p>Loading notes...</p>
-        </div>
+      <div class="recipe-notes__loading" role="status" aria-live="polite" aria-label="Loading notes">
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+        <p>Loading notes...</p>
+      </div>
       }
 
       @if (!isLoading && notes.length === 0) {
-        <div class="recipe-notes__empty">
-          <amw-icon name="note_add" class="recipe-notes__empty-icon"></amw-icon>
-          <h4>No Notes Yet</h4>
-          <p>Add your first note to start documenting your cooking experience.</p>
-        </div>
+      <div class="recipe-notes__empty">
+        <amw-icon name="note_add" class="recipe-notes__empty-icon"></amw-icon>
+        <h4>No Notes Yet</h4>
+        <p>Add your first note to start documenting your cooking experience.</p>
+      </div>
       }
 
       @if (!isLoading && notes.length > 0) {
-        <div class="recipe-notes__notes-list">
-          @for (note of notes; track note.id) {
-            <amw-card
-              [headerTitle]="note.title"
-              [headerSubtitle]="formatDate(note.createdDate)"
-              class="recipe-notes__note-card">
-              <ng-template #contentTemplate>
-                <p class="recipe-notes__note-content">{{ note.text }}</p>
+      <div class="recipe-notes__notes-list">
+        @for (note of notes; track note.id) {
+        <amw-card [headerTitle]="note.title" [headerSubtitle]="formatDate(note.createdDate)"
+          class="recipe-notes__note-card">
+          <ng-template #cardContent>
+            <p class="recipe-notes__note-content">{{ note.text }}</p>
 
-                <div class="recipe-notes__note-actions">
-                  <amw-button
-                    variant="text"
-                    color="primary"
-                    (click)="editNote(note)"
-                    icon="edit"
-                    class="recipe-notes__edit-btn">
-                    Edit
-                  </amw-button>
-                  <amw-button
-                    variant="text"
-                    color="warn"
-                    (click)="deleteNote(note)"
-                    icon="delete"
-                    class="recipe-notes__delete-btn">
-                    Delete
-                  </amw-button>
-                </div>
-              </ng-template>
-            </amw-card>
-          }
-        </div>
+            <div class="recipe-notes__note-actions">
+              <amw-button variant="text" color="primary" (click)="editNote(note)" icon="edit"
+                class="recipe-notes__edit-btn">
+                Edit
+              </amw-button>
+              <amw-button variant="text" color="warn" (click)="deleteNote(note)" icon="delete"
+                class="recipe-notes__delete-btn">
+                Delete
+              </amw-button>
+            </div>
+          </ng-template>
+        </amw-card>
+        }
+      </div>
       }
     </div>
-  </div>
-</div> 
+</div>

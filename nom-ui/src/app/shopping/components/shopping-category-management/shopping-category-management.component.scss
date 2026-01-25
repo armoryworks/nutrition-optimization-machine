@@ -1,13 +1,12 @@
+@use '../../../../_utilities' as *;
+
 .shopping-category-management {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
-
-  &__container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 
   &__header {
     margin-bottom: 1rem;
@@ -57,9 +56,7 @@
   }
 
   &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    @include nom-form-field(1.5rem);
     padding: 1rem 0;
   }
 
@@ -128,8 +125,7 @@
   }
 
   &__form-actions {
-    display: flex;
-    gap: 1rem;
+    @include nom-action-group(1rem, flex-start);
     padding-top: 1rem;
     border-top: 1px solid var(--mat-sys-outline-variant);
   }
@@ -174,13 +170,8 @@
 
   &__loading,
   &__no-categories {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    @include nom-empty-state(3rem);
     padding: 3rem 2rem;
-    gap: 1rem;
-    text-align: center;
   }
 
   &__empty-icon {

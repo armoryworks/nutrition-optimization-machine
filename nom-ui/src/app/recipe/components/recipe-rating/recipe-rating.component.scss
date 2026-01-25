@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .nom-recipe-rating {
   display: flex;
   flex-direction: column;
@@ -46,9 +48,7 @@
   }
 
   &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    @include nom-form-field(20px);
   }
 
   &__star-rating {
@@ -109,13 +109,8 @@
   }
 
   &__loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 24px;
+    @include nom-loading-state(3rem);
     border-radius: 12px;
-    text-align: center;
 
     p {
       margin: 16px 0 0;

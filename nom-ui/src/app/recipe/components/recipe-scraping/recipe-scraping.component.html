@@ -14,11 +14,19 @@
         placeholder="https://example.com/recipe"
         class="form-control"
         [class.is-invalid]="urlControl?.invalid && urlControl?.touched"
+        [attr.aria-invalid]="urlControl?.invalid && urlControl?.touched"
+        [attr.aria-describedby]="urlControl?.invalid && urlControl?.touched ? 'url-error' : null"
       />
-      <div class="invalid-feedback" *ngIf="urlControl?.invalid && urlControl?.touched">
-        <div *ngIf="urlControl?.errors?.['required']">Recipe URL is required.</div>
-        <div *ngIf="urlControl?.errors?.['pattern']">Please enter a valid URL starting with http:// or https://</div>
-      </div>
+      @if (urlControl?.invalid && urlControl?.touched) {
+        <div id="url-error" class="invalid-feedback" role="alert">
+          @if (urlControl?.errors?.['required']) {
+            <div>Recipe URL is required.</div>
+          }
+          @if (urlControl?.errors?.['pattern']) {
+            <div>Please enter a valid URL starting with http:// or https://</div>
+          }
+        </div>
+      }
     </div>
 
     <div class="form-options">
@@ -45,7 +53,9 @@
         class="btn btn-primary"
         [disabled]="scrapingForm.invalid || isLoading()"
       >
-        <span *ngIf="isLoading()" class="spinner"></span>
+        @if (isLoading()) {
+          <span class="spinner"></span>
+        }
         {{ isLoading() ? 'Testing...' : 'Test Scrape' }}
       </button>
 
@@ -61,91 +71,133 @@
   </form>
 
   <!-- Error Display -->
-  <div class="error-message" *ngIf="error()">
-    <div class="alert alert-danger">
-      <strong>Error:</strong> {{ error() }}
+  @if (error()) {
+    <div class="error-message">
+      <div class="alert alert-danger" role="alert" aria-live="assertive">
+        <strong>Error:</strong> {{ error() }}
+      </div>
     </div>
-  </div>
+  }
 
   <!-- Recipe Preview -->
-  <div class="recipe-preview" *ngIf="scrapedRecipe() && showPreview()">
-    <div class="preview-header">
-      <h2>Recipe Preview</h2>
-      <p>Review the scraped recipe before importing</p>
+  @if (scrapedRecipe() && showPreview()) {
+    <div class="recipe-preview">
+      <div class="preview-header">
+        <h2>Recipe Preview</h2>
+        <p>Review the scraped recipe before importing</p>
+      </div>
+
+      <div class="preview-content">
+        <div class="recipe-info">
+          <h3>{{ scrapedRecipe()!.name }}</h3>
+          @if (scrapedRecipe()!.description) {
+            <p>{{ scrapedRecipe()!.description }}</p>
+          }
+
+          @if (scrapedRecipe()!.prepTime || scrapedRecipe()!.cookTime || scrapedRecipe()!.totalTime) {
+            <div class="recipe-meta">
+              @if (scrapedRecipe()!.prepTime) {
+                <span>Prep: {{ scrapedRecipe()!.prepTime }}</span>
+              }
+              @if (scrapedRecipe()!.cookTime) {
+                <span>Cook: {{ scrapedRecipe()!.cookTime }}</span>
+              }
+              @if (scrapedRecipe()!.totalTime) {
+                <span>Total: {{ scrapedRecipe()!.totalTime }}</span>
+              }
+            </div>
+          }
+
+          @if (scrapedRecipe()!.recipeYield || scrapedRecipe()!.recipeServings) {
+            <div class="recipe-yield">
+              @if (scrapedRecipe()!.recipeYield) {
+                <span>Yield: {{ scrapedRecipe()!.recipeYield }}</span>
+              }
+              @if (scrapedRecipe()!.recipeServings) {
+                <span>Servings: {{ scrapedRecipe()!.recipeServings }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (scrapedRecipe()!.ingredients.length > 0) {
+          <div class="recipe-ingredients">
+            <h4>Ingredients</h4>
+            <ul class="ingredients-list">
+              @for (ingredient of scrapedRecipe()!.ingredients; track $index) {
+                <li>
+                  @if (ingredient.quantity) {
+                    <span>{{ ingredient.quantity }}</span>
+                  }
+                  @if (ingredient.unit) {
+                    <span>{{ ingredient.unit }}</span>
+                  }
+                  <span class="ingredient-name">{{ ingredient.name }}</span>
+                  @if (ingredient.notes) {
+                    <span class="ingredient-notes">({{ ingredient.notes }})</span>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (scrapedRecipe()!.steps.length > 0) {
+          <div class="recipe-steps">
+            <h4>Instructions</h4>
+            <ol class="steps-list">
+              @for (step of scrapedRecipe()!.steps; track $index) {
+                <li>{{ step.instruction }}</li>
+              }
+            </ol>
+          </div>
+        }
+
+        @if (scrapedRecipe()!.tags.length > 0) {
+          <div class="recipe-tags">
+            <h4>Tags</h4>
+            <div class="tags-list">
+              @for (tag of scrapedRecipe()!.tags; track tag) {
+                <span class="tag">{{ tag }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        @if (scrapedRecipe()!.categories.length > 0) {
+          <div class="recipe-categories">
+            <h4>Categories</h4>
+            <div class="categories-list">
+              @for (category of scrapedRecipe()!.categories; track category) {
+                <span class="category">{{ category }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="preview-actions">
+        <button
+          type="button"
+          class="btn btn-success"
+          (click)="createRecipe()"
+          [disabled]="isLoading()"
+        >
+          @if (isLoading()) {
+            <span class="spinner"></span>
+          }
+          {{ isLoading() ? 'Importing...' : 'Import Recipe' }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="reset()"
+          [disabled]="isLoading()"
+        >
+          Try Different URL
+        </button>
+      </div>
     </div>
-
-    <div class="preview-content">
-      <div class="recipe-info">
-        <h3>{{ scrapedRecipe()!.name }}</h3>
-        <p *ngIf="scrapedRecipe()!.description">{{ scrapedRecipe()!.description }}</p>
-
-        <div class="recipe-meta" *ngIf="scrapedRecipe()!.prepTime || scrapedRecipe()!.cookTime || scrapedRecipe()!.totalTime">
-          <span *ngIf="scrapedRecipe()!.prepTime">Prep: {{ scrapedRecipe()!.prepTime }}</span>
-          <span *ngIf="scrapedRecipe()!.cookTime">Cook: {{ scrapedRecipe()!.cookTime }}</span>
-          <span *ngIf="scrapedRecipe()!.totalTime">Total: {{ scrapedRecipe()!.totalTime }}</span>
-        </div>
-
-        <div class="recipe-yield" *ngIf="scrapedRecipe()!.recipeYield || scrapedRecipe()!.recipeServings">
-          <span *ngIf="scrapedRecipe()!.recipeYield">Yield: {{ scrapedRecipe()!.recipeYield }}</span>
-          <span *ngIf="scrapedRecipe()!.recipeServings">Servings: {{ scrapedRecipe()!.recipeServings }}</span>
-        </div>
-      </div>
-
-      <div class="recipe-ingredients" *ngIf="scrapedRecipe()!.ingredients.length > 0">
-        <h4>Ingredients</h4>
-        <ul class="ingredients-list">
-          <li *ngFor="let ingredient of scrapedRecipe()!.ingredients">
-            <span *ngIf="ingredient.quantity">{{ ingredient.quantity }}</span>
-            <span *ngIf="ingredient.unit">{{ ingredient.unit }}</span>
-            <span class="ingredient-name">{{ ingredient.name }}</span>
-            <span *ngIf="ingredient.notes" class="ingredient-notes">({{ ingredient.notes }})</span>
-          </li>
-        </ul>
-      </div>
-
-      <div class="recipe-steps" *ngIf="scrapedRecipe()!.steps.length > 0">
-        <h4>Instructions</h4>
-        <ol class="steps-list">
-          <li *ngFor="let step of scrapedRecipe()!.steps">
-            {{ step.instruction }}
-          </li>
-        </ol>
-      </div>
-
-      <div class="recipe-tags" *ngIf="scrapedRecipe()!.tags.length > 0">
-        <h4>Tags</h4>
-        <div class="tags-list">
-          <span *ngFor="let tag of scrapedRecipe()!.tags" class="tag">{{ tag }}</span>
-        </div>
-      </div>
-
-      <div class="recipe-categories" *ngIf="scrapedRecipe()!.categories.length > 0">
-        <h4>Categories</h4>
-        <div class="categories-list">
-          <span *ngFor="let category of scrapedRecipe()!.categories" class="category">{{ category }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="preview-actions">
-      <button
-        type="button"
-        class="btn btn-success"
-        (click)="createRecipe()"
-        [disabled]="isLoading()"
-      >
-        <span *ngIf="isLoading()" class="spinner"></span>
-        {{ isLoading() ? 'Importing...' : 'Import Recipe' }}
-      </button>
-
-      <button
-        type="button"
-        class="btn btn-secondary"
-        (click)="reset()"
-        [disabled]="isLoading()"
-      >
-        Try Different URL
-      </button>
-    </div>
-  </div>
-</div> 
+  }
+</div>

@@ -1,84 +1,75 @@
 <div class="nom-page-container registration">
-  <amw-card
-    headerTitle="Create Your Account"
-    headerIcon="person_add">
-    <ng-template #contentTemplate>
+  <amw-card [headerTitle]="'Create Your Account'" [headerIcon]="'person_add'">
+    <ng-template #cardContent>
       @if (isLoading()) {
-        <amw-progress-bar
-          mode="indeterminate"
-          color="primary"
-          class="nom-card__progress-bar">
+      <div role="status" aria-live="polite" aria-label="Creating your account">
+        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
         </amw-progress-bar>
+        <span class="sr-only">Creating your account, please wait...</span>
+      </div>
       }
-      <form
-        [formGroup]="registrationForm"
-        (ngSubmit)="onSubmit()"
-        class="nom-form">
+      <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()" class="nom-form">
         <!-- Email Field - Using AMW -->
-        <amw-input
-          type="email"
-          formControlName="email"
-          label="Email Address"
-          placeholder="Enter your email address..."
-          [required]="true"
-          endIcon="email"
-          class="nom-form__field"
-          data-cy="email-input">
+        <amw-input type="email" formControlName="email" label="Email Address" placeholder="Enter your email address..."
+          [required]="true" endIcon="email" class="nom-form__field" data-cy="email-input"
+          [attr.aria-invalid]="registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched"
+          [attr.aria-describedby]="registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched ? 'email-error' : null">
         </amw-input>
+        @if (registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched) {
+          <span id="email-error" class="nom-form__error" role="alert">
+            @if (registrationForm.get('email')?.hasError('required')) {
+              Email is required
+            }
+            @if (registrationForm.get('email')?.hasError('email')) {
+              Please enter a valid email address
+            }
+          </span>
+        }
 
         <!-- Full Name Field - Using AMW -->
-        <amw-input
-          type="text"
-          formControlName="fullName"
-          label="Full Name (Optional)"
-          placeholder="Enter your full name..."
-          endIcon="person"
-          class="nom-form__field"
-          data-cy="full-name-input">
+        <amw-input type="text" formControlName="fullName" label="Full Name (Optional)"
+          placeholder="Enter your full name..." endIcon="person" class="nom-form__field" data-cy="full-name-input">
         </amw-input>
 
         <!-- Password Field - Using AMW -->
-        <amw-input
-          type="password"
-          formControlName="password"
-          label="Password"
-          placeholder="Enter your password..."
-          [required]="true"
-          endIcon="lock"
-          [showPasswordToggle]="true"
-          class="nom-form__field"
-          data-cy="password-input">
+        <amw-input type="password" formControlName="password" label="Password" placeholder="Enter your password..."
+          [required]="true" endIcon="lock" [showPasswordToggle]="true" class="nom-form__field" data-cy="password-input"
+          [attr.aria-invalid]="registrationForm.get('password')?.invalid && registrationForm.get('password')?.touched"
+          [attr.aria-describedby]="registrationForm.get('password')?.invalid && registrationForm.get('password')?.touched ? 'password-error' : null">
         </amw-input>
-
-        <!-- Confirm Password Field - Using AMW -->
-        <amw-input
-          type="password"
-          formControlName="confirmPassword"
-          label="Confirm Password"
-          placeholder="Confirm your password..."
-          [required]="true"
-          endIcon="lock_open"
-          [showPasswordToggle]="true"
-          class="nom-form__field"
-          data-cy="confirm-password-input">
-        </amw-input>
-
-        <!-- Password mismatch error -->
-        @if (registrationForm.hasError('mismatch') &&
-        registrationForm.get('confirmPassword')?.touched) {
-          <p class="nom-form__error form-level-error">
-            Passwords do not match.
-          </p>
+        @if (registrationForm.get('password')?.invalid && registrationForm.get('password')?.touched) {
+          <span id="password-error" class="nom-form__error" role="alert">
+            @if (registrationForm.get('password')?.hasError('required')) {
+              Password is required
+            }
+            @if (registrationForm.get('password')?.hasError('minlength')) {
+              Password must be at least 8 characters
+            }
+          </span>
         }
 
-        <amw-button
-          type="submit"
-          variant="filled"
-          color="primary"
-          [loading]="isLoading()"
-          [disabled]="registrationForm.invalid"
-          class="nom-button"
-          data-cy="register-button">
+        <!-- Confirm Password Field - Using AMW -->
+        <amw-input type="password" formControlName="confirmPassword" label="Confirm Password"
+          placeholder="Confirm your password..." [required]="true" endIcon="lock_open" [showPasswordToggle]="true"
+          class="nom-form__field" data-cy="confirm-password-input"
+          [attr.aria-invalid]="(registrationForm.get('confirmPassword')?.invalid || registrationForm.hasError('mismatch')) && registrationForm.get('confirmPassword')?.touched"
+          [attr.aria-describedby]="(registrationForm.get('confirmPassword')?.invalid || registrationForm.hasError('mismatch')) && registrationForm.get('confirmPassword')?.touched ? 'confirm-password-error' : null">
+        </amw-input>
+        @if (registrationForm.get('confirmPassword')?.invalid && registrationForm.get('confirmPassword')?.touched && !registrationForm.hasError('mismatch')) {
+          <span id="confirm-password-error" class="nom-form__error" role="alert">
+            Confirm password is required
+          </span>
+        }
+
+        <!-- Password mismatch error -->
+        @if (registrationForm.hasError('mismatch') && registrationForm.get('confirmPassword')?.touched) {
+        <p id="confirm-password-error" class="nom-form__error form-level-error" role="alert" aria-live="polite">
+          Passwords do not match.
+        </p>
+        }
+
+        <amw-button type="submit" variant="filled" color="primary" [loading]="isLoading()"
+          [disabled]="registrationForm.invalid" class="nom-button" data-cy="register-button">
           Register Account
         </amw-button>
       </form>
@@ -86,7 +77,9 @@
     <ng-template #actionsTemplate>
       <p class="nom-prompt-text">
         Already have an account?
-        <span class="nom-link" (click)="openUserMenuFromFooter()" (keyup.enter)="openUserMenuFromFooter()" tabindex="0" role="button" aria-label="Login here">Login Here</span>
+        <button type="button" class="nom-link" (click)="openUserMenuFromFooter()" aria-label="Login here">
+          Login Here
+        </button>
       </p>
     </ng-template>
   </amw-card>

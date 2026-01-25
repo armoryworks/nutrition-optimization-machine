@@ -3,22 +3,13 @@
     <!-- Search and Create Section -->
     <div class="recipe-categories__header">
       <div class="recipe-categories__search">
-        <amw-input
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="filterCategories()"
-          label="Search categories"
-          placeholder="Search by name or description"
-          suffixIcon="search"
-          class="recipe-categories__search-field">
+        <amw-input [(ngModel)]="searchTerm" (ngModelChange)="filterCategories()" label="Search categories"
+          placeholder="Search by name or description" suffixIcon="search" class="recipe-categories__search-field">
         </amw-input>
       </div>
-      
+
       <div class="recipe-categories__actions">
-        <amw-button
-          variant="filled"
-          color="primary"
-          (click)="createNewCategory()"
-          [disabled]="!categoryForm.valid"
+        <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid"
           icon="add">
           Create Category
         </amw-button>
@@ -26,80 +17,75 @@
     </div>
 
     <!-- Create Category Form -->
-    <amw-card
-      *ngIf="categoryForm.get('name')?.value"
-      headerTitle="Create New Category"
-      class="recipe-categories__form-card">
-      <ng-template #contentTemplate>
+    @if (categoryForm.get('name')?.value) {
+    <amw-card headerTitle="Create New Category" class="recipe-categories__form-card">
+      <ng-template #cardContent>
         <form [formGroup]="categoryForm" class="recipe-categories__form">
           <div class="recipe-categories__form-row">
-            <amw-input
-              formControlName="name"
-              label="Category Name"
-              placeholder="Enter category name"
-              [required]="true"
-              class="recipe-categories__form-field">
+            <amw-input formControlName="name" label="Category Name" placeholder="Enter category name" [required]="true"
+              class="recipe-categories__form-field"
+              [attr.aria-invalid]="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched"
+              [attr.aria-describedby]="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched ? 'category-name-error' : null">
             </amw-input>
+            @if (categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched) {
+            <span id="category-name-error" class="nom-form__error" role="alert">
+              Category name is required
+            </span>
+            }
 
-            <amw-select
-              formControlName="icon"
-              label="Icon"
-              [required]="true"
+            <amw-select formControlName="icon" label="Icon" [required]="true"
               [options]="getIconOptions().map(icon => ({ value: icon, label: icon }))"
-              class="recipe-categories__form-field">
+              class="recipe-categories__form-field"
+              [attr.aria-invalid]="categoryForm.get('icon')?.invalid && categoryForm.get('icon')?.touched"
+              [attr.aria-describedby]="categoryForm.get('icon')?.invalid && categoryForm.get('icon')?.touched ? 'category-icon-error' : null">
             </amw-select>
+            @if (categoryForm.get('icon')?.invalid && categoryForm.get('icon')?.touched) {
+            <span id="category-icon-error" class="nom-form__error" role="alert">
+              Icon is required
+            </span>
+            }
 
-            <amw-input
-              formControlName="color"
-              label="Color"
-              type="color"
-              class="recipe-categories__form-field">
+            <amw-input formControlName="color" label="Color" type="color" class="recipe-categories__form-field">
             </amw-input>
           </div>
 
           <div class="recipe-categories__form-row">
-            <amw-select
-              formControlName="parentCategoryId"
-              label="Parent Category (Optional)"
+            <amw-select formControlName="parentCategoryId" label="Parent Category (Optional)"
               [options]="[{ value: null, label: 'None' }].concat(allCategories().map(c => ({ value: c.id, label: c.name })))"
               class="recipe-categories__form-field">
             </amw-select>
           </div>
 
-          <amw-textarea
-            formControlName="description"
-            label="Description (Optional)"
-            placeholder="Enter category description"
-            [rows]="2"
-            class="recipe-categories__form-field">
+          <amw-textarea formControlName="description" label="Description (Optional)"
+            placeholder="Enter category description" [rows]="2" class="recipe-categories__form-field">
           </amw-textarea>
 
           <div class="recipe-categories__form-actions">
             <amw-button variant="text" (click)="categoryForm.reset()">
               Cancel
             </amw-button>
-            <amw-button
-              variant="filled"
-              color="primary"
-              (click)="createNewCategory()"
-              [disabled]="!categoryForm.valid">
+            <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid">
               Create Category
             </amw-button>
           </div>
         </form>
       </ng-template>
     </amw-card>
+    }
 
     <!-- Loading State -->
-    <div *ngIf="isLoading()" class="recipe-categories__loading">
+    @if (isLoading()) {
+    <div class="recipe-categories__loading">
       <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
       <p>Loading categories...</p>
     </div>
+    }
 
     <!-- Error State -->
-    <div *ngIf="error() && !isLoading()" class="recipe-categories__error">
+    @if (error() && !isLoading()) {
+    <div class="recipe-categories__error">
       <amw-card class="recipe-categories__error-card">
-        <ng-template #contentTemplate>
+        <ng-template #cardContent>
           <div class="recipe-categories__error-content">
             <amw-icon name="error" color="warn"></amw-icon>
             <p>{{ error() }}</p>
@@ -110,77 +96,65 @@
         </ng-template>
       </amw-card>
     </div>
+    }
 
     <!-- Available Categories -->
-    <div *ngIf="!isLoading() && !error()" class="recipe-categories__content">
-      <amw-card
-        headerTitle="Available Categories"
-        headerSubtitle="Click to add categories to this recipe"
+    @if (!isLoading() && !error()) {
+    <div class="recipe-categories__content">
+      <amw-card headerTitle="Available Categories" headerSubtitle="Click to add categories to this recipe"
         class="recipe-categories__available-card">
-        <ng-template #contentTemplate>
+        <ng-template #cardContent>
           <div class="recipe-categories__available-list">
-            <div
-              *ngFor="let category of filteredCategories()"
-              class="recipe-categories__available-item"
+            @for (category of filteredCategories(); track category.id) {
+            <button type="button" class="recipe-categories__available-item"
               [class.recipe-categories__available-item--selected]="isCategorySelected(category)"
               (click)="addCategory(category)"
-              (keyup.enter)="addCategory(category)"
-              tabindex="0"
-              role="button"
               [attr.aria-label]="'Add category: ' + category.name"
-            >
+              [attr.aria-pressed]="isCategorySelected(category)">
               <div class="recipe-categories__category-info">
-                <amw-chip
-                  [label]="category.name"
-                  [icon]="category.icon"
-                  [selectable]="true"
-                  [selected]="isCategorySelected(category)"
-                  (selectionChange)="addCategory(category)"
-                  [style]="getCategoryStyle(category)"
-                  [amwTooltip]="category.description || category.name"
+                <amw-chip [label]="category.name" [icon]="category.icon" [selectable]="true"
+                  [selected]="isCategorySelected(category)" (selectionChange)="addCategory(category)"
+                  [style]="getCategoryStyle(category)" [amwTooltip]="category.description || category.name"
                   chipClass="recipe-categories__chip">
                 </amw-chip>
                 <div class="recipe-categories__category-details">
-                  <span class="recipe-categories__parent" *ngIf="category.parentCategoryId">
+                  @if (category.parentCategoryId) {
+                  <span class="recipe-categories__parent">
                     Parent: {{ getParentCategoryName(category) }}
                   </span>
+                  }
                   <span class="recipe-categories__recipe-count">
                     {{ category.recipeCount }} recipes
                   </span>
                 </div>
               </div>
-              <amw-icon-button
-                icon="delete"
-                (click)="deleteCategory(category); $event.stopPropagation()"
-                class="recipe-categories__delete-btn"
-                ariaLabel="Delete category">
+              <amw-icon-button icon="delete" (click)="deleteCategory(category); $event.stopPropagation()"
+                class="recipe-categories__delete-btn" ariaLabel="Delete category">
               </amw-icon-button>
-            </div>
+            </button>
+            }
           </div>
         </ng-template>
       </amw-card>
 
       <!-- Selected Categories -->
-      <amw-card
-        *ngIf="categories().length > 0"
-        headerTitle="Selected Categories"
-        headerSubtitle="Categories assigned to this recipe"
+      @if (categories().length > 0) {
+      <amw-card headerTitle="Selected Categories" headerSubtitle="Categories assigned to this recipe"
         class="recipe-categories__selected-card">
-        <ng-template #contentTemplate>
+        <ng-template #cardContent>
           <div class="recipe-categories__selected-list">
-            <amw-chip
-              *ngFor="let category of categories()"
-              [label]="category.name"
-              [icon]="category.icon"
-              [removable]="true"
-              (removed)="removeCategory(category)"
-              [style]="getCategoryStyle(category)"
+            @for (category of categories(); track category.id) {
+            <amw-chip [label]="category.name" [icon]="category.icon" [removable]="true"
+              (removed)="removeCategory(category)" [style]="getCategoryStyle(category)"
               [amwTooltip]="category.description || category.name"
               chipClass="recipe-categories__chip recipe-categories__chip--selected">
             </amw-chip>
+            }
           </div>
         </ng-template>
       </amw-card>
+      }
     </div>
+    }
   </div>
-</nom-base-page> 
+</nom-base-page>

@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-form {
   max-width: 800px;
   margin: 0 auto;
@@ -51,9 +53,7 @@
 }
 
 .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
+  @include nom-action-group(16px, flex-end);
   margin-top: 32px;
   padding-top: 24px;
 

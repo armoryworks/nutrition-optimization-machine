@@ -1,13 +1,13 @@
+@use '../../../../_utilities' as *;
+
 .nom-recipe-edit {
   &__loading-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    @include nom-loading-state;
     min-height: 200px;
   }
 
   &__section {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     border-radius: 12px;
     padding: 1.5rem;
   }
@@ -29,7 +29,7 @@
   }
 
   &__additional-actions {
-    margin-top: 2rem;
+    margin-top: 1rem;
     padding-top: 1rem;
     display: flex;
     justify-content: flex-end;
@@ -48,9 +48,7 @@
 }
 
 .nom-ingredient-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  @include nom-form-field(0.75rem);
 
   &__item {
     display: grid;
@@ -87,9 +85,7 @@
 }
 
 .nom-step-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  @include nom-form-field(0.75rem);
 
   &__item {
     display: grid;

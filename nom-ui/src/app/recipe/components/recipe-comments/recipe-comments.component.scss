@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .nom-recipe-comments {
   display: flex;
   flex-direction: column;
@@ -8,9 +10,7 @@
   }
 
   &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    @include nom-form-field(16px);
   }
 
   &__field {
@@ -18,9 +18,7 @@
   }
 
   &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    @include nom-action-group(12px, flex-end);
   }
 
   &__submit-btn {
@@ -36,13 +34,9 @@
 
   &__loading,
   &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    @include nom-empty-state(48px);
     padding: 48px 24px;
     border-radius: 12px;
-    text-align: center;
 
     p {
       margin: 0;

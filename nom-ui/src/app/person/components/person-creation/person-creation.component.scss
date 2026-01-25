@@ -1,12 +1,12 @@
+@use '../../../../_utilities' as *;
+
 .full-width {
   width: 100%;
 }
 
 .error-message {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--mat-sys-error);
+  @include nom-error-message;
   font-size: 0.9rem;
   margin-top: 1rem;
+  gap: 0.5rem;
 }

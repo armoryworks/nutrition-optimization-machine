@@ -1,17 +1,19 @@
 @if (isLoading()) {
-  <amw-card>
-    <ng-template #contentTemplate>
-      <div class="nom-loading"><amw-progress-spinner [diameter]="50"></amw-progress-spinner><p>Loading...</p></div>
-    </ng-template>
-  </amw-card>
+<amw-card>
+  <ng-template #cardContent>
+    <div class="nom-loading"><amw-progress-spinner [diameter]="50"></amw-progress-spinner>
+      <p>Loading...</p>
+    </div>
+  </ng-template>
+</amw-card>
 }
 
 @if (!isLoading() && !error()) {
-  <div class="nom-container">
-    <amw-card>
-      <ng-template #contentTemplate>
-        <amw-input label="Search" placeholder="Search recipes..." (input)="onSearch($event)"></amw-input>
-      </ng-template>
-    </amw-card>
-  </div>
+<div class="nom-container">
+  <amw-card>
+    <ng-template #cardContent>
+      <amw-input label="Search" placeholder="Search recipes..." (input)="onSearch($event)"></amw-input>
+    </ng-template>
+  </amw-card>
+</div>
 }

@@ -1,53 +1,36 @@
 <div class="household-create">
-  <div class="household-create__container">
-    <amw-card [headerTitle]="formConfig.title" headerIcon="home">
-      <ng-template #contentTemplate>
-        <form [formGroup]="householdForm" (ngSubmit)="onSubmit()">
-          <!-- Household Name Field - Using AMW -->
-          <amw-input
-            type="text"
-            formControlName="name"
-            placeholder="Enter a name for your household..."
-            label="Household Name"
-            [required]="true"
-            class="household-create__field">
-          </amw-input>
+  <amw-card [headerTitle]="formConfig.title" headerIcon="home" class="household-create__card">
+    <ng-template #cardContent>
+      <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-create__form">
+        <!-- Household Name Field - Using AMW -->
+        <amw-input type="text" formControlName="name" placeholder="Enter a name for your household..."
+          label="Household Name" [required]="true" class="household-create__field"
+          [attr.aria-invalid]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched"
+          [attr.aria-describedby]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched ? 'household-name-error' : null">
+        </amw-input>
+        @if (householdForm.get('name')?.invalid && householdForm.get('name')?.touched) {
+          <span id="household-name-error" class="nom-form__error" role="alert">
+            Household name is required
+          </span>
+        }
 
-          <!-- Description Field - Using AMW -->
-          <amw-textarea
-            formControlName="description"
-            placeholder="Add a description to help identify your household..."
-            label="Description (Optional)"
-            class="household-create__field">
-          </amw-textarea>
+        <!-- Description Field - Using AMW -->
+        <amw-textarea formControlName="description" placeholder="Add a description to help identify your household..."
+          label="Description (Optional)" class="household-create__field">
+        </amw-textarea>
 
-          <!-- Form Actions -->
-          <div class="form-actions">
-            <div class="action-buttons">
-              <amw-button
-                type="button"
-                variant="text"
-                icon="close"
-                [disabled]="isLoading()"
-                (click)="onCancel()"
-                class="cancel-button">
-                {{ formConfig.cancelText || 'Cancel' }}
-              </amw-button>
+        <!-- Form Actions -->
+        <div class="household-create__actions">
+          <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
+            {{ formConfig.cancelText || 'Cancel' }}
+          </amw-button>
 
-              <amw-button
-                type="submit"
-                variant="filled"
-                color="primary"
-                icon="check"
-                [loading]="isLoading()"
-                [disabled]="householdForm.invalid"
-                class="submit-button">
-                {{ formConfig.submitText || 'Create Household' }}
-              </amw-button>
-            </div>
-          </div>
-        </form>
-      </ng-template>
-    </amw-card>
-  </div>
+          <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+            [disabled]="householdForm.invalid">
+            {{ formConfig.submitText || 'Create Household' }}
+          </amw-button>
+        </div>
+      </form>
+    </ng-template>
+  </amw-card>
 </div>

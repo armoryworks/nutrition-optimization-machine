@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .ingredient-details {
   width: 100%;
   margin-top: 24px;
@@ -31,9 +33,7 @@
 
 // Content Styles
 .ingredient-content {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
+  @include nom-form-field(32px);
 }
 
 // Section Headers
@@ -164,12 +164,8 @@
 
 // No Nutrition Data
 .no-nutrition {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  @include nom-empty-state(40px);
   padding: 40px 20px;
-  text-align: center;
 
   .no-data-icon {
     font-size: 48px;

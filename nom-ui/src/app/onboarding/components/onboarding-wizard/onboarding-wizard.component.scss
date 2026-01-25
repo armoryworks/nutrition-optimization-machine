@@ -1,4 +1,5 @@
 // Onboarding Wizard Component Styles
+@use '../../../../_utilities' as *;
 
 .nom-page-container {
   max-width: 800px;
@@ -92,10 +93,7 @@
 }
 
 .nom-horizontal-group {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  align-items: center;
+  @include nom-action-group(16px, center);
 }
 
 // Responsive design

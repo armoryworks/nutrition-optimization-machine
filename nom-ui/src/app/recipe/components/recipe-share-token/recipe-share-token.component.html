@@ -47,13 +47,17 @@
     <div class="recipe-share-token__tokens-section">
       <h3 class="recipe-share-token__section-title">Active Share Tokens</h3>
 
-             <div *ngIf="shareTokens().length === 0 && !isLoading()" class="recipe-share-token__empty">
-         <amw-icon name="share" class="recipe-share-token__empty-icon"></amw-icon>
-         <p>No share tokens created yet</p>
-       </div>
+      @if (shareTokens().length === 0 && !isLoading()) {
+        <div class="recipe-share-token__empty">
+          <amw-icon name="share" class="recipe-share-token__empty-icon"></amw-icon>
+          <p>No share tokens created yet</p>
+        </div>
+      }
 
-             <div *ngIf="shareTokens().length > 0" class="recipe-share-token__tokens-list">
-         <div *ngFor="let shareToken of shareTokens(); trackBy: trackByShareTokenId" class="recipe-share-token__token-item">
+      @if (shareTokens().length > 0) {
+        <div class="recipe-share-token__tokens-list">
+          @for (shareToken of shareTokens(); track shareToken.id) {
+            <div class="recipe-share-token__token-item">
            <div class="recipe-share-token__token-info">
              <div class="recipe-share-token__token-header">
                <h4 class="recipe-share-token__token-name">
@@ -92,10 +96,12 @@
                [amwTooltip]="'Delete share token'"
                (buttonClick)="deleteShareToken(shareToken.id)"
                class="recipe-share-token__delete-btn">
-             </amw-icon-button>
-           </div>
-         </div>
-       </div>
+            </amw-icon-button>
+          </div>
+        </div>
+          }
+        </div>
+      }
     </div>
   </div>
 </nom-base-detail> 

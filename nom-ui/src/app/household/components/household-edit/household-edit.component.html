@@ -1,60 +1,43 @@
 <div class="household-edit">
-  <div class="household-edit__container">
-    <amw-card [headerTitle]="formConfig.title" headerIcon="home">
-      <ng-template #contentTemplate>
-        @if (isLoading() && !household()) {
-          <div class="loading-container">
-            <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-            <p>Loading household...</p>
-          </div>
-        } @else {
-          <form [formGroup]="householdForm" (ngSubmit)="onSubmit()">
-            <!-- Household Name Field - Using AMW -->
-            <amw-input
-              type="text"
-              formControlName="name"
-              placeholder="Enter a name for your household..."
-              label="Household Name"
-              [required]="true"
-              class="household-edit__field">
-            </amw-input>
-
-            <!-- Description Field - Using AMW -->
-            <amw-textarea
-              formControlName="description"
-              placeholder="Add a description to help identify your household..."
-              label="Description (Optional)"
-              class="household-edit__field">
-            </amw-textarea>
-
-            <!-- Form Actions -->
-            <div class="form-actions">
-              <div class="action-buttons">
-                <amw-button
-                  type="button"
-                  variant="text"
-                  icon="close"
-                  [disabled]="isLoading()"
-                  (click)="onCancel()"
-                  class="cancel-button">
-                  {{ formConfig.cancelText || 'Cancel' }}
-                </amw-button>
-
-                <amw-button
-                  type="submit"
-                  variant="filled"
-                  color="primary"
-                  icon="check"
-                  [loading]="isLoading()"
-                  [disabled]="householdForm.invalid"
-                  class="submit-button">
-                  {{ formConfig.submitText || 'Update Household' }}
-                </amw-button>
-              </div>
-            </div>
-          </form>
+  <amw-card [headerTitle]="formConfig.title" headerIcon="home" class="household-edit__card">
+    <ng-template #cardContent>
+      @if (isLoading() && !household()) {
+      <div class="household-edit__loading" role="status" aria-live="polite" aria-label="Loading household">
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+        <p>Loading household...</p>
+      </div>
+      } @else {
+      <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-edit__form">
+        <!-- Household Name Field - Using AMW -->
+        <amw-input type="text" formControlName="name" placeholder="Enter a name for your household..."
+          label="Household Name" [required]="true" class="household-edit__field"
+          [attr.aria-invalid]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched"
+          [attr.aria-describedby]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched ? 'household-edit-name-error' : null">
+        </amw-input>
+        @if (householdForm.get('name')?.invalid && householdForm.get('name')?.touched) {
+          <span id="household-edit-name-error" class="nom-form__error" role="alert">
+            Household name is required
+          </span>
         }
-      </ng-template>
-    </amw-card>
-  </div>
+
+        <!-- Description Field - Using AMW -->
+        <amw-textarea formControlName="description" placeholder="Add a description to help identify your household..."
+          label="Description (Optional)" class="household-edit__field">
+        </amw-textarea>
+
+        <!-- Form Actions -->
+        <div class="household-edit__actions">
+          <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
+            {{ formConfig.cancelText || 'Cancel' }}
+          </amw-button>
+
+          <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+            [disabled]="householdForm.invalid">
+            {{ formConfig.submitText || 'Update Household' }}
+          </amw-button>
+        </div>
+      </form>
+      }
+    </ng-template>
+  </amw-card>
 </div>

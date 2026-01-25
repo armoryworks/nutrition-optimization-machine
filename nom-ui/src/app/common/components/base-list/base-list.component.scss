@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .base-list-container {
   position: absolute;
   top: 20px;
@@ -159,11 +161,7 @@
 }
 
 .loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
+  @include nom-loading-state(40px);
 
   p {
     margin: 0;
@@ -171,11 +169,7 @@
 }
 
 .error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
+  @include nom-empty-state(40px);
   text-align: center;
 
   h3 {
@@ -188,11 +182,7 @@
 }
 
 .empty-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
+  @include nom-empty-state(40px);
   text-align: center;
 
   h3 {

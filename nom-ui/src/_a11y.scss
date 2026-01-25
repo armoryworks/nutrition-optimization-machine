@@ -1,0 +1,76 @@
+// Accessibility (A11Y) Base Styles
+// ADA/508/WCAG 2.1 AA compliance foundation
+
+@use 'utilities' as *;
+
+// Skip link for keyboard navigation
+.nom-skip-link {
+  @include nom-sr-only;
+
+  &:focus {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    padding: 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+    z-index: 10000;
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+    font-weight: 600;
+  }
+}
+
+// Focus visible for all interactive elements
+button,
+a,
+input,
+select,
+textarea,
+[tabindex]:not([tabindex='-1']) {
+  @include nom-focus-visible;
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .nom-card,
+  .nom-panel,
+  .nom-form {
+    border: 2px solid currentColor;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Screen reader only utility class
+.sr-only {
+  @include nom-sr-only;
+}
+
+// Ensure sufficient color contrast for text
+.nom-text-contrast {
+  // This class can be applied to elements that need guaranteed contrast
+  color: var(--mat-sys-on-surface);
+  background-color: var(--mat-sys-surface);
+}
+
+// Accessible focus indicators with sufficient contrast
+:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}

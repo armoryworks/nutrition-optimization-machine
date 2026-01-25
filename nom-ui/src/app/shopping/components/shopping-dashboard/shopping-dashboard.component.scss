@@ -1,15 +1,13 @@
+@use '../../../../_utilities' as *;
+
 .shopping-dashboard {
   min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 2rem 1rem;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
-  }
-
-  &__container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
   }
 
   // Compact Page Header
@@ -242,44 +240,40 @@
     line-height: 1.5;
   }
 
-  &__loading,
+  &__loading {
+    @include nom-loading-state(3rem);
+  }
+
   &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 2rem;
-    gap: 1rem;
-    text-align: center;
+    @include nom-empty-state(3rem);
   }
 
   &__empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
+    @include nom-centered-container(400px);
   }
 
-  &__empty-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 32px 24px;
+  &__empty-card {
+    max-width: 500px;
+    text-align: center;
+
+    h3 {
+      margin: 1rem 0 0.5rem;
+    }
+
+    p {
+      margin: 0.5rem 0;
+    }
+
+    amw-button {
+      margin-top: 1rem;
+    }
   }
 
   &__empty-icon {
     font-size: 4rem;
     width: 4rem;
     height: 4rem;
-    margin-bottom: 1rem;
-  }
-
-  &__empty-title {
-    margin: 0 0 0.5rem;
-  }
-
-  &__empty-description {
-    margin: 0 0 1.5rem;
-    line-height: 1.5;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   &__list-stats {
@@ -342,9 +336,7 @@
 
 @media (max-width: 768px) {
   .shopping-dashboard {
-    &__container {
-      padding: 0 8px;
-    }
+    padding: 1rem 0.5rem;
 
     &__page-header--compact {
       flex-direction: column;

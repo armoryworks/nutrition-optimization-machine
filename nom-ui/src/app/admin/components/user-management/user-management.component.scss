@@ -1,15 +1,13 @@
+@use '../../../../_utilities' as *;
+
 .user-management {
   min-height: 100vh;
   padding: 2rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
-  }
-
-  &__container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
   }
 
   // Compact Page Header
@@ -93,30 +91,21 @@
     font-weight: 500;
   }
 
-  &__loading,
+  &__loading {
+    @include nom-loading-state(3rem);
+  }
+
   &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 2rem;
-    gap: 1rem;
-    text-align: center;
+    @include nom-empty-state(3rem);
   }
 
   &__empty-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 400px;
+    @include nom-centered-container(400px);
   }
 
   &__empty-card {
     max-width: 400px;
     text-align: center;
-  }
-
-  &__empty-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -129,6 +118,7 @@
     width: 64px;
     height: 64px;
     color: var(--mat-sys-primary);
+    opacity: 0.7;
   }
 
   &__users-grid {

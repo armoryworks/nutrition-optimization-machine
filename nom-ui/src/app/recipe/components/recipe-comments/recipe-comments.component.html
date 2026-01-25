@@ -21,8 +21,15 @@
         placeholder="Share your thoughts about this recipe..."
         [rows]="3"
         [required]="true"
-        class="nom-recipe-comments__field">
+        class="nom-recipe-comments__field"
+        [attr.aria-invalid]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched"
+        [attr.aria-describedby]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched ? 'comment-text-error' : null">
       </amw-textarea>
+      @if (commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched) {
+      <span id="comment-text-error" class="nom-form__error" role="alert">
+        Comment is required
+      </span>
+      }
 
       <div class="nom-recipe-comments__actions">
         <amw-button

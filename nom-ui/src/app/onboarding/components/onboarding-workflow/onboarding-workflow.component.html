@@ -1,9 +1,8 @@
 <!-- File: nom-ui/src/app/onboarding/components/onboarding-workflow/onboarding-workflow.component.html -->
 <div class="nom-page-container">
-  <amw-card
-    [headerTitle]="submitMessage() ? 'Onboarding Complete!' : 'Onboarding: ' + currentStepTitle"
+  <amw-card [headerTitle]="submitMessage() ? 'Onboarding Complete!' : 'Onboarding: ' + currentStepTitle"
     class="nom-card">
-    <ng-template #contentTemplate>
+    <ng-template #cardContent>
       @if (isLoading() || isSubmitting()) {
       <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
       } @if (error() && !submitMessage()) {
@@ -102,7 +101,7 @@
           <!-- Summary of Primary Person -->
           @if (onboardingData.personDetails) {
           <amw-card headerTitle="Your Details:" class="nom-card p-4 mb-4">
-            <ng-template #contentTemplate>
+            <ng-template #cardContent>
               <p class="nom-message-text">
                 Name: {{ onboardingData.personDetails.name || 'N/A' }}
               </p>
@@ -124,7 +123,7 @@
           onboardingData.additionalParticipantDetails &&
           onboardingData.additionalParticipantDetails.length > 0) {
           <amw-card headerTitle="Additional Participants:" class="nom-card p-4 mb-4">
-            <ng-template #contentTemplate>
+            <ng-template #cardContent>
               @for (person of onboardingData.additionalParticipantDetails; track
               person.id || person.name) {
               <p class="nom-message-text">- {{ person.name }}</p>
@@ -143,7 +142,7 @@
           @if (onboardingData.restrictions && onboardingData.restrictions.length >
           0) {
           <amw-card headerTitle="Restrictions:" class="nom-card p-4 mb-4">
-            <ng-template #contentTemplate>
+            <ng-template #cardContent>
               @for (res of onboardingData.restrictions; track res.id || res.name) {
               <p class="nom-message-text">
                 {{ res.name }}
@@ -160,7 +159,7 @@
           <!-- Summary of Plan Invitation Code -->
           @if (onboardingData.planInvitationCode) {
           <amw-card headerTitle="Joined Plan:" class="nom-card p-4 mb-4">
-            <ng-template #contentTemplate>
+            <ng-template #cardContent>
               <p class="nom-message-text">
                 Invitation Code: {{ onboardingData.planInvitationCode }}
               </p>
@@ -178,9 +177,9 @@
           [disabled]="currentStepIndex() === 0 || isLoading() || isSubmitting()">
           Previous
         </amw-button>
-        } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) {
-          <amw-button variant="outlined" (click)="skipCurrentStep()" [disabled]="isLoading() || isSubmitting()">
-            Skip
+        } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) { <amw-button variant="outlined"
+          (click)="skipCurrentStep()" [disabled]="isLoading() || isSubmitting()">
+          Skip
           </amw-button>
           }
 

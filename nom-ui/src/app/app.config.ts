@@ -5,10 +5,10 @@ import {
 } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import {
-  provideClientHydration,
-  withEventReplay,
-} from '@angular/platform-browser';
+// import {
+//   provideClientHydration,
+//   withEventReplay,
+// } from '@angular/platform-browser';
 import {
   HTTP_INTERCEPTORS,
   provideHttpClient,
@@ -26,7 +26,7 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(BrowserAnimationsModule, CommonModule),
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideClientHydration(withEventReplay()),
+    // provideClientHydration(withEventReplay()), // Disabled: not using SSR
     provideHttpClient(withInterceptorsFromDi()),
     {
       provide: NomConfigService,

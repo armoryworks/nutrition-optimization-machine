@@ -1,152 +1,111 @@
 <div class="nom-page-container recipe-tags">
-  <amw-card
-    [headerTitle]="pageTitle"
-    [headerSubtitle]="pageSubtitle"
-    headerIcon="label">
-    <ng-template #contentTemplate>
+  <amw-card [headerTitle]="pageTitle" [headerSubtitle]="pageSubtitle" headerIcon="label">
+    <ng-template #cardContent>
       @if (loading()) {
+      <div role="status" aria-live="polite" aria-label="Loading tags">
         <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+        <span class="sr-only">Loading tags, please wait...</span>
+      </div>
       }
 
       @if (error()) {
-        <div class="nom-error-state">
-          <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
-          <p class="nom-error-state__message">{{ error() }}</p>
-          <div class="nom-error-state__actions">
-            <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
-          </div>
+      <div class="nom-error-state" role="alert" aria-live="assertive">
+        <amw-icon name="error_outline" class="nom-error-state__icon" aria-hidden="true"></amw-icon>
+        <p class="nom-error-state__message">{{ error() }}</p>
+        <div class="nom-error-state__actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
         </div>
+      </div>
       } @else {
-        <!-- Search and Create Section -->
-        <div class="recipe-tags__header">
-          <div class="recipe-tags__search">
-            <amw-input
-              [(ngModel)]="searchTerm"
-              (valueChange)="filterTags()"
-              label="Search tags"
-              placeholder="Search by name or description"
-              suffixIcon="search"
-              class="recipe-tags__search-field">
-            </amw-input>
-          </div>
-
-          <div class="recipe-tags__actions">
-            <amw-button
-              variant="filled"
-              color="primary"
-              icon="add"
-              (click)="createNewTag()"
-              [disabled]="!tagForm.valid">
-              Create Tag
-            </amw-button>
-          </div>
+      <!-- Search and Create Section -->
+      <div class="recipe-tags__header">
+        <div class="recipe-tags__search">
+          <amw-input [(ngModel)]="searchTerm" (valueChange)="filterTags()" label="Search tags"
+            placeholder="Search by name or description" suffixIcon="search" class="recipe-tags__search-field">
+          </amw-input>
         </div>
 
-        <!-- Create Tag Form -->
-        @if (tagForm.get('name')?.value) {
-          <amw-card
-            headerTitle="Create New Tag"
-            class="recipe-tags__form-card">
-            <ng-template #contentTemplate>
-              <form [formGroup]="tagForm" class="recipe-tags__form">
-                <div class="recipe-tags__form-row">
-                  <amw-input
-                    formControlName="name"
-                    label="Tag Name"
-                    placeholder="Enter tag name"
-                    [required]="true"
-                    class="recipe-tags__form-field">
-                  </amw-input>
+        <div class="recipe-tags__actions">
+          <amw-button variant="filled" color="primary" icon="add" (click)="createNewTag()" [disabled]="!tagForm.valid">
+            Create Tag
+          </amw-button>
+        </div>
+      </div>
 
-                  <amw-input
-                    formControlName="color"
-                    label="Color"
-                    type="color"
-                    class="recipe-tags__form-field">
-                  </amw-input>
-                </div>
+      <!-- Create Tag Form -->
+      @if (tagForm.get('name')?.value) {
+      <amw-card headerTitle="Create New Tag" class="recipe-tags__form-card">
+        <ng-template #cardContent>
+          <form [formGroup]="tagForm" class="recipe-tags__form">
+            <div class="recipe-tags__form-row">
+              <amw-input formControlName="name" label="Tag Name" placeholder="Enter tag name" [required]="true"
+                class="recipe-tags__form-field"
+                [attr.aria-invalid]="tagForm.get('name')?.invalid && tagForm.get('name')?.touched"
+                [attr.aria-describedby]="tagForm.get('name')?.invalid && tagForm.get('name')?.touched ? 'tag-name-error' : null">
+              </amw-input>
+              @if (tagForm.get('name')?.invalid && tagForm.get('name')?.touched) {
+              <span id="tag-name-error" class="nom-form__error" role="alert">
+                Tag name is required
+              </span>
+              }
 
-                <amw-textarea
-                  formControlName="description"
-                  label="Description (Optional)"
-                  placeholder="Enter tag description"
-                  [rows]="2"
-                  class="recipe-tags__form-field">
-                </amw-textarea>
+              <amw-input formControlName="color" label="Color" type="color" class="recipe-tags__form-field">
+              </amw-input>
+            </div>
 
-                <div class="recipe-tags__form-actions">
-                  <amw-button variant="text" (click)="tagForm.reset()">Cancel</amw-button>
-                  <amw-button
-                    variant="filled"
-                    color="primary"
-                    (click)="createNewTag()"
-                    [disabled]="!tagForm.valid">
-                    Create Tag
-                  </amw-button>
-                </div>
-              </form>
-            </ng-template>
-          </amw-card>
-        }
+            <amw-textarea formControlName="description" label="Description (Optional)"
+              placeholder="Enter tag description" [rows]="2" class="recipe-tags__form-field">
+            </amw-textarea>
 
-        <!-- Available Tags -->
-        @if (!loading()) {
-          <amw-card
-            headerTitle="Available Tags"
-            headerSubtitle="Click to add tags to this recipe"
-            class="recipe-tags__available-card">
-            <ng-template #contentTemplate>
-              <div class="recipe-tags__available-list">
-                @for (tag of filteredTags(); track tag.id) {
-                  <div
-                    class="recipe-tags__available-item"
-                    [class.recipe-tags__available-item--selected]="isTagSelected(tag)"
-                  >
-                    <amw-chip
-                      [label]="tag.name"
-                      [selectable]="true"
-                      [selected]="isTagSelected(tag)"
-                      (selectionChange)="addTag(tag)"
-                      [amwTooltip]="tag.description || tag.name"
-                      [style]="getTagStyle(tag)"
-                      chipClass="recipe-tags__chip">
-                    </amw-chip>
-                    <amw-icon-button
-                      icon="delete"
-                      ariaLabel="Delete tag"
-                      [amwTooltip]="'Delete tag'"
-                      (buttonClick)="deleteTag(tag); $event.stopPropagation()"
-                      class="recipe-tags__delete-btn">
-                    </amw-icon-button>
-                  </div>
-                }
-              </div>
-            </ng-template>
-          </amw-card>
+            <div class="recipe-tags__form-actions">
+              <amw-button variant="text" (click)="tagForm.reset()">Cancel</amw-button>
+              <amw-button variant="filled" color="primary" (click)="createNewTag()" [disabled]="!tagForm.valid">
+                Create Tag
+              </amw-button>
+            </div>
+          </form>
+        </ng-template>
+      </amw-card>
+      }
 
-          <!-- Selected Tags -->
-          @if (tags().length > 0) {
-            <amw-card
-              headerTitle="Selected Tags"
-              headerSubtitle="Tags assigned to this recipe"
-              class="recipe-tags__selected-card">
-              <ng-template #contentTemplate>
-                <div class="recipe-tags__selected-list">
-                  @for (tag of tags(); track tag.id) {
-                    <amw-chip
-                      [label]="tag.name"
-                      [removable]="true"
-                      (removed)="removeTag(tag)"
-                      [amwTooltip]="tag.description || tag.name"
-                      [style]="getTagStyle(tag)"
-                      chipClass="recipe-tags__chip recipe-tags__chip--selected">
-                    </amw-chip>
-                  }
-                </div>
-              </ng-template>
-            </amw-card>
-          }
-        }
+      <!-- Available Tags -->
+      @if (!loading()) {
+      <amw-card headerTitle="Available Tags" headerSubtitle="Click to add tags to this recipe"
+        class="recipe-tags__available-card">
+        <ng-template #cardContent>
+          <div class="recipe-tags__available-list">
+            @for (tag of filteredTags(); track tag.id) {
+            <div class="recipe-tags__available-item" [class.recipe-tags__available-item--selected]="isTagSelected(tag)">
+              <amw-chip [label]="tag.name" [selectable]="true" [selected]="isTagSelected(tag)"
+                (selectionChange)="addTag(tag)" [amwTooltip]="tag.description || tag.name" [style]="getTagStyle(tag)"
+                chipClass="recipe-tags__chip">
+              </amw-chip>
+              <amw-icon-button icon="delete" ariaLabel="Delete tag" [amwTooltip]="'Delete tag'"
+                (buttonClick)="deleteTag(tag); $event.stopPropagation()" class="recipe-tags__delete-btn">
+              </amw-icon-button>
+            </div>
+            }
+          </div>
+        </ng-template>
+      </amw-card>
+
+      <!-- Selected Tags -->
+      @if (tags().length > 0) {
+      <amw-card headerTitle="Selected Tags" headerSubtitle="Tags assigned to this recipe"
+        class="recipe-tags__selected-card">
+        <ng-template #cardContent>
+          <div class="recipe-tags__selected-list">
+            @for (tag of tags(); track tag.id) {
+            <amw-chip [label]="tag.name" [removable]="true" (removed)="removeTag(tag)"
+              [amwTooltip]="tag.description || tag.name" [style]="getTagStyle(tag)"
+              chipClass="recipe-tags__chip recipe-tags__chip--selected">
+            </amw-chip>
+            }
+          </div>
+        </ng-template>
+      </amw-card>
+      }
+      }
       }
     </ng-template>
   </amw-card>

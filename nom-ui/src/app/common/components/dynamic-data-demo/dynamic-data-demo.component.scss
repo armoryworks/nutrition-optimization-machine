@@ -1,4 +1,5 @@
 // Component styles following Material Design principles and theme system
+@use '../../../../_utilities' as *;
 
 .dynamic-data-demo {
   min-height: 100vh;
@@ -149,9 +150,7 @@
   }
 
   &__form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    @include nom-form-field(0.5rem);
   }
 
   &__form-label {
@@ -351,12 +350,8 @@
 
   &__loading,
   &__error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    @include nom-loading-state(2rem);
     min-height: 400px;
-    text-align: center;
     color: var(--mat-sys-on-surface-variant);
     animation: fadeInUp 0.4s ease-out 0.5s both;
   }

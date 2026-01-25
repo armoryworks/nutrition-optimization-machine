@@ -1,11 +1,8 @@
+@use '../../../../_utilities' as *;
+
 .nom-loading-container,
 .nom-error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  gap: 1rem;
+  @include nom-empty-state(2rem);
 }
 
 .nom-error-message {
@@ -15,15 +12,12 @@
 }
 
 .nom-error-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  @include nom-action-group(1rem, center);
+  margin-top: 0;
 }
 
 .nom-recipe-integration-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  @include nom-form-field(1rem);
   padding: 1rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -71,9 +65,7 @@
 }
 
 .nom-recipe-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  @include nom-form-field(0.75rem);
   max-height: 600px;
   overflow-y: auto;
 }
@@ -97,9 +89,7 @@
 }
 
 .nom-recipe-item-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  @include nom-form-field(0.5rem);
 }
 
 .nom-recipe-item-header {
@@ -137,13 +127,8 @@
 
 .nom-empty-state,
 .nom-no-selection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @include nom-empty-state(3rem);
   padding: 3rem 1rem;
-  gap: 1rem;
-  text-align: center;
   color: var(--mat-sys-on-surface-variant);
 
   amw-icon {
@@ -177,9 +162,7 @@
 }
 
 .nom-selected-recipe {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  @include nom-form-field(1rem);
 
   h4 {
     margin: 0;
@@ -232,15 +215,11 @@
 }
 
 .nom-servings-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  @include nom-form-field(0.5rem);
 }
 
 .nom-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  @include nom-form-field(0.5rem);
   margin-top: 0.5rem;
 }
 

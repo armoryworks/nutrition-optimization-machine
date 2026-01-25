@@ -2,6 +2,7 @@
 
 @use '../../../../_variables' as vars;
 @use '../../../../_mixins' as mixins;
+@use '../../../../_utilities' as *;
 
 .nom-dashboard {
     width: 100%;
@@ -309,10 +310,7 @@
 
     // Empty States
     &__empty-state {
-        @include mixins.flex-center;
-        flex-direction: column;
-        text-align: center;
-        padding: vars.$spacing-xxlarge;
+        @include nom-empty-state(vars.$spacing-xxlarge);
 
         h3 {
             margin: vars.$spacing-medium 0 vars.$spacing-small 0;
@@ -345,17 +343,14 @@
 
     // Loading and Error States
     &__loading-container {
-        @include mixins.flex-center;
+        @include nom-loading-state;
         min-height: 200px;
     }
 
     &__error-message {
-        @include mixins.flex-center;
-        flex-direction: column;
+        @include nom-empty-state(vars.$spacing-large);
         gap: vars.$spacing-medium;
-        padding: vars.$spacing-large;
         border-radius: vars.$nom-border-radius;
-        text-align: center;
 
         p {
             margin: 0;

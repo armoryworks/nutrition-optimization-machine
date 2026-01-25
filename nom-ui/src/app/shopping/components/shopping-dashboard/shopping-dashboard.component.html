@@ -1,6 +1,5 @@
 <div class="shopping-dashboard">
-  <div class="shopping-dashboard__container">
-    <!-- Compact Page Header -->
+  <!-- Compact Page Header -->
     <div class="shopping-dashboard__page-header shopping-dashboard__page-header--compact">
       <div class="shopping-dashboard__header-left">
         <h1 class="shopping-dashboard__title">{{ pageTitle }}</h1>
@@ -8,32 +7,21 @@
       </div>
       <div class="shopping-dashboard__header-center">
         @if (!isLoading() && !error()) {
-          <amw-input
-            type="text"
-            [formControl]="searchControl"
-            placeholder="Search lists..."
-            icon="search"
-            class="shopping-dashboard__search-field">
-          </amw-input>
-          <div class="shopping-dashboard__stats-pill">
-            <amw-icon name="shopping_cart" class="shopping-dashboard__stats-icon"></amw-icon>
-            <span class="shopping-dashboard__stats-text">{{ filteredLists().length }} list{{ filteredLists().length !== 1 ? 's' : '' }}</span>
-          </div>
+        <amw-input type="text" [formControl]="searchControl" placeholder="Search lists..." icon="search"
+          class="shopping-dashboard__search-field">
+        </amw-input>
+        <div class="shopping-dashboard__stats-pill">
+          <amw-icon name="shopping_cart" class="shopping-dashboard__stats-icon"></amw-icon>
+          <span class="shopping-dashboard__stats-text">{{ filteredLists().length }} list{{ filteredLists().length !== 1
+            ? 's' : '' }}</span>
+        </div>
         }
       </div>
       <div class="shopping-dashboard__header-right">
-        <amw-button
-          variant="text"
-          icon="refresh"
-          (click)="onRefresh()"
-          [disabled]="isLoading()">
+        <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
           Refresh
         </amw-button>
-        <amw-button
-          variant="filled"
-          color="primary"
-          icon="add"
-          (click)="onCreateList()">
+        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
           Create List
         </amw-button>
       </div>
@@ -41,120 +29,93 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-      <div class="shopping-dashboard__loading">
-        <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
-        <p>Loading shopping lists...</p>
-      </div>
+    <div class="shopping-dashboard__loading">
+      <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
+      <p>Loading shopping lists...</p>
+    </div>
     }
 
     <!-- Error State -->
     @if (error() && !isLoading()) {
-      <div class="shopping-dashboard__error">
-        <amw-icon name="error_outline"></amw-icon>
-        <p>{{ error() }}</p>
-        <amw-button
-          variant="outlined"
-          color="primary"
-          icon="refresh"
-          (click)="onRefresh()">
-          Try Again
-        </amw-button>
-      </div>
+    <div class="shopping-dashboard__error">
+      <amw-icon name="error_outline"></amw-icon>
+      <p>{{ error() }}</p>
+      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRefresh()">
+        Try Again
+      </amw-button>
+    </div>
     }
 
     <!-- Content -->
     @if (!isLoading() && !error()) {
 
-      <!-- Empty State -->
-      @if (filteredLists().length === 0) {
-        <div class="shopping-dashboard__empty-state">
-          <amw-card class="shopping-dashboard__empty-card">
-            <ng-template #contentTemplate>
-              <div class="shopping-dashboard__empty-content">
-                <amw-icon name="shopping_cart" class="shopping-dashboard__empty-icon"></amw-icon>
-                <h3>No Shopping Lists Found</h3>
-                @if (searchControl.value) {
-                  <p>No shopping lists match your search criteria.</p>
-                } @else {
-                  <p>Create your first shopping list to get started.</p>
-                }
-                <amw-button
-                  variant="filled"
-                  color="primary"
-                  icon="add"
-                  (click)="onCreateList()">
-                  Create Shopping List
-                </amw-button>
-              </div>
-            </ng-template>
-          </amw-card>
-        </div>
-      }
-
-      <!-- Shopping Lists Grid -->
-      @if (filteredLists().length > 0) {
-        <div class="shopping-dashboard__lists-grid">
-          @for (list of filteredLists(); track list.id) {
-            <amw-card
-              class="shopping-dashboard__list-card"
-              [headerTitle]="list.name"
-              [headerSubtitle]="list.description || ''"
-              headerIcon="shopping_basket">
-              <ng-template #contentTemplate>
-                <div class="shopping-dashboard__list-stats">
-                  <div class="shopping-dashboard__list-stat">
-                    <amw-icon name="list" class="shopping-dashboard__stat-icon"></amw-icon>
-                    <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
-                  </div>
-                  <div class="shopping-dashboard__list-stat">
-                    <amw-icon name="check_circle" class="shopping-dashboard__stat-icon"></amw-icon>
-                    <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
-                  </div>
-                </div>
-
-                <!-- Progress Bar -->
-                @if (list.totalItems && list.totalItems > 0) {
-                  <div class="shopping-dashboard__progress-section">
-                    <div class="shopping-dashboard__progress-bar">
-                      <div
-                        class="shopping-dashboard__progress-fill"
-                        [style.width.%]="getProgressPercentage(list)"
-                        [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"
-                      ></div>
-                    </div>
-                    <span class="shopping-dashboard__progress-text">
-                      {{ getProgressPercentage(list) }}% complete
-                    </span>
-                  </div>
-                }
-              </ng-template>
-              <ng-template #actionsTemplate>
-                <amw-button
-                  variant="text"
-                  color="primary"
-                  icon="visibility"
-                  (click)="onViewList(list.id); $event.stopPropagation()">
-                  View
-                </amw-button>
-                <amw-button
-                  variant="text"
-                  color="accent"
-                  icon="edit"
-                  (click)="onEditList(list.id); $event.stopPropagation()">
-                  Edit
-                </amw-button>
-                <amw-button
-                  variant="text"
-                  color="warn"
-                  icon="delete"
-                  (click)="onDeleteList(list.id); $event.stopPropagation()">
-                  Delete
-                </amw-button>
-              </ng-template>
-            </amw-card>
+    <!-- Empty State -->
+    @if (filteredLists().length === 0) {
+    <div class="shopping-dashboard__empty-state">
+      <amw-card class="shopping-dashboard__empty-card">
+        <ng-template #cardContent>
+          <amw-icon name="shopping_cart" class="shopping-dashboard__empty-icon"></amw-icon>
+          <h3>No Shopping Lists Found</h3>
+          @if (searchControl.value) {
+          <p>No shopping lists match your search criteria.</p>
+          } @else {
+          <p>Create your first shopping list to get started.</p>
           }
-        </div>
-      }
+          <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+            Create Shopping List
+          </amw-button>
+        </ng-template>
+      </amw-card>
+    </div>
     }
-  </div>
+
+    <!-- Shopping Lists Grid -->
+    @if (filteredLists().length > 0) {
+    <div class="shopping-dashboard__lists-grid">
+      @for (list of filteredLists(); track list.id) {
+      <amw-card class="shopping-dashboard__list-card" [headerTitle]="list.name"
+        [headerSubtitle]="list.description || ''" headerIcon="shopping_basket">
+        <ng-template #cardContent>
+          <div class="shopping-dashboard__list-stats">
+            <div class="shopping-dashboard__list-stat">
+              <amw-icon name="list" class="shopping-dashboard__stat-icon"></amw-icon>
+              <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
+            </div>
+            <div class="shopping-dashboard__list-stat">
+              <amw-icon name="check_circle" class="shopping-dashboard__stat-icon"></amw-icon>
+              <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          @if (list.totalItems && list.totalItems > 0) {
+          <div class="shopping-dashboard__progress-section">
+            <div class="shopping-dashboard__progress-bar">
+              <div class="shopping-dashboard__progress-fill" [style.width.%]="getProgressPercentage(list)"
+                [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"></div>
+            </div>
+            <span class="shopping-dashboard__progress-text">
+              {{ getProgressPercentage(list) }}% complete
+            </span>
+          </div>
+          }
+        </ng-template>
+        <ng-template #actionsTemplate>
+          <amw-button variant="text" color="primary" icon="visibility"
+            (click)="onViewList(list.id); $event.stopPropagation()">
+            View
+          </amw-button>
+          <amw-button variant="text" color="accent" icon="edit" (click)="onEditList(list.id); $event.stopPropagation()">
+            Edit
+          </amw-button>
+          <amw-button variant="text" color="warn" icon="delete"
+            (click)="onDeleteList(list.id); $event.stopPropagation()">
+            Delete
+          </amw-button>
+        </ng-template>
+      </amw-card>
+      }
+    </div>
+    }
+    }
 </div>

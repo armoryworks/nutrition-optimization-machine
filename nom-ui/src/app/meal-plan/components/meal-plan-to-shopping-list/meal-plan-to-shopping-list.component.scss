@@ -1,14 +1,96 @@
-.nom-loading, .nom-error { display: flex; flex-direction: column; align-items: center; padding: 2rem; gap: 1rem; }
-.nom-error-message { color: var(--mat-sys-error); margin: 0; }
-.nom-error-actions { display: flex; gap: 1rem; }
-.nom-container { padding: 1rem; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
-.nom-header { display: flex; justify-content: space-between; align-items: center; }
-.nom-header-info { display: flex; align-items: center; gap: 1rem; h2 { margin: 0; } }
-.nom-selection-bar { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--mat-sys-surface-container); border-radius: 8px; margin-bottom: 1rem; }
-.nom-ingredients { display: flex; flex-direction: column; gap: 0.5rem; }
-.nom-ingredient { display: flex; gap: 1rem; padding: 1rem; border: 1px solid var(--mat-sys-outline-variant); border-radius: 4px; }
-.nom-ingredient-info { display: flex; flex-direction: column; gap: 0.25rem; strong { font-size: 1rem; } }
-.nom-quantity { font-size: 0.875rem; color: var(--mat-sys-primary); }
-.nom-recipes { font-size: 0.75rem; color: var(--mat-sys-on-surface-variant); }
-.nom-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
-.nom-empty { display: flex; flex-direction: column; align-items: center; padding: 2rem; gap: 1rem; color: var(--mat-sys-on-surface-variant); }
+@use '../../../../_utilities' as *;
+
+.nom-loading {
+  @include nom-loading-state(2rem);
+}
+
+.nom-error {
+  @include nom-empty-state(2rem);
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+}
+
+.nom-error-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.nom-container {
+  @include nom-form-field(1rem);
+  padding: 1rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.nom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nom-header-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.nom-selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.nom-ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nom-ingredient {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+}
+
+.nom-ingredient-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  strong {
+    font-size: 1rem;
+  }
+}
+
+.nom-quantity {
+  font-size: 0.875rem;
+  color: var(--mat-sys-primary);
+}
+
+.nom-recipes {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-actions {
+  @include nom-action-group(1rem, flex-end);
+  margin-top: 0;
+}
+
+.nom-empty {
+  @include nom-empty-state(2rem);
+  color: var(--mat-sys-on-surface-variant);
+}

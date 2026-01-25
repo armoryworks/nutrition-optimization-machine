@@ -1,5 +1,6 @@
 @use '../../../../_variables' as vars;
 @use '../../../../_mixins' as mixins;
+@use '../../../../_utilities' as *;
 
 .curated-plans {
   max-width: 1400px;
@@ -30,10 +31,9 @@
   }
 
   &__loading {
-    @include mixins.flex-center;
-    flex-direction: column;
+    @include nom-loading-state(vars.$spacing-xxlarge);
     gap: vars.$spacing-medium;
-    padding: vars.$spacing-xxlarge 0;
+    padding-top: 0;
 
     p {
       font: var(--mat-sys-body-medium);
@@ -43,11 +43,9 @@
   }
 
   &__error {
-    @include mixins.flex-center;
-    flex-direction: column;
+    @include nom-empty-state(vars.$spacing-xxlarge);
     gap: vars.$spacing-medium;
-    padding: vars.$spacing-xxlarge 0;
-    text-align: center;
+    padding-top: 0;
 
     mat-icon {
       font-size: 48px;
@@ -210,11 +208,9 @@
   }
 
   &__empty {
-    @include mixins.flex-center;
-    flex-direction: column;
+    @include nom-empty-state(vars.$spacing-xxlarge);
     gap: vars.$spacing-medium;
-    padding: vars.$spacing-xxlarge 0;
-    text-align: center;
+    padding-top: 0;
 
     .curated-plans__empty-icon {
       font-size: 64px;

@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .recipe-search {
   max-width: 1400px;
   margin: 0 auto;
@@ -40,15 +42,13 @@
       }
 
       .filter-actions {
-        display: flex;
-        justify-content: flex-end;
+        @include nom-action-group(8px, flex-end);
         margin-top: 20px;
       }
     }
 
     .quick-actions {
-      display: flex;
-      gap: 10px;
+      @include nom-action-group(10px, flex-start);
       margin-top: 20px;
 
       button {
@@ -63,10 +63,7 @@
 
   .search-results {
     .loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px;
+      @include nom-loading-state(40px);
 
       p {
         margin-top: 10px;
@@ -74,11 +71,7 @@
     }
 
     .no-results {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px;
-      text-align: center;
+      @include nom-empty-state(40px);
 
       p {
         margin: 5px 0;

@@ -1,3 +1,5 @@
+@use '../../../../_utilities' as *;
+
 .meal-plan-rules-container {
   max-width: 800px;
   margin: 0 auto;
@@ -43,21 +45,14 @@
 }
 
 .loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include nom-loading-state(40px);
   gap: 16px;
-  padding: 40px;
   color: var(--mat-sys-on-surface-variant);
 }
 
 .no-rules {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include nom-empty-state(40px);
   gap: 16px;
-  padding: 40px;
-  text-align: center;
   color: var(--mat-sys-on-surface-variant);
 
   mat-icon {
@@ -74,9 +69,7 @@
 }
 
 .rules-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  @include nom-form-field(16px);
 }
 
 .rule-card {

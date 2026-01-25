@@ -1,14 +1,127 @@
-.nom-loading, .nom-error { display: flex; flex-direction: column; align-items: center; padding: 2rem; gap: 1rem; }
-.nom-error-message { color: var(--mat-sys-error); margin: 0; }
-.nom-error-actions { display: flex; gap: 1rem; }
-.nom-container { padding: 1rem; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; }
-.nom-header { display: flex; justify-content: space-between; align-items: center; }
-.nom-header-info { display: flex; align-items: center; gap: 1rem; h2 { margin: 0; } }
-.nom-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
-.nom-stat { display: flex; gap: 1rem; padding: 1rem; background: var(--mat-sys-surface-container); border-radius: 8px; }
-.nom-stat-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; &--calories { background: #FF6B6B30; color: #FF6B6B; } &--protein { background: #4ECDC430; color: #4ECDC4; } &--carbs { background: #FFE66D30; color: #C7A600; } &--fat { background: #95E1D330; color: #2D9D87; } &--fiber { background: #F38B6430; color: #C45A2C; } }
-.nom-stat-info { display: flex; flex-direction: column; }
-.nom-stat-label { font-size: 0.875rem; color: var(--mat-sys-on-surface-variant); }
-.nom-stat-value { font-size: 1.5rem; font-weight: 600; color: var(--mat-sys-on-surface); }
-.nom-empty { display: flex; flex-direction: column; align-items: center; padding: 2rem; gap: 1rem; color: var(--mat-sys-on-surface-variant); }
-.nom-notice { display: flex; gap: 1rem; padding: 1rem; background: var(--mat-sys-surface-container); border-left: 4px solid var(--mat-sys-primary); border-radius: 4px; p { margin: 0; font-size: 0.875rem; color: var(--mat-sys-on-surface-variant); } }
+@use '../../../../_utilities' as *;
+
+.nom-loading {
+  @include nom-loading-state(2rem);
+}
+
+.nom-error {
+  @include nom-empty-state(2rem);
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+}
+
+.nom-error-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.nom-container {
+  @include nom-form-field(1rem);
+  padding: 1rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.nom-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nom-header-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.nom-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nom-stat {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+}
+
+.nom-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &--calories {
+    background: #FF6B6B30;
+    color: #FF6B6B;
+  }
+
+  &--protein {
+    background: #4ECDC430;
+    color: #4ECDC4;
+  }
+
+  &--carbs {
+    background: #FFE66D30;
+    color: #C7A600;
+  }
+
+  &--fat {
+    background: #95E1D330;
+    color: #2D9D87;
+  }
+
+  &--fiber {
+    background: #F38B6430;
+    color: #C45A2C;
+  }
+}
+
+.nom-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-stat-label {
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-empty {
+  @include nom-empty-state(2rem);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-notice {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--mat-sys-surface-container);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

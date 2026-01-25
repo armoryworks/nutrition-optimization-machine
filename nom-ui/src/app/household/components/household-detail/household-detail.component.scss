@@ -1,15 +1,21 @@
+@use '../../../../_utilities' as *;
+
 .household-detail {
   min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 2rem 1rem;
 
   @media (max-width: 768px) {
     padding: 1rem 0.5rem;
   }
 
-  &__container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
+  &__loading {
+    @include nom-loading-state(3rem);
+  }
+
+  &__error {
+    @include nom-empty-state(3rem);
   }
 
   &__header {
@@ -287,10 +293,6 @@
 
 @media (max-width: 768px) {
   .household-detail {
-    &__container {
-      padding: 0 8px;
-    }
-
     &__info-grid {
       grid-template-columns: 1fr;
     }

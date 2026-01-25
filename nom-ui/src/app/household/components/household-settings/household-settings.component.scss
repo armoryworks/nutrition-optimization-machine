@@ -1,12 +1,9 @@
+@use '../../../../_utilities' as *;
+
 .nom-loading,
 .nom-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @include nom-empty-state(3rem);
   padding: 3rem 2rem;
-  gap: 1rem;
-  text-align: center;
 }
 
 .nom-error-message {
@@ -15,18 +12,15 @@
 }
 
 .nom-error-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  @include nom-action-group(1rem, center);
+  margin-top: 0;
 }
 
 .nom-settings-container {
+  @include nom-form-field(2rem);
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
 }
 
 .nom-settings-header {
@@ -47,16 +41,13 @@
 }
 
 .nom-settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  @include nom-form-field(1.5rem);
   padding: 1rem 0;
 }
 
 .nom-form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  @include nom-action-group(1rem, flex-start);
+  margin-top: 0;
   padding-top: 1rem;
   border-top: 1px solid var(--mat-sys-outline-variant);
 }

@@ -1,5 +1,6 @@
 @use '../../../../variables' as vars;
 @use '../../../../mixins' as mixins;
+@use '../../../../utilities' as *;
 
 :host {
   display: block;
@@ -395,21 +396,14 @@
   }
 }
 
-.no-details,
-.no-selection,
-.empty-state {
-  position: absolute;
-  top: 0;
-  left: 360px;
-  right: 20px;
-  bottom: 20px;
-
-  &__content {
-    text-align: center;
-    padding: 1rem;
-    border-radius: 8px;
-    min-width: 0;
-  }
+.no-details {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   &__icon {
     font-size: 2rem;
@@ -417,6 +411,7 @@
     height: 2rem;
     margin-bottom: 0.5rem;
     opacity: 0.4;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   &__title {
@@ -434,11 +429,41 @@
 }
 
 .no-selection {
+  position: absolute;
+  top: 0;
+  left: 360px;
+  right: 20px;
+  bottom: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   border-radius: 12px;
+  padding: 1rem;
   min-width: 0;
+
+  &__icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.4;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+  }
+
+  &__text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: 0 auto;
+    max-width: 300px;
+  }
 
   &__hint {
     margin-top: 1rem;
@@ -456,10 +481,34 @@
 
 .empty-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  min-width: 0;
 
-  &__icon {opacity: 0.7;}
+  &__icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+  }
+
+  &__text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: 0 auto;
+    max-width: 300px;
+  }
 }
 
 @include mixins.breakpoint(mobile) {

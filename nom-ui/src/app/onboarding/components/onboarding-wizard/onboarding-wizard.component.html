@@ -1,19 +1,15 @@
 <div class="nom-page-container">
-  <amw-card
-    [headerTitle]="currentQuestion?.text || ''"
-    [headerSubtitle]="currentQuestion?.hint || ''"
-    class="nom-card">
-    <ng-template #contentTemplate>
+  <amw-card [headerTitle]="currentQuestion?.text || ''" [headerSubtitle]="currentQuestion?.hint || ''" class="nom-card">
+    <ng-template #cardContent>
       @if (isLoading()) {
-      <amw-progress-bar
-        mode="indeterminate"
-        color="primary"
-        class="nom-card__progress-bar"
-      ></amw-progress-bar>
+      <div role="status" aria-live="polite" aria-label="Loading onboarding questions">
+        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+        <span class="sr-only">Loading onboarding questions, please wait...</span>
+      </div>
       }
 
       @if (!isLoading() && error() && !submitMessage()) {
-      <div class="nom-form__error form-level-error nom-message-text mb-4">
+      <div class="nom-form__error form-level-error nom-message-text mb-4" role="alert" aria-live="assertive">
         {{ error() }}
       </div>
       } @else if (!isLoading() && questions().length === 0 && !error()) {
@@ -26,41 +22,40 @@
         <div class="nom-section mb-8">
           <!-- Dynamic input rendering based on answerType -->
           @switch (currentQuestion.answerType) { @case ('TextInput') {
-          <amw-input
-            formControlName="answer"
-            label="Your Answer"
-            [placeholder]="currentQuestion.hint || 'Type your answer here...'"
-            [required]="true"
-            class="nom-form__field">
+          <amw-input formControlName="answer" label="Your Answer"
+            [placeholder]="currentQuestion.hint || 'Type your answer here...'" [required]="true"
+            class="nom-form__field"
+            [attr.aria-invalid]="currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched"
+            [attr.aria-describedby]="currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched ? 'text-answer-error' : null">
           </amw-input>
+          @if (currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched) {
+          <span id="text-answer-error" class="nom-form__error" role="alert">
+            This field is required
+          </span>
+          }
           } @case ('YesNo') {
-          <amw-radio-group
-            formControlName="answer"
-            [options]="getYesNoOptions()"
-            orientation="horizontal"
-            (selectionChange)="onAnswerChange($event.value)"
-            class="nom-horizontal-group flex-wrap justify-center my-4">
+          <amw-radio-group formControlName="answer" [options]="getYesNoOptions()" orientation="horizontal"
+            (selectionChange)="onAnswerChange($event.value)" class="nom-horizontal-group flex-wrap justify-center my-4"
+            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
+            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'yesno-answer-error' : null">
           </amw-radio-group>
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <p class="nom-form__error text-center">
+          <p id="yesno-answer-error" class="nom-form__error text-center" role="alert">
             This field is required.
           </p>
           } } @case ('MultiSelect') {
-          <div class="my-4 grid grid-cols-2 gap-4">
+          <div class="my-4 grid grid-cols-2 gap-4" role="group"
+            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
+            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'multiselect-answer-error' : null">
             @if (currentQuestion.options; as options) { @for (option of options;
             track option) {
-            <div
-              class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200"
-            >
-              <amw-checkbox
-                [checked]="
+            <div class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200">
+              <amw-checkbox [checked]="
                   (
                     currentAnswerForm.get('answer')?.value | jsonParseCommon
                   )?.includes(option)
-                "
-                (change)="onAnswerChange(option)"
-                [label]="option">
+                " (change)="onAnswerChange(option)" [label]="option">
               </amw-checkbox>
             </div>
             } } @else {
@@ -71,17 +66,15 @@
           </div>
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <p class="nom-form__error text-center">
+          <p id="multiselect-answer-error" class="nom-form__error text-center" role="alert">
             Please select at least one option.
           </p>
           } } @case ('SingleSelect') {
           @if (currentQuestion.options && currentQuestion.options.length > 0) {
-          <amw-radio-group
-            formControlName="answer"
-            [options]="getSingleSelectOptions()"
-            orientation="horizontal"
-            (selectionChange)="onAnswerChange($event.value)"
-            class="nom-horizontal-group flex-wrap justify-center my-4">
+          <amw-radio-group formControlName="answer" [options]="getSingleSelectOptions()" orientation="horizontal"
+            (selectionChange)="onAnswerChange($event.value)" class="nom-horizontal-group flex-wrap justify-center my-4"
+            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
+            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'singleselect-answer-error' : null">
           </amw-radio-group>
           } @else {
           <p class="nom-message-text text-red-500">
@@ -90,7 +83,7 @@
           }
           @if (currentAnswerForm.get('answer')?.hasError('required') &&
           currentAnswerForm.get('answer')?.touched) {
-          <p class="nom-form__error text-center">
+          <p id="singleselect-answer-error" class="nom-form__error text-center" role="alert">
             Please select an option.
           </p>
           } } @default {
@@ -101,37 +94,23 @@
         </div>
 
         <div class="flex justify-between items-center mt-6">
-          <amw-button
-            variant="filled"
-            color="accent"
-            (click)="goToPreviousQuestion()"
+          <amw-button variant="filled" color="accent" (click)="goToPreviousQuestion()"
             [disabled]="currentQuestionIndex() === 0 || isSubmitting()">
             Previous
           </amw-button>
-          <amw-button
-            variant="filled"
-            color="primary"
-            (click)="goToNextQuestion()"
-            [disabled]="isSubmitting()"
+          <amw-button variant="filled" color="primary" (click)="goToNextQuestion()" [disabled]="isSubmitting()"
             [loading]="isSubmitting()">
             {{ currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next' }}
           </amw-button>
         </div>
       </form>
       } @else if (!isLoading() && submitMessage()) {
-      <div
-        class="text-center p-4 rounded-md"
-        [ngClass]="{
+      <div class="text-center p-4 rounded-md" role="alert" aria-live="polite" [ngClass]="{
           'bg-green-100 text-green-700': submitMessage()!.includes('successfully'),
           'bg-red-100 text-red-700': !submitMessage()!.includes('successfully')
-        }"
-      >
+        }">
         <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
-        <amw-button
-          variant="filled"
-          color="primary"
-          (click)="onGoToDashboard()"
-          class="mt-4">
+        <amw-button variant="filled" color="primary" (click)="onGoToDashboard()" class="mt-4">
           Go to Dashboard
         </amw-button>
       </div>

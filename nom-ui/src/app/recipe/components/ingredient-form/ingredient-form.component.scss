@@ -1,11 +1,10 @@
 // Unified Ingredient Form Component Styles
 // Works for both modal and page contexts
+@use '../../../../_utilities' as *;
 
 .nom-ingredient-form {
   &__loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    @include nom-loading-state(1rem);
     min-height: 200px;
   }
 
@@ -98,10 +97,7 @@
 }
 
 .action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  align-items: center;
+  @include nom-action-group(1rem, flex-end);
 }
 
 // Base form container styles

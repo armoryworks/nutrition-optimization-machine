@@ -7,10 +7,12 @@
     [formControl]="invitationCodeFormControl"
     label="Invitation Code"
     placeholder="Enter code"
-    class="nom-form__field nom-form__field--centered">
+    class="nom-form__field nom-form__field--centered"
+    [attr.aria-invalid]="errorMessage() ? true : null"
+    [attr.aria-describedby]="errorMessage() ? 'invitation-code-error' : null">
   </amw-input>
   @if (errorMessage()) {
-  <p class="nom-form__error">{{ errorMessage() }}</p>
+  <p id="invitation-code-error" class="nom-form__error" role="alert">{{ errorMessage() }}</p>
   }
   <div class="flex justify-center mt-4">
     <amw-button

@@ -1,44 +1,28 @@
 <div class="recipe-search">
-  <div class="recipe-search__container">
-    <!-- Public Landing Page -->
-    <div class="recipe-search__public-landing">
-      <amw-card
-        headerTitle="Discover Amazing Recipes"
-        headerSubtitle="Browse our collection of delicious recipes from around the world"
-        headerIcon="restaurant"
-        class="recipe-search__welcome-card">
-        <ng-template #contentTemplate>
-          <div class="recipe-search__public-actions">
-            <amw-button
-              variant="filled"
-              color="primary"
-              icon="restaurant"
-              (click)="browsePublicRecipes()">
-              Browse Recipes
-            </amw-button>
+  <!-- Public Landing Page -->
+  <div class="recipe-search__public-landing">
+    <amw-card headerTitle="Discover Amazing Recipes"
+      headerSubtitle="Browse our collection of delicious recipes from around the world" headerIcon="restaurant"
+      class="recipe-search__welcome-card">
+      <ng-template #cardContent>
+        <div class="recipe-search__public-actions">
+          <amw-button variant="filled" color="primary" icon="restaurant" (click)="browsePublicRecipes()">
+            Browse Recipes
+          </amw-button>
 
-            <div class="recipe-search__auth-prompt">
-              <p>Want to create your own recipes and save favorites?</p>
-              <div class="recipe-search__auth-buttons">
-                <amw-button
-                  variant="text"
-                  color="accent"
-                  icon="login"
-                  (click)="onLogin()">
-                  Login
-                </amw-button>
-                <amw-button
-                  variant="text"
-                  color="accent"
-                  icon="person_add"
-                  (click)="onRegister()">
-                  Create Account
-                </amw-button>
-              </div>
+          <div class="recipe-search__auth-prompt">
+            <p>Want to create your own recipes and save favorites?</p>
+            <div class="recipe-search__auth-buttons">
+              <amw-button variant="text" color="accent" icon="login" (click)="onLogin()">
+                Login
+              </amw-button>
+              <amw-button variant="text" color="accent" icon="person_add" (click)="onRegister()">
+                Create Account
+              </amw-button>
             </div>
           </div>
-        </ng-template>
-      </amw-card>
-    </div>
+        </div>
+      </ng-template>
+    </amw-card>
   </div>
 </div>

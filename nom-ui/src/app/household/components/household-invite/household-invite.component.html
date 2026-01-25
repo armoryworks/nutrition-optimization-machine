@@ -1,6 +1,5 @@
 <div class="household-invite">
-  <div class="household-invite__container">
-    <!-- Header -->
+  <!-- Header -->
     <div class="household-invite__header">
       <div class="household-invite__header-content">
         <div class="household-invite__title-section">
@@ -15,25 +14,15 @@
 
     <!-- Invite Form -->
     <amw-card [headerTitle]="'Create Invitation'" headerIcon="mail">
-      <ng-template #contentTemplate>
+      <ng-template #cardContent>
         <form [formGroup]="inviteForm" (ngSubmit)="onSubmit()" class="household-invite__form">
-          <amw-input
-            type="number"
-            formControlName="expiresInDays"
-            label="Expiration Days"
-            placeholder="Enter number of days..."
-            [required]="true"
-            class="household-invite__field">
+          <amw-input type="number" formControlName="expiresInDays" label="Expiration Days"
+            placeholder="Enter number of days..." [required]="true" class="household-invite__field">
           </amw-input>
 
           <div class="household-invite__form-actions">
-            <amw-button
-              type="submit"
-              variant="filled"
-              color="primary"
-              [icon]="isLoading() ? 'hourglass_empty' : 'send'"
-              [disabled]="inviteForm.invalid || isLoading()"
-              [loading]="isLoading()">
+            <amw-button type="submit" variant="filled" color="primary" [icon]="isLoading() ? 'hourglass_empty' : 'send'"
+              [disabled]="inviteForm.invalid || isLoading()" [loading]="isLoading()">
               {{ isLoading() ? 'Creating...' : 'Create Invitation' }}
             </amw-button>
           </div>
@@ -43,49 +32,39 @@
 
     <!-- Error Message -->
     @if (error()) {
-      <div class="household-invite__error">
-        <amw-card [headerTitle]="'Error Creating Invitation'" headerIcon="error">
-          <ng-template #contentTemplate>
-            <div class="household-invite__error-content">
-              <p>{{ error() }}</p>
-            </div>
-          </ng-template>
-        </amw-card>
-      </div>
+    <div class="household-invite__error">
+      <amw-card [headerTitle]="'Error Creating Invitation'" headerIcon="error">
+        <ng-template #cardContent>
+          <div class="household-invite__error-content">
+            <p>{{ error() }}</p>
+          </div>
+        </ng-template>
+      </amw-card>
+    </div>
     }
 
     <!-- Invite Link Section -->
     @if (inviteLink()) {
-      <div class="household-invite__invite-section">
-        <amw-card [headerTitle]="'Invitation Link'" headerIcon="link">
-          <ng-template #contentTemplate>
-            <p class="household-invite__invite-subtitle">Share this link with the person you want to invite</p>
-            <div class="household-invite__link-container">
-              <amw-input
-                [value]="inviteLink()"
-                label="Invitation Link"
-                [readonly]="true"
-                class="household-invite__link-field">
-              </amw-input>
-              <amw-button
-                variant="icon"
-                (click)="copyLink()">
-                <amw-icon name="content_copy"></amw-icon>
-              </amw-button>
-            </div>
+    <div class="household-invite__invite-section">
+      <amw-card [headerTitle]="'Invitation Link'" headerIcon="link">
+        <ng-template #cardContent>
+          <p class="household-invite__invite-subtitle">Share this link with the person you want to invite</p>
+          <div class="household-invite__link-container">
+            <amw-input [value]="inviteLink()" label="Invitation Link" [readonly]="true"
+              class="household-invite__link-field">
+            </amw-input>
+            <amw-button variant="icon" (click)="copyLink()">
+              <amw-icon name="content_copy"></amw-icon>
+            </amw-button>
+          </div>
 
-            <div class="household-invite__link-actions">
-              <amw-button
-                variant="filled"
-                color="primary"
-                icon="share"
-                (click)="shareLink()">
-                Share Link
-              </amw-button>
-            </div>
-          </ng-template>
-        </amw-card>
-      </div>
+          <div class="household-invite__link-actions">
+            <amw-button variant="filled" color="primary" icon="share" (click)="shareLink()">
+              Share Link
+            </amw-button>
+          </div>
+        </ng-template>
+      </amw-card>
+    </div>
     }
-  </div>
 </div>

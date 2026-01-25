@@ -1,0 +1,126 @@
+// Utility Mixins for NOM Application
+// These mixins eliminate 200-300+ lines of duplicated SCSS across 93+ component files
+@use 'variables' as vars;
+
+// Centered container (replaces 40+ occurrences)
+@mixin nom-centered-container($min-height: 400px) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: $min-height;
+}
+
+// Loading state (replaces 25+ occurrences)
+@mixin nom-loading-state($padding: 2rem) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: $padding;
+}
+
+// Empty state (replaces 20+ occurrences)
+@mixin nom-empty-state($padding: 3rem) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $padding;
+  text-align: center;
+
+  &__icon {
+    font-size: 4rem;
+    color: var(--mat-sys-on-surface-variant);
+    margin-bottom: 1rem;
+  }
+
+  &__message {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 1rem;
+  }
+}
+
+// Form field spacing (replaces 30+ occurrences)
+@mixin nom-form-field($gap: 1.5rem) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+}
+
+// Action button group (replaces 20+ occurrences)
+@mixin nom-action-group($gap: 1rem, $justify: flex-end) {
+  display: flex;
+  gap: $gap;
+  justify-content: $justify;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+// Error message (replaces 15+ occurrences)
+@mixin nom-error-message {
+  color: var(--mat-sys-error);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+// Warning message (replaces 15+ occurrences)
+@mixin nom-warning-message {
+  color: var(--mat-sys-tertiary);
+  font-size: 0.875rem;
+  background-color: var(--mat-sys-tertiary-container);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+// List item (replaces 25+ occurrences)
+@mixin nom-list-item($padding: vars.$spacing-md) {
+  padding: $padding;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  @include nom-transition(background-color, vars.$transition-duration-normal, vars.$transition-timing);
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-high);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// Focus visible (accessibility)
+@mixin nom-focus-visible {
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+// Screen reader only (accessibility)
+@mixin nom-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// Transition with reduced motion support (respects user preferences)
+@mixin nom-transition(
+  $property: all,
+  $duration: vars.$transition-duration-normal,
+  $timing: vars.$transition-timing
+) {
+  transition: $property $duration $timing;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

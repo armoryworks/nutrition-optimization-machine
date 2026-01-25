@@ -4,6 +4,9 @@
 // Note: angular-material-wrap styles are embedded in components
 @use 'nom-theme';
 @use 'variables' as vars;
+// Custom utilities and accessibility styles
+@use 'utilities' as *;
+@use 'a11y' as *;
 
 // Import FontAwesome (must come after @use statements)
 @import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -1043,5 +1046,151 @@ body.dark-theme, [data-theme='dark'] {
       height: calc(100vh - 150px);
       max-height: calc(100vh - 150px);
     }
+  }
+}
+
+// ========================================
+// PHASE 5: STANDARDIZED SPACING & TYPOGRAPHY
+// ========================================
+
+// Typography Standardization
+// ---------------------------
+body {
+  font-size: vars.$font-size-md;
+  line-height: vars.$line-height-normal;
+  font-weight: vars.$font-weight-normal;
+}
+
+h1, .nom-heading-1 {
+  font-size: vars.$font-size-3xl;
+  line-height: vars.$line-height-tight;
+  font-weight: vars.$font-weight-bold;
+  margin-bottom: vars.$spacing-md;
+}
+
+h2, .nom-heading-2 {
+  font-size: vars.$font-size-2xl;
+  line-height: vars.$line-height-tight;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-md;
+}
+
+h3, .nom-heading-3 {
+  font-size: vars.$font-size-xl;
+  line-height: vars.$line-height-normal;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-sm;
+}
+
+h4, .nom-heading-4 {
+  font-size: vars.$font-size-lg;
+  line-height: vars.$line-height-normal;
+  font-weight: vars.$font-weight-medium;
+  margin-bottom: vars.$spacing-sm;
+}
+
+h5, .nom-heading-5,
+h6, .nom-heading-6 {
+  font-size: vars.$font-size-md;
+  line-height: vars.$line-height-normal;
+  font-weight: vars.$font-weight-medium;
+  margin-bottom: vars.$spacing-sm;
+}
+
+// Text size utilities
+.nom-text-xs { font-size: vars.$font-size-xs; }
+.nom-text-sm { font-size: vars.$font-size-sm; }
+.nom-text-md { font-size: vars.$font-size-md; }
+.nom-text-lg { font-size: vars.$font-size-lg; }
+.nom-text-xl { font-size: vars.$font-size-xl; }
+
+// Spacing utilities
+.nom-spacing-xs { padding: vars.$spacing-xs; }
+.nom-spacing-sm { padding: vars.$spacing-sm; }
+.nom-spacing-md { padding: vars.$spacing-md; }
+.nom-spacing-lg { padding: vars.$spacing-lg; }
+.nom-spacing-xl { padding: vars.$spacing-xl; }
+
+.nom-margin-bottom-sm { margin-bottom: vars.$spacing-sm; }
+.nom-margin-bottom-md { margin-bottom: vars.$spacing-md; }
+.nom-margin-bottom-lg { margin-bottom: vars.$spacing-lg; }
+
+// Standardized Component Sizing
+// ------------------------------
+
+// Cards
+.nom-card,
+.amw-card {
+  padding: vars.$card-padding;
+  min-height: vars.$card-min-height;
+  border-radius: vars.$nom-border-radius;
+  @include nom-transition(box-shadow, vars.$transition-duration-normal);
+
+  &--compact {
+    padding: vars.$card-padding-sm;
+    min-height: auto;
+  }
+}
+
+// Buttons (enhancing existing styles)
+button,
+.nom-button,
+.amw-button {
+  height: vars.$button-height;
+  padding: 0 vars.$button-padding-x;
+  border-radius: vars.$nom-border-radius;
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-medium;
+  @include nom-transition(all, vars.$transition-duration-fast);
+
+  &--small {
+    height: vars.$button-height-sm;
+    padding: 0 vars.$button-padding-x-sm;
+    font-size: vars.$font-size-sm;
+  }
+
+  &--large {
+    height: vars.$button-height-lg;
+    padding: 0 vars.$button-padding-x;
+    font-size: vars.$font-size-lg;
+  }
+}
+
+// Form fields (enhancing existing styles)
+.nom-form__field,
+.amw-input,
+.amw-textarea,
+.amw-select {
+  input,
+  textarea,
+  select {
+    min-height: vars.$input-height;
+    padding: vars.$input-padding-y vars.$input-padding-x;
+    font-size: vars.$font-size-md;
+    border-radius: vars.$nom-border-radius;
+    @include nom-transition(border-color, vars.$transition-duration-fast);
+  }
+}
+
+// Consistent transitions for interactive elements
+a,
+button,
+.nom-interactive {
+  @include nom-transition(color, vars.$transition-duration-fast);
+
+  &:hover,
+  &:focus {
+    @include nom-transition(color, vars.$transition-duration-fast);
+  }
+}
+
+// Responsive typography adjustments
+@media (max-width: 768px) {
+  h1, .nom-heading-1 { font-size: vars.$font-size-2xl; }
+  h2, .nom-heading-2 { font-size: vars.$font-size-xl; }
+  h3, .nom-heading-3 { font-size: vars.$font-size-lg; }
+
+  body {
+    font-size: vars.$font-size-sm;
   }
 }

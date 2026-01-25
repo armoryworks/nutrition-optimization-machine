@@ -1,12 +1,18 @@
 <div class="input-container" [class]="getCssClasses()">
-    <label *ngIf="label" [for]="'input-' + config.id" class="input-label">
+    @if (label) {
+      <label [for]="'input-' + config.id" class="input-label">
         {{ label }}
-        <span *ngIf="required" class="required-indicator">*</span>
-    </label>
+        @if (required) {
+          <span class="required-indicator">*</span>
+        }
+      </label>
+    }
 
     <div class="input-wrapper">
-        <i *ngIf="showPrefixIcon && prefixIcon" [class]="prefixIcon" class="prefix-icon"></i>
-        
+        @if (showPrefixIcon && prefixIcon) {
+          <i [class]="prefixIcon" class="prefix-icon"></i>
+        }
+
         <input
             [id]="'input-' + config.id"
             [type]="type"
@@ -21,7 +27,7 @@
             [step]="step"
             [min]="min"
             [max]="max"
-           
+
             [spellcheck]="spellcheck"
             [autocapitalize]="autocapitalize"
             [autocorrect]="autocorrect"
@@ -36,28 +42,39 @@
             (keyup)="onKeyUp($event)"
             class="input-field">
 
-        <i *ngIf="showSuffixIcon && suffixIcon" [class]="suffixIcon" class="suffix-icon"></i>
-        
-        <button 
-            *ngIf="showClearButton && formControl.value" 
-            type="button" 
-            class="clear-button"
-            (click)="onClear()">
-            ×
-        </button>
+        @if (showSuffixIcon && suffixIcon) {
+          <i [class]="suffixIcon" class="suffix-icon"></i>
+        }
 
-        <div *ngIf="loading" class="loading-spinner"></div>
+        @if (showClearButton && formControl.value) {
+          <button
+              type="button"
+              class="clear-button"
+              (click)="onClear()">
+              ×
+          </button>
+        }
+
+        @if (loading) {
+          <div class="loading-spinner"></div>
+        }
     </div>
 
-    <div *ngIf="showHint && hint" class="input-hint">
+    @if (showHint && hint) {
+      <div class="input-hint">
         {{ hint }}
-    </div>
+      </div>
+    }
 
-    <div *ngIf="showError && getErrorMessage()" class="input-error">
+    @if (showError && getErrorMessage()) {
+      <div class="input-error">
         {{ getErrorMessage() }}
-    </div>
+      </div>
+    }
 
-    <div *ngIf="showSuccess && success" class="input-success">
+    @if (showSuccess && success) {
+      <div class="input-success">
         {{ success }}
-    </div>
-</div> 
+      </div>
+    }
+</div>

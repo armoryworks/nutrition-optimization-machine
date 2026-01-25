@@ -1,4 +1,7 @@
-<header class="nom-header">
+<!-- Skip link for keyboard navigation (ADA/508 compliance) -->
+<a href="#main-content" class="nom-skip-link">Skip to main content</a>
+
+<header class="nom-header" role="banner">
   <div class="nom-header__left">
     <h1 class="nom-header__title">NOM</h1>
     <p class="nom-header__subtitle">Nutrition Optimization Machine</p>
@@ -6,7 +9,7 @@
 
   <div class="nom-header__center">
     <!-- Main Navigation - Always Visible -->
-    <nav class="nom-main-nav">
+    <nav class="nom-main-nav" role="navigation" aria-label="Main navigation">
       <!-- PUBLIC SECTION - Always visible -->
       <div class="nom-main-nav__public">
         <a routerLink="/home" routerLinkActive="active" class="nom-main-nav__link">
@@ -99,11 +102,11 @@
   </div>
 }
 
-<main class="nom-main">
+<main id="main-content" class="nom-main" role="main">
   <router-outlet></router-outlet>
 </main>
 
-<footer class="nom-footer">
+<footer class="nom-footer" role="contentinfo">
   <p>Powered by Mealie: <a href="https://github.com/mealie-recipes/mealie"
     target="_blank">https://github.com/mealie-recipes/mealie</a>. A big Thank you to the contributors of that project!</p>
   <p>&copy; 2024 NOM - Nutrition Optimization Machine. All rights reserved.</p>

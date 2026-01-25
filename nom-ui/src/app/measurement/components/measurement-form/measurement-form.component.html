@@ -1,88 +1,52 @@
 <div class="measurement-form">
-  <amw-card
-    class="measurement-form__card"
-    headerTitle="Measurement Unit"
+  <amw-card class="measurement-form__card" headerTitle="Measurement Unit"
     headerSubtitle="Create or edit a measurement unit">
-    <ng-template #contentTemplate>
+    <ng-template #cardContent>
       <form [formGroup]="measurementForm" (ngSubmit)="onSubmit()" class="measurement-form__form">
         <div class="measurement-form__row">
-          <amw-input
-            formControlName="name"
-            label="Name"
-            placeholder="e.g., Kilogram"
-            [required]="true"
+          <amw-input formControlName="name" label="Name" placeholder="e.g., Kilogram" [required]="true"
             class="measurement-form__field">
           </amw-input>
 
-          <amw-input
-            formControlName="abbreviation"
-            label="Abbreviation"
-            placeholder="e.g., kg"
-            [required]="true"
+          <amw-input formControlName="abbreviation" label="Abbreviation" placeholder="e.g., kg" [required]="true"
             class="measurement-form__field">
           </amw-input>
         </div>
 
         <div class="measurement-form__row">
-          <amw-select
-            formControlName="measurementType"
-            label="Measurement Type"
-            [required]="true"
-            [options]="measurementTypes"
-            class="measurement-form__field">
+          <amw-select formControlName="measurementType" label="Measurement Type" [required]="true"
+            [options]="measurementTypes" class="measurement-form__field">
           </amw-select>
 
-          <amw-input
-            formControlName="conversionFactor"
-            label="Conversion Factor"
-            type="number"
-            placeholder="1.0"
-            [required]="true"
-            class="measurement-form__field">
+          <amw-input formControlName="conversionFactor" label="Conversion Factor" type="number" placeholder="1.0"
+            [required]="true" class="measurement-form__field">
           </amw-input>
         </div>
 
-        <amw-textarea
-          formControlName="description"
-          label="Description (Optional)"
+        <amw-textarea formControlName="description" label="Description (Optional)"
           class="measurement-form__description-field">
         </amw-textarea>
 
         @if (error()) {
-          <div class="measurement-form__error">
-            <amw-icon name="error" color="warn"></amw-icon>
-            <span>{{ error() }}</span>
-          </div>
+        <div class="measurement-form__error">
+          <amw-icon name="error" color="warn"></amw-icon>
+          <span>{{ error() }}</span>
+        </div>
         }
 
         <div class="measurement-form__actions">
-          <amw-button
-            variant="filled"
-            color="primary"
-            type="submit"
-            [disabled]="measurementForm.invalid || isSubmitting()"
-            [loading]="isSubmitting()"
-            icon="save"
+          <amw-button variant="filled" color="primary" type="submit"
+            [disabled]="measurementForm.invalid || isSubmitting()" [loading]="isSubmitting()" icon="save"
             class="measurement-form__submit-btn">
             Save Measurement
           </amw-button>
 
-          <amw-button
-            variant="text"
-            type="button"
-            (click)="onReset()"
-            [disabled]="isSubmitting()"
-            icon="refresh"
+          <amw-button variant="text" type="button" (click)="onReset()" [disabled]="isSubmitting()" icon="refresh"
             class="measurement-form__reset-btn">
             Reset
           </amw-button>
 
-          <amw-button
-            variant="text"
-            type="button"
-            (click)="onCancel()"
-            [disabled]="isSubmitting()"
-            icon="cancel"
+          <amw-button variant="text" type="button" (click)="onCancel()" [disabled]="isSubmitting()" icon="cancel"
             class="measurement-form__cancel-btn">
             Cancel
           </amw-button>

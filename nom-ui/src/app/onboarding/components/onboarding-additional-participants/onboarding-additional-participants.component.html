@@ -33,8 +33,15 @@
     type="number"
     placeholder="Enter a number"
     [required]="true"
-    class="nom-form__field nom-form__field--centered">
+    class="nom-form__field nom-form__field--centered"
+    [attr.aria-invalid]="numberOfAdditionalParticipantsControl.invalid && numberOfAdditionalParticipantsControl.touched"
+    [attr.aria-describedby]="numberOfAdditionalParticipantsControl.invalid && numberOfAdditionalParticipantsControl.touched ? 'participants-number-error' : null">
   </amw-input>
+  @if (numberOfAdditionalParticipantsControl.invalid && numberOfAdditionalParticipantsControl.touched) {
+  <span id="participants-number-error" class="nom-form__error" role="alert">
+    Number of people is required
+  </span>
+  }
   <div class="flex justify-center mt-4">
     <amw-button
       variant="filled"
@@ -64,8 +71,15 @@
     (valueChange)="onParticipantNameChange(i, $event)"
     [label]="'Person ' + (i + 2) + ' Name'"
     [required]="true"
-    class="nom-form__field">
+    class="nom-form__field"
+    [attr.aria-invalid]="!person.name"
+    [attr.aria-describedby]="!person.name ? 'participant-name-' + i + '-error' : null">
   </amw-input>
+  @if (!person.name) {
+  <span [id]="'participant-name-' + i + '-error'" class="nom-form__error" role="alert">
+    Participant name is required
+  </span>
+  }
   }
   <div class="flex justify-center mt-4">
     <amw-button

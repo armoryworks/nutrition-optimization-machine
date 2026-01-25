@@ -1,12 +1,12 @@
+@use '../../../../_utilities' as *;
+
 .login-popover {
   &__card {
     min-width: 300px;
   }
 
   &__form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    @include nom-form-field(16px);
   }
 
   &__field {
