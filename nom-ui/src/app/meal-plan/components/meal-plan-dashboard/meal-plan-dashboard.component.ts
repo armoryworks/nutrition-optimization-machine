@@ -9,6 +9,7 @@ import { AmwInputComponent, AmwButtonComponent, AmwIconComponent, AmwChipCompone
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-meal-plan-dashboard',
@@ -82,7 +83,7 @@ export class MealPlanDashboardComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading meal plans:', error);
-                this.error.set('Failed to load meal plans');
+                this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });
@@ -130,7 +131,7 @@ export class MealPlanDashboardComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error deleting meal plan:', error);
-                        this.notificationService.error('Failed to delete meal plan');
+                        this.notificationService.error(ERROR_MESSAGES.MEAL_PLAN.DELETE_FAILED);
                     }
                 });
             }

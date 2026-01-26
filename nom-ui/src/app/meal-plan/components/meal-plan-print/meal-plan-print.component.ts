@@ -11,6 +11,7 @@ import {
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-meal-plan-print',
@@ -76,7 +77,7 @@ export class MealPlanPrintComponent implements OnInit, OnDestroy {
           this.mealPlan.set(plan);
         },
         error: (err: unknown) => {
-          this.error.set('Failed to load meal plan');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
           console.error('Error loading meal plan:', err);
         },
       });
@@ -98,7 +99,7 @@ export class MealPlanPrintComponent implements OnInit, OnDestroy {
           this.weekMealPlans.set(weekPlans);
         },
         error: (err: unknown) => {
-          this.error.set('Failed to load meal plans');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
           console.error('Error loading meal plans:', err);
         },
       });

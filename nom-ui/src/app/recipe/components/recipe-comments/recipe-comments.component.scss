@@ -5,6 +5,39 @@
   flex-direction: column;
   gap: 24px;
 
+  &__header {
+    margin-bottom: 8px;
+  }
+
+  &__title {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.7;
+  }
+
+  &__error {
+    @include nom-empty-state(48px);
+    padding: 48px 24px;
+    border-radius: 12px;
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0 0 16px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  }
+
   &__form-card {
     border-radius: 12px;
   }

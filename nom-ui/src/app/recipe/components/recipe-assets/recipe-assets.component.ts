@@ -1,13 +1,12 @@
-import { Component, OnInit, inject, OnDestroy, signal, input, computed } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal, input } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, AmwDialogService } from 'angular-material-wrap';
-
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
-import { BasePageComponent } from '../../../common/components/base-page/base-page.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'app-recipe-assets',
@@ -25,7 +24,7 @@ import { BasePageComponent } from '../../../common/components/base-page/base-pag
         AmwProgressSpinnerComponent,
         AmwListComponent,
         AmwListItemComponent,
-        BasePageComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-assets.component.html',
     styleUrls: ['./recipe-assets.component.scss']
@@ -36,6 +35,9 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
     private notificationService = inject(NotificationService);
     private dialogService = inject(AmwDialogService);
     private configurationService = inject(ConfigurationService);
+    private validationService = inject(AmwValidationService);
+
+    validationContext!: ValidationContext;
 
     // Input properties
     recipeId = input<number>(0);
@@ -71,11 +73,60 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.loadAssets();
+
+        // Setup ValidationContext
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Name validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-required',
+            message: 'Asset name is required',
+            severity: 'error',
+            field: 'name',
+            control: this.assetForm.get('name') ?? undefined,
+            validator: () => !this.assetForm.get('name')?.hasError('required')
+        });
+
+        // Name validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-maxlength',
+            message: 'Asset name must be 100 characters or less',
+            severity: 'error',
+            field: 'name',
+            control: this.assetForm.get('name') ?? undefined,
+            validator: () => !this.assetForm.get('name')?.hasError('maxlength')
+        });
+
+        // Description validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'description-maxlength',
+            message: 'Description must be 500 characters or less',
+            severity: 'error',
+            field: 'description',
+            control: this.assetForm.get('description') ?? undefined,
+            validator: () => !this.assetForm.get('description')?.hasError('maxlength')
+        });
+
+        // Icon validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'icon-required',
+            message: 'Icon type is required',
+            severity: 'error',
+            field: 'icon',
+            control: this.assetForm.get('icon') ?? undefined,
+            validator: () => !this.assetForm.get('icon')?.hasError('required')
+        });
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     private loadAssets(): void {
@@ -96,9 +147,9 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                 },
                 error: (error: any) => {
                     console.error('Error loading assets:', error);
-                    this.error.set('Failed to load assets. Please try again.');
+                    this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                     this.isLoading.set(false);
-                    this.notificationService.error('Failed to load assets');
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                 }
             });
     }
@@ -148,7 +199,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                     },
                     error: (error: any) => {
                         console.error('Error uploading asset:', error);
-                        this.notificationService.error('Failed to upload asset');
+                        this.notificationService.error(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                         this.isSubmitting.set(false);
                     }
                 });
@@ -167,7 +218,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
                         },
                         error: (error: any) => {
                             console.error('Error deleting asset:', error);
-                            this.notificationService.error('Failed to delete asset');
+                            this.notificationService.error(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
                         }
                     });
                 }
@@ -186,7 +237,7 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
             },
             error: (error: any) => {
                 console.error('Error downloading asset:', error);
-                this.notificationService.error('Failed to download asset');
+                this.notificationService.error(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
             }
         });
     }
@@ -226,11 +277,4 @@ export class RecipeAssetsComponent implements OnInit, OnDestroy {
         this.error.set(null);
         this.loadAssets();
     }
-
-    listConfig = computed(() => ({
-        title: 'Recipe Assets',
-        subtitle: 'Manage files, images, and documents for this recipe',
-        showBackButton: true,
-        showRefreshButton: true
-    }));
 } 

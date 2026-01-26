@@ -9,6 +9,7 @@ import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconCompone
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-shopping-dashboard',
@@ -67,7 +68,7 @@ export class ShoppingDashboardComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading shopping lists:', error);
-                this.error.set('Failed to load shopping lists');
+                this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });
@@ -110,7 +111,7 @@ export class ShoppingDashboardComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error deleting shopping list:', error);
-                        this.notificationService.error('Failed to delete shopping list');
+                        this.notificationService.error(ERROR_MESSAGES.SHOPPING.DELETE_FAILED);
                     }
                 });
             }

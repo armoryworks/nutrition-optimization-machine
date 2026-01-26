@@ -4,13 +4,14 @@ import { FormArray, NonNullableFormBuilder, FormGroup, Validators, ReactiveForms
 import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { IngredientModel } from '../../models/ingredient.model';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 import { IngredientFormData } from './ingredient-form-data.interface';
 import { IngredientFormConfig } from './ingredient-form-config.interface';
@@ -40,6 +41,7 @@ export type { IngredientFormConfig } from './ingredient-form-config.interface';
     AmwCardComponent,
     AmwIconComponent,
     AmwProgressBarComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './ingredient-form.component.html',
   styleUrls: ['./ingredient-form.component.scss']
@@ -61,8 +63,10 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   private referenceDataService = inject(ReferenceDataService);
   private notificationService = inject(NotificationService);
   private cdr = inject(ChangeDetectorRef);
+  private validationService = inject(AmwValidationService);
 
   ingredientForm: FormGroup;
+  validationContext!: ValidationContext;
   isLoading = signal(false);
   isSubmitting = signal(false);
   isCheckingDuplicate = signal(false);
@@ -110,6 +114,51 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
     if (this.nutrients.length === 0) {
       this.addNutrient();
     }
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Name validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-required',
+      message: 'Ingredient name is required',
+      severity: 'error',
+      field: 'name',
+      control: this.ingredientForm.get('name') ?? undefined,
+      validator: () => !this.ingredientForm.get('name')?.hasError('required')
+    });
+
+    // Name validation - minLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-minlength',
+      message: 'Ingredient name must be at least 2 characters',
+      severity: 'error',
+      field: 'name',
+      control: this.ingredientForm.get('name') ?? undefined,
+      validator: () => !this.ingredientForm.get('name')?.hasError('minlength')
+    });
+
+    // Name validation - maxLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-maxlength',
+      message: 'Ingredient name must be 255 characters or less',
+      severity: 'error',
+      field: 'name',
+      control: this.ingredientForm.get('name') ?? undefined,
+      validator: () => !this.ingredientForm.get('name')?.hasError('maxlength')
+    });
+
+    // Description validation - maxLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'description-maxlength',
+      message: 'Description must be 2047 characters or less',
+      severity: 'error',
+      field: 'description',
+      control: this.ingredientForm.get('description') ?? undefined,
+      validator: () => !this.ingredientForm.get('description')?.hasError('maxlength')
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -129,6 +178,10 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   private initializeForm(): void {
@@ -339,7 +392,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
       },
       error: (error) => {
         console.error(`Error ${this.mode() === 'edit' ? 'updating' : 'creating'} ingredient:`, error);
-        this.error.set(`Failed to ${this.mode() === 'edit' ? 'update' : 'create'} ingredient. Please try again.`);
+        this.error.set(this.mode() === 'edit' ? ERROR_MESSAGES.INGREDIENT.SAVE_FAILED : ERROR_MESSAGES.INGREDIENT.SAVE_FAILED);
         this.isSubmitting.set(false);
       }
     });
@@ -392,7 +445,7 @@ export class IngredientFormComponent implements OnInit, OnDestroy, OnChanges {
         },
         error: () => {
           console.error('Error loading ingredient');
-          this.error.set('Failed to load ingredient. Please try again.');
+          this.error.set(ERROR_MESSAGES.INGREDIENT.LOAD_FAILED);
           this.isLoading.set(false);
         }
       });

@@ -6,6 +6,7 @@ import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { PlanNameComponent } from '../plan-name/plan-name.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-curated-plans',
@@ -46,7 +47,7 @@ export class CuratedPlansComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading curated plans:', error);
-                this.error.set('Failed to load curated plans');
+                this.error.set(ERROR_MESSAGES.PLAN.LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });
@@ -89,7 +90,7 @@ export class CuratedPlansComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error cloning plan:', error);
-                        this.notificationService.error('Failed to clone plan');
+                        this.notificationService.error(ERROR_MESSAGES.PLAN.CLONE_FAILED);
                         this.cloningPlanId.set(null);
                     }
                 });

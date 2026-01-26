@@ -11,6 +11,7 @@ import {
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 interface DayMeals {
   date: Date;
@@ -79,7 +80,7 @@ export class MealPlanCalendarComponent implements OnInit, OnDestroy {
           this.mealPlans.set(plans);
         },
         error: (err) => {
-          this.error.set('Failed to load meal plans');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
           console.error('Error loading meal plans:', err);
         },
       });

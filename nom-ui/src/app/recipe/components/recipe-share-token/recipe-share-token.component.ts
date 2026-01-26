@@ -8,6 +8,7 @@ import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButto
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeShareTokenResponseModel } from '../../models/recipe-share-token.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-recipe-share-token',
@@ -76,7 +77,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading share tokens:", error);
-                    this.error.set("Failed to load share tokens. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                     this.isLoading.set(false);
                 },
             });
@@ -107,7 +108,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error creating share token:", error);
-                    this.error.set("Failed to create share token. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });
@@ -124,7 +125,7 @@ export class RecipeShareTokenComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error deleting share token:", error);
-                    this.notificationService.error("Failed to delete share token");
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
                 },
             });
     }

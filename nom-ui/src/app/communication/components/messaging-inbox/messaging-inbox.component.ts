@@ -9,6 +9,7 @@ import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonC
 
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 
 @Component({
@@ -51,7 +52,7 @@ export class MessagingInboxComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        this.error.set('Failed to load messages');
+        this.error.set(ERROR_MESSAGES.COMMUNICATION.LOAD_FAILED);
         this.loading.set(false);
         console.error('Error loading message threads:', error);
       },

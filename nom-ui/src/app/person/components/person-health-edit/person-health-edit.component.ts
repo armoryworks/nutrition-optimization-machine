@@ -6,14 +6,13 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { NgClass } from '@angular/common';
-import { AmwProgressBarComponent } from 'angular-material-wrap';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwSelectComponent } from 'angular-material-wrap';
-
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwSelectComponent, AmwProgressBarComponent, AmwIconComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { PersonAttributeModel } from '../../models/person-attribute.model';
 import { ReferenceItemModel } from '../../../common/models/reference-item.model';
 import { ReferenceService } from '../../../common/services/reference.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 // Extended interface for attribute types with additional properties
 interface AttributeTypeModel extends ReferenceItemModel {
@@ -30,12 +29,13 @@ interface AttributeTypeModel extends ReferenceItemModel {
   imports: [
     NgClass,
     ReactiveFormsModule,
-    AmwProgressBarComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwIconComponent,
     AmwInputComponent,
     AmwSelectComponent,
+    AmwProgressBarComponent,
+    AmwIconComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './person-health-edit.component.html',
   styleUrls: ['./person-health-edit.component.scss'],
@@ -44,7 +44,9 @@ interface AttributeTypeModel extends ReferenceItemModel {
 export class PersonHealthEditComponent implements OnInit, OnDestroy {
   private fb = inject(NonNullableFormBuilder);
   private referenceService = inject(ReferenceService);
+  private validationService = inject(AmwValidationService);
 
+  validationContext!: ValidationContext;
   public readonly HEIGHT_ATTRIBUTE_ID = 2000;
   public readonly HEIGHT_IN_FEET_NAME = 'HeightInFeet';
   public readonly HEIGHT_IN_INCHES_NAME = 'HeightInInches';
@@ -77,11 +79,24 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAttributeTypes();
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Note: healthAttributesForm is dynamically generated based on attribute types
+    // The form is all optional fields, so no specific violations are added here
+    // The validation context is still needed for the validation tooltip to work
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   loadAttributeTypes(): void {
@@ -106,7 +121,7 @@ export class PersonHealthEditComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error loading attribute types:', error);
-        this.error.set('Failed to load health attributes. Please try again.');
+        this.error.set(ERROR_MESSAGES.PERSON.HEALTH_LOAD_FAILED);
         this.isLoading.set(false);
       }
     });

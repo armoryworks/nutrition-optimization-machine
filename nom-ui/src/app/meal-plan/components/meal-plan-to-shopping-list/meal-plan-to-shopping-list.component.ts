@@ -7,6 +7,7 @@ import {
   AmwCheckboxComponent,
   AmwProgressSpinnerComponent,
   AmwIconComponent,
+  loading,
 } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
@@ -20,6 +21,7 @@ import {
 } from '../../../shopping/models/shopping.interfaces';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 interface ConsolidatedIngredient {
   name: string;
@@ -108,7 +110,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          this.error.set('Failed to load meal plan');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
           console.error('Error loading meal plan:', err);
         },
       });
@@ -144,7 +146,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          this.error.set('Failed to load meal plans');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.LOAD_FAILED);
           console.error('Error loading meal plans:', err);
         },
       });
@@ -251,6 +253,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
     this.shoppingService
       .createShoppingList(createRequest)
       .pipe(
+        loading('Creating shopping list...'),
         takeUntil(this.destroy$),
         finalize(() => this.isCreating.set(false))
       )
@@ -260,8 +263,8 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
           this.addItemsToList(response.id, selected);
         },
         error: (err) => {
-          this.error.set('Failed to create shopping list');
-          this.notificationService.error('Failed to create shopping list');
+          this.error.set(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
           console.error('Error creating shopping list:', err);
         },
       });
@@ -287,7 +290,7 @@ export class MealPlanToShoppingListComponent implements OnInit, OnDestroy {
           this.router.navigate(['/shopping', listId]);
         },
         error: (err) => {
-          this.notificationService.error('Failed to add items to shopping list');
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.ITEM_ADD_FAILED);
           console.error('Error adding items:', err);
           // Still navigate to the list even if some items failed
           this.router.navigate(['/shopping', listId]);

@@ -85,8 +85,23 @@
     animation: spin 1s linear infinite;
   }
 
-  &__empty {
+  &__loading,
+  &__empty,
+  &__error {
     @include nom-empty-state(32px);
+    padding: 48px 24px;
+    text-align: center;
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0 0 16px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
   }
 
   &__empty-icon {

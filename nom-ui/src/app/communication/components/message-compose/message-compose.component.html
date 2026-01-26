@@ -44,7 +44,8 @@
           <amw-button variant="outlined" color="primary" type="button" [disabled]="isCreating()" (click)="onCancel()">
             Cancel
           </amw-button>
-          <amw-button variant="filled" color="primary" type="submit" [disabled]="composeForm.invalid || isCreating()">
+          <amw-button variant="filled" color="primary" type="submit" [disabled]="composeForm.invalid || isCreating()"
+            [amwValidationTooltip]="validationContext">
             {{ isCreating() ? 'Creating...' : 'Create Conversation' }}
           </amw-button>
         </div>

@@ -1,13 +1,6 @@
 <div class="nom-page-container registration">
   <amw-card [headerTitle]="'Create Your Account'" [headerIcon]="'person_add'">
     <ng-template #cardContent>
-      @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Creating your account">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-        </amw-progress-bar>
-        <span class="sr-only">Creating your account, please wait...</span>
-      </div>
-      }
       <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()" class="nom-form">
         <!-- Email Field - Using AMW -->
         <amw-input type="email" formControlName="email" label="Email Address" placeholder="Enter your email address..."
@@ -68,7 +61,8 @@
         </p>
         }
 
-        <amw-button type="submit" variant="filled" color="primary" [loading]="isLoading()"
+        <amw-button type="submit" variant="filled" color="primary"
+          [amwValidationTooltip]="validationContext"
           [disabled]="registrationForm.invalid" class="nom-button" data-cy="register-button">
           Register Account
         </amw-button>

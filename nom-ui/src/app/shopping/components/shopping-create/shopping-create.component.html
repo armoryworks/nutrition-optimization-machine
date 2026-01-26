@@ -27,6 +27,7 @@
           </amw-button>
 
           <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+            [amwValidationTooltip]="validationContext"
             [disabled]="shoppingForm.invalid">
             {{ formConfig.submitText || 'Create Shopping List' }}
           </amw-button>

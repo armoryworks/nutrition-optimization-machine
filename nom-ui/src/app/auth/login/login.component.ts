@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, ViewEncapsulation, inject, OnInit, OnDestroy } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -8,13 +8,12 @@ import {
 
 import { RouterLink } from '@angular/router';
 
-import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
-
-import { AuthService } from '../auth.service';
+import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { LoginUser } from '../models/login-user';
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
 import { NotificationService } from '../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-login',
@@ -26,17 +25,17 @@ import { NotificationService } from '../../utilities/services/notification.servi
     AmwCheckboxComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwProgressBarComponent
+    AmwValidationTooltipDirective
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
-  private authService = inject(AuthService);
   private authManager = inject(AuthManagerService);
   private notificationService = inject(NotificationService);
+  private validationService = inject(AmwValidationService);
 
   loginForm: FormGroup = this.nonNullableFb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -44,10 +43,47 @@ export class LoginComponent {
     rememberMe: [false],
   });
 
-  isLoading = signal(false);
+  validationContext!: ValidationContext;
 
-  constructor() {
-    // Form is now initialized at declaration
+  ngOnInit(): void {
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Email validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-required',
+      message: 'Email is required',
+      severity: 'error',
+      field: 'email',
+      control: this.loginForm.get('email') ?? undefined,
+      validator: () => !this.loginForm.get('email')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-format',
+      message: 'Please enter a valid email address',
+      severity: 'error',
+      field: 'email',
+      control: this.loginForm.get('email') ?? undefined,
+      validator: () => !this.loginForm.get('email')?.hasError('email')
+    });
+
+    // Password validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-required',
+      message: 'Password is required',
+      severity: 'error',
+      field: 'password',
+      control: this.loginForm.get('password') ?? undefined,
+      validator: () => !this.loginForm.get('password')?.hasError('required')
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
 
@@ -66,25 +102,23 @@ export class LoginComponent {
       return;
     }
 
-    this.isLoading.set(true);
     const credentials: LoginUser = this.loginForm.getRawValue();
     this.authManager.rememberMe = !!credentials.rememberMe; // Ensure boolean conversion
 
-    // Use AuthManagerService.login() instead of AuthService.login()
-    this.authManager.login(credentials).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        // Success notification is handled by AuthManagerService
-        // Optionally, navigate to a dashboard or home page after successful login
-        // this.router.navigate(['/dashboard']);
-      },
-      error: (error: unknown) => {
-        this.isLoading.set(false);
-        console.error('Login error:', error);
-        // The error.message is already processed by the AuthManagerService
-        const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : 'An unexpected error occurred during login. Please try again.';
-        this.notificationService.error(errorMessage);
-      },
-    });
+    // Use AuthManagerService.login() with global loading overlay
+    this.authManager.login(credentials)
+      .pipe(loading('Signing in...'))
+      .subscribe({
+        next: () => {
+          // Success notification is handled by AuthManagerService
+        },
+        error: (error: unknown) => {
+          console.error('Login error:', error);
+          const errorMessage = error && typeof error === 'object' && 'message' in error
+            ? String(error.message)
+            : ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+          this.notificationService.error(errorMessage);
+        },
+      });
   }
 }

@@ -1,11 +1,12 @@
 import { Component, OnInit, input, output, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressBarComponent, AmwChipComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressBarComponent, AmwChipComponent, loading } from 'angular-material-wrap';
 
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { RecipeTagsService } from '../../services/recipe-tags.service';
 import { RecipeTagModel } from '../../models/recipe-tag.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-recipe-tags',
@@ -72,7 +73,7 @@ export class RecipeTagsComponent implements OnInit {
                 this.loading.set(false);
             },
             error: (error) => {
-                this.error.set('Failed to load tags');
+                this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                 this.loading.set(false);
                 console.error('Error loading tags:', error);
             },
@@ -107,33 +108,37 @@ export class RecipeTagsComponent implements OnInit {
                 color: this.tagForm.get('color')?.value
             };
 
-            this.recipeTagsService.createTag(newTag).subscribe({
-                next: (createdTag) => {
-                    this.allTags.set([...this.allTags(), createdTag]);
-                    this.addTag(createdTag);
-                    this.tagForm.reset({
-                        name: '',
-                        description: '',
-                        color: '#1976d2'
-                    });
-                },
-                error: (error) => {
-                    console.error('Error creating tag:', error);
-                },
-            });
+            this.recipeTagsService.createTag(newTag)
+                .pipe(loading('Creating tag...'))
+                .subscribe({
+                    next: (createdTag) => {
+                        this.allTags.set([...this.allTags(), createdTag]);
+                        this.addTag(createdTag);
+                        this.tagForm.reset({
+                            name: '',
+                            description: '',
+                            color: '#1976d2'
+                        });
+                    },
+                    error: (error) => {
+                        console.error('Error creating tag:', error);
+                    },
+                });
         }
     }
 
     deleteTag(tag: RecipeTagModel): void {
-        this.recipeTagsService.deleteTag(tag.id!).subscribe({
-            next: () => {
-                this.allTags.set(this.allTags().filter(t => t.id !== tag.id));
-                this.removeTag(tag);
-            },
-            error: (error) => {
-                console.error('Error deleting tag:', error);
-            },
-        });
+        this.recipeTagsService.deleteTag(tag.id!)
+            .pipe(loading('Deleting tag...'))
+            .subscribe({
+                next: () => {
+                    this.allTags.set(this.allTags().filter(t => t.id !== tag.id));
+                    this.removeTag(tag);
+                },
+                error: (error) => {
+                    console.error('Error deleting tag:', error);
+                },
+            });
     }
 
     filterTags(): void {

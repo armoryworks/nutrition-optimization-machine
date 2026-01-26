@@ -1,22 +1,20 @@
-import { Component, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, ViewEncapsulation, inject, OnInit, OnDestroy } from '@angular/core';
 import {
   FormGroup,
   Validators,
   ReactiveFormsModule,
   NonNullableFormBuilder,
-  AbstractControl,
 } from '@angular/forms';
+import { Router } from '@angular/router';
 
-// Router is no longer directly used for navigation in this component
-// RouterLink is kept in imports if needed by the HTML template, but not for direct TS logic.
-import { Router } from '@angular/router'; // Kept Router import if it's used elsewhere in the component beyond navigation
-
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidators, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../auth.service';
 import { RegisterUser } from '../models/register-user';
 import { NotificationService } from '../../utilities/services/notification.service';
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
+import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-registration',
@@ -26,54 +24,110 @@ import { AuthManagerService } from '../../utilities/services/auth-manager.servic
     AmwInputComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwProgressBarComponent
-],
+    AmwValidationTooltipDirective
+  ],
   templateUrl: './registration.component.html',
-  styleUrls: ['./registration.component.scss'], // Assuming .scss
+  styleUrls: ['./registration.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class RegistrationComponent {
+export class RegistrationComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   private authManagerService = inject(AuthManagerService);
+  private validationService = inject(AmwValidationService);
 
   registrationForm!: FormGroup;
-  isLoading = signal(false);
-
-
+  validationContext!: ValidationContext;
 
   constructor() {
     this.registrationForm = this.nonNullableFb.group(
       {
         email: ['', [Validators.required, Validators.email]],
-        fullName: ['', Validators.maxLength(100)], // Optional name field
+        fullName: ['', Validators.maxLength(100)],
         password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
       },
-      { validators: this.passwordMatchValidator }
+      { validators: AmwValidators.passwordsMatch('password', 'confirmPassword') }
     );
   }
 
+  ngOnInit(): void {
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
 
+    // Email validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-required',
+      message: 'Email is required',
+      severity: 'error',
+      field: 'email',
+      control: this.registrationForm.get('email') ?? undefined,
+      validator: () => !this.registrationForm.get('email')?.hasError('required')
+    });
 
-  // Custom validator for password matching (applied to the FormGroup)
-  passwordMatchValidator(control: AbstractControl) {
-    const password = control.get('password')?.value;
-    const confirmPassword = control.get('confirmPassword')?.value;
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-format',
+      message: 'Please enter a valid email address',
+      severity: 'error',
+      field: 'email',
+      control: this.registrationForm.get('email') ?? undefined,
+      validator: () => !this.registrationForm.get('email')?.hasError('email')
+    });
 
-    return password && confirmPassword && password === confirmPassword
-      ? null
-      : { mismatch: true };
+    // Password validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-required',
+      message: 'Password is required',
+      severity: 'error',
+      field: 'password',
+      control: this.registrationForm.get('password') ?? undefined,
+      validator: () => !this.registrationForm.get('password')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-minlength',
+      message: 'Password must be at least 8 characters',
+      severity: 'error',
+      field: 'password',
+      control: this.registrationForm.get('password') ?? undefined,
+      validator: () => !this.registrationForm.get('password')?.hasError('minlength')
+    });
+
+    // Confirm password validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'confirmPassword-required',
+      message: 'Confirm password is required',
+      severity: 'error',
+      field: 'confirmPassword',
+      control: this.registrationForm.get('confirmPassword') ?? undefined,
+      validator: () => !this.registrationForm.get('confirmPassword')?.hasError('required')
+    });
+
+    // Password match validation (form-level)
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'passwords-mismatch',
+      message: 'Passwords do not match',
+      severity: 'error',
+      field: 'confirmPassword',
+      validator: () => !this.registrationForm.hasError('mismatch')
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   /**
    * Handles the registration form submission.
    */
   onSubmit(): void {
-    this.registrationForm.markAllAsTouched(); // Mark all fields as touched for immediate validation feedback
-    this.registrationForm.updateValueAndValidity(); // Ensure validation state is updated
+    this.registrationForm.markAllAsTouched();
+    this.registrationForm.updateValueAndValidity();
 
     if (this.registrationForm.invalid) {
       this.notificationService.warning(
@@ -82,48 +136,37 @@ export class RegistrationComponent {
       return;
     }
 
-    this.isLoading.set(true);
     const userData: RegisterUser = this.registrationForm.getRawValue();
 
-    this.authService.register(userData).subscribe({
-      next: () => {
-        // Set rememberMe to true for auto-login after registration
+    // Register then auto-login with global loading overlay
+    this.authService.register(userData).pipe(
+      loading('Creating your account...'),
+      switchMap(() => {
         this.authManagerService.rememberMe = true;
-
         const loginCredentials = {
           email: userData.email,
           password: userData.password,
-          twoFactorCode: '', // Default value for twoFactorCode
-          toFactorRecoveryCode: '', // Default value for toFactorRecoveryCode
-          rememberMe: true, // Default value for rememberMe
+          twoFactorCode: '',
+          toFactorRecoveryCode: '',
+          rememberMe: true,
         };
-
-        // Use AuthManagerService.login() instead of AuthService.login() for proper token storage
-        this.authManagerService.login(loginCredentials).subscribe({
-          next: () => {
-            this.isLoading.set(false);
-            this.notificationService.success(
-              'Registration successful! You are now logged in.'
-            );
-            this.registrationForm.reset();
-            this.registrationForm.setErrors(null);
-            this.router.navigate(['/onboarding']); // Redirect to onboarding process
-          },
-          error: (error) => {
-            this.isLoading.set(false);
-            const errorMessage = error.message;
-            this.notificationService.error(
-              `Registration successful, but login failed: ${errorMessage}`
-            );
-            console.error('Auto-login failed:', error);
-          },
-        });
+        return this.authManagerService.login(loginCredentials).pipe(
+          loading('Signing you in...')
+        );
+      })
+    ).subscribe({
+      next: () => {
+        this.notificationService.success(
+          'Registration successful! You are now logged in.'
+        );
+        this.registrationForm.reset();
+        this.registrationForm.setErrors(null);
+        this.router.navigate(['/onboarding']);
       },
       error: (error) => {
-        this.isLoading.set(false);
-        const errorMessage = error.message; // Access the processed error message from AuthService
-        this.notificationService.error(errorMessage); // Use NotificationService for error
-        console.error('Registration failed:', error);
+        const errorMessage = error.message || ERROR_MESSAGES.AUTH.REGISTER_FAILED;
+        this.notificationService.error(errorMessage);
+        console.error('Registration error:', error);
       },
     });
   }

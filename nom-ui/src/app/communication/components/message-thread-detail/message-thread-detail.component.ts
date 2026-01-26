@@ -9,12 +9,15 @@ import {
   AmwProgressSpinnerComponent,
   AmwIconButtonComponent,
   AmwIconComponent,
+  AmwValidationTooltipDirective,
+  AmwValidationService,
+  ValidationContext,
 } from 'angular-material-wrap';
-
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
 import { MessageModel } from '../../models/message.model';
 import { SendMessageRequestModel } from '../../models/send-message-request.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-message-thread-detail',
@@ -27,6 +30,7 @@ import { SendMessageRequestModel } from '../../models/send-message-request.model
     AmwProgressSpinnerComponent,
     AmwIconButtonComponent,
     AmwIconComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './message-thread-detail.component.html',
   styleUrl: './message-thread-detail.component.scss',
@@ -36,8 +40,10 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private validationService = inject(AmwValidationService);
 
   @ViewChild('messageContainer') messageContainer?: ElementRef;
+  validationContext!: ValidationContext;
 
   // Signals
   threadId = signal<number | null>(null);
@@ -81,6 +87,31 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
         this.isLoading.set(false);
       }
     });
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Content validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'content-required',
+      message: 'Message content is required',
+      severity: 'error',
+      field: 'content',
+      control: this.replyForm.get('content') ?? undefined,
+      validator: () => !this.replyForm.get('content')?.hasError('required')
+    });
+
+    // Content validation - minLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'content-minlength',
+      message: 'Message must be at least 1 character',
+      severity: 'error',
+      field: 'content',
+      control: this.replyForm.get('content') ?? undefined,
+      validator: () => !this.replyForm.get('content')?.hasError('minlength')
+    });
   }
 
   ngAfterViewChecked(): void {
@@ -93,6 +124,10 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   private loadThreadDetails(): void {
@@ -115,7 +150,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
           this.loadMessages();
         },
         error: (err) => {
-          this.error.set('Failed to load thread details');
+          this.error.set(ERROR_MESSAGES.COMMUNICATION.LOAD_FAILED);
           console.error('Error loading thread:', err);
         },
       });
@@ -137,7 +172,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
           this.markThreadAsRead();
         },
         error: (err) => {
-          this.error.set('Failed to load messages');
+          this.error.set(ERROR_MESSAGES.COMMUNICATION.LOAD_FAILED);
           console.error('Error loading messages:', err);
         },
       });
@@ -183,7 +218,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
           this.loadMessages();
         },
         error: (err) => {
-          this.error.set('Failed to send message');
+          this.error.set(ERROR_MESSAGES.COMMUNICATION.SEND_FAILED);
           console.error('Error sending message:', err);
         },
       });
@@ -198,7 +233,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
         this.router.navigate(['/messaging']);
       },
       error: (err) => {
-        this.error.set('Failed to archive thread');
+        this.error.set(ERROR_MESSAGES.COMMUNICATION.DELETE_FAILED);
         console.error('Error archiving thread:', err);
       },
     });
@@ -221,7 +256,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
         this.thread.set({ ...currentThread, isPinned: !currentThread.isPinned });
       },
       error: (err) => {
-        this.error.set('Failed to update pin status');
+        this.error.set(ERROR_MESSAGES.COMMUNICATION.SEND_FAILED);
         console.error('Error updating pin status:', err);
       },
     });
@@ -240,7 +275,7 @@ export class MessageThreadDetailComponent implements OnInit, OnDestroy, AfterVie
         this.router.navigate(['/messaging']);
       },
       error: (err) => {
-        this.error.set('Failed to delete thread');
+        this.error.set(ERROR_MESSAGES.COMMUNICATION.DELETE_FAILED);
         console.error('Error deleting thread:', err);
       },
     });

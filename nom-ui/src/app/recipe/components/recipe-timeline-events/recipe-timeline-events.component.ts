@@ -3,12 +3,12 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwDividerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwDividerComponent, AmwCardComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
 import { RecipeAdvancedService } from '../../services/recipe-advanced.service';
-import { BaseDetailComponent } from '../../../common/components/base-detail/base-detail.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-recipe-timeline-events',
@@ -24,7 +24,8 @@ import { BaseDetailComponent } from '../../../common/components/base-detail/base
         AmwTooltipDirective,
         AmwIconComponent,
         AmwDividerComponent,
-        BaseDetailComponent,
+        AmwCardComponent,
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: './recipe-timeline-events.component.html',
     styleUrls: ['./recipe-timeline-events.component.scss']
@@ -90,7 +91,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading timeline events:", error);
-                    this.error.set("Failed to load timeline events. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.TIMELINE_LOAD_FAILED);
                     this.isLoading.set(false);
                 },
             });
@@ -123,7 +124,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error creating timeline event:", error);
-                    this.error.set("Failed to create timeline event. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.TIMELINE_SAVE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });
@@ -140,7 +141,7 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error deleting timeline event:", error);
-                    this.notificationService.error("Failed to delete timeline event");
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.TIMELINE_DELETE_FAILED);
                 },
             });
     }
@@ -182,5 +183,10 @@ export class RecipeTimelineEventsComponent implements OnInit, OnDestroy {
             month: 'short',
             day: 'numeric'
         });
+    }
+
+    onRetry(): void {
+        this.error.set(null);
+        this.loadTimelineEvents();
     }
 } 

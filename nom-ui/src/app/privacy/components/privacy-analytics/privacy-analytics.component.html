@@ -1,148 +1,181 @@
-<nom-base-page [config]="listConfig" [isLoading]="isLoading" [error]="error" (refresh)="onRefresh()"
-  (retry)="onRetry()">
-
-  <!-- Analytics Overview -->
-  @if (analytics) {
-  <div class="privacy-analytics__overview">
-      <amw-card class="privacy-analytics__card" headerTitle="Privacy Compliance Overview"
-        headerSubtitle="Real-time privacy and compliance metrics">
-        <ng-template #cardContent>
-          <div class="privacy-analytics__metrics-grid">
-            <!-- Compliance Score -->
-            <div class="privacy-analytics__metric">
-              <div class="privacy-analytics__metric-header">
-                <amw-icon name="verified"></amw-icon>
-                <span>Compliance Score</span>
-              </div>
-              <div class="privacy-analytics__metric-value">
-                <span class="privacy-analytics__score">{{ analytics.complianceScore }}%</span>
-                <amw-chip [label]="getComplianceStatus()" [color]="getComplianceColor()" [selected]="true">
-                </amw-chip>
-              </div>
-            </div>
-
-            <!-- Risk Score -->
-            <div class="privacy-analytics__metric">
-              <div class="privacy-analytics__metric-header">
-                <amw-icon name="security"></amw-icon>
-                <span>Risk Level</span>
-              </div>
-              <div class="privacy-analytics__metric-value">
-                <span class="privacy-analytics__score">{{ analytics.riskScore }}%</span>
-                <amw-chip [label]="getRiskLevel()" [color]="getRiskColor()" [selected]="true">
-                </amw-chip>
-              </div>
-            </div>
-
-            <!-- Data Processing Activities -->
-            <div class="privacy-analytics__metric">
-              <div class="privacy-analytics__metric-header">
-                <amw-icon name="data_usage"></amw-icon>
-                <span>Processing Activities</span>
-              </div>
-              <div class="privacy-analytics__metric-value">
-                <span class="privacy-analytics__number">{{ analytics.dataProcessingActivities }}</span>
-                <span class="privacy-analytics__label">Today</span>
-              </div>
-            </div>
-
-            <!-- User Consent Rate -->
-            <div class="privacy-analytics__metric">
-              <div class="privacy-analytics__metric-header">
-                <amw-icon name="how_to_reg"></amw-icon>
-                <span>Consent Rate</span>
-              </div>
-              <div class="privacy-analytics__metric-value">
-                <span class="privacy-analytics__score">{{ analytics.userConsentRate }}%</span>
-                <span class="privacy-analytics__label">Active Users</span>
-              </div>
-            </div>
-          </div>
-        </ng-template>
-      </amw-card>
+<div class="privacy-analytics">
+  <!-- Header -->
+  <div class="privacy-analytics__header">
+    <div class="privacy-analytics__header-content">
+      <h1 class="privacy-analytics__title">Privacy Analytics</h1>
+      <p class="privacy-analytics__subtitle">Monitor data processing activities and compliance metrics</p>
     </div>
+    <div class="privacy-analytics__header-actions">
+      <amw-button variant="text" (click)="onRefresh()" icon="refresh">
+        Refresh
+      </amw-button>
+    </div>
+  </div>
 
-    <!-- Detailed Metrics -->
-    <div class="privacy-analytics__details">
-      <div class="privacy-analytics__details-grid">
-        <!-- Data Subject Rights -->
-        <amw-card class="privacy-analytics__detail-card" headerTitle="Data Subject Rights">
-          <ng-template #cardContent>
-            <div class="privacy-analytics__detail-metrics">
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Export Requests</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.dataExportRequests }}</span>
-              </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Deletion Requests</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.dataDeletionRequests }}</span>
-              </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Rights Requests</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.dataSubjectRightsRequests }}</span>
-              </div>
-            </div>
-          </ng-template>
-        </amw-card>
+  <!-- Loading State -->
+  @if (isLoading) {
+    <div class="privacy-analytics__loading">
+      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+      <p>Loading analytics...</p>
+    </div>
+  }
 
-        <!-- Compliance Status -->
-        <amw-card class="privacy-analytics__detail-card" headerTitle="Compliance Status">
-          <ng-template #cardContent>
-            <div class="privacy-analytics__detail-metrics">
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">GDPR Status</span>
-                <amw-chip [label]="analytics.gdprComplianceStatus"
-                  [color]="analytics.gdprComplianceStatus === 'Compliant' ? 'accent' : 'warn'" [selected]="true">
-                </amw-chip>
-              </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Retention Compliance</span>
-                <amw-chip [label]="analytics.dataRetentionCompliance"
-                  [color]="analytics.dataRetentionCompliance === 'Compliant' ? 'accent' : 'warn'" [selected]="true">
-                </amw-chip>
-              </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Last Check</span>
-                <span class="privacy-analytics__detail-value">{{ formatDate(analytics.lastComplianceCheck) }}</span>
-              </div>
-            </div>
-          </ng-template>
-        </amw-card>
+  <!-- Error State -->
+  @if (error && !isLoading) {
+    <div class="privacy-analytics__error">
+      <amw-icon name="error" color="warn"></amw-icon>
+      <h3>Error</h3>
+      <p>{{ error }}</p>
+      <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+        Try Again
+      </amw-button>
+    </div>
+  }
 
-        <!-- Risk Assessment -->
-        <amw-card class="privacy-analytics__detail-card" headerTitle="Risk Assessment">
+  <!-- Content -->
+  @if (!isLoading && !error) {
+    <!-- Analytics Overview -->
+    @if (analytics) {
+      <div class="privacy-analytics__overview">
+        <amw-card class="privacy-analytics__card" headerTitle="Privacy Compliance Overview"
+          headerSubtitle="Real-time privacy and compliance metrics">
           <ng-template #cardContent>
-            <div class="privacy-analytics__detail-metrics">
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Cross-Border Transfers</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.crossBorderTransfers }}</span>
+            <div class="privacy-analytics__metrics-grid">
+              <!-- Compliance Score -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <amw-icon name="verified"></amw-icon>
+                  <span>Compliance Score</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.complianceScore }}%</span>
+                  <amw-chip [label]="getComplianceStatus()" [color]="getComplianceColor()" [selected]="true">
+                  </amw-chip>
+                </div>
               </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">Data Breach Incidents</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.dataBreachIncidents }}</span>
+
+              <!-- Risk Score -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <amw-icon name="security"></amw-icon>
+                  <span>Risk Level</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.riskScore }}%</span>
+                  <amw-chip [label]="getRiskLevel()" [color]="getRiskColor()" [selected]="true">
+                  </amw-chip>
+                </div>
               </div>
-              <div class="privacy-analytics__detail-metric">
-                <span class="privacy-analytics__detail-label">PIAs Completed</span>
-                <span class="privacy-analytics__detail-value">{{ analytics.privacyImpactAssessments }}</span>
+
+              <!-- Data Processing Activities -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <amw-icon name="data_usage"></amw-icon>
+                  <span>Processing Activities</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__number">{{ analytics.dataProcessingActivities }}</span>
+                  <span class="privacy-analytics__label">Today</span>
+                </div>
+              </div>
+
+              <!-- User Consent Rate -->
+              <div class="privacy-analytics__metric">
+                <div class="privacy-analytics__metric-header">
+                  <amw-icon name="how_to_reg"></amw-icon>
+                  <span>Consent Rate</span>
+                </div>
+                <div class="privacy-analytics__metric-value">
+                  <span class="privacy-analytics__score">{{ analytics.userConsentRate }}%</span>
+                  <span class="privacy-analytics__label">Active Users</span>
+                </div>
               </div>
             </div>
           </ng-template>
         </amw-card>
       </div>
-    </div>
 
-    <!-- Action Buttons -->
-    <div class="privacy-analytics__actions">
-      <amw-button variant="filled" color="primary" (click)="onGenerateComplianceReport()"
-        class="privacy-analytics__action-btn" icon="assessment">
-        Generate Compliance Report
-      </amw-button>
+      <!-- Detailed Metrics -->
+      <div class="privacy-analytics__details">
+        <div class="privacy-analytics__details-grid">
+          <!-- Data Subject Rights -->
+          <amw-card class="privacy-analytics__detail-card" headerTitle="Data Subject Rights">
+            <ng-template #cardContent>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Export Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataExportRequests }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Deletion Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataDeletionRequests }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Rights Requests</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataSubjectRightsRequests }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </amw-card>
 
-      <amw-button variant="outlined" color="accent" (click)="onExportAnalytics()" class="privacy-analytics__action-btn"
-        icon="download">
-        Export Analytics
-      </amw-button>
-    </div>
+          <!-- Compliance Status -->
+          <amw-card class="privacy-analytics__detail-card" headerTitle="Compliance Status">
+            <ng-template #cardContent>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">GDPR Status</span>
+                  <amw-chip [label]="analytics.gdprComplianceStatus"
+                    [color]="analytics.gdprComplianceStatus === 'Compliant' ? 'accent' : 'warn'" [selected]="true">
+                  </amw-chip>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Retention Compliance</span>
+                  <amw-chip [label]="analytics.dataRetentionCompliance"
+                    [color]="analytics.dataRetentionCompliance === 'Compliant' ? 'accent' : 'warn'" [selected]="true">
+                  </amw-chip>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Last Check</span>
+                  <span class="privacy-analytics__detail-value">{{ formatDate(analytics.lastComplianceCheck) }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </amw-card>
+
+          <!-- Risk Assessment -->
+          <amw-card class="privacy-analytics__detail-card" headerTitle="Risk Assessment">
+            <ng-template #cardContent>
+              <div class="privacy-analytics__detail-metrics">
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Cross-Border Transfers</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.crossBorderTransfers }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">Data Breach Incidents</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.dataBreachIncidents }}</span>
+                </div>
+                <div class="privacy-analytics__detail-metric">
+                  <span class="privacy-analytics__detail-label">PIAs Completed</span>
+                  <span class="privacy-analytics__detail-value">{{ analytics.privacyImpactAssessments }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </amw-card>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="privacy-analytics__actions">
+        <amw-button variant="filled" color="primary" (click)="onGenerateComplianceReport()"
+          class="privacy-analytics__action-btn" icon="assessment">
+          Generate Compliance Report
+        </amw-button>
+
+        <amw-button variant="outlined" color="accent" (click)="onExportAnalytics()" class="privacy-analytics__action-btn"
+          icon="download">
+          Export Analytics
+        </amw-button>
+      </div>
     }
 
     <!-- Data Processing Logs -->
@@ -151,16 +184,17 @@
         headerSubtitle="Recent data processing activities">
         <ng-template #cardContent>
           @if (processingLogs.length === 0) {
-          <div class="privacy-analytics__empty">
-            <amw-icon name="info" class="privacy-analytics__empty-icon"></amw-icon>
-            <p>No processing logs available</p>
-          </div>
+            <div class="privacy-analytics__empty">
+              <amw-icon name="info" class="privacy-analytics__empty-icon"></amw-icon>
+              <p>No processing logs available</p>
+            </div>
           } @else {
-          <amw-data-table [config]="tableConfig" [columns]="tableColumns" [data]="processingLogs"
-            class="privacy-analytics__table">
-          </amw-data-table>
+            <amw-data-table [config]="tableConfig" [columns]="tableColumns" [data]="processingLogs"
+              class="privacy-analytics__table">
+            </amw-data-table>
           }
         </ng-template>
       </amw-card>
     </div>
-</nom-base-page>
+  }
+</div>

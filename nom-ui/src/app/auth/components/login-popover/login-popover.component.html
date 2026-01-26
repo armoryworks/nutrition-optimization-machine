@@ -15,7 +15,7 @@
         }
 
         <amw-button type="submit" variant="filled" color="primary" [disabled]="loginForm.invalid || isLoading()"
-          [loading]="isLoading()" class="login-popover__submit">
+          [loading]="isLoading()" [amwValidationTooltip]="validationContext" class="login-popover__submit">
           Sign In
         </amw-button>
       </form>

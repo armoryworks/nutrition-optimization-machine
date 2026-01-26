@@ -3,10 +3,10 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent } from 'angular-material-wrap';
-
+import { AmwButtonComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeRatingResponseModel } from '../../models/recipe-rating.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 
 @Component({
@@ -18,6 +18,7 @@ import { RecipeRatingResponseModel } from '../../models/recipe-rating.model';
         AmwTextareaComponent,
         AmwCardComponent,
         AmwIconComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-rating.component.html',
     styleUrls: ['./recipe-rating.component.scss']
@@ -26,8 +27,10 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private notificationService = inject(NotificationService);
+    private validationService = inject(AmwValidationService);
     private destroy$ = new Subject<void>();
 
+    validationContext!: ValidationContext;
     recipeId = input<number>();
 
     rating = signal<RecipeRatingResponseModel | null>(null);
@@ -53,11 +56,60 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
         if (this.recipeId) {
             this.loadRatingData();
         }
+
+        // Setup ValidationContext
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Rating validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'rating-required',
+            message: 'Rating is required',
+            severity: 'error',
+            field: 'rating',
+            control: this.ratingForm.get('rating') ?? undefined,
+            validator: () => !this.ratingForm.get('rating')?.hasError('required')
+        });
+
+        // Rating validation - min
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'rating-min',
+            message: 'Rating must be at least 1',
+            severity: 'error',
+            field: 'rating',
+            control: this.ratingForm.get('rating') ?? undefined,
+            validator: () => !this.ratingForm.get('rating')?.hasError('min')
+        });
+
+        // Rating validation - max
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'rating-max',
+            message: 'Rating must be at most 5',
+            severity: 'error',
+            field: 'rating',
+            control: this.ratingForm.get('rating') ?? undefined,
+            validator: () => !this.ratingForm.get('rating')?.hasError('max')
+        });
+
+        // Review text validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'reviewText-maxlength',
+            message: 'Review text must be 1000 characters or less',
+            severity: 'error',
+            field: 'reviewText',
+            control: this.ratingForm.get('reviewText') ?? undefined,
+            validator: () => !this.ratingForm.get('reviewText')?.hasError('maxlength')
+        });
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     loadRatingData(): void {
@@ -92,7 +144,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
             },
             error: () => {
                 console.error("Error loading average rating");
-                this.error.set("Failed to load rating data. Please try again.");
+                this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                 this.isLoading.set(false);
             },
         });
@@ -113,7 +165,10 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
 
         this.recipeService
             .createRating(request)
-            .pipe(takeUntil(this.destroy$))
+            .pipe(
+                loading('Submitting rating...'),
+                takeUntil(this.destroy$)
+            )
             .subscribe({
                 next: (rating) => {
                     this.userRating.set(rating);
@@ -124,7 +179,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
                 },
                 error: () => {
                     console.error("Error submitting rating");
-                    this.error.set("Failed to submit rating. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });
@@ -145,7 +200,10 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
 
         this.recipeService
             .updateRating(this.userRating()!.id, request)
-            .pipe(takeUntil(this.destroy$))
+            .pipe(
+                loading('Updating rating...'),
+                takeUntil(this.destroy$)
+            )
             .subscribe({
                 next: (rating) => {
                     this.userRating.set(rating);
@@ -156,7 +214,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
                 },
                 error: () => {
                     console.error("Error updating rating");
-                    this.error.set("Failed to update rating. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });
@@ -171,7 +229,10 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
         this.error.set(null);
         this.recipeService
             .deleteRating(this.userRating()!.id)
-            .pipe(takeUntil(this.destroy$))
+            .pipe(
+                loading('Deleting rating...'),
+                takeUntil(this.destroy$)
+            )
             .subscribe({
                 next: () => {
                     this.userRating.set(null);
@@ -183,7 +244,7 @@ export class RecipeRatingComponent implements OnInit, OnDestroy {
                 },
                 error: () => {
                     console.error("Error deleting rating");
-                    this.error.set("Failed to delete rating. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });

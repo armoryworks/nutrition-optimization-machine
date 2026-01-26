@@ -1,54 +1,79 @@
-<nom-base-page [config]="listConfig()" [isLoading]="isLoading()" [error]="error()" (refresh)="onRefresh()"
-  (retry)="onRetry()">
+<div class="recipe-assets">
+  <!-- Header -->
+  <div class="recipe-assets__header">
+    <div class="recipe-assets__header-content">
+      <h1 class="recipe-assets__title">Recipe Assets</h1>
+      <p class="recipe-assets__subtitle">Manage files, images, and documents for this recipe</p>
+    </div>
+    <div class="recipe-assets__header-actions">
+      <amw-button variant="text" (click)="onRefresh()" icon="refresh">
+        Refresh
+      </amw-button>
+    </div>
+  </div>
 
-  <!-- Upload Form (Edit Mode Only) -->
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="recipe-assets__error">
+      <amw-icon name="error" color="warn"></amw-icon>
+      <h3>Error</h3>
+      <p>{{ error() }}</p>
+      <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+        Try Again
+      </amw-button>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!error()) {
+    <!-- Upload Form (Edit Mode Only) -->
     @if (isEditMode()) {
-    <amw-card headerTitle="Upload New Asset" headerSubtitle="Add files, images, or documents to this recipe"
-      headerIcon="cloud_upload" class="recipe-assets__upload-card">
-      <ng-template #cardContent>
-        <form [formGroup]="assetForm" (ngSubmit)="onSubmit()" class="recipe-assets__form">
-          <div class="recipe-assets__form-row">
-            <amw-input formControlName="name" label="Asset Name" placeholder="Enter asset name" [required]="true"
-              class="recipe-assets__name-field">
-            </amw-input>
+      <amw-card headerTitle="Upload New Asset" headerSubtitle="Add files, images, or documents to this recipe"
+        headerIcon="cloud_upload" class="recipe-assets__upload-card">
+        <ng-template #cardContent>
+          <form [formGroup]="assetForm" (ngSubmit)="onSubmit()" class="recipe-assets__form">
+            <div class="recipe-assets__form-row">
+              <amw-input formControlName="name" label="Asset Name" placeholder="Enter asset name" [required]="true"
+                class="recipe-assets__name-field">
+              </amw-input>
 
-            <amw-select formControlName="icon" label="Icon Type" [required]="true"
-              [options]="iconOptions.map(o => ({ value: o.value, label: o.label }))" class="recipe-assets__icon-field">
-            </amw-select>
-          </div>
-
-          <amw-textarea formControlName="description" label="Description (Optional)"
-            placeholder="Describe this asset..." [rows]="2" class="recipe-assets__description-field">
-          </amw-textarea>
-
-          <div class="recipe-assets__file-upload">
-            <label class="recipe-assets__file-label">
-              <input type="file" id="fileInput" (change)="onFileSelected($event)" class="recipe-assets__file-input"
-                accept="*/*">
-              <div class="recipe-assets__file-button">
-                <amw-icon name="cloud_upload"></amw-icon>
-                <span>Choose File</span>
-              </div>
-            </label>
-            @if (selectedFile) {
-            <div class="recipe-assets__file-info">
-              <amw-icon name="attach_file"></amw-icon>
-              <span>{{ selectedFile.name }}</span>
-              <span class="recipe-assets__file-size">({{ getFileSizeDisplay(selectedFile.size) }})</span>
+              <amw-select formControlName="icon" label="Icon Type" [required]="true"
+                [options]="iconOptions.map(o => ({ value: o.value, label: o.label }))" class="recipe-assets__icon-field">
+              </amw-select>
             </div>
-            }
-          </div>
 
-          <div class="recipe-assets__form-actions">
-            <amw-button variant="filled" color="primary" type="submit"
-              [disabled]="assetForm.invalid || !selectedFile || isSubmitting()" [loading]="isSubmitting()" icon="upload"
-              class="recipe-assets__submit-btn">
-              {{ isSubmitting() ? 'Uploading...' : 'Upload Asset' }}
-            </amw-button>
-          </div>
-        </form>
-      </ng-template>
-    </amw-card>
+            <amw-textarea formControlName="description" label="Description (Optional)"
+              placeholder="Describe this asset..." [rows]="2" class="recipe-assets__description-field">
+            </amw-textarea>
+
+            <div class="recipe-assets__file-upload">
+              <label class="recipe-assets__file-label">
+                <input type="file" id="fileInput" (change)="onFileSelected($event)" class="recipe-assets__file-input"
+                  accept="*/*">
+                <div class="recipe-assets__file-button">
+                  <amw-icon name="cloud_upload"></amw-icon>
+                  <span>Choose File</span>
+                </div>
+              </label>
+              @if (selectedFile) {
+                <div class="recipe-assets__file-info">
+                  <amw-icon name="attach_file"></amw-icon>
+                  <span>{{ selectedFile.name }}</span>
+                  <span class="recipe-assets__file-size">({{ getFileSizeDisplay(selectedFile.size) }})</span>
+                </div>
+              }
+            </div>
+
+            <div class="recipe-assets__form-actions">
+              <amw-button variant="filled" color="primary" type="submit"
+                [disabled]="assetForm.invalid || !selectedFile || isSubmitting()" [loading]="isSubmitting()"
+                [amwValidationTooltip]="validationContext" icon="upload" class="recipe-assets__submit-btn">
+                {{ isSubmitting() ? 'Uploading...' : 'Upload Asset' }}
+              </amw-button>
+            </div>
+          </form>
+        </ng-template>
+      </amw-card>
     }
 
     <!-- Assets List -->
@@ -56,56 +81,57 @@
       <h3 class="recipe-assets__section-title">Recipe Assets</h3>
 
       @if (isLoading()) {
-      <div class="recipe-assets__loading">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-        <p>Loading assets...</p>
-      </div>
+        <div class="recipe-assets__loading">
+          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+          <p>Loading assets...</p>
+        </div>
       }
 
       @if (!isLoading() && assets().length === 0) {
-      <div class="recipe-assets__empty">
-        <amw-icon name="folder_open" class="recipe-assets__empty-icon"></amw-icon>
-        <p>No assets uploaded yet.</p>
-        @if (isEditMode()) {
-        <p>Upload files, images, or documents to share with this recipe.</p>
-        }
-      </div>
+        <div class="recipe-assets__empty">
+          <amw-icon name="folder_open" class="recipe-assets__empty-icon"></amw-icon>
+          <p>No assets uploaded yet.</p>
+          @if (isEditMode()) {
+            <p>Upload files, images, or documents to share with this recipe.</p>
+          }
+        </div>
       }
 
       @if (!isLoading() && assets().length > 0) {
-      <amw-list listClass="recipe-assets__list">
-        @for (asset of assets(); track asset.id) {
-        <amw-list-item itemClass="recipe-assets__list-item">
-          <amw-icon amwListItemIcon [name]="getIconClass(asset.icon)" [amwTooltip]="getIconClass(asset.icon)"
-            amwTooltipPosition="above" class="recipe-assets__item-icon">
-          </amw-icon>
+        <amw-list listClass="recipe-assets__list">
+          @for (asset of assets(); track asset.id) {
+            <amw-list-item itemClass="recipe-assets__list-item">
+              <amw-icon amwListItemIcon [name]="getIconClass(asset.icon)" [amwTooltip]="getIconClass(asset.icon)"
+                amwTooltipPosition="above" class="recipe-assets__item-icon">
+              </amw-icon>
 
-          <span amwListItemTitle class="recipe-assets__item-title">
-            {{ asset.name }}
-          </span>
+              <span amwListItemTitle class="recipe-assets__item-title">
+                {{ asset.name }}
+              </span>
 
-          <div amwListItemSubtitle class="recipe-assets__item-meta">
-            @if (asset.description) {
-            <span class="recipe-assets__item-description">{{ asset.description }}</span>
-            }
-            <span class="recipe-assets__item-size">{{ getFileSizeDisplay(asset.fileSize) }}</span>
-            <span class="recipe-assets__item-date">{{ formatDate(asset.createdDate) }}</span>
-          </div>
+              <div amwListItemSubtitle class="recipe-assets__item-meta">
+                @if (asset.description) {
+                  <span class="recipe-assets__item-description">{{ asset.description }}</span>
+                }
+                <span class="recipe-assets__item-size">{{ getFileSizeDisplay(asset.fileSize) }}</span>
+                <span class="recipe-assets__item-date">{{ formatDate(asset.createdDate) }}</span>
+              </div>
 
-          <div amwListItemMeta class="recipe-assets__item-actions">
-            <amw-icon-button icon="download" color="primary" (click)="onDownloadAsset(asset)"
-              class="recipe-assets__download-btn" ariaLabel="Download asset">
-            </amw-icon-button>
+              <div amwListItemMeta class="recipe-assets__item-actions">
+                <amw-icon-button icon="download" color="primary" (click)="onDownloadAsset(asset)"
+                  class="recipe-assets__download-btn" ariaLabel="Download asset">
+                </amw-icon-button>
 
-            @if (isEditMode()) {
-            <amw-icon-button icon="delete" color="warn" (click)="onDeleteAsset(asset.id)"
-              class="recipe-assets__delete-btn" ariaLabel="Delete asset">
-            </amw-icon-button>
-            }
-          </div>
-        </amw-list-item>
-        }
-      </amw-list>
+                @if (isEditMode()) {
+                  <amw-icon-button icon="delete" color="warn" (click)="onDeleteAsset(asset.id)"
+                    class="recipe-assets__delete-btn" ariaLabel="Delete asset">
+                  </amw-icon-button>
+                }
+              </div>
+            </amw-list-item>
+          }
+        </amw-list>
       }
     </div>
-</nom-base-page>
+  }
+</div>

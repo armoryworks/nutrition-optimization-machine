@@ -1,19 +1,18 @@
-import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
   ReactiveFormsModule,
   NonNullableFormBuilder,
-  AbstractControl,
 } from '@angular/forms';
-
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidators, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { ResetPassword } from '../models/reset-password';
 import { NotificationService } from '../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-reset-password',
@@ -23,25 +22,24 @@ import { NotificationService } from '../../utilities/services/notification.servi
     AmwInputComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwProgressBarComponent
+    AmwValidationTooltipDirective
   ],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class ResetPasswordComponent implements OnInit {
+export class ResetPasswordComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private validationService = inject(AmwValidationService);
 
   resetPasswordForm: FormGroup;
-  isLoading = signal(false);
   email = '';
   resetCode = '';
-
-
+  validationContext!: ValidationContext;
 
   constructor() {
     // Initialize form with default values
@@ -52,8 +50,7 @@ export class ResetPasswordComponent implements OnInit {
         newPassword: ['', [Validators.required, Validators.minLength(8)]],
         confirmNewPassword: ['', Validators.required],
       },
-      // Apply the custom validator to the FormGroup
-      { validators: this.passwordMatchValidator }
+      { validators: AmwValidators.passwordsMatch('newPassword', 'confirmNewPassword') }
     );
   }
 
@@ -76,34 +73,90 @@ export class ResetPasswordComponent implements OnInit {
         this.resetPasswordForm.get('resetCode')?.disable();
       }
     });
+
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Email validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-required',
+      message: 'Email is required',
+      severity: 'error',
+      field: 'email',
+      control: this.resetPasswordForm.get('email') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('email')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-format',
+      message: 'Please enter a valid email address',
+      severity: 'error',
+      field: 'email',
+      control: this.resetPasswordForm.get('email') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('email')?.hasError('email')
+    });
+
+    // Reset code validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'resetCode-required',
+      message: 'Reset code is required',
+      severity: 'error',
+      field: 'resetCode',
+      control: this.resetPasswordForm.get('resetCode') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('resetCode')?.hasError('required')
+    });
+
+    // New password validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'newPassword-required',
+      message: 'New password is required',
+      severity: 'error',
+      field: 'newPassword',
+      control: this.resetPasswordForm.get('newPassword') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('newPassword')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'newPassword-minlength',
+      message: 'Password must be at least 8 characters',
+      severity: 'error',
+      field: 'newPassword',
+      control: this.resetPasswordForm.get('newPassword') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('newPassword')?.hasError('minlength')
+    });
+
+    // Confirm new password validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'confirmNewPassword-required',
+      message: 'Confirm new password is required',
+      severity: 'error',
+      field: 'confirmNewPassword',
+      control: this.resetPasswordForm.get('confirmNewPassword') ?? undefined,
+      validator: () => !this.resetPasswordForm.get('confirmNewPassword')?.hasError('required')
+    });
+
+    // Password match validation (form-level)
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'passwords-mismatch',
+      message: 'Passwords do not match',
+      severity: 'error',
+      field: 'confirmNewPassword',
+      validator: () => !this.resetPasswordForm.hasError('mismatch')
+    });
   }
 
-  /**
-   * Custom validator for password matching.
-   * Applied to the FormGroup.
-   * @param control The FormGroup being validated.
-   * @returns ValidationErrors if passwords don't match, otherwise null.
-   */
-  passwordMatchValidator = (
-    control: AbstractControl
-  ): Record<string, boolean> | null => {
-    const newPassword = control.get('newPassword')?.value;
-    const confirmNewPassword = control.get('confirmNewPassword')?.value;
-
-    // Return null if fields are empty or not yet touched/dirty, to avoid premature errors
-    if (!newPassword || !confirmNewPassword) {
-      return null;
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
     }
-
-    return newPassword === confirmNewPassword ? null : { mismatch: true };
-  };
+  }
 
   /**
    * Handles the password reset form submission.
    */
   onSubmit(): void {
-    this.resetPasswordForm.markAllAsTouched(); // Mark all fields as touched for immediate validation feedback
-    // Ensure form validation state is updated after marking touched, especially for cross-field validators
+    this.resetPasswordForm.markAllAsTouched();
     this.resetPasswordForm.updateValueAndValidity();
 
     if (this.resetPasswordForm.invalid) {
@@ -113,8 +166,6 @@ export class ResetPasswordComponent implements OnInit {
       return;
     }
 
-    this.isLoading.set(true);
-    // getRawValue includes disabled fields
     const formData = this.resetPasswordForm.getRawValue();
     const resetData: ResetPassword = {
       email: formData.email,
@@ -122,24 +173,21 @@ export class ResetPasswordComponent implements OnInit {
       newPassword: formData.newPassword,
     };
 
-    this.authService.resetPassword(resetData).subscribe(
-      () => {
-        this.isLoading.set(false);
-        this.notificationService.success('Your password has been reset successfully!');
-        this.resetPasswordForm.reset(); // Clear the form
-        this.resetPasswordForm.setErrors(null); // Clear form-level errors after reset
-        // Optionally redirect to login page after successful password reset
-        this.router.navigate(['/login']);
-      },
-      (error) => {
-        this.isLoading.set(false);
-        console.error('Password reset error:', error);
-        // The error.message is already processed by the AuthService's handleError
-        this.notificationService.error(
-          error.message ||
-          'An unexpected error occurred during password reset. Please try again.'
-        );
-      }
-    );
+    this.authService.resetPassword(resetData)
+      .pipe(loading('Resetting password...'))
+      .subscribe({
+        next: () => {
+          this.notificationService.success('Your password has been reset successfully!');
+          this.resetPasswordForm.reset();
+          this.resetPasswordForm.setErrors(null);
+          this.router.navigate(['/login']);
+        },
+        error: (error) => {
+          console.error('Password reset error:', error);
+          this.notificationService.error(
+            error.message || ERROR_MESSAGES.AUTH.PASSWORD_RESET_FAILED
+          );
+        }
+      });
   }
 }

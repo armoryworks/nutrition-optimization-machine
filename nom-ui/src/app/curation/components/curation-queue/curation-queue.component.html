@@ -1,230 +1,283 @@
 <div class="nom-page-container full-canvas nom-compact-top-minima">
-  <!-- Fixed Header -->
-  <nom-base-list [config]="listConfig" [isLoading]="isLoading()" [error]="error()" (refresh)="onRefresh()"
-    (retry)="onRetry()">
-  </nom-base-list>
+  <!-- Header -->
+  <div class="curation-queue__header">
+    <div class="curation-queue__header-content">
+      <h1 class="curation-queue__title">Curation Queue</h1>
+      <p class="curation-queue__subtitle">Review and approve submitted content</p>
+    </div>
 
-  <div class="curation-queue__container">
-    <!-- Queue Items -->
-    <div class="queue-items">
-      <h2 class="queue-items__header">
-        Pending Items
-      </h2>
+    <div class="curation-queue__header-center">
+      <div class="curation-queue__stats">
+        <span class="curation-queue__stat curation-queue__stat--pending">
+          {{ queueItems().length }} Pending
+        </span>
+        <span class="curation-queue__stat curation-queue__stat--recipe">
+          {{ recipeCount() }} Recipes
+        </span>
+        <span class="curation-queue__stat curation-queue__stat--ingredient">
+          {{ ingredientCount() }} Ingredients
+        </span>
+      </div>
+      <div class="curation-queue__progress">
+        <span class="curation-queue__progress-text">{{ progressText() }}</span>
+      </div>
+    </div>
 
-      <div class="queue-items__list">
-        @if (hasItems()) {
-        @for (item of queueItems(); track item.id) {
-        <button type="button" class="queue-item" [class.selected]="selectedItem()?.id === item.id"
-          (click)="selectItem(item)" (keydown)="onKeyDown($event, item)"
-          [attr.aria-label]="'Select ' + item.entityType + ': ' + item.name"
-          [attr.aria-pressed]="selectedItem()?.id === item.id">
-          <div class="queue-item__badge" [ngClass]="'queue-item__badge--' + item.entityType.toLowerCase()">
-            {{ item.entityType }}
-          </div>
-          <div class="queue-item__content">
-            <h3 class="queue-item__title" [amwTooltip]="item.name" amwTooltipPosition="above">
-              {{ item.name }}
-            </h3>
-            <p class="queue-item__meta">
-              By {{ item.authorName }} • {{ formatDate(item.dateSubmitted) }}
-            </p>
-          </div>
-        </button>
+    <div class="curation-queue__header-actions">
+      <div class="curation-queue__refresh">
+        @if (lastRefreshTime()) {
+          <span class="curation-queue__last-updated">{{ formatRelativeTime(lastRefreshTime()!) }}</span>
         }
-        } @else {
-        <div class="empty-state">
-          <amw-icon name="check_circle" class="empty-state__icon"></amw-icon>
-          <h3 class="empty-state__title">No Pending Items</h3>
-          <p class="empty-state__text">All items have been reviewed. The queue is currently empty.</p>
+        <amw-button variant="text" (click)="onRefresh()" icon="refresh">
+          Refresh
+        </amw-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="curation-queue__loading">
+      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+      <p>Loading queue...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="curation-queue__error">
+      <amw-icon name="error" color="warn"></amw-icon>
+      <h3>Error</h3>
+      <p>{{ error() }}</p>
+      <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+        Try Again
+      </amw-button>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!isLoading() && !error()) {
+    <div class="curation-queue__container">
+      <!-- Queue Items -->
+      <div class="queue-items">
+        <h2 class="queue-items__header">
+          Pending Items
+        </h2>
+
+        <div class="queue-items__list">
+          @if (hasItems()) {
+            @for (item of queueItems(); track item.id) {
+              <button type="button" class="queue-item" [class.selected]="selectedItem()?.id === item.id"
+                (click)="selectItem(item)" (keydown)="onKeyDown($event, item)"
+                [attr.aria-label]="'Select ' + item.entityType + ': ' + item.name"
+                [attr.aria-pressed]="selectedItem()?.id === item.id">
+                <div class="queue-item__badge" [ngClass]="'queue-item__badge--' + item.entityType.toLowerCase()">
+                  {{ item.entityType }}
+                </div>
+                <div class="queue-item__content">
+                  <h3 class="queue-item__title" [amwTooltip]="item.name" amwTooltipPosition="above">
+                    {{ item.name }}
+                  </h3>
+                  <p class="queue-item__meta">
+                    By {{ item.authorName }} • {{ formatDate(item.dateSubmitted) }}
+                  </p>
+                </div>
+              </button>
+            }
+          } @else {
+            <div class="empty-state">
+              <amw-icon name="check_circle" class="empty-state__icon"></amw-icon>
+              <h3 class="empty-state__title">No Pending Items</h3>
+              <p class="empty-state__text">All items have been reviewed. The queue is currently empty.</p>
+            </div>
+          }
         </div>
-        }
       </div>
-    </div>
 
-    <!-- Decision Panel -->
-    @if (selectedItem()) {
-    <div class="decision-panel">
-      <form [formGroup]="decisionForm" class="decision-form">
-        <amw-card [headerTitle]="'Review ' + selectedItem()!.entityType + ' - ' + selectedItem()!.name">
-          <ng-template #cardContent>
-            <div class="decision-panel__header-actions">
-              <!-- Control Buttons Context Menu -->
-              <amw-icon-button icon="more_vert" [amwMenuTriggerFor]="controlMenu" class="control-menu-trigger"
-                ariaLabel="Open control menu">
-              </amw-icon-button>
+      <!-- Decision Panel -->
+      @if (selectedItem()) {
+        <div class="decision-panel">
+          <form [formGroup]="decisionForm" class="decision-form">
+            <amw-card [headerTitle]="'Review ' + selectedItem()!.entityType + ' - ' + selectedItem()!.name">
+              <ng-template #cardContent>
+                <div class="decision-panel__header-actions">
+                  <!-- Control Buttons Context Menu -->
+                  <amw-icon-button icon="more_vert" [amwMenuTriggerFor]="controlMenu" class="control-menu-trigger"
+                    ariaLabel="Open control menu">
+                  </amw-icon-button>
 
-              <amw-menu #controlMenu menuClass="control-menu">
-                <amw-menu-item label="Approve" icon="check_circle" [disabled]="decisionForm.invalid || isSubmitting()"
-                  (itemClick)="approve()">
-                </amw-menu-item>
-                <amw-menu-item label="Request Revision" icon="edit" [disabled]="decisionForm.invalid || isSubmitting()"
-                  (itemClick)="requestRevision()">
-                </amw-menu-item>
-                <amw-menu-item label="Reject" icon="cancel" [disabled]="decisionForm.invalid || isSubmitting()"
-                  (itemClick)="reject()">
-                </amw-menu-item>
-                <amw-menu-item label="Cancel" icon="close" (itemClick)="cancel()">
-                </amw-menu-item>
-              </amw-menu>
+                  <amw-menu #controlMenu menuClass="control-menu">
+                    <amw-menu-item label="Approve" icon="check_circle" [disabled]="decisionForm.invalid || isSubmitting()"
+                      (itemClick)="approve()">
+                    </amw-menu-item>
+                    <amw-menu-item label="Request Revision" icon="edit" [disabled]="decisionForm.invalid || isSubmitting()"
+                      (itemClick)="requestRevision()">
+                    </amw-menu-item>
+                    <amw-menu-item label="Reject" icon="cancel" [disabled]="decisionForm.invalid || isSubmitting()"
+                      (itemClick)="reject()">
+                    </amw-menu-item>
+                    <amw-menu-item label="Cancel" icon="close" (itemClick)="cancel()">
+                    </amw-menu-item>
+                  </amw-menu>
 
-              <!-- Navigation Buttons -->
-              @if (selectedItemIndex() >= 0 && queueItems().length > 1) {
-              <div class="decision-panel__navigation">
-                <amw-icon-button icon="keyboard_arrow_up" [disabled]="selectedItemIndex() === 0"
-                  (click)="selectPreviousItem()" ariaLabel="Previous item">
-                </amw-icon-button>
-                <span class="navigation-counter">{{ selectedItemIndex() + 1 }} of {{ queueItems().length }}</span>
-                <amw-icon-button icon="keyboard_arrow_down" [disabled]="selectedItemIndex() === queueItems().length - 1"
-                  (click)="selectNextItem()" ariaLabel="Next item">
-                </amw-icon-button>
-              </div>
-              }
-            </div>
-
-            <!-- Recipe Details Section -->
-            @if (selectedItem()!.entityType === 'Recipe') {
-            <div class="recipe-details">
-              <amw-accordion>
-                <!-- General Information -->
-                @if (selectedItem()!.description) {
-                <amw-accordion-panel amwTitle="Description">
-                  <p class="detail-value">{{ selectedItem()!.description }}</p>
-                </amw-accordion-panel>
-                }
-
-                <!-- Ingredients Section -->
-                @if (selectedItem()!.rawIngredientsString) {
-                <amw-accordion-panel amwTitle="Ingredients">
-                  <div class="ingredients-list">
-                    @for (ingredient of parseIngredients(selectedItem()!.rawIngredientsString); track ingredient.name) {
-                    <div class="ingredient-item">
-                      <span class="ingredient-name">{{ ingredient.name }}</span>
-                      <span class="ingredient-quantity">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                  <!-- Navigation Buttons -->
+                  @if (selectedItemIndex() >= 0 && queueItems().length > 1) {
+                    <div class="decision-panel__navigation">
+                      <amw-icon-button icon="keyboard_arrow_up" [disabled]="selectedItemIndex() === 0"
+                        (click)="selectPreviousItem()" ariaLabel="Previous item">
+                      </amw-icon-button>
+                      <span class="navigation-counter">{{ selectedItemIndex() + 1 }} of {{ queueItems().length }}</span>
+                      <amw-icon-button icon="keyboard_arrow_down" [disabled]="selectedItemIndex() === queueItems().length - 1"
+                        (click)="selectNextItem()" ariaLabel="Next item">
+                      </amw-icon-button>
                     </div>
-                    }
+                  }
+                </div>
+
+                <!-- Recipe Details Section -->
+                @if (selectedItem()!.entityType === 'Recipe') {
+                  <div class="recipe-details">
+                    <amw-accordion>
+                      <!-- General Information -->
+                      @if (selectedItem()!.description) {
+                        <amw-accordion-panel amwTitle="Description">
+                          <p class="detail-value">{{ selectedItem()!.description }}</p>
+                        </amw-accordion-panel>
+                      }
+
+                      <!-- Ingredients Section -->
+                      @if (selectedItem()!.rawIngredientsString) {
+                        <amw-accordion-panel amwTitle="Ingredients">
+                          <div class="ingredients-list">
+                            @for (ingredient of parseIngredients(selectedItem()!.rawIngredientsString); track ingredient.name) {
+                              <div class="ingredient-item">
+                                <span class="ingredient-name">{{ ingredient.name }}</span>
+                                <span class="ingredient-quantity">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                              </div>
+                            }
+                          </div>
+                        </amw-accordion-panel>
+                      }
+
+                      <!-- Instructions Section -->
+                      <amw-accordion-panel amwTitle="Instructions">
+                        <div class="instructions-list">
+                          @for (instruction of getRecipeSteps(selectedItem()!); track $index) {
+                            <div class="instruction-item">
+                              <span class="instruction-number">{{ $index + 1 }}</span>
+                              <span class="instruction-text">{{ instruction }}</span>
+                            </div>
+                          }
+                        </div>
+                      </amw-accordion-panel>
+
+                      <!-- Additional Information -->
+                      @if (selectedItem()!.sourceUrl) {
+                        <amw-accordion-panel amwTitle="Source">
+                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
+                            {{ selectedItem()!.sourceUrl }}
+                          </a>
+                        </amw-accordion-panel>
+                      }
+
+                      <!-- No Details Available -->
+                      @if (!selectedItem()!.description && !selectedItem()!.rawIngredientsString &&
+                      !selectedItem()!.instructions &&
+                      !selectedItem()!.sourceUrl) {
+                        <amw-accordion-panel amwTitle="Additional Information" class="no-details">
+                          <amw-icon name="info" class="no-details__icon"></amw-icon>
+                          <h3 class="no-details__title">No Additional Details</h3>
+                          <p class="no-details__text">This recipe only contains basic information. Consider requesting more
+                            details from the author.</p>
+                        </amw-accordion-panel>
+                      }
+                    </amw-accordion>
                   </div>
-                </amw-accordion-panel>
                 }
 
-                <!-- Instructions Section -->
-                <amw-accordion-panel amwTitle="Instructions">
-                  <div class="instructions-list">
-                    @for (instruction of getRecipeSteps(selectedItem()!); track $index) {
-                    <div class="instruction-item">
-                      <span class="instruction-number">{{ $index + 1 }}</span>
-                      <span class="instruction-text">{{ instruction }}</span>
-                    </div>
-                    }
+                <!-- Ingredient Details Section -->
+                @if (selectedItem()!.entityType === 'Ingredient') {
+                  <div class="ingredient-details">
+                    <amw-accordion>
+                      @if (selectedItem()!.description) {
+                        <amw-accordion-panel amwTitle="Description">
+                          <p class="detail-value">{{ selectedItem()!.description }}</p>
+                        </amw-accordion-panel>
+                      }
+
+                      @if (selectedItem()!.sourceUrl) {
+                        <amw-accordion-panel amwTitle="Source">
+                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
+                            {{ selectedItem()!.sourceUrl }}
+                          </a>
+                        </amw-accordion-panel>
+                      }
+
+                      @if (!selectedItem()!.description && !selectedItem()!.sourceUrl) {
+                        <amw-accordion-panel amwTitle="Additional Information" class="no-details">
+                          <amw-icon name="info" class="no-details__icon"></amw-icon>
+                          <h3 class="no-details__title">No Additional Details</h3>
+                          <p class="no-details__text">This ingredient only contains basic information.</p>
+                        </amw-accordion-panel>
+                      }
+                    </amw-accordion>
                   </div>
-                </amw-accordion-panel>
-
-                <!-- Additional Information -->
-                @if (selectedItem()!.sourceUrl) {
-                <amw-accordion-panel amwTitle="Source">
-                  <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
-                    {{ selectedItem()!.sourceUrl }}
-                  </a>
-                </amw-accordion-panel>
                 }
 
-                <!-- No Details Available -->
-                @if (!selectedItem()!.description && !selectedItem()!.rawIngredientsString &&
-                !selectedItem()!.instructions &&
-                !selectedItem()!.sourceUrl) {
-                <amw-accordion-panel amwTitle="Additional Information" class="no-details">
-                  <amw-icon name="info" class="no-details__icon"></amw-icon>
-                  <h3 class="no-details__title">No Additional Details</h3>
-                  <p class="no-details__text">This recipe only contains basic information. Consider requesting more
-                    details from the author.</p>
-                </amw-accordion-panel>
-                }
-              </amw-accordion>
+                <!-- Decision Form -->
+                <div class="decision-form__fields-row">
+                  <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true"
+                    class="decision-form__field decision-form__field--half">
+                  </amw-textarea>
+
+                  <amw-textarea formControlName="publicNotes" label="Public Notes (Optional)"
+                    class="decision-form__field decision-form__field--half">
+                  </amw-textarea>
+                </div>
+
+                <div class="decision-panel__actions">
+                  <div class="decision-form__actions">
+                    <amw-button variant="filled" color="primary" type="button" (click)="approve()"
+                      [disabled]="decisionForm.invalid || isSubmitting()"
+                      class="decision-form__btn decision-form__btn--approve" aria-label="Approve this item" icon="check">
+                      Approve
+                    </amw-button>
+
+                    <amw-button variant="outlined" color="accent" type="button" (click)="requestRevision()"
+                      [disabled]="decisionForm.invalid || isSubmitting()"
+                      class="decision-form__btn decision-form__btn--revision" aria-label="Request revision for this item"
+                      icon="edit">
+                      Request Revision
+                    </amw-button>
+
+                    <amw-button variant="outlined" color="warn" type="button" (click)="reject()"
+                      [disabled]="decisionForm.invalid || isSubmitting()"
+                      class="decision-form__btn decision-form__btn--reject" aria-label="Reject this item" icon="close">
+                      Reject
+                    </amw-button>
+
+                    <amw-button variant="text" type="button" (click)="cancel()" [disabled]="isSubmitting()"
+                      class="decision-form__btn decision-form__btn--cancel" aria-label="Cancel review">
+                      Cancel
+                    </amw-button>
+                  </div>
+                </div>
+              </ng-template>
+            </amw-card>
+          </form>
+        </div>
+      } @else {
+        <div class="no-selection">
+          <amw-icon name="assignment" class="no-selection__icon"></amw-icon>
+          <h3 class="no-selection__title">Select an Item to Review</h3>
+          <p class="no-selection__text">Choose an item from the pending queue to begin the review process.</p>
+          @if (hasItems()) {
+            <div class="no-selection__hint">
+              <p class="hint-text">Tip: Use arrow keys to navigate between items</p>
             </div>
-            }
-
-            <!-- Ingredient Details Section -->
-            @if (selectedItem()!.entityType === 'Ingredient') {
-            <div class="ingredient-details">
-              <amw-accordion>
-                @if (selectedItem()!.description) {
-                <amw-accordion-panel amwTitle="Description">
-                  <p class="detail-value">{{ selectedItem()!.description }}</p>
-                </amw-accordion-panel>
-                }
-
-                @if (selectedItem()!.sourceUrl) {
-                <amw-accordion-panel amwTitle="Source">
-                  <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
-                    {{ selectedItem()!.sourceUrl }}
-                  </a>
-                </amw-accordion-panel>
-                }
-
-                @if (!selectedItem()!.description && !selectedItem()!.sourceUrl) {
-                <amw-accordion-panel amwTitle="Additional Information" class="no-details">
-                  <amw-icon name="info" class="no-details__icon"></amw-icon>
-                  <h3 class="no-details__title">No Additional Details</h3>
-                  <p class="no-details__text">This ingredient only contains basic information.</p>
-                </amw-accordion-panel>
-                }
-              </amw-accordion>
-            </div>
-            }
-
-            <!-- Decision Form -->
-
-            <div class="decision-form__fields-row">
-              <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true"
-                class="decision-form__field decision-form__field--half">
-              </amw-textarea>
-
-              <amw-textarea formControlName="publicNotes" label="Public Notes (Optional)"
-                class="decision-form__field decision-form__field--half">
-              </amw-textarea>
-            </div>
-
-            <div class="decision-panel__actions">
-              <div class="decision-form__actions">
-                <amw-button variant="filled" color="primary" type="button" (click)="approve()"
-                  [disabled]="decisionForm.invalid || isSubmitting()"
-                  class="decision-form__btn decision-form__btn--approve" aria-label="Approve this item" icon="check">
-                  Approve
-                </amw-button>
-
-                <amw-button variant="outlined" color="accent" type="button" (click)="requestRevision()"
-                  [disabled]="decisionForm.invalid || isSubmitting()"
-                  class="decision-form__btn decision-form__btn--revision" aria-label="Request revision for this item"
-                  icon="edit">
-                  Request Revision
-                </amw-button>
-
-                <amw-button variant="outlined" color="warn" type="button" (click)="reject()"
-                  [disabled]="decisionForm.invalid || isSubmitting()"
-                  class="decision-form__btn decision-form__btn--reject" aria-label="Reject this item" icon="close">
-                  Reject
-                </amw-button>
-
-                <amw-button variant="text" type="button" (click)="cancel()" [disabled]="isSubmitting()"
-                  class="decision-form__btn decision-form__btn--cancel" aria-label="Cancel review">
-                  Cancel
-                </amw-button>
-              </div>
-            </div>
-          </ng-template>
-        </amw-card>
-      </form>
-    </div>
-    } @else {
-    <div class="no-selection">
-      <amw-icon name="assignment" class="no-selection__icon"></amw-icon>
-      <h3 class="no-selection__title">Select an Item to Review</h3>
-      <p class="no-selection__text">Choose an item from the pending queue to begin the review process.</p>
-      @if (hasItems()) {
-      <div class="no-selection__hint">
-        <p class="hint-text">Tip: Use arrow keys to navigate between items</p>
-      </div>
+          }
+        </div>
       }
     </div>
-    }
-  </div>
+  }
 </div>

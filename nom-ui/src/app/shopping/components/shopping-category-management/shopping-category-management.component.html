@@ -54,7 +54,7 @@
             }
             <amw-button type="submit" variant="filled" color="primary" [icon]="isEditing() ? 'save' : 'add'"
               [disabled]="categoryForm.invalid || isSubmitting()" [loading]="isSubmitting()"
-              class="shopping-category-management__submit-btn">
+              [amwValidationTooltip]="validationContext" class="shopping-category-management__submit-btn">
               {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
             </amw-button>
           </div>

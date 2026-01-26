@@ -7,11 +7,13 @@ import {
   AmwButtonComponent,
   AmwProgressSpinnerComponent,
   AmwIconComponent,
+  loading,
 } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdMemberResponseModel } from '../../models/household-member-response.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-household-join',
@@ -77,6 +79,7 @@ export class HouseholdJoinComponent implements OnInit, OnDestroy {
     this.householdService
       .joinHousehold(this.token())
       .pipe(
+        loading('Joining household...'),
         takeUntil(this.destroy$),
         finalize(() => this.isJoining.set(false))
       )
@@ -98,7 +101,7 @@ export class HouseholdJoinComponent implements OnInit, OnDestroy {
           if (err.status === 401 || err.status === 400) {
             this.error.set(err.error?.message || 'Invalid or expired invite token');
           } else {
-            this.error.set('Failed to join household. Please try again.');
+            this.error.set(ERROR_MESSAGES.HOUSEHOLD.JOIN_FAILED);
           }
 
           this.notificationService.error(this.error()!);

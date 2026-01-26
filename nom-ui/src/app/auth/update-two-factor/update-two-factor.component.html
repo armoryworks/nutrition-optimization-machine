@@ -1,14 +1,6 @@
 <div class="nom-page-container update-two-factor">
   <amw-card headerTitle="Two-Factor Authentication" headerSubtitle="Secure your account with 2FA" headerIcon="security">
     <ng-template #cardContent>
-      @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Saving 2FA settings">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-        </amw-progress-bar>
-        <span class="sr-only">Saving 2FA settings, please wait...</span>
-      </div>
-      }
-
       <form [formGroup]="twoFactorForm" (ngSubmit)="onSubmit()" class="nom-form">
         <p class="nom-instruction-text">
           Two-Factor Authentication adds an extra layer of security to your
@@ -53,8 +45,8 @@
         }
         }
 
-        <amw-button type="submit" variant="filled" color="primary" [disabled]="twoFactorForm.invalid || isLoading()"
-          [loading]="isLoading()" class="nom-button">
+        <amw-button type="submit" variant="filled" color="primary" [disabled]="twoFactorForm.invalid"
+          [amwValidationTooltip]="validationContext" class="nom-button">
           Save 2FA Settings
         </amw-button>
       </form>

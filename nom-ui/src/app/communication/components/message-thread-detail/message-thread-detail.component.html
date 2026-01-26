@@ -109,7 +109,8 @@
           formControlName="content">
         </amw-textarea>
         <div class="nom-reply-actions">
-          <amw-button variant="filled" color="primary" type="submit" [disabled]="replyForm.invalid || isSending()">
+          <amw-button variant="filled" color="primary" type="submit" [disabled]="replyForm.invalid || isSending()"
+            [amwValidationTooltip]="validationContext">
             {{ isSending() ? 'Sending...' : 'Send' }}
           </amw-button>
         </div>

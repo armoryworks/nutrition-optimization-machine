@@ -1,90 +1,114 @@
-<nom-base-list
-  [config]="listConfig"
-  [items]="comments()"
-  [loading]="isLoading()"
-  [error]="error()">
+<div class="nom-recipe-comments">
+  <!-- Header -->
+  <div class="nom-recipe-comments__header">
+    <h2 class="nom-recipe-comments__title">Recipe Comments</h2>
+    <p class="nom-recipe-comments__subtitle">Comments and feedback for this recipe</p>
+  </div>
 
-  <!-- Comment Form -->
-  <div class="nom-recipe-comments__form-card">
-    <h3>Add a Comment</h3>
-    <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="nom-recipe-comments__form">
-      <amw-input
-        formControlName="title"
-        label="Title (Optional)"
-        placeholder="Enter a title for your comment"
-        class="nom-recipe-comments__field">
-      </amw-input>
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="nom-recipe-comments__loading">
+      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+      <p>Loading comments...</p>
+    </div>
+  }
 
-      <amw-textarea
-        formControlName="commentText"
-        label="Comment"
-        placeholder="Share your thoughts about this recipe..."
-        [rows]="3"
-        [required]="true"
-        class="nom-recipe-comments__field"
-        [attr.aria-invalid]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched"
-        [attr.aria-describedby]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched ? 'comment-text-error' : null">
-      </amw-textarea>
-      @if (commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched) {
-      <span id="comment-text-error" class="nom-form__error" role="alert">
-        Comment is required
-      </span>
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="nom-recipe-comments__error">
+      <amw-icon name="error" color="warn"></amw-icon>
+      <h3>Error</h3>
+      <p>{{ error() }}</p>
+      <amw-button variant="filled" color="primary" (click)="loadComments()" icon="refresh">
+        Try Again
+      </amw-button>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!isLoading() && !error()) {
+    <!-- Comment Form -->
+    <div class="nom-recipe-comments__form-card">
+      <h3>Add a Comment</h3>
+      <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="nom-recipe-comments__form">
+        <amw-input
+          formControlName="title"
+          label="Title (Optional)"
+          placeholder="Enter a title for your comment"
+          class="nom-recipe-comments__field">
+        </amw-input>
+
+        <amw-textarea
+          formControlName="commentText"
+          label="Comment"
+          placeholder="Share your thoughts about this recipe..."
+          [rows]="3"
+          [required]="true"
+          class="nom-recipe-comments__field"
+          [attr.aria-invalid]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched"
+          [attr.aria-describedby]="commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched ? 'comment-text-error' : null">
+        </amw-textarea>
+        @if (commentForm.get('commentText')?.invalid && commentForm.get('commentText')?.touched) {
+          <span id="comment-text-error" class="nom-form__error" role="alert">
+            Comment is required
+          </span>
+        }
+
+        <div class="nom-recipe-comments__actions">
+          <amw-button
+            variant="filled"
+            color="primary"
+            type="submit"
+            [disabled]="commentForm.invalid || isSubmitting()"
+            [loading]="isSubmitting()"
+            icon="comment"
+            class="nom-recipe-comments__submit-btn">
+            Post Comment
+          </amw-button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Comments List -->
+    <div class="nom-recipe-comments__list">
+      @if (comments().length === 0) {
+        <div class="nom-recipe-comments__empty">
+          <amw-icon name="chat_bubble_outline"></amw-icon>
+          <p>No comments yet. Be the first to share your thoughts!</p>
+        </div>
       }
 
-      <div class="nom-recipe-comments__actions">
-        <amw-button
-          variant="filled"
-          color="primary"
-          type="submit"
-          [disabled]="commentForm.invalid || isSubmitting()"
-          [loading]="isSubmitting()"
-          icon="comment"
-          class="nom-recipe-comments__submit-btn">
-          Post Comment
-        </amw-button>
-      </div>
-    </form>
-  </div>
+      @for (comment of comments(); track comment.id) {
+        <div class="nom-recipe-comments__comment-card">
+          <div class="nom-recipe-comments__comment-header">
+            <h4 class="nom-recipe-comments__comment-title">
+              @if (comment.title) {
+                {{ comment.title }}
+              } @else {
+                Comment
+              }
+            </h4>
+            <div class="nom-recipe-comments__comment-meta">
+              <span class="nom-recipe-comments__author">{{ comment.authorName }}</span>
+              <span class="nom-recipe-comments__date">{{ formatDate(comment.createdDate) }}</span>
+            </div>
+          </div>
 
-  <!-- Comments List -->
-  <div class="nom-recipe-comments__list">
-    @if (comments().length === 0 && !isLoading()) {
-      <div class="nom-recipe-comments__empty">
-        <amw-icon name="chat_bubble_outline"></amw-icon>
-        <p>No comments yet. Be the first to share your thoughts!</p>
-      </div>
-    }
+          <div class="nom-recipe-comments__comment-content">
+            <p class="nom-recipe-comments__comment-text">{{ comment.commentText }}</p>
+          </div>
 
-    @for (comment of comments(); track comment.id) {
-      <div class="nom-recipe-comments__comment-card">
-        <div class="nom-recipe-comments__comment-header">
-          <h4 class="nom-recipe-comments__comment-title">
-            @if (comment.title) {
-              {{ comment.title }}
-            } @else {
-              Comment
-            }
-          </h4>
-          <div class="nom-recipe-comments__comment-meta">
-            <span class="nom-recipe-comments__author">{{ comment.authorName }}</span>
-            <span class="nom-recipe-comments__date">{{ formatDate(comment.createdDate) }}</span>
+          <div class="nom-recipe-comments__comment-actions">
+            <amw-icon-button
+              icon="delete"
+              color="warn"
+              (buttonClick)="deleteComment(comment.id)"
+              class="nom-recipe-comments__delete-btn"
+              ariaLabel="Delete comment">
+            </amw-icon-button>
           </div>
         </div>
-        
-        <div class="nom-recipe-comments__comment-content">
-          <p class="nom-recipe-comments__comment-text">{{ comment.commentText }}</p>
-        </div>
-
-        <div class="nom-recipe-comments__comment-actions">
-          <amw-icon-button
-            icon="delete"
-            color="warn"
-            (buttonClick)="deleteComment(comment.id)"
-            class="nom-recipe-comments__delete-btn"
-            ariaLabel="Delete comment">
-          </amw-icon-button>
-        </div>
-      </div>
-    }
-  </div>
-</nom-base-list> 
+      }
+    </div>
+  }
+</div>

@@ -1,10 +1,10 @@
 // File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.ts
 
-import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject, signal } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 
-import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
@@ -21,19 +21,22 @@ import { UpdateConsentRequest } from '../../../privacy/models/update-consent.req
     AmwToggleComponent,
     AmwIconComponent,
     AmwProgressSpinnerComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './privacy-settings.component.html',
   styleUrls: ['./privacy-settings.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PrivacySettingsComponent implements OnInit {
+export class PrivacySettingsComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private privacyService = inject(PrivacyService);
   private notificationService = inject(NotificationService);
   private dialogService = inject(AmwDialogService);
+  private validationService = inject(AmwValidationService);
 
   consentForm: FormGroup;
   privacyForm: FormGroup;
+  validationContext!: ValidationContext;
   isLoading = signal(false);
   isSubmitting = signal(false);
 
@@ -78,6 +81,21 @@ export class PrivacySettingsComponent implements OnInit {
         this.fb.control(consent.isConsented)
       );
     });
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Note: Privacy form is dynamically built from consent types
+    // All fields are toggles (boolean), so no specific validation rules needed
+    // The validation context is still required for the validation tooltip to work
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   onSubmit(): void {

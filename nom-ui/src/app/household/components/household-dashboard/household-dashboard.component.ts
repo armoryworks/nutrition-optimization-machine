@@ -6,6 +6,7 @@ import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpin
 
 import { HouseholdService } from "../../services/household.service";
 import { HouseholdResponseModel } from "../../models/household-response.model";
+import { ERROR_MESSAGES } from "../../../shared/constants/error-messages";
 
 @Component({
     selector: "nom-household-dashboard",
@@ -14,7 +15,7 @@ import { HouseholdResponseModel } from "../../models/household-response.model";
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: "./household-dashboard.component.html",
     styleUrls: ["./household-dashboard.component.scss"],
@@ -47,7 +48,7 @@ export class HouseholdDashboardComponent implements OnInit {
                 this.loading.set(false);
             },
             error: (error) => {
-                this.error.set("Failed to load households");
+                this.error.set(ERROR_MESSAGES.HOUSEHOLD.LOAD_FAILED);
                 this.loading.set(false);
                 console.error("Error loading households:", error);
             },

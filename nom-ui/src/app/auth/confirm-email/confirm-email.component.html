@@ -2,9 +2,7 @@
   <amw-card headerTitle="Email Confirmation" headerIcon="mark_email_read">
     <ng-template #cardContent>
       <div class="text-center">
-        @if (isLoading()) {
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-        </amw-progress-bar>
+        @if (confirmationStatus === 'pending') {
         <div class="status-message loading">
           <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
           <p>{{ confirmationMessage }}</p>

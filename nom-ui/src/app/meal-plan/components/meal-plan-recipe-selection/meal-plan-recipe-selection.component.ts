@@ -16,6 +16,7 @@ import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { MealPlanCreateRequestModel } from '../../models/meal-plan-create-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-meal-plan-recipe-selection',
@@ -106,7 +107,7 @@ export class MealPlanRecipeSelectionComponent implements OnInit, OnDestroy {
           this.filteredRecipes.set(recipes);
         },
         error: (err) => {
-          this.error.set('Failed to load recipes');
+          this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
           console.error('Error loading recipes:', err);
         },
       });
@@ -170,8 +171,8 @@ export class MealPlanRecipeSelectionComponent implements OnInit, OnDestroy {
           this.router.navigate(['/meal-plan']);
         },
         error: (err) => {
-          this.error.set('Failed to add recipe to meal plan');
-          this.notificationService.error('Failed to add recipe to meal plan');
+          this.error.set(ERROR_MESSAGES.MEAL_PLAN.SAVE_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.MEAL_PLAN.SAVE_FAILED);
           console.error('Error adding recipe:', err);
         },
       });

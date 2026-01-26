@@ -101,6 +101,7 @@
           </amw-button>
           }
           <amw-button type="submit" variant="filled" color="primary"
+            [amwValidationTooltip]="validationContext"
             [disabled]="ingredientForm.invalid || isSubmitting()" [loading]="isSubmitting()">
             {{ formConfig().submitText || 'Save' }}
           </amw-button>
@@ -193,6 +194,7 @@
           </amw-button>
           }
           <amw-button type="submit" variant="filled" color="primary"
+            [amwValidationTooltip]="validationContext"
             [disabled]="ingredientForm.invalid || isSubmitting()" [loading]="isSubmitting()">
             {{ isSubmitting() ? 'Saving...' : (formConfig().submitText || 'Save') }}
           </amw-button>

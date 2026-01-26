@@ -8,6 +8,7 @@ import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent } from 'angul
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementCategoryService } from '../../services/measurement-category.service';
 import { MeasurementModel, MeasurementCategoryModel } from '../../models/measurement.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'app-measurement-converter',
@@ -65,7 +66,7 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
                     this.categories.set(categories);
                 },
                 error: (error) => {
-                    this.error.set('Failed to load measurement categories');
+                    this.error.set(ERROR_MESSAGES.MEASUREMENT.LOAD_CATEGORIES_FAILED);
                     console.error('Error loading categories:', error);
                 }
             });
@@ -105,7 +106,7 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
                     }
                 },
                 error: (error) => {
-                    this.error.set(`Failed to load measurements for category`);
+                    this.error.set(ERROR_MESSAGES.MEASUREMENT.LOAD_FAILED);
                     console.error('Error loading measurements:', error);
                 }
             });
@@ -127,7 +128,7 @@ export class MeasurementConverterComponent implements OnInit, OnDestroy {
                         this.isLoading.set(false);
                     },
                     error: (error) => {
-                        this.error.set('Failed to convert measurement');
+                        this.error.set(ERROR_MESSAGES.MEASUREMENT.CONVERT_FAILED);
                         this.isLoading.set(false);
                         console.error('Error converting measurement:', error);
                     }

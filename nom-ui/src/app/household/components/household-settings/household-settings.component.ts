@@ -16,6 +16,7 @@ import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
 import { HouseholdUpdateRequestModel } from '../../models/household-update-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-household-settings',
@@ -113,7 +114,7 @@ export class HouseholdSettingsComponent implements OnInit, OnDestroy {
           this.populateForms(household);
         },
         error: (err: unknown) => {
-          this.error.set('Failed to load household settings');
+          this.error.set(ERROR_MESSAGES.HOUSEHOLD.LOAD_FAILED);
           console.error('Error loading household:', err);
         },
       });
@@ -156,7 +157,7 @@ export class HouseholdSettingsComponent implements OnInit, OnDestroy {
         },
         error: (err: unknown) => {
           console.error('Error saving preferences:', err);
-          this.notificationService.error('Failed to save preferences');
+          this.notificationService.error(ERROR_MESSAGES.HOUSEHOLD.SAVE_FAILED);
         },
       });
   }

@@ -22,6 +22,7 @@
 
           <div class="household-invite__form-actions">
             <amw-button type="submit" variant="filled" color="primary" [icon]="isLoading() ? 'hourglass_empty' : 'send'"
+              [amwValidationTooltip]="validationContext"
               [disabled]="inviteForm.invalid || isLoading()" [loading]="isLoading()">
               {{ isLoading() ? 'Creating...' : 'Create Invitation' }}
             </amw-button>

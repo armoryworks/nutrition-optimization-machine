@@ -2,13 +2,6 @@
   <amw-card headerTitle="Resend Confirmation Email"
     headerSubtitle="If you haven't received it, we can send another one." headerIcon="forward_to_inbox">
     <ng-template #cardContent>
-      @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Sending confirmation email">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-        </amw-progress-bar>
-        <span class="sr-only">Sending confirmation email, please wait...</span>
-      </div>
-      }
       <p class="nom-instruction-text">
         Enter the email address you registered with to receive a new
         confirmation email.
@@ -31,7 +24,8 @@
         }
 
         <amw-button type="submit" variant="filled" color="primary"
-          [disabled]="sendConfirmationEmailForm.invalid || isLoading()" [loading]="isLoading()" class="nom-button">
+          [disabled]="sendConfirmationEmailForm.invalid"
+          [amwValidationTooltip]="validationContext" class="nom-button">
           Resend Confirmation Email
         </amw-button>
       </form>

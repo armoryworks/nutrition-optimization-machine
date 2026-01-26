@@ -5,6 +5,7 @@ import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconCo
 
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementModel } from '../../models/measurement.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'app-measurement-list',
@@ -57,7 +58,7 @@ export class MeasurementListComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading measurements:', error);
-                this.error.set('Failed to load measurements');
+                this.error.set(ERROR_MESSAGES.MEASUREMENT.LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });

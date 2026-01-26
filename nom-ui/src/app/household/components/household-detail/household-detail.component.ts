@@ -6,6 +6,7 @@ import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponen
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-household-detail',
@@ -58,7 +59,7 @@ export class HouseholdDetailComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading household:', error);
-                this.error.set('Failed to load household details');
+                this.error.set(ERROR_MESSAGES.HOUSEHOLD.LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });
@@ -107,7 +108,7 @@ export class HouseholdDetailComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error deleting household:', error);
-                        this.notificationService.error('Failed to delete household');
+                        this.notificationService.error(ERROR_MESSAGES.HOUSEHOLD.DELETE_FAILED);
                     }
                 });
             }
@@ -127,7 +128,7 @@ export class HouseholdDetailComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error removing member:', error);
-                        this.notificationService.error('Failed to remove member');
+                        this.notificationService.error(ERROR_MESSAGES.HOUSEHOLD.DELETE_FAILED);
                     }
                 });
             }
@@ -140,7 +141,7 @@ export class HouseholdDetailComponent implements OnInit {
             navigator.clipboard.writeText(inviteLink).then(() => {
                 this.notificationService.success('Invite link copied to clipboard');
             }).catch(() => {
-                this.notificationService.error('Failed to copy invite link');
+                this.notificationService.error(ERROR_MESSAGES.CLIPBOARD.COPY_FAILED);
             });
         }
     }

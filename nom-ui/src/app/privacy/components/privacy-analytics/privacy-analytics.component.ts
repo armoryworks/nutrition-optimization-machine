@@ -1,9 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
-import { BasePageComponent, BasePageConfig } from '../../../common/components/base-page/base-page.component';
 import { PrivacyAnalyticsService } from '../../services/privacy-analytics.service';
 import { PrivacyAnalyticsModel } from '../../models/i-privacy-analytics.model';
 import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
@@ -18,7 +18,7 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
         AmwIconComponent,
         AmwChipComponent,
         AmwDataTableComponent,
-        BasePageComponent,
+        AmwProgressSpinnerComponent,
     ],
     templateUrl: './privacy-analytics.component.html',
     styleUrls: ['./privacy-analytics.component.scss']
@@ -31,14 +31,6 @@ export class PrivacyAnalyticsComponent implements OnInit {
     processingLogs: DataProcessingLogModel[] = [];
     isLoading = false;
     error: string | null = null;
-
-    listConfig: BasePageConfig = {
-        title: 'Privacy Analytics',
-        subtitle: 'Monitor data processing activities and compliance metrics',
-        showRefreshButton: true,
-        refreshButtonText: 'Refresh',
-        maxWidth: 'none'
-    };
 
     tableConfig: DataTableConfig = {
         enableSearch: false,
@@ -71,9 +63,9 @@ export class PrivacyAnalyticsComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading privacy analytics:', error);
-                this.error = 'Failed to load privacy analytics';
+                this.error = ERROR_MESSAGES.PRIVACY.LOAD_FAILED;
                 this.isLoading = false;
-                this.notificationService.error('Failed to load privacy analytics');
+                this.notificationService.error(ERROR_MESSAGES.PRIVACY.LOAD_FAILED);
             }
         });
 
@@ -177,7 +169,7 @@ export class PrivacyAnalyticsComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error generating compliance report:', error);
-                this.notificationService.error('Failed to generate compliance report');
+                this.notificationService.error(ERROR_MESSAGES.PRIVACY.REPORT_FAILED);
             }
         });
     }
@@ -196,7 +188,7 @@ export class PrivacyAnalyticsComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error exporting analytics:', error);
-                this.notificationService.error('Failed to export analytics');
+                this.notificationService.error(ERROR_MESSAGES.PRIVACY.EXPORT_FAILED);
             }
         });
     }

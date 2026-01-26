@@ -8,7 +8,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { of, Subject } from 'rxjs';
 import { finalize, takeUntil, take, catchError } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, AmwDialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwSelectComponent, AmwAutocompleteComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, AmwDialogService, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { RecipeModel } from '../../models/recipe.model';
@@ -19,6 +19,7 @@ import { RecipeEditModel } from '../../models/recipe-edit.model';
 import { RecipeStepModel } from '../../models/recipe-step.model';
 import { CurationService } from '../../../curation/services/curation.service';
 import { ReferenceDataService } from '../../../common/services/reference-data.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 interface AutocompleteOption {
     value: any;
@@ -40,7 +41,8 @@ interface AutocompleteOption {
         AmwAutocompleteComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressBarComponent
+        AmwProgressBarComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-edit.component.html',
     styleUrls: ['./recipe-edit.component.scss']
@@ -56,8 +58,10 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     private curationService = inject(CurationService);
     private referenceDataService = inject(ReferenceDataService);
     private injector = inject(Injector);
+    private validationService = inject(AmwValidationService);
 
     recipeForm: FormGroup;
+    validationContext!: ValidationContext;
     isEditMode = signal(false);
     recipeId = signal<number | null>(null);
     isLoading = signal(true);
@@ -116,11 +120,50 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 this.isLoading.set(false);
             }
         });
+
+        // Setup ValidationContext
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Name validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-required',
+            message: 'Recipe name is required',
+            severity: 'error',
+            field: 'name',
+            control: this.recipeForm.get('name') ?? undefined,
+            validator: () => !this.recipeForm.get('name')?.hasError('required')
+        });
+
+        // Name validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-maxlength',
+            message: 'Recipe name must be 511 characters or less',
+            severity: 'error',
+            field: 'name',
+            control: this.recipeForm.get('name') ?? undefined,
+            validator: () => !this.recipeForm.get('name')?.hasError('maxlength')
+        });
+
+        // Description validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'description-maxlength',
+            message: 'Description must be 2047 characters or less',
+            severity: 'error',
+            field: 'description',
+            control: this.recipeForm.get('description') ?? undefined,
+            validator: () => !this.recipeForm.get('description')?.hasError('maxlength')
+        });
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     get ingredients(): FormArray {
@@ -327,7 +370,9 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
                 ingredients: recipeData.ingredients
             });
 
+        const actionMsg = this.isEditMode() ? 'Updating' : 'Creating';
         request$.pipe(
+            loading(`${actionMsg} recipe...`),
             finalize(() => this.isSubmitting.set(false)),
             takeUntil(this.destroy$)
         ).subscribe({
@@ -338,7 +383,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error saving recipe:', error);
-                this.error.set(`Failed to ${this.isEditMode() ? 'update' : 'create'} recipe. Please try again.`);
+                this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
             }
         });
     }
@@ -366,6 +411,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
         };
 
         this.curationService.submitForCuration(request).pipe(
+            loading('Submitting for curation...'),
             finalize(() => this.isSubmitting.set(false)),
             takeUntil(this.destroy$)
         ).subscribe({
@@ -375,7 +421,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error submitting recipe for curation:', error);
-                this.error.set('Failed to submit recipe for curation. Please try again.');
+                this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
             }
         });
     }
@@ -412,7 +458,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error loading recipe:', error);
-                this.error.set('Failed to load recipe. Please try again.');
+                this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
             }
         });
     }

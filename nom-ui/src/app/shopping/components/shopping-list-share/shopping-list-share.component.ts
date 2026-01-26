@@ -12,6 +12,7 @@ import {
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 interface ShareTarget {
   id: number;
@@ -104,7 +105,7 @@ export class ShoppingListShareComponent implements OnInit, OnDestroy {
           ]);
         },
         error: (err) => {
-          this.error.set('Failed to load shopping list');
+          this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
           console.error('Error loading shopping list:', err);
         },
       });
@@ -146,7 +147,7 @@ export class ShoppingListShareComponent implements OnInit, OnDestroy {
       })
       .catch((err) => {
         console.error('Failed to copy link:', err);
-        this.notificationService.error('Failed to copy link');
+        this.notificationService.error(ERROR_MESSAGES.CLIPBOARD.COPY_FAILED);
       });
   }
 

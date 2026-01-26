@@ -39,7 +39,7 @@
 
           <div class="recipe-rating__form-actions">
             <amw-button variant="filled" color="primary" type="submit" [disabled]="ratingForm.invalid || isSubmitting()"
-              [loading]="isSubmitting()" icon="star" class="recipe-rating__submit-btn">
+              [loading]="isSubmitting()" [amwValidationTooltip]="validationContext" icon="star" class="recipe-rating__submit-btn">
               Submit Rating
             </amw-button>
           </div>

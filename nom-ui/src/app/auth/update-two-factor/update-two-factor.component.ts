@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -7,7 +7,7 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-import { AmwInputComponent, AmwButtonComponent, AmwToggleComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressBarComponent, AmwListComponent, AmwListItemComponent, AmwDividerComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwToggleComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwListComponent, AmwListItemComponent, AmwDividerComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { UpdateTwoFactorResponse } from '../models/update-two-factor-response';
@@ -25,22 +25,23 @@ import { NotificationService } from '../../utilities/services/notification.servi
     AmwCheckboxComponent,
     AmwCardComponent,
     AmwIconComponent,
-    AmwProgressBarComponent,
     AmwListComponent,
     AmwListItemComponent,
     AmwDividerComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './update-two-factor.component.html',
   styleUrls: ['./update-two-factor.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class UpdateTwoFactorComponent implements OnInit {
+export class UpdateTwoFactorComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private validationService = inject(AmwValidationService);
 
   twoFactorForm!: FormGroup;
-  isLoading = signal(false); // For form submission
+  validationContext!: ValidationContext;
 
   // We cannot fetch initial status from backend without getTwoFactorStatus
   // So, initialize with a default "disabled" status
@@ -56,8 +57,6 @@ export class UpdateTwoFactorComponent implements OnInit {
   recoveryCodesToDisplay: string[] = [];
 
   // For displaying new recovery codes
-
-
 
   ngOnInit(): void {
     this.twoFactorForm = this.nonNullableFb.group(
@@ -75,6 +74,36 @@ export class UpdateTwoFactorComponent implements OnInit {
       this.twoFactorForm.get('password')?.updateValueAndValidity();
       this.twoFactorForm.get('twoFactorCode')?.updateValueAndValidity();
     });
+
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Password validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-required',
+      message: 'Current password is required',
+      severity: 'error',
+      field: 'password',
+      control: this.twoFactorForm.get('password') ?? undefined,
+      validator: () => !this.twoFactorForm.get('password')?.hasError('required')
+    });
+
+    // Two-factor code validation (conditionally required when disabling)
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'twoFactorCode-required',
+      message: 'Authenticator code is required to disable 2FA',
+      severity: 'error',
+      field: 'twoFactorCode',
+      control: this.twoFactorForm.get('twoFactorCode') ?? undefined,
+      validator: () => !this.twoFactorForm.get('twoFactorCode')?.hasError('required')
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   // Form-level validator for 2FA logic
@@ -133,8 +162,8 @@ export class UpdateTwoFactorComponent implements OnInit {
    * Handles the form submission for 2FA changes.
    */
   onSubmit(): void {
-    this.twoFactorForm.markAllAsTouched(); // Mark all controls as touched
-    this.twoFactorForm.updateValueAndValidity(); // Recalculate validation state
+    this.twoFactorForm.markAllAsTouched();
+    this.twoFactorForm.updateValueAndValidity();
 
     if (this.twoFactorForm.invalid) {
       this.notificationService.warning(
@@ -143,60 +172,53 @@ export class UpdateTwoFactorComponent implements OnInit {
       return;
     }
 
-    this.isLoading.set(true);
     const formData = this.twoFactorForm.getRawValue();
-
-    // Construct updateData according to the UpdateTwoFactor interface
     const updateData: UpdateTwoFactor = {
       enable: formData.enable2fa,
-      twoFactorCode: formData.twoFactorCode, // twoFactorCode is now a string, not optional
-      resetSharedKey: false, // Assuming these will be controlled by separate UI elements if needed
-      resetRecoverCodes: false, // Assuming these will be controlled by separate UI elements if needed
-      forgetMachine: !formData.rememberMachine, // Invert rememberMachine to map to forgetMachine
+      twoFactorCode: formData.twoFactorCode,
+      resetSharedKey: false,
+      resetRecoverCodes: false,
+      forgetMachine: !formData.rememberMachine,
     };
 
-    this.authService.updateTwoFactorAuth(updateData).subscribe({
-      next: (response: UpdateTwoFactorResponse) => {
-        this.isLoading.set(false);
-        this.current2faStatus = response; // Update the component's status with the latest from the backend
-        this.twoFactorForm.get('password')?.reset(); // Clear password after operation
-        this.twoFactorForm.get('twoFactorCode')?.reset(); // Clear code
+    this.authService.updateTwoFactorAuth(updateData)
+      .pipe(loading('Updating 2FA settings...'))
+      .subscribe({
+        next: (response: UpdateTwoFactorResponse) => {
+          this.current2faStatus = response;
+          this.twoFactorForm.get('password')?.reset();
+          this.twoFactorForm.get('twoFactorCode')?.reset();
 
-        // Determine success message and display setup info based on the response's isTwoFactorEnabled
-        if (response.isTwoFactorEnabled) {
-          this.sharedKeyToDisplay = response.sharedKey;
-          this.recoveryCodesToDisplay = response.recoverCodes;
-          this.notificationService.success(
-            'Two-Factor Authentication enabled successfully! Please save your recovery codes.'
+          if (response.isTwoFactorEnabled) {
+            this.sharedKeyToDisplay = response.sharedKey;
+            this.recoveryCodesToDisplay = response.recoverCodes;
+            this.notificationService.success(
+              'Two-Factor Authentication enabled successfully! Please save your recovery codes.'
+            );
+          } else {
+            this.sharedKeyToDisplay = null;
+            this.recoveryCodesToDisplay = [];
+            this.notificationService.success(
+              'Two-Factor Authentication disabled successfully!'
+            );
+          }
+
+          this.twoFactorForm.patchValue(
+            {
+              enable2fa: response.isTwoFactorEnabled,
+              rememberMachine: response.isMachineRemembered,
+            },
+            { emitEvent: false }
           );
-        } else {
-          // 2FA was disabled
-          this.sharedKeyToDisplay = null;
-          this.recoveryCodesToDisplay = [];
-          this.notificationService.success(
-            'Two-Factor Authentication disabled successfully!'
+          this.twoFactorForm.setErrors(null);
+        },
+        error: (error) => {
+          console.error('2FA update error:', error);
+          this.notificationService.error(
+            error.message || 'Failed to update 2FA settings.'
           );
-        }
-
-        // Ensure the toggle reflects the actual state returned from the backend
-        this.twoFactorForm.patchValue(
-          {
-            enable2fa: response.isTwoFactorEnabled,
-            rememberMachine: response.isMachineRemembered, // Assuming rememberMachine directly maps to isMachineRemembered
-          },
-          { emitEvent: false }
-        ); // Don't trigger valueChanges observer again, preventing loop
-
-        this.twoFactorForm.setErrors(null); // Reset form-level errors
-      },
-      error: (error) => {
-        this.isLoading.set(false);
-        console.error('2FA update error:', error);
-        this.notificationService.error(
-          error.message || 'Failed to update 2FA settings.'
-        );
-      },
-    });
+        },
+      });
   }
 
   // Helper to copy recovery codes to clipboard

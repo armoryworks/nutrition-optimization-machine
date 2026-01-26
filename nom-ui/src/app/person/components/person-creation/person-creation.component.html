@@ -31,6 +31,7 @@
 
         <div class="nom-form__actions">
           <amw-button type="submit" variant="filled" color="primary" [disabled]="personForm.invalid || isSubmitting()"
+            [amwValidationTooltip]="validationContext"
             [loading]="isSubmitting()">
             {{ submitText }}
           </amw-button>

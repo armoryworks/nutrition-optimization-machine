@@ -26,6 +26,7 @@
           </amw-button>
 
           <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+            [amwValidationTooltip]="validationContext"
             [disabled]="householdForm.invalid">
             {{ formConfig.submitText || 'Create Household' }}
           </amw-button>

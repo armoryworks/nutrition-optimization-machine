@@ -8,9 +8,13 @@ import {
   AmwInputComponent,
   AmwTextareaComponent,
   AmwProgressSpinnerComponent,
+  AmwValidationTooltipDirective,
+  AmwValidationService,
+  ValidationContext,
 } from 'angular-material-wrap';
 
 import { MessagingService } from '../../services/messaging.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-message-compose',
@@ -22,6 +26,7 @@ import { MessagingService } from '../../services/messaging.service';
     AmwInputComponent,
     AmwTextareaComponent,
     AmwProgressSpinnerComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './message-compose.component.html',
   styleUrl: './message-compose.component.scss',
@@ -30,10 +35,12 @@ export class MessageComposeComponent implements OnInit, OnDestroy {
   private messagingService = inject(MessagingService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private validationService = inject(AmwValidationService);
 
   // Signals
   isCreating = signal(false);
   error = signal<string | null>(null);
+  validationContext!: ValidationContext;
 
   // Form
   composeForm: FormGroup;
@@ -49,12 +56,59 @@ export class MessageComposeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Component initialization
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Participant IDs validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'participantIds-required',
+      message: 'Participant IDs are required',
+      severity: 'error',
+      field: 'participantIds',
+      control: this.composeForm.get('participantIds') ?? undefined,
+      validator: () => !this.composeForm.get('participantIds')?.hasError('required')
+    });
+
+    // Participant IDs validation - pattern
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'participantIds-pattern',
+      message: 'Please enter valid participant IDs (comma-separated numbers)',
+      severity: 'error',
+      field: 'participantIds',
+      control: this.composeForm.get('participantIds') ?? undefined,
+      validator: () => !this.composeForm.get('participantIds')?.hasError('pattern')
+    });
+
+    // Initial message validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'initialMessage-required',
+      message: 'Message is required',
+      severity: 'error',
+      field: 'initialMessage',
+      control: this.composeForm.get('initialMessage') ?? undefined,
+      validator: () => !this.composeForm.get('initialMessage')?.hasError('required')
+    });
+
+    // Initial message validation - minLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'initialMessage-minlength',
+      message: 'Message must be at least 1 character',
+      severity: 'error',
+      field: 'initialMessage',
+      control: this.composeForm.get('initialMessage') ?? undefined,
+      validator: () => !this.composeForm.get('initialMessage')?.hasError('minlength')
+    });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   onCreateThread(): void {
@@ -93,7 +147,7 @@ export class MessageComposeComponent implements OnInit, OnDestroy {
           this.sendInitialMessage(threadId, initialMessage);
         },
         error: (err) => {
-          this.error.set('Failed to create conversation');
+          this.error.set(ERROR_MESSAGES.COMMUNICATION.SEND_FAILED);
           console.error('Error creating thread:', err);
         },
       });
@@ -109,7 +163,7 @@ export class MessageComposeComponent implements OnInit, OnDestroy {
           this.router.navigate(['/messaging/thread', threadId]);
         },
         error: (err) => {
-          this.error.set('Failed to send initial message');
+          this.error.set(ERROR_MESSAGES.COMMUNICATION.SEND_FAILED);
           console.error('Error sending initial message:', err);
           // Even if message fails, navigate to thread
           this.router.navigate(['/messaging/thread', threadId]);

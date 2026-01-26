@@ -2,10 +2,10 @@ import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwChipComponent } from 'angular-material-wrap';
-
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwChipComponent, loading } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/i-recipe-category.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 
 @Component({
@@ -45,8 +45,6 @@ export class RecipeCategoriesComponent implements OnInit {
     isAddingCategory = signal(false);
     searchTerm = signal('');
 
-
-
     constructor() {
         this.categoryForm = this.nonNullableFb.group({
             name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
@@ -73,7 +71,7 @@ export class RecipeCategoriesComponent implements OnInit {
                 this.isLoading.set(false);
             },
             error: (error) => {
-                this.error.set('Failed to load categories');
+                this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                 this.isLoading.set(false);
                 console.error('Error loading categories:', error);
             },
@@ -112,35 +110,39 @@ export class RecipeCategoriesComponent implements OnInit {
                 parentCategoryId: this.categoryForm.get('parentCategoryId')?.value
             };
 
-            this.recipeService.createCategory(newCategory).subscribe({
-                next: (createdCategory) => {
-                    this.allCategories.set([...this.allCategories(), createdCategory]);
-                    this.addCategory(createdCategory);
-                    this.categoryForm.reset({
-                        name: '',
-                        description: '',
-                        icon: 'restaurant',
-                        color: '#1976d2',
-                        parentCategoryId: null
-                    });
-                },
-                error: (error) => {
-                    console.error('Error creating category:', error);
-                },
-            });
+            this.recipeService.createCategory(newCategory)
+                .pipe(loading('Creating category...'))
+                .subscribe({
+                    next: (createdCategory) => {
+                        this.allCategories.set([...this.allCategories(), createdCategory]);
+                        this.addCategory(createdCategory);
+                        this.categoryForm.reset({
+                            name: '',
+                            description: '',
+                            icon: 'restaurant',
+                            color: '#1976d2',
+                            parentCategoryId: null
+                        });
+                    },
+                    error: (error) => {
+                        console.error('Error creating category:', error);
+                    },
+                });
         }
     }
 
     deleteCategory(category: RecipeCategoryModel): void {
-        this.recipeService.deleteCategory(category.id!).subscribe({
-            next: () => {
-                this.allCategories.set(this.allCategories().filter(c => c.id !== category.id));
-                this.removeCategory(category);
-            },
-            error: (error) => {
-                console.error('Error deleting category:', error);
-            },
-        });
+        this.recipeService.deleteCategory(category.id!)
+            .pipe(loading('Deleting category...'))
+            .subscribe({
+                next: () => {
+                    this.allCategories.set(this.allCategories().filter(c => c.id !== category.id));
+                    this.removeCategory(category);
+                },
+                error: (error) => {
+                    console.error('Error deleting category:', error);
+                },
+            });
     }
 
     filterCategories(): void {

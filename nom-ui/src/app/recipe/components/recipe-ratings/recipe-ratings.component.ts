@@ -7,6 +7,7 @@ import { AmwButtonComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTo
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeRatingModel, RecipeRatingResponseModel } from '../../models/recipe-rating.model';
 import { UserInfoService } from '../../../utilities/services/user-info.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-recipe-ratings',
@@ -62,7 +63,7 @@ export class RecipeRatingsComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error loading ratings:', error);
-                this.notificationService.error('Failed to load ratings');
+                this.notificationService.error(ERROR_MESSAGES.RECIPE.RATING_LOAD_FAILED);
                 this.isLoading.set(false);
             }
         });
@@ -125,7 +126,7 @@ export class RecipeRatingsComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error updating rating:', error);
-                        this.notificationService.error('Failed to update rating');
+                        this.notificationService.error(ERROR_MESSAGES.RECIPE.RATING_SAVE_FAILED);
                         this.isSubmitting.set(false);
                     }
                 });
@@ -141,7 +142,7 @@ export class RecipeRatingsComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Error adding rating:', error);
-                        this.notificationService.error('Failed to add rating');
+                        this.notificationService.error(ERROR_MESSAGES.RECIPE.RATING_SAVE_FAILED);
                         this.isSubmitting.set(false);
                     }
                 });
@@ -161,7 +162,7 @@ export class RecipeRatingsComponent implements OnInit {
                 },
                 error: (error) => {
                     console.error('Error deleting rating:', error);
-                    this.notificationService.error('Failed to delete rating');
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.RATING_DELETE_FAILED);
                 }
             });
         }

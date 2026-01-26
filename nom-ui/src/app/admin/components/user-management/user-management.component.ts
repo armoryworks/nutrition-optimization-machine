@@ -17,6 +17,7 @@ import {
 import { PersonService } from '../../../person/services/person.service';
 import { PersonModel } from '../../../person/models/person.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-user-management',
@@ -73,7 +74,7 @@ export class UserManagementComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading persons:', error);
-        this.error.set('Failed to load users');
+        this.error.set(ERROR_MESSAGES.ADMIN.LOAD_USERS_FAILED);
         this.isLoading.set(false);
       },
     });
@@ -129,7 +130,7 @@ export class UserManagementComponent implements OnInit {
             },
             error: (error) => {
               console.error('Error deleting user:', error);
-              this.notificationService.error('Failed to delete user');
+              this.notificationService.error(ERROR_MESSAGES.ADMIN.DELETE_USER_FAILED);
             },
           });
         }

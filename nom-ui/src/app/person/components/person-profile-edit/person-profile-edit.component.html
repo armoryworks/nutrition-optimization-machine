@@ -34,6 +34,7 @@
             {{ cancelText }}
           </amw-button>
           <amw-button type="submit" variant="filled" color="primary" [disabled]="personForm.invalid || isLoading()"
+            [amwValidationTooltip]="validationContext"
             [loading]="isLoading()">
             {{ submitText }}
           </amw-button>

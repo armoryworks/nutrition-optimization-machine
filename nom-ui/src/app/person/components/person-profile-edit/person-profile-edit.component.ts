@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
     FormGroup,
     Validators,
@@ -9,7 +9,7 @@ import {
 // Angular Material Imports
 import { AmwProgressBarComponent } from 'angular-material-wrap';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { PersonService } from '../../services/person.service';
 import { PersonModel } from '../../models/person.model';
@@ -25,17 +25,20 @@ import { NotificationService } from '../../../utilities/services/notification.se
         AmwCardComponent,
         AmwIconComponent,
         AmwInputComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './person-profile-edit.component.html',
     styleUrls: ['./person-profile-edit.component.scss'],
     encapsulation: ViewEncapsulation.None,
 })
-export class PersonProfileEditComponent implements OnInit {
+export class PersonProfileEditComponent implements OnInit, OnDestroy {
     private nonNullableFb = inject(NonNullableFormBuilder);
     private personService = inject(PersonService);
     private notificationService = inject(NotificationService);
+    private validationService = inject(AmwValidationService);
 
     personForm: FormGroup;
+    validationContext!: ValidationContext;
     isLoading = signal(false);
     isInitialLoading = signal(true);
     error = signal<string | null>(null);
@@ -56,6 +59,37 @@ export class PersonProfileEditComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadCurrentPerson();
+
+        // Setup ValidationContext
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Name validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-required',
+            message: 'Name is required',
+            severity: 'error',
+            field: 'name',
+            control: this.personForm.get('name') ?? undefined,
+            validator: () => !this.personForm.get('name')?.hasError('required')
+        });
+
+        // Name validation - minLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-minlength',
+            message: 'Name must be at least 2 characters',
+            severity: 'error',
+            field: 'name',
+            control: this.personForm.get('name') ?? undefined,
+            validator: () => !this.personForm.get('name')?.hasError('minlength')
+        });
+    }
+
+    ngOnDestroy(): void {
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     private loadCurrentPerson(): void {

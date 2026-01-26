@@ -43,6 +43,7 @@
 
           <div class="privacy-settings__form-actions">
             <amw-button variant="filled" color="primary" type="submit"
+              [amwValidationTooltip]="validationContext"
               [disabled]="privacyForm.invalid || isSubmitting()" [loading]="isSubmitting()"
               class="privacy-settings__submit-btn" icon="save">
               {{ isSubmitting() ? 'Saving...' : 'Save Privacy Settings' }}

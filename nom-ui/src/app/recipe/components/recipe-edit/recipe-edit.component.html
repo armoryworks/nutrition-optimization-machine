@@ -13,11 +13,15 @@
 
       @if (error()) {
       <div class="nom-error-state" role="alert" aria-live="assertive">
-        <amw-icon name="error_outline" class="nom-error-state__icon" aria-hidden="true"></amw-icon>
+        <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
         <p class="nom-error-state__message">{{ error() }}</p>
         <div class="nom-error-state__actions">
-          <amw-button variant="text" (click)="onBack()" aria-label="Go back to previous page">Go Back</amw-button>
-          <amw-button variant="filled" color="primary" (click)="onRetry()" aria-label="Retry loading recipe">Retry</amw-button>
+          <amw-button variant="text" (click)="onBack()">
+            Go Back
+          </amw-button>
+          <amw-button variant="filled" color="primary" (click)="onRetry()">
+            Try Again
+          </amw-button>
         </div>
       </div>
       } @else {
@@ -126,6 +130,7 @@
             Cancel
           </amw-button>
           <amw-button type="submit" variant="filled" color="primary" [disabled]="recipeForm.invalid || isSubmitting()"
+            [amwValidationTooltip]="validationContext"
             [loading]="isSubmitting()">
             {{ isEditMode() ? 'Update Recipe' : 'Create Recipe' }}
           </amw-button>

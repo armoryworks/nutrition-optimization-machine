@@ -3,7 +3,7 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { AmwButtonComponent, AmwIconButtonComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwIconButtonComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwFullScreenLoadingComponent, AmwValidationTooltipOverlayComponent } from 'angular-material-wrap';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './auth/auth.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
@@ -22,6 +22,8 @@ import { LoginComponent } from './auth/login/login.component';
     AmwMenuComponent,
     AmwMenuItemComponent,
     AmwMenuTriggerForDirective,
+    AmwFullScreenLoadingComponent,
+    AmwValidationTooltipOverlayComponent,
     LoginComponent
   ],
   templateUrl: './app.component.html',

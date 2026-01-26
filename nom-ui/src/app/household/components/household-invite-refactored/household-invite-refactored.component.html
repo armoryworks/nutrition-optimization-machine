@@ -62,7 +62,7 @@
               Back
             </amw-button>
             <amw-button type="submit" variant="filled" color="primary" [disabled]="inviteForm.invalid || isLoading()"
-              [loading]="isLoading()">
+              [loading]="isLoading()" [amwValidationTooltip]="validationContext">
               Generate Invite Link
             </amw-button>
           </div>

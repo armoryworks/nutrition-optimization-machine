@@ -16,6 +16,7 @@ import { RecipeDashboardItemModel } from '../../../recipe/models/recipe-dashboar
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { SubmitForCurationRequestModel } from '../../../curation/models/submit-for-curation-request.model';
 import { canSubmitForCuration, CurationStatus, isPendingCuration } from '../../../recipe/models/curation-status.enum';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 // Helper function to convert curation status ID to status string
 function getCurationStatusFromId(statusId: number): string {
@@ -121,7 +122,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       }),
       catchError((err: Error | string | unknown) => {
         console.error('Error fetching recipes:', err);
-        this.error = 'Could not load your recipes. Please try again later.';
+        this.error = ERROR_MESSAGES.RECIPE.LOAD_FAILED;
         return of([]);
       })
     );
@@ -140,7 +141,7 @@ export class RecipeAuthorDashboardComponent implements OnInit {
       }),
       catchError((err: Error | string | unknown) => {
         console.error('Error fetching ingredients:', err);
-        this.error = 'Could not load your ingredients. Please try again later.';
+        this.error = ERROR_MESSAGES.INGREDIENT.LOAD_FAILED;
         return of([]);
       })
     );
@@ -200,14 +201,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
           }))),
           catchError((err: Error | string | unknown) => {
             console.error('Error fetching recipes:', err);
-            this.error = 'Could not load your recipes. Please try again later.';
+            this.error = ERROR_MESSAGES.RECIPE.LOAD_FAILED;
             return of([]);
           })
         );
       },
       error: (error: Error | string | unknown) => {
         console.error('Error submitting recipe for curation:', error);
-        this.notificationService.error('Failed to submit recipe for curation. Please try again.');
+        this.notificationService.error(ERROR_MESSAGES.CURATION.SUBMIT_FAILED);
         this.submittingItems.delete(recipeId);
       }
     });
@@ -232,14 +233,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
           }))),
           catchError((err: Error | string | unknown) => {
             console.error('Error fetching ingredients:', err);
-            this.error = 'Could not load your ingredients. Please try again later.';
+            this.error = ERROR_MESSAGES.INGREDIENT.LOAD_FAILED;
             return of([]);
           })
         );
       },
       error: (error: Error | string | unknown) => {
         console.error('Error submitting ingredient for curation:', error);
-        this.notificationService.error('Failed to submit ingredient for curation. Please try again.');
+        this.notificationService.error(ERROR_MESSAGES.CURATION.SUBMIT_FAILED);
         this.submittingItems.delete(ingredientId);
       }
     });
@@ -284,14 +285,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
               }))),
               catchError((err: Error | string | unknown) => {
                 console.error('Error fetching recipes:', err);
-                this.error = 'Could not load your recipes. Please try again later.';
+                this.error = ERROR_MESSAGES.RECIPE.LOAD_FAILED;
                 return of([]);
               })
             );
           },
           error: (error: Error | string | unknown) => {
             console.error('Error deleting recipe:', error);
-            this.notificationService.error('Failed to delete recipe. Please try again.');
+            this.notificationService.error(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
           }
         });
       }
@@ -315,14 +316,14 @@ export class RecipeAuthorDashboardComponent implements OnInit {
               }))),
               catchError((err: Error | string | unknown) => {
                 console.error('Error fetching ingredients:', err);
-                this.error = 'Could not load your ingredients. Please try again later.';
+                this.error = ERROR_MESSAGES.INGREDIENT.LOAD_FAILED;
                 return of([]);
               })
             );
           },
           error: (error: Error | string | unknown) => {
             console.error('Error deleting ingredient:', error);
-            this.notificationService.error('Failed to delete ingredient. Please try again.');
+            this.notificationService.error(ERROR_MESSAGES.INGREDIENT.DELETE_FAILED);
           }
         });
       }

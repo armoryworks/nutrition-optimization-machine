@@ -12,9 +12,11 @@ import {
   AmwCardComponent,
   AmwIconComponent,
   AmwDialogService,
-  AmwProgressBarComponent
+  AmwProgressBarComponent,
+  AmwValidationTooltipDirective,
+  AmwValidationService,
+  ValidationContext
 } from 'angular-material-wrap';
-
 import { MealPlanReferenceService } from '../../services/meal-plan-reference.service';
 import { REFERENCE_IDS } from '../../../common/constants/reference-ids';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -32,7 +34,8 @@ import { NotificationService } from '../../../utilities/services/notification.se
     AmwCheckboxComponent,
     AmwDatepickerComponent,
     AmwCardComponent,
-    AmwIconComponent
+    AmwIconComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './meal-plan-form.component.html',
   styleUrls: ['./meal-plan-form.component.scss']
@@ -42,10 +45,12 @@ export class MealPlanFormComponent implements OnInit, OnDestroy {
   private mealPlanReferenceService = inject(MealPlanReferenceService);
   private notificationService = inject(NotificationService);
   private dialogService = inject(AmwDialogService);
+  private validationService = inject(AmwValidationService);
 
   mealPlanForm!: FormGroup;
   isEditMode = false;
   isSubmitting = signal(false);
+  validationContext!: ValidationContext;
 
   // Reference data
   daysOfWeek: any[] = [];
@@ -63,11 +68,49 @@ export class MealPlanFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadReferenceData();
     this.setupFormListeners();
+
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Name validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-required',
+      message: 'Plan name is required',
+      severity: 'error',
+      field: 'name',
+      control: this.mealPlanForm.get('name') ?? undefined,
+      validator: () => !this.mealPlanForm.get('name')?.hasError('required')
+    });
+
+    // Start date validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'startDate-required',
+      message: 'Start date is required',
+      severity: 'error',
+      field: 'startDate',
+      control: this.mealPlanForm.get('startDate') ?? undefined,
+      validator: () => !this.mealPlanForm.get('startDate')?.hasError('required')
+    });
+
+    // End date validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'endDate-required',
+      message: 'End date is required',
+      severity: 'error',
+      field: 'endDate',
+      control: this.mealPlanForm.get('endDate') ?? undefined,
+      validator: () => !this.mealPlanForm.get('endDate')?.hasError('required')
+    });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   get mealAssignmentsArray(): FormArray {

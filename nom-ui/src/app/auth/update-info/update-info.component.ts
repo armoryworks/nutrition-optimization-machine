@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewEncapsulation, inject, signal } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -7,7 +7,7 @@ import {
   AbstractControl,
 } from '@angular/forms';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwProgressBarComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { UpdateInfo } from '../models/update-info';
@@ -22,16 +22,18 @@ import { NotificationService } from '../../utilities/services/notification.servi
     AmwInputComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwProgressBarComponent
+    AmwProgressBarComponent,
+    AmwValidationTooltipDirective
   ],
   templateUrl: './update-info.component.html',
   styleUrls: ['./update-info.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
-export class UpdateInfoComponent implements OnInit {
+export class UpdateInfoComponent implements OnInit, OnDestroy {
   private nonNullableFb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private validationService = inject(AmwValidationService);
 
   updateInfoForm: FormGroup;
   isLoading = signal(false); // For form submission loading
@@ -39,8 +41,7 @@ export class UpdateInfoComponent implements OnInit {
 
   currentEmail: string | null = null;
   isEmailConfirmed: boolean | null = null;
-
-
+  validationContext!: ValidationContext;
 
   constructor() {
     this.updateInfoForm = this.nonNullableFb.group(
@@ -56,6 +57,55 @@ export class UpdateInfoComponent implements OnInit {
   ngOnInit(): void {
     // Load initial user info
     this.loadCurrentUserInfo();
+
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Email validation (optional field)
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'newEmail-format',
+      message: 'Please enter a valid email address',
+      severity: 'error',
+      field: 'newEmail',
+      control: this.updateInfoForm.get('newEmail') ?? undefined,
+      validator: () => !this.updateInfoForm.get('newEmail')?.hasError('email')
+    });
+
+    // New password validation (optional field)
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'newPassword-minlength',
+      message: 'Password must be at least 8 characters',
+      severity: 'error',
+      field: 'newPassword',
+      control: this.updateInfoForm.get('newPassword') ?? undefined,
+      validator: () => !this.updateInfoForm.get('newPassword')?.hasError('minlength')
+    });
+
+    // Old password validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'oldPassword-required',
+      message: 'Current password is required',
+      severity: 'error',
+      field: 'oldPassword',
+      control: this.updateInfoForm.get('oldPassword') ?? undefined,
+      validator: () => !this.updateInfoForm.get('oldPassword')?.hasError('required')
+    });
+
+    // Form-level validation
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'noUpdateFields',
+      message: 'Please provide a new email or a new password to update',
+      severity: 'error',
+      field: 'oldPassword',
+      validator: () => !this.updateInfoForm.hasError('noUpdateFields')
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   private loadCurrentUserInfo(): void {

@@ -136,7 +136,7 @@
           Cancel
         </amw-button>
         <amw-button type="submit" variant="filled" color="primary" [disabled]="mealPlanForm.invalid || isSubmitting()"
-          [loading]="isSubmitting()">
+          [loading]="isSubmitting()" [amwValidationTooltip]="validationContext">
           {{ isSubmitting() ? 'Saving...' : (isEditMode ? 'Update Meal Plan' : 'Create Meal Plan') }}
         </amw-button>
       </div>

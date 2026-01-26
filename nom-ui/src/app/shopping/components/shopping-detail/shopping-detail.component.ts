@@ -2,12 +2,13 @@ import { Component, OnInit, inject, signal, effect, Injector } from '@angular/co
 
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, loading } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { ShoppingItemEditorComponent } from '../shopping-item-editor/shopping-item-editor.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-shopping-detail',
@@ -60,7 +61,7 @@ export class ShoppingDetailComponent implements OnInit {
       },
       error: (error: Error | string | unknown) => {
         console.error('Error loading shopping list:', error);
-        this.error.set('Failed to load shopping list details');
+        this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
         this.isLoading.set(false);
       }
     });
@@ -86,16 +87,18 @@ export class ShoppingDetailComponent implements OnInit {
       'Delete Shopping List'
     ).subscribe(result => {
       if (result) {
-        this.shoppingService.deleteShoppingList(this.shoppingListId()).subscribe({
-          next: () => {
-            this.notificationService.success('Shopping list deleted successfully');
-            this.router.navigate(['/shopping']);
-          },
-          error: (error: Error | string | unknown) => {
-            console.error('Error deleting shopping list:', error);
-            this.notificationService.error('Failed to delete shopping list');
-          }
-        });
+        this.shoppingService.deleteShoppingList(this.shoppingListId())
+          .pipe(loading('Deleting shopping list...'))
+          .subscribe({
+            next: () => {
+              this.notificationService.success('Shopping list deleted successfully');
+              this.router.navigate(['/shopping']);
+            },
+            error: (error: Error | string | unknown) => {
+              console.error('Error deleting shopping list:', error);
+              this.notificationService.error(ERROR_MESSAGES.SHOPPING.DELETE_FAILED);
+            }
+          });
       }
     });
   }
@@ -124,16 +127,18 @@ export class ShoppingDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.shoppingService.addShoppingListItem(this.shoppingListId(), result).subscribe({
-          next: () => {
-            this.notificationService.success('Item added successfully');
-            this.loadShoppingList();
-          },
-          error: (error: Error | string | unknown) => {
-            console.error('Error adding item:', error);
-            this.notificationService.error('Failed to add item');
-          }
-        });
+        this.shoppingService.addShoppingListItem(this.shoppingListId(), result)
+          .pipe(loading('Adding item...'))
+          .subscribe({
+            next: () => {
+              this.notificationService.success('Item added successfully');
+              this.loadShoppingList();
+            },
+            error: (error: Error | string | unknown) => {
+              console.error('Error adding item:', error);
+              this.notificationService.error(ERROR_MESSAGES.SHOPPING.ITEM_ADD_FAILED);
+            }
+          });
       }
     });
   }
@@ -165,7 +170,7 @@ export class ShoppingDetailComponent implements OnInit {
       },
       error: (error: Error | string | unknown) => {
         console.error('Error updating item:', error);
-        this.notificationService.error('Failed to update item');
+        this.notificationService.error(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
       }
     });
   }
@@ -176,16 +181,18 @@ export class ShoppingDetailComponent implements OnInit {
       'Delete Item'
     ).subscribe(result => {
       if (result) {
-        this.shoppingService.deleteShoppingListItem(this.shoppingListId(), itemId).subscribe({
-          next: () => {
-            this.notificationService.success('Item deleted successfully');
-            this.loadShoppingList();
-          },
-          error: (error: Error | string | unknown) => {
-            console.error('Error deleting item:', error);
-            this.notificationService.error('Failed to delete item');
-          }
-        });
+        this.shoppingService.deleteShoppingListItem(this.shoppingListId(), itemId)
+          .pipe(loading('Deleting item...'))
+          .subscribe({
+            next: () => {
+              this.notificationService.success('Item deleted successfully');
+              this.loadShoppingList();
+            },
+            error: (error: Error | string | unknown) => {
+              console.error('Error deleting item:', error);
+              this.notificationService.error(ERROR_MESSAGES.SHOPPING.DELETE_FAILED);
+            }
+          });
       }
     });
   }

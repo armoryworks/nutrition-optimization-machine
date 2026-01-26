@@ -1,20 +1,35 @@
-<nom-base-page [config]="pageConfig" (refresh)="onRefresh()" (retry)="onRetry()">
-  <div class="recipe-categories">
-    <!-- Search and Create Section -->
-    <div class="recipe-categories__header">
-      <div class="recipe-categories__search">
-        <amw-input [(ngModel)]="searchTerm" (ngModelChange)="filterCategories()" label="Search categories"
-          placeholder="Search by name or description" suffixIcon="search" class="recipe-categories__search-field">
-        </amw-input>
-      </div>
-
-      <div class="recipe-categories__actions">
-        <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid"
-          icon="add">
-          Create Category
-        </amw-button>
-      </div>
+<div class="recipe-categories">
+  <!-- Page Header -->
+  <div class="recipe-categories__page-header">
+    <div class="recipe-categories__page-header-content">
+      <h1 class="recipe-categories__page-title">Recipe Categories</h1>
+      <p class="recipe-categories__page-subtitle">Manage categories for your recipes</p>
     </div>
+    <div class="recipe-categories__page-header-actions">
+      <amw-icon-button
+        icon="refresh"
+        ariaLabel="Refresh categories"
+        [amwTooltip]="'Refresh'"
+        (buttonClick)="onRefresh()">
+      </amw-icon-button>
+    </div>
+  </div>
+
+  <!-- Search and Create Section -->
+  <div class="recipe-categories__header">
+    <div class="recipe-categories__search">
+      <amw-input [(ngModel)]="searchTerm" (ngModelChange)="filterCategories()" label="Search categories"
+        placeholder="Search by name or description" suffixIcon="search" class="recipe-categories__search-field">
+      </amw-input>
+    </div>
+
+    <div class="recipe-categories__actions">
+      <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid"
+        icon="add">
+        Create Category
+      </amw-button>
+    </div>
+  </div>
 
     <!-- Create Category Form -->
     @if (categoryForm.get('name')?.value) {

@@ -1,8 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwDividerComponent } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwDividerComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { AuthService } from '../../auth.service';
 
@@ -14,25 +14,78 @@ import { AuthService } from '../../auth.service';
     AmwInputComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwDividerComponent
+    AmwDividerComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './login-popover.component.html',
   styleUrls: ['./login-popover.component.scss']
 })
-export class LoginPopoverComponent {
+export class LoginPopoverComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private validationService = inject(AmwValidationService);
 
   loginForm: FormGroup;
   isLoading = signal(false);
   errorMessage = signal('');
+  validationContext!: ValidationContext;
 
   constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  ngOnInit(): void {
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Email validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-required',
+      message: 'Email is required',
+      severity: 'error',
+      field: 'email',
+      control: this.loginForm.get('email') ?? undefined,
+      validator: () => !this.loginForm.get('email')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'email-format',
+      message: 'Please enter a valid email address',
+      severity: 'error',
+      field: 'email',
+      control: this.loginForm.get('email') ?? undefined,
+      validator: () => !this.loginForm.get('email')?.hasError('email')
+    });
+
+    // Password validations
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-required',
+      message: 'Password is required',
+      severity: 'error',
+      field: 'password',
+      control: this.loginForm.get('password') ?? undefined,
+      validator: () => !this.loginForm.get('password')?.hasError('required')
+    });
+
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'password-minlength',
+      message: 'Password must be at least 6 characters',
+      severity: 'error',
+      field: 'password',
+      control: this.loginForm.get('password') ?? undefined,
+      validator: () => !this.loginForm.get('password')?.hasError('minlength')
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   onSubmit(): void {

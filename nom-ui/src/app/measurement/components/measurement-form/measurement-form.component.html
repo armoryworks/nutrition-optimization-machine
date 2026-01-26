@@ -36,8 +36,8 @@
 
         <div class="measurement-form__actions">
           <amw-button variant="filled" color="primary" type="submit"
-            [disabled]="measurementForm.invalid || isSubmitting()" [loading]="isSubmitting()" icon="save"
-            class="measurement-form__submit-btn">
+            [disabled]="measurementForm.invalid || isSubmitting()" [loading]="isSubmitting()"
+            [amwValidationTooltip]="validationContext" icon="save" class="measurement-form__submit-btn">
             Save Measurement
           </amw-button>
 

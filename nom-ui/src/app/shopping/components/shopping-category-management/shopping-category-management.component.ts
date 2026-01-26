@@ -1,11 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwSelectComponent } from 'angular-material-wrap';
-
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwSelectComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -24,18 +23,20 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
         AmwCardComponent,
         AmwIconComponent,
         AmwProgressSpinnerComponent,
-        AmwSelectComponent
+        AmwSelectComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './shopping-category-management.component.html',
     styleUrls: ['./shopping-category-management.component.scss']
 })
-export class ShoppingCategoryManagementComponent implements OnInit {
+export class ShoppingCategoryManagementComponent implements OnInit, OnDestroy {
     private shoppingService = inject(ShoppingService);
     private router = inject(Router);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private notificationService = inject(NotificationService);
     private dialogService = inject(AmwDialogService);
     private userInfoService = inject(UserInfoService);
+    private validationService = inject(AmwValidationService);
 
     categories = signal<ShoppingListCategory[]>([]);
     isLoading = signal(false);
@@ -46,6 +47,7 @@ export class ShoppingCategoryManagementComponent implements OnInit {
     isSubmitting = signal(false);
     loading = signal(false);
     editingCategoryId = signal<number | null>(null);
+    validationContext!: ValidationContext;
 
     // Available icons for category selection
     availableIcons = [
@@ -95,6 +97,54 @@ export class ShoppingCategoryManagementComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadCategories();
+
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Name validations
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-required',
+            message: 'Category name is required',
+            severity: 'error',
+            field: 'name',
+            control: this.categoryForm.get('name') ?? undefined,
+            validator: () => !this.categoryForm.get('name')?.hasError('required')
+        });
+
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-minlength',
+            message: 'Name must be at least 2 characters',
+            severity: 'error',
+            field: 'name',
+            control: this.categoryForm.get('name') ?? undefined,
+            validator: () => !this.categoryForm.get('name')?.hasError('minlength')
+        });
+
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'name-maxlength',
+            message: 'Name cannot exceed 50 characters',
+            severity: 'error',
+            field: 'name',
+            control: this.categoryForm.get('name') ?? undefined,
+            validator: () => !this.categoryForm.get('name')?.hasError('maxlength')
+        });
+
+        // Description validation (optional field)
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'description-maxlength',
+            message: 'Description cannot exceed 200 characters',
+            severity: 'error',
+            field: 'description',
+            control: this.categoryForm.get('description') ?? undefined,
+            validator: () => !this.categoryForm.get('description')?.hasError('maxlength')
+        });
+    }
+
+    ngOnDestroy(): void {
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     loadCategories(): void {

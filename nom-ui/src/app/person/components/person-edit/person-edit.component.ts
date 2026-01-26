@@ -8,7 +8,7 @@ import {
 import { AmwProgressBarComponent } from 'angular-material-wrap';
 import { Subject } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { PersonModel } from '../../models/person.model';
 
@@ -22,6 +22,7 @@ import { PersonModel } from '../../models/person.model';
     AmwCardComponent,
     AmwIconComponent,
     AmwInputComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './person-edit.component.html',
   styleUrls: ['./person-edit.component.scss'],
@@ -29,12 +30,14 @@ import { PersonModel } from '../../models/person.model';
 })
 export class PersonEditComponent implements OnInit, OnDestroy {
   private fb = inject(NonNullableFormBuilder);
+  private validationService = inject(AmwValidationService);
 
   person = input<PersonModel | null>(null);
   formSubmitted = output<PersonModel>();
   skipStep = output<void>();
 
   personForm: FormGroup;
+  validationContext!: ValidationContext;
   isSubmitting = signal(false);
   isLoading = signal(false);
   error = signal<string | null>(null);
@@ -75,11 +78,30 @@ export class PersonEditComponent implements OnInit, OnDestroy {
         // Add other fields as needed
       });
     }
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Name validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-required',
+      message: 'Name is required',
+      severity: 'error',
+      field: 'name',
+      control: this.personForm.get('name') ?? undefined,
+      validator: () => !this.personForm.get('name')?.hasError('required')
+    });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   onSubmit(): void {

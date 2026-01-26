@@ -24,7 +24,8 @@
 
           <div class="nom-form__actions">
             <amw-button type="submit" variant="filled" color="primary" icon="add"
-              [disabled]="ruleForm.invalid || isAddingRule()" [loading]="isAddingRule()">
+              [disabled]="ruleForm.invalid || isAddingRule()" [loading]="isAddingRule()"
+              [amwValidationTooltip]="validationContext">
               {{ isAddingRule() ? 'Adding...' : 'Add Rule' }}
             </amw-button>
           </div>

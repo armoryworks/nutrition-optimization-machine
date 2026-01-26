@@ -9,6 +9,7 @@ import { RecipeService } from '../../services/recipe.service';
 import { IngredientSearchResponseModel } from '../../models/ingredient-search-response.model';
 import { IngredientModel } from '../../models/ingredient.model';
 import { IngredientDetailsComponent } from '../ingredient-details/ingredient-details.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 interface AutocompleteOption {
   value: any;
@@ -66,7 +67,7 @@ export class IngredientSearchComponent implements OnDestroy {
           finalize(() => this.isLoading.set(false)),
           catchError((error) => {
             console.error('Error searching ingredients:', error);
-            this.error.set('Failed to search ingredients. Please try again.');
+            this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
             return of([]);
           })
         )
@@ -104,7 +105,7 @@ export class IngredientSearchComponent implements OnDestroy {
         finalize(() => this.isLoading.set(false)),
         catchError((error) => {
           console.error('Error loading ingredient details:', error);
-          this.error.set('Failed to load ingredient details.');
+          this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
           return of(null);
         })
       )

@@ -10,7 +10,7 @@ import { finalize, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AmwProgressBarComponent } from 'angular-material-wrap';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { PersonService } from '../../services/person.service';
 import { PersonCreateResponseModel } from '../../models/person-create-response.model';
@@ -25,6 +25,7 @@ import { PersonCreateResponseModel } from '../../models/person-create-response.m
     AmwCardComponent,
     AmwIconComponent,
     AmwInputComponent,
+    AmwValidationTooltipDirective,
   ],
   templateUrl: './person-creation.component.html',
   styleUrls: ['./person-creation.component.scss'],
@@ -35,6 +36,31 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
     // Initialize person creation form and load any required data
     this.initializeForm();
     this.loadInitialData();
+
+    // Setup ValidationContext
+    this.validationContext = this.validationService.createContext({
+      disableOnErrors: true
+    });
+
+    // Name validation - required
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-required',
+      message: 'Name is required',
+      severity: 'error',
+      field: 'name',
+      control: this.personForm.get('name') ?? undefined,
+      validator: () => !this.personForm.get('name')?.hasError('required')
+    });
+
+    // Name validation - minLength
+    this.validationService.addViolation(this.validationContext.id, {
+      id: 'name-minlength',
+      message: 'Name must be at least 2 characters',
+      severity: 'error',
+      field: 'name',
+      control: this.personForm.get('name') ?? undefined,
+      validator: () => !this.personForm.get('name')?.hasError('minlength')
+    });
   }
 
   private initializeForm(): void {
@@ -48,8 +74,10 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   }
   private nonNullableFb = inject(NonNullableFormBuilder);
   private personService = inject(PersonService);
+  private validationService = inject(AmwValidationService);
 
   personSubmitted = output<PersonCreateResponseModel>();
+  validationContext!: ValidationContext;
 
   personForm: FormGroup = this.nonNullableFb.group({
     name: new FormControl('', [Validators.required, Validators.minLength(2)]),
@@ -75,6 +103,10 @@ export class PersonCreationComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    if (this.validationContext) {
+      this.validationService.destroyContext(this.validationContext.id);
+    }
   }
 
   onSubmit(): void {

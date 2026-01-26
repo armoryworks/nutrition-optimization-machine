@@ -2,10 +2,10 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
-import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
-
+import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
     selector: 'nom-recipe-notes',
@@ -18,6 +18,7 @@ import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
         AmwCardComponent,
         AmwIconComponent,
         AmwProgressSpinnerComponent,
+        AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-notes.component.html',
     styleUrls: ['./recipe-notes.component.scss']
@@ -26,7 +27,9 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
     private recipeService = inject(RecipeService);
     private nonNullableFb = inject(NonNullableFormBuilder);
     private notificationService = inject(NotificationService);
+    private validationService = inject(AmwValidationService);
 
+    validationContext!: ValidationContext;
     notes = signal<RecipeNoteResponseModel[]>([]);
     isLoading = signal(false);
     error = signal<string | null>(null);
@@ -44,11 +47,80 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
         if (this.recipeId) {
             this.loadNotes();
         }
+
+        // Setup ValidationContext
+        this.validationContext = this.validationService.createContext({
+            disableOnErrors: true
+        });
+
+        // Note title validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteTitle-required',
+            message: 'Note title is required',
+            severity: 'error',
+            field: 'noteTitle',
+            control: this.noteForm.get('noteTitle') ?? undefined,
+            validator: () => !this.noteForm.get('noteTitle')?.hasError('required')
+        });
+
+        // Note title validation - minLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteTitle-minlength',
+            message: 'Note title must be at least 2 characters',
+            severity: 'error',
+            field: 'noteTitle',
+            control: this.noteForm.get('noteTitle') ?? undefined,
+            validator: () => !this.noteForm.get('noteTitle')?.hasError('minlength')
+        });
+
+        // Note title validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteTitle-maxlength',
+            message: 'Note title must be 255 characters or less',
+            severity: 'error',
+            field: 'noteTitle',
+            control: this.noteForm.get('noteTitle') ?? undefined,
+            validator: () => !this.noteForm.get('noteTitle')?.hasError('maxlength')
+        });
+
+        // Note text validation - required
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteText-required',
+            message: 'Note content is required',
+            severity: 'error',
+            field: 'noteText',
+            control: this.noteForm.get('noteText') ?? undefined,
+            validator: () => !this.noteForm.get('noteText')?.hasError('required')
+        });
+
+        // Note text validation - minLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteText-minlength',
+            message: 'Note content must be at least 2 characters',
+            severity: 'error',
+            field: 'noteText',
+            control: this.noteForm.get('noteText') ?? undefined,
+            validator: () => !this.noteForm.get('noteText')?.hasError('minlength')
+        });
+
+        // Note text validation - maxLength
+        this.validationService.addViolation(this.validationContext.id, {
+            id: 'noteText-maxlength',
+            message: 'Note content must be 2047 characters or less',
+            severity: 'error',
+            field: 'noteText',
+            control: this.noteForm.get('noteText') ?? undefined,
+            validator: () => !this.noteForm.get('noteText')?.hasError('maxlength')
+        });
     }
 
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+
+        if (this.validationContext) {
+            this.validationService.destroyContext(this.validationContext.id);
+        }
     }
 
     loadNotes(): void {
@@ -66,7 +138,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading notes:", error);
-                    this.error.set("Failed to load notes. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                     this.isLoading.set(false);
                 },
             });
@@ -98,7 +170,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error creating note:", error);
-                    this.error.set("Failed to create note. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting = false;
                 },
             });
@@ -150,7 +222,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error updating note:", error);
-                    this.error.set("Failed to update note. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting = false;
                 },
             });
@@ -167,7 +239,7 @@ export class RecipeNotesComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error deleting note:", error);
-                    this.notificationService.error("Failed to delete note");
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
                 },
             });
     }

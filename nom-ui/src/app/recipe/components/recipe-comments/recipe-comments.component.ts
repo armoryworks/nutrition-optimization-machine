@@ -3,10 +3,11 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwIconComponent, AmwIconButtonComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwIconComponent, AmwIconButtonComponent, AmwProgressSpinnerComponent, AmwCardComponent, loading } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recipe-comment.model';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 
 @Component({
@@ -19,6 +20,8 @@ import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recip
         AmwTextareaComponent,
         AmwIconComponent,
         AmwIconButtonComponent,
+        AmwProgressSpinnerComponent,
+        AmwCardComponent,
     ],
     templateUrl: './recipe-comments.component.html',
     styleUrls: ['./recipe-comments.component.scss']
@@ -37,8 +40,6 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     commentForm: FormGroup;
     isAddingComment = signal(false);
     isSubmitting = signal(false);
-
-
 
     constructor() {
         this.commentForm = this.nonNullableFb.group({
@@ -71,7 +72,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error loading comments:", error);
-                    this.error.set("Failed to load comments. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.LOAD_FAILED);
                     this.isLoading.set(false);
                 },
             });
@@ -92,7 +93,10 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
 
         this.recipeService
             .addComment(request)
-            .pipe(takeUntil(this.destroy$))
+            .pipe(
+                loading('Posting comment...'),
+                takeUntil(this.destroy$)
+            )
             .subscribe({
                 next: (comment) => {
                     this.comments.set([comment, ...this.comments()]);
@@ -102,7 +106,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 },
                 error: (error) => {
                     console.error("Error creating comment:", error);
-                    this.error.set("Failed to post comment. Please try again.");
+                    this.error.set(ERROR_MESSAGES.RECIPE.SAVE_FAILED);
                     this.isSubmitting.set(false);
                 },
             });
@@ -111,7 +115,10 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
     deleteComment(commentId: number): void {
         this.recipeService
             .deleteComment(commentId)
-            .pipe(takeUntil(this.destroy$))
+            .pipe(
+                loading('Deleting comment...'),
+                takeUntil(this.destroy$)
+            )
             .subscribe({
                 next: () => {
                     this.comments.set(this.comments().filter(c => c.id !== commentId));
@@ -119,7 +126,7 @@ export class RecipeCommentsComponent implements OnInit, OnDestroy {
                 },
                 error: (error: any) => {
                     console.error("Error deleting comment:", error);
-                    this.notificationService.error("Failed to delete comment");
+                    this.notificationService.error(ERROR_MESSAGES.RECIPE.DELETE_FAILED);
                 },
             });
     }

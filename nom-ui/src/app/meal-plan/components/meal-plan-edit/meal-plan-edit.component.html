@@ -27,6 +27,7 @@
             Cancel
           </amw-button>
           <amw-button type="submit" variant="filled" color="primary" [disabled]="mealPlanForm.invalid || isLoading()"
+            [amwValidationTooltip]="validationContext"
             [loading]="isLoading()" class="nom-button">
             Update Meal Plan
           </amw-button>

@@ -6,13 +6,13 @@ import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Va
 
 import { Subject, takeUntil, finalize } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwAccordionComponent, AmwAccordionPanelComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwAccordionComponent, AmwAccordionPanelComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
 
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
 import { CurationDecisionRequestModel } from '../../models/curation-decision-request.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
-import { BaseListComponent, BaseListConfig } from '../../../common/components/base-list/base-list.component';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-curation-queue',
@@ -32,7 +32,7 @@ import { BaseListComponent, BaseListConfig } from '../../../common/components/ba
     AmwMenuTriggerForDirective,
     AmwAccordionComponent,
     AmwAccordionPanelComponent,
-    BaseListComponent,
+    AmwProgressSpinnerComponent,
   ],
   templateUrl: './curation-queue.component.html',
   styleUrls: ['./curation-queue.component.scss']
@@ -49,31 +49,6 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
   isSubmitting = signal(false);
   error = signal<string | null>(null);
   lastRefreshTime = signal<Date | null>(null);
-
-  listConfig: BaseListConfig = {
-    title: 'Curation Queue',
-    subtitle: 'Review and approve submitted content',
-    showSearch: false,
-    showRefreshButton: true,
-    refreshButtonText: 'Refresh',
-    maxWidth: 'none',
-
-    // Extended functionality
-    showStats: true,
-    stats: [
-      { label: 'Pending', value: 0, type: 'pending' },
-      { label: 'Recipes', value: 0, type: 'recipe' },
-      { label: 'Ingredients', value: 0, type: 'ingredient' }
-    ],
-    showProgress: true,
-    progressText: 'Select an item to review',
-    progressValue: 0,
-    progressTotal: 0,
-    showCustomActions: false,
-    customActions: [],
-    showLastUpdated: true,
-    lastUpdated: undefined
-  };
 
   private destroy$ = new Subject<void>();
 
@@ -95,17 +70,20 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
     return this.queueItems().findIndex(item => item.id === this.selectedItem()!.id);
   });
 
+  progressText = computed(() => {
+    if (this.hasItems() && this.selectedItem()) {
+      return `Reviewing item ${this.selectedItemIndex() + 1} of ${this.queueItems().length}`;
+    } else if (this.hasItems()) {
+      return 'Select an item to review';
+    } else {
+      return 'No items to review';
+    }
+  });
+
   constructor() {
     this.decisionForm = this.fb.group({
       decisionNotes: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]],
       publicNotes: ['', [Validators.maxLength(500)]]
-    });
-
-    // Update list config when form validity changes
-    this.decisionForm.statusChanges.pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.updateListConfig();
     });
   }
 
@@ -129,7 +107,6 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
       finalize(() => {
         this.isLoading.set(false);
         this.lastRefreshTime.set(new Date());
-        this.updateListConfig();
       })
     ).subscribe({
       next: (items) => {
@@ -141,47 +118,13 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
           this.selectedItem.set(null);
           this.decisionForm.reset();
         }
-
-        this.updateListConfig();
       },
       error: (error: unknown) => {
         console.error('Error loading curation queue:', error);
-        this.error.set('Failed to load curation queue. Please try again.');
-        this.notificationService.error('Failed to load curation queue');
+        this.error.set(ERROR_MESSAGES.CURATION.LOAD_FAILED);
+        this.notificationService.error(ERROR_MESSAGES.CURATION.LOAD_FAILED);
       }
     });
-  }
-
-  private updateListConfig(): void {
-    this.listConfig = {
-      ...this.listConfig,
-      stats: [
-        { label: 'Pending', value: this.queueItems().length, type: 'pending' },
-        { label: 'Recipes', value: this.recipeCount(), type: 'recipe' },
-        { label: 'Ingredients', value: this.ingredientCount(), type: 'ingredient' }
-      ],
-      progressText: this.hasItems() && this.selectedItem() ? `Reviewing item ${this.selectedItemIndex() + 1} of ${this.queueItems().length}` : this.hasItems() ? 'Select an item to review' : 'No items to review',
-      progressValue: this.hasItems() && this.selectedItem() ? this.selectedItemIndex() + 1 : 0,
-      progressTotal: this.queueItems().length,
-
-      customActions: [
-        {
-          label: 'Previous',
-          icon: 'skip_previous',
-          color: 'accent',
-          disabled: !this.selectedItem() || this.selectedItemIndex() <= 0,
-          action: () => this.selectPreviousItem()
-        },
-        {
-          label: 'Next',
-          icon: 'skip_next',
-          color: 'primary',
-          disabled: !this.selectedItem() || this.selectedItemIndex() >= this.queueItems().length - 1,
-          action: () => this.selectNextItem()
-        }
-      ],
-      lastUpdated: this.lastRefreshTime() || undefined
-    };
   }
 
   onRefresh(): void {
@@ -202,7 +145,6 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
       this.selectedItem.set(item);
       this.decisionForm.reset();
     }
-    this.updateListConfig();
   }
 
   selectNextItem(): void {
@@ -277,8 +219,11 @@ export class CurationQueueComponent implements OnInit, OnDestroy {
       },
       error: (error: unknown) => {
         console.error(`Error ${action}ing item:`, error);
-        this.error.set(`Failed to ${action} item. Please try again.`);
-        this.notificationService.error(`Failed to ${action} item`);
+        const errorMessage = action === 'approve' ? ERROR_MESSAGES.CURATION.APPROVE_FAILED
+          : action === 'reject' ? ERROR_MESSAGES.CURATION.REJECT_FAILED
+          : ERROR_MESSAGES.CURATION.REVISION_FAILED;
+        this.error.set(errorMessage);
+        this.notificationService.error(errorMessage);
       }
     });
   }

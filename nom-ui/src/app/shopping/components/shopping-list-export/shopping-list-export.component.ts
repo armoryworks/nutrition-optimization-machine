@@ -11,6 +11,7 @@ import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
 import { IShoppingListItemModel } from '../../models/shopping-list-item.model.interface';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-shopping-list-export',
@@ -69,7 +70,7 @@ export class ShoppingListExportComponent implements OnInit, OnDestroy {
           this.list.set(list);
         },
         error: (err: unknown) => {
-          this.error.set('Failed to load shopping list');
+          this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
           console.error('Error loading shopping list:', err);
         },
       });

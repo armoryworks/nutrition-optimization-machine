@@ -16,6 +16,7 @@ import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
 import { ShoppingListCategory } from '../../models/shopping-list-category.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-shopping-bulk-editor',
@@ -106,7 +107,7 @@ export class ShoppingBulkEditorComponent implements OnInit, OnDestroy {
           this.categories.set(categories);
         },
         error: (err) => {
-          this.error.set('Failed to load data');
+          this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
           console.error('Error loading data:', err);
         },
       });
@@ -184,8 +185,8 @@ export class ShoppingBulkEditorComponent implements OnInit, OnDestroy {
           this.loadData();
         },
         error: (err) => {
-          this.error.set('Failed to update items');
-          this.notificationService.error('Failed to update items');
+          this.error.set(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
           console.error('Error updating items:', err);
         },
       });
@@ -235,8 +236,8 @@ export class ShoppingBulkEditorComponent implements OnInit, OnDestroy {
           this.loadData();
         },
         error: (err) => {
-          this.error.set('Failed to update category');
-          this.notificationService.error('Failed to update category');
+          this.error.set(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.SAVE_FAILED);
           console.error('Error updating category:', err);
         },
       });
@@ -276,8 +277,8 @@ export class ShoppingBulkEditorComponent implements OnInit, OnDestroy {
           this.loadData();
         },
         error: (err) => {
-          this.error.set('Failed to delete items');
-          this.notificationService.error('Failed to delete items');
+          this.error.set(ERROR_MESSAGES.SHOPPING.DELETE_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.DELETE_FAILED);
           console.error('Error deleting items:', err);
         },
       });

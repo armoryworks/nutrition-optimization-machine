@@ -1,120 +1,144 @@
-<nom-base-detail [config]="detailConfig" [loading]="isLoading" [error]="error">
-
-  <div class="recipe-timeline-events__content">
-    <!-- Create Timeline Event Form -->
-    <form [formGroup]="timelineEventForm" (ngSubmit)="createTimelineEvent()" class="recipe-timeline-events__form">
-      <div class="recipe-timeline-events__form-row">
-        <amw-select
-          formControlName="eventTypeId"
-          label="Event Type"
-          [required]="true"
-          [options]="eventTypes.map(et => ({ value: et.id, label: et.name }))"
-          class="recipe-timeline-events__field">
-        </amw-select>
+<amw-card headerTitle="Recipe Timeline" headerSubtitle="Track when you made or modified this recipe">
+  <ng-template #cardContent>
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="recipe-timeline-events__loading">
+        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
+        <p>Loading timeline events...</p>
       </div>
+    }
 
-      <div class="recipe-timeline-events__form-row">
-        <amw-input
-          formControlName="eventTitle"
-          label="Event Title"
-          placeholder="Enter event title"
-          [required]="true"
-          class="recipe-timeline-events__field">
-        </amw-input>
-      </div>
-
-      <div class="recipe-timeline-events__form-row">
-        <amw-textarea
-          formControlName="eventDescription"
-          label="Event Description (Optional)"
-          placeholder="Enter event description"
-          [rows]="3"
-          class="recipe-timeline-events__field">
-        </amw-textarea>
-      </div>
-
-      <div class="recipe-timeline-events__form-row">
-        <amw-datepicker
-          formControlName="eventDate"
-          label="Event Date (Optional)"
-          placeholder="Choose event date"
-          class="recipe-timeline-events__field">
-        </amw-datepicker>
-      </div>
-
-      <div class="recipe-timeline-events__form-actions">
-        <amw-button
-          variant="filled"
-          color="primary"
-          type="submit"
-          [disabled]="timelineEventForm.invalid || isSubmitting()"
-          [loading]="isSubmitting()"
-          icon="add"
-          class="recipe-timeline-events__submit-btn">
-          {{ isSubmitting() ? 'Creating...' : 'Add Timeline Event' }}
+    <!-- Error State -->
+    @if (error() && !isLoading()) {
+      <div class="recipe-timeline-events__error">
+        <amw-icon name="error" color="warn"></amw-icon>
+        <h3>Error</h3>
+        <p>{{ error() }}</p>
+        <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+          Try Again
         </amw-button>
       </div>
-    </form>
+    }
 
-    <amw-divider dividerClass="recipe-timeline-events__divider"></amw-divider>
+    <!-- Content -->
+    @if (!isLoading() && !error()) {
+      <div class="recipe-timeline-events__content">
+        <!-- Create Timeline Event Form -->
+        <form [formGroup]="timelineEventForm" (ngSubmit)="createTimelineEvent()" class="recipe-timeline-events__form">
+          <div class="recipe-timeline-events__form-row">
+            <amw-select
+              formControlName="eventTypeId"
+              label="Event Type"
+              [required]="true"
+              [options]="eventTypes.map(et => ({ value: et.id, label: et.name }))"
+              class="recipe-timeline-events__field">
+            </amw-select>
+          </div>
 
-    <!-- Timeline Events List -->
-    <div class="recipe-timeline-events__timeline-section">
-      <h3 class="recipe-timeline-events__section-title">Recipe Timeline</h3>
-      
-      @if (timelineEvents.length === 0 && !isLoading) {
-        <div class="recipe-timeline-events__empty">
-          <amw-icon name="timeline" class="recipe-timeline-events__empty-icon"></amw-icon>
-          <p>No timeline events yet</p>
-        </div>
-      }
+          <div class="recipe-timeline-events__form-row">
+            <amw-input
+              formControlName="eventTitle"
+              label="Event Title"
+              placeholder="Enter event title"
+              [required]="true"
+              class="recipe-timeline-events__field">
+            </amw-input>
+          </div>
 
-      @if (timelineEvents.length > 0) {
-        <div class="recipe-timeline-events__timeline">
-          @for (event of timelineEvents; track event.id; let i = $index) {
-            <div class="recipe-timeline-events__timeline-item">
-              <!-- Timeline Connector -->
-              <div class="recipe-timeline-events__timeline-connector">
-                <div class="recipe-timeline-events__timeline-dot">
-                  <amw-icon [name]="getEventIcon(event.eventTypeId)" class="recipe-timeline-events__event-icon"></amw-icon>
-                </div>
-                @if (i < timelineEvents.length - 1) {
-                  <div class="recipe-timeline-events__timeline-line"></div>
-                }
-              </div>
+          <div class="recipe-timeline-events__form-row">
+            <amw-textarea
+              formControlName="eventDescription"
+              label="Event Description (Optional)"
+              placeholder="Enter event description"
+              [rows]="3"
+              class="recipe-timeline-events__field">
+            </amw-textarea>
+          </div>
 
-              <!-- Timeline Event Content -->
-              <div class="recipe-timeline-events__timeline-content">
-                <div class="recipe-timeline-events__event-header">
-                  <h4 class="recipe-timeline-events__event-title">{{ event.eventTitle }}</h4>
-                  <div class="recipe-timeline-events__event-meta">
-                    <span class="recipe-timeline-events__event-type">{{ getEventTypeName(event.eventTypeId) }}</span>
-                    <span class="recipe-timeline-events__event-date">{{ formatEventDate(event.eventDate) }}</span>
-                    <span class="recipe-timeline-events__event-author">by {{ event.authorName }}</span>
+          <div class="recipe-timeline-events__form-row">
+            <amw-datepicker
+              formControlName="eventDate"
+              label="Event Date (Optional)"
+              placeholder="Choose event date"
+              class="recipe-timeline-events__field">
+            </amw-datepicker>
+          </div>
+
+          <div class="recipe-timeline-events__form-actions">
+            <amw-button
+              variant="filled"
+              color="primary"
+              type="submit"
+              [disabled]="timelineEventForm.invalid || isSubmitting()"
+              [loading]="isSubmitting()"
+              icon="add"
+              class="recipe-timeline-events__submit-btn">
+              {{ isSubmitting() ? 'Creating...' : 'Add Timeline Event' }}
+            </amw-button>
+          </div>
+        </form>
+
+        <amw-divider dividerClass="recipe-timeline-events__divider"></amw-divider>
+
+        <!-- Timeline Events List -->
+        <div class="recipe-timeline-events__timeline-section">
+          <h3 class="recipe-timeline-events__section-title">Recipe Timeline</h3>
+
+          @if (timelineEvents().length === 0 && !isLoading()) {
+            <div class="recipe-timeline-events__empty">
+              <amw-icon name="timeline" class="recipe-timeline-events__empty-icon"></amw-icon>
+              <p>No timeline events yet</p>
+            </div>
+          }
+
+          @if (timelineEvents().length > 0) {
+            <div class="recipe-timeline-events__timeline">
+              @for (event of timelineEvents(); track event.id; let i = $index) {
+                <div class="recipe-timeline-events__timeline-item">
+                  <!-- Timeline Connector -->
+                  <div class="recipe-timeline-events__timeline-connector">
+                    <div class="recipe-timeline-events__timeline-dot">
+                      <amw-icon [name]="getEventIcon(event.eventTypeId)" class="recipe-timeline-events__event-icon"></amw-icon>
+                    </div>
+                    @if (i < timelineEvents().length - 1) {
+                      <div class="recipe-timeline-events__timeline-line"></div>
+                    }
+                  </div>
+
+                  <!-- Timeline Event Content -->
+                  <div class="recipe-timeline-events__timeline-content">
+                    <div class="recipe-timeline-events__event-header">
+                      <h4 class="recipe-timeline-events__event-title">{{ event.eventTitle }}</h4>
+                      <div class="recipe-timeline-events__event-meta">
+                        <span class="recipe-timeline-events__event-type">{{ getEventTypeName(event.eventTypeId) }}</span>
+                        <span class="recipe-timeline-events__event-date">{{ formatEventDate(event.eventDate) }}</span>
+                        <span class="recipe-timeline-events__event-author">by {{ event.authorName }}</span>
+                      </div>
+                    </div>
+
+                    @if (event.eventDescription) {
+                      <div class="recipe-timeline-events__event-content">
+                        <p class="recipe-timeline-events__event-description">{{ event.eventDescription }}</p>
+                      </div>
+                    }
+
+                    <div class="recipe-timeline-events__event-actions">
+                      <amw-icon-button
+                        icon="delete"
+                        color="warn"
+                        ariaLabel="Delete timeline event"
+                        [amwTooltip]="'Delete timeline event'"
+                        (buttonClick)="deleteTimelineEvent(event.id)"
+                        class="recipe-timeline-events__delete-btn">
+                      </amw-icon-button>
+                    </div>
                   </div>
                 </div>
-
-                @if (event.eventDescription) {
-                  <div class="recipe-timeline-events__event-content">
-                    <p class="recipe-timeline-events__event-description">{{ event.eventDescription }}</p>
-                  </div>
-                }
-
-                <div class="recipe-timeline-events__event-actions">
-                  <amw-icon-button
-                    icon="delete"
-                    color="warn"
-                    ariaLabel="Delete timeline event"
-                    [amwTooltip]="'Delete timeline event'"
-                    (buttonClick)="deleteTimelineEvent(event.id)"
-                    class="recipe-timeline-events__delete-btn">
-                  </amw-icon-button>
-                </div>
-              </div>
+              }
             </div>
           }
         </div>
-      }
-    </div>
-  </div>
-</nom-base-detail> 
+      </div>
+    }
+  </ng-template>
+</amw-card>

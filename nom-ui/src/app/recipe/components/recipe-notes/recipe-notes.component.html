@@ -33,7 +33,7 @@
 
           <div class="recipe-notes__form-actions">
             <amw-button variant="filled" color="primary" type="submit" [disabled]="noteForm.invalid || isSubmitting"
-              [loading]="isSubmitting" icon="add" class="recipe-notes__submit-btn">
+              [loading]="isSubmitting" [amwValidationTooltip]="validationContext" icon="add" class="recipe-notes__submit-btn">
               {{ isSubmitting ? 'Adding...' : 'Add Note' }}
             </amw-button>
           </div>

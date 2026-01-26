@@ -15,6 +15,7 @@ import { RecipeService } from '../../../recipe/services/recipe.service';
 import { RecipeModel } from '../../../recipe/models/recipe.model';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
+import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
 @Component({
   selector: 'nom-shopping-recipe-integration',
@@ -101,7 +102,7 @@ export class ShoppingRecipeIntegrationComponent implements OnInit, OnDestroy {
           this.filteredRecipes.set(recipes);
         },
         error: (err) => {
-          this.error.set('Failed to load data');
+          this.error.set(ERROR_MESSAGES.SHOPPING.LOAD_FAILED);
           console.error('Error loading data:', err);
         },
       });
@@ -158,8 +159,8 @@ export class ShoppingRecipeIntegrationComponent implements OnInit, OnDestroy {
           this.loadData(); // Reload to show updated shopping list
         },
         error: (err) => {
-          this.error.set('Failed to add recipe ingredients');
-          this.notificationService.error('Failed to add recipe ingredients');
+          this.error.set(ERROR_MESSAGES.SHOPPING.ITEM_ADD_FAILED);
+          this.notificationService.error(ERROR_MESSAGES.SHOPPING.ITEM_ADD_FAILED);
           console.error('Error adding recipe ingredients:', err);
         },
       });
