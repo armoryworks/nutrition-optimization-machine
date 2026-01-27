@@ -1,52 +1,54 @@
+// Recipe Suggestions Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-suggestions {
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: vars.$spacing-8 vars.$spacing-4;
 
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4 vars.$spacing-2;
   }
 
   &__container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 16px;
+    padding: 0 vars.$spacing-4;
   }
 
   &__header {
-    margin-bottom: 2rem;
+    margin-bottom: vars.$spacing-8;
   }
 
   &__header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 2rem;
+    gap: vars.$spacing-8;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       flex-direction: column;
       align-items: stretch;
-      gap: 1rem;
+      gap: vars.$spacing-4;
     }
   }
 
   &__title-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: vars.$spacing-4;
     flex: 1;
   }
 
   &__title-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
 
-    @media (max-width: 768px) {
-      font-size: 2.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
+    @media (max-width: vars.$breakpoint-mobile) {
+      font-size: vars.$spacing-10;
+      width: vars.$spacing-10;
+      height: vars.$spacing-10;
     }
   }
 
@@ -55,100 +57,100 @@
   }
 
   &__title {
-    margin: 0 0 0.5rem;
-    line-height: 1.2;
+    margin: 0 0 vars.$spacing-2;
+    line-height: vars.$line-height-tight;
 
-    @media (max-width: 768px) {
-      font-size: 1.5rem;
+    @media (max-width: vars.$breakpoint-mobile) {
+      font-size: vars.$font-size-xl;
     }
   }
 
   &__subtitle {
     margin: 0;
-    line-height: 1.5;
+    line-height: vars.$line-height-normal;
   }
 
   &__header-actions {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
+    margin-bottom: vars.$spacing-6;
+    gap: vars.$spacing-3;
   }
 
   &__action-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-3 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius-lg;
     border: none;
   }
 
   &__search-section {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-8;
+    margin-bottom: vars.$spacing-8;
   }
 
   &__search-title {
-    margin: 0 0 1.5rem;
+    margin: 0 0 vars.$spacing-6;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: vars.$spacing-3;
   }
 
   &__search-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: vars.$spacing-6;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__form-group {
-    @include nom-form-field(0.5rem);
+    @include nom-form-field(vars.$spacing-2);
   }
 
   &__form-label {
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__form-input {
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 1rem;
+    padding: vars.$spacing-3 vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-lg;
+    font-size: vars.$font-size-md;
   }
 
   &__form-textarea {
     min-height: 100px;
     resize: vertical;
-    line-height: 1.6;
+    line-height: vars.$line-height-relaxed;
   }
 
   &__search-button {
     grid-column: 1 / -1;
     justify-self: center;
-    border-radius: 12px;
-    padding: 1rem 2rem;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-4 vars.$spacing-8;
     border: none;
   }
 
   &__ai-section {
-    padding: 2rem;
-    border-radius: 16px;
-    margin-bottom: 2rem;
+    padding: vars.$spacing-8;
+    border-radius: vars.$nom-border-radius-lg;
+    margin-bottom: vars.$spacing-8;
     position: relative;
     overflow: hidden;
 
     h3 {
-      margin-bottom: 1rem;
+      margin-bottom: vars.$spacing-4;
       position: relative;
       z-index: 1;
     }
 
     p {
-      margin-bottom: 1.5rem;
+      margin-bottom: vars.$spacing-6;
       opacity: 0.9;
-      line-height: 1.6;
+      line-height: vars.$line-height-relaxed;
       position: relative;
       z-index: 1;
     }
@@ -158,38 +160,38 @@
       z-index: 1;
 
       .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: vars.$spacing-6;
 
         label {
           display: block;
-          margin-bottom: 0.5rem;
-          font-weight: 600;
+          margin-bottom: vars.$spacing-2;
+          font-weight: vars.$font-weight-semibold;
         }
 
         input, select, textarea {
           width: 100%;
-          padding: 12px 16px;
-          border-radius: 12px;
-          font-size: 1rem;
+          padding: vars.$spacing-3 vars.$spacing-4;
+          border-radius: vars.$nom-border-radius-lg;
+          font-size: vars.$font-size-md;
         }
 
         textarea {
           resize: vertical;
           min-height: 100px;
-          line-height: 1.6;
+          line-height: vars.$line-height-relaxed;
         }
       }
 
       .btn-lg {
-        padding: 1rem 2rem;
-        font-size: 1.1rem;
+        padding: vars.$spacing-4 vars.$spacing-8;
+        font-size: vars.$font-size-lg;
         border: none;
-        border-radius: 12px;
+        border-radius: vars.$nom-border-radius-lg;
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        font-weight: 600;
+        gap: vars.$spacing-3;
+        font-weight: vars.$font-weight-semibold;
 
         &:disabled {
           opacity: 0.6;
@@ -200,116 +202,116 @@
   }
 
   &__ai-results {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-8;
+    margin-bottom: vars.$spacing-8;
   }
 
   &__results-title {
-    margin: 0 0 1.5rem;
+    margin: 0 0 vars.$spacing-6;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: vars.$spacing-3;
   }
 
   &__results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    gap: vars.$spacing-6;
   }
 
   &__result-card {
-    border-radius: 12px;
-    padding: 1.5rem;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-6;
     cursor: pointer;
   }
 
   &__result-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: vars.$spacing-4;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__result-icon {
-    font-size: 1.5rem;
-    width: 1.5rem;
-    height: 1.5rem;
+    font-size: vars.$font-size-xl;
+    width: vars.$font-size-xl;
+    height: vars.$font-size-xl;
   }
 
   &__result-title {
     margin: 0;
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__result-description {
     margin: 0;
-    line-height: 1.5;
+    line-height: vars.$line-height-normal;
   }
 
   &__result-actions {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    gap: vars.$spacing-2;
+    margin-top: vars.$spacing-4;
   }
 
   &__result-action {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    padding: vars.$spacing-2 vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
     border: none;
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__empty-state {
     text-align: center;
-    padding: 3rem 2rem;
+    padding: vars.$spacing-12 vars.$spacing-8;
   }
 
   &__empty-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1rem;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__empty-title {
-    margin: 0 0 0.5rem;
+    margin: 0 0 vars.$spacing-2;
   }
 
   &__empty-description {
-    margin: 0 0 1.5rem;
-    line-height: 1.5;
+    margin: 0 0 vars.$spacing-6;
+    line-height: vars.$line-height-normal;
   }
 
   &__loading,
   &__error {
-    @include nom-loading-state(2rem);
+    @include nom-loading-state(vars.$spacing-8);
     min-height: 400px;
   }
 
   &__error-card {
-    border-radius: 16px;
+    border-radius: vars.$nom-border-radius-lg;
     max-width: 500px;
     width: 100%;
   }
 
   &__error-content {
     text-align: center;
-    padding: 2rem;
+    padding: vars.$spacing-8;
   }
 
   &__error-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1rem;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
+    margin-bottom: vars.$spacing-4;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .recipe-suggestions {
     &__container {
-      padding: 0 8px;
+      padding: 0 vars.$spacing-2;
     }
 
     &__search-form {
@@ -323,7 +325,7 @@
     &__search-section,
     &__ai-section,
     &__ai-results {
-      padding: 1.5rem 1rem;
+      padding: vars.$spacing-6 vars.$spacing-4;
     }
   }
 }

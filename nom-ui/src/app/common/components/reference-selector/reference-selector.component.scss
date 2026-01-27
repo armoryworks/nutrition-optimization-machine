@@ -1,12 +1,14 @@
+// Reference Selector Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .reference-selector {
-  @include nom-form-field(8px);
+  @include nom-form-field(vars.$spacing-2);
 
   &__label {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
+    font-weight: vars.$font-weight-medium;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-tight;
   }
 
   &__field {
@@ -14,18 +16,18 @@
   }
 
   &__description {
-    font-size: 12px;
-    line-height: 16px;
-    margin-top: 4px;
-    padding: 8px 12px;
-    border-radius: 4px;
+    font-size: vars.$font-size-xs;
+    line-height: vars.$line-height-tight;
+    margin-top: vars.$spacing-1;
+    padding: vars.$spacing-2 vars.$spacing-3;
+    border-radius: vars.$nom-border-radius-sm;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .reference-selector {
     &__field {
-      font-size: 16px;
+      font-size: vars.$font-size-md;
     }
   }
 }

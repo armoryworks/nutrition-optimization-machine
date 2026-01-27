@@ -9,7 +9,7 @@ import {
   AmwButtonComponent,
   AmwCardComponent,
   AmwIconComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwInputComponent,
   AmwDialogService,
 } from 'angular-material-wrap';
@@ -27,7 +27,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwInputComponent,
   ],
   templateUrl: './user-management.component.html',

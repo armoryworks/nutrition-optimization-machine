@@ -1,46 +1,47 @@
 // Unified Ingredient Form Component Styles
 // Works for both modal and page contexts
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-ingredient-form {
   &__loading {
-    @include nom-loading-state(1rem);
+    @include nom-loading-state(vars.$spacing-4);
     min-height: 200px;
   }
 
   &__form-field {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__section {
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-6;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
     margin: 0;
   }
 
   &__nutrient-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr auto;
-    gap: 1rem;
+    gap: vars.$spacing-4;
     align-items: center;
-    padding: 1rem;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    margin-bottom: 0.75rem;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
+    transition: all vars.$transition-duration-fast ease;
+    margin-bottom: vars.$spacing-3;
   }
 
   &__nutrient-field {
@@ -53,35 +54,35 @@
 
   &__empty-message {
     text-align: center;
-    padding: 2rem;
+    padding: vars.$spacing-8;
     font-style: italic;
-    border-radius: 8px;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__add-button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   // Duplicate warning styles (for modal context)
   &__duplicate-warning {
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-4;
+    margin-bottom: vars.$spacing-4;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__duplicate-content {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
 
     strong {
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
   }
 
@@ -92,49 +93,49 @@
 
 // Form actions for page context
 .form-actions {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: vars.$spacing-8;
+  padding-top: vars.$spacing-6;
 }
 
 .action-buttons {
-  @include nom-action-group(1rem, flex-end);
+  @include nom-action-group(vars.$spacing-4, flex-end);
 }
 
 // Base form container styles
 .base-form-container {
   margin: 0 auto;
-  padding: 1rem;
+  padding: vars.$spacing-4;
 }
 
 // Form content styles
 .form-content {
-  margin-bottom: 1rem;
+  margin-bottom: vars.$spacing-4;
 }
 
 // Responsive design
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-ingredient-form {
     &__nutrient-row {
       grid-template-columns: 1fr;
-      gap: 0.5rem;
+      gap: vars.$spacing-2;
     }
 
     &__section-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 1rem;
+      gap: vars.$spacing-4;
     }
 
     &__duplicate-warning {
       flex-direction: column;
       align-items: flex-start;
-      gap: 1rem;
+      gap: vars.$spacing-4;
     }
   }
 
   .action-buttons {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 }

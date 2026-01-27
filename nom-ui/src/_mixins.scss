@@ -1,45 +1,494 @@
 // File: nom-ui/src/styles/_mixins.scss
+// Comprehensive mixins for building consistent component layouts
+// All spacing uses centralized variables from _variables.scss
 
-@use 'variables' as *;
+@use 'variables' as vars;
 
-// Mixin for centering content using flexbox.
-// This is a common utility to reduce repetitive flex properties.
+// ============================================
+// CORE LAYOUT MIXINS
+// ============================================
+
+// Flexbox center alignment
 @mixin flex-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-// Mixin for handling responsive media queries.
-// It uses the $breakpoint-mobile variable defined in your _variables.scss file.
-// Example usage:
-// .my-element {
-//   width: 100%;
-//   @include breakpoint(mobile) {
-//     width: 50%;
-//   }
-// }
-@mixin breakpoint($point) {
-    @if $point ==mobile {
-        @media (max-width: $breakpoint-mobile) {
-            @content;
-        }
-    }
+// Flex column layout
+@mixin flex-column($gap: vars.$container-gap) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
 }
+
+// Flex row layout
+@mixin flex-row($gap: vars.$container-gap, $align: center) {
+  display: flex;
+  flex-direction: row;
+  gap: $gap;
+  align-items: $align;
+}
+
+// Responsive breakpoint
+@mixin breakpoint($point) {
+  @if $point == mobile {
+    @media (max-width: vars.$breakpoint-mobile) {
+      @content;
+    }
+  } @else if $point == tablet {
+    @media (max-width: 1024px) {
+      @content;
+    }
+  } @else if $point == desktop {
+    @media (min-width: vars.$breakpoint-mobile + 1px) {
+      @content;
+    }
+  }
+}
+
+// ============================================
+// BACKGROUND & SURFACE MIXINS
+// ============================================
 
 @mixin nom-card-bg {
   background-color: var(--nom-card-bg);
-  border-radius: $nom-border-radius;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border-radius: vars.$nom-border-radius;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--nom-border-subtle);
 }
 
 @mixin nom-panel-bg {
   background-color: var(--nom-panel-bg);
-  border-radius: $nom-border-radius;
+  border-radius: vars.$nom-border-radius;
   border: 1px solid var(--nom-border-subtle);
 }
 
+@mixin nom-surface-elevated {
+  background-color: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@mixin nom-surface-container {
+  background-color: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+}
+
+// ============================================
+// TEXT & TYPOGRAPHY MIXINS
+// ============================================
+
 @mixin nom-high-contrast-text {
   color: var(--nom-text-high-contrast);
+}
+
+@mixin nom-muted-text {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+}
+
+@mixin nom-small-text {
+  font-size: vars.$font-size-xs;
+  line-height: vars.$line-height-normal;
+}
+
+@mixin nom-title($size: lg) {
+  @include nom-high-contrast-text;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0;
+
+  @if $size == xs {
+    font-size: vars.$font-size-sm;
+  } @else if $size == sm {
+    font-size: vars.$font-size-md;
+  } @else if $size == md {
+    font-size: vars.$font-size-lg;
+  } @else if $size == lg {
+    font-size: vars.$font-size-xl;
+  } @else if $size == xl {
+    font-size: vars.$font-size-2xl;
+  }
+}
+
+@mixin nom-subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+// ============================================
+// COMPONENT HEADER PATTERNS
+// ============================================
+
+// Page/section header with title, subtitle, and actions
+@mixin nom-header($padding: vars.$spacing-4) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $padding;
+  flex-wrap: wrap;
+  gap: vars.$spacing-4;
+}
+
+@mixin nom-header-content {
+  flex: 1;
+  min-width: 200px;
+}
+
+@mixin nom-header-title {
+  @include nom-title(lg);
+  margin: 0 0 vars.$spacing-1 0;
+}
+
+@mixin nom-header-subtitle {
+  @include nom-subtitle;
+  opacity: 0.7;
+}
+
+@mixin nom-header-actions {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-4;
+  flex-shrink: 0;
+}
+
+// ============================================
+// LIST & ITEM PATTERNS
+// ============================================
+
+// Scrollable list container
+@mixin nom-scrollable-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--mat-sys-surface-container-low);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--mat-sys-outline);
+    }
+  }
+}
+
+// Clickable list item
+@mixin nom-list-item($padding: vars.$list-item-padding) {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$container-gap;
+  padding: $padding;
+  border-radius: vars.$nom-border-radius;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  min-width: 0;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-high);
+    transform: translateY(-1px);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// List item with border
+@mixin nom-list-item-bordered($padding: vars.$list-item-padding) {
+  @include nom-list-item($padding);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+// ============================================
+// BADGE & CHIP PATTERNS
+// ============================================
+
+@mixin nom-badge($variant: default) {
+  display: inline-flex;
+  align-items: center;
+  padding: vars.$chip-padding-y vars.$chip-padding-x;
+  border-radius: 16px;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  white-space: nowrap;
+
+  @if $variant == primary {
+    background-color: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  } @else if $variant == secondary {
+    background-color: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  } @else if $variant == tertiary {
+    background-color: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+  } @else {
+    background-color: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface);
+    border: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+@mixin nom-stat-badge {
+  @include nom-badge;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+}
+
+// ============================================
+// PANEL & SECTION PATTERNS
+// ============================================
+
+// Panel container
+@mixin nom-panel($padding: vars.$spacing-4) {
+  @include nom-panel-bg;
+  padding: $padding;
+  min-width: 0;
+}
+
+// Section with title
+@mixin nom-section($margin-bottom: vars.$spacing-4) {
+  margin-bottom: $margin-bottom;
+  padding: 0 vars.$spacing-4;
+  min-width: 0;
+}
+
+@mixin nom-section-title {
+  @include nom-high-contrast-text;
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-2 0;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+
+  &::before {
+    content: '';
+    width: 3px;
+    height: vars.$spacing-4;
+    background-color: var(--mat-sys-primary);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+}
+
+// ============================================
+// FORM PATTERNS
+// ============================================
+
+@mixin nom-form-container($gap: vars.$form-field-gap) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+  width: 100%;
+  min-width: 0;
+}
+
+@mixin nom-form-row($gap: vars.$spacing-4) {
+  display: flex;
+  gap: $gap;
+  width: 100%;
+
+  @include breakpoint(mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-2;
+  }
+}
+
+@mixin nom-form-field {
+  width: 100%;
+  margin-bottom: vars.$spacing-4;
+  min-width: 0;
+
+  &--half {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@mixin nom-form-actions($gap: vars.$spacing-2) {
+  display: flex;
+  gap: $gap;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: vars.$spacing-4;
+  min-width: 0;
+  width: 100%;
+
+  @include breakpoint(mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-2;
+  }
+}
+
+// ============================================
+// EMPTY STATE PATTERNS
+// ============================================
+
+@mixin nom-empty-state($padding: vars.$spacing-8) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: $padding;
+  min-width: 0;
+}
+
+@mixin nom-empty-state-icon($size: 2rem) {
+  font-size: $size;
+  width: $size;
+  height: $size;
+  margin-bottom: vars.$spacing-2;
+  opacity: 0.4;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@mixin nom-empty-state-title {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-1 0;
+}
+
+@mixin nom-empty-state-text {
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+  margin: 0 auto;
+  max-width: 300px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// ============================================
+// LOADING & ERROR PATTERNS
+// ============================================
+
+@mixin nom-loading-state($padding: vars.$spacing-8) {
+  @include flex-center;
+  flex-direction: column;
+  padding: $padding;
+  text-align: center;
+
+  h3 {
+    margin: vars.$spacing-4 0 vars.$spacing-2;
+    font-size: vars.$font-size-lg;
+  }
+
+  p {
+    margin: 0 0 vars.$spacing-4;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
+  }
+}
+
+@mixin nom-error-state {
+  @include nom-loading-state;
+  color: var(--mat-sys-error);
+}
+
+// ============================================
+// NAVIGATION PATTERNS
+// ============================================
+
+@mixin nom-navigation-counter {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  min-width: 50px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@mixin nom-navigation-button {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+
+  &[disabled] {
+    opacity: 0.4;
+  }
+}
+
+// ============================================
+// BUTTON PATTERNS
+// ============================================
+
+@mixin nom-button-base {
+  min-width: 100px;
+  padding: vars.$button-padding-y vars.$button-padding-x;
+  border-radius: vars.$nom-border-radius;
+  font-weight: vars.$font-weight-medium;
+  font-size: vars.$font-size-sm;
+  flex-shrink: 0;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin nom-button-small {
+  padding: vars.$spacing-2 vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+  min-width: auto;
+}
+
+// ============================================
+// ACCESSIBILITY MIXINS
+// ============================================
+
+@mixin nom-focus-visible {
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+    border-radius: vars.$nom-border-radius-sm;
+  }
+}
+
+@mixin nom-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// ============================================
+// TRANSITION MIXINS
+// ============================================
+
+@mixin nom-transition($property: all, $duration: vars.$transition-duration-normal, $timing: vars.$transition-timing) {
+  transition: $property $duration $timing;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// ============================================
+// TRUNCATION MIXINS
+// ============================================
+
+@mixin nom-text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin nom-text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

@@ -1,3 +1,5 @@
+// Household Invite Refactored Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .full-width {
@@ -7,41 +9,41 @@
 .error-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 12px;
-  border-radius: 4px;
+  gap: vars.$spacing-2;
+  margin-top: vars.$spacing-4;
+  padding: vars.$spacing-3;
+  border-radius: vars.$nom-border-radius-sm;
 }
 
 .invite-section {
-  margin-top: 24px;
+  margin-top: vars.$spacing-6;
 }
 
 .invite-section h3 {
-  margin-bottom: 16px;
+  margin-bottom: vars.$spacing-4;
 }
 
 .invite-link-container,
 .invite-token-container {
-  margin-bottom: 16px;
+  margin-bottom: vars.$spacing-4;
 }
 
 .instructions {
-  margin-top: 24px;
-  padding: 16px;
-  border-radius: 8px;
+  margin-top: vars.$spacing-6;
+  padding: vars.$spacing-4;
+  border-radius: vars.$nom-border-radius;
 }
 
 .instructions h4 {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: vars.$spacing-3;
 }
 
 .instructions ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: vars.$spacing-5;
 }
 
 .instructions li {
-  margin-bottom: 8px;
+  margin-bottom: vars.$spacing-2;
 }

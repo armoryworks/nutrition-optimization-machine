@@ -6,7 +6,7 @@ import {
   AmwCardComponent,
   AmwButtonComponent,
   AmwInputComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
 } from 'angular-material-wrap';
 
@@ -25,7 +25,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     ReactiveFormsModule,
     AmwCardComponent,
     AmwInputComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './meal-plan-recipe-selection.component.html',
   styleUrl: './meal-plan-recipe-selection.component.scss',

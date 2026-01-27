@@ -4,7 +4,7 @@ import { Subject, takeUntil, finalize } from 'rxjs';
 import {
   AmwCardComponent,
   AmwButtonComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
   AmwIconButtonComponent,
 } from 'angular-material-wrap';
@@ -31,7 +31,7 @@ interface DayMeals {
   imports: [
     AmwCardComponent,
     AmwButtonComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
     AmwIconButtonComponent,
   ],

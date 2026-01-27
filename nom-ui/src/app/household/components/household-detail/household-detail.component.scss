@@ -1,311 +1,86 @@
-@use '../../../../_utilities' as *;
+// Household Detail Component
+// Layout handled by universal classes: nom-page-container, nom-compact-header,
+// nom-loading-state, nom-error-state, nom-card, nom-section, nom-grid--auto,
+// nom-list, nom-list__item, nom-small-text.
+@use '../../../../variables' as vars;
 
-.household-detail {
-  min-height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+// Stats grid inside the statistics card
+.detail-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: vars.$spacing-4;
+}
 
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
+.detail-stat {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+
+  amw-icon {
+    font-size: vars.$font-size-xl;
+    width: vars.$font-size-xl;
+    height: vars.$font-size-xl;
+    color: var(--mat-sys-primary);
   }
 
-  &__loading {
-    @include nom-loading-state(3rem);
-  }
-
-  &__error {
-    @include nom-empty-state(3rem);
-  }
-
-  &__header {
-    margin-bottom: 2rem;
-  }
-
-  &__header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1rem;
-    }
-  }
-
-  &__title-section {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex: 1;
-  }
-
-  &__title-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
-
-    @media (max-width: 768px) {
-      font-size: 2.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-  }
-
-  &__title-info {
-    flex: 1;
-  }
-
-  &__title {
-    margin: 0 0 0.5rem;
-    line-height: 1.2;
-    font-weight: 700;
-  }
-
-  &__subtitle {
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  &__header-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
-  }
-
-  &__action-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0.025em;
-  }
-
-  &__info-section {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  &__section-title {
-    margin: 0 0 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  &__info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-
-  &__info-item {
+  &__content {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
   }
 
-  &__info-label {
-    font-weight: 600;
+  &__value {
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
+    color: var(--mat-sys-on-surface);
   }
 
-  &__info-value {
-    line-height: 1.5;
-  }
-
-  &__members-section {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  &__members-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  &__members-title {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  &__add-member-button {
-    border: none;
-    border-radius: 12px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-  }
-
-  &__members-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  &__member-card {
-    border-radius: 12px;
-    padding: 1.5rem;
-  }
-
-  &__member-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  &__member-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-  }
-
-  &__member-info {
-    flex: 1;
-  }
-
-  &__member-name {
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__member-role {
-    margin: 0.25rem 0 0;
-  }
-
-  &__member-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  &__member-action {
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: none;
-  }
-
-  &__invitations-section {
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  &__invitations-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  &__invitations-title {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  &__invite-button {
-    border: none;
-    border-radius: 12px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-  }
-
-  &__invitations-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  &__invitation-card {
-    border-radius: 12px;
-    padding: 1.5rem;
-  }
-
-  &__invitation-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  &__invitation-email {
-    margin: 0;
-    font-weight: 600;
-  }
-
-  &__invitation-status {
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-weight: 600;
-  }
-
-  &__invitation-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  &__invitation-action {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-  }
-
-  &__empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-  }
-
-  &__empty-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    margin-bottom: 1rem;
-  }
-
-  &__empty-title {
-    margin: 0 0 0.5rem;
-  }
-
-  &__empty-description {
-    margin: 0 0 1.5rem;
-    line-height: 1.5;
+  &__label {
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
   }
 }
 
-@media (max-width: 768px) {
-  .household-detail {
-    &__info-grid {
-      grid-template-columns: 1fr;
-    }
+// Clickable action cards
+.dashboard-card {
+  cursor: pointer;
+  transition: transform vars.$transition-duration-normal vars.$transition-timing;
 
-    &__members-grid,
-    &__invitations-grid {
-      grid-template-columns: 1fr;
-    }
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
 
-    &__info-section,
-    &__members-section,
-    &__invitations-section {
-      padding: 1.5rem 1rem;
-    }
+// Member list item
+.detail-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-3;
+    flex: 1;
+  }
+
+  &__content {
+    flex: 1;
+  }
+
+  &__name {
+    margin: 0;
+    font-weight: vars.$font-weight-semibold;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+  }
+}
+
+@media (max-width: vars.$breakpoint-mobile) {
+  .detail-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -14,10 +14,7 @@
 
   <!-- Loading State -->
   @if (isLoading) {
-    <div class="privacy-analytics__loading">
-      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      <p>Loading analytics...</p>
-    </div>
+    <amw-inline-loading message="Loading analytics..." />
   }
 
   <!-- Error State -->

@@ -1,320 +1,116 @@
-@use '../../../../_utilities' as *;
+// Messaging Inbox Component
+// Layout handled by universal classes: nom-page-container, nom-compact-header,
+// nom-stat-pill, nom-loading-state, nom-error-state, nom-empty-state,
+// nom-card, nom-list, nom-list__item, nom-small-text.
+@use '../../../../variables' as vars;
 
-.messaging-inbox {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
+// Thread item — unique to inbox
+.inbox-thread {
+  display: flex;
+  align-items: center;
+  padding: vars.$spacing-4;
+  cursor: pointer;
+  transition: background-color vars.$transition-duration-normal vars.$transition-timing;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
 
-  // Compact Page Header
-  &__page-header {
-    margin-bottom: 24px;
-
-    &--compact {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      min-height: 60px;
-      padding: 12px 0;
-    }
+  &:last-child {
+    border-bottom: none;
   }
 
-  &__header-left {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  &__header-center {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    justify-content: center;
-  }
-
-  &__header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  &__title {
-    font-size: 1.5rem;
-    font-weight: 500;
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-    line-height: 1.2;
-  }
-
-  &__subtitle {
-    font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 300px;
-  }
-
-  &__search-field {
-    max-width: 300px;
-    flex-shrink: 0;
-  }
-
-  &__stats-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    background-color: var(--mat-sys-surface-container-high);
-    border-radius: 16px;
-    font-size: 0.875rem;
-    color: var(--mat-sys-on-surface);
-    flex-shrink: 0;
-
-    &--unread {
-      background-color: var(--mat-sys-tertiary-container);
-      color: var(--mat-sys-on-tertiary-container);
-
-      .messaging-inbox__stats-icon {
-        color: var(--mat-sys-tertiary);
-      }
-    }
-  }
-
-  &__stats-icon {
-    font-size: 1rem;
-    width: 1rem;
-    height: 1rem;
-    color: var(--mat-sys-primary);
-  }
-
-  &__stats-text {
-    font-weight: 500;
-  }
-
-  &__loading {
-    @include nom-loading-state(3rem);
-  }
-
-  &__error {
-    @include nom-empty-state(3rem);
-  }
-
-  &__empty-state {
-    @include nom-centered-container(400px);
-  }
-
-  &__empty-card {
-    max-width: 400px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 32px 24px;
-  }
-
-  &__empty-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
-    color: var(--mat-sys-on-surface-variant);
-    opacity: 0.5;
-  }
-
-  &__content {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  &__threads-card {
-    padding: 0;
-  }
-
-  &__threads {
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__thread {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:last-child {
-      border-bottom: none;
+  &--unread {
+    .inbox-thread__participant {
+      font-weight: vars.$font-weight-semibold;
     }
 
-    &--unread {
-      .messaging-inbox__participant {
-        font-weight: 600;
-      }
-
-      .messaging-inbox__preview {
-        font-weight: 500;
-      }
+    .inbox-thread__preview {
+      font-weight: vars.$font-weight-medium;
     }
-  }
-
-  &__thread-avatar {
-    position: relative;
-    margin-right: 1rem;
-    flex-shrink: 0;
   }
 
   &__avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    margin-right: vars.$spacing-4;
+    flex-shrink: 0;
   }
 
-  &__badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-  }
-
-  &__thread-content {
+  &__content {
     flex: 1;
     min-width: 0;
-    margin-right: 1rem;
+    margin-right: vars.$spacing-4;
   }
 
-  &__thread-header {
+  &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: vars.$spacing-1;
   }
 
   &__participant {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-medium;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__timestamp {
-    font-size: 0.875rem;
-    white-space: nowrap;
-    margin-left: 0.5rem;
-  }
-
   &__preview {
     margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.4;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: vars.$line-height-normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  &__thread-actions {
+  &__actions {
     display: flex;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
     flex-shrink: 0;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity vars.$transition-duration-normal vars.$transition-timing;
 
-    .messaging-inbox__thread:hover & {
+    .inbox-thread:hover & {
       opacity: 1;
-    }
-  }
-
-  // Responsive adjustments
-  @media (max-width: 768px) {
-    &__thread {
-      padding: 0.75rem;
-    }
-
-    &__avatar {
-      width: 40px;
-      height: 40px;
-    }
-
-    &__participant {
-      font-size: 0.875rem;
-    }
-
-    &__preview {
-      font-size: 0.8rem;
-    }
-
-    &__thread-actions {
-      opacity: 1;
-    }
-  }
-
-  @media (max-width: 480px) {
-    &__thread-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.25rem;
-    }
-
-    &__timestamp {
-      margin-left: 0;
     }
   }
 }
 
-@media (max-width: 768px) {
-  .messaging-inbox {
-    padding: 0 12px;
+.inbox-avatar {
+  width: vars.$spacing-12;
+  height: vars.$spacing-12;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    &__page-header--compact {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-      min-height: auto;
+// Responsive — thread-specific adjustments
+@media (max-width: vars.$breakpoint-mobile) {
+  .inbox-thread {
+    padding: vars.$spacing-3;
+
+    &__actions {
+      opacity: 1; // Always show on mobile (no hover)
     }
+  }
 
-    &__header-left {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-      width: 100%;
-    }
+  .inbox-avatar {
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
+  }
+}
 
-    &__header-center {
-      justify-content: flex-start;
-      width: 100%;
-      flex-wrap: wrap;
-    }
-
-    &__header-right {
-      width: 100%;
-      justify-content: flex-start;
-
-      amw-button {
-        flex: 1;
-      }
-    }
-
-    &__subtitle {
-      max-width: 100%;
-      white-space: normal;
-    }
-
-    &__title {
-      font-size: 1.25rem;
-    }
-
-    &__search-field {
-      max-width: 100%;
-      width: 100%;
-    }
+@media (max-width: 480px) {
+  .inbox-thread__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-1;
   }
 }

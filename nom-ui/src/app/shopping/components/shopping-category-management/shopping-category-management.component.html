@@ -1,4 +1,4 @@
-<div class="shopping-category-management">
+<div class="nom-page-container shopping-category-management">
   <!-- Header -->
     <div class="shopping-category-management__header">
       <div class="shopping-category-management__header-content">
@@ -73,10 +73,7 @@
       </div>
 
       @if (loading()) {
-      <div class="shopping-category-management__loading">
-        <amw-progress-spinner mode="indeterminate" [diameter]="40"></amw-progress-spinner>
-        <p>Loading categories...</p>
-      </div>
+      <amw-inline-loading message="Loading categories..." />
       }
 
       @if (!loading() && categories().length === 0) {

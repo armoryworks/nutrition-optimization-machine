@@ -1,36 +1,34 @@
-// Component styles only - theme is handled globally
-
-@use '../../../../_variables' as vars;
-@use '../../../../_mixins' as mixins;
+// Meal Plan Dashboard Component - Uses dashboard stereotype
+@use '../../../../variables' as vars;
+@use '../../../../mixins' as mixins;
 @use '../../../../_utilities' as *;
 
-// Base Dashboard Styles (copied from user dashboard for consistency)
 .nom-dashboard {
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 5px vars.$spacing-large 0;
-    height: calc(100vh - 120px);
-    overflow: hidden;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: vars.$spacing-1 vars.$spacing-6 0;
+  height: calc(100vh - 120px);
+  overflow: hidden;
 
   @include mixins.breakpoint(mobile) {
-    padding: 0px vars.$spacing-medium 0;
+    padding: 0 vars.$spacing-4 0;
     height: calc(100vh - 100px);
   }
 
-  // Compact Header Pattern (following docs/development/conventions.md)
+  // Compact Header
   &__header-compact {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: vars.$spacing-small 0;
-    margin-bottom: vars.$spacing-small;
-    gap: vars.$spacing-medium;
+    padding: vars.$spacing-2 0;
+    margin-bottom: vars.$spacing-2;
+    gap: vars.$spacing-4;
 
     @include mixins.breakpoint(mobile) {
       flex-direction: column;
       align-items: stretch;
-      gap: vars.$spacing-small;
+      gap: vars.$spacing-2;
     }
   }
 
@@ -51,14 +49,14 @@
 
   &__title {
     margin: 0;
-    font-weight: 600;
-    line-height: 1.2;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
   }
 
   // Stats Pills
   &__stats-pills {
     display: flex;
-    gap: vars.$spacing-small;
+    gap: vars.$spacing-2;
     align-items: center;
 
     @include mixins.breakpoint(mobile) {
@@ -70,10 +68,10 @@
   &__stat-pill {
     display: flex;
     align-items: center;
-    gap: vars.$spacing-xsmall;
-    padding: vars.$spacing-xsmall vars.$spacing-small;
-    border-radius: 20px;
-    transition: all 0.2s ease;
+    gap: vars.$spacing-1;
+    padding: vars.$spacing-1 vars.$spacing-2;
+    border-radius: vars.$spacing-5;
+    transition: all vars.$transition-duration-normal vars.$transition-timing;
 
     &:hover {
       transform: translateY(-1px);
@@ -81,21 +79,21 @@
   }
 
   &__stat-number {
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
     line-height: 1;
   }
 
   &__stat-label {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
     line-height: 1;
   }
 
   &__action-button {
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
     height: 44px;
-    border-radius: 8px;
-    padding: 0 16px;
+    border-radius: vars.$nom-border-radius;
+    padding: 0 vars.$spacing-4;
     min-width: 120px;
 
     @include mixins.breakpoint(mobile) {
@@ -106,14 +104,14 @@
   &__content {
     display: flex;
     flex-direction: column;
-    gap: vars.$spacing-large;
-    padding: 0 vars.$spacing-large vars.$spacing-large;
+    gap: vars.$spacing-6;
+    padding: 0 vars.$spacing-6 vars.$spacing-6;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
 
     @include mixins.breakpoint(mobile) {
-      padding: 0 vars.$spacing-medium vars.$spacing-medium;
+      padding: 0 vars.$spacing-4 vars.$spacing-4;
     }
   }
 
@@ -121,18 +119,18 @@
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: vars.$spacing-large;
+    gap: vars.$spacing-6;
 
     @include mixins.breakpoint(mobile) {
       grid-template-columns: 1fr;
-      gap: vars.$spacing-medium;
+      gap: vars.$spacing-4;
     }
   }
 
   // Sections
   &__section {
     border-radius: vars.$nom-border-radius;
-    padding: vars.$spacing-medium;
+    padding: vars.$spacing-4;
   }
 
   // Compact Section Header
@@ -140,28 +138,28 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: vars.$spacing-medium;
-    gap: vars.$spacing-medium;
+    margin-bottom: vars.$spacing-4;
+    gap: vars.$spacing-4;
     min-height: 50px;
 
     @include mixins.breakpoint(mobile) {
       flex-direction: column;
       align-items: stretch;
-      gap: vars.$spacing-small;
+      gap: vars.$spacing-2;
       min-height: auto;
     }
   }
 
-  // Filter Section (now in header)
+  // Filters
   &__filters {
     display: flex;
-    gap: vars.$spacing-medium;
+    gap: vars.$spacing-4;
     align-items: center;
     flex: 1;
 
     @include mixins.breakpoint(mobile) {
       flex-direction: column;
-      gap: vars.$spacing-small;
+      gap: vars.$spacing-2;
       align-items: stretch;
     }
   }
@@ -180,28 +178,28 @@
 
   // Empty States
   &__empty-state {
-    @include nom-empty-state(vars.$spacing-xxlarge);
+    @include nom-empty-state(vars.$spacing-12);
 
     h3 {
-      margin: vars.$spacing-medium 0 vars.$spacing-small 0;
+      margin: vars.$spacing-4 0 vars.$spacing-2 0;
     }
 
     p {
-      margin: 0 0 vars.$spacing-large 0;
-      line-height: 1.5;
+      margin: 0 0 vars.$spacing-6 0;
+      line-height: vars.$line-height-normal;
     }
   }
 
   &__empty-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
     opacity: 0.5;
 
     @include mixins.breakpoint(mobile) {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
+      font-size: vars.$spacing-12;
+      width: vars.$spacing-12;
+      height: vars.$spacing-12;
     }
   }
 
@@ -213,12 +211,12 @@
 
   // Loading and Error States
   &__loading-container {
-    @include nom-loading-state(vars.$spacing-large);
+    @include nom-loading-state(vars.$spacing-6);
     min-height: 200px;
   }
 
   &__error-message {
-    @include nom-empty-state(vars.$spacing-large);
+    @include nom-empty-state(vars.$spacing-6);
     border-radius: vars.$nom-border-radius;
 
     p {
@@ -226,77 +224,77 @@
     }
   }
 
-  // Custom styles for meal plan specific elements
+  // View Toggle
   &__view-toggle {
-    margin-right: 1rem;
+    margin-right: vars.$spacing-4;
   }
 
   // Week View
   &__week-view {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: vars.$spacing-6;
   }
 
   &__week-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__week-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__week-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__day-column {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: vars.$spacing-3;
   }
 
   &__day-header {
     text-align: center;
-    padding: 12px;
-    border-radius: 8px;
+    padding: vars.$spacing-3;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__day-title {
-    margin: 0 0 4px 0;
-    font-size: 14px;
-    font-weight: 600;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__day-date {
     margin: 0;
-    font-size: 12px;
+    font-size: vars.$font-size-xs;
   }
 
   &__today-chip {
-    margin-top: 8px;
-    font-size: 10px;
+    margin-top: vars.$spacing-2;
+    font-size: vars.$font-size-xs;
   }
 
   &__day-plans {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: vars.$spacing-2;
     min-height: 120px;
   }
 
   &__plan-item {
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-3;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: all vars.$transition-duration-normal vars.$transition-timing;
 
     &:hover {
       transform: translateY(-1px);
@@ -306,14 +304,14 @@
   &__plan-header {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
   &__plan-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    margin-top: 2px;
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
+    margin-top: vars.$spacing-1;
   }
 
   &__plan-info {
@@ -321,55 +319,55 @@
   }
 
   &__plan-title {
-    margin: 0 0 4px 0;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.3;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
   }
 
   &__plan-description {
     margin: 0;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: vars.$font-size-xs;
+    line-height: vars.$line-height-normal;
   }
 
   &__plan-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 4px;
-    margin-top: 8px;
+    gap: vars.$spacing-1;
+    margin-top: vars.$spacing-2;
   }
 
   // Month View
   &__month-view {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: vars.$spacing-6;
   }
 
   &__month-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__month-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__month-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__plan-card {
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    border-radius: 12px;
+    transition: all vars.$transition-duration-normal vars.$transition-timing;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
 
     &:hover {
@@ -380,15 +378,15 @@
   &__plan-card-header {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px 16px 0 16px;
+    gap: vars.$spacing-3;
+    padding: vars.$spacing-4 vars.$spacing-4 0;
   }
 
   &__plan-card-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
-    margin-top: 4px;
+    font-size: vars.$font-size-xl;
+    width: vars.$font-size-xl;
+    height: vars.$font-size-xl;
+    margin-top: vars.$spacing-1;
   }
 
   &__plan-card-info {
@@ -397,44 +395,44 @@
 
   &__plan-card-title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
   }
 
   &__plan-card-subtitle {
-    margin: 4px 0 0 0;
-    font-size: 14px;
-    line-height: 1.4;
+    margin: vars.$spacing-1 0 0 0;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 
   &__plan-card-content {
-    padding: 0 16px;
+    padding: 0 vars.$spacing-4;
   }
 
   &__plan-card-description {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 
   &__plan-card-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 16px 16px 16px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-3 vars.$spacing-4 vars.$spacing-4;
   }
 
-  // Responsive Design
-  @media (max-width: 768px) {
+  // Responsive
+  @media (max-width: vars.$breakpoint-mobile) {
     &__week-grid {
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__month-grid {
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
   }
 }

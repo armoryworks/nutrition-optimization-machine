@@ -1,63 +1,65 @@
+// Shopping Category Management Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .shopping-category-management {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: vars.$spacing-8 vars.$spacing-4;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: vars.$spacing-8;
 
   &__header {
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__header-content {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__title-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__title-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
     color: var(--mat-sys-primary);
   }
 
   &__title-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
   }
 
   &__title {
-    font-size: 2rem;
-    font-weight: 500;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-medium;
     margin: 0;
     color: var(--mat-sys-on-surface);
   }
 
   &__subtitle {
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
     color: var(--mat-sys-on-surface-variant);
     margin: 0;
   }
 
   // Form styles
   &__form-card {
-    margin-bottom: 2rem;
+    margin-bottom: vars.$spacing-8;
   }
 
   &__form {
-    @include nom-form-field(1.5rem);
-    padding: 1rem 0;
+    @include nom-form-field(vars.$spacing-6);
+    padding: vars.$spacing-4 0;
   }
 
   &__field {
@@ -67,35 +69,35 @@
   &__form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: vars.$spacing-6;
     align-items: start;
   }
 
   &__color-picker {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: vars.$spacing-3;
   }
 
   &__color-label {
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-medium;
     color: var(--mat-sys-on-surface);
   }
 
   &__color-options {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   &__color-swatch {
-    width: 40px;
-    height: 40px;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
     border-radius: 50%;
     border: 3px solid transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all vars.$transition-duration-normal vars.$transition-timing;
     position: relative;
 
     &:hover {
@@ -114,7 +116,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: white;
-        font-weight: bold;
+        font-weight: vars.$font-weight-bold;
         text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
       }
     }
@@ -125,8 +127,8 @@
   }
 
   &__form-actions {
-    @include nom-action-group(1rem, flex-start);
-    padding-top: 1rem;
+    @include nom-action-group(vars.$spacing-4, flex-start);
+    padding-top: vars.$spacing-4;
     border-top: 1px solid var(--mat-sys-outline-variant);
   }
 
@@ -136,19 +138,19 @@
 
   // List section
   &__list-section {
-    margin-top: 2rem;
+    margin-top: vars.$spacing-8;
   }
 
   &__list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__list-title {
-    font-size: 1.5rem;
-    font-weight: 500;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-medium;
     margin: 0;
     color: var(--mat-sys-on-surface);
   }
@@ -156,28 +158,28 @@
   &__list-hint {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface-variant);
     margin: 0;
 
     amw-icon {
-      font-size: 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
+      font-size: vars.$font-size-lg;
+      width: vars.$font-size-lg;
+      height: vars.$font-size-lg;
     }
   }
 
   &__loading,
   &__no-categories {
-    @include nom-empty-state(3rem);
-    padding: 3rem 2rem;
+    @include nom-empty-state(vars.$spacing-12);
+    padding: vars.$spacing-12 vars.$spacing-8;
   }
 
   &__empty-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
     color: var(--mat-sys-on-surface-variant);
     opacity: 0.5;
   }
@@ -185,8 +187,8 @@
   &__no-categories {
     h3 {
       margin: 0;
-      font-size: 1.25rem;
-      font-weight: 500;
+      font-size: vars.$font-size-lg;
+      font-weight: vars.$font-weight-medium;
       color: var(--mat-sys-on-surface);
     }
 
@@ -200,12 +202,12 @@
   &__categories-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
+    gap: vars.$spacing-6;
   }
 
   &__category-drag-wrapper {
     cursor: move;
-    transition: opacity 0.2s ease;
+    transition: opacity vars.$transition-duration-normal vars.$transition-timing;
 
     &.cdk-drag-preview {
       opacity: 0.8;
@@ -213,12 +215,12 @@
     }
 
     &.cdk-drag-animating {
-      transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
+      transition: transform vars.$transition-duration-slow cubic-bezier(0, 0, 0.2, 1);
     }
   }
 
   &__category-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform vars.$transition-duration-normal vars.$transition-timing, box-shadow vars.$transition-duration-normal vars.$transition-timing;
     height: 100%;
 
     &:hover {
@@ -231,20 +233,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__category-color {
-    width: 40px;
-    height: 40px;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
     border-radius: 50%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   &__drag-handle {
-    font-size: 1.5rem;
-    width: 1.5rem;
-    height: 1.5rem;
+    font-size: vars.$font-size-xl;
+    width: vars.$font-size-xl;
+    height: vars.$font-size-xl;
     color: var(--mat-sys-on-surface-variant);
     cursor: grab;
 
@@ -255,24 +257,24 @@
 
   &__category-stats {
     display: flex;
-    gap: 2rem;
-    padding: 1rem 0;
+    gap: vars.$spacing-8;
+    padding: vars.$spacing-4 0;
   }
 
   &__stat {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
   }
 
   &__stat-value {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
     color: var(--mat-sys-primary);
   }
 
   &__stat-label {
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface-variant);
   }
 
@@ -288,22 +290,22 @@
 }
 
 .cdk-drag-animating {
-  transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
+  transition: transform vars.$transition-duration-slow cubic-bezier(0, 0, 0.2, 1);
 }
 
 // Responsive styles
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .shopping-category-management {
-    padding: 1rem;
+    padding: vars.$spacing-4;
 
     &__title {
-      font-size: 1.5rem;
+      font-size: vars.$font-size-xl;
     }
 
     &__title-icon {
-      font-size: 2rem;
-      width: 2rem;
-      height: 2rem;
+      font-size: vars.$spacing-8;
+      width: vars.$spacing-8;
+      height: vars.$spacing-8;
     }
 
     &__form-row {
@@ -321,7 +323,7 @@
     &__list-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.5rem;
+      gap: vars.$spacing-2;
     }
 
     &__form-actions {

@@ -5,7 +5,7 @@ import {
   AmwCardComponent,
   AmwButtonComponent,
   AmwCheckboxComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
   loading,
 } from 'angular-material-wrap';
@@ -38,7 +38,7 @@ interface ConsolidatedIngredient {
     AmwCardComponent,
     AmwButtonComponent,
     AmwCheckboxComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './meal-plan-to-shopping-list.component.html',

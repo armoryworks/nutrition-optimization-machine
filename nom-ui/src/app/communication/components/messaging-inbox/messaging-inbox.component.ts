@@ -5,7 +5,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ViewEncapsulation } from '@angular/core';
-import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwBadgeDirective } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwInputComponent, AmwIconButtonComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwBadgeDirective } from 'angular-material-wrap';
 
 import { MessagingService } from '../../services/messaging.service';
 import { MessageThreadModel } from '../../models/i-message-thread.model';
@@ -22,7 +22,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwInputComponent,
     AmwIconButtonComponent,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwBadgeDirective,
   ],
   templateUrl: './messaging-inbox.component.html',

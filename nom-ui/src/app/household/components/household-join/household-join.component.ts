@@ -6,6 +6,7 @@ import {
   AmwCardComponent,
   AmwButtonComponent,
   AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
   loading,
 } from 'angular-material-wrap';
@@ -23,6 +24,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwCardComponent,
     AmwButtonComponent,
     AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './household-join.component.html',

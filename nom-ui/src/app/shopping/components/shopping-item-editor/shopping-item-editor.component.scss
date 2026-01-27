@@ -1,3 +1,5 @@
+// Shopping Item Editor Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .shopping-item-editor {
@@ -6,8 +8,8 @@
 
   .form-row {
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: vars.$spacing-4;
+    margin-bottom: vars.$spacing-4;
 
     .full-width {
       flex: 1;
@@ -31,15 +33,15 @@
   }
 
   .editor-content {
-    padding: 16px 0;
+    padding: vars.$spacing-4 0;
   }
 
   .editor-actions {
-    @include nom-action-group(8px, flex-end);
-    padding: 16px 0;
+    @include nom-action-group(vars.$spacing-2, flex-end);
+    padding: vars.$spacing-4 0;
   }
 
   amw-checkbox {
-    margin-top: 8px;
+    margin-top: vars.$spacing-2;
   }
 }

@@ -1,0 +1,267 @@
+// =============================================================================
+// SEARCH STEREOTYPE
+// =============================================================================
+// Use for: search pages with filters and result grids
+// Components: recipe-search, ingredient-search
+// =============================================================================
+
+@use './variables' as vars;
+
+// -----------------------------------------------------------------------------
+// Search Page Container
+// -----------------------------------------------------------------------------
+%nom-search-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: vars.$spacing-5;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-3;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Search Form Section
+// -----------------------------------------------------------------------------
+%nom-search-form {
+  margin-bottom: vars.$spacing-8;
+}
+
+%nom-search-row {
+  display: flex;
+  gap: vars.$spacing-5;
+  align-items: flex-end;
+  margin-bottom: vars.$spacing-5;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-3;
+  }
+}
+
+%nom-search-field {
+  flex: 1;
+}
+
+%nom-search-button {
+  min-width: 120px;
+}
+
+// -----------------------------------------------------------------------------
+// Filters Grid
+// -----------------------------------------------------------------------------
+%nom-search-filters {
+  margin-bottom: vars.$spacing-5;
+}
+
+%nom-search-filter-row {
+  display: flex;
+  gap: vars.$spacing-5;
+  margin-bottom: vars.$spacing-5;
+  align-items: center;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-3;
+  }
+}
+
+%nom-search-filter-actions {
+  display: flex;
+  gap: vars.$spacing-2;
+  justify-content: flex-end;
+  margin-top: vars.$spacing-5;
+}
+
+// -----------------------------------------------------------------------------
+// Quick Actions
+// -----------------------------------------------------------------------------
+%nom-search-quick-actions {
+  display: flex;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-5;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Results Section
+// -----------------------------------------------------------------------------
+%nom-search-results {
+  // Container for results
+}
+
+%nom-search-results-info {
+  margin-bottom: vars.$spacing-5;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// -----------------------------------------------------------------------------
+// Results Grid
+// -----------------------------------------------------------------------------
+%nom-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: vars.$spacing-5;
+  margin-bottom: vars.$spacing-8;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
+    gap: vars.$spacing-4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Result Card
+// -----------------------------------------------------------------------------
+%nom-search-card {
+  height: fit-content;
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+  transition: all vars.$transition-duration-normal vars.$transition-timing;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+%nom-search-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+%nom-search-card-description {
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+  margin-bottom: vars.$spacing-4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+%nom-search-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+}
+
+%nom-search-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+%nom-search-card-tags {
+  margin-bottom: vars.$spacing-4;
+}
+
+// -----------------------------------------------------------------------------
+// Loading State
+// -----------------------------------------------------------------------------
+%nom-search-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-10;
+  text-align: center;
+
+  p {
+    margin-top: vars.$spacing-3;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// No Results State
+// -----------------------------------------------------------------------------
+%nom-search-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-10;
+  text-align: center;
+
+  p {
+    margin: vars.$spacing-1 0;
+    font-size: vars.$font-size-lg;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// =============================================================================
+// Mixin-based API
+// =============================================================================
+@mixin nom-search-page {
+  @extend %nom-search-page;
+}
+
+@mixin nom-search-form {
+  @extend %nom-search-form;
+}
+
+@mixin nom-search-row {
+  @extend %nom-search-row;
+}
+
+@mixin nom-search-field {
+  @extend %nom-search-field;
+}
+
+@mixin nom-search-filters {
+  @extend %nom-search-filters;
+}
+
+@mixin nom-search-filter-row {
+  @extend %nom-search-filter-row;
+}
+
+@mixin nom-search-filter-actions {
+  @extend %nom-search-filter-actions;
+}
+
+@mixin nom-search-quick-actions {
+  @extend %nom-search-quick-actions;
+}
+
+@mixin nom-search-results-info {
+  @extend %nom-search-results-info;
+}
+
+@mixin nom-search-grid {
+  @extend %nom-search-grid;
+}
+
+@mixin nom-search-card {
+  @extend %nom-search-card;
+}
+
+@mixin nom-search-card-meta {
+  @extend %nom-search-card-meta;
+}
+
+@mixin nom-search-loading {
+  @extend %nom-search-loading;
+}
+
+@mixin nom-search-no-results {
+  @extend %nom-search-no-results;
+}

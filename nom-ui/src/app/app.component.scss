@@ -1,11 +1,10 @@
 /* File: nom-ui/src/app/app.component.scss */
-
 @use '../variables' as vars;
 
 body {
   margin: 0;
   font-family: Inter, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color vars.$transition-duration-normal ease, color vars.$transition-duration-normal ease;
   height: 100vh;
 }
 
@@ -30,7 +29,7 @@ body {
   z-index: 1000 !important;
 
   // Responsive height adjustments
-  @media (max-width: 768px) {
+  @media (max-width: vars.$breakpoint-mobile) {
     height: 68px !important;
   }
 
@@ -42,36 +41,36 @@ body {
     display: flex;
     align-items: center;
     flex: 1;
-    padding: 0 20px;
+    padding: 0 vars.$spacing-5;
     min-width: 0;
   }
 
   &__title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    margin-right: 12px;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-bold;
+    margin-right: vars.$spacing-3;
     white-space: nowrap;
   }
 
   &__subtitle {
     margin: 0;
-    font-size: 14px;
-    font-weight: 400;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
 
     // Responsive adjustments
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       max-width: 150px;
-      font-size: 12px;
+      font-size: vars.$font-size-xs;
     }
 
     @media (max-width: 480px) {
       max-width: 120px;
-      font-size: 11px;
+      font-size: vars.$font-size-xs;
     }
   }
 
@@ -80,18 +79,18 @@ body {
     align-items: center;
     justify-content: center;
     flex: 2;
-    gap: 20px;
-    padding: 0 20px;
+    gap: vars.$spacing-5;
+    padding: 0 vars.$spacing-5;
     min-width: 0;
 
-    @media (max-width: 768px) {
-      padding: 0 16px;
-      gap: 16px;
+    @media (max-width: vars.$breakpoint-mobile) {
+      padding: 0 vars.$spacing-4;
+      gap: vars.$spacing-4;
     }
 
     @media (max-width: 480px) {
-      padding: 0 12px;
-      gap: 12px;
+      padding: 0 vars.$spacing-3;
+      gap: vars.$spacing-3;
     }
   }
 
@@ -99,8 +98,8 @@ body {
     display: flex;
     align-items: center;
     position: relative;
-    gap: 10px;
-    padding: 15px 20px;
+    gap: vars.$spacing-3;
+    padding: vars.$spacing-4 vars.$spacing-5;
     flex-shrink: 0;
     min-width: 0;
   }
@@ -111,21 +110,21 @@ body {
 
   &__auth-buttons {
     display: flex;
-    gap: 12px;
+    gap: vars.$spacing-3;
     align-items: center;
   }
 
   &__auth-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-weight: 500;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-3 vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-sm;
+    font-weight: vars.$font-weight-medium;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all vars.$transition-duration-fast ease;
     cursor: pointer;
-    height: 40px;
+    height: vars.$spacing-10;
     line-height: 1;
     box-sizing: border-box;
     justify-content: center;
@@ -139,10 +138,30 @@ body {
     }
 
     span {
-      font-weight: 500;
+      font-weight: vars.$font-weight-medium;
       white-space: nowrap;
       line-height: 1;
     }
+  }
+}
+
+// Main content area — clears the fixed header and footer
+// Pages using .nom-page-container (position: fixed) are unaffected.
+// Pages with custom containers (compose, inbox, dashboards) get
+// proper offset so content doesn't render behind fixed elements.
+.nom-main {
+  flex: 1;
+  padding-top: 72px;   // Match .nom-header height
+  padding-bottom: 55px; // Match .nom-footer height
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding-top: 68px;  // Match responsive header height
+  }
+
+  @media (max-width: 480px) {
+    padding-top: 64px;  // Match smallest header height
   }
 }
 
@@ -150,102 +169,102 @@ body {
 .nom-main-nav {
   display: flex !important;
   align-items: center !important;
-  gap: 16px !important;
+  gap: vars.$spacing-4 !important;
   flex-wrap: wrap !important;
   justify-content: center !important;
   width: 100% !important;
 
   // Responsive adjustments
   @media (max-width: 1024px) {
-    gap: 12px !important;
+    gap: vars.$spacing-3 !important;
   }
 
-  @media (max-width: 768px) {
-    gap: 8px !important;
+  @media (max-width: vars.$breakpoint-mobile) {
+    gap: vars.$spacing-2 !important;
   }
 
   @media (max-width: 480px) {
-    gap: 6px !important;
+    gap: vars.$spacing-2 !important;
   }
 
   // Navigation sections
   &__public {
     display: flex !important;
     align-items: center !important;
-    gap: 16px !important;
-    padding-right: 16px !important;
+    gap: vars.$spacing-4 !important;
+    padding-right: vars.$spacing-4 !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
 
-    @media (max-width: 768px) {
-      gap: 8px !important;
-      padding-right: 8px !important;
+    @media (max-width: vars.$breakpoint-mobile) {
+      gap: vars.$spacing-2 !important;
+      padding-right: vars.$spacing-2 !important;
     }
 
     @media (max-width: 480px) {
-      gap: 6px !important;
-      padding-right: 6px !important;
+      gap: vars.$spacing-2 !important;
+      padding-right: vars.$spacing-2 !important;
     }
   }
 
   &__authenticated {
     display: flex !important;
     align-items: center !important;
-    gap: 16px !important;
-    padding-left: 16px !important;
+    gap: vars.$spacing-4 !important;
+    padding-left: vars.$spacing-4 !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
 
-    @media (max-width: 768px) {
-      gap: 8px !important;
-      padding-left: 8px !important;
+    @media (max-width: vars.$breakpoint-mobile) {
+      gap: vars.$spacing-2 !important;
+      padding-left: vars.$spacing-2 !important;
     }
 
     @media (max-width: 480px) {
-      gap: 6px !important;
-      padding-left: 6px !important;
+      gap: vars.$spacing-2 !important;
+      padding-left: vars.$spacing-2 !important;
     }
   }
 
   &__auth {
     display: flex !important;
     align-items: center !important;
-    gap: 16px !important;
+    gap: vars.$spacing-4 !important;
     flex-wrap: wrap !important;
 
-    @media (max-width: 768px) {
-      gap: 8px !important;
+    @media (max-width: vars.$breakpoint-mobile) {
+      gap: vars.$spacing-2 !important;
     }
 
     @media (max-width: 480px) {
-      gap: 6px !important;
+      gap: vars.$spacing-2 !important;
     }
   }
 
   &__link {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    padding: 8px 12px !important;
+    gap: vars.$spacing-2 !important;
+    padding: vars.$spacing-2 vars.$spacing-3 !important;
     text-decoration: none !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
+    border-radius: vars.$nom-border-radius !important;
+    transition: all vars.$transition-duration-fast ease !important;
     white-space: nowrap !important;
-    font-weight: 500 !important;
+    font-weight: vars.$font-weight-medium !important;
     min-width: 0 !important;
-    height: 40px !important;
+    height: vars.$spacing-10 !important;
 
     // Responsive adjustments
-    @media (max-width: 768px) {
-      padding: 6px 8px !important;
-      gap: 4px !important;
-      height: 36px !important;
+    @media (max-width: vars.$breakpoint-mobile) {
+      padding: vars.$spacing-2 !important;
+      gap: vars.$spacing-1 !important;
+      height: vars.$spacing-8 !important;
     }
 
     @media (max-width: 480px) {
-      padding: 4px 6px !important;
-      gap: 3px !important;
-      height: 32px !important;
+      padding: vars.$spacing-1 vars.$spacing-2 !important;
+      gap: vars.$spacing-1 !important;
+      height: vars.$spacing-8 !important;
     }
 
     span {
@@ -254,12 +273,12 @@ body {
       white-space: nowrap !important;
       min-width: 0 !important;
 
-      @media (max-width: 768px) {
-        font-size: 13px !important;
+      @media (max-width: vars.$breakpoint-mobile) {
+        font-size: vars.$font-size-sm !important;
       }
 
       @media (max-width: 480px) {
-        font-size: 12px !important;
+        font-size: vars.$font-size-xs !important;
       }
     }
   }
@@ -275,8 +294,8 @@ body {
     width: 100%;
 
     input {
-      padding: 8px 12px;
-      font-size: 14px;
+      padding: vars.$spacing-2 vars.$spacing-3;
+      font-size: vars.$font-size-sm;
     }
   }
 }
@@ -286,13 +305,35 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 5px 10px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
+  padding: vars.$spacing-1 vars.$spacing-3;
+  border-radius: vars.$nom-border-radius;
+  transition: background-color vars.$transition-duration-fast ease;
   z-index: 100;
 
   &__trigger {
-    // Inherits theme colors
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
+    border: none;
+    border-radius: vars.$nom-border-radius;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color vars.$transition-duration-fast ease;
+
+    &:hover {
+      background-color: rgba(128, 128, 128, 0.1);
+    }
+
+    &:focus {
+      outline: 2px solid var(--mat-sys-primary, #6750a4);
+      outline-offset: 2px;
+    }
+
+    amw-icon {
+      font-size: vars.$font-size-2xl;
+    }
   }
 
   &__dropdown {
@@ -300,30 +341,30 @@ body {
   }
 
   &__section {
-    padding: 8px 0;
+    padding: vars.$spacing-2 0;
   }
 
   &__profile {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
+    gap: vars.$spacing-3;
+    padding: vars.$spacing-2 vars.$spacing-3;
+    border-radius: vars.$nom-border-radius;
     cursor: pointer;
 
     span {
-      font-weight: 500;
+      font-weight: vars.$font-weight-medium;
     }
   }
 
   &__item {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
-    padding: 8px 12px !important;
+    gap: vars.$spacing-3 !important;
+    padding: vars.$spacing-2 vars.$spacing-3 !important;
     text-decoration: none !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
+    border-radius: vars.$nom-border-radius !important;
+    transition: all vars.$transition-duration-fast ease !important;
     cursor: pointer !important;
     border: none !important;
     background: transparent !important;
@@ -331,7 +372,7 @@ body {
     text-align: left !important;
 
     &:hover {
-      transform: translateX(4px) !important;
+      transform: translateX(vars.$spacing-1) !important;
     }
 
     &:active {
@@ -339,8 +380,8 @@ body {
     }
 
     span {
-      font-weight: 500 !important;
-      transition: color 0.2s ease !important;
+      font-weight: vars.$font-weight-medium !important;
+      transition: color vars.$transition-duration-fast ease !important;
     }
   }
 }
@@ -352,7 +393,7 @@ body {
   width: 250px;
   height: 100%;
   padding-top: 60px;
-  transition: right 0.3s ease-in-out;
+  transition: right vars.$transition-duration-normal ease-in-out;
   z-index: 1000;
 
   &--open {
@@ -367,9 +408,9 @@ body {
     li {
       .nom-sidenav__link {
         display: block;
-        padding: 15px 20px;
+        padding: vars.$spacing-4 vars.$spacing-5;
         text-decoration: none;
-        transition: background-color 0.2s ease;
+        transition: background-color vars.$transition-duration-fast ease;
       }
     }
   }
@@ -398,7 +439,7 @@ body {
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  border-radius: 12px;
+  border-radius: vars.$nom-border-radius-lg;
 }
 
 // Footer Styles
@@ -411,9 +452,9 @@ body {
   text-align: center;
 
   p {
-    margin: 8px 0;
-    font-size: 9px;
-    line-height: 1.5;
+    margin: vars.$spacing-2 0;
+    font-size: vars.$font-size-xs;
+    line-height: vars.$line-height-normal;
   }
 
   a {
@@ -428,8 +469,8 @@ body {
 @media (max-width: vars.$breakpoint-mobile) {
   .nom-header {
     &__left {
-      gap: vars.$spacing-medium;
-      padding: 0 10px;
+      gap: vars.$spacing-sm;
+      padding: 0 vars.$spacing-3;
     }
 
     &__right {

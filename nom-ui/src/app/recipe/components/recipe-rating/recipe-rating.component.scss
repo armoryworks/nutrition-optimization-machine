@@ -1,32 +1,34 @@
+// Recipe Rating Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-recipe-rating {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: vars.$spacing-6;
 
   &__average-card,
   &__form-card,
   &__user-rating-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
   }
 
   &__average-display {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 0;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4 0;
   }
 
   &__stars {
     display: flex;
-    gap: 4px;
+    gap: vars.$spacing-1;
   }
 
   &__star {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: vars.$font-size-xl;
+    width: vars.$font-size-xl;
+    height: vars.$font-size-xl;
 
     &--clickable {
       cursor: pointer;
@@ -36,26 +38,26 @@
   &__average-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: vars.$spacing-1;
   }
 
   &__average-score {
-    font-size: 24px;
+    font-size: vars.$font-size-xl;
   }
 
   &__average-text {
-    font-size: 14px;
+    font-size: vars.$font-size-sm;
   }
 
   &__form {
-    @include nom-form-field(20px);
+    @include nom-form-field(vars.$spacing-5);
   }
 
   &__star-rating {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 0;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4 0;
   }
 
   &__star-label {
@@ -63,7 +65,7 @@
   }
 
   &__rating-text {
-    font-size: 16px;
+    font-size: vars.$font-size-md;
     min-width: 100px;
   }
 
@@ -73,67 +75,67 @@
 
   &__actions {
     display: flex;
-    gap: 12px;
+    gap: vars.$spacing-3;
     align-items: center;
   }
 
   &__submit-btn,
   &__delete-btn {
-    border-radius: 8px;
-    padding: 8px 24px;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-2 vars.$spacing-6;
   }
 
   &__user-rating-display {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 16px 0;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4 0;
   }
 
   &__user-rating-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: vars.$spacing-2;
     flex: 1;
   }
 
   &__user-score {
-    font-size: 18px;
+    font-size: vars.$font-size-lg;
   }
 
   &__user-review {
     margin: 0;
-    line-height: 1.6;
+    line-height: vars.$line-height-relaxed;
     white-space: pre-wrap;
     word-wrap: break-word;
   }
 
   &__loading {
-    @include nom-loading-state(3rem);
-    border-radius: 12px;
+    @include nom-loading-state(vars.$spacing-12);
+    border-radius: vars.$nom-border-radius-lg;
 
     p {
-      margin: 16px 0 0;
-      font-size: 16px;
-      line-height: 1.5;
+      margin: vars.$spacing-4 0 0;
+      font-size: vars.$font-size-md;
+      line-height: vars.$line-height-normal;
     }
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-recipe-rating {
-    gap: 16px;
+    gap: vars.$spacing-4;
 
     &__average-display {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__star-rating {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__star-label {
@@ -146,7 +148,7 @@
 
     &__actions {
       flex-direction: column;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__submit-btn,
@@ -157,14 +159,14 @@
 
     &__user-rating-display {
       flex-direction: column;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__loading {
-      padding: 32px 16px;
+      padding: vars.$spacing-8 vars.$spacing-4;
 
       p {
-        font-size: 14px;
+        font-size: vars.$font-size-sm;
       }
     }
   }

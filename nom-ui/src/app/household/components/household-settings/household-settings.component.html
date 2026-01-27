@@ -1,57 +1,49 @@
-@if (isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-loading">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading household settings...</p>
-    </div>
-  </ng-template>
-</amw-card>
-}
+<div class="nom-page-container household-settings">
+  @if (isLoading()) {
+  <amw-inline-loading message="Loading household settings..." />
+  }
 
-@if (!isLoading() && error()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-error">
-      <p class="nom-error-message">{{ error() }}</p>
-      <div class="nom-error-actions">
-        <amw-button variant="filled" color="primary" (click)="onRetry()">
-          Retry
-        </amw-button>
-        <amw-button variant="text" color="primary" (click)="onBack()">
-          Back
-        </amw-button>
-      </div>
+  @if (!isLoading() && error()) {
+  <div class="nom-error-state" role="alert">
+    <p>{{ error() }}</p>
+    <div class="nom-actions">
+      <amw-button variant="filled" color="primary" (click)="onRetry()">
+        Retry
+      </amw-button>
+      <amw-button variant="text" color="primary" (click)="onBack()">
+        Back
+      </amw-button>
     </div>
-  </ng-template>
-</amw-card>
-}
+  </div>
+  }
 
-@if (!isLoading() && !error() && household()) {
-<div class="nom-settings-container">
-  <div class="nom-settings-header">
-    <amw-button variant="text" icon="arrow_back" (click)="onBack()">
-      Back
-    </amw-button>
-    <h1>Household Settings</h1>
-    <p class="nom-settings-subtitle">Manage preferences, notifications, and privacy for {{ household()!.name }}</p>
+  @if (!isLoading() && !error() && household()) {
+  <div class="nom-compact-header">
+    <div class="nom-compact-header__left">
+      <amw-button variant="text" icon="arrow_back" (click)="onBack()">
+        Back
+      </amw-button>
+      <h1 class="nom-compact-header__title">Household Settings</h1>
+      <span class="nom-compact-header__subtitle">Manage preferences, notifications, and privacy for {{ household()!.name }}</span>
+    </div>
   </div>
 
   <!-- Preferences Section -->
-  <amw-card>
+  <amw-card class="nom-card">
     <ng-template #headerTemplate>
       <h2>Household Preferences</h2>
     </ng-template>
     <ng-template #cardContent>
-      <form [formGroup]="preferencesForm" class="nom-settings-form">
-        <amw-input label="Household Name" formControlName="name" placeholder="Enter household name" [required]="true">
+      <form [formGroup]="preferencesForm" class="nom-form">
+        <amw-input label="Household Name" formControlName="name" placeholder="Enter household name" [required]="true"
+          class="nom-form__field">
         </amw-input>
 
         <amw-textarea label="Description" formControlName="description" placeholder="Enter a description (optional)"
-          [rows]="4">
+          [rows]="4" class="nom-form__field">
         </amw-textarea>
 
-        <div class="nom-form-actions">
+        <div class="nom-actions --end">
           <amw-button variant="filled" color="primary" [disabled]="preferencesForm.invalid || isSaving()"
             (click)="onSavePreferences()">
             @if (isSaving()) {
@@ -66,13 +58,13 @@
   </amw-card>
 
   <!-- Notification Settings Section -->
-  <amw-card>
+  <amw-card class="nom-card">
     <ng-template #headerTemplate>
       <h2>Notification Settings</h2>
     </ng-template>
     <ng-template #cardContent>
-      <form [formGroup]="notificationForm" class="nom-settings-form">
-        <div class="nom-info-banner">
+      <form [formGroup]="notificationForm" class="nom-form">
+        <div class="nom-instruction-text">
           <p>Note: Notification settings are currently in development. These settings will be saved locally but not
             synced to the server.</p>
         </div>
@@ -89,7 +81,7 @@
         <amw-checkbox formControlName="shoppingListUpdates" label="Shopping List Updates">
         </amw-checkbox>
 
-        <div class="nom-form-actions">
+        <div class="nom-actions --end">
           <amw-button variant="filled" color="primary" (click)="onSaveNotifications()">
             Save Notifications
           </amw-button>
@@ -99,13 +91,13 @@
   </amw-card>
 
   <!-- Privacy Settings Section -->
-  <amw-card>
+  <amw-card class="nom-card">
     <ng-template #headerTemplate>
       <h2>Privacy Settings</h2>
     </ng-template>
     <ng-template #cardContent>
-      <form [formGroup]="privacyForm" class="nom-settings-form">
-        <div class="nom-info-banner">
+      <form [formGroup]="privacyForm" class="nom-form">
+        <div class="nom-instruction-text">
           <p>Note: Privacy settings are currently in development. These settings will be saved locally but not synced to
             the server.</p>
         </div>
@@ -119,7 +111,7 @@
         <amw-checkbox formControlName="publicProfile" label="Make household profile public">
         </amw-checkbox>
 
-        <div class="nom-form-actions">
+        <div class="nom-actions --end">
           <amw-button variant="filled" color="primary" (click)="onSavePrivacy()">
             Save Privacy Settings
           </amw-button>
@@ -127,5 +119,5 @@
       </form>
     </ng-template>
   </amw-card>
+  }
 </div>
-}

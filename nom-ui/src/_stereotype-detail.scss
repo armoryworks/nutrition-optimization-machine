@@ -1,0 +1,364 @@
+// =============================================================================
+// DETAIL STEREOTYPE
+// =============================================================================
+// Use for: detail/view pages showing a single entity
+// Components: shopping-detail, meal-plan-detail, recipe-detail, household-detail
+// =============================================================================
+
+@use './variables' as vars;
+
+// -----------------------------------------------------------------------------
+// Detail Container
+// -----------------------------------------------------------------------------
+%nom-detail {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: vars.$spacing-8 vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4 vars.$spacing-2;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Header Actions
+// -----------------------------------------------------------------------------
+%nom-detail-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: vars.$spacing-6;
+  gap: vars.$spacing-3;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+%nom-detail-action-button {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+// -----------------------------------------------------------------------------
+// Info Section (hero card)
+// -----------------------------------------------------------------------------
+%nom-detail-info-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-detail-info-card {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+}
+
+%nom-detail-info-header {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-6;
+}
+
+%nom-detail-info-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  margin-top: vars.$spacing-1;
+  flex-shrink: 0;
+}
+
+%nom-detail-info-content {
+  flex: 1;
+  min-width: 0;
+}
+
+%nom-detail-info-title {
+  margin: 0;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  line-height: vars.$line-height-tight;
+}
+
+%nom-detail-info-subtitle {
+  margin: vars.$spacing-2 0 0;
+  font-size: vars.$font-size-md;
+  line-height: vars.$line-height-normal;
+}
+
+// -----------------------------------------------------------------------------
+// Details Section (metadata grid)
+// -----------------------------------------------------------------------------
+%nom-detail-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-detail-section-title {
+  margin: 0 0 vars.$spacing-4;
+  font-size: 18px;
+  font-weight: vars.$font-weight-semibold;
+}
+
+%nom-detail-card {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+}
+
+%nom-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: vars.$spacing-6;
+  padding: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4;
+  }
+}
+
+%nom-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+%nom-detail-item--full {
+  grid-column: 1 / -1;
+}
+
+%nom-detail-label {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+%nom-detail-value {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex-wrap: wrap;
+  font-size: vars.$font-size-md;
+}
+
+// -----------------------------------------------------------------------------
+// Progress Section
+// -----------------------------------------------------------------------------
+%nom-detail-progress-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-detail-progress-card {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+}
+
+%nom-detail-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-2;
+  }
+}
+
+%nom-detail-progress-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: vars.$font-weight-semibold;
+}
+
+%nom-detail-progress-text {
+  font-size: vars.$font-size-sm;
+}
+
+%nom-detail-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: vars.$nom-border-radius-sm;
+  overflow: hidden;
+  margin-bottom: vars.$spacing-2;
+}
+
+%nom-detail-progress-fill {
+  height: 100%;
+  border-radius: vars.$nom-border-radius-sm;
+  transition: width vars.$transition-duration-slow vars.$transition-timing;
+}
+
+%nom-detail-progress-percentage {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  text-align: center;
+}
+
+// -----------------------------------------------------------------------------
+// Items Section (list of items)
+// -----------------------------------------------------------------------------
+%nom-detail-items-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-detail-items-title {
+  margin: 0 0 vars.$spacing-4;
+  font-size: 18px;
+  font-weight: vars.$font-weight-semibold;
+}
+
+%nom-detail-items-card {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+}
+
+%nom-detail-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+%nom-detail-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$spacing-4;
+  border-radius: vars.$nom-border-radius;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-3;
+  }
+}
+
+%nom-detail-item-info {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex: 1;
+  min-width: 0;
+}
+
+%nom-detail-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+%nom-detail-item-name {
+  margin: 0 0 vars.$spacing-1;
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  line-height: vars.$line-height-tight;
+}
+
+%nom-detail-item-details {
+  display: flex;
+  gap: vars.$spacing-3;
+  font-size: vars.$font-size-sm;
+}
+
+%nom-detail-item-actions {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    align-self: flex-end;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Actions Section
+// -----------------------------------------------------------------------------
+%nom-detail-actions-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-detail-actions-card {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+}
+
+%nom-detail-actions-title {
+  margin: 0 0 vars.$spacing-4;
+  font-size: 18px;
+  font-weight: vars.$font-weight-semibold;
+}
+
+%nom-detail-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: vars.$spacing-3;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// =============================================================================
+// Mixin-based API
+// =============================================================================
+@mixin nom-detail {
+  @extend %nom-detail;
+}
+
+@mixin nom-detail-header-actions {
+  @extend %nom-detail-header-actions;
+}
+
+@mixin nom-detail-info-section {
+  @extend %nom-detail-info-section;
+}
+
+@mixin nom-detail-info-card {
+  @extend %nom-detail-info-card;
+}
+
+@mixin nom-detail-info-header {
+  @extend %nom-detail-info-header;
+}
+
+@mixin nom-detail-section {
+  @extend %nom-detail-section;
+}
+
+@mixin nom-detail-card {
+  @extend %nom-detail-card;
+}
+
+@mixin nom-detail-grid {
+  @extend %nom-detail-grid;
+}
+
+@mixin nom-detail-item {
+  @extend %nom-detail-item;
+}
+
+@mixin nom-detail-progress-section {
+  @extend %nom-detail-progress-section;
+}
+
+@mixin nom-detail-items-section {
+  @extend %nom-detail-items-section;
+}
+
+@mixin nom-detail-items-list {
+  @extend %nom-detail-items-list;
+}
+
+@mixin nom-detail-item-row {
+  @extend %nom-detail-item-row;
+}
+
+@mixin nom-detail-actions-section {
+  @extend %nom-detail-actions-section;
+}
+
+@mixin nom-detail-actions-grid {
+  @extend %nom-detail-actions-grid;
+}

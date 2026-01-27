@@ -1,20 +1,20 @@
-<div class="household-dashboard">
+<div class="nom-page-container household-dashboard">
     <!-- Compact Page Header -->
-    <div class="household-dashboard__page-header household-dashboard__page-header--compact">
-      <div class="household-dashboard__header-left">
-        <h1 class="household-dashboard__title">{{ pageTitle }}</h1>
-        <span class="household-dashboard__subtitle">{{ pageSubtitle }}</span>
+    <div class="nom-compact-header">
+      <div class="nom-compact-header__left">
+        <h1 class="nom-compact-header__title">{{ pageTitle }}</h1>
+        <span class="nom-compact-header__subtitle">{{ pageSubtitle }}</span>
       </div>
-      <div class="household-dashboard__header-center">
+      <div class="nom-compact-header__center">
         @if (!loading() && !error()) {
-        <div class="household-dashboard__stats-pill">
-          <amw-icon name="home" class="household-dashboard__stats-icon"></amw-icon>
-          <span class="household-dashboard__stats-text">{{ households().length }} household{{ households().length !== 1
+        <div class="nom-stat-pill">
+          <amw-icon name="home"></amw-icon>
+          <span>{{ households().length }} household{{ households().length !== 1
             ? 's' : '' }}</span>
         </div>
         }
       </div>
-      <div class="household-dashboard__header-right">
+      <div class="nom-compact-header__right">
         <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()">
           Refresh
         </amw-button>
@@ -26,15 +26,12 @@
 
     <!-- Loading State -->
     @if (loading()) {
-    <div class="household-dashboard__loading">
-      <amw-progress-spinner [diameter]="48"></amw-progress-spinner>
-      <p>Loading households...</p>
-    </div>
+    <amw-inline-loading message="Loading households..." />
     }
 
     <!-- Error State -->
     @if (error() && !loading()) {
-    <div class="household-dashboard__error">
+    <div class="nom-error-state" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
@@ -48,41 +45,39 @@
     <div class="household-dashboard__content">
       <!-- Empty State -->
       @if (households().length === 0) {
-      <div class="household-dashboard__empty-state">
-        <amw-card [headerTitle]="'No Households Found'" headerIcon="home" class="household-dashboard__empty-card">
-          <ng-template #cardContent>
-            <p>Create your first household to get started with shared meal planning and shopping lists.</p>
-            <amw-button variant="filled" color="primary" icon="add" (click)="createHousehold()">
-              Create Household
-            </amw-button>
-          </ng-template>
-        </amw-card>
+      <div class="nom-empty-state">
+        <amw-icon name="home" class="nom-empty-state__icon"></amw-icon>
+        <h3 class="nom-empty-state__title">No Households Found</h3>
+        <p class="nom-empty-state__message">Create your first household to get started with shared meal planning and shopping lists.</p>
+        <amw-button variant="filled" color="primary" icon="add" (click)="createHousehold()">
+          Create Household
+        </amw-button>
       </div>
       }
 
       <!-- Households Grid -->
       @if (households().length > 0) {
-      <div class="household-dashboard__grid">
+      <div class="nom-grid--auto">
         @for (household of households(); track household.id) {
-        <amw-card [headerTitle]="household.name" headerIcon="home" class="household-dashboard__household-card"
+        <amw-card [headerTitle]="household.name" headerIcon="home" class="nom-card dashboard-card"
           (click)="viewHousehold(household)">
           <ng-template #cardContent>
             @if (household.description) {
-            <p class="household-dashboard__household-subtitle">
+            <p class="nom-small-text">
               {{ household.description }}
             </p>
             }
-            <div class="household-dashboard__household-stats">
-              <div class="household-dashboard__household-stat">
-                <amw-icon name="people" class="household-dashboard__stat-icon"></amw-icon>
-                <span class="household-dashboard__stat-text">{{ household.memberCount || 0 }} members</span>
+            <div class="dashboard-card__stats">
+              <div class="dashboard-card__stat">
+                <amw-icon name="people"></amw-icon>
+                <span>{{ household.memberCount || 0 }} members</span>
               </div>
-              <div class="household-dashboard__household-stat">
-                <amw-icon name="restaurant_menu" class="household-dashboard__stat-icon"></amw-icon>
-                <span class="household-dashboard__stat-text">{{ household.planCount || 0 }} plans</span>
+              <div class="dashboard-card__stat">
+                <amw-icon name="restaurant_menu"></amw-icon>
+                <span>{{ household.planCount || 0 }} plans</span>
               </div>
             </div>
-            <div class="household-dashboard__household-actions">
+            <div class="nom-actions --end">
               <amw-button variant="text" color="primary" icon="edit"
                 (click)="editHousehold(household); $event.stopPropagation()">
                 Edit

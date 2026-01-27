@@ -8,6 +8,7 @@ import {
   AmwCheckboxComponent,
   AmwSelectComponent,
   AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
   AmwDialogService,
 } from 'angular-material-wrap';
@@ -28,6 +29,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwCheckboxComponent,
     AmwSelectComponent,
     AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './shopping-bulk-editor.component.html',

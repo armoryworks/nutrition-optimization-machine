@@ -1,29 +1,19 @@
-@if (isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-loading">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading meal plan...</p>
-    </div>
-  </ng-template>
-</amw-card>
-}
+<div class="nom-page-container meal-plan-print">
+  @if (isLoading()) {
+  <amw-inline-loading message="Loading meal plan..." />
+  }
 
-@if (!isLoading() && error()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-error">
-      <p class="nom-error-message">{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="onBack()">
-        Back to Meal Plan
-      </amw-button>
-    </div>
-  </ng-template>
-</amw-card>
-}
+  @if (!isLoading() && error()) {
+  <div class="nom-error-state" role="alert">
+    <p>{{ error() }}</p>
+    <amw-button variant="filled" color="primary" (click)="onBack()">
+      Back to Meal Plan
+    </amw-button>
+  </div>
+  }
 
-@if (!isLoading() && !error() && (mealPlan() || weekMealPlans().length > 0)) {
-<div class="nom-print-container">
+  @if (!isLoading() && !error() && (mealPlan() || weekMealPlans().length > 0)) {
+  <div class="nom-print-container">
   <amw-card>
     <ng-template #cardContent>
       <h2>Print Meal Plan</h2>
@@ -71,3 +61,4 @@
   </amw-card>
 </div>
 }
+</div>

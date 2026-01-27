@@ -1,38 +1,40 @@
+// Recipe Timeline Events Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-timeline-events {
   &__card {
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: vars.$nom-border-radius-lg;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__header {
-    padding: 24px 24px 0;
+    padding: vars.$spacing-6 vars.$spacing-6 0;
   }
 
   &__title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 1.25rem;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-lg;
     margin: 0;
   }
 
   &__subtitle {
-    font-size: 0.875rem;
-    margin: 8px 0 0;
+    font-size: vars.$font-size-sm;
+    margin: vars.$spacing-2 0 0;
   }
 
   &__content {
-    padding: 16px 24px 24px;
+    padding: vars.$spacing-4 vars.$spacing-6 vars.$spacing-6;
   }
 
   &__form {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__form-row {
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
 
     &:last-child {
       margin-bottom: 0;
@@ -44,16 +46,16 @@
   }
 
   &__form-actions {
-    @include nom-action-group(1rem, flex-end);
-    margin-top: 16px;
+    @include nom-action-group(vars.$spacing-4, flex-end);
+    margin-top: vars.$spacing-4;
   }
 
   &__submit-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 24px;
-    border-radius: 8px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-2 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__loading {
@@ -61,65 +63,65 @@
   }
 
   &__divider {
-    margin: 24px 0;
+    margin: vars.$spacing-6 0;
   }
 
   &__timeline-section {
-    margin-top: 24px;
+    margin-top: vars.$spacing-6;
   }
 
   &__section-title {
-    font-size: 1.125rem;
-    margin: 0 0 16px;
+    font-size: vars.$font-size-lg;
+    margin: 0 0 vars.$spacing-4;
   }
 
   &__loading-container {
-    @include nom-loading-state(32px);
+    @include nom-loading-state(vars.$spacing-8);
   }
 
   &__loading-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-    margin-bottom: 8px;
+    font-size: vars.$spacing-8;
+    width: vars.$spacing-8;
+    height: vars.$spacing-8;
+    margin-bottom: vars.$spacing-2;
     animation: spin 1s linear infinite;
   }
 
   &__loading,
   &__empty,
   &__error {
-    @include nom-empty-state(32px);
-    padding: 48px 24px;
+    @include nom-empty-state(vars.$spacing-8);
+    padding: vars.$spacing-12 vars.$spacing-6;
     text-align: center;
 
     h3 {
-      margin: 16px 0 8px;
-      font-size: 18px;
+      margin: vars.$spacing-4 0 vars.$spacing-2;
+      font-size: vars.$font-size-lg;
     }
 
     p {
-      margin: 0 0 16px;
-      font-size: 16px;
-      line-height: 1.5;
+      margin: 0 0 vars.$spacing-4;
+      font-size: vars.$font-size-md;
+      line-height: vars.$line-height-normal;
     }
   }
 
   &__empty-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 16px;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
+    margin-bottom: vars.$spacing-4;
     opacity: 0.5;
   }
 
   &__timeline {
     position: relative;
-    padding-left: 24px;
+    padding-left: vars.$spacing-6;
   }
 
   &__timeline-item {
     display: flex;
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
     position: relative;
 
     &:last-child {
@@ -131,13 +133,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 16px;
+    margin-right: vars.$spacing-4;
     flex-shrink: 0;
   }
 
   &__timeline-dot {
-    width: 40px;
-    height: 40px;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -147,34 +149,34 @@
   }
 
   &__event-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: vars.$font-size-lg;
+    width: vars.$font-size-lg;
+    height: vars.$font-size-lg;
   }
 
   &__timeline-line {
     width: 2px;
     height: 100%;
-    margin-top: 8px;
-    min-height: 24px;
+    margin-top: vars.$spacing-2;
+    min-height: vars.$spacing-6;
   }
 
   &__timeline-content {
     flex: 1;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-4;
     position: relative;
 
     &::before {
       content: '';
       position: absolute;
       left: -8px;
-      top: 20px;
+      top: vars.$spacing-5;
       width: 0;
       height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-right: 8px solid transparent;
+      border-top: vars.$spacing-2 solid transparent;
+      border-bottom: vars.$spacing-2 solid transparent;
+      border-right: vars.$spacing-2 solid transparent;
     }
   }
 
@@ -182,12 +184,12 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
-    gap: 12px;
+    margin-bottom: vars.$spacing-3;
+    gap: vars.$spacing-3;
   }
 
   &__event-title {
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
     margin: 0;
     word-break: break-word;
   }
@@ -197,30 +199,30 @@
   }
 
   &__event-chip {
-    font-size: 0.75rem;
-    height: 24px;
+    font-size: vars.$font-size-xs;
+    height: vars.$spacing-6;
   }
 
   &__event-details {
-    margin-bottom: 12px;
+    margin-bottom: vars.$spacing-3;
   }
 
   &__event-description {
-    font-size: 0.875rem;
-    line-height: 1.5;
-    margin: 0 0 12px;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
+    margin: 0 0 vars.$spacing-3;
     word-break: break-word;
   }
 
   &__event-meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: vars.$spacing-1;
   }
 
   &__event-date,
   &__event-created {
-    font-size: 0.75rem;
+    font-size: vars.$font-size-xs;
     margin: 0;
   }
 
@@ -230,41 +232,41 @@
   }
 
   &__action-btn {
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
+    width: vars.$spacing-8;
+    height: vars.$spacing-8;
+    line-height: vars.$spacing-8;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .recipe-timeline-events {
     &__header {
-      padding: 16px 16px 0;
+      padding: vars.$spacing-4 vars.$spacing-4 0;
     }
 
     &__content {
-      padding: 12px 16px 16px;
+      padding: vars.$spacing-3 vars.$spacing-4 vars.$spacing-4;
     }
 
     &__timeline {
-      padding-left: 16px;
+      padding-left: vars.$spacing-4;
     }
 
     &__timeline-dot {
-      width: 32px;
-      height: 32px;
+      width: vars.$spacing-8;
+      height: vars.$spacing-8;
     }
 
     &__event-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+      font-size: vars.$font-size-sm;
+      width: vars.$font-size-sm;
+      height: vars.$font-size-sm;
     }
 
     &__event-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__timeline-content {

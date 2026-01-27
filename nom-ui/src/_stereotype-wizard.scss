@@ -1,0 +1,235 @@
+// =============================================================================
+// WIZARD STEREOTYPE
+// =============================================================================
+// Use for: multi-step wizard/onboarding flows
+// Components: onboarding-wizard, onboarding-workflow
+// =============================================================================
+
+@use './variables' as vars;
+
+// -----------------------------------------------------------------------------
+// Wizard Container
+// -----------------------------------------------------------------------------
+%nom-wizard {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: vars.$spacing-5;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Wizard Card
+// -----------------------------------------------------------------------------
+%nom-wizard-card {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: vars.$nom-border-radius;
+}
+
+%nom-wizard-card-header {
+  padding: vars.$spacing-6 vars.$spacing-6 0;
+}
+
+%nom-wizard-card-title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+}
+
+%nom-wizard-card-content {
+  padding: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Progress Bar
+// -----------------------------------------------------------------------------
+%nom-wizard-progress {
+  margin-bottom: vars.$spacing-4;
+}
+
+// -----------------------------------------------------------------------------
+// Step Section
+// -----------------------------------------------------------------------------
+%nom-wizard-section {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-wizard-section-heading {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-3;
+}
+
+// -----------------------------------------------------------------------------
+// Instruction Text
+// -----------------------------------------------------------------------------
+%nom-wizard-instruction {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+  margin: 0 0 vars.$spacing-4;
+}
+
+// -----------------------------------------------------------------------------
+// Form Elements
+// -----------------------------------------------------------------------------
+%nom-wizard-form {
+  width: 100%;
+}
+
+%nom-wizard-form-field {
+  width: 100%;
+  margin-bottom: vars.$spacing-4;
+}
+
+%nom-wizard-form-input {
+  width: 100%;
+}
+
+%nom-wizard-form-error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-xs;
+  margin-top: vars.$spacing-1;
+}
+
+// -----------------------------------------------------------------------------
+// Error Box
+// -----------------------------------------------------------------------------
+%nom-wizard-error-box {
+  background-color: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-sm;
+  padding: vars.$spacing-3;
+  margin-bottom: vars.$spacing-4;
+}
+
+// -----------------------------------------------------------------------------
+// Message Text
+// -----------------------------------------------------------------------------
+%nom-wizard-message {
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+}
+
+// -----------------------------------------------------------------------------
+// Navigation Buttons
+// -----------------------------------------------------------------------------
+%nom-wizard-button {
+  min-width: 120px;
+  height: vars.$button-height;
+  border-radius: vars.$nom-border-radius-sm;
+  font-weight: vars.$font-weight-medium;
+}
+
+%nom-wizard-button-spinner {
+  margin-right: vars.$spacing-2;
+}
+
+// -----------------------------------------------------------------------------
+// Button Group
+// -----------------------------------------------------------------------------
+%nom-wizard-actions {
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
+  margin-top: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-3;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Step Indicator
+// -----------------------------------------------------------------------------
+%nom-wizard-step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-wizard-step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--mat-sys-surface-container-highest);
+  transition: all vars.$transition-duration-normal vars.$transition-timing;
+
+  &--active {
+    background-color: var(--mat-sys-primary);
+    transform: scale(1.2);
+  }
+
+  &--completed {
+    background-color: var(--mat-sys-tertiary);
+  }
+}
+
+// =============================================================================
+// Mixin-based API
+// =============================================================================
+@mixin nom-wizard {
+  @extend %nom-wizard;
+}
+
+@mixin nom-wizard-card {
+  @extend %nom-wizard-card;
+}
+
+@mixin nom-wizard-card-header {
+  @extend %nom-wizard-card-header;
+}
+
+@mixin nom-wizard-card-content {
+  @extend %nom-wizard-card-content;
+}
+
+@mixin nom-wizard-progress {
+  @extend %nom-wizard-progress;
+}
+
+@mixin nom-wizard-section {
+  @extend %nom-wizard-section;
+}
+
+@mixin nom-wizard-section-heading {
+  @extend %nom-wizard-section-heading;
+}
+
+@mixin nom-wizard-instruction {
+  @extend %nom-wizard-instruction;
+}
+
+@mixin nom-wizard-form {
+  @extend %nom-wizard-form;
+}
+
+@mixin nom-wizard-form-field {
+  @extend %nom-wizard-form-field;
+}
+
+@mixin nom-wizard-error-box {
+  @extend %nom-wizard-error-box;
+}
+
+@mixin nom-wizard-button {
+  @extend %nom-wizard-button;
+}
+
+@mixin nom-wizard-actions {
+  @extend %nom-wizard-actions;
+}
+
+@mixin nom-wizard-step-indicator {
+  @extend %nom-wizard-step-indicator;
+}

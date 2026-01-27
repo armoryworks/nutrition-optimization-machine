@@ -1,57 +1,39 @@
+// Meal Plan Edit Component - Uses form stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .meal-plan-edit {
   &__container {
-    @include nom-form-field(24px);
+    @include nom-form-field(vars.$spacing-6);
     max-width: 600px;
     margin: 0 auto;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      padding: 0 vars.$spacing-4;
+    }
   }
 
   &__field {
     width: 100%;
   }
 
-  &__input {
-    width: 100%;
-  }
-
-  &__input-field {
-    font-size: 16px;
-  }
-
-  &__select {
-    width: 100%;
-  }
-
-  &__select-field {
-    font-size: 16px;
-  }
-
-  &__date {
-    width: 100%;
-  }
-
-  &__date-field {
-    font-size: 16px;
-  }
-
+  &__input,
+  &__select,
+  &__date,
   &__textarea {
     width: 100%;
   }
 
+  &__input-field,
+  &__select-field,
+  &__date-field {
+    font-size: vars.$font-size-md;
+  }
+
   &__textarea-field {
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
     resize: vertical;
     min-height: 80px;
   }
 }
-
-// Responsive Design
-@media (max-width: 768px) {
-  .meal-plan-edit {
-    &__container {
-      padding: 0 16px;
-    }
-  }
-} 

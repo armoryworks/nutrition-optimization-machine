@@ -88,10 +88,7 @@
     <h4 class="recipe-ratings__section-title">All Ratings</h4>
     
     @if (isLoading) {
-      <div class="recipe-ratings__loading">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-        <p>Loading ratings...</p>
-      </div>
+      <amw-inline-loading message="Loading ratings..." />
     }
 
     @if (!isLoading && ratings.length === 0) {

@@ -4,7 +4,7 @@ import { Component, OnInit, OnDestroy, ViewEncapsulation, inject, signal } from 
 
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 
-import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwToggleComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { ConsentModel } from '../../../privacy/models/consent.model';
 import { PrivacyService } from '../../../privacy/services/privacy.service';
@@ -20,7 +20,7 @@ import { UpdateConsentRequest } from '../../../privacy/models/update-consent.req
     AmwCardComponent,
     AmwToggleComponent,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwValidationTooltipDirective,
   ],
   templateUrl: './privacy-settings.component.html',

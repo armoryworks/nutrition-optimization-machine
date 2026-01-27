@@ -3,7 +3,7 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeRatingResponseModel } from '../../models/recipe-rating.model';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
@@ -18,6 +18,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwTextareaComponent,
         AmwCardComponent,
         AmwIconComponent,
+        AmwInlineLoadingComponent,
         AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-rating.component.html',

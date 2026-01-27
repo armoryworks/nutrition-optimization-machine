@@ -6,7 +6,7 @@ import { Subject, takeUntil, finalize } from 'rxjs';
 import {
   AmwCardComponent,
   AmwButtonComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwInputComponent,
   AmwTextareaComponent,
   AmwCheckboxComponent,
@@ -26,7 +26,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     ReactiveFormsModule,
     AmwCardComponent,
     AmwButtonComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwInputComponent,
     AmwTextareaComponent,
     AmwCheckboxComponent,

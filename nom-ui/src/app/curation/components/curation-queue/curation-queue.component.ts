@@ -6,7 +6,7 @@ import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Va
 
 import { Subject, takeUntil, finalize } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwAccordionComponent, AmwAccordionPanelComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTextareaComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwAccordionComponent, AmwAccordionPanelComponent, AmwInlineLoadingComponent } from 'angular-material-wrap';
 
 import { CurationService } from '../../services/curation.service';
 import { CurationQueueItemModel } from '../../models/curation-queue-item.model';
@@ -32,7 +32,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwMenuTriggerForDirective,
     AmwAccordionComponent,
     AmwAccordionPanelComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './curation-queue.component.html',
   styleUrls: ['./curation-queue.component.scss']

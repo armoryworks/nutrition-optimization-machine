@@ -8,10 +8,7 @@
     </div>
 
     @if (isLoading()) {
-    <div class="curated-plans__loading">
-      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      <p>Loading curated plans...</p>
-    </div>
+    <amw-inline-loading message="Loading curated plans..." />
     } @else if (error()) {
     <div class="curated-plans__error">
       <amw-icon name="error"></amw-icon>

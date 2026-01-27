@@ -3,21 +3,50 @@
 // Breakpoints
 $breakpoint-mobile: 768px;
 
-// Spacing Scale (8px base, standardized)
-$spacing-xs: 0.5rem;   // 8px
-$spacing-sm: 1rem;     // 16px
-$spacing-md: 1.5rem;   // 24px
-$spacing-lg: 2rem;     // 32px
-$spacing-xl: 3rem;     // 48px
-$spacing-2xl: 4rem;    // 64px
+// Spacing Scale (4px base unit, standardized)
+$spacing-0: 0;
+$spacing-1: 0.25rem;   // 4px
+$spacing-2: 0.5rem;    // 8px
+$spacing-3: 0.75rem;   // 12px - commonly used for compact padding/gaps
+$spacing-4: 1rem;      // 16px
+$spacing-5: 1.25rem;   // 20px
+$spacing-6: 1.5rem;    // 24px
+$spacing-8: 2rem;      // 32px
+$spacing-10: 2.5rem;   // 40px
+$spacing-12: 3rem;     // 48px
+$spacing-16: 4rem;     // 64px
 
-// Legacy spacing (maintained for backward compatibility)
-$spacing-xsmall: 0.25rem;
-$spacing-small: 0.5rem;
-$spacing-medium: 1rem;
-$spacing-large: 1.5rem;
-$spacing-xlarge: 2rem;
-$spacing-xxlarge: 3rem;
+// Semantic spacing aliases
+$spacing-xs: $spacing-2;   // 8px
+$spacing-sm: $spacing-4;   // 16px
+$spacing-md: $spacing-6;   // 24px
+$spacing-lg: $spacing-8;   // 32px
+$spacing-xl: $spacing-12;  // 48px
+$spacing-2xl: $spacing-16; // 64px
+
+// Legacy spacing aliases (for backward compatibility - prefer semantic aliases above)
+$spacing-xsmall: $spacing-1;   // 4px
+$spacing-small: $spacing-2;    // 8px
+$spacing-medium: $spacing-4;   // 16px
+$spacing-large: $spacing-6;    // 24px
+$spacing-xlarge: $spacing-8;   // 32px
+$spacing-xxlarge: $spacing-12; // 48px
+
+// Component-specific spacing (use these in global styles)
+$form-field-gap: $spacing-4;           // 16px - gap between form fields
+$form-section-gap: $spacing-6;         // 24px - gap between form sections
+$card-padding: $spacing-6;             // 24px - standard card padding
+$card-padding-compact: $spacing-4;     // 16px - compact card padding
+$card-padding-sm: $spacing-4;          // 16px - alias for backward compatibility
+$list-item-padding: $spacing-3;        // 12px - list item padding
+$button-padding-y: $spacing-2;         // 8px - button vertical padding
+$button-padding-x: $spacing-6;         // 24px - button horizontal padding
+$button-padding-x-sm: $spacing-4;      // 16px - small button horizontal padding
+$chip-padding-y: $spacing-1;           // 4px - chip vertical padding
+$chip-padding-x: $spacing-3;           // 12px - chip horizontal padding
+$input-padding-y: $spacing-3;          // 12px - input vertical padding
+$input-padding-x: $spacing-4;          // 16px - input horizontal padding
+$container-gap: $spacing-3;            // 12px - default flex gap
 
 // --- ENHANCED COLOR VARIABLES ---
 
@@ -105,15 +134,8 @@ $font-weight-bold: 700;
 $button-height: 40px;           // Standard button height (touch-friendly)
 $button-height-sm: 32px;        // Small button height
 $button-height-lg: 48px;        // Large button height
-$button-padding-x: 1.5rem;      // 24px horizontal padding
-$button-padding-x-sm: 1rem;     // 16px for small buttons
 
 $input-height: 48px;            // Form field height (touch-friendly)
-$input-padding-x: 1rem;         // 16px horizontal padding
-$input-padding-y: 0.75rem;      // 12px vertical padding
-
-$card-padding: 1.5rem;          // 24px card padding
-$card-padding-sm: 1rem;         // 16px for compact cards
 $card-min-height: 200px;        // Minimum card height
 
 // Transitions

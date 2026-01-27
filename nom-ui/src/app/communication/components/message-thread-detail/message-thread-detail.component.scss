@@ -1,97 +1,14 @@
-@use '../../../../_utilities' as *;
+// Message Thread Detail Component
+// Layout handled by universal classes: nom-page-container, nom-card,
+// nom-loading-state, nom-empty-state, nom-compact-header, nom-list,
+// nom-form, nom-actions, nom-heading-4, nom-small-text, nom-button.
+@use '../../../../variables' as vars;
 
-.nom-loading-container,
-.nom-error-container {
-  @include nom-empty-state(2rem);
-}
-
-.nom-error-message {
-  color: var(--mat-sys-error);
-  margin: 0;
-  text-align: center;
-}
-
-.nom-error-actions {
-  @include nom-action-group(1rem, center);
-  margin-top: 0;
-}
-
-.nom-thread-detail-container {
-  @include nom-form-field(1rem);
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.nom-thread-header {
+// Component-specific: message item layout (chat bubble style)
+.message-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
-}
-
-.nom-thread-header-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-}
-
-.nom-thread-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--mat-sys-on-surface);
-  }
-}
-
-.nom-thread-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.nom-messages-wrapper {
-  flex: 1;
-  min-height: 400px;
-  max-height: 600px;
-}
-
-.nom-messages-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1rem;
-  overflow-y: auto;
-  max-height: 550px;
-  min-height: 350px;
-}
-
-.nom-empty-state {
-  @include nom-empty-state(3rem);
-  color: var(--mat-sys-on-surface-variant);
-
-  p {
-    margin: 0;
-  }
-}
-
-.nom-message-item {
-  display: flex;
-  gap: 1rem;
-  animation: fadeIn 0.3s ease-in;
-
-  &:hover {
-    background-color: var(--mat-sys-surface-container);
-    border-radius: 8px;
-    padding: 0.5rem;
-    margin: -0.5rem;
-  }
+  gap: vars.$spacing-4;
+  animation: fadeIn vars.$transition-duration-slow ease-in;
 }
 
 @keyframes fadeIn {
@@ -105,10 +22,10 @@
   }
 }
 
-.nom-message-avatar {
+.message-avatar {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: vars.$spacing-10;
+  height: vars.$spacing-10;
   border-radius: 50%;
   overflow: hidden;
   background-color: var(--mat-sys-surface-container);
@@ -123,76 +40,28 @@
   }
 }
 
-.nom-message-content {
+.message-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: vars.$spacing-1;
 }
 
-.nom-message-header {
+.message-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: vars.$spacing-3;
 }
 
-.nom-message-sender {
-  font-weight: 500;
+.message-sender {
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
 }
 
-.nom-message-time {
-  font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.nom-message-body {
-  p {
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-}
-
-.nom-reply-form {
-  @include nom-form-field(1rem);
-}
-
-.nom-reply-actions {
-  @include nom-action-group(1rem, flex-end);
-}
-
-// Responsive design
-@media (max-width: 768px) {
-  .nom-thread-detail-container {
-    padding: 0.5rem;
-  }
-
-  .nom-thread-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .nom-thread-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .nom-messages-wrapper {
-    max-height: 400px;
-  }
-
-  .nom-messages-container {
-    max-height: 350px;
-  }
-
-  .nom-message-item {
-    &:hover {
-      padding: 0;
-      margin: 0;
-      background-color: transparent;
-    }
-  }
+.message-body {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  line-height: vars.$line-height-normal;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }

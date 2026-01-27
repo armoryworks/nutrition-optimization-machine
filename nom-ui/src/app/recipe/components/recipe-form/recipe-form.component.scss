@@ -1,42 +1,44 @@
+// Recipe Form Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-form {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: vars.$spacing-5;
 
   &__header {
     text-align: center;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
+    margin-bottom: vars.$spacing-8;
+    padding-bottom: vars.$spacing-6;
 
     h2 {
-      margin: 0 0 8px 0;
-      font-size: 32px;
+      margin: 0 0 vars.$spacing-2 0;
+      font-size: vars.$font-size-2xl;
     }
 
     .subtitle {
       margin: 0;
-      font-size: 16px;
+      font-size: vars.$font-size-md;
     }
   }
 
   &__content {
     .form-section {
-      margin-bottom: 32px;
-      padding: 24px;
-      border-radius: 8px;
+      margin-bottom: vars.$spacing-8;
+      padding: vars.$spacing-6;
+      border-radius: vars.$nom-border-radius;
 
       h3 {
-        margin: 0 0 20px 0;
-        font-size: 20px;
-        padding-bottom: 12px;
+        margin: 0 0 vars.$spacing-5 0;
+        font-size: vars.$font-size-lg;
+        padding-bottom: vars.$spacing-3;
       }
 
       .form-row {
         display: flex;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: vars.$spacing-4;
+        margin-bottom: vars.$spacing-4;
         flex-wrap: wrap;
 
         .form-field {
@@ -53,9 +55,9 @@
 }
 
 .form-actions {
-  @include nom-action-group(16px, flex-end);
-  margin-top: 32px;
-  padding-top: 24px;
+  @include nom-action-group(vars.$spacing-4, flex-end);
+  margin-top: vars.$spacing-8;
+  padding-top: vars.$spacing-6;
 
   button {
     min-width: 120px;
@@ -63,27 +65,27 @@
 }
 
 .selected-options {
-  margin-top: 32px;
-  padding: 20px;
-  border-radius: 8px;
+  margin-top: vars.$spacing-8;
+  padding: vars.$spacing-5;
+  border-radius: vars.$nom-border-radius;
 
   h4 {
-    margin: 0 0 16px 0;
-    font-size: 18px;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
   }
 
   .options-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+    gap: vars.$spacing-3;
 
     .option-item {
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 14px;
+      padding: vars.$spacing-2 vars.$spacing-3;
+      border-radius: vars.$nom-border-radius-sm;
+      font-size: vars.$font-size-sm;
 
       strong {
-        margin-right: 8px;
+        margin-right: vars.$spacing-2;
       }
     }
   }
@@ -102,19 +104,19 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .recipe-form {
-    padding: 16px;
+    padding: vars.$spacing-4;
 
     &__header {
       h2 {
-        font-size: 28px;
+        font-size: vars.$font-size-2xl;
       }
     }
 
     &__content {
       .form-section {
-        padding: 16px;
+        padding: vars.$spacing-4;
 
         .form-row {
           flex-direction: column;
@@ -145,24 +147,24 @@
 
 @media (max-width: 480px) {
   .recipe-form {
-    padding: 12px;
+    padding: vars.$spacing-3;
 
     &__header {
       h2 {
-        font-size: 24px;
+        font-size: vars.$font-size-xl;
       }
 
       .subtitle {
-        font-size: 14px;
+        font-size: vars.$font-size-sm;
       }
     }
 
     &__content {
       .form-section {
-        padding: 12px;
+        padding: vars.$spacing-3;
 
         h3 {
-          font-size: 18px;
+          font-size: vars.$font-size-lg;
         }
       }
     }

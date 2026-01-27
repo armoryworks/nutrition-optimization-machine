@@ -1,86 +1,37 @@
-@use '../../../../_utilities' as *;
+// Message Compose Component
+// All layout handled by universal classes: nom-page-container, nom-card,
+// nom-form, nom-form-section, nom-actions, nom-error-state, nom-section,
+// nom-instruction-text, nom-form__field, nom-form__error, nom-button.
+@use '../../../../variables' as vars;
 
-.nom-compose-container {
-  @include nom-form-field(1rem);
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.nom-error-banner {
+// Loading overlay — positioned within the form (no universal class for this)
+.nom-loading-state--overlay {
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background-color: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.nom-error-message {
-  margin: 0;
-  flex: 1;
-}
-
-.nom-compose-form {
-  @include nom-form-field(1.5rem);
-  position: relative;
-}
-
-.nom-form-section {
-  @include nom-form-field(0.5rem);
-}
-
-.nom-form-actions {
-  @include nom-action-group(1rem, flex-end);
-  margin-top: 0;
-}
-
-.nom-loading-overlay {
-  @include nom-loading-state(0);
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--mat-sys-surface-container-low, #fff) 85%, transparent);
+  border-radius: vars.$nom-border-radius;
   z-index: 10;
 }
 
-.nom-help-content {
-  @include nom-form-field(1rem);
-
-  p {
-    margin: 0;
-    color: var(--mat-sys-on-surface-variant);
-    line-height: 1.6;
-
-    strong {
-      color: var(--mat-sys-on-surface);
-    }
-  }
+// The form needs position:relative for the overlay
+.nom-form {
+  position: relative;
 }
 
-// Responsive design
-@media (max-width: 768px) {
-  .nom-compose-container {
-    padding: 0.5rem;
-  }
-
-  .nom-form-actions {
+// Responsive: stack buttons on mobile
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-actions {
     flex-direction: column-reverse;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
 
     amw-button {
       width: 100%;
     }
-  }
-
-  .nom-error-banner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
   }
 }

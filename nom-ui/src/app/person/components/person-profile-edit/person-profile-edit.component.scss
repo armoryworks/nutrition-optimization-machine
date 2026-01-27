@@ -1,28 +1,29 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-form {
   &__content {
-    padding: 1rem 0;
+    padding: vars.$spacing-4 0;
   }
 
   &__field {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__input {
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
   }
 }
 
 .nom-loading {
   &-container {
-    @include nom-loading-state(2rem);
+    @include nom-loading-state(vars.$spacing-8);
   }
 
   &-text {
-    margin-top: 1rem;
+    margin-top: vars.$spacing-4;
     color: var(--mat-sys-on-surface-variant);
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
   }
-} 
+}

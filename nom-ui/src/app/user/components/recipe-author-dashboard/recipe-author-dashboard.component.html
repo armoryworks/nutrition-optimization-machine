@@ -119,9 +119,7 @@
                         }
                     </div>
                     } @else {
-                    <div class="nom-dashboard__loading-container">
-                        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-                    </div>
+                    <amw-inline-loading message="Loading recipes..." />
                     }
                 </div>
 
@@ -210,9 +208,7 @@
                         }
                     </div>
                     } @else {
-                    <div class="nom-dashboard__loading-container">
-                        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-                    </div>
+                    <amw-inline-loading message="Loading ingredients..." />
                     }
                 </div>
             </div>

@@ -1,15 +1,49 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-categories {
+  &__page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: vars.$spacing-4 0;
+    flex-wrap: wrap;
+    gap: vars.$spacing-4;
+    margin-bottom: vars.$spacing-4;
+  }
+
+  &__page-header-content {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  &__page-title {
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-medium;
+  }
+
+  &__page-subtitle {
+    margin: 0;
+    font-size: vars.$font-size-sm;
+    opacity: 0.7;
+  }
+
+  &__page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+  }
+
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
+    margin-bottom: vars.$spacing-6;
+    gap: vars.$spacing-4;
     flex-wrap: wrap;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       flex-direction: column;
       align-items: stretch;
     }
@@ -19,7 +53,7 @@
     flex: 1;
     max-width: 400px;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       max-width: none;
     }
   }
@@ -30,23 +64,23 @@
 
   &__actions {
     display: flex;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   &__form-card {
-    margin-bottom: 1.5rem;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__form {
-    @include nom-form-field(1rem);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__form-row {
     display: flex;
-    gap: 1rem;
+    gap: vars.$spacing-4;
     align-items: flex-start;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       flex-direction: column;
     }
   }
@@ -56,68 +90,68 @@
   }
 
   &__form-actions {
-    @include nom-action-group(0.5rem, flex-end);
+    @include nom-action-group(vars.$spacing-2, flex-end);
   }
 
   &__loading {
-    @include nom-loading-state(3rem);
+    @include nom-loading-state(vars.$spacing-12);
 
     p {
-      margin-top: 1rem;
+      margin-top: vars.$spacing-4;
     }
   }
 
   &__error {
-    margin: 1rem 0;
+    margin: vars.$spacing-4 0;
   }
 
   &__error-content {
-    @include nom-empty-state(1rem);
+    @include nom-empty-state(vars.$spacing-4);
 
     p {
-      margin: 0 0 1rem 0;
+      margin: 0 0 vars.$spacing-4 0;
     }
   }
 
   &__content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: vars.$spacing-6;
   }
 
   &__available-card,
   &__selected-card {
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__available-list {
-    @include nom-form-field(0.75rem);
+    @include nom-form-field(vars.$spacing-3);
   }
 
   &__available-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem;
-    border-radius: 8px;
+    padding: vars.$spacing-3;
+    border-radius: vars.$nom-border-radius;
     cursor: pointer;
   }
 
   &__category-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
     flex: 1;
   }
 
   &__chip {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__category-details {
     display: flex;
-    gap: 1rem;
-    font-size: 0.75rem;
+    gap: vars.$spacing-4;
+    font-size: vars.$font-size-xs;
   }
 
   &__parent {
@@ -125,12 +159,12 @@
   }
 
   &__recipe-count {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__delete-btn {
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity vars.$transition-duration-fast ease;
 
     .recipe-categories__available-item:hover & {
       opacity: 1;
@@ -140,14 +174,14 @@
   &__selected-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: vars.$breakpoint-mobile) {
     &__available-item {
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.5rem;
+      gap: vars.$spacing-2;
     }
 
     &__delete-btn {
@@ -157,13 +191,13 @@
 
     &__category-details {
       flex-direction: column;
-      gap: 0.25rem;
+      gap: vars.$spacing-1;
     }
   }
 
   @media (max-width: 480px) {
     &__form-row {
-      gap: 0.5rem;
+      gap: vars.$spacing-2;
     }
 
     &__form-actions {

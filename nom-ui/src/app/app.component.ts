@@ -9,6 +9,7 @@ import { AuthService } from './auth/auth.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
 import { Router } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
+import { ValidationTooltipOverlayComponent } from './shared/components/validation-tooltip-overlay/validation-tooltip-overlay.component';
 
 @Component({
   selector: 'nom-root',
@@ -24,6 +25,7 @@ import { LoginComponent } from './auth/login/login.component';
     AmwMenuTriggerForDirective,
     AmwFullScreenLoadingComponent,
     AmwValidationTooltipOverlayComponent,
+    ValidationTooltipOverlayComponent,
     LoginComponent
   ],
   templateUrl: './app.component.html',

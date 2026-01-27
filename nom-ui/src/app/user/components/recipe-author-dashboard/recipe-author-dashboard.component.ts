@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { Observable, of, catchError, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwInlineLoadingComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
 
 import { RecipeService } from '../../../recipe/services/recipe.service';
 import { CurationService } from '../../../curation/services/curation.service';
@@ -57,7 +57,7 @@ interface MenuItem {
     AmwIconButtonComponent,
     AmwTooltipDirective,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwMenuComponent,
     AmwMenuItemComponent,
     AmwMenuTriggerForDirective,

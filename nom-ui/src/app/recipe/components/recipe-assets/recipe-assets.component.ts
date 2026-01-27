@@ -3,7 +3,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwListComponent, AmwListItemComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwInlineLoadingComponent, AmwListComponent, AmwListItemComponent, AmwDialogService, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeAssetsService } from '../../services/recipe-assets.service';
 import { ConfigurationService } from '../../../common/services/configuration.service';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
@@ -21,7 +21,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwIconButtonComponent,
         AmwTooltipDirective,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwListComponent,
         AmwListItemComponent,
         AmwValidationTooltipDirective,

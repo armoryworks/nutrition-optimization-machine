@@ -1,26 +1,41 @@
-<div class="household-detail">
+<div class="nom-page-container household-detail">
   <!-- Page Header -->
-    <div class="household-detail__page-header">
-      <div class="household-detail__title-section">
+    <div class="nom-compact-header">
+      <div class="nom-compact-header__left">
         <amw-button variant="text" icon="arrow_back" (click)="onBack()">
           Back
         </amw-button>
-        <h1>{{ pageTitle }}</h1>
-        <p class="subtitle">{{ pageSubtitle }}</p>
+        <h1 class="nom-compact-header__title">{{ pageTitle }}</h1>
+        <span class="nom-compact-header__subtitle">{{ pageSubtitle }}</span>
+      </div>
+      <div class="nom-compact-header__right">
+        <amw-button variant="filled" color="primary" icon="edit" (click)="onEditHousehold()">
+          Edit Household
+        </amw-button>
+        <amw-button variant="outlined" color="accent" icon="person_add" (click)="onInviteMembers()">
+          Invite Members
+        </amw-button>
+        <amw-button variant="icon" [amwMenuTriggerFor]="menu">
+          <amw-icon name="more_vert"></amw-icon>
+        </amw-button>
+        <amw-menu #menu>
+          <amw-menu-item label="Copy Invite Link" icon="content_copy" (itemClick)="onCopyInviteLink()">
+          </amw-menu-item>
+          <amw-menu-item [isDivider]="true"></amw-menu-item>
+          <amw-menu-item label="Delete Household" icon="delete" (itemClick)="onDeleteHousehold()">
+          </amw-menu-item>
+        </amw-menu>
       </div>
     </div>
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="household-detail__loading">
-      <amw-progress-spinner [diameter]="48"></amw-progress-spinner>
-      <p>Loading household details...</p>
-    </div>
+    <amw-inline-loading message="Loading household details..." />
     }
 
     <!-- Error State -->
     @if (error() && !isLoading()) {
-    <div class="household-detail__error">
+    <div class="nom-error-state" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
@@ -31,97 +46,74 @@
 
     <!-- Content -->
     @if (household() && !isLoading() && !error()) {
-    <!-- Header Actions -->
-    <div class="household-detail__header-actions">
-      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditHousehold()">
-        Edit Household
-      </amw-button>
-      <amw-button variant="outlined" color="accent" icon="person_add" (click)="onInviteMembers()">
-        Invite Members
-      </amw-button>
-      <amw-button variant="icon" [amwMenuTriggerFor]="menu">
-        <amw-icon name="more_vert"></amw-icon>
-      </amw-button>
-      <amw-menu #menu>
-        <amw-menu-item label="Copy Invite Link" icon="content_copy" (itemClick)="onCopyInviteLink()">
-        </amw-menu-item>
-        <amw-menu-item [isDivider]="true"></amw-menu-item>
-        <amw-menu-item label="Delete Household" icon="delete" (itemClick)="onDeleteHousehold()">
-        </amw-menu-item>
-      </amw-menu>
-    </div>
 
     <!-- Household Info -->
-    <div class="household-detail__info-section">
-      <amw-card [headerTitle]="household()!.name" headerIcon="home">
-        <ng-template #cardContent>
-          @if (household()!.description) {
-          <p class="household-detail__info-subtitle">
-            {{ household()!.description }}
-          </p>
-          }
-        </ng-template>
-      </amw-card>
-    </div>
+    <amw-card [headerTitle]="household()!.name" headerIcon="home" class="nom-card">
+      <ng-template #cardContent>
+        @if (household()!.description) {
+        <p class="nom-small-text">
+          {{ household()!.description }}
+        </p>
+        }
+      </ng-template>
+    </amw-card>
 
     <!-- Household Stats -->
-    <div class="household-detail__stats-section">
-      <amw-card [headerTitle]="'Statistics'" headerIcon="bar_chart">
-        <ng-template #cardContent>
-          <div class="household-detail__stats-grid">
-            <div class="household-detail__stat">
-              <amw-icon name="people" class="household-detail__stat-icon"></amw-icon>
-              <div class="household-detail__stat-content">
-                <span class="household-detail__stat-value">{{ household()!.memberCount || 0 }}</span>
-                <span class="household-detail__stat-label">Members</span>
-              </div>
-            </div>
-            <div class="household-detail__stat">
-              <amw-icon name="restaurant_menu" class="household-detail__stat-icon"></amw-icon>
-              <div class="household-detail__stat-content">
-                <span class="household-detail__stat-value">{{ household()!.recipeCount || 0 }}</span>
-                <span class="household-detail__stat-label">Recipes</span>
-              </div>
-            </div>
-            <div class="household-detail__stat">
-              <amw-icon name="schedule" class="household-detail__stat-icon"></amw-icon>
-              <div class="household-detail__stat-content">
-                <span class="household-detail__stat-value">{{ household()!.planCount || 0 }}</span>
-                <span class="household-detail__stat-label">Meal Plans</span>
-              </div>
-            </div>
-            <div class="household-detail__stat">
-              <amw-icon name="shopping_cart" class="household-detail__stat-icon"></amw-icon>
-              <div class="household-detail__stat-content">
-                <span class="household-detail__stat-value">{{ household()!.shoppingListCount || 0 }}</span>
-                <span class="household-detail__stat-label">Shopping Lists</span>
-              </div>
+    <amw-card [headerTitle]="'Statistics'" headerIcon="bar_chart" class="nom-card">
+      <ng-template #cardContent>
+        <div class="detail-stats-grid">
+          <div class="detail-stat">
+            <amw-icon name="people"></amw-icon>
+            <div class="detail-stat__content">
+              <span class="detail-stat__value">{{ household()!.memberCount || 0 }}</span>
+              <span class="detail-stat__label">Members</span>
             </div>
           </div>
-        </ng-template>
-      </amw-card>
-    </div>
+          <div class="detail-stat">
+            <amw-icon name="restaurant_menu"></amw-icon>
+            <div class="detail-stat__content">
+              <span class="detail-stat__value">{{ household()!.recipeCount || 0 }}</span>
+              <span class="detail-stat__label">Recipes</span>
+            </div>
+          </div>
+          <div class="detail-stat">
+            <amw-icon name="schedule"></amw-icon>
+            <div class="detail-stat__content">
+              <span class="detail-stat__value">{{ household()!.planCount || 0 }}</span>
+              <span class="detail-stat__label">Meal Plans</span>
+            </div>
+          </div>
+          <div class="detail-stat">
+            <amw-icon name="shopping_cart"></amw-icon>
+            <div class="detail-stat__content">
+              <span class="detail-stat__value">{{ household()!.shoppingListCount || 0 }}</span>
+              <span class="detail-stat__label">Shopping Lists</span>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </amw-card>
 
     <!-- Quick Actions -->
-    <div class="household-detail__actions-section">
-      <h3 class="household-detail__actions-title">Quick Actions</h3>
-      <div class="household-detail__actions-grid">
-        <amw-card [headerTitle]="'Meal Plans'" headerIcon="schedule" class="household-detail__action-card"
+    <div class="nom-section">
+      <h3>Quick Actions</h3>
+      <div class="nom-grid--auto">
+        <amw-card [headerTitle]="'Meal Plans'" headerIcon="schedule" class="nom-card dashboard-card"
           (click)="onViewMealPlans()">
           <ng-template #cardContent>
-            <p class="household-detail__action-description">Plan meals for the household</p>
+            <p class="nom-small-text">Plan meals for the household</p>
           </ng-template>
         </amw-card>
-        <amw-card [headerTitle]="'Shopping Lists'" headerIcon="shopping_cart" class="household-detail__action-card"
+        <amw-card [headerTitle]="'Shopping Lists'" headerIcon="shopping_cart" class="nom-card dashboard-card"
           (click)="onViewShoppingLists()">
           <ng-template #cardContent>
-            <p class="household-detail__action-description">Manage shopping lists</p>
+            <p class="nom-small-text">Manage shopping lists</p>
           </ng-template>
         </amw-card>
-        <amw-card [headerTitle]="'Recipes'" headerIcon="restaurant_menu" class="household-detail__action-card"
+        <amw-card [headerTitle]="'Recipes'" headerIcon="restaurant_menu" class="nom-card dashboard-card"
           (click)="onViewRecipes()">
           <ng-template #cardContent>
-            <p class="household-detail__action-description">Browse household recipes</p>
+            <p class="nom-small-text">Browse household recipes</p>
           </ng-template>
         </amw-card>
       </div>
@@ -129,35 +121,32 @@
 
     <!-- Members Section -->
     @if (household()!.members && household()!.members!.length > 0) {
-    <div class="household-detail__members-section">
-      <h3 class="household-detail__members-title">Household Members</h3>
-      <amw-card [headerTitle]="'Members'" headerIcon="people">
-        <ng-template #cardContent>
-          <div class="household-detail__members-list">
-            @for (member of household()!.members; track member.id) {
-            <div class="household-detail__member-item">
-              <div class="household-detail__member-info">
-                <amw-icon name="person" class="household-detail__member-icon"></amw-icon>
-                <div class="household-detail__member-content">
-                  <h4 class="household-detail__member-name">{{ member.name }}</h4>
-                  <p class="household-detail__member-email">{{ member.email }}</p>
-                </div>
-              </div>
-              <div class="household-detail__member-actions">
-                @if (member.role) {
-                <amw-chip [label]="member.role" color="primary" chipClass="household-detail__member-role">
-                </amw-chip>
-                }
-                <amw-button variant="icon" (click)="onRemoveMember(member.id)">
-                  <amw-icon name="remove_circle"></amw-icon>
-                </amw-button>
+    <amw-card [headerTitle]="'Members'" headerIcon="people" class="nom-card">
+      <ng-template #cardContent>
+        <div class="nom-list">
+          @for (member of household()!.members; track member.id) {
+          <div class="nom-list__item detail-member">
+            <div class="detail-member__info">
+              <amw-icon name="person"></amw-icon>
+              <div class="detail-member__content">
+                <h4 class="detail-member__name">{{ member.name }}</h4>
+                <p class="nom-small-text">{{ member.email }}</p>
               </div>
             </div>
-            }
+            <div class="detail-member__actions">
+              @if (member.role) {
+              <amw-chip [label]="member.role" color="primary">
+              </amw-chip>
+              }
+              <amw-button variant="icon" (click)="onRemoveMember(member.id)">
+                <amw-icon name="remove_circle"></amw-icon>
+              </amw-button>
+            </div>
           </div>
-        </ng-template>
-      </amw-card>
-    </div>
+          }
+        </div>
+      </ng-template>
+    </amw-card>
     }
     }
 </div>

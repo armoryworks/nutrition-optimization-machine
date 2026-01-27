@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, effect, Injector } from '@angular/co
 
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, loading } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCheckboxComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, loading } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel, ShoppingListItemUpdateRequestModel } from '../../models/shopping.model';
@@ -18,7 +18,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwCheckboxComponent,
     AmwCardComponent,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwMenuComponent,
     AmwMenuItemComponent,
     AmwMenuTriggerForDirective

@@ -4,7 +4,7 @@ import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } fr
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService, AmwSelectComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwDialogService, AmwSelectComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListCategory, ShoppingListCategoryCreate } from '../../models/shopping-list-category.model';
 import { NotificationService } from '../../../utilities/services/notification.service';
@@ -22,7 +22,7 @@ import { UserInfoService } from '../../../utilities/services/user-info.service';
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwSelectComponent,
         AmwValidationTooltipDirective,
     ],

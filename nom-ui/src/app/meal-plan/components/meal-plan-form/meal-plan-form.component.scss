@@ -1,58 +1,60 @@
+// Meal Plan Form Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .meal-plan-form {
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: vars.$spacing-5;
 
   &__header {
     text-align: center;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: vars.$spacing-8;
+    padding-bottom: vars.$spacing-6;
+    border-bottom: 2px solid vars.$nom-neutral-200;
 
     h2 {
-      margin: 0 0 8px 0;
-      color: #333;
-      font-size: 32px;
-      font-weight: 500;
+      margin: 0 0 vars.$spacing-2 0;
+      color: vars.$nom-neutral-700;
+      font-size: vars.$font-size-2xl;
+      font-weight: vars.$font-weight-medium;
     }
 
     .subtitle {
       margin: 0;
-      color: #666;
-      font-size: 16px;
+      color: vars.$nom-neutral-500;
+      font-size: vars.$font-size-md;
     }
   }
 
   &__content {
     .form-section {
-      margin-bottom: 32px;
-      padding: 24px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border: 1px solid #e9ecef;
+      margin-bottom: vars.$spacing-8;
+      padding: vars.$spacing-6;
+      background: vars.$nom-neutral-50;
+      border-radius: vars.$nom-border-radius;
+      border: 1px solid vars.$nom-neutral-200;
 
       h3 {
-        margin: 0 0 16px 0;
-        color: #333;
-        font-size: 20px;
-        font-weight: 500;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #dee2e6;
+        margin: 0 0 vars.$spacing-4 0;
+        color: vars.$nom-neutral-700;
+        font-size: vars.$font-size-lg;
+        font-weight: vars.$font-weight-medium;
+        padding-bottom: vars.$spacing-3;
+        border-bottom: 1px solid vars.$nom-neutral-200;
       }
 
       .section-hint {
-        margin: 0 0 20px 0;
-        color: #666;
-        font-size: 14px;
+        margin: 0 0 vars.$spacing-5 0;
+        color: vars.$nom-neutral-500;
+        font-size: vars.$font-size-sm;
         font-style: italic;
       }
 
       .form-row {
         display: flex;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: vars.$spacing-4;
+        margin-bottom: vars.$spacing-4;
         flex-wrap: wrap;
 
         .form-field {
@@ -71,20 +73,20 @@
 .days-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-5;
 
   .day-selector {
     display: flex;
     align-items: center;
-    padding: 12px;
+    padding: vars.$spacing-3;
     background: white;
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
-    transition: all 0.2s ease;
+    border-radius: vars.$nom-border-radius;
+    border: 1px solid vars.$nom-neutral-200;
+    transition: all vars.$transition-duration-normal vars.$transition-timing;
 
     &:hover {
-      border-color: #007bff;
+      border-color: vars.$nom-primary-500;
       box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
     }
 
@@ -96,11 +98,11 @@
 
 .meal-assignments {
   .meal-assignment {
-    margin-bottom: 24px;
-    padding: 20px;
+    margin-bottom: vars.$spacing-6;
+    padding: vars.$spacing-5;
     background: white;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+    border-radius: vars.$nom-border-radius;
+    border: 1px solid vars.$nom-neutral-200;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
     &:last-child {
@@ -111,23 +113,23 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #e9ecef;
+      margin-bottom: vars.$spacing-4;
+      padding-bottom: vars.$spacing-3;
+      border-bottom: 1px solid vars.$nom-neutral-200;
 
       h4 {
         margin: 0;
-        color: #333;
-        font-size: 18px;
-        font-weight: 500;
+        color: vars.$nom-neutral-700;
+        font-size: vars.$font-size-lg;
+        font-weight: vars.$font-weight-medium;
       }
     }
 
     &__content {
       .form-row {
         display: flex;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: vars.$spacing-4;
+        margin-bottom: vars.$spacing-4;
         flex-wrap: wrap;
 
         .form-field {
@@ -145,28 +147,28 @@
 
 .add-meal-section {
   text-align: center;
-  margin-top: 20px;
-  padding: 20px;
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  background: #f8f9fa;
+  margin-top: vars.$spacing-5;
+  padding: vars.$spacing-5;
+  border: 2px dashed vars.$nom-neutral-200;
+  border-radius: vars.$nom-border-radius;
+  background: vars.$nom-neutral-50;
 
   button {
-    color: #007bff;
-    border-color: #007bff;
+    color: vars.$nom-primary-500;
+    border-color: vars.$nom-primary-500;
 
     &:hover {
-      background: #007bff;
+      background: vars.$nom-primary-500;
       color: white;
     }
   }
 }
 
 .form-actions {
-  @include nom-action-group(16px, flex-end);
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
+  @include nom-action-group(vars.$spacing-4, flex-end);
+  margin-top: vars.$spacing-8;
+  padding-top: vars.$spacing-6;
+  border-top: 1px solid vars.$nom-neutral-200;
 
   button {
     min-width: 120px;
@@ -174,37 +176,37 @@
 }
 
 .plan-summary {
-  margin-top: 32px;
-  padding: 20px;
-  background: #e8f5e8;
-  border-radius: 8px;
-  border: 1px solid #c8e6c9;
+  margin-top: vars.$spacing-8;
+  padding: vars.$spacing-5;
+  background: vars.$nom-tertiary-50;
+  border-radius: vars.$nom-border-radius;
+  border: 1px solid vars.$nom-tertiary-200;
 
   h4 {
-    margin: 0 0 16px 0;
-    color: #2e7d32;
-    font-size: 18px;
-    font-weight: 500;
+    margin: 0 0 vars.$spacing-4 0;
+    color: vars.$nom-tertiary-700;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-medium;
   }
 
   .summary-content {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
+    gap: vars.$spacing-4;
 
     .summary-item {
-      padding: 12px;
+      padding: vars.$spacing-3;
       background: white;
-      border-radius: 6px;
-      border: 1px solid #c8e6c9;
+      border-radius: vars.$nom-border-radius;
+      border: 1px solid vars.$nom-tertiary-200;
       text-align: center;
-      font-size: 14px;
+      font-size: vars.$font-size-sm;
 
       strong {
-        color: #2e7d32;
+        color: vars.$nom-tertiary-700;
         display: block;
-        margin-bottom: 4px;
-        font-size: 12px;
+        margin-bottom: vars.$spacing-1;
+        font-size: vars.$font-size-xs;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -227,19 +229,19 @@
 }
 
 // Responsive adjustments
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .meal-plan-form {
-    padding: 16px;
+    padding: vars.$spacing-4;
 
     &__header {
       h2 {
-        font-size: 28px;
+        font-size: vars.$font-size-2xl;
       }
     }
 
     &__content {
       .form-section {
-        padding: 16px;
+        padding: vars.$spacing-4;
 
         .form-row {
           flex-direction: column;
@@ -254,16 +256,16 @@
 
   .days-grid {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 8px;
+    gap: vars.$spacing-2;
 
     .day-selector {
-      padding: 8px;
+      padding: vars.$spacing-2;
     }
   }
 
   .meal-assignments {
     .meal-assignment {
-      padding: 16px;
+      padding: vars.$spacing-4;
 
       &__content {
         .form-row {
@@ -295,24 +297,24 @@
 
 @media (max-width: 480px) {
   .meal-plan-form {
-    padding: 12px;
+    padding: vars.$spacing-3;
 
     &__header {
       h2 {
-        font-size: 24px;
+        font-size: vars.$font-size-xl;
       }
 
       .subtitle {
-        font-size: 14px;
+        font-size: vars.$font-size-sm;
       }
     }
 
     &__content {
       .form-section {
-        padding: 12px;
+        padding: vars.$spacing-3;
 
         h3 {
-          font-size: 18px;
+          font-size: vars.$font-size-lg;
         }
       }
     }
@@ -324,7 +326,7 @@
 
   .meal-assignments {
     .meal-assignment {
-      padding: 12px;
+      padding: vars.$spacing-3;
     }
   }
 }

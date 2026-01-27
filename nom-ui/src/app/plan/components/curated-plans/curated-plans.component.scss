@@ -48,9 +48,9 @@
     padding-top: 0;
 
     mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
+      font-size: vars.$spacing-12;
+      width: vars.$spacing-12;
+      height: vars.$spacing-12;
       color: var(--mat-sys-error);
     }
 
@@ -79,7 +79,7 @@
   }
 
   &__plan-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform vars.$transition-duration-fast ease, box-shadow vars.$transition-duration-fast ease;
     border: 1px solid var(--mat-sys-outline-variant);
 
     &:hover {
@@ -150,9 +150,9 @@
       color: var(--mat-sys-on-surface-variant);
 
       mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
+        font-size: vars.$font-size-md;
+        width: vars.$font-size-md;
+        height: vars.$font-size-md;
       }
     }
   }
@@ -183,9 +183,9 @@
       color: var(--mat-sys-on-surface-variant);
 
       mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
+        font-size: vars.$font-size-md;
+        width: vars.$font-size-md;
+        height: vars.$font-size-md;
         color: var(--mat-sys-primary);
       }
     }
@@ -213,9 +213,9 @@
     padding-top: 0;
 
     .curated-plans__empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
+      font-size: vars.$spacing-16;
+      width: vars.$spacing-16;
+      height: vars.$spacing-16;
       color: var(--mat-sys-on-surface-variant);
     }
 

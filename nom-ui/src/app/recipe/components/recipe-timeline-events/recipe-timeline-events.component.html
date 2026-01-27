@@ -2,10 +2,7 @@
   <ng-template #cardContent>
     <!-- Loading State -->
     @if (isLoading()) {
-      <div class="recipe-timeline-events__loading">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-        <p>Loading timeline events...</p>
-      </div>
+      <amw-inline-loading message="Loading timeline events..." />
     }
 
     <!-- Error State -->

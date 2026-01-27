@@ -1,4 +1,4 @@
-<div class="shopping-detail">
+<div class="nom-page-container shopping-detail">
   <!-- Page Header -->
     <div class="shopping-detail__page-header">
       <div class="shopping-detail__title-section">
@@ -12,10 +12,7 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="shopping-detail__loading">
-      <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
-      <p>Loading shopping list...</p>
-    </div>
+    <amw-inline-loading message="Loading shopping list..." />
     }
 
     <!-- Error State -->

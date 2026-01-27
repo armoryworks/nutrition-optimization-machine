@@ -1,73 +1,51 @@
+// Household Create Component - Uses form stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .household-create {
-  @include nom-centered-container(100vh);
-  padding: 2rem 1rem;
-
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
-  }
+  @include nom-form-page;
 
   &__card {
-    max-width: 600px;
-    width: 100%;
-    border-radius: 16px;
-    overflow: hidden;
+    @extend %nom-form-card;
   }
 
   &__header {
-    padding: 1.25rem 2rem 1.5rem;
-
-    @media (max-width: 768px) {
-      padding: 1.5rem 1rem 1rem;
-    }
+    @extend %nom-form-card-header;
   }
 
   &__title {
+    @extend %nom-form-card-title;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin: 0;
-
-    @media (max-width: 768px) {
-      font-size: 1.5rem;
-    }
+    gap: vars.$spacing-3;
   }
 
   &__title-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
+    font-size: vars.$font-size-2xl;
+    width: vars.$font-size-2xl;
+    height: vars.$font-size-2xl;
 
-    @media (max-width: 768px) {
-      font-size: 1.75rem;
-      width: 1.75rem;
-      height: 1.75rem;
+    @media (max-width: vars.$breakpoint-mobile) {
+      font-size: vars.$font-size-xl;
+      width: vars.$font-size-xl;
+      height: vars.$font-size-xl;
     }
   }
 
   &__subtitle {
-    font-size: 1rem;
-    margin: 0.5rem 0 0;
-    line-height: 1.5;
+    @extend %nom-form-card-subtitle;
   }
 
   &__content {
-    padding: 1.25rem 2rem;
-
-    @media (max-width: 768px) {
-      padding: 1.5rem 1rem;
-    }
+    @extend %nom-form-card-content;
   }
 
   &__form {
-    @include nom-form-field(1rem);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__form-row {
-    @include nom-form-field(1rem);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__field {
@@ -79,43 +57,37 @@
   }
 
   &__input {
-    font-size: 16px;
+    font-size: vars.$font-size-md;
   }
 
   &__textarea {
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
     resize: vertical;
     min-height: 60px;
   }
 
   &__actions {
-    @include nom-action-group(1rem, flex-end);
-    margin-top: 0; // Override mixin default since form already has gap
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      gap: 1rem;
-    }
+    @extend %nom-form-actions;
   }
 
   &__button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
+    gap: vars.$spacing-2;
+    font-weight: vars.$font-weight-medium;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-radius: 8px;
+    border-radius: vars.$nom-border-radius;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       width: 100%;
       justify-content: center;
-      padding: 0.75rem 1rem;
+      padding: vars.$spacing-3 vars.$spacing-4;
     }
   }
 
   &__spinner {
-    margin-right: 0.5rem;
+    margin-right: vars.$spacing-2;
   }
 }

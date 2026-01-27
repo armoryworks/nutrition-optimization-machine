@@ -1,5 +1,4 @@
-// File: nom-ui/src/app/user/components/recipe-author-dashboard/recipe-author-dashboard.component.scss
-
+// Recipe Author Dashboard Component - Uses utilities and variables
 @use '../../../../_variables' as vars;
 @use '../../../../_mixins' as mixins;
 @use '../../../../_utilities' as *;
@@ -8,12 +7,12 @@
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 5px vars.$spacing-large 0;
+    padding: vars.$spacing-1 vars.$spacing-large 0;
     height: calc(100vh - 120px);
     overflow: hidden;
 
     @include mixins.breakpoint(mobile) {
-        padding: 0px vars.$spacing-medium 0;
+        padding: 0 vars.$spacing-medium 0;
         height: calc(100vh - 100px);
     }
 
@@ -50,8 +49,8 @@
 
     &__title {
         margin: 0;
-        font-weight: 600;
-        line-height: 1.2;
+        font-weight: vars.$font-weight-semibold;
+        line-height: vars.$line-height-tight;
     }
 
     // Stats Pills
@@ -71,8 +70,8 @@
         align-items: center;
         gap: vars.$spacing-xsmall;
         padding: vars.$spacing-xsmall vars.$spacing-small;
-        border-radius: 20px;
-        transition: all 0.2s ease;
+        border-radius: vars.$spacing-5;
+        transition: all vars.$transition-duration-fast ease;
 
         &:hover {
             transform: translateY(-1px);
@@ -80,21 +79,21 @@
     }
 
     &__stat-number {
-        font-weight: 600;
+        font-weight: vars.$font-weight-semibold;
         line-height: 1;
     }
 
     &__stat-label {
-        font-weight: 500;
+        font-weight: vars.$font-weight-medium;
         line-height: 1;
     }
 
     &__action-button {
         white-space: nowrap;
-        font-weight: 500;
+        font-weight: vars.$font-weight-medium;
         height: 44px;
-        border-radius: 8px;
-        padding: 0 16px;
+        border-radius: vars.$nom-border-radius;
+        padding: 0 vars.$spacing-4;
         min-width: 120px;
 
         @include mixins.breakpoint(mobile) {
@@ -153,8 +152,8 @@
 
     &__section-title {
         margin: 0;
-        font-weight: 600;
-        line-height: 1.2;
+        font-weight: vars.$font-weight-semibold;
+        line-height: vars.$line-height-tight;
     }
 
     // Filter Section (now in header)
@@ -196,7 +195,7 @@
     &__item-card {
         border-radius: vars.$nom-border-radius;
         padding: vars.$spacing-small vars.$spacing-medium;
-        transition: all 0.2s ease;
+        transition: all vars.$transition-duration-fast ease;
         overflow: hidden;
 
         &:hover {
@@ -236,7 +235,7 @@
 
     &__item-title {
         margin: 0;
-        font-weight: 500;
+        font-weight: vars.$font-weight-medium;
         line-height: 1.3;
         flex: 1;
         min-width: 0;
@@ -257,15 +256,15 @@
     }
 
     &__status-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
+        font-size: vars.$font-size-sm;
+        width: vars.$font-size-sm;
+        height: vars.$font-size-sm;
     }
 
     &__status-badge {
         padding: vars.$spacing-xsmall vars.$spacing-small;
-        border-radius: 12px;
-        font-weight: 500;
+        border-radius: vars.$nom-border-radius-lg;
+        font-weight: vars.$font-weight-medium;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         white-space: nowrap;
@@ -284,8 +283,8 @@
 
     &__version-text {
         padding: vars.$spacing-xsmall vars.$spacing-small;
-        border-radius: 8px;
-        font-weight: 500;
+        border-radius: vars.$nom-border-radius;
+        font-weight: vars.$font-weight-medium;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -303,8 +302,8 @@
         flex-shrink: 0;
 
         @include mixins.breakpoint(mobile) {
-            width: 40px;
-            height: 40px;
+            width: vars.$spacing-10;
+            height: vars.$spacing-10;
         }
     }
 
@@ -318,20 +317,20 @@
 
         p {
             margin: 0 0 vars.$spacing-large 0;
-            line-height: 1.5;
+            line-height: vars.$line-height-normal;
         }
     }
 
     &__empty-icon {
-        font-size: 64px;
-        width: 64px;
-        height: 64px;
+        font-size: vars.$spacing-16;
+        width: vars.$spacing-16;
+        height: vars.$spacing-16;
         opacity: 0.5;
 
         @include mixins.breakpoint(mobile) {
-            font-size: 48px;
-            width: 48px;
-            height: 48px;
+            font-size: vars.$spacing-12;
+            width: vars.$spacing-12;
+            height: vars.$spacing-12;
         }
     }
 

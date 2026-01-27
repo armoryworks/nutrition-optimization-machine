@@ -4,7 +4,7 @@ import { Subject, takeUntil, finalize, forkJoin } from 'rxjs';
 import {
   AmwCardComponent,
   AmwButtonComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
 } from 'angular-material-wrap';
 
@@ -27,7 +27,7 @@ interface NutritionSummary {
   imports: [
     AmwCardComponent,
     AmwButtonComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './meal-plan-nutrition.component.html',

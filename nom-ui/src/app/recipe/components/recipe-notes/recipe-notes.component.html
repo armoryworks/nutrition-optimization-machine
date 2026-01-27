@@ -46,10 +46,7 @@
       <h3 class="recipe-notes__list-title">Your Notes</h3>
 
       @if (isLoading) {
-      <div class="recipe-notes__loading" role="status" aria-live="polite" aria-label="Loading notes">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-        <p>Loading notes...</p>
-      </div>
+      <amw-inline-loading message="Loading notes..." />
       }
 
       @if (!isLoading && notes.length === 0) {

@@ -1,3 +1,4 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .login-popover {
@@ -6,7 +7,7 @@
   }
 
   &__form {
-    @include nom-form-field(16px);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__field {
@@ -14,8 +15,8 @@
   }
 
   &__error {
-    font-size: 12px;
-    margin-top: -8px;
+    font-size: vars.$font-size-xs;
+    margin-top: -(vars.$spacing-2);
   }
 
   &__submit {
@@ -23,7 +24,7 @@
   }
 
   &__divider {
-    margin: 16px 0;
+    margin: vars.$spacing-4 0;
   }
 
   &__register {

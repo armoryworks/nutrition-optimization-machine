@@ -1,36 +1,29 @@
+// Shopping Edit Component - Uses form stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .shopping-edit {
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1rem;
-
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
-  }
+  @include nom-form-page;
 
   &__card {
-    max-width: 600px;
-    width: 100%;
-    border-radius: 16px;
-    overflow: hidden;
+    @extend %nom-form-card;
   }
 
   &__loading {
-    @include nom-loading-state(2rem);
+    @include nom-loading-state(vars.$spacing-8);
   }
 
   &__form {
-    @include nom-form-field(1rem);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__actions {
-    @include nom-action-group(1rem, flex-end);
-    margin-top: 0; // Override mixin default since form already has gap
+    @include nom-action-group(vars.$spacing-4, flex-end);
+    margin-top: 0;
 
-    @media (max-width: 768px) {
+    @media (max-width: vars.$breakpoint-mobile) {
       flex-direction: column;
-      gap: 1rem;
+      gap: vars.$spacing-4;
     }
   }
 
@@ -43,7 +36,7 @@
   }
 
   &__input-field {
-    font-size: 16px;
+    font-size: vars.$font-size-md;
   }
 
   &__textarea {
@@ -51,8 +44,8 @@
   }
 
   &__textarea-field {
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
     resize: vertical;
     min-height: 80px;
   }

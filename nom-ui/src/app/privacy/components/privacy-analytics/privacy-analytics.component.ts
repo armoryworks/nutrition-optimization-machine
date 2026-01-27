@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwTooltipDirective, AmwIconComponent, AmwChipComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn, AmwInlineLoadingComponent } from 'angular-material-wrap';
 
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
@@ -18,7 +18,7 @@ import { DataProcessingLogModel } from '../../models/i-privacy-analytics.model';
         AmwIconComponent,
         AmwChipComponent,
         AmwDataTableComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
     ],
     templateUrl: './privacy-analytics.component.html',
     styleUrls: ['./privacy-analytics.component.scss']

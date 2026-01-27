@@ -1,11 +1,8 @@
-<div class="household-edit">
+<div class="nom-page-container household-edit">
   <amw-card [headerTitle]="formConfig.title" headerIcon="home" class="household-edit__card">
     <ng-template #cardContent>
       @if (isLoading() && !household()) {
-      <div class="household-edit__loading" role="status" aria-live="polite" aria-label="Loading household">
-        <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-        <p>Loading household...</p>
-      </div>
+      <amw-inline-loading message="Loading household..." />
       } @else {
       <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-edit__form">
         <!-- Household Name Field - Using AMW -->

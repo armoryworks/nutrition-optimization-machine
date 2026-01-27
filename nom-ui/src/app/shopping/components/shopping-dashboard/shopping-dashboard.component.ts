@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListResponseModel } from '../../models/shopping.model';
@@ -20,7 +20,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent
+        AmwInlineLoadingComponent
     ],
     templateUrl: './shopping-dashboard.component.html',
     styleUrls: ['./shopping-dashboard.component.scss']

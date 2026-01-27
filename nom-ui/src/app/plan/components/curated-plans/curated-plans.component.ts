@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, effect, Injector } from '@angular/core';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwProgressSpinnerComponent, AmwDialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwInlineLoadingComponent, AmwDialogService } from 'angular-material-wrap';
 
 import { PlanService } from '../../services/plan.service';
 import { PlanModel } from '../../models/plan.model';
@@ -16,7 +16,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwCardComponent,
         AmwIconComponent,
         AmwChipComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
     ],
     templateUrl: './curated-plans.component.html',
     styleUrls: ['./curated-plans.component.scss']

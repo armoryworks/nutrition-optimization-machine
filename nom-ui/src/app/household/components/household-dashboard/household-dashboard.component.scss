@@ -1,271 +1,46 @@
-@use '../../../../_utilities' as *;
+// Household Dashboard Component
+// Layout handled by universal classes: nom-page-container, nom-compact-header,
+// nom-stat-pill, nom-loading-state, nom-error-state, nom-empty-state,
+// nom-grid--auto, nom-card, nom-actions, nom-small-text.
+@use '../../../../variables' as vars;
 
-.household-dashboard {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
-
-  // Compact Page Header
-  &__page-header {
-    margin-bottom: 24px;
-
-    &--compact {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      min-height: 60px;
-      padding: 12px 0;
-    }
-  }
-
-  &__header-left {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  &__header-center {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    justify-content: center;
-  }
-
-  &__header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  &__title {
-    font-size: 1.5rem;
-    font-weight: 500;
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-    line-height: 1.2;
-  }
-
-  &__subtitle {
-    font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 300px;
-  }
-
-  &__stats-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    background-color: var(--mat-sys-surface-container-high);
-    border-radius: 16px;
-    font-size: 0.875rem;
-    color: var(--mat-sys-on-surface);
-  }
-
-  &__stats-icon {
-    font-size: 1rem;
-    width: 1rem;
-    height: 1rem;
-    color: var(--mat-sys-primary);
-  }
-
-  &__stats-text {
-    font-weight: 500;
-  }
-
-  &__header-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
-  }
-
-  &__create-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  &__loading {
-    @include nom-loading-state(3rem);
-  }
-
-  &__error {
-    @include nom-empty-state(3rem);
-  }
-
-  &__content {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  &__empty-state {
-    @include nom-centered-container(400px);
-  }
-
-  &__empty-card {
-    max-width: 400px;
-    text-align: center;
-
-    p {
-      margin: 1rem 0;
-    }
-
-    amw-button {
-      margin-top: 1rem;
-    }
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 16px;
-  }
-
-  &__household-card {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    border-radius: 12px;
-    overflow: hidden;
-
-    &:hover {
-      transform: translateY(-2px);
-    }
-  }
-
-  &__household-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 12px 0 12px;
-  }
-
-  &__household-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
-    margin-top: 4px;
-  }
-
-  &__household-title-info {
-    flex: 1;
-  }
-
-  &__household-title {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  &__household-subtitle {
-    margin: 4px 0 0 0;
-    font-size: 14px;
-    line-height: 1.4;
-  }
-
-  &__household-content {
-    padding: 12px 12px 0 12px;
-  }
-
-  &__household-stats {
-    display: flex;
-    gap: 16px;
-  }
-
-  &__household-stat {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  &__stat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-  }
-
-  &__stat-text {
-    font-size: 14px;
-  }
-
-  &__household-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 12px 16px 12px;
-  }
-
-  &__action-button {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-  }
+.household-dashboard__content {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-6;
 }
 
-@media (max-width: 768px) {
-  .household-dashboard {
-    padding: 0 12px;
+// Dashboard card — clickable item card
+.dashboard-card {
+  cursor: pointer;
+  transition: transform vars.$transition-duration-normal vars.$transition-timing;
 
-    &__page-header--compact {
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &__stats {
+    display: flex;
+    gap: vars.$spacing-4;
+    margin-bottom: vars.$spacing-4;
+
+    @media (max-width: vars.$breakpoint-mobile) {
       flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-      min-height: auto;
+      gap: vars.$spacing-3;
     }
+  }
 
-    &__header-left {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-      width: 100%;
-    }
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
 
-    &__header-center {
-      justify-content: flex-start;
-      width: 100%;
-    }
-
-    &__header-right {
-      width: 100%;
-      justify-content: flex-start;
-
-      amw-button {
-        flex: 1;
-      }
-    }
-
-    &__subtitle {
-      max-width: 100%;
-      white-space: normal;
-    }
-
-    &__title {
-      font-size: 1.25rem;
-    }
-
-    &__header-actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__grid {
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    &__household-stats {
-      flex-direction: column;
-      gap: 12px;
+    amw-icon {
+      font-size: vars.$font-size-md;
+      width: vars.$font-size-md;
+      height: vars.$font-size-md;
     }
   }
 }

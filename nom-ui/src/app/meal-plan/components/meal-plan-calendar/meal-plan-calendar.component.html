@@ -1,32 +1,22 @@
-<!-- Loading State -->
-@if (isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-loading-container">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading meal plans...</p>
-    </div>
-  </ng-template>
-</amw-card>
-}
+<div class="nom-page-container meal-plan-calendar">
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <amw-inline-loading message="Loading meal plans..." />
+  }
 
-<!-- Error State -->
-@if (error() && !isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-error-container">
-      <p class="nom-error-message">{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="onRetry()">
-        Retry
-      </amw-button>
-    </div>
-  </ng-template>
-</amw-card>
-}
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+  <div class="nom-error-state" role="alert">
+    <p>{{ error() }}</p>
+    <amw-button variant="filled" color="primary" (click)="onRetry()">
+      Retry
+    </amw-button>
+  </div>
+  }
 
-<!-- Calendar View -->
-@if (!isLoading() && !error()) {
-<div class="nom-calendar-container">
+  <!-- Calendar View -->
+  @if (!isLoading() && !error()) {
+  <div class="nom-calendar-container">
   <!-- Header Controls -->
   <amw-card>
     <ng-template #cardContent>
@@ -146,3 +136,4 @@
   </div>
 </div>
 }
+</div>

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconButtonComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwDataTableComponent, DataTableConfig, DataTableColumn } from 'angular-material-wrap';
 
 import { MeasurementService } from '../../services/measurement.service';
 import { MeasurementModel } from '../../models/measurement.model';
@@ -16,7 +16,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwCardComponent,
         AmwIconButtonComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwDataTableComponent,
     ],
     templateUrl: './measurement-list.component.html',

@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, ViewEncapsulation } from "@angular/c
 
 import { Router } from "@angular/router";
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent } from "angular-material-wrap";
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent } from "angular-material-wrap";
 
 import { HouseholdService } from "../../services/household.service";
 import { HouseholdResponseModel } from "../../models/household-response.model";
@@ -15,7 +15,7 @@ import { ERROR_MESSAGES } from "../../../shared/constants/error-messages";
         AmwButtonComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
     ],
     templateUrl: "./household-dashboard.component.html",
     styleUrls: ["./household-dashboard.component.scss"],

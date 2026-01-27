@@ -3,7 +3,7 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwIconComponent, AmwIconButtonComponent, AmwProgressSpinnerComponent, AmwCardComponent, loading } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwIconComponent, AmwIconButtonComponent, AmwInlineLoadingComponent, AmwCardComponent, loading } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCommentModel, RecipeCommentCreateModel } from '../../models/recipe-comment.model';
@@ -20,7 +20,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwTextareaComponent,
         AmwIconComponent,
         AmwIconButtonComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwCardComponent,
     ],
     templateUrl: './recipe-comments.component.html',

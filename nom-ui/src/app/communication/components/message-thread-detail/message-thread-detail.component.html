@@ -1,52 +1,46 @@
-<!-- Loading State -->
-@if (isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-loading-container">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading thread...</p>
-    </div>
-  </ng-template>
-</amw-card>
-}
+<div class="nom-page-container message-thread-detail">
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <amw-inline-loading message="Loading thread..." />
+  }
 
-<!-- Error State -->
-@if (error() && !isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-error-container">
-      <p class="nom-error-message">{{ error() }}</p>
-      <div class="nom-error-actions">
-        <amw-button variant="filled" color="primary" (click)="onRetry()">
-          Retry
-        </amw-button>
-        <amw-button variant="outlined" color="primary" (click)="onBack()">
-          Back to Inbox
-        </amw-button>
-      </div>
-    </div>
-  </ng-template>
-</amw-card>
-}
-
-<!-- Thread Detail -->
-@if (!isLoading() && !error() && thread()) {
-<div class="nom-thread-detail-container">
-  <!-- Thread Header -->
-  <amw-card>
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+  <amw-card class="nom-card">
     <ng-template #cardContent>
-      <div class="nom-thread-header">
-        <div class="nom-thread-header-info">
+      <div class="nom-empty-state">
+        <amw-icon name="error_outline" class="nom-empty-state__icon"></amw-icon>
+        <p class="nom-empty-state__message">{{ error() }}</p>
+        <div class="nom-actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()" class="nom-button">
+            Retry
+          </amw-button>
+          <amw-button variant="outlined" color="primary" (click)="onBack()" class="nom-button">
+            Back to Inbox
+          </amw-button>
+        </div>
+      </div>
+    </ng-template>
+  </amw-card>
+  }
+
+  <!-- Thread Detail -->
+  @if (!isLoading() && !error() && thread()) {
+  <!-- Thread Header -->
+  <amw-card class="nom-card">
+    <ng-template #cardContent>
+      <div class="nom-compact-header">
+        <div class="header-title-section">
           <amw-icon-button icon="arrow_back" ariaLabel="Back to inbox" (click)="onBack()">
           </amw-icon-button>
-          <div class="nom-thread-title">
-            <h2>{{ participantNames() }}</h2>
-            @if (thread()?.isPinned) {
-            <amw-icon name="push_pin" color="primary"></amw-icon>
-            }
-          </div>
         </div>
-        <div class="nom-thread-actions">
+        <div class="header-center-section">
+          <h2 class="nom-heading-4">{{ participantNames() }}</h2>
+          @if (thread()?.isPinned) {
+          <amw-icon name="push_pin" color="primary"></amw-icon>
+          }
+        </div>
+        <div class="header-actions-section">
           <amw-icon-button [icon]="thread()?.isPinned ? 'push_pin' : 'push_pin'"
             [ariaLabel]="thread()?.isPinned ? 'Unpin thread' : 'Pin thread'" (click)="onPin()">
           </amw-icon-button>
@@ -60,62 +54,60 @@
   </amw-card>
 
   <!-- Messages Container -->
-  <div class="nom-messages-wrapper">
-    <amw-card>
-      <ng-template #cardContent>
-        <div class="nom-messages-container" #messageContainer>
-          @if (!hasMessages()) {
-          <div class="nom-empty-state">
-            <amw-icon name="chat_bubble_outline"></amw-icon>
-            <p>No messages yet. Start the conversation!</p>
-          </div>
-          }
+  <amw-card class="nom-card">
+    <ng-template #cardContent>
+      <div class="nom-scroll-container__content nom-scroll-container__content--large" #messageContainer>
+        @if (!hasMessages()) {
+        <div class="nom-empty-state">
+          <amw-icon name="chat_bubble_outline" class="nom-empty-state__icon"></amw-icon>
+          <p class="nom-empty-state__message">No messages yet. Start the conversation!</p>
+        </div>
+        }
 
-          @if (hasMessages()) {
+        @if (hasMessages()) {
+        <div class="nom-list">
           @for (message of messages(); track message.id) {
-          <div class="nom-message-item">
-            <div class="nom-message-avatar">
+          <div class="nom-list__item message-item">
+            <div class="message-avatar">
               @if (getAvatarUrl(message.senderPersonId)) {
               <img [src]="getAvatarUrl(message.senderPersonId)" [alt]="getParticipantById(message.senderPersonId)" />
               } @else {
               <amw-icon name="person"></amw-icon>
               }
             </div>
-            <div class="nom-message-content">
-              <div class="nom-message-header">
-                <span class="nom-message-sender">{{ getParticipantById(message.senderPersonId) }}</span>
-                <span class="nom-message-time">{{ getMessageTime(message) }}</span>
+            <div class="message-content">
+              <div class="message-header">
+                <span class="message-sender">{{ getParticipantById(message.senderPersonId) }}</span>
+                <span class="nom-small-text">{{ getMessageTime(message) }}</span>
                 @if (message.isRead) {
                 <amw-icon name="done_all" color="primary"></amw-icon>
                 }
               </div>
-              <div class="nom-message-body">
-                <p>{{ message.content }}</p>
-              </div>
+              <p class="message-body">{{ message.content }}</p>
             </div>
           </div>
           }
-          }
         </div>
-      </ng-template>
-    </amw-card>
-  </div>
+        }
+      </div>
+    </ng-template>
+  </amw-card>
 
   <!-- Reply Form -->
-  <amw-card>
+  <amw-card class="nom-card">
     <ng-template #cardContent>
-      <form [formGroup]="replyForm" (ngSubmit)="onSendMessage()" class="nom-reply-form">
+      <form [formGroup]="replyForm" (ngSubmit)="onSendMessage()" class="nom-form">
         <amw-textarea label="Message" placeholder="Type your message..." [required]="true" [rows]="3"
-          formControlName="content">
+          formControlName="content" class="nom-form__field">
         </amw-textarea>
-        <div class="nom-reply-actions">
+        <div class="nom-actions --end">
           <amw-button variant="filled" color="primary" type="submit" [disabled]="replyForm.invalid || isSending()"
-            [amwValidationTooltip]="validationContext">
+            [amwValidationTooltip]="validationContext" class="nom-button">
             {{ isSending() ? 'Sending...' : 'Send' }}
           </amw-button>
         </div>
       </form>
     </ng-template>
   </amw-card>
+  }
 </div>
-}

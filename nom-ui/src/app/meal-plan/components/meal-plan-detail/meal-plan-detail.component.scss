@@ -1,54 +1,43 @@
+// Meal Plan Detail Component - Uses detail stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .meal-plan-detail {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 16px;
+  @include nom-detail;
 
   &__header-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
+    @extend %nom-detail-header-actions;
   }
 
-  &__edit-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
+  &__edit-button,
   &__duplicate-button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
-  &__menu-button {
-    // Inherits theme colors
-  }
-
+  // Info Section
   &__info-section {
-    margin-bottom: 24px;
+    @include nom-detail-info-section;
   }
 
   &__info-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
   &__info-header {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 24px;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-6;
   }
 
   &__info-icon {
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
-    margin-top: 4px;
+    font-size: vars.$font-size-2xl;
+    width: vars.$font-size-2xl;
+    height: vars.$font-size-2xl;
+    margin-top: vars.$spacing-1;
   }
 
   &__info-content {
@@ -57,37 +46,42 @@
 
   &__info-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.3;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
   }
 
   &__info-subtitle {
-    margin: 8px 0 0 0;
-    font-size: 16px;
-    line-height: 1.4;
+    margin: vars.$spacing-2 0 0 0;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
   }
 
+  // Details Section
   &__details-section {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__details-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
   &__details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
-    padding: 24px;
+    @include nom-detail-grid;
+    padding: vars.$spacing-6;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      grid-template-columns: 1fr;
+      gap: vars.$spacing-4;
+      padding: vars.$spacing-4;
+    }
   }
 
   &__detail-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: vars.$spacing-2;
 
     &--full {
       grid-column: 1 / -1;
@@ -95,8 +89,8 @@
   }
 
   &__detail-label {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -104,28 +98,28 @@
   &__detail-value {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: vars.$spacing-3;
     flex-wrap: wrap;
   }
 
   &__meal-type-chip {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
   &__meal-type-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
   }
 
   &__date-text {
-    font-size: 16px;
-    font-weight: 500;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-medium;
 
     &.today {
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
 
     &.past {
@@ -134,79 +128,54 @@
   }
 
   &__today-chip {
-    font-size: 12px;
-    height: 24px;
+    font-size: vars.$font-size-xs;
+    height: vars.$spacing-6;
   }
 
   &__description {
     margin: 0;
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
   }
 
-  &__author {
-    font-size: 16px;
-    font-weight: 500;
-  }
-
+  &__author,
   &__group {
-    font-size: 16px;
-    font-weight: 500;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-medium;
   }
 
+  // Actions Section
   &__actions-section {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__actions-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
   &__actions-title {
-    margin: 0 0 16px 0;
-    font-size: 18px;
-    font-weight: 600;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+    gap: vars.$spacing-3;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      grid-template-columns: 1fr;
+    }
   }
 
   &__action-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 48px;
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  &__delete-button {
-    // Inherits error color from theme
-  }
-}
-
-// Responsive Design
-@media (max-width: 768px) {
-  .meal-plan-detail {
-    padding: 0 12px;
-
-    &__header-actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__details-grid {
-      grid-template-columns: 1fr;
-      gap: 16px;
-      padding: 16px;
-    }
-
-    &__actions-grid {
-      grid-template-columns: 1fr;
-    }
+    gap: vars.$spacing-2;
+    height: vars.$button-height-lg;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-medium;
   }
 }

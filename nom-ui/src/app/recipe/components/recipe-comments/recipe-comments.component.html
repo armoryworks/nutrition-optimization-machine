@@ -7,10 +7,7 @@
 
   <!-- Loading State -->
   @if (isLoading()) {
-    <div class="nom-recipe-comments__loading">
-      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      <p>Loading comments...</p>
-    </div>
+    <amw-inline-loading message="Loading comments..." />
   }
 
   <!-- Error State -->

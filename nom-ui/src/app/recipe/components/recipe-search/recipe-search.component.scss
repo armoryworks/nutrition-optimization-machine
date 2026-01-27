@@ -1,18 +1,18 @@
+// Recipe Search Component - Uses search stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-search {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
+  @include nom-search-page;
 
   .search-form {
-    margin-bottom: 30px;
+    margin-bottom: vars.$spacing-8;
 
     .search-row {
       display: flex;
-      gap: 20px;
+      gap: vars.$spacing-5;
       align-items: flex-end;
-      margin-bottom: 20px;
+      margin-bottom: vars.$spacing-5;
 
       .search-field {
         flex: 1;
@@ -22,40 +22,40 @@
         min-width: 120px;
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: vars.$breakpoint-mobile) {
         flex-direction: column;
-        gap: 10px;
+        gap: vars.$spacing-3;
       }
     }
 
     .filters-grid {
       .filter-row {
         display: flex;
-        gap: 20px;
-        margin-bottom: 20px;
+        gap: vars.$spacing-5;
+        margin-bottom: vars.$spacing-5;
         align-items: center;
 
-        @media (max-width: 768px) {
+        @media (max-width: vars.$breakpoint-mobile) {
           flex-direction: column;
-          gap: 10px;
+          gap: vars.$spacing-3;
         }
       }
 
       .filter-actions {
-        @include nom-action-group(8px, flex-end);
-        margin-top: 20px;
+        @include nom-action-group(vars.$spacing-2, flex-end);
+        margin-top: vars.$spacing-5;
       }
     }
 
     .quick-actions {
-      @include nom-action-group(10px, flex-start);
-      margin-top: 20px;
+      @include nom-action-group(vars.$spacing-3, flex-start);
+      margin-top: vars.$spacing-5;
 
       button {
         flex: 1;
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: vars.$breakpoint-mobile) {
         flex-direction: column;
       }
     }
@@ -63,39 +63,37 @@
 
   .search-results {
     .loading {
-      @include nom-loading-state(40px);
+      @include nom-loading-state(vars.$spacing-10);
 
       p {
-        margin-top: 10px;
+        margin-top: vars.$spacing-3;
       }
     }
 
     .no-results {
-      @include nom-empty-state(40px);
+      @include nom-empty-state(vars.$spacing-10);
 
       p {
-        margin: 5px 0;
-        font-size: 1.1rem;
+        margin: vars.$spacing-1 0;
+        font-size: vars.$font-size-lg;
       }
     }
 
     .results-info {
-      margin-bottom: 20px;
-      font-size: 0.9rem;
+      margin-bottom: vars.$spacing-5;
+      font-size: vars.$font-size-sm;
     }
 
     .recipe-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+      @include nom-search-grid;
+      margin-bottom: vars.$spacing-8;
 
       .recipe-card {
         height: fit-content;
 
         .recipe-avatar {
-          width: 40px;
-          height: 40px;
+          width: vars.$spacing-10;
+          height: vars.$spacing-10;
           border-radius: 50%;
           overflow: hidden;
 
@@ -107,9 +105,9 @@
         }
 
         .recipe-description {
-          font-size: 0.9rem;
-          line-height: 1.4;
-          margin-bottom: 15px;
+          font-size: vars.$font-size-sm;
+          line-height: vars.$line-height-normal;
+          margin-bottom: vars.$spacing-4;
           display: -webkit-box;
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
@@ -119,52 +117,50 @@
         .recipe-meta {
           display: flex;
           flex-wrap: wrap;
-          gap: 15px;
-          margin-bottom: 15px;
+          gap: vars.$spacing-4;
+          margin-bottom: vars.$spacing-4;
 
           .meta-item {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.85rem;
+            gap: vars.$spacing-1;
+            font-size: vars.$font-size-xs;
           }
         }
 
         .recipe-tags {
-          margin-bottom: 15px;
+          margin-bottom: vars.$spacing-4;
         }
 
         .recipe-ingredients {
-          margin-top: 15px;
-          padding-top: 15px;
+          margin-top: vars.$spacing-4;
+          padding-top: vars.$spacing-4;
 
           h4 {
-            margin: 0 0 10px 0;
-            font-size: 0.9rem;
+            margin: 0 0 vars.$spacing-3 0;
+            font-size: vars.$font-size-sm;
           }
 
           ul {
             margin: 0;
-            padding-left: 20px;
-            font-size: 0.85rem;
+            padding-left: vars.$spacing-5;
+            font-size: vars.$font-size-xs;
 
             li {
-              margin-bottom: 3px;
+              margin-bottom: vars.$spacing-1;
             }
           }
         }
       }
     }
   }
-}
 
-@media (max-width: 768px) {
-  .recipe-search {
-    padding: 10px;
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-3;
 
     .recipe-grid {
       grid-template-columns: 1fr;
-      gap: 15px;
+      gap: vars.$spacing-4;
     }
 
     .search-form {

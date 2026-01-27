@@ -37,10 +37,7 @@
 
   <!-- Loading State -->
   @if (isLoading()) {
-    <div class="curation-queue__loading">
-      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      <p>Loading queue...</p>
-    </div>
+    <amw-inline-loading message="Loading queue..." />
   }
 
   <!-- Error State -->

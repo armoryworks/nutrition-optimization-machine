@@ -5,7 +5,7 @@ import { Subject, takeUntil, finalize } from 'rxjs';
 import {
   AmwCardComponent,
   AmwButtonComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
 } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
@@ -20,7 +20,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     CommonModule,
     AmwCardComponent,
     AmwButtonComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './meal-plan-print.component.html',
   styleUrl: './meal-plan-print.component.scss',

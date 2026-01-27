@@ -1,9 +1,11 @@
+// Household Settings Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading,
 .nom-error {
-  @include nom-empty-state(3rem);
-  padding: 3rem 2rem;
+  @include nom-empty-state(vars.$spacing-12);
+  padding: vars.$spacing-12 vars.$spacing-8;
 }
 
 .nom-error-message {
@@ -12,94 +14,10 @@
 }
 
 .nom-error-actions {
-  @include nom-action-group(1rem, center);
+  @include nom-action-group(vars.$spacing-4, center);
   margin-top: 0;
-}
 
-.nom-settings-container {
-  @include nom-form-field(2rem);
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.nom-settings-header {
-  margin-bottom: 1rem;
-
-  h1 {
-    margin: 0.5rem 0;
-    font-size: 2rem;
-    font-weight: 500;
-    color: var(--mat-sys-on-surface);
-  }
-}
-
-.nom-settings-subtitle {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: 1rem;
-  margin: 0.5rem 0 0 0;
-}
-
-.nom-settings-form {
-  @include nom-form-field(1.5rem);
-  padding: 1rem 0;
-}
-
-.nom-form-actions {
-  @include nom-action-group(1rem, flex-start);
-  margin-top: 0;
-  padding-top: 1rem;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-}
-
-.nom-info-banner {
-  background-color: var(--mat-sys-secondary-container);
-  color: var(--mat-sys-on-secondary-container);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-
-  p {
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-}
-
-amw-card {
-  h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--mat-sys-on-surface);
-  }
-}
-
-amw-checkbox {
-  display: block;
-  padding: 0.5rem 0;
-}
-
-@media (max-width: 768px) {
-  .nom-settings-container {
-    padding: 1rem;
-  }
-
-  .nom-settings-header {
-    h1 {
-      font-size: 1.5rem;
-    }
-  }
-
-  .nom-form-actions {
-    flex-direction: column;
-
-    amw-button {
-      width: 100%;
-    }
-  }
-
-  .nom-error-actions {
+  @media (max-width: vars.$breakpoint-mobile) {
     flex-direction: column;
     width: 100%;
 
@@ -107,4 +25,84 @@ amw-checkbox {
       width: 100%;
     }
   }
+}
+
+.nom-settings-container {
+  @include nom-form-field(vars.$spacing-8);
+  max-width: 900px;
+  margin: 0 auto;
+  padding: vars.$spacing-8 vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4;
+  }
+}
+
+.nom-settings-header {
+  margin-bottom: vars.$spacing-4;
+
+  h1 {
+    margin: vars.$spacing-2 0;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-medium;
+    color: var(--mat-sys-on-surface);
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      font-size: vars.$font-size-xl;
+    }
+  }
+}
+
+.nom-settings-subtitle {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-md;
+  margin: vars.$spacing-2 0 0 0;
+}
+
+.nom-settings-form {
+  @include nom-form-field(vars.$spacing-6);
+  padding: vars.$spacing-4 0;
+}
+
+.nom-form-actions {
+  @include nom-action-group(vars.$spacing-4, flex-start);
+  margin-top: 0;
+  padding-top: vars.$spacing-4;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+
+    amw-button {
+      width: 100%;
+    }
+  }
+}
+
+.nom-info-banner {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  padding: vars.$spacing-4;
+  border-radius: vars.$nom-border-radius;
+  margin-bottom: vars.$spacing-4;
+
+  p {
+    margin: 0;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
+  }
+}
+
+amw-card {
+  h2 {
+    margin: 0;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-medium;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+amw-checkbox {
+  display: block;
+  padding: vars.$spacing-2 0;
 }

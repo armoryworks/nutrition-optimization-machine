@@ -1,8 +1,9 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading,
 .nom-error {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
 }
 
 .nom-error-message {
@@ -14,36 +15,36 @@
 .nom-export-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: vars.$spacing-4;
 }
 
 h2 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.75rem;
-  font-weight: 500;
+  margin: 0 0 vars.$spacing-2 0;
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
 }
 
 .nom-list-name {
-  font-size: 1.125rem;
-  font-weight: 500;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface-variant);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 vars.$spacing-2 0;
 }
 
 .nom-list-description {
   color: var(--mat-sys-on-surface-variant);
-  margin: 0 0 2rem 0;
+  margin: 0 0 vars.$spacing-8 0;
 }
 
 .nom-export-options {
-  margin: 2rem 0;
+  margin: vars.$spacing-8 0;
 
   h3 {
-    font-size: 1.25rem;
-    font-weight: 500;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-medium;
     color: var(--mat-sys-on-surface);
-    margin: 0 0 1rem 0;
+    margin: 0 0 vars.$spacing-4 0;
   }
 }
 
@@ -51,12 +52,12 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  padding: vars.$spacing-6;
+  margin-bottom: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: vars.$nom-border-radius;
+  transition: all vars.$transition-duration-fast ease;
 
   &:hover {
     background-color: var(--mat-sys-surface-container-high);
@@ -70,38 +71,38 @@ h2 {
 
 .nom-option-info {
   flex: 1;
-  margin-right: 1rem;
+  margin-right: vars.$spacing-4;
 
   h4 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1rem;
-    font-weight: 500;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-medium;
     color: var(--mat-sys-on-surface);
   }
 
   p {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface-variant);
   }
 }
 
 .nom-actions {
-  @include nom-action-group(0.5rem, flex-start);
-  margin-top: 2rem;
-  padding-top: 1rem;
+  @include nom-action-group(vars.$spacing-2, flex-start);
+  margin-top: vars.$spacing-8;
+  padding-top: vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-export-container {
-    padding: 0.5rem;
+    padding: vars.$spacing-2;
   }
 
   .nom-option-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   .nom-option-info {

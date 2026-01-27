@@ -1,17 +1,19 @@
+// Privacy Analytics Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .privacy-analytics {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: vars.$spacing-8;
 
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0;
+    padding: vars.$spacing-4 0;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__header-content {
@@ -20,21 +22,21 @@
   }
 
   &__title {
-    margin: 0 0 4px 0;
-    font-size: 24px;
-    font-weight: 500;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__subtitle {
     margin: 0;
-    font-size: 14px;
+    font-size: vars.$font-size-sm;
     opacity: 0.7;
   }
 
   &__header-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   &__loading,
@@ -43,93 +45,93 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 24px;
+    padding: vars.$spacing-12 vars.$spacing-6;
     text-align: center;
 
     h3 {
-      margin: 16px 0 8px;
-      font-size: 18px;
+      margin: vars.$spacing-4 0 vars.$spacing-2;
+      font-size: vars.$font-size-lg;
     }
 
     p {
-      margin: 0 0 16px;
-      font-size: 16px;
-      line-height: 1.5;
+      margin: 0 0 vars.$spacing-4;
+      font-size: vars.$font-size-md;
+      line-height: vars.$line-height-normal;
     }
   }
 
   &__overview {
     .privacy-analytics__card {
-      border-radius: 12px;
+      border-radius: vars.$nom-border-radius-lg;
     }
   }
 
   &__metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
+    gap: vars.$spacing-6;
+    margin-top: vars.$spacing-4;
   }
 
   &__metric {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 1rem;
-    border-radius: 8px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__metric-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-sm;
   }
 
   &__metric-value {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__score {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__number {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__label {
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
   }
 
   &__details {
     .privacy-analytics__details-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
+      gap: vars.$spacing-6;
     }
   }
 
   &__detail-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
   }
 
   &__detail-metrics {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: vars.$spacing-4;
   }
 
   &__detail-metric {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
+    padding: vars.$spacing-2 0;
 
     &:last-child {
       border-bottom: none;
@@ -137,16 +139,16 @@
   }
 
   &__detail-label {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__detail-value {
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__actions {
     display: flex;
-    gap: 1rem;
+    gap: vars.$spacing-4;
     justify-content: center;
     flex-wrap: wrap;
   }
@@ -157,29 +159,29 @@
 
   &__logs {
     .privacy-analytics__logs-card {
-      border-radius: 12px;
+      border-radius: vars.$nom-border-radius-lg;
     }
   }
 
   &__table {
     width: 100%;
-    margin-top: 1rem;
+    margin-top: vars.$spacing-4;
   }
 
   &__timestamp {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
   }
 
   &__time {
-    font-size: 0.75rem;
+    font-size: vars.$font-size-xs;
   }
 
   &__action {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   &__details-text {
@@ -190,20 +192,20 @@
   }
 
   &__empty {
-    @include nom-empty-state(3rem);
+    @include nom-empty-state(vars.$spacing-12);
   }
 
   &__empty-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
     color: var(--mat-sys-on-surface-variant);
     opacity: 0.5;
   }
 }
 
 // Responsive adjustments
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .privacy-analytics {
     &__metrics-grid {
       grid-template-columns: 1fr;
@@ -224,7 +226,7 @@
     }
 
     &__table {
-      font-size: 0.875rem;
+      font-size: vars.$font-size-sm;
     }
 
     &__details-text {

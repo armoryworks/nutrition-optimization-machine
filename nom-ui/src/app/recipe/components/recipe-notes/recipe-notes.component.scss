@@ -1,39 +1,41 @@
+// Recipe Notes Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-notes {
   &__card {
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: vars.$nom-border-radius-lg;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__header {
-    padding: 24px 24px 0;
+    padding: vars.$spacing-6 vars.$spacing-6 0;
   }
 
   &__title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 1.25rem;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-lg;
     margin: 0;
   }
 
   &__subtitle {
-    font-size: 0.875rem;
-    margin: 8px 0 0;
+    font-size: vars.$font-size-sm;
+    margin: vars.$spacing-2 0 0;
   }
 
   &__content {
-    padding: 16px 24px 24px;
+    padding: vars.$spacing-4 vars.$spacing-6 vars.$spacing-6;
   }
 
   &__form {
-    @include nom-form-field(1.5rem);
-    margin-bottom: 24px;
+    @include nom-form-field(vars.$spacing-6);
+    margin-bottom: vars.$spacing-6;
   }
 
   &__form-row {
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
 
     &:last-child {
       margin-bottom: 0;
@@ -45,25 +47,25 @@
   }
 
   &__checkbox {
-    margin-top: 8px;
+    margin-top: vars.$spacing-2;
   }
 
   &__form-actions {
-    @include nom-action-group(12px, flex-end);
-    margin-top: 16px;
+    @include nom-action-group(vars.$spacing-3, flex-end);
+    margin-top: vars.$spacing-4;
   }
 
   &__cancel-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: vars.$spacing-2 vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__submit-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 24px;
-    border-radius: 8px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-2 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__loading {
@@ -71,38 +73,38 @@
   }
 
   &__divider {
-    margin: 24px 0;
+    margin: vars.$spacing-6 0;
   }
 
   &__notes-section {
-    margin-top: 24px;
+    margin-top: vars.$spacing-6;
   }
 
   &__section-title {
-    font-size: 1.125rem;
-    margin: 0 0 16px;
+    font-size: vars.$font-size-lg;
+    margin: 0 0 vars.$spacing-4;
   }
 
   &__loading-container {
-    @include nom-loading-state(2rem);
+    @include nom-loading-state(vars.$spacing-8);
   }
 
   &__loading-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-    margin-bottom: 8px;
+    font-size: vars.$spacing-8;
+    width: vars.$spacing-8;
+    height: vars.$spacing-8;
+    margin-bottom: vars.$spacing-2;
     animation: spin 1s linear infinite;
   }
 
   &__empty {
-    @include nom-empty-state(2rem);
+    @include nom-empty-state(vars.$spacing-8);
   }
 
   &__empty-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
     color: var(--mat-sys-on-surface-variant);
     opacity: 0.5;
   }
@@ -110,20 +112,20 @@
   &__notes-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__note-item {
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-4;
   }
 
   &__note-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
-    gap: 12px;
+    margin-bottom: vars.$spacing-3;
+    gap: vars.$spacing-3;
   }
 
   &__note-info {
@@ -132,20 +134,20 @@
   }
 
   &__note-title {
-    font-size: 1rem;
-    margin: 0 0 4px;
+    font-size: vars.$font-size-md;
+    margin: 0 0 vars.$spacing-1;
     word-break: break-word;
   }
 
   &__note-meta {
     display: flex;
-    gap: 12px;
+    gap: vars.$spacing-3;
     align-items: center;
   }
 
   &__note-author,
   &__note-date {
-    font-size: 0.75rem;
+    font-size: vars.$font-size-xs;
   }
 
   &__note-chips {
@@ -153,17 +155,17 @@
   }
 
   &__note-chip {
-    font-size: 0.75rem;
-    height: 24px;
+    font-size: vars.$font-size-xs;
+    height: vars.$spacing-6;
   }
 
   &__note-content {
-    margin-bottom: 12px;
+    margin-bottom: vars.$spacing-3;
   }
 
   &__note-text {
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
     margin: 0;
     word-break: break-word;
     white-space: pre-wrap;
@@ -172,40 +174,40 @@
   &__note-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 4px;
+    gap: vars.$spacing-1;
   }
 
   &__action-btn {
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
+    width: vars.$spacing-8;
+    height: vars.$spacing-8;
+    line-height: vars.$spacing-8;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .recipe-notes {
     &__header {
-      padding: 16px 16px 0;
+      padding: vars.$spacing-4 vars.$spacing-4 0;
     }
 
     &__content {
-      padding: 12px 16px 16px;
+      padding: vars.$spacing-3 vars.$spacing-4 vars.$spacing-4;
     }
 
     &__note-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__note-meta {
       flex-direction: column;
-      gap: 4px;
+      gap: vars.$spacing-1;
     }
 
     &__form-actions {
       flex-direction: column;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__cancel-btn,

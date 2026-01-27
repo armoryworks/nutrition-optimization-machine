@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
-import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwTextareaComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeNoteResponseModel } from '../../models/recipe-note.model';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
@@ -17,7 +17,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwTextareaComponent,
         AmwCardComponent,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwValidationTooltipDirective,
     ],
     templateUrl: './recipe-notes.component.html',

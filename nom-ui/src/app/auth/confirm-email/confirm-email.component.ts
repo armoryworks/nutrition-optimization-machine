@@ -2,7 +2,7 @@ import { Component, OnInit, ViewEncapsulation, inject } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwProgressSpinnerComponent, loading } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInlineLoadingComponent, loading } from 'angular-material-wrap';
 
 import { AuthService } from '../auth.service';
 import { ConfirmEmail } from '../models/confirm-email';
@@ -16,7 +16,7 @@ import { NotificationService } from '../../utilities/services/notification.servi
     AmwButtonComponent,
     AmwCardComponent,
     AmwIconComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './confirm-email.component.html',
   styleUrls: ['./confirm-email.component.scss'],

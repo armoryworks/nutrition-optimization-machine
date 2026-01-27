@@ -6,7 +6,7 @@ import {
   AmwCardComponent,
   AmwButtonComponent,
   AmwInputComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
 } from 'angular-material-wrap';
 
@@ -25,7 +25,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwCardComponent,
     AmwButtonComponent,
     AmwInputComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './shopping-recipe-integration.component.html',

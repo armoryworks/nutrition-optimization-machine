@@ -1,11 +1,12 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading {
-  @include nom-loading-state(2rem);
+  @include nom-loading-state(vars.$spacing-8);
 }
 
 .nom-error {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
 }
 
 .nom-error-message {
@@ -15,12 +16,12 @@
 
 .nom-error-actions {
   display: flex;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 }
 
 .nom-container {
-  @include nom-form-field(1rem);
-  padding: 1rem;
+  @include nom-form-field(vars.$spacing-4);
+  padding: vars.$spacing-4;
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -34,7 +35,7 @@
 .nom-header-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 
   h2 {
     margin: 0;
@@ -44,53 +45,53 @@
 .nom-selection-bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   background: var(--mat-sys-surface-container);
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  border-radius: vars.$nom-border-radius;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-ingredients {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: vars.$spacing-2;
 }
 
 .nom-ingredient {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 4px;
+  border-radius: vars.$nom-border-radius-sm;
 }
 
 .nom-ingredient-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: vars.$spacing-1;
 
   strong {
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
   }
 }
 
 .nom-quantity {
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-primary);
 }
 
 .nom-recipes {
-  font-size: 0.75rem;
+  font-size: vars.$font-size-xs;
   color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-actions {
-  @include nom-action-group(1rem, flex-end);
+  @include nom-action-group(vars.$spacing-4, flex-end);
   margin-top: 0;
 }
 
 .nom-empty {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
   color: var(--mat-sys-on-surface-variant);
 }

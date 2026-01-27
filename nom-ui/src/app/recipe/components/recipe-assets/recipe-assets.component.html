@@ -81,10 +81,7 @@
       <h3 class="recipe-assets__section-title">Recipe Assets</h3>
 
       @if (isLoading()) {
-        <div class="recipe-assets__loading">
-          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-          <p>Loading assets...</p>
-        </div>
+        <amw-inline-loading message="Loading assets..." />
       }
 
       @if (!isLoading() && assets().length === 0) {

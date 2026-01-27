@@ -4,7 +4,7 @@ import { Subject, takeUntil, finalize } from 'rxjs';
 import {
   AmwCardComponent,
   AmwButtonComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
 } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
@@ -19,7 +19,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
   imports: [
     AmwCardComponent,
     AmwButtonComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './shopping-list-export.component.html',
   styleUrl: './shopping-list-export.component.scss',

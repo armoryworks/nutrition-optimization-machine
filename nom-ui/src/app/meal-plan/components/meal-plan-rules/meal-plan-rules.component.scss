@@ -1,9 +1,11 @@
+// Meal Plan Rules Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .meal-plan-rules-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: vars.$spacing-5;
 }
 
 .full-width {
@@ -13,63 +15,63 @@
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
 
-  @media (max-width: 768px) {
+  @media (max-width: vars.$breakpoint-mobile) {
     grid-template-columns: 1fr;
   }
 }
 
 .button-row {
   display: flex;
-  gap: 16px;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  gap: vars.$spacing-4;
+  margin-top: vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
 }
 
 .add-rule-section {
-  margin-bottom: 32px;
+  margin-bottom: vars.$spacing-8;
 
   h3 {
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
     color: var(--mat-sys-primary);
   }
 }
 
 .rules-section {
   h3 {
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
     color: var(--mat-sys-primary);
   }
 }
 
 .loading-container {
-  @include nom-loading-state(40px);
-  gap: 16px;
+  @include nom-loading-state(vars.$spacing-10);
+  gap: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 }
 
 .no-rules {
-  @include nom-empty-state(40px);
-  gap: 16px;
+  @include nom-empty-state(vars.$spacing-10);
+  gap: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 
   mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
     color: var(--mat-sys-outline);
   }
 
   p {
     margin: 0;
-    font-size: 16px;
+    font-size: vars.$font-size-md;
   }
 }
 
 .rules-list {
-  @include nom-form-field(16px);
+  @include nom-form-field(vars.$spacing-4);
 }
 
 .rule-card {
@@ -80,22 +82,22 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   .rule-info {
     flex: 1;
 
     h4 {
-      margin: 0 0 8px 0;
+      margin: 0 0 vars.$spacing-2 0;
       color: var(--mat-sys-on-surface);
-      font-weight: 500;
+      font-weight: vars.$font-weight-medium;
     }
 
     .filter-text {
       margin: 0;
       color: var(--mat-sys-on-surface-variant);
-      font-size: 14px;
+      font-size: vars.$font-size-sm;
       font-style: italic;
     }
   }
@@ -107,7 +109,7 @@ mat-card {
 }
 
 mat-card-header {
-  margin-bottom: 16px;
+  margin-bottom: vars.$spacing-4;
 }
 
 mat-card-title {
@@ -116,4 +118,4 @@ mat-card-title {
 
 mat-card-subtitle {
   color: var(--mat-sys-on-surface-variant);
-} 
+}

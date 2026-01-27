@@ -1,40 +1,42 @@
+// User Management Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .user-management {
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: vars.$spacing-8 vars.$spacing-4;
   max-width: 1200px;
   margin: 0 auto;
 
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4 vars.$spacing-2;
   }
 
   // Compact Page Header
   &__page-header {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
 
     &--compact {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 24px;
+      gap: vars.$spacing-6;
       min-height: 60px;
-      padding: 12px 0;
+      padding: vars.$spacing-3 0;
     }
   }
 
   &__header-left {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: vars.$spacing-3;
     flex-shrink: 0;
   }
 
   &__header-center {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: vars.$spacing-3;
     flex: 1;
     justify-content: center;
   }
@@ -42,20 +44,20 @@
   &__header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: vars.$spacing-3;
     flex-shrink: 0;
   }
 
   &__title {
-    font-size: 1.5rem;
-    font-weight: 500;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-medium;
     margin: 0;
     color: var(--mat-sys-on-surface);
-    line-height: 1.2;
+    line-height: vars.$line-height-tight;
   }
 
   &__subtitle {
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
@@ -71,32 +73,32 @@
   &__stats-pill {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-2 vars.$spacing-4;
     background-color: var(--mat-sys-surface-container-high);
-    border-radius: 16px;
-    font-size: 0.875rem;
+    border-radius: vars.$nom-border-radius-lg;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface);
     flex-shrink: 0;
   }
 
   &__stats-icon {
-    font-size: 1rem;
-    width: 1rem;
-    height: 1rem;
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
     color: var(--mat-sys-primary);
   }
 
   &__stats-text {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__loading {
-    @include nom-loading-state(3rem);
+    @include nom-loading-state(vars.$spacing-12);
   }
 
   &__error {
-    @include nom-empty-state(3rem);
+    @include nom-empty-state(vars.$spacing-12);
   }
 
   &__empty-state {
@@ -109,14 +111,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 32px 24px;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-8 vars.$spacing-6;
   }
 
   &__empty-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
     color: var(--mat-sys-primary);
     opacity: 0.7;
   }
@@ -124,12 +126,12 @@
   &__users-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
+    gap: vars.$spacing-6;
   }
 
   &__user-card {
-    border-radius: 12px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: vars.$nom-border-radius-lg;
+    transition: transform vars.$transition-duration-fast ease, box-shadow vars.$transition-duration-fast ease;
 
     &:hover {
       transform: translateY(-2px);
@@ -139,87 +141,87 @@
 
   &__user-stats {
     display: flex;
-    gap: 24px;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+    gap: vars.$spacing-6;
+    margin-bottom: vars.$spacing-4;
+    padding-bottom: vars.$spacing-4;
     border-bottom: 1px solid var(--mat-sys-surface-container-highest);
   }
 
   &__user-stat {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
   &__stat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
     color: var(--mat-sys-primary);
   }
 
   &__stat-text {
-    font-size: 14px;
+    font-size: vars.$font-size-sm;
     color: var(--mat-sys-on-surface-variant);
   }
 
   &__attributes-section {
-    margin-top: 12px;
+    margin-top: vars.$spacing-3;
   }
 
   &__attributes-label {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-medium;
     color: var(--mat-sys-on-surface-variant);
-    margin-bottom: 8px;
+    margin-bottom: vars.$spacing-2;
   }
 
   &__attributes-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
     color: var(--mat-sys-tertiary);
   }
 
   &__attributes-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
   &__attribute-chip {
     display: inline-flex;
     align-items: center;
-    padding: 4px 12px;
+    padding: vars.$spacing-1 vars.$spacing-3;
     background-color: var(--mat-sys-tertiary-container);
     color: var(--mat-sys-on-tertiary-container);
-    border-radius: 16px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    border-radius: vars.$nom-border-radius-lg;
+    font-size: vars.$font-size-xs;
+    font-weight: vars.$font-weight-medium;
   }
 }
 
 // Mobile responsive styles
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .user-management {
     &__container {
-      padding: 0 8px;
+      padding: 0 vars.$spacing-2;
     }
 
     &__page-header--compact {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: vars.$spacing-3;
       min-height: auto;
     }
 
     &__header-left {
       flex-direction: column;
       align-items: flex-start;
-      gap: 4px;
+      gap: vars.$spacing-1;
       width: 100%;
     }
 
@@ -244,7 +246,7 @@
     }
 
     &__title {
-      font-size: 1.25rem;
+      font-size: vars.$font-size-lg;
     }
 
     &__search-field {
@@ -258,7 +260,7 @@
 
     &__user-stats {
       flex-direction: column;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__attributes-list {

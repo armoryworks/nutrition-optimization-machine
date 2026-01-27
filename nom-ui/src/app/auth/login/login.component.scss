@@ -1,16 +1,11 @@
+// Login Component - Uses form stereotype
 @use '../../../variables' as vars;
+@use '../../../_utilities' as *;
 
 .login {
   width: 500px;
 
   &__options-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    @media (min-width: vars.$breakpoint-mobile) {
-      margin-bottom: 25px;
-    }
+    @extend %nom-form-options-row;
   }
 }

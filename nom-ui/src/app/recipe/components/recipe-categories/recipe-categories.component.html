@@ -90,10 +90,7 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="recipe-categories__loading">
-      <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-      <p>Loading categories...</p>
-    </div>
+    <amw-inline-loading message="Loading categories..." />
     }
 
     <!-- Error State -->
@@ -171,5 +168,4 @@
       }
     </div>
     }
-  </div>
-</nom-base-page>
+</div>

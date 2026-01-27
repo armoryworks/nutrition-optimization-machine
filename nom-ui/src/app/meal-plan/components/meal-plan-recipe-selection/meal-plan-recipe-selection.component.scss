@@ -1,11 +1,12 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading {
-  @include nom-loading-state(2rem);
+  @include nom-loading-state(vars.$spacing-8);
 }
 
 .nom-container {
-  padding: 1rem;
+  padding: vars.$spacing-4;
   max-width: 1200px;
   margin: 0 auto;
 }

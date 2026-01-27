@@ -1,10 +1,10 @@
-<div class="nom-compose-container">
-  <amw-card>
+<div class="nom-page-container message-compose">
+  <amw-card class="nom-card" headerTitle="Compose Message" headerSubtitle="Start a new conversation" headerIcon="edit">
     <ng-template #cardContent>
       <!-- Error State -->
       @if (error()) {
-      <div class="nom-error-banner" role="alert" aria-live="assertive">
-        <p class="nom-error-message">{{ error() }}</p>
+      <div class="nom-error-state" role="alert" aria-live="assertive">
+        <p>{{ error() }}</p>
         <amw-button variant="text" color="primary" (click)="onRetry()">
           Dismiss
         </amw-button>
@@ -12,11 +12,11 @@
       }
 
       <!-- Compose Form -->
-      <form [formGroup]="composeForm" (ngSubmit)="onCreateThread()" class="nom-compose-form">
+      <form [formGroup]="composeForm" (ngSubmit)="onCreateThread()" class="nom-form">
         <div class="nom-form-section">
           <amw-input label="Participant IDs" placeholder="Enter participant IDs (comma-separated, e.g., 1, 2, 3)"
             hint="Enter the IDs of people you want to message. Note: Autocomplete search will be added in a future update."
-            [required]="true" formControlName="participantIds"
+            [required]="true" formControlName="participantIds" class="nom-form__field"
             [attr.aria-invalid]="composeForm.get('participantIds')?.invalid && composeForm.get('participantIds')?.touched"
             [attr.aria-describedby]="composeForm.get('participantIds')?.invalid && composeForm.get('participantIds')?.touched ? 'participant-ids-error' : null">
           </amw-input>
@@ -29,7 +29,7 @@
 
         <div class="nom-form-section">
           <amw-textarea label="Initial Message" placeholder="Type your message..." [required]="true" [rows]="5"
-            formControlName="initialMessage"
+            formControlName="initialMessage" class="nom-form__field"
             [attr.aria-invalid]="composeForm.get('initialMessage')?.invalid && composeForm.get('initialMessage')?.touched"
             [attr.aria-describedby]="composeForm.get('initialMessage')?.invalid && composeForm.get('initialMessage')?.touched ? 'initial-message-error' : null">
           </amw-textarea>
@@ -40,18 +40,19 @@
           }
         </div>
 
-        <div class="nom-form-actions">
-          <amw-button variant="outlined" color="primary" type="button" [disabled]="isCreating()" (click)="onCancel()">
+        <div class="nom-actions --end">
+          <amw-button variant="outlined" color="primary" type="button" [disabled]="isCreating()" (click)="onCancel()"
+            class="nom-button">
             Cancel
           </amw-button>
           <amw-button variant="filled" color="primary" type="submit" [disabled]="composeForm.invalid || isCreating()"
-            [amwValidationTooltip]="validationContext">
+            [amwValidationTooltip]="validationContext" class="nom-button">
             {{ isCreating() ? 'Creating...' : 'Create Conversation' }}
           </amw-button>
         </div>
 
         @if (isCreating()) {
-        <div class="nom-loading-overlay" role="status" aria-live="polite" aria-label="Creating conversation">
+        <div class="nom-loading-state--overlay" role="status" aria-live="polite" aria-label="Creating conversation">
           <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
           <span class="sr-only">Creating conversation, please wait...</span>
         </div>
@@ -61,15 +62,14 @@
   </amw-card>
 
   <!-- Help Card -->
-  <amw-card>
+  <amw-card class="nom-card" headerTitle="Need Help?" headerIcon="help_outline">
     <ng-template #cardContent>
-      <div class="nom-help-content">
-        <h3>Need Help?</h3>
-        <p>
+      <div class="nom-section">
+        <p class="nom-instruction-text">
           To start a conversation, enter the participant IDs separated by commas.
           You can find participant IDs from the user directory or household member list.
         </p>
-        <p>
+        <p class="nom-instruction-text">
           <strong>Future Enhancement:</strong> We'll add autocomplete search by name/email
           to make it easier to find and select participants.
         </p>

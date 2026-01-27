@@ -1,29 +1,30 @@
-// File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.scss
+// Ingredient Search Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .ingredient-search {
     // Main component layout - CSS Grid for clean structure
-    @include nom-form-field(24px);
+    @include nom-form-field(vars.$spacing-6);
     max-width: 900px;
     margin: 0 auto;
-    padding: 16px;
+    padding: vars.$spacing-4;
 }
 
 // Ingredient card container
 .ingredient-card {
-    border-radius: 16px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 
     // Card header with search
     &__header {
-        padding: 24px 24px 16px 24px;
+        padding: vars.$spacing-6 vars.$spacing-6 vars.$spacing-4 vars.$spacing-6;
     }
 
     // Card content area
     &__content {
-        padding: 24px;
+        padding: vars.$spacing-6;
         flex: 1;
         min-height: 200px;
         display: flex;
@@ -36,16 +37,16 @@
         text-align: center;
 
         &-icon {
-            font-size: 48px;
-            width: 48px;
-            height: 48px;
-            margin-bottom: 16px;
+            font-size: vars.$spacing-12;
+            width: vars.$spacing-12;
+            height: vars.$spacing-12;
+            margin-bottom: vars.$spacing-4;
             opacity: 0.6;
         }
 
         &-title {
-            margin: 0 0 8px 0;
-            font-weight: 500;
+            margin: 0 0 vars.$spacing-2 0;
+            font-weight: vars.$font-weight-medium;
         }
 
         &-text {
@@ -64,19 +65,19 @@
     &__prefix {
         display: flex;
         align-items: center;
-        margin-right: 8px;
+        margin-right: vars.$spacing-2;
     }
 
     // Autocomplete option styling - using direct selectors
     &__option {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 8px 0;
+        gap: vars.$spacing-1;
+        padding: vars.$spacing-2 0;
     }
 
     &__option-name {
-        font-weight: 500;
+        font-weight: vars.$font-weight-medium;
     }
 
     &__option-fdc,
@@ -87,8 +88,8 @@
     &__loading-option {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px;
+        gap: vars.$spacing-3;
+        padding: vars.$spacing-4;
 
         mat-spinner {
             flex-shrink: 0;
@@ -98,48 +99,48 @@
     &__no-results {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px;
+        gap: vars.$spacing-3;
+        padding: vars.$spacing-4;
     }
 }
 
 // Responsive design - mobile-first approach
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
     .ingredient-search {
-        padding: 8px;
-        gap: 16px;
+        padding: vars.$spacing-2;
+        gap: vars.$spacing-4;
     }
 
     .ingredient-card {
-        border-radius: 12px;
+        border-radius: vars.$nom-border-radius-lg;
 
         &__header {
-            padding: 16px 16px 12px 16px;
+            padding: vars.$spacing-4 vars.$spacing-4 vars.$spacing-3 vars.$spacing-4;
         }
 
         &__content {
-            padding: 16px;
+            padding: vars.$spacing-4;
             min-height: 150px;
         }
 
         &__placeholder {
             &-icon {
-                font-size: 36px;
-                width: 36px;
-                height: 36px;
-                margin-bottom: 12px;
+                font-size: vars.$font-size-3xl;
+                width: vars.$font-size-3xl;
+                height: vars.$font-size-3xl;
+                margin-bottom: vars.$spacing-3;
             }
         }
     }
 
     .search-field {
         &__option {
-            padding: 12px 0;
+            padding: vars.$spacing-3 0;
         }
 
         &__loading-option,
         &__no-results {
-            padding: 12px;
+            padding: vars.$spacing-3;
         }
     }
 }

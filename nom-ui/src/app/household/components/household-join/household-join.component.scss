@@ -1,17 +1,19 @@
+// Household Join Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading,
 .nom-error,
 .nom-success {
-  @include nom-empty-state(3rem);
-  padding: 3rem 2rem;
+  @include nom-empty-state(vars.$spacing-12);
+  padding: vars.$spacing-12 vars.$spacing-8;
 }
 
 .nom-error-icon,
 .nom-success-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
+  font-size: vars.$spacing-16;
+  width: vars.$spacing-16;
+  height: vars.$spacing-16;
 }
 
 .nom-error-icon {
@@ -22,50 +24,68 @@
   color: var(--mat-sys-tertiary);
 }
 
-.nom-error-message {
+.nom-error-message,
+.nom-success-message {
   color: var(--mat-sys-on-surface);
   margin: 0;
 }
 
 .nom-success-message {
-  color: var(--mat-sys-on-surface);
-  margin: 0 0 1rem 0;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-join-container {
   max-width: 600px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  margin: vars.$spacing-8 auto;
+  padding: 0 vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    margin: vars.$spacing-4 auto;
+  }
 }
 
 .nom-join-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
-  gap: 1.5rem;
+  padding: vars.$spacing-8;
+  gap: vars.$spacing-6;
   text-align: center;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-6;
+  }
 }
 
 .nom-invite-icon {
-  font-size: 72px;
-  width: 72px;
-  height: 72px;
+  font-size: 4.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   color: var(--mat-sys-primary);
-  margin-bottom: 0.5rem;
+  margin-bottom: vars.$spacing-2;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: 3.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+  }
 }
 
 h2 {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 500;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: vars.$font-size-lg;
+  }
 }
 
 .nom-invite-message {
   color: var(--mat-sys-on-surface-variant);
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: vars.$font-size-md;
+  line-height: vars.$line-height-relaxed;
   margin: 0;
   max-width: 500px;
 }
@@ -73,59 +93,35 @@ h2 {
 .nom-token-info {
   background-color: var(--mat-sys-surface-container-high);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
+  border-radius: vars.$nom-border-radius;
+  padding: vars.$spacing-4 vars.$spacing-6;
   width: 100%;
   max-width: 500px;
 }
 
 .nom-token-label {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface-variant);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 vars.$spacing-2 0;
 }
 
 .nom-token {
   display: block;
   font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-primary);
   background-color: var(--mat-sys-surface);
-  padding: 0.5rem;
-  border-radius: 4px;
+  padding: vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-sm;
   word-break: break-all;
 }
 
 .nom-join-actions {
-  @include nom-action-group(1rem, center);
+  @include nom-action-group(vars.$spacing-4, center);
   margin-top: 0;
-}
 
-.nom-actions {
-  margin-top: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .nom-join-container {
-    margin: 1rem auto;
-  }
-
-  .nom-join-content {
-    padding: 1.5rem;
-  }
-
-  .nom-invite-icon {
-    font-size: 56px;
-    width: 56px;
-    height: 56px;
-  }
-
-  h2 {
-    font-size: 1.5rem;
-  }
-
-  .nom-join-actions {
+  @media (max-width: vars.$breakpoint-mobile) {
     flex-direction: column;
     width: 100%;
 
@@ -133,4 +129,8 @@ h2 {
       width: 100%;
     }
   }
+}
+
+.nom-actions {
+  margin-top: vars.$spacing-6;
 }

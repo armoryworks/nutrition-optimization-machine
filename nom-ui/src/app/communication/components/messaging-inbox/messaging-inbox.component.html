@@ -1,29 +1,29 @@
-<div class="messaging-inbox">
+<div class="nom-page-container messaging-inbox">
   <!-- Compact Page Header -->
-  <div class="messaging-inbox__page-header messaging-inbox__page-header--compact">
-      <div class="messaging-inbox__header-left">
-        <h1 class="messaging-inbox__title">Messages</h1>
-        <span class="messaging-inbox__subtitle">View and manage your conversations</span>
+  <div class="nom-compact-header">
+      <div class="nom-compact-header__left">
+        <h1 class="nom-compact-header__title">Messages</h1>
+        <span class="nom-compact-header__subtitle">View and manage your conversations</span>
       </div>
-      <div class="messaging-inbox__header-center">
+      <div class="nom-compact-header__center">
         @if (!loading() && !error()) {
         <amw-input [(ngModel)]="searchTerm" placeholder="Search messages..." icon="search"
-          class="messaging-inbox__search-field">
+          class="nom-compact-header__search">
         </amw-input>
-        <div class="messaging-inbox__stats-pill">
-          <amw-icon name="chat_bubble_outline" class="messaging-inbox__stats-icon"></amw-icon>
-          <span class="messaging-inbox__stats-text">{{ messageThreads().length }} conversation{{ messageThreads().length
+        <div class="nom-stat-pill">
+          <amw-icon name="chat_bubble_outline"></amw-icon>
+          <span>{{ messageThreads().length }} conversation{{ messageThreads().length
             !== 1 ? 's' : '' }}</span>
         </div>
         @if (getUnreadCount() > 0) {
-        <div class="messaging-inbox__stats-pill messaging-inbox__stats-pill--unread">
-          <amw-icon name="mark_email_unread" class="messaging-inbox__stats-icon"></amw-icon>
-          <span class="messaging-inbox__stats-text">{{ getUnreadCount() }} unread</span>
+        <div class="nom-stat-pill nom-stat-pill--highlight">
+          <amw-icon name="mark_email_unread"></amw-icon>
+          <span>{{ getUnreadCount() }} unread</span>
         </div>
         }
         }
       </div>
-      <div class="messaging-inbox__header-right">
+      <div class="nom-compact-header__right">
         <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()">
           Refresh
         </amw-button>
@@ -35,15 +35,12 @@
 
     <!-- Loading State -->
     @if (loading()) {
-    <div class="messaging-inbox__loading">
-      <amw-progress-spinner [diameter]="48"></amw-progress-spinner>
-      <p>Loading messages...</p>
-    </div>
+    <amw-inline-loading message="Loading messages..." />
     }
 
     <!-- Error State -->
     @if (error() && !loading()) {
-    <div class="messaging-inbox__error">
+    <div class="nom-error-state" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
@@ -54,64 +51,58 @@
 
     <!-- Empty State -->
     @if (!loading() && !error() && messageThreads().length === 0) {
-    <div class="messaging-inbox__empty-state">
-      <amw-card class="messaging-inbox__empty-card">
-        <ng-template #cardContent>
-          <amw-icon name="chat_bubble_outline" class="messaging-inbox__empty-icon"></amw-icon>
-          <h3>No messages yet</h3>
-          <p>Start a conversation to begin messaging with other users.</p>
-          <amw-button variant="filled" color="primary" icon="add" (click)="startNewConversation()">
-            Start Conversation
-          </amw-button>
-        </ng-template>
-      </amw-card>
+    <div class="nom-empty-state">
+      <amw-icon name="chat_bubble_outline" class="nom-empty-state__icon"></amw-icon>
+      <h3 class="nom-empty-state__title">No messages yet</h3>
+      <p class="nom-empty-state__message">Start a conversation to begin messaging with other users.</p>
+      <amw-button variant="filled" color="primary" icon="add" (click)="startNewConversation()">
+        Start Conversation
+      </amw-button>
     </div>
     }
 
     <!-- Message Threads List -->
     @if (!loading() && !error() && messageThreads().length > 0) {
-    <div class="messaging-inbox__content">
-      <amw-card class="messaging-inbox__threads-card">
-        <ng-template #cardContent>
-          <div class="messaging-inbox__threads">
-            @for (thread of messageThreads(); track thread) {
-            <button type="button" class="messaging-inbox__thread"
-              [class.messaging-inbox__thread--unread]="hasUnreadMessages(thread)" (click)="openThread(thread)"
-              [attr.aria-label]="'Open conversation with ' + getParticipantDisplayName(thread)">
-              <div class="messaging-inbox__thread-avatar">
-                <div class="messaging-inbox__avatar" [amwBadge]="thread.unreadCount || 0" amwBadgeColor="accent"
-                  amwBadgeSize="small" [amwBadgeHidden]="!hasUnreadMessages(thread)">
-                  <amw-icon name="person"></amw-icon>
-                </div>
+    <amw-card class="nom-card">
+      <ng-template #cardContent>
+        <div class="nom-list">
+          @for (thread of messageThreads(); track thread) {
+          <button type="button" class="nom-list__item inbox-thread"
+            [class.inbox-thread--unread]="hasUnreadMessages(thread)" (click)="openThread(thread)"
+            [attr.aria-label]="'Open conversation with ' + getParticipantDisplayName(thread)">
+            <div class="inbox-thread__avatar">
+              <div class="inbox-avatar" [amwBadge]="thread.unreadCount || 0" amwBadgeColor="accent"
+                amwBadgeSize="small" [amwBadgeHidden]="!hasUnreadMessages(thread)">
+                <amw-icon name="person"></amw-icon>
               </div>
-              <div class="messaging-inbox__thread-content">
-                <div class="messaging-inbox__thread-header">
-                  <h4 class="messaging-inbox__participant">
-                    {{ getParticipantDisplayName(thread) }}
-                  </h4>
-                  <span class="messaging-inbox__timestamp">
-                    {{ getLastActivityDate(thread) }}
-                  </span>
-                </div>
-                <p class="messaging-inbox__preview">
-                  {{ getLastMessagePreview(thread) }}
-                </p>
+            </div>
+            <div class="inbox-thread__content">
+              <div class="inbox-thread__header">
+                <h4 class="inbox-thread__participant">
+                  {{ getParticipantDisplayName(thread) }}
+                </h4>
+                <span class="nom-small-text">
+                  {{ getLastActivityDate(thread) }}
+                </span>
               </div>
-              <div class="messaging-inbox__thread-actions">
-                @if (hasUnreadMessages(thread)) {
-                <amw-icon-button icon="mark_email_read" (click)="markAsRead(thread); $event.stopPropagation()"
-                  ariaLabel="Mark as read">
-                </amw-icon-button>
-                }
-                <amw-icon-button icon="delete" (click)="deleteThread(thread); $event.stopPropagation()"
-                  ariaLabel="Delete conversation">
-                </amw-icon-button>
-              </div>
-            </button>
-            }
-          </div>
-        </ng-template>
-      </amw-card>
-    </div>
+              <p class="inbox-thread__preview">
+                {{ getLastMessagePreview(thread) }}
+              </p>
+            </div>
+            <div class="inbox-thread__actions">
+              @if (hasUnreadMessages(thread)) {
+              <amw-icon-button icon="mark_email_read" (click)="markAsRead(thread); $event.stopPropagation()"
+                ariaLabel="Mark as read">
+              </amw-icon-button>
+              }
+              <amw-icon-button icon="delete" (click)="deleteThread(thread); $event.stopPropagation()"
+                ariaLabel="Delete conversation">
+              </amw-icon-button>
+            </div>
+          </button>
+          }
+        </div>
+      </ng-template>
+    </amw-card>
     }
 </div>

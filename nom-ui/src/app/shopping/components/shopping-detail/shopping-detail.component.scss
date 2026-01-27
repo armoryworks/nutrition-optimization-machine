@@ -1,62 +1,52 @@
+// Shopping Detail Component - Uses detail stereotype
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .shopping-detail {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+  @include nom-detail;
 
-  @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
-  }
-
+  // Loading & Error States
   &__loading {
-    @include nom-loading-state(3rem);
+    @include nom-loading-state(vars.$spacing-12);
   }
 
   &__error {
-    @include nom-empty-state(3rem);
+    @include nom-empty-state(vars.$spacing-12);
   }
 
   &__header-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 12px;
+    @extend %nom-detail-header-actions;
   }
 
-  &__edit-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
+  &__edit-button,
   &__add-button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
+  // Info Section
   &__info-section {
-    margin-bottom: 24px;
+    @include nom-detail-info-section;
   }
 
   &__info-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
   &__info-header {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 24px;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-6;
   }
 
   &__info-icon {
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
-    margin-top: 4px;
+    font-size: vars.$font-size-2xl;
+    width: vars.$font-size-2xl;
+    height: vars.$font-size-2xl;
+    margin-top: vars.$spacing-1;
   }
 
   &__info-content {
@@ -65,23 +55,24 @@
 
   &__info-title {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.3;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
   }
 
   &__info-subtitle {
-    margin: 8px 0 0 0;
-    font-size: 16px;
-    line-height: 1.4;
+    margin: vars.$spacing-2 0 0 0;
+    font-size: vars.$font-size-md;
+    line-height: vars.$line-height-normal;
   }
 
+  // Progress Section
   &__progress-section {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__progress-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
@@ -89,77 +80,90 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: vars.$spacing-2;
+    }
   }
 
   &__progress-title {
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__progress-text {
-    font-size: 14px;
+    font-size: vars.$font-size-sm;
   }
 
   &__progress-bar {
     width: 100%;
     height: 8px;
-    border-radius: 4px;
+    border-radius: vars.$nom-border-radius-sm;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: vars.$spacing-2;
   }
 
   &__progress-fill {
     height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
+    border-radius: vars.$nom-border-radius-sm;
+    transition: width vars.$transition-duration-slow vars.$transition-timing;
   }
 
   &__progress-percentage {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
     text-align: center;
   }
 
+  // Items Section
   &__items-section {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__items-title {
-    margin: 0 0 16px 0;
-    font-size: 18px;
-    font-weight: 600;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-semibold;
   }
 
   &__items-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
   }
 
   &__items-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: vars.$spacing-3;
   }
 
   &__item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    border-radius: 8px;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: vars.$spacing-3;
+    }
   }
 
   &__item-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: vars.$spacing-3;
     flex: 1;
   }
 
   &__item-checkbox {
-    margin-right: 8px;
+    margin-right: vars.$spacing-2;
   }
 
   &__item-content {
@@ -167,10 +171,10 @@
   }
 
   &__item-name {
-    margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-semibold;
+    line-height: vars.$line-height-tight;
 
     &.completed {
       text-decoration: line-through;
@@ -179,12 +183,12 @@
 
   &__item-details {
     display: flex;
-    gap: 12px;
-    font-size: 14px;
+    gap: vars.$spacing-3;
+    font-size: vars.$font-size-sm;
   }
 
   &__item-quantity {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__item-notes {
@@ -194,13 +198,16 @@
   &__item-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      align-self: flex-end;
+    }
   }
 
+  // Empty State
   &__empty-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    @include nom-empty-state(vars.$spacing-12);
     min-height: 300px;
   }
 
@@ -210,42 +217,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 32px 24px;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-8 vars.$spacing-6;
   }
 
   &__empty-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
+    font-size: vars.$spacing-16;
+    width: vars.$spacing-16;
+    height: vars.$spacing-16;
     color: var(--mat-sys-on-surface-variant);
     opacity: 0.7;
-  }
-}
-
-@media (max-width: 768px) {
-  .shopping-detail {
-    padding: 1rem 0.5rem;
-
-    &__header-actions {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__progress-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    &__item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    &__item-actions {
-      align-self: flex-end;
-    }
   }
 }

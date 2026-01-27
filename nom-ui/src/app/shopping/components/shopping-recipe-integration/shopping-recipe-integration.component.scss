@@ -1,8 +1,10 @@
+// Shopping Recipe Integration Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading-container,
 .nom-error-container {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
 }
 
 .nom-error-message {
@@ -12,13 +14,13 @@
 }
 
 .nom-error-actions {
-  @include nom-action-group(1rem, center);
+  @include nom-action-group(vars.$spacing-4, center);
   margin-top: 0;
 }
 
 .nom-recipe-integration-container {
-  @include nom-form-field(1rem);
-  padding: 1rem;
+  @include nom-form-field(vars.$spacing-4);
+  padding: vars.$spacing-4;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -27,11 +29,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 
   h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: vars.$font-size-xl;
     color: var(--mat-sys-on-surface);
   }
 }
@@ -39,43 +41,43 @@
 .nom-header-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   flex: 1;
 }
 
 .nom-subtitle {
-  margin: 0.25rem 0 0 0;
+  margin: vars.$spacing-1 0 0 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
 }
 
 .nom-content-grid {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   align-items: start;
 }
 
 .nom-recipe-list-section {
   h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.25rem;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
     color: var(--mat-sys-on-surface);
   }
 }
 
 .nom-recipe-list {
-  @include nom-form-field(0.75rem);
+  @include nom-form-field(vars.$spacing-3);
   max-height: 600px;
   overflow-y: auto;
 }
 
 .nom-recipe-item {
-  padding: 1rem;
+  padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
+  border-radius: vars.$nom-border-radius;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all vars.$transition-duration-normal vars.$transition-timing;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -89,7 +91,7 @@
 }
 
 .nom-recipe-item-content {
-  @include nom-form-field(0.5rem);
+  @include nom-form-field(vars.$spacing-2);
 }
 
 .nom-recipe-item-header {
@@ -99,7 +101,7 @@
 
   h4 {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: vars.$font-size-lg;
     color: var(--mat-sys-on-surface);
   }
 }
@@ -107,32 +109,32 @@
 .nom-recipe-description {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
 }
 
 .nom-recipe-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.75rem;
+  gap: vars.$spacing-4;
+  font-size: vars.$font-size-xs;
   color: var(--mat-sys-on-surface-variant);
 
   span {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
   }
 }
 
 .nom-empty-state,
 .nom-no-selection {
-  @include nom-empty-state(3rem);
-  padding: 3rem 1rem;
+  @include nom-empty-state(vars.$spacing-12);
+  padding: vars.$spacing-12 vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 
   amw-icon {
-    font-size: 48px;
+    font-size: vars.$spacing-12;
   }
 
   h3 {
@@ -146,59 +148,59 @@
 }
 
 .nom-hint {
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   font-style: italic;
 }
 
 .nom-selection-panel {
   position: sticky;
-  top: 1rem;
+  top: vars.$spacing-4;
 
   h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.25rem;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
     color: var(--mat-sys-on-surface);
   }
 }
 
 .nom-selected-recipe {
-  @include nom-form-field(1rem);
+  @include nom-form-field(vars.$spacing-4);
 
   h4 {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: vars.$font-size-lg;
     color: var(--mat-sys-on-surface);
   }
 
   > p {
     margin: 0;
     color: var(--mat-sys-on-surface-variant);
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 }
 
 .nom-ingredients-preview {
-  padding: 1rem;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
-  border-radius: 8px;
+  border-radius: vars.$nom-border-radius;
 
   h5 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
+    margin: 0 0 vars.$spacing-2 0;
+    font-size: vars.$font-size-md;
     color: var(--mat-sys-on-surface);
   }
 }
 
 .nom-ingredient-list {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: vars.$spacing-6;
   list-style: disc;
 
   li {
     color: var(--mat-sys-on-surface-variant);
-    font-size: 0.875rem;
-    line-height: 1.6;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-relaxed;
   }
 }
 
@@ -210,17 +212,17 @@
 .nom-no-ingredients {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   font-style: italic;
 }
 
 .nom-servings-form {
-  @include nom-form-field(0.5rem);
+  @include nom-form-field(vars.$spacing-2);
 }
 
 .nom-actions {
-  @include nom-form-field(0.5rem);
-  margin-top: 0.5rem;
+  @include nom-form-field(vars.$spacing-2);
+  margin-top: vars.$spacing-2;
 }
 
 // Responsive design
@@ -234,9 +236,9 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-recipe-integration-container {
-    padding: 0.5rem;
+    padding: vars.$spacing-2;
   }
 
   .nom-header {
@@ -250,6 +252,6 @@
 
   .nom-recipe-meta {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 }

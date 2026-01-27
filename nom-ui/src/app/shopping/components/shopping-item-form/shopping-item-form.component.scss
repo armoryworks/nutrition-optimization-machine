@@ -1,19 +1,21 @@
+// Shopping Item Form Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .shopping-item-form {
   max-width: 600px;
   margin: 0 auto;
-  padding: 24px;
-  border-radius: 8px;
+  padding: vars.$spacing-6;
+  border-radius: vars.$nom-border-radius;
 
   h3 {
-    margin: 0 0 24px 0;
-    font-size: 24px;
-    font-weight: 500;
+    margin: 0 0 vars.$spacing-6 0;
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-medium;
   }
 
   .form-row {
-    margin-bottom: 20px;
+    margin-bottom: vars.$spacing-5;
   }
 
   .form-field {
@@ -21,9 +23,9 @@
   }
 
   .form-actions {
-    @include nom-action-group(12px, flex-end);
-    margin-top: 32px;
-    padding-top: 20px;
+    @include nom-action-group(vars.$spacing-3, flex-end);
+    margin-top: vars.$spacing-8;
+    padding-top: vars.$spacing-5;
 
     button {
       min-width: 100px;
@@ -31,23 +33,23 @@
   }
 
   .selected-info {
-    margin-top: 20px;
-    padding: 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    line-height: 1.5;
+    margin-top: vars.$spacing-5;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-sm;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .shopping-item-form {
-    padding: 16px;
-    margin: 16px;
-    border-radius: 6px;
+    padding: vars.$spacing-4;
+    margin: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-sm;
 
     h3 {
-      font-size: 20px;
-      margin-bottom: 20px;
+      font-size: vars.$font-size-xl;
+      margin-bottom: vars.$spacing-5;
     }
 
     .form-actions {

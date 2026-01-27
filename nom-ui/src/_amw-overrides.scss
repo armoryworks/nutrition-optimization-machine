@@ -1,0 +1,376 @@
+// ===========================================
+// AMW COMPONENT OVERRIDES
+// ===========================================
+// Targeted fixes for AMW components within the nom-ui theme.
+// These address contrast, sizing, and semantic color issues.
+//
+// When AMW provides native theme tokens for these properties,
+// migrate each override to use the AMW token and remove the
+// !important declaration.
+//
+// Tracking:
+//   FIX #1 - Input padding (nom-ui bug, not AMW)
+//   FIX #2 - Card header title/subtitle overlap
+//   FIX #3 - AMW card header icon contrast
+//   FIX #4 - AMW input hint text color
+//   BUG #2 - Toggle visibility in dark mode
+//   BUG #3 - Icon button contrast
+//   BUG #4 - Error state semantic colors
+//   BUG #5 - Disabled button visibility
+//   ENH #1 - Secondary text contrast
+//   ENH #2 - Card subtitle contrast boost
+
+@use 'variables' as vars;
+
+// -------------------------------------------
+// FIX #1: Input Padding — Single Source of Truth
+// -------------------------------------------
+// _styles.scss previously set padding on BOTH
+//   .mat-mdc-form-field-infix  (8px top/bottom)
+//   AND inner input/textarea    (12px top/bottom)
+// stacking to ~40px total vertical padding.
+//
+// This file is now the SOLE place input sizing is defined.
+// The duplicate rules in _styles.scss have been removed.
+
+.mat-mdc-form-field {
+  .mat-mdc-form-field-infix {
+    padding-top: vars.$spacing-2 !important;    // 8px
+    padding-bottom: vars.$spacing-2 !important; // 8px
+  }
+
+  .mat-mdc-form-field-subscript-wrapper {
+    margin-top: 2px !important;
+
+    &.mat-mdc-form-field-bottom-align::before {
+      display: none !important;
+    }
+  }
+}
+
+// Textarea needs slightly more breathing room
+.mat-mdc-form-field-type-mat-textarea .mat-mdc-form-field-infix {
+  padding-top: vars.$spacing-3 !important;    // 12px
+  padding-bottom: vars.$spacing-3 !important; // 12px
+}
+
+// Prevent inner elements from adding their own padding
+amw-input,
+amw-textarea,
+amw-select,
+.amw-input,
+.amw-textarea,
+.amw-select {
+  input,
+  textarea,
+  select {
+    padding: 0 !important; // Prevent double-padding; infix handles it
+    min-height: auto;
+    font-size: vars.$font-size-md;
+  }
+}
+
+// -------------------------------------------
+// FIX #2: Card Header Title/Subtitle Overlap
+// -------------------------------------------
+// Material's mat-card-header is display:flex (row).
+// Title and subtitle inside .mat-mdc-card-header-text
+// should stack vertically. Force the header to wrap
+// and the header-text to be a column flex container.
+// Also force title/subtitle to be full-width blocks.
+
+// Force the header to allow wrapping
+.mat-mdc-card-header {
+  flex-wrap: wrap !important;
+}
+
+// The header-text wrapper should stack children vertically
+.mat-mdc-card-header-text {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: vars.$spacing-1 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+// Reset avatar~header-text padding that causes issues
+.mat-mdc-card-avatar ~ .mat-mdc-card-header-text .mat-mdc-card-title,
+.mat-mdc-card-avatar ~ .mat-mdc-card-header-text .mat-mdc-card-subtitle {
+  padding: 0 !important;
+}
+
+// Title: full-width block, proper contrast
+.mat-mdc-card-title,
+mat-card-title {
+  display: block !important;
+  width: 100% !important;
+  font-size: vars.$font-size-xl !important;
+  font-weight: vars.$font-weight-medium !important;
+  color: var(--mat-sys-on-surface) !important;
+  line-height: vars.$line-height-tight !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+// Subtitle: full-width block below title
+.mat-mdc-card-subtitle,
+mat-card-subtitle {
+  display: block !important;
+  width: 100% !important;
+  font-size: vars.$font-size-sm !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+  line-height: vars.$line-height-normal !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0.85;
+}
+
+// -------------------------------------------
+// ENH #2: Card Subtitle Contrast Boost
+// -------------------------------------------
+body.dark-theme,
+[data-theme='dark'] {
+  .mat-mdc-card-subtitle,
+  mat-card-subtitle {
+    opacity: 0.92;
+  }
+}
+
+// -------------------------------------------
+// BUG #2: Toggle / Switch Visibility
+// -------------------------------------------
+// Toggle track is nearly invisible in dark mode
+// (~1.5:1 contrast). Needs at least 3:1.
+
+body.dark-theme,
+[data-theme='dark'] {
+  .mdc-switch {
+    // Off-state track
+    .mdc-switch__track {
+      background-color: var(--mat-sys-outline) !important;
+    }
+
+    // On-state track
+    &--selected .mdc-switch__track {
+      background-color: var(--mat-sys-primary) !important;
+    }
+  }
+
+  // mat-slide-toggle variant
+  .mat-mdc-slide-toggle {
+    .mdc-switch__track {
+      background-color: var(--mat-sys-outline) !important;
+      border-color: var(--mat-sys-outline) !important;
+    }
+
+    &.mat-mdc-slide-toggle-checked .mdc-switch__track {
+      background-color: var(--mat-sys-primary) !important;
+      border-color: var(--mat-sys-primary) !important;
+    }
+  }
+}
+
+// -------------------------------------------
+// BUG #3: Icon-Only Button Contrast
+// -------------------------------------------
+// Icon-only buttons (cancel X, submit checkmark,
+// add +, refresh) are nearly invisible.
+
+// AMW icon buttons
+amw-button[variant="icon"],
+amw-button[variant="text"] {
+  button {
+    color: var(--mat-sys-on-surface) !important;
+    opacity: 0.87;
+
+    &:hover {
+      opacity: 1;
+      background-color: var(--mat-sys-surface-container-high) !important;
+    }
+
+    &:disabled {
+      opacity: 0.38;
+    }
+  }
+}
+
+// Material icon buttons
+button.mat-mdc-icon-button {
+  color: var(--mat-sys-on-surface) !important;
+  opacity: 0.87;
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--mat-sys-surface-container-high) !important;
+  }
+
+  &:disabled {
+    opacity: 0.38;
+  }
+}
+
+// Ensure icon contrast in headers / action areas
+.nom-compact-header,
+.nom-dashboard-header-actions,
+.nom-form-actions {
+  button.mat-mdc-icon-button,
+  amw-button[variant="icon"] button {
+    color: var(--mat-sys-on-surface) !important;
+    opacity: 1;
+  }
+}
+
+// -------------------------------------------
+// BUG #5: Disabled Button Visibility
+// -------------------------------------------
+// Disabled filled/outlined/text buttons are nearly
+// invisible. Boost contrast for better UX.
+// AMW uses --mdc-state-disabled-state-layer-opacity (default .6).
+// Material uses its own disabled styling on .mat-mdc-button-disabled.
+
+// AMW button disabled — boost opacity via the AMW selector
+amw-button {
+  .amw-button:disabled,
+  button:disabled {
+    opacity: 0.65 !important;
+  }
+}
+
+// Material button disabled — boost opacity
+.mat-mdc-button-disabled,
+button:disabled.mat-mdc-button-base,
+button[disabled].mat-mdc-button-base {
+  opacity: 0.65 !important;
+}
+
+// Filled disabled — ensure visible background + text
+amw-button[variant="filled"] button:disabled,
+amw-button[variant="filled"] .mat-mdc-button-disabled {
+  background-color: var(--mat-sys-surface-container-high) !important;
+  color: var(--mat-sys-on-surface) !important;
+  opacity: 0.7 !important;
+}
+
+// Outlined disabled — ensure visible border + text
+amw-button[variant="outlined"] button:disabled,
+amw-button[variant="outlined"] .mat-mdc-button-disabled {
+  border-color: var(--mat-sys-outline-variant) !important;
+  color: var(--mat-sys-on-surface) !important;
+  opacity: 0.7 !important;
+}
+
+// -------------------------------------------
+// FIX #4: AMW Input Hint Text Color
+// -------------------------------------------
+// AMW hints use var(--mdc-theme-on-surface-variant).
+// Material's form field can override child text color
+// when mat-form-field-invalid is set. Ensure hints
+// always use the correct muted color.
+
+.amw-input__hint,
+.amw-input__character-count,
+mat-hint.amw-input__hint {
+  color: var(--mat-sys-on-surface-variant) !important;
+}
+
+// Prevent error-state color from bleeding into hints
+.amw-input--error {
+  .amw-input__hint,
+  mat-hint {
+    color: var(--mat-sys-on-surface-variant) !important;
+  }
+}
+
+// Also fix Material's mat-hint in subscript wrapper
+.mat-mdc-form-field-subscript-wrapper {
+  mat-hint,
+  .mat-mdc-form-field-hint-wrapper .mat-hint {
+    color: var(--mat-sys-on-surface-variant) !important;
+  }
+}
+
+// -------------------------------------------
+// FIX #3: AMW Card Header Icon Contrast
+// -------------------------------------------
+// AMW card header icons render too faintly.
+// Ensure they use proper on-surface color.
+
+mat-card.amw-card {
+  .mat-mdc-card-header {
+    mat-icon,
+    .mat-icon {
+      color: var(--mat-sys-on-surface-variant) !important;
+      opacity: 0.87;
+    }
+  }
+
+  // Ensure avatar icon has proper contrast
+  .amw-card__avatar {
+    mat-icon,
+    .mat-icon {
+      color: var(--mat-sys-on-surface-variant) !important;
+    }
+  }
+
+  // Ensure card content text is readable
+  .mat-mdc-card-content,
+  mat-card-content {
+    color: var(--mat-sys-on-surface) !important;
+
+    p {
+      color: var(--mat-sys-on-surface-variant) !important;
+    }
+  }
+}
+
+// -------------------------------------------
+// BUG #4: Error State Semantic Colors
+// -------------------------------------------
+// Error states currently use blue background.
+// Should use the error color palette.
+
+.nom-error-state {
+  background-color: var(--mat-sys-error-container) !important;
+  color: var(--mat-sys-on-error-container) !important;
+  border-left: 4px solid var(--mat-sys-error);
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border-radius: vars.$nom-border-radius;
+
+  mat-icon,
+  .mat-icon {
+    color: var(--mat-sys-error) !important;
+  }
+}
+
+// Error state within cards (meal-plan detail pages, etc.)
+.nom-card .nom-error-state,
+amw-card .nom-error-state {
+  margin: vars.$spacing-4;
+}
+
+// -------------------------------------------
+// ENH #1: Secondary Text Contrast Boost
+// -------------------------------------------
+// on-surface-variant is too faint in dark mode.
+// Boost it for better readability.
+
+body.dark-theme,
+[data-theme='dark'] {
+  // Subtle text that needs to be more readable
+  .nom-card__subtitle,
+  .nom-form-section__description,
+  .nom-instruction-text,
+  .nom-prompt-text,
+  .nom-small-text,
+  .nom-message-text,
+  .nom-empty-state__message {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.92; // Boost from default ~0.6-0.7
+  }
+
+  // Ensure form labels stay readable
+  .mat-mdc-floating-label {
+    opacity: 0.92 !important;
+  }
+}

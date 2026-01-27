@@ -3,10 +3,7 @@
     <ng-template #cardContent>
       <div class="text-center">
         @if (confirmationStatus === 'pending') {
-        <div class="status-message loading">
-          <amw-progress-spinner [diameter]="40"></amw-progress-spinner>
-          <p>{{ confirmationMessage }}</p>
-        </div>
+        <amw-inline-loading [message]="confirmationMessage" />
         } @else if (confirmationStatus === 'success') {
         <div class="status-message success">
           <amw-icon name="check_circle" color="primary" class="status-icon"></amw-icon>

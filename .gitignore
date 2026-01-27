@@ -59,3 +59,8 @@ __pycache__/
 *.pdb
 *.cache
 *.log 
+
+# testing files
+screenshots/
+cypress/screenshots/
+cypress/videos/

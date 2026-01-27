@@ -1,52 +1,53 @@
-// Onboarding Wizard Component Styles
+// Onboarding Wizard Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-page-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: vars.$spacing-5;
 }
 
 .nom-card {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  box-shadow: var(--mat-sys-level1, 0 4px 6px rgba(0, 0, 0, 0.1));
+  border-radius: vars.$nom-border-radius;
 }
 
 .nom-card__header {
-  padding: 24px 24px 0;
+  padding: vars.$spacing-6 vars.$spacing-6 0;
 }
 
 .nom-card__title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin-bottom: vars.$spacing-2;
 }
 
 .nom-card__content {
-  padding: 24px;
+  padding: vars.$spacing-6;
 }
 
 .nom-card__progress-bar {
-  margin-bottom: 16px;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-section {
-  margin-bottom: 24px;
+  margin-bottom: vars.$spacing-6;
 }
 
 .nom-section__heading {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin-bottom: vars.$spacing-3;
 }
 
 .nom-instruction-text {
-  color: #666;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-form {
@@ -55,7 +56,7 @@
 
 .nom-form__field {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-form__input {
@@ -63,52 +64,52 @@
 }
 
 .nom-form__error {
-  color: #d32f2f;
-  font-size: 0.75rem;
-  margin-top: 4px;
+  color: vars.$nom-error;
+  font-size: vars.$font-size-xs;
+  margin-top: vars.$spacing-1;
 }
 
 .form-level-error {
-  background-color: #ffebee;
-  border: 1px solid #ffcdd2;
-  border-radius: 4px;
-  padding: 12px;
-  margin-bottom: 16px;
+  background-color: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-sm;
+  padding: vars.$spacing-3;
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-message-text {
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
 }
 
 .nom-button {
   min-width: 120px;
-  height: 40px;
-  border-radius: 4px;
-  font-weight: 500;
+  height: vars.$button-height;
+  border-radius: vars.$nom-border-radius-sm;
+  font-weight: vars.$font-weight-medium;
 }
 
 .nom-button__spinner {
-  margin-right: 8px;
+  margin-right: vars.$spacing-2;
 }
 
 .nom-horizontal-group {
-  @include nom-action-group(16px, center);
+  @include nom-action-group(vars.$spacing-4, center);
 }
 
 // Responsive design
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-page-container {
-    padding: 16px;
+    padding: vars.$spacing-4;
   }
-  
+
   .nom-card__header,
   .nom-card__content {
-    padding: 16px;
+    padding: vars.$spacing-4;
   }
-  
+
   .nom-horizontal-group {
     flex-direction: column;
-    gap: 12px;
+    gap: vars.$spacing-3;
   }
-} 
+}

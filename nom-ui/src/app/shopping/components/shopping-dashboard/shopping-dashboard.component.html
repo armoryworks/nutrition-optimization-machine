@@ -1,23 +1,23 @@
-<div class="shopping-dashboard">
+<div class="nom-page-container shopping-dashboard">
   <!-- Compact Page Header -->
-    <div class="shopping-dashboard__page-header shopping-dashboard__page-header--compact">
-      <div class="shopping-dashboard__header-left">
-        <h1 class="shopping-dashboard__title">{{ pageTitle }}</h1>
-        <span class="shopping-dashboard__subtitle">{{ pageSubtitle }}</span>
+    <div class="nom-compact-header">
+      <div class="nom-compact-header__left">
+        <h1 class="nom-compact-header__title">{{ pageTitle }}</h1>
+        <span class="nom-compact-header__subtitle">{{ pageSubtitle }}</span>
       </div>
-      <div class="shopping-dashboard__header-center">
+      <div class="nom-compact-header__center">
         @if (!isLoading() && !error()) {
         <amw-input type="text" [formControl]="searchControl" placeholder="Search lists..." icon="search"
-          class="shopping-dashboard__search-field">
+          class="nom-compact-header__search">
         </amw-input>
-        <div class="shopping-dashboard__stats-pill">
-          <amw-icon name="shopping_cart" class="shopping-dashboard__stats-icon"></amw-icon>
-          <span class="shopping-dashboard__stats-text">{{ filteredLists().length }} list{{ filteredLists().length !== 1
+        <div class="nom-stat-pill">
+          <amw-icon name="shopping_cart"></amw-icon>
+          <span>{{ filteredLists().length }} list{{ filteredLists().length !== 1
             ? 's' : '' }}</span>
         </div>
         }
       </div>
-      <div class="shopping-dashboard__header-right">
+      <div class="nom-compact-header__right">
         <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
           Refresh
         </amw-button>
@@ -29,15 +29,12 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="shopping-dashboard__loading">
-      <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
-      <p>Loading shopping lists...</p>
-    </div>
+    <amw-inline-loading message="Loading shopping lists..." />
     }
 
     <!-- Error State -->
     @if (error() && !isLoading()) {
-    <div class="shopping-dashboard__error">
+    <div class="nom-error-state" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRefresh()">
@@ -51,50 +48,49 @@
 
     <!-- Empty State -->
     @if (filteredLists().length === 0) {
-    <div class="shopping-dashboard__empty-state">
-      <amw-card class="shopping-dashboard__empty-card">
-        <ng-template #cardContent>
-          <amw-icon name="shopping_cart" class="shopping-dashboard__empty-icon"></amw-icon>
-          <h3>No Shopping Lists Found</h3>
-          @if (searchControl.value) {
-          <p>No shopping lists match your search criteria.</p>
-          } @else {
-          <p>Create your first shopping list to get started.</p>
-          }
-          <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
-            Create Shopping List
-          </amw-button>
-        </ng-template>
-      </amw-card>
+    <div class="nom-empty-state">
+      <amw-icon name="shopping_cart" class="nom-empty-state__icon"></amw-icon>
+      <h3 class="nom-empty-state__title">No Shopping Lists Found</h3>
+      @if (searchControl.value) {
+      <p class="nom-empty-state__message">No shopping lists match your search criteria.</p>
+      } @else {
+      <p class="nom-empty-state__message">Create your first shopping list to get started.</p>
+      }
+      <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+        Create Shopping List
+      </amw-button>
     </div>
     }
 
     <!-- Shopping Lists Grid -->
     @if (filteredLists().length > 0) {
-    <div class="shopping-dashboard__lists-grid">
+    <div class="nom-grid--auto">
       @for (list of filteredLists(); track list.id) {
-      <amw-card class="shopping-dashboard__list-card" [headerTitle]="list.name"
+      <amw-card class="nom-card dashboard-card" [headerTitle]="list.name"
         [headerSubtitle]="list.description || ''" headerIcon="shopping_basket">
         <ng-template #cardContent>
-          <div class="shopping-dashboard__list-stats">
-            <div class="shopping-dashboard__list-stat">
-              <amw-icon name="list" class="shopping-dashboard__stat-icon"></amw-icon>
-              <span class="shopping-dashboard__stat-text">{{ list.totalItems || 0 }} items</span>
+          <div class="dashboard-card__stats">
+            <div class="dashboard-card__stat">
+              <amw-icon name="list"></amw-icon>
+              <span>{{ list.totalItems || 0 }} items</span>
             </div>
-            <div class="shopping-dashboard__list-stat">
-              <amw-icon name="check_circle" class="shopping-dashboard__stat-icon"></amw-icon>
-              <span class="shopping-dashboard__stat-text">{{ list.completedItems || 0 }} completed</span>
+            <div class="dashboard-card__stat">
+              <amw-icon name="check_circle"></amw-icon>
+              <span>{{ list.completedItems || 0 }} completed</span>
             </div>
           </div>
 
           <!-- Progress Bar -->
           @if (list.totalItems && list.totalItems > 0) {
-          <div class="shopping-dashboard__progress-section">
-            <div class="shopping-dashboard__progress-bar">
-              <div class="shopping-dashboard__progress-fill" [style.width.%]="getProgressPercentage(list)"
-                [class]="'shopping-dashboard__progress-fill--' + getProgressColor(getProgressPercentage(list))"></div>
+          <div class="nom-progress-bar">
+            <div class="nom-progress-bar__track">
+              <div class="nom-progress-bar__fill"
+                [class.nom-progress-bar__fill--primary]="getProgressColor(getProgressPercentage(list)) === 'primary'"
+                [class.nom-progress-bar__fill--accent]="getProgressColor(getProgressPercentage(list)) === 'accent'"
+                [class.nom-progress-bar__fill--warn]="getProgressColor(getProgressPercentage(list)) === 'warn'"
+                [style.width.%]="getProgressPercentage(list)"></div>
             </div>
-            <span class="shopping-dashboard__progress-text">
+            <span class="nom-progress-bar__text">
               {{ getProgressPercentage(list) }}% complete
             </span>
           </div>

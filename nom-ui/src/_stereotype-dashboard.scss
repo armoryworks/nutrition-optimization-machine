@@ -1,0 +1,396 @@
+// =============================================================================
+// DASHBOARD STEREOTYPE
+// =============================================================================
+// Use for: dashboard pages with stats, cards, lists
+// Components: shopping-dashboard, household-dashboard, meal-plan-dashboard
+// =============================================================================
+
+@use './variables' as vars;
+
+// -----------------------------------------------------------------------------
+// Dashboard Container
+// -----------------------------------------------------------------------------
+%nom-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: vars.$spacing-8 vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4 vars.$spacing-2;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Page Header (Compact 3-column layout)
+// -----------------------------------------------------------------------------
+%nom-dashboard-page-header {
+  margin-bottom: vars.$spacing-6;
+}
+
+%nom-dashboard-page-header--compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-6;
+  min-height: 60px;
+  padding: vars.$spacing-3 0;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-3;
+    min-height: auto;
+  }
+}
+
+%nom-dashboard-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: vars.$spacing-3;
+  flex-shrink: 0;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-1;
+    width: 100%;
+  }
+}
+
+%nom-dashboard-header-center {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex: 1;
+  justify-content: center;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    justify-content: flex-start;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+%nom-dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex-shrink: 0;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Title Section
+// -----------------------------------------------------------------------------
+%nom-dashboard-title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-medium;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  line-height: vars.$line-height-tight;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: vars.$font-size-lg;
+  }
+}
+
+%nom-dashboard-subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Stats Pill (inline stat display)
+// -----------------------------------------------------------------------------
+%nom-dashboard-stats-pill {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-4;
+  background-color: var(--mat-sys-surface-container-high);
+  border-radius: 16px;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  flex-shrink: 0;
+}
+
+%nom-dashboard-stats-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--mat-sys-primary);
+}
+
+%nom-dashboard-stats-text {
+  font-weight: vars.$font-weight-medium;
+}
+
+// -----------------------------------------------------------------------------
+// Stats Grid
+// -----------------------------------------------------------------------------
+%nom-dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: vars.$spacing-6;
+  margin-bottom: vars.$spacing-8;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+%nom-dashboard-stat-card {
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-6;
+}
+
+%nom-dashboard-stat-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-4;
+}
+
+%nom-dashboard-stat-icon {
+  font-size: vars.$font-size-xl;
+  width: vars.$font-size-xl;
+  height: vars.$font-size-xl;
+}
+
+%nom-dashboard-stat-title {
+  margin: 0;
+}
+
+%nom-dashboard-stat-value {
+  margin: 0;
+  font-weight: vars.$font-weight-semibold;
+}
+
+%nom-dashboard-stat-description {
+  margin: vars.$spacing-2 0 0;
+}
+
+// -----------------------------------------------------------------------------
+// Content Grid (for cards/items)
+// -----------------------------------------------------------------------------
+%nom-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Section Container
+// -----------------------------------------------------------------------------
+%nom-dashboard-section {
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-8;
+  margin-bottom: vars.$spacing-8;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-6 vars.$spacing-4;
+  }
+}
+
+%nom-dashboard-section-title {
+  margin: 0 0 vars.$spacing-6;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+}
+
+// -----------------------------------------------------------------------------
+// Item Card
+// -----------------------------------------------------------------------------
+%nom-dashboard-item-card {
+  cursor: pointer;
+  transition: all vars.$transition-duration-normal vars.$transition-timing;
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+%nom-dashboard-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-3 0;
+}
+
+%nom-dashboard-item-icon {
+  font-size: vars.$font-size-xl;
+  width: vars.$font-size-xl;
+  height: vars.$font-size-xl;
+  margin-top: vars.$spacing-1;
+}
+
+%nom-dashboard-item-title-info {
+  flex: 1;
+}
+
+%nom-dashboard-item-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: vars.$font-weight-semibold;
+  line-height: vars.$line-height-tight;
+}
+
+%nom-dashboard-item-subtitle {
+  margin: vars.$spacing-1 0 0;
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
+}
+
+%nom-dashboard-item-content {
+  padding: vars.$spacing-3 vars.$spacing-3 0;
+}
+
+%nom-dashboard-item-stats {
+  display: flex;
+  gap: vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-3;
+  }
+}
+
+%nom-dashboard-item-stat {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+%nom-dashboard-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3 vars.$spacing-3 vars.$spacing-4;
+}
+
+// -----------------------------------------------------------------------------
+// Header Actions
+// -----------------------------------------------------------------------------
+%nom-dashboard-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: vars.$spacing-6;
+  gap: vars.$spacing-3;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Progress Section
+// -----------------------------------------------------------------------------
+%nom-dashboard-progress-section {
+  margin-top: vars.$spacing-3;
+}
+
+%nom-dashboard-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--mat-sys-surface-container-highest);
+  border-radius: vars.$nom-border-radius-sm;
+  overflow: hidden;
+  margin-bottom: vars.$spacing-2;
+}
+
+%nom-dashboard-progress-fill {
+  height: 100%;
+  transition: width vars.$transition-duration-slow vars.$transition-timing;
+}
+
+%nom-dashboard-progress-text {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// =============================================================================
+// Mixin-based API for easy usage
+// =============================================================================
+@mixin nom-dashboard {
+  @extend %nom-dashboard;
+}
+
+@mixin nom-dashboard-page-header($compact: false) {
+  @extend %nom-dashboard-page-header;
+  @if $compact {
+    @extend %nom-dashboard-page-header--compact;
+  }
+}
+
+@mixin nom-dashboard-header-left {
+  @extend %nom-dashboard-header-left;
+}
+
+@mixin nom-dashboard-header-center {
+  @extend %nom-dashboard-header-center;
+}
+
+@mixin nom-dashboard-header-right {
+  @extend %nom-dashboard-header-right;
+}
+
+@mixin nom-dashboard-title {
+  @extend %nom-dashboard-title;
+}
+
+@mixin nom-dashboard-subtitle {
+  @extend %nom-dashboard-subtitle;
+}
+
+@mixin nom-dashboard-stats-pill {
+  @extend %nom-dashboard-stats-pill;
+}
+
+@mixin nom-dashboard-stats-grid {
+  @extend %nom-dashboard-stats-grid;
+}
+
+@mixin nom-dashboard-stat-card {
+  @extend %nom-dashboard-stat-card;
+}
+
+@mixin nom-dashboard-grid {
+  @extend %nom-dashboard-grid;
+}
+
+@mixin nom-dashboard-section {
+  @extend %nom-dashboard-section;
+}
+
+@mixin nom-dashboard-item-card {
+  @extend %nom-dashboard-item-card;
+}
+
+@mixin nom-dashboard-header-actions {
+  @extend %nom-dashboard-header-actions;
+}
+
+@mixin nom-dashboard-progress-bar {
+  @extend %nom-dashboard-progress-bar;
+}

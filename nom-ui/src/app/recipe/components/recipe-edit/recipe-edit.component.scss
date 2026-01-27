@@ -1,3 +1,5 @@
+// Recipe Edit Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-recipe-edit {
@@ -7,20 +9,20 @@
   }
 
   &__section {
-    margin-bottom: 1rem;
-    border-radius: 12px;
-    padding: 1.5rem;
+    margin-bottom: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-lg;
+    padding: vars.$spacing-6;
   }
 
   &__section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__section-title {
-    font-size: 1.25rem;
+    font-size: vars.$font-size-lg;
     margin: 0;
   }
 
@@ -29,8 +31,8 @@
   }
 
   &__additional-actions {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: vars.$spacing-4;
+    padding-top: vars.$spacing-4;
     display: flex;
     justify-content: flex-end;
   }
@@ -39,8 +41,8 @@
 .nom-ingredient-search {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: vars.$spacing-4;
+  margin-bottom: vars.$spacing-6;
 
   &__form-field {
     flex-grow: 1;
@@ -48,24 +50,24 @@
 }
 
 .nom-ingredient-list {
-  @include nom-form-field(0.75rem);
+  @include nom-form-field(vars.$spacing-3);
 
   &__item {
     display: grid;
     grid-template-columns: 2fr 1fr auto;
-    gap: 1rem;
+    gap: vars.$spacing-4;
     align-items: center;
-    padding: 1rem;
-    border-radius: 8px;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__item-name {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__item-inputs {
     display: flex;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
     align-items: center;
   }
 
@@ -79,21 +81,21 @@
 
   &__empty-message {
     text-align: center;
-    padding: 2rem;
-    border-radius: 8px;
+    padding: vars.$spacing-8;
+    border-radius: vars.$nom-border-radius;
   }
 }
 
 .nom-step-list {
-  @include nom-form-field(0.75rem);
+  @include nom-form-field(vars.$spacing-3);
 
   &__item {
     display: grid;
     grid-template-columns: auto auto 1fr auto;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 8px;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__drag-handle {
@@ -101,7 +103,7 @@
   }
 
   &__item-number {
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__item-field {
@@ -110,7 +112,7 @@
 
   &__empty-message {
     text-align: center;
-    padding: 2rem;
-    border-radius: 8px;
+    padding: vars.$spacing-8;
+    border-radius: vars.$nom-border-radius;
   }
 }

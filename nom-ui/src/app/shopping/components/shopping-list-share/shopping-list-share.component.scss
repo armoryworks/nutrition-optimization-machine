@@ -1,8 +1,9 @@
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading-container,
 .nom-error-container {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
 }
 
 .nom-error-message {
@@ -12,13 +13,13 @@
 }
 
 .nom-error-actions {
-  @include nom-action-group(1rem, center);
+  @include nom-action-group(vars.$spacing-4, center);
   margin-top: 0;
 }
 
 .nom-share-container {
-  @include nom-form-field(1rem);
-  padding: 1rem;
+  @include nom-form-field(vars.$spacing-4);
+  padding: vars.$spacing-4;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -27,11 +28,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 
   h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: vars.$font-size-xl;
     color: var(--mat-sys-on-surface);
   }
 }
@@ -39,47 +40,47 @@
 .nom-header-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   flex: 1;
 }
 
 .nom-subtitle {
-  margin: 0.25rem 0 0 0;
+  margin: vars.$spacing-1 0 0 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
 }
 
 h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 vars.$spacing-2 0;
+  font-size: vars.$font-size-xl;
   color: var(--mat-sys-on-surface);
 }
 
 .nom-description {
-  margin: 0 0 1rem 0;
+  margin: 0 0 vars.$spacing-4 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: vars.$font-size-sm;
+  line-height: vars.$line-height-normal;
 }
 
 .nom-link-container {
   display: flex;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   align-items: center;
-  padding: 1rem;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
-  border-radius: 8px;
+  border-radius: vars.$nom-border-radius;
 }
 
 .nom-link-display {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3;
   background-color: var(--mat-sys-surface);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 4px;
+  border-radius: vars.$nom-border-radius-sm;
   overflow: hidden;
 }
 
@@ -87,7 +88,7 @@ h3 {
   flex: 1;
   color: var(--mat-sys-primary);
   font-family: monospace;
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -95,12 +96,12 @@ h3 {
 
 .nom-notice {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
   border-left: 4px solid var(--mat-sys-primary);
-  border-radius: 4px;
-  margin-bottom: 1rem;
+  border-radius: vars.$nom-border-radius-sm;
+  margin-bottom: vars.$spacing-4;
 
   amw-icon {
     color: var(--mat-sys-primary);
@@ -108,31 +109,31 @@ h3 {
 
   strong {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: vars.$spacing-1;
     color: var(--mat-sys-on-surface);
   }
 
   p {
     margin: 0;
     color: var(--mat-sys-on-surface-variant);
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 }
 
 .nom-targets-list {
-  @include nom-form-field(0.5rem);
-  margin-bottom: 1rem;
+  @include nom-form-field(vars.$spacing-2);
+  margin-bottom: vars.$spacing-4;
 }
 
 .nom-target-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
+  border-radius: vars.$nom-border-radius;
+  transition: background-color vars.$transition-duration-fast ease;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -140,48 +141,48 @@ h3 {
 }
 
 .nom-target-info {
-  @include nom-form-field(0.25rem);
+  @include nom-form-field(vars.$spacing-1);
   flex: 1;
 }
 
 .nom-target-name {
-  font-weight: 500;
+  font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface);
 }
 
 .nom-target-email {
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 1rem;
+  margin-top: vars.$spacing-4;
 }
 
 .nom-summary {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
-  border-radius: 8px;
-  margin-top: 1rem;
+  border-radius: vars.$nom-border-radius;
+  margin-top: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
 }
 
 .nom-help-content {
-  @include nom-form-field(1rem);
+  @include nom-form-field(vars.$spacing-4);
 }
 
 .nom-help-item {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
-  border-radius: 8px;
+  border-radius: vars.$nom-border-radius;
 
   amw-icon {
     color: var(--mat-sys-primary);
@@ -189,22 +190,22 @@ h3 {
 
   strong {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: vars.$spacing-1;
     color: var(--mat-sys-on-surface);
   }
 
   p {
     margin: 0;
     color: var(--mat-sys-on-surface-variant);
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: vars.$font-size-sm;
+    line-height: vars.$line-height-normal;
   }
 }
 
 // Responsive design
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-share-container {
-    padding: 0.5rem;
+    padding: vars.$spacing-2;
   }
 
   .nom-header {
@@ -221,6 +222,6 @@ h3 {
   }
 
   .nom-link-text {
-    font-size: 0.75rem;
+    font-size: vars.$font-size-xs;
   }
 }

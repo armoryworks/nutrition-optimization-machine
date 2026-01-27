@@ -2,7 +2,7 @@ import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwProgressSpinnerComponent, AmwChipComponent, loading } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwCardComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwInlineLoadingComponent, AmwChipComponent, loading } from 'angular-material-wrap';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeCategoryModel, RecipeCategoryResponseModel } from '../../models/i-recipe-category.model';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
@@ -24,7 +24,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwIconButtonComponent,
         AmwTooltipDirective,
         AmwIconComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
         AmwChipComponent,
     ],
     templateUrl: './recipe-categories.component.html',

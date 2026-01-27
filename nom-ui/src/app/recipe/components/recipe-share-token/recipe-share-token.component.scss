@@ -1,38 +1,40 @@
+// Recipe Share Token Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .recipe-share-token {
   &__card {
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: vars.$nom-border-radius-lg;
+    margin-bottom: vars.$spacing-4;
   }
 
   &__header {
-    padding: 24px 24px 0;
+    padding: vars.$spacing-6 vars.$spacing-6 0;
   }
 
   &__title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 1.25rem;
+    gap: vars.$spacing-2;
+    font-size: vars.$font-size-lg;
     margin: 0;
   }
 
   &__subtitle {
-    font-size: 0.875rem;
-    margin: 8px 0 0;
+    font-size: vars.$font-size-sm;
+    margin: vars.$spacing-2 0 0;
   }
 
   &__content {
-    padding: 16px 24px 24px;
+    padding: vars.$spacing-4 vars.$spacing-6 vars.$spacing-6;
   }
 
   &__form {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
   }
 
   &__form-row {
-    margin-bottom: 16px;
+    margin-bottom: vars.$spacing-4;
 
     &:last-child {
       margin-bottom: 0;
@@ -44,16 +46,16 @@
   }
 
   &__form-actions {
-    @include nom-action-group(1rem, flex-end);
-    margin-top: 16px;
+    @include nom-action-group(vars.$spacing-4, flex-end);
+    margin-top: vars.$spacing-4;
   }
 
   &__submit-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 24px;
-    border-radius: 8px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-2 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__loading {
@@ -61,52 +63,52 @@
   }
 
   &__divider {
-    margin: 24px 0;
+    margin: vars.$spacing-6 0;
   }
 
   &__tokens-section {
-    margin-top: 24px;
+    margin-top: vars.$spacing-6;
   }
 
   &__section-title {
-    font-size: 1.125rem;
-    margin: 0 0 16px;
+    font-size: vars.$font-size-lg;
+    margin: 0 0 vars.$spacing-4;
   }
 
   &__loading-container {
-    @include nom-loading-state(32px);
+    @include nom-loading-state(vars.$spacing-8);
   }
 
   &__loading-icon {
-    font-size: 2rem;
-    width: 2rem;
-    height: 2rem;
-    margin-bottom: 8px;
+    font-size: vars.$spacing-8;
+    width: vars.$spacing-8;
+    height: vars.$spacing-8;
+    margin-bottom: vars.$spacing-2;
     animation: spin 1s linear infinite;
   }
 
   &__empty {
-    @include nom-empty-state(32px);
+    @include nom-empty-state(vars.$spacing-8);
   }
 
   &__empty-icon {
-    font-size: 3rem;
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 16px;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
+    margin-bottom: vars.$spacing-4;
     opacity: 0.5;
   }
 
   &__tokens-list {
-    @include nom-form-field(16px);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__token-item {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px;
-    border-radius: 8px;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius;
   }
 
   &__token-info {
@@ -118,12 +120,12 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
-    gap: 12px;
+    margin-bottom: vars.$spacing-3;
+    gap: vars.$spacing-3;
   }
 
   &__token-name {
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
     margin: 0;
     word-break: break-word;
   }
@@ -133,63 +135,63 @@
   }
 
   &__token-chip {
-    font-size: 0.75rem;
-    height: 24px;
+    font-size: vars.$font-size-xs;
+    height: vars.$spacing-6;
   }
 
   &__token-details {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: vars.$spacing-1;
   }
 
   &__token-url,
   &__token-date {
-    font-size: 0.875rem;
+    font-size: vars.$font-size-sm;
     margin: 0;
     word-break: break-all;
   }
 
   &__token-text {
     font-family: 'Courier New', monospace;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: vars.$spacing-1 vars.$spacing-2;
+    border-radius: vars.$nom-border-radius-sm;
+    font-size: vars.$font-size-xs;
   }
 
   &__token-actions {
     display: flex;
-    gap: 4px;
+    gap: vars.$spacing-1;
     flex-shrink: 0;
-    margin-left: 16px;
+    margin-left: vars.$spacing-4;
   }
 
   &__action-btn {
-    width: 36px;
-    height: 36px;
-    line-height: 36px;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
+    line-height: vars.$spacing-10;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .recipe-share-token {
     &__header {
-      padding: 16px 16px 0;
+      padding: vars.$spacing-4 vars.$spacing-4 0;
     }
 
     &__content {
-      padding: 12px 16px 16px;
+      padding: vars.$spacing-3 vars.$spacing-4 vars.$spacing-4;
     }
 
     &__token-item {
       flex-direction: column;
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__token-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__token-actions {

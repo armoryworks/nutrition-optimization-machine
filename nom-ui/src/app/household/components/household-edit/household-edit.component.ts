@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, FormGroup, Validators, ReactiveFormsModule } fr
 import { ActivatedRoute, Router } from '@angular/router';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwProgressSpinnerComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, AmwInlineLoadingComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
@@ -20,7 +20,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwTextareaComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwValidationTooltipDirective
 ],
     templateUrl: './household-edit.component.html',

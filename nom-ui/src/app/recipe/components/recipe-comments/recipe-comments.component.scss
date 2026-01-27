@@ -1,49 +1,51 @@
+// Recipe Comments Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-recipe-comments {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: vars.$spacing-6;
 
   &__header {
-    margin-bottom: 8px;
+    margin-bottom: vars.$spacing-2;
   }
 
   &__title {
-    margin: 0 0 4px 0;
-    font-size: 24px;
-    font-weight: 500;
+    margin: 0 0 vars.$spacing-1 0;
+    font-size: vars.$font-size-xl;
+    font-weight: vars.$font-weight-medium;
   }
 
   &__subtitle {
     margin: 0;
-    font-size: 14px;
+    font-size: vars.$font-size-sm;
     opacity: 0.7;
   }
 
   &__error {
-    @include nom-empty-state(48px);
-    padding: 48px 24px;
-    border-radius: 12px;
+    @include nom-empty-state(vars.$spacing-12);
+    padding: vars.$spacing-12 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius-lg;
 
     h3 {
-      margin: 16px 0 8px;
-      font-size: 18px;
+      margin: vars.$spacing-4 0 vars.$spacing-2;
+      font-size: vars.$font-size-lg;
     }
 
     p {
-      margin: 0 0 16px;
-      font-size: 16px;
-      line-height: 1.5;
+      margin: 0 0 vars.$spacing-4;
+      font-size: vars.$font-size-md;
+      line-height: vars.$line-height-normal;
     }
   }
 
   &__form-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
   }
 
   &__form {
-    @include nom-form-field(16px);
+    @include nom-form-field(vars.$spacing-4);
   }
 
   &__field {
@@ -51,52 +53,52 @@
   }
 
   &__actions {
-    @include nom-action-group(12px, flex-end);
+    @include nom-action-group(vars.$spacing-3, flex-end);
   }
 
   &__submit-btn {
-    border-radius: 8px;
-    padding: 8px 24px;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-2 vars.$spacing-6;
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   &__loading,
   &__empty {
-    @include nom-empty-state(48px);
-    padding: 48px 24px;
-    border-radius: 12px;
+    @include nom-empty-state(vars.$spacing-12);
+    padding: vars.$spacing-12 vars.$spacing-6;
+    border-radius: vars.$nom-border-radius-lg;
 
     p {
       margin: 0;
-      font-size: 16px;
-      line-height: 1.5;
+      font-size: vars.$font-size-md;
+      line-height: vars.$line-height-normal;
     }
   }
 
   &__comment-card {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
   }
 
   &__comment-title {
-    font-size: 18px;
-    margin-bottom: 4px;
+    font-size: vars.$font-size-lg;
+    margin-bottom: vars.$spacing-1;
   }
 
   &__comment-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 14px;
+    gap: vars.$spacing-3;
+    font-size: vars.$font-size-sm;
   }
 
   &__comment-text {
-    line-height: 1.6;
-    margin: 16px 0;
+    line-height: vars.$line-height-relaxed;
+    margin: vars.$spacing-4 0;
     white-space: pre-wrap;
     word-wrap: break-word;
   }
@@ -104,21 +106,21 @@
   &__comment-actions {
     display: flex;
     justify-content: flex-end;
-    padding: 8px 0;
+    padding: vars.$spacing-2 0;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-recipe-comments {
-    gap: 16px;
+    gap: vars.$spacing-4;
 
     &__form {
-      gap: 12px;
+      gap: vars.$spacing-3;
     }
 
     &__actions {
       flex-direction: column;
-      gap: 8px;
+      gap: vars.$spacing-2;
     }
 
     &__submit-btn {
@@ -129,15 +131,15 @@
     &__comment-meta {
       flex-direction: column;
       align-items: flex-start;
-      gap: 4px;
+      gap: vars.$spacing-1;
     }
 
     &__loading,
     &__empty {
-      padding: 32px 16px;
+      padding: vars.$spacing-8 vars.$spacing-4;
 
       p {
-        font-size: 14px;
+        font-size: vars.$font-size-sm;
       }
     }
   }

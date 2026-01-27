@@ -1,4 +1,4 @@
-<div class="user-management">
+<div class="nom-page-container user-management">
   <!-- Compact Page Header -->
   <div class="user-management__page-header user-management__page-header--compact">
       <div class="user-management__header-left">
@@ -29,10 +29,7 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="user-management__loading">
-      <amw-progress-spinner mode="indeterminate" [diameter]="48"></amw-progress-spinner>
-      <p>Loading users...</p>
-    </div>
+    <amw-inline-loading message="Loading users..." />
     }
 
     <!-- Error State -->

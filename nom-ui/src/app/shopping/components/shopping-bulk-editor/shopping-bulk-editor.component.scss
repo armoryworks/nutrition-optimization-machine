@@ -1,8 +1,10 @@
+// Shopping Bulk Editor Component - Uses utilities
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .nom-loading-container,
 .nom-error-container {
-  @include nom-empty-state(2rem);
+  @include nom-empty-state(vars.$spacing-8);
 }
 
 .nom-error-message {
@@ -12,13 +14,13 @@
 }
 
 .nom-error-actions {
-  @include nom-action-group(1rem, center);
+  @include nom-action-group(vars.$spacing-4, center);
   margin-top: 0;
 }
 
 .nom-bulk-editor-container {
-  @include nom-form-field(1rem);
-  padding: 1rem;
+  @include nom-form-field(vars.$spacing-4);
+  padding: vars.$spacing-4;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -27,11 +29,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 
   h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: vars.$font-size-xl;
     color: var(--mat-sys-on-surface);
   }
 }
@@ -39,53 +41,53 @@
 .nom-header-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   flex: 1;
 }
 
 .nom-subtitle {
-  margin: 0.25rem 0 0 0;
+  margin: vars.$spacing-1 0 0 0;
   color: var(--mat-sys-on-surface-variant);
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
 }
 
 .nom-actions-bar {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: vars.$spacing-4;
   position: relative;
 }
 
 .nom-selection-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: vars.$spacing-4;
 }
 
 .nom-selection-count {
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
-  font-weight: 500;
+  font-weight: vars.$font-weight-medium;
 }
 
 .nom-bulk-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   background-color: var(--mat-sys-surface-container);
-  border-radius: 8px;
+  border-radius: vars.$nom-border-radius;
   align-items: flex-end;
 }
 
 .nom-action-group {
   display: flex;
-  gap: 0.5rem;
+  gap: vars.$spacing-2;
 }
 
 .nom-category-action {
   display: flex;
-  gap: 0.5rem;
+  gap: vars.$spacing-2;
   align-items: flex-end;
   flex: 1;
   max-width: 400px;
@@ -96,40 +98,40 @@
 }
 
 .nom-processing-overlay {
-  @include nom-loading-state(1rem);
+  @include nom-loading-state(vars.$spacing-4);
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--mat-sys-surface-container-low, #fff) 90%, transparent);
+  border-radius: vars.$nom-border-radius;
   z-index: 10;
 
   p {
     margin: 0;
     color: var(--mat-sys-on-surface);
-    font-weight: 500;
+    font-weight: vars.$font-weight-medium;
   }
 }
 
 .nom-items-list {
-  @include nom-form-field(0.5rem);
+  @include nom-form-field(vars.$spacing-2);
 
   h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.25rem;
+    margin: 0 0 vars.$spacing-4 0;
+    font-size: vars.$font-size-lg;
     color: var(--mat-sys-on-surface);
   }
 }
 
 .nom-item {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
+  border-radius: vars.$nom-border-radius;
+  transition: background-color vars.$transition-duration-normal vars.$transition-timing;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -141,7 +143,7 @@
 }
 
 .nom-item-content {
-  @include nom-form-field(0.5rem);
+  @include nom-form-field(vars.$spacing-2);
   flex: 1;
 }
 
@@ -152,7 +154,7 @@
 
   h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: vars.$font-size-md;
     color: var(--mat-sys-on-surface);
   }
 }
@@ -164,31 +166,31 @@
 .nom-item-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.875rem;
+  gap: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
 
   span {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: vars.$spacing-1;
   }
 }
 
 .nom-notes {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
   font-style: italic;
 }
 
 .nom-empty-state {
-  @include nom-empty-state(3rem);
-  padding: 3rem 1rem;
+  @include nom-empty-state(vars.$spacing-12);
+  padding: vars.$spacing-12 vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 
   amw-icon {
-    font-size: 48px;
+    font-size: vars.$spacing-12;
   }
 
   p {
@@ -212,9 +214,9 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .nom-bulk-editor-container {
-    padding: 0.5rem;
+    padding: vars.$spacing-2;
   }
 
   .nom-header {
@@ -224,11 +226,11 @@
 
   .nom-item {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 
   .nom-item-details {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: vars.$spacing-2;
   }
 }

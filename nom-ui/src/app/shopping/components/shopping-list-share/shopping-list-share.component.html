@@ -1,37 +1,27 @@
-<!-- Loading State -->
-@if (isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-loading-container">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading sharing options...</p>
-    </div>
-  </ng-template>
-</amw-card>
-}
+<div class="nom-page-container shopping-list-share">
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <amw-inline-loading message="Loading sharing options..." />
+  }
 
-<!-- Error State -->
-@if (error() && !isLoading()) {
-<amw-card>
-  <ng-template #cardContent>
-    <div class="nom-error-container">
-      <p class="nom-error-message">{{ error() }}</p>
-      <div class="nom-error-actions">
-        <amw-button variant="filled" color="primary" (click)="onRetry()">
-          Retry
-        </amw-button>
-        <amw-button variant="outlined" color="primary" (click)="onBack()">
-          Back to Shopping List
-        </amw-button>
-      </div>
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+  <div class="nom-error-state" role="alert">
+    <p>{{ error() }}</p>
+    <div class="nom-actions">
+      <amw-button variant="filled" color="primary" (click)="onRetry()">
+        Retry
+      </amw-button>
+      <amw-button variant="outlined" color="primary" (click)="onBack()">
+        Back to Shopping List
+      </amw-button>
     </div>
-  </ng-template>
-</amw-card>
-}
+  </div>
+  }
 
-<!-- Main Content -->
-@if (!isLoading() && !error()) {
-<div class="nom-share-container">
+  <!-- Main Content -->
+  @if (!isLoading() && !error()) {
+  <div class="nom-share-container">
   <!-- Header -->
   <amw-card>
     <ng-template #cardContent>
@@ -153,3 +143,4 @@
   </amw-card>
 </div>
 }
+</div>

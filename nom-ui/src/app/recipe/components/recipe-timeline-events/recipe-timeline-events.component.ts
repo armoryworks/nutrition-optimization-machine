@@ -3,7 +3,7 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { NotificationService } from '../../../utilities/services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwDividerComponent, AmwCardComponent, AmwProgressSpinnerComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwInputComponent, AmwSelectComponent, AmwTextareaComponent, AmwDatepickerComponent, AmwIconButtonComponent, AmwTooltipDirective, AmwIconComponent, AmwDividerComponent, AmwCardComponent, AmwInlineLoadingComponent } from 'angular-material-wrap';
 
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeTimelineEventResponseModel, RecipeTimelineEventCreateModel } from '../../models/recipe-timeline-event.model';
@@ -25,7 +25,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
         AmwIconComponent,
         AmwDividerComponent,
         AmwCardComponent,
-        AmwProgressSpinnerComponent,
+        AmwInlineLoadingComponent,
     ],
     templateUrl: './recipe-timeline-events.component.html',
     styleUrls: ['./recipe-timeline-events.component.scss']

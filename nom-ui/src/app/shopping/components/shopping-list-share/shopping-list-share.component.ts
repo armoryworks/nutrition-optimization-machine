@@ -5,7 +5,7 @@ import {
   AmwCardComponent,
   AmwButtonComponent,
   AmwCheckboxComponent,
-  AmwProgressSpinnerComponent,
+  AmwInlineLoadingComponent,
   AmwIconComponent,
 } from 'angular-material-wrap';
 
@@ -28,7 +28,7 @@ interface ShareTarget {
     AmwCardComponent,
     AmwButtonComponent,
     AmwCheckboxComponent,
-    AmwProgressSpinnerComponent,
+    AmwInlineLoadingComponent,
     AmwIconComponent,
   ],
   templateUrl: './shopping-list-share.component.html',

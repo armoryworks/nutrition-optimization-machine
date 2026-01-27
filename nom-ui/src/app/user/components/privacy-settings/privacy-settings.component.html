@@ -1,5 +1,5 @@
 <!-- File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.html -->
-<div class="privacy-settings">
+<div class="nom-page-container privacy-settings">
   <!-- Header -->
   <div class="privacy-settings__header">
       <div class="privacy-settings__header-content">
@@ -15,10 +15,7 @@
 
     <!-- Loading State -->
     @if (isLoading()) {
-    <div class="privacy-settings__loading">
-      <amw-progress-spinner [diameter]="50"></amw-progress-spinner>
-      <p>Loading privacy settings...</p>
-    </div>
+    <amw-inline-loading message="Loading privacy settings..." />
     }
 
     <!-- Privacy Settings Form -->

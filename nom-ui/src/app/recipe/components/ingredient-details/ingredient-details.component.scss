@@ -1,14 +1,16 @@
+// Ingredient Details Component - Uses utilities and variables
+@use '../../../../variables' as vars;
 @use '../../../../_utilities' as *;
 
 .ingredient-details {
   width: 100%;
-  margin-top: 24px;
+  margin-top: vars.$spacing-6;
 }
 
 .ingredient-card {
   max-width: 800px;
   margin: 0 auto;
-  border-radius: 16px;
+  border-radius: vars.$nom-border-radius-lg;
   overflow: hidden;
 }
 
@@ -16,37 +18,37 @@
 .ingredient-title {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: 600;
+  gap: vars.$spacing-3;
+  font-weight: vars.$font-weight-semibold;
   margin: 0;
 
   .ingredient-icon {
-    font-size: 28px;
-    width: 28px;
-    height: 28px;
+    font-size: vars.$font-size-2xl;
+    width: vars.$font-size-2xl;
+    height: vars.$font-size-2xl;
   }
 }
 
 .ingredient-subtitle {
-  margin: 8px 0 0 0;
+  margin: vars.$spacing-2 0 0 0;
 }
 
 // Content Styles
 .ingredient-content {
-  @include nom-form-field(32px);
+  @include nom-form-field(vars.$spacing-8);
 }
 
 // Section Headers
 .section-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  gap: vars.$spacing-3;
+  margin-bottom: vars.$spacing-5;
+  padding-bottom: vars.$spacing-3;
 
   h3 {
     margin: 0;
-    font-weight: 600;
+    font-weight: vars.$font-weight-semibold;
   }
 
   .serving-info {
@@ -59,24 +61,24 @@
 .info-section {
   .info-grid {
     display: grid;
-    gap: 16px;
+    gap: vars.$spacing-4;
   }
 
   .info-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    border-radius: 12px;
+    padding: vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-lg;
 
     .info-label {
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
 
     .info-value {
       text-align: right;
       flex: 1;
-      margin-left: 16px;
+      margin-left: vars.$spacing-4;
     }
   }
 }
@@ -84,35 +86,35 @@
 // Nutrition Section
 .nutrition-section {
   .calories-highlight {
-    margin-bottom: 24px;
+    margin-bottom: vars.$spacing-6;
 
     .calories-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 24px;
-      border-radius: 16px;
+      padding: vars.$spacing-5 vars.$spacing-6;
+      border-radius: vars.$nom-border-radius-lg;
 
       .calories-label {
-        font-weight: 600;
+        font-weight: vars.$font-weight-semibold;
       }
 
       .calories-value {
-        font-weight: 700;
+        font-weight: vars.$font-weight-bold;
       }
     }
   }
 
   .nutrients-container {
-    border-radius: 12px;
+    border-radius: vars.$nom-border-radius-lg;
     overflow: hidden;
 
     .nutrients-header {
       display: grid;
       grid-template-columns: 2fr 1fr 80px;
-      gap: 16px;
-      padding: 16px 20px;
-      font-weight: 600;
+      gap: vars.$spacing-4;
+      padding: vars.$spacing-4 vars.$spacing-5;
+      font-weight: vars.$font-weight-semibold;
       text-align: center;
 
       span:first-child {
@@ -124,23 +126,23 @@
       .nutrient-row {
         display: grid;
         grid-template-columns: 2fr 1fr 80px;
-        gap: 16px;
-        padding: 12px 20px;
-        transition: background-color 0.2s ease;
+        gap: vars.$spacing-4;
+        padding: vars.$spacing-3 vars.$spacing-5;
+        transition: background-color vars.$transition-duration-fast ease;
 
         &:last-child {
           border-bottom: none;
         }
 
         &.nutrient-bold {
-          font-weight: 600;
+          font-weight: vars.$font-weight-semibold;
         }
 
         &.nutrient-indented {
-          padding-left: 40px;
+          padding-left: vars.$spacing-10;
 
           .nutrient-name {
-            font-size: 0.9em;
+            font-size: vars.$font-size-sm;
           }
         }
 
@@ -150,12 +152,12 @@
 
         .nutrient-amount {
           text-align: center;
-          font-weight: 500;
+          font-weight: vars.$font-weight-medium;
         }
 
         .nutrient-dv {
           text-align: center;
-          font-weight: 500;
+          font-weight: vars.$font-weight-medium;
         }
       }
     }
@@ -164,13 +166,13 @@
 
 // No Nutrition Data
 .no-nutrition {
-  @include nom-empty-state(40px);
-  padding: 40px 20px;
+  @include nom-empty-state(vars.$spacing-10);
+  padding: vars.$spacing-10 vars.$spacing-5;
 
   .no-data-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
+    font-size: vars.$spacing-12;
+    width: vars.$spacing-12;
+    height: vars.$spacing-12;
   }
 
   p {
@@ -179,16 +181,16 @@
 }
 
 // Responsive Design
-@media (max-width: 768px) {
+@media (max-width: vars.$breakpoint-mobile) {
   .ingredient-card {
-    margin: 0 16px;
-    border-radius: 12px;
+    margin: 0 vars.$spacing-4;
+    border-radius: vars.$nom-border-radius-lg;
   }
 
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: vars.$spacing-2;
 
     .serving-info {
       margin-left: 0;
@@ -198,7 +200,7 @@
   .info-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: vars.$spacing-2;
 
     .info-value {
       margin-left: 0;
@@ -209,31 +211,31 @@
   .calories-container {
     flex-direction: column;
     text-align: center;
-    gap: 8px;
+    gap: vars.$spacing-2;
   }
 
   .nutrients-header,
   .nutrient-row {
     grid-template-columns: 2fr 1fr 60px;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-3 vars.$spacing-4;
   }
 
   .nutrient-row.nutrient-indented {
-    padding-left: 32px;
+    padding-left: vars.$spacing-8;
   }
 }
 
 @media (max-width: 480px) {
   .ingredient-card {
-    margin: 0 8px;
-    border-radius: 8px;
+    margin: 0 vars.$spacing-2;
+    border-radius: vars.$nom-border-radius;
   }
 
   .nutrients-header,
   .nutrient-row {
     grid-template-columns: 1fr;
-    gap: 4px;
+    gap: vars.$spacing-1;
     text-align: left;
 
     .nutrient-amount,
@@ -249,21 +251,21 @@
   .nutrient-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 16px;
+    gap: vars.$spacing-1;
+    padding: vars.$spacing-4;
 
     .nutrient-name {
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
 
     .nutrient-amount::before {
       content: "Amount: ";
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
 
     .nutrient-dv::before {
       content: "% Daily Value: ";
-      font-weight: 600;
+      font-weight: vars.$font-weight-semibold;
     }
   }
 }

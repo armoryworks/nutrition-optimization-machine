@@ -1,3 +1,5 @@
+// Registration Component - Uses form stereotype
+@use '../../../variables' as vars;
 @use '../../../_utilities' as *;
 
 .registration {
@@ -7,7 +9,7 @@
   }
 
   .nom-form {
-    @include nom-form-field(20px);
+    @include nom-form-field(vars.$spacing-5);
   }
 
   .nom-form__field {
@@ -30,50 +32,36 @@
   }
 
   .nom-form__error {
-    font-size: 12px;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    @extend %nom-form-error;
 
     &::before {
       content: "⚠️";
-      font-size: 14px;
+      font-size: vars.$font-size-sm;
     }
   }
 
   .nom-form__submit {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 20px;
+    @extend %nom-form-submit;
+    margin-top: vars.$spacing-5;
   }
 
   .nom-form__link {
-    text-decoration: none;
-    font-weight: 500;
-
-    &:hover {
-      text-decoration: underline;
-    }
+    @extend %nom-form-link;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: vars.$breakpoint-mobile) {
     .nom-card {
-      margin: 16px;
+      margin: vars.$spacing-4;
       max-width: none;
     }
 
     .nom-form {
-      gap: 16px;
+      gap: vars.$spacing-4;
     }
 
     .nom-form__submit {
-      padding: 10px 20px;
-      font-size: 14px;
+      padding: vars.$spacing-3 vars.$spacing-5;
+      font-size: vars.$font-size-sm;
     }
   }
 }
