@@ -1,67 +1,42 @@
-// Registration Component - Uses form stereotype
+// Registration Component - Container-agnostic form
 @use '../../../variables' as vars;
-@use '../../../_utilities' as *;
 
 .registration {
-  .nom-card {
-    max-width: 500px;
-    margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: vars.$spacing-6;
+
+  &__title {
+    font-size: vars.$font-size-2xl;
+    font-weight: vars.$font-weight-bold;
+    margin: 0 0 vars.$spacing-6;
+    color: var(--mat-sys-on-surface);
   }
 
-  .nom-form {
-    @include nom-form-field(vars.$spacing-5);
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-3;
   }
 
-  .nom-form__field {
-    width: 100%;
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: vars.$spacing-4;
+    gap: vars.$spacing-4;
   }
 
-  .nom-form__input {
-    &::-webkit-credentials-auto-fill-button,
-    &::-webkit-contacts-auto-fill-button,
-    &::-webkit-strong-password-auto-fill-button {
-      display: none !important;
-    }
-
-    &:not([type="password"]) {
-      &::-webkit-password-toggle-button,
-      &::-webkit-credentials-auto-fill-button {
-        display: none !important;
-      }
-    }
-  }
-
-  .nom-form__error {
-    @extend %nom-form-error;
-
-    &::before {
-      content: "⚠️";
-      font-size: vars.$font-size-sm;
-    }
-  }
-
-  .nom-form__submit {
-    @extend %nom-form-submit;
-    margin-top: vars.$spacing-5;
-  }
-
-  .nom-form__link {
-    @extend %nom-form-link;
+  &__login-prompt {
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
   }
 
   @media (max-width: vars.$breakpoint-mobile) {
-    .nom-card {
-      margin: vars.$spacing-4;
-      max-width: none;
-    }
-
-    .nom-form {
-      gap: vars.$spacing-4;
-    }
-
-    .nom-form__submit {
-      padding: vars.$spacing-3 vars.$spacing-5;
-      font-size: vars.$font-size-sm;
-    }
+    padding: vars.$spacing-4;
+    max-width: none;
   }
 }

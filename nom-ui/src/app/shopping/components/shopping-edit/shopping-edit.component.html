@@ -1,41 +1,39 @@
-<div class="nom-page-container shopping-edit">
-  <amw-card [headerTitle]="formConfig.title" [headerSubtitle]="formConfig.subtitle || ''" headerIcon="shopping_cart"
-    class="shopping-edit__card">
+<div class="nom-form--full">
+  <amw-card [headerTitle]="formConfig.title" [headerSubtitle]="formConfig.subtitle || ''" headerIcon="shopping_cart">
     <ng-template #cardContent>
       @if (isLoading() && !shoppingList()) {
-      <amw-inline-loading message="Loading shopping list..." />
+        <amw-inline-loading message="Loading shopping list..." />
       } @else {
-      <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()" class="shopping-edit__form">
-        <!-- Shopping List Name Field - Using AMW -->
-        <amw-input type="text" formControlName="name" placeholder="Enter a name for your shopping list..."
-          label="Shopping List Name" [required]="true" class="shopping-edit__field"
-          [attr.aria-invalid]="shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched"
-          [attr.aria-describedby]="shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched ? 'shopping-edit-name-error' : null">
-        </amw-input>
-        @if (shoppingForm.get('name')?.invalid && shoppingForm.get('name')?.touched) {
-          <span id="shopping-edit-name-error" class="nom-form__error" role="alert">
-            Shopping list name is required
-          </span>
-        }
-
-        <!-- Description Field - Using AMW -->
-        <amw-textarea formControlName="description" placeholder="Add a description for your shopping list..."
-          label="Description (Optional)" class="shopping-edit__field">
-        </amw-textarea>
-
-        <!-- Form Actions -->
-        <div class="shopping-edit__actions">
+        <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+          <amw-input
+            type="text"
+            formControlName="name"
+            placeholder="Enter a name for your shopping list..."
+            label="Shopping List Name"
+            [required]="true">
+          </amw-input>
+          <amw-textarea
+            formControlName="description"
+            placeholder="Add a description for your shopping list..."
+            label="Description (Optional)">
+          </amw-textarea>
+        </form>
+        <div class="nom-form__actions">
           <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
             {{ formConfig.cancelText || 'Cancel' }}
           </amw-button>
-
-          <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            icon="check"
+            [loading]="isLoading()"
             [amwValidationTooltip]="validationContext"
-            [disabled]="shoppingForm.invalid">
+            [disabled]="shoppingForm.invalid"
+            (click)="onSubmit()">
             {{ formConfig.submitText || 'Update Shopping List' }}
           </amw-button>
         </div>
-      </form>
       }
     </ng-template>
   </amw-card>

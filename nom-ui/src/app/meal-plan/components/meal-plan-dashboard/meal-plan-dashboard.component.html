@@ -1,166 +1,139 @@
-<div class="nom-page-container full-canvas nom-compact-top-minimal">
-    <div class="nom-dashboard nom-scroll-container nom-scroll-container--dashboard">
-        <!-- Compact Header with Stats Pills -->
-        <div class="nom-dashboard__header-compact">
-            <div class="nom-dashboard__header-title-section">
-                <h1 class="nom-dashboard__title">Meal Plans</h1>
-            </div>
-            
-            <div class="nom-dashboard__header-center-section">
-                <!-- Stats Pills -->
-                <div class="nom-dashboard__stats-pills">
-                    <div class="nom-dashboard__stat-pill">
-                        <amw-icon name="schedule"></amw-icon>
-                        <span class="nom-dashboard__stat-number">{{ filteredPlans().length }}</span>
-                        <span class="nom-dashboard__stat-label">Plans</span>
-                    </div>
-                    <div class="nom-dashboard__stat-pill">
-                        <amw-icon name="restaurant"></amw-icon>
-                        <span class="nom-dashboard__stat-number">{{ getTotalMeals() }}</span>
-                        <span class="nom-dashboard__stat-label">Meals</span>
-                    </div>
-                    <div class="nom-dashboard__stat-pill">
-                        <amw-icon name="calendar_today"></amw-icon>
-                        <span class="nom-dashboard__stat-number">{{ getUpcomingMeals() }}</span>
-                        <span class="nom-dashboard__stat-label">This Week</span>
-                    </div>
+<div class="nom-dashboard">
+    <!-- Header with Stats -->
+    <header class="nom-dashboard__header">
+        <div class="nom-dashboard__header-left">
+            <h1 class="nom-dashboard__title">Meal Plans</h1>
+        </div>
+        <div class="nom-dashboard__header-center">
+            <div class="nom-dashboard__stats">
+                <div class="nom-dashboard__stat">
+                    <amw-icon name="schedule"></amw-icon>
+                    <span>{{ filteredPlans().length }} Plans</span>
+                </div>
+                <div class="nom-dashboard__stat">
+                    <amw-icon name="restaurant"></amw-icon>
+                    <span>{{ getTotalMeals() }} Meals</span>
+                </div>
+                <div class="nom-dashboard__stat">
+                    <amw-icon name="calendar_today"></amw-icon>
+                    <span>{{ getUpcomingMeals() }} This Week</span>
                 </div>
             </div>
         </div>
+        <div class="nom-dashboard__header-right">
+            <amw-button variant="outlined" icon="add" (click)="createMealPlan()">
+                Create Plan
+            </amw-button>
+        </div>
+    </header>
 
-        <div class="nom-dashboard__content">
-            <!-- Main Content Grid -->
-            <div class="nom-dashboard__grid">
-                <!-- Meal Plans Section -->
-                <div class="nom-dashboard__section">
-                    <div class="nom-dashboard__section-header-compact">
-                        <!-- View Toggle and Search -->
-                        <div class="nom-dashboard__filters">
-                            <amw-button-toggle-group [(ngModel)]="viewMode" (valueChange)="onViewModeChange($event)" groupClass="nom-dashboard__view-toggle">
-                                <amw-button-toggle value="week" icon="view_week">Week View</amw-button-toggle>
-                                <amw-button-toggle value="month" icon="view_module">Month View</amw-button-toggle>
-                            </amw-button-toggle-group>
+    <!-- Filters Section -->
+    <div class="nom-dashboard__section">
+        <div class="nom-dashboard__filters">
+            <amw-button-toggle-group [(ngModel)]="viewMode" (valueChange)="onViewModeChange($event)">
+                <amw-button-toggle value="week" icon="view_week">Week View</amw-button-toggle>
+                <amw-button-toggle value="month" icon="view_module">Month View</amw-button-toggle>
+            </amw-button-toggle-group>
+            <amw-input
+                [formControl]="searchControl"
+                label="Search Meal Plans..."
+                placeholder="Search Meal Plans..."
+                icon="search"
+                class="nom-dashboard__filter-field">
+            </amw-input>
+        </div>
 
-                            <amw-input
-                                [formControl]="searchControl"
-                                label="Search Meal Plans..."
-                                placeholder="Search Meal Plans..."
-                                icon="search"
-                                class="nom-dashboard__filter-field">
-                            </amw-input>
-                        </div>
-
-                        <amw-button
-                            variant="outlined"
-                            icon="add"
-                            (click)="createMealPlan()"
-                            class="nom-dashboard__action-button">
-                            Create Plan
-                        </amw-button>
-                    </div>
-
-                    @if (filteredPlans.length > 0) {
-                        @if (viewMode() === 'week') {
-                            <!-- Week View -->
-                            <div class="nom-dashboard__week-view">
-                                <div class="nom-dashboard__week-header">
-                                    <h2 class="nom-dashboard__week-title">This Week's Meal Plans</h2>
-                                </div>
-                                <div class="nom-dashboard__week-grid">
-                                    @for (day of getWeekDays(); track day.date) {
-                                        <div class="nom-dashboard__day-column">
-                                            <div class="nom-dashboard__day-header">
-                                                <h3 class="nom-dashboard__day-title">{{ day.name }}</h3>
-                                                <p class="nom-dashboard__day-date">{{ day.date | date:'MMM d' }}</p>
-                                                @if (isToday(day.date)) {
-                                                    <amw-chip label="Today" chipClass="nom-dashboard__today-chip"></amw-chip>
-                                                }
-                                            </div>
-                                            <div class="nom-dashboard__day-plans">
-                                                @for (plan of getPlansForDay(day.date); track plan.id) {
-                                                    <div class="nom-dashboard__plan-item">
-                                                        <div class="nom-dashboard__plan-header">
-                                                            <amw-icon name="restaurant" class="nom-dashboard__plan-icon"></amw-icon>
-                                                            <div class="nom-dashboard__plan-info">
-                                                                <h4 class="nom-dashboard__plan-title">{{ plan.title || plan.recipeName }}</h4>
-                                                                <p class="nom-dashboard__plan-description">{{ plan.description }}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div class="nom-dashboard__plan-actions">
-                                                            <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
-                                                                <amw-icon name="edit"></amw-icon>
-                                                            </amw-button>
-                                                            <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
-                                                                <amw-icon name="delete"></amw-icon>
-                                                            </amw-button>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
+        @if (filteredPlans.length > 0) {
+            @if (viewMode() === 'week') {
+                <!-- Week View -->
+                <div class="nom-calendar">
+                    <header class="nom-calendar__header">
+                        <h2 class="nom-calendar__title">This Week's Meal Plans</h2>
+                    </header>
+                    <div class="nom-calendar__grid">
+                        @for (day of getWeekDays(); track day.date) {
+                            <div class="nom-calendar__day" [class.nom-calendar__day--today]="isToday(day.date)">
+                                <div class="nom-calendar__day-header">
+                                    <h3 class="nom-calendar__day-name">{{ day.name }}</h3>
+                                    <p class="nom-calendar__day-date">{{ day.date | date:'MMM d' }}</p>
+                                    @if (isToday(day.date)) {
+                                        <amw-chip label="Today"></amw-chip>
                                     }
                                 </div>
-                            </div>
-                        } @else {
-                            <!-- Month View -->
-                            <div class="nom-dashboard__month-view">
-                                <div class="nom-dashboard__month-header">
-                                    <h2 class="nom-dashboard__month-title">{{ getCurrentMonth() }}</h2>
-                                </div>
-                                <div class="nom-dashboard__item-grid">
-                                    @for (plan of filteredPlans(); track plan.id) {
-                                        <div class="nom-dashboard__item-card">
-                                            <div class="nom-dashboard__item-row">
-                                                <div class="nom-dashboard__item-info">
-                                                    <h3 class="nom-dashboard__item-title">{{ plan.title || plan.recipeName }}</h3>
-                                                    <div class="nom-dashboard__item-status">
-                                                        <span class="nom-dashboard__status-badge">{{ plan.mealType }}</span>
-                                                    </div>
-                                                    <div class="nom-dashboard__item-version">
-                                                        <span class="nom-dashboard__version-text">{{ plan.date | date:'MMM d' }}</span>
-                                                    </div>
+                                <div class="nom-calendar__day-content">
+                                    @for (plan of getPlansForDay(day.date); track plan.id) {
+                                        <div class="nom-calendar__item">
+                                            <div class="nom-calendar__item-header">
+                                                <amw-icon name="restaurant" class="nom-calendar__item-icon"></amw-icon>
+                                                <div class="nom-calendar__item-info">
+                                                    <h4 class="nom-calendar__item-title">{{ plan.title || plan.recipeName }}</h4>
+                                                    @if (plan.description) {
+                                                        <p class="nom-calendar__item-description">{{ plan.description }}</p>
+                                                    }
                                                 </div>
-                                                <div class="nom-dashboard__item-actions">
-                                                    <amw-button variant="icon" (click)="editMealPlan(plan)" class="nom-dashboard__action-btn" title="Edit">
-                                                        <amw-icon name="edit"></amw-icon>
-                                                    </amw-button>
-                                                    <amw-button variant="icon" (click)="deleteMealPlan(plan)" class="nom-dashboard__action-btn" title="Delete">
-                                                        <amw-icon name="delete"></amw-icon>
-                                                    </amw-button>
-                                                </div>
+                                            </div>
+                                            <div class="nom-calendar__item-actions">
+                                                <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
+                                                    <amw-icon name="edit"></amw-icon>
+                                                </amw-button>
+                                                <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
+                                                    <amw-icon name="delete"></amw-icon>
+                                                </amw-button>
                                             </div>
                                         </div>
                                     }
                                 </div>
                             </div>
                         }
-                    } @else {
-                        <div class="nom-dashboard__empty-state">
-                            <amw-icon name="schedule" class="nom-dashboard__empty-icon"></amw-icon>
-                            <h3>No meal plans yet</h3>
-                            <p>Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
-                            @if (searchTerm()) {
-                                <div class="nom-dashboard__empty-actions">
-                                    <amw-button
-                                        variant="outlined"
-                                        icon="clear"
-                                        (click)="clearSearch()"
-                                        class="nom-dashboard__empty-action">
-                                        Clear Search
+                    </div>
+                </div>
+            } @else {
+                <!-- Month View -->
+                <div class="nom-calendar">
+                    <header class="nom-calendar__header">
+                        <h2 class="nom-calendar__title">{{ getCurrentMonth() }}</h2>
+                    </header>
+                    <div class="nom-dashboard__grid">
+                        @for (plan of filteredPlans(); track plan.id) {
+                            <div class="nom-dashboard__card nom-dashboard__card--clickable">
+                                <div class="nom-dashboard__card-content">
+                                    <h3 class="nom-dashboard__card-title">{{ plan.title || plan.recipeName }}</h3>
+                                    <div class="nom-dashboard__card-meta">
+                                        <span class="nom-status-badge">{{ plan.mealType }}</span>
+                                        <span>{{ plan.date | date:'MMM d' }}</span>
+                                    </div>
+                                </div>
+                                <div class="nom-dashboard__card-actions">
+                                    <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
+                                        <amw-icon name="edit"></amw-icon>
+                                    </amw-button>
+                                    <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
+                                        <amw-icon name="delete"></amw-icon>
                                     </amw-button>
                                 </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-
-            @if (error()) {
-                <div class="nom-dashboard__error-message">
-                    <amw-icon name="error"></amw-icon>
-                    <p>{{ error() }}</p>
+                            </div>
+                        }
+                    </div>
                 </div>
             }
-        </div>
+        } @else {
+            <div class="nom-dashboard__empty">
+                <amw-icon name="schedule" class="nom-dashboard__empty-icon"></amw-icon>
+                <h3 class="nom-dashboard__empty-title">No meal plans yet</h3>
+                <p class="nom-dashboard__empty-message">Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
+                @if (searchTerm()) {
+                    <amw-button variant="outlined" icon="clear" (click)="clearSearch()">
+                        Clear Search
+                    </amw-button>
+                }
+            </div>
+        }
     </div>
+
+    @if (error()) {
+        <div class="nom-dashboard__error">
+            <amw-icon name="error"></amw-icon>
+            <p>{{ error() }}</p>
+        </div>
+    }
 </div>

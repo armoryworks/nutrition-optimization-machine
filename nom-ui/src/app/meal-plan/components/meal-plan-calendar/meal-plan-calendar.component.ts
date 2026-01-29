@@ -2,38 +2,79 @@ import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular
 import { Router } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import {
-  AmwCardComponent,
-  AmwButtonComponent,
+  AmwCalendarFullComponent,
   AmwInlineLoadingComponent,
-  AmwIconComponent,
-  AmwIconButtonComponent,
+  AmwButtonComponent,
 } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
 import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
 
-interface DayMeals {
-  date: Date;
-  dayName: string;
-  dayNumber: number;
-  isToday: boolean;
-  isPast: boolean;
-  breakfast?: MealPlanResponseModel;
-  lunch?: MealPlanResponseModel;
-  dinner?: MealPlanResponseModel;
-  snack?: MealPlanResponseModel;
+// Local interfaces matching AMW Calendar types
+interface CalendarEvent<T = unknown> {
+  id: string;
+  data: T;
+  title?: string;
+  description?: string;
+  start: Date;
+  end?: Date;
+  allDay?: boolean;
+  color?: string;
+  icon?: string;
+  editable?: boolean;
+  deletable?: boolean;
+  draggable?: boolean;
 }
+
+interface CalendarConfig<T = unknown> {
+  displayProperty: keyof T;
+  editable?: boolean;
+  deletable?: boolean;
+  draggable?: boolean;
+  allowCreate?: boolean;
+  eventRenderer?: (event: CalendarEvent<T>) => string;
+  eventColor?: (event: CalendarEvent<T>) => string;
+}
+
+interface CalendarEventChangeEvent<T = unknown> {
+  event: CalendarEvent<T>;
+  type: 'create' | 'add' | 'update' | 'delete' | 'move';
+}
+
+type CalendarView = 'month' | 'week' | 'day' | 'agenda';
+
+// Meal type time defaults (hours)
+const MEAL_TIMES: Record<string, number> = {
+  breakfast: 7,
+  lunch: 12,
+  dinner: 18,
+  snack: 15,
+};
+
+// Meal type colors
+const MEAL_COLORS: Record<string, string> = {
+  breakfast: '#FFA000', // Amber
+  lunch: '#43A047',     // Green
+  dinner: '#E53935',    // Red
+  snack: '#8E24AA',     // Purple
+};
+
+// Meal type icons
+const MEAL_ICONS: Record<string, string> = {
+  breakfast: 'wb_sunny',
+  lunch: 'restaurant',
+  dinner: 'dinner_dining',
+  snack: 'local_cafe',
+};
 
 @Component({
   selector: 'nom-meal-plan-calendar',
   standalone: true,
   imports: [
-    AmwCardComponent,
-    AmwButtonComponent,
+    AmwCalendarFullComponent,
     AmwInlineLoadingComponent,
-    AmwIconComponent,
-    AmwIconButtonComponent,
+    AmwButtonComponent,
   ],
   templateUrl: './meal-plan-calendar.component.html',
   styleUrl: './meal-plan-calendar.component.scss',
@@ -45,13 +86,26 @@ export class MealPlanCalendarComponent implements OnInit, OnDestroy {
   // Signals
   mealPlans = signal<MealPlanResponseModel[]>([]);
   currentDate = signal(new Date());
-  viewMode = signal<'week' | 'month'>('week');
+  currentView = signal<CalendarView>('week');
   isLoading = signal(true);
   error = signal<string | null>(null);
 
-  // Computed
-  weekDays = computed(() => this.getWeekDays(this.currentDate()));
-  weekMeals = computed(() => this.organizeWeekMeals(this.mealPlans(), this.weekDays()));
+  // Convert meal plans to calendar events
+  calendarEvents = computed(() => this.convertToCalendarEvents(this.mealPlans()));
+
+  // Calendar configuration
+  calendarConfig = computed<CalendarConfig<MealPlanResponseModel>>(() => ({
+    displayProperty: 'recipeName',
+    editable: true,
+    deletable: true,
+    draggable: true,
+    allowCreate: true,
+    eventRenderer: (event) => event.data?.recipeName || event.data?.title || 'Meal',
+    eventColor: (event) => {
+      const mealType = event.data?.mealType?.toLowerCase() || '';
+      return MEAL_COLORS[mealType] || 'var(--mat-sys-primary)';
+    },
+  }));
 
   // RxJS cleanup
   private destroy$ = new Subject<void>();
@@ -86,120 +140,132 @@ export class MealPlanCalendarComponent implements OnInit, OnDestroy {
       });
   }
 
-  private getWeekDays(currentDate: Date): Date[] {
-    const startOfWeek = new Date(currentDate);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day; // Sunday is 0
-    startOfWeek.setDate(diff);
+  private convertToCalendarEvents(plans: MealPlanResponseModel[]): CalendarEvent<MealPlanResponseModel>[] {
+    return plans.map((plan) => {
+      const mealType = plan.mealType?.toLowerCase() || 'lunch';
+      const startDate = new Date(plan.date);
+      const hour = MEAL_TIMES[mealType] ?? 12;
+      startDate.setHours(hour, 0, 0, 0);
 
-    const days: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-      days.push(date);
-    }
-    return days;
-  }
+      const endDate = new Date(startDate);
+      endDate.setHours(hour + 1); // 1 hour duration
 
-  private organizeWeekMeals(plans: MealPlanResponseModel[], weekDays: Date[]): DayMeals[] {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return weekDays.map((date) => {
-      const dayPlans = plans.filter((plan) => {
-        const planDate = new Date(plan.date);
-        return this.isSameDay(planDate, date);
-      });
-
-      const dayMeals: DayMeals = {
-        date,
-        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        dayNumber: date.getDate(),
-        isToday: this.isSameDay(date, today),
-        isPast: date < today,
+      return {
+        id: plan.id.toString(),
+        data: plan,
+        title: plan.recipeName || plan.title,
+        description: plan.notes || plan.description,
+        start: startDate,
+        end: endDate,
+        allDay: false,
+        color: MEAL_COLORS[mealType] || 'var(--mat-sys-primary)',
+        icon: MEAL_ICONS[mealType] || 'restaurant_menu',
+        editable: true,
+        deletable: true,
+        draggable: true,
       };
-
-      dayPlans.forEach((plan) => {
-        const mealType = plan.mealType?.toLowerCase();
-        if (mealType === 'breakfast') dayMeals.breakfast = plan;
-        else if (mealType === 'lunch') dayMeals.lunch = plan;
-        else if (mealType === 'dinner') dayMeals.dinner = plan;
-        else if (mealType === 'snack') dayMeals.snack = plan;
-      });
-
-      return dayMeals;
     });
   }
 
-  private isSameDay(date1: Date, date2: Date): boolean {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
+  onEventClick(event: CalendarEvent<MealPlanResponseModel>): void {
+    if (event.data?.id) {
+      this.router.navigate(['/meal-plan', event.data.id]);
+    }
   }
 
-  onPreviousWeek(): void {
-    const newDate = new Date(this.currentDate());
-    newDate.setDate(newDate.getDate() - 7);
-    this.currentDate.set(newDate);
+  onEventChange(changeEvent: CalendarEventChangeEvent<MealPlanResponseModel>): void {
+    const { event, type } = changeEvent;
+
+    switch (type) {
+      case 'create':
+      case 'add':
+        // Navigate to create page with pre-filled date/time
+        this.router.navigate(['/meal-plan/create'], {
+          queryParams: {
+            date: event.start.toISOString(),
+            mealType: this.getMealTypeFromTime(event.start),
+          },
+        });
+        break;
+      case 'delete':
+        // Handle delete - could call service directly or navigate
+        if (event.data?.id) {
+          this.deleteMealPlan(event.data.id);
+        }
+        break;
+      case 'move':
+      case 'update':
+        // Handle move/update
+        if (event.data?.id) {
+          this.updateMealPlanDate(event.data.id, event.start);
+        }
+        break;
+    }
   }
 
-  onNextWeek(): void {
-    const newDate = new Date(this.currentDate());
-    newDate.setDate(newDate.getDate() + 7);
-    this.currentDate.set(newDate);
-  }
-
-  onToday(): void {
-    this.currentDate.set(new Date());
-  }
-
-  onAddMeal(date: Date, mealType: string): void {
+  onCellClick(cellEvent: { date: Date; time?: Date }): void {
+    const date = cellEvent.time || cellEvent.date;
     this.router.navigate(['/meal-plan/create'], {
       queryParams: {
         date: date.toISOString(),
-        mealType: mealType,
+        mealType: this.getMealTypeFromTime(date),
       },
     });
   }
 
-  onViewMeal(mealId: number): void {
-    this.router.navigate(['/meal-plan', mealId]);
+  onViewChange(view: CalendarView): void {
+    this.currentView.set(view);
+  }
+
+  onDateChange(date: Date): void {
+    this.currentDate.set(date);
   }
 
   onRetry(): void {
     this.loadMealPlans();
   }
 
-  getMealTypeIcon(mealType: string): string {
-    switch (mealType?.toLowerCase()) {
-      case 'breakfast':
-        return 'wb_sunny';
-      case 'lunch':
-        return 'restaurant';
-      case 'dinner':
-        return 'dinner_dining';
-      case 'snack':
-        return 'local_cafe';
-      default:
-        return 'restaurant_menu';
-    }
+  private getMealTypeFromTime(date: Date): string {
+    const hour = date.getHours();
+    if (hour < 10) return 'breakfast';
+    if (hour < 14) return 'lunch';
+    if (hour < 17) return 'snack';
+    return 'dinner';
   }
 
-  getCurrentWeekLabel(): string {
-    const weekDays = this.weekDays();
-    if (weekDays.length === 0) return '';
+  private deleteMealPlan(id: number): void {
+    this.mealPlanService
+      .deleteMealPlan(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          // Remove from local state
+          this.mealPlans.update((plans) => plans.filter((p) => p.id !== id));
+        },
+        error: (err) => {
+          console.error('Error deleting meal plan:', err);
+        },
+      });
+  }
 
-    const firstDay = weekDays[0];
-    const lastDay = weekDays[weekDays.length - 1];
+  private updateMealPlanDate(id: number, newDate: Date): void {
+    const plan = this.mealPlans().find((p) => p.id === id);
+    if (!plan) return;
 
-    const formatOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-
-    if (firstDay.getMonth() === lastDay.getMonth()) {
-      return `${firstDay.toLocaleDateString('en-US', { month: 'short' })} ${firstDay.getDate()} - ${lastDay.getDate()}, ${firstDay.getFullYear()}`;
-    } else {
-      return `${firstDay.toLocaleDateString('en-US', formatOptions)} - ${lastDay.toLocaleDateString('en-US', formatOptions)}, ${firstDay.getFullYear()}`;
-    }
+    const updatedPlan = { ...plan, date: newDate };
+    this.mealPlanService
+      .updateMealPlan(id, updatedPlan)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          // Update local state
+          this.mealPlans.update((plans) =>
+            plans.map((p) => (p.id === id ? { ...p, date: newDate } : p))
+          );
+        },
+        error: (err) => {
+          console.error('Error updating meal plan:', err);
+        },
+      });
   }
 }

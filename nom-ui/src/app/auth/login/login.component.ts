@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ViewEncapsulation, inject, OnInit, OnDestroy, output } from '@angular/core';
 import {
   FormGroup,
   Validators,
@@ -8,7 +8,7 @@ import {
 
 import { RouterLink } from '@angular/router';
 
-import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwInputComponent, AmwCheckboxComponent, AmwButtonComponent, AmwIconComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { LoginUser } from '../models/login-user';
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
@@ -24,7 +24,7 @@ import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
     AmwInputComponent,
     AmwCheckboxComponent,
     AmwButtonComponent,
-    AmwCardComponent,
+    AmwIconComponent,
     AmwValidationTooltipDirective
   ],
   templateUrl: './login.component.html',
@@ -36,6 +36,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   private authManager = inject(AuthManagerService);
   private notificationService = inject(NotificationService);
   private validationService = inject(AmwValidationService);
+
+  closeRequested = output<void>();
 
   loginForm: FormGroup = this.nonNullableFb.group({
     email: ['', [Validators.required, Validators.email]],

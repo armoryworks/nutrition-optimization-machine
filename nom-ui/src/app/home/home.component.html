@@ -1,127 +1,120 @@
-<div class="nom-page-container">
-  <div class="home">
-    <!-- Hero Section -->
-    <section class="home__hero">
-      <div class="home__hero-content">
-        <h1 class="home__hero-title">
-          Welcome to <span class="home__hero-accent">NOM</span>
-        </h1>
-        <p class="home__hero-subtitle">
-          Your Nutrition Optimization Machine - Discover, create, and share amazing recipes
+<div class="nom-landing">
+  <!-- Hero Section - Centered -->
+  <section class="nom-landing__hero nom-landing__hero--centered">
+    <h1 class="nom-landing__title">
+      Welcome to <span class="home__accent">NOM</span>
+    </h1>
+    <p class="nom-landing__subtitle">
+      Your Nutrition Optimization Machine - Discover, create, and share amazing recipes
+    </p>
+  </section>
+
+  <!-- Features Grid - 2 Column Layout -->
+  <section class="nom-landing__section">
+    <div class="nom-landing__grid">
+      <!-- Curated Quality -->
+      <div class="nom-landing__card" (click)="onRecipeCardClick()" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="verified" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Curated Quality</h3>
+        </div>
+        <p class="nom-landing__card-description">
+          Every recipe and ingredient is carefully reviewed by our nutrition experts to ensure quality and accuracy.
         </p>
-        <div class="home__hero-actions">
-          <amw-button variant="filled" color="primary" class="home__hero-btn" routerLink="/register" icon="person_add">
-            Get Started
-          </amw-button>
-          <amw-button variant="outlined" class="home__hero-btn" (click)="onBrowseRecipesClick()" icon="search">
-            Browse Recipes
-          </amw-button>
-        </div>
+        <p class="nom-landing__card-description">
+          Browse our collection of verified recipes, carefully curated for nutritional balance and taste.
+        </p>
       </div>
-      <div class="home__hero-visual">
-        <div class="home__hero-cards">
-          <div class="home__hero-card home__hero-card--recipe" (click)="onRecipeCardClick()" style="cursor: pointer;">
-            <amw-icon name="restaurant"></amw-icon>
-            <span>Recipes</span>
-          </div>
-          <div class="home__hero-card home__hero-card--ingredient" (click)="onIngredientCardClick()" style="cursor: pointer;">
-            <amw-icon name="eco"></amw-icon>
-            <span>Ingredients</span>
-          </div>
-          <div class="home__hero-card home__hero-card--nutrition" (click)="onNutritionCardClick()" style="cursor: pointer;">
-            <amw-icon name="monitor_heart"></amw-icon>
-            <span>Nutrition</span>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Features Section -->
-    <section class="home__features">
-      <h2 class="home__section-title">Why Choose NOM?</h2>
-      <div class="home__features-grid">
-        <div class="home__feature-card">
-          <div class="home__feature-icon">
-            <amw-icon name="verified"></amw-icon>
-          </div>
-          <h3>Curated Quality</h3>
-          <p>Every recipe and ingredient is carefully reviewed by our nutrition experts to ensure quality and accuracy.</p>
+      <!-- Nutrition Insights -->
+      <div class="nom-landing__card" (click)="onNutritionCardClick()" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="insights" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Nutrition Insights</h3>
         </div>
-        <div class="home__feature-card">
-          <div class="home__feature-icon">
-            <amw-icon name="community"></amw-icon>
-          </div>
-          <h3>Community Driven</h3>
-          <p>Share your own recipes and discover creations from our growing community of food enthusiasts.</p>
-        </div>
-        <div class="home__feature-card">
-          <div class="home__feature-icon">
-            <amw-icon name="insights"></amw-icon>
-          </div>
-          <h3>Nutrition Insights</h3>
-          <p>Get detailed nutritional information for every recipe, helping you make informed dietary choices.</p>
-        </div>
-        <div class="home__feature-card">
-          <div class="home__feature-icon">
-            <amw-icon name="search"></amw-icon>
-          </div>
-          <h3>Smart Search</h3>
-          <p>Find exactly what you're looking for with our powerful search across recipes, ingredients, and nutrition data.</p>
-        </div>
+        <p class="nom-landing__card-description">
+          Get detailed nutritional information for every recipe, helping you make informed dietary choices.
+        </p>
+        <p class="nom-landing__card-description">
+          Track macros, vitamins, minerals, and more with comprehensive nutrition data.
+        </p>
       </div>
-    </section>
 
-    <!-- Quick Actions Section -->
-    <section class="home__quick-actions">
-      <h2 class="home__section-title">Get Started Today</h2>
-      <div class="home__actions-grid">
-        <div class="home__action-card" (click)="onBrowseRecipesClick()" style="cursor: pointer;">
-          <amw-icon name="search"></amw-icon>
-          <h3>Browse Recipes</h3>
-          <p>Explore our curated collection of delicious recipes</p>
-          <span class="home__action-arrow">→</span>
+      <!-- Community Driven -->
+      <div class="nom-landing__card" routerLink="/register" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="group" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Community Driven</h3>
         </div>
-        <div class="home__action-card" routerLink="/curated-plans">
-          <amw-icon name="schedule"></amw-icon>
-          <h3>Discover Meal Plans</h3>
-          <p>Find professionally curated meal plans and customize them for your needs</p>
-          <span class="home__action-arrow">→</span>
-        </div>
-        <div class="home__action-card" routerLink="/register">
-          <amw-icon name="person_add"></amw-icon>
-          <h3>Join Community</h3>
-          <p>Create an account to share your own recipes</p>
-          <span class="home__action-arrow">→</span>
-        </div>
-        <div class="home__action-card" (click)="onFindIngredientsClick()" style="cursor: pointer;">
-          <amw-icon name="eco"></amw-icon>
-          <h3>Find Ingredients</h3>
-          <p>Search our comprehensive ingredient database</p>
-          <span class="home__action-arrow">→</span>
-        </div>
+        <p class="nom-landing__card-description">Active</p>
+        <p class="nom-landing__card-description">
+          Share your own recipes and discover creations from our growing community of food enthusiasts.
+        </p>
       </div>
-    </section>
 
-    <!-- Stats Section -->
-    <section class="home__stats">
-      <div class="home__stats-grid">
-        <div class="home__stat">
-          <div class="home__stat-number">500+</div>
-          <div class="home__stat-label">Curated Recipes</div>
+      <!-- Smart Search -->
+      <div class="nom-landing__card" (click)="onBrowseRecipesClick()" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="search" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Smart Search</h3>
         </div>
-        <div class="home__stat">
-          <div class="home__stat-number">1000+</div>
-          <div class="home__stat-label">Ingredients</div>
+        <p class="nom-landing__card-description">Active</p>
+        <p class="nom-landing__card-description">
+          Find exactly what you're looking for with powerful search across recipes, ingredients, and nutrition data.
+        </p>
+      </div>
+
+      <!-- Browse Recipes -->
+      <div class="nom-landing__card" (click)="onBrowseRecipesClick()" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="restaurant" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Browse Recipes</h3>
         </div>
-        <div class="home__stat">
-          <div class="home__stat-number">50+</div>
-          <div class="home__stat-label">Community Members</div>
-        </div>
-        <div class="home__stat">
-          <div class="home__stat-number">24/7</div>
-          <div class="home__stat-label">Available</div>
+        <p class="nom-landing__card-description">
+          Explore our curated collection of delicious recipes
+        </p>
+        <div class="nom-landing__card-action">
+          <amw-icon name="schedule" class="nom-landing__card-action-icon"></amw-icon>
+          <span>Discover Meal Plans</span>
         </div>
       </div>
-    </section>
-  </div>
+
+      <!-- Find Ingredients -->
+      <div class="nom-landing__card" (click)="onFindIngredientsClick()" style="cursor: pointer;">
+        <div class="nom-landing__card-header">
+          <amw-icon name="eco" class="nom-landing__card-icon"></amw-icon>
+          <h3 class="nom-landing__card-title">Find Ingredients</h3>
+        </div>
+        <p class="nom-landing__card-description">
+          Search our comprehensive ingredient database
+        </p>
+        <div class="nom-landing__card-action">
+          <amw-icon name="group" class="nom-landing__card-action-icon"></amw-icon>
+          <span>Discover community members</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="nom-landing__section">
+    <div class="nom-landing__stats">
+      <div class="nom-landing__stat">
+        <span class="nom-landing__stat-number">500+</span>
+        <span class="nom-landing__stat-label">curated recipes</span>
+      </div>
+      <div class="nom-landing__stat">
+        <span class="nom-landing__stat-number">1000+</span>
+        <span class="nom-landing__stat-label">ingredients</span>
+      </div>
+      <div class="nom-landing__stat">
+        <span class="nom-landing__stat-number">50+</span>
+        <span class="nom-landing__stat-label">community members</span>
+      </div>
+      <div class="nom-landing__stat">
+        <span class="nom-landing__stat-number">24/7</span>
+        <span class="nom-landing__stat-label">available</span>
+      </div>
+    </div>
+  </section>
 </div>

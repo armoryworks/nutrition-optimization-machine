@@ -1,78 +1,81 @@
-<amw-card class="nom-card" [headerTitle]="plan ? 'Edit Plan' : 'Create New Plan'">
-  <ng-template #cardContent>
-    <form [formGroup]="planForm" class="nom-form">
-      <amw-input formControlName="name" label="Plan Name" placeholder="Enter plan name" [required]="true"
-        class="nom-form__field"
-        [attr.aria-invalid]="planForm.get('name')?.invalid && planForm.get('name')?.touched"
-        [attr.aria-describedby]="planForm.get('name')?.invalid && planForm.get('name')?.touched ? 'plan-name-error' : null">
-      </amw-input>
-      @if (planForm.get('name')?.invalid && planForm.get('name')?.touched) {
-        <span id="plan-name-error" class="nom-form__error" role="alert">
-          Plan name is required
-        </span>
-      }
+<div class="nom-form--full">
+  <amw-card [headerTitle]="plan ? 'Edit Plan' : 'Create New Plan'">
+    <ng-template #cardContent>
+      <form [formGroup]="planForm" class="nom-form__fields">
+        <amw-input
+          formControlName="name"
+          label="Plan Name"
+          placeholder="Enter plan name"
+          [required]="true">
+        </amw-input>
+        <amw-textarea
+          formControlName="description"
+          label="Description"
+          placeholder="Describe your plan">
+        </amw-textarea>
+        <amw-input
+          formControlName="invitationCode"
+          label="Invitation Code"
+          placeholder="Auto-generated or custom code">
+        </amw-input>
 
-      <amw-textarea formControlName="description" label="Description" placeholder="Describe your plan"
-        class="nom-form__field">
-      </amw-textarea>
+        <!-- Restriction Editing Section -->
+        <div class="nom-form__section">
+          <h3 class="nom-form__section-title">Plan Restrictions & Preferences</h3>
+          <p class="nom-form__section-description">
+            Define dietary restrictions and personal preferences for this plan.
+          </p>
 
-      <amw-input formControlName="invitationCode" label="Invitation Code" placeholder="Auto-generated or custom code"
-        class="nom-form__field">
-      </amw-input>
-
-      <!-- Restriction Editing Section -->
-      <div class="nom-section mt-6">
-        <h3 class="nom-section__heading">Plan Restrictions & Preferences</h3>
-        <p class="nom-instruction-text">
-          Define dietary restrictions and personal preferences for this plan.
-        </p>
-
-        @if (currentRestrictionType === undefined) {
-        <div class="plan-edit__restriction-buttons">
-          <amw-button variant="filled" color="primary"
-            (click)="selectRestrictionType(RestrictionTypeEnum.SocietalReligiousEthical)">
-            Add Dietary Practices
-          </amw-button>
-          <amw-button variant="filled" color="primary"
-            (click)="selectRestrictionType(RestrictionTypeEnum.AllergyMedical)">
-            Add Medical Restrictions
-          </amw-button>
-          <amw-button variant="filled" color="primary"
-            (click)="selectRestrictionType(RestrictionTypeEnum.PersonalPreference)">
-            Add Personal Preferences
-          </amw-button>
-        </div>
-        } @else {
-        <nom-restriction-edit [restrictionType]="currentRestrictionType" [restrictions]="restrictionsForEditComponent"
-          [currentPersonId]="currentPersonId()" [allPersonsInPlan]="allPersonsInPlan()" [appliesToEntirePlan]="true"
-          [affectedPersonIds]="[]" (formSubmitted)="onRestrictionsSubmitted($event)"
-          (skipStep)="currentRestrictionType = undefined">
-        </nom-restriction-edit>
-        }
-      </div>
-
-      <!-- Display currently added restrictions for review -->
-      @if (tempRestrictions.length > 0) {
-      <div class="nom-section mt-6">
-        <h4 class="nom-section__subheading">Current Restrictions</h4>
-        <ul class="list-disc pl-5">
-          @for (res of tempRestrictions; track res.id || res.name) {
-          <li>
-            {{ getRestrictionTypeName(res.restrictionTypeId) }}:
-            {{ res.name }}
-            @if (res.description) { - {{ res.description }} }
-          </li>
+          @if (currentRestrictionType === undefined) {
+            <div class="nom-dashboard__grid--3col">
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.SocietalReligiousEthical)">
+                Add Dietary Practices
+              </amw-button>
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.AllergyMedical)">
+                Add Medical Restrictions
+              </amw-button>
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.PersonalPreference)">
+                Add Personal Preferences
+              </amw-button>
+            </div>
+          } @else {
+            <nom-restriction-edit
+              [restrictionType]="currentRestrictionType"
+              [restrictions]="restrictionsForEditComponent"
+              [currentPersonId]="currentPersonId()"
+              [allPersonsInPlan]="allPersonsInPlan()"
+              [appliesToEntirePlan]="true"
+              [affectedPersonIds]="[]"
+              (formSubmitted)="onRestrictionsSubmitted($event)"
+              (skipStep)="currentRestrictionType = undefined">
+            </nom-restriction-edit>
           }
-        </ul>
-      </div>
-      }
-    </form>
+        </div>
 
-    <div class="nom-card__footer">
-      <amw-button variant="filled" color="accent" (click)="goBack()">Back</amw-button>
-      <amw-button variant="filled" color="primary" (click)="submitForm()">
-        Save Plan
-      </amw-button>
-    </div>
-  </ng-template>
-</amw-card>
+        <!-- Display currently added restrictions for review -->
+        @if (tempRestrictions.length > 0) {
+          <div class="nom-form__section">
+            <h4 class="nom-form__section-title">Current Restrictions</h4>
+            <div class="nom-dashboard__list">
+              @for (res of tempRestrictions; track res.id || res.name) {
+                <div class="nom-dashboard__list-item">
+                  <div class="nom-dashboard__list-item-content">
+                    <span class="nom-dashboard__list-item-title">{{ res.name }}</span>
+                    <span class="nom-dashboard__list-item-meta">{{ getRestrictionTypeName(res.restrictionTypeId) }}</span>
+                  </div>
+                  @if (res.description) {
+                    <span class="nom-dashboard__list-item-meta">{{ res.description }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </form>
+      <div class="nom-form__actions">
+        <amw-button variant="text" (click)="goBack()">Back</amw-button>
+        <amw-button variant="filled" color="primary" (click)="submitForm()">Save Plan</amw-button>
+      </div>
+    </ng-template>
+  </amw-card>
+</div>

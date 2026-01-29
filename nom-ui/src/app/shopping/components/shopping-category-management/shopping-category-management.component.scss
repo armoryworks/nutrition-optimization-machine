@@ -1,341 +1,207 @@
-// Shopping Category Management Component - Uses utilities
+// Shopping Category Management Component
+// Uses global .nom-dashboard* and .nom-form* classes
+// This file contains only component-specific styles
+
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
-.shopping-category-management {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: vars.$spacing-8 vars.$spacing-4;
-  display: flex;
-  flex-direction: column;
-  gap: vars.$spacing-8;
+// =============================================================================
+// FORM CARD
+// =============================================================================
 
-  &__header {
-    margin-bottom: vars.$spacing-4;
-  }
+.shopping-category-management__form-card {
+  margin-bottom: vars.$spacing-8;
+}
 
-  &__header-content {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-4;
-  }
+// =============================================================================
+// FORM ROW (Color picker + Icon select side by side)
+// =============================================================================
 
-  &__title-section {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-4;
-  }
+.shopping-category-management__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: vars.$spacing-6;
+  align-items: start;
 
-  &__title-icon {
-    font-size: vars.$spacing-12;
-    width: vars.$spacing-12;
-    height: vars.$spacing-12;
-    color: var(--mat-sys-primary);
-  }
-
-  &__title-info {
-    display: flex;
-    flex-direction: column;
-    gap: vars.$spacing-1;
-  }
-
-  &__title {
-    font-size: vars.$font-size-2xl;
-    font-weight: vars.$font-weight-medium;
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-  }
-
-  &__subtitle {
-    font-size: vars.$font-size-md;
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-  }
-
-  // Form styles
-  &__form-card {
-    margin-bottom: vars.$spacing-8;
-  }
-
-  &__form {
-    @include nom-form-field(vars.$spacing-6);
-    padding: vars.$spacing-4 0;
-  }
-
-  &__field {
-    width: 100%;
-  }
-
-  &__form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: vars.$spacing-6;
-    align-items: start;
-  }
-
-  &__color-picker {
-    display: flex;
-    flex-direction: column;
-    gap: vars.$spacing-3;
-  }
-
-  &__color-label {
-    font-size: vars.$font-size-sm;
-    font-weight: vars.$font-weight-medium;
-    color: var(--mat-sys-on-surface);
-  }
-
-  &__color-options {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: vars.$spacing-2;
-  }
-
-  &__color-swatch {
-    width: vars.$spacing-10;
-    height: vars.$spacing-10;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    cursor: pointer;
-    transition: all vars.$transition-duration-normal vars.$transition-timing;
-    position: relative;
-
-    &:hover {
-      transform: scale(1.1);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    &--selected {
-      border-color: var(--mat-sys-on-surface);
-      box-shadow: 0 0 0 2px var(--mat-sys-surface);
-
-      &::after {
-        content: '✓';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: white;
-        font-weight: vars.$font-weight-bold;
-        text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-      }
-    }
-  }
-
-  &__icon-select {
-    width: 100%;
-  }
-
-  &__form-actions {
-    @include nom-action-group(vars.$spacing-4, flex-start);
-    padding-top: vars.$spacing-4;
-    border-top: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  &__submit-btn {
-    margin-left: auto;
-  }
-
-  // List section
-  &__list-section {
-    margin-top: vars.$spacing-8;
-  }
-
-  &__list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: vars.$spacing-6;
-  }
-
-  &__list-title {
-    font-size: vars.$font-size-xl;
-    font-weight: vars.$font-weight-medium;
-    margin: 0;
-    color: var(--mat-sys-on-surface);
-  }
-
-  &__list-hint {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-2;
-    font-size: vars.$font-size-sm;
-    color: var(--mat-sys-on-surface-variant);
-    margin: 0;
-
-    amw-icon {
-      font-size: vars.$font-size-lg;
-      width: vars.$font-size-lg;
-      height: vars.$font-size-lg;
-    }
-  }
-
-  &__loading,
-  &__no-categories {
-    @include nom-empty-state(vars.$spacing-12);
-    padding: vars.$spacing-12 vars.$spacing-8;
-  }
-
-  &__empty-icon {
-    font-size: vars.$spacing-16;
-    width: vars.$spacing-16;
-    height: vars.$spacing-16;
-    color: var(--mat-sys-on-surface-variant);
-    opacity: 0.5;
-  }
-
-  &__no-categories {
-    h3 {
-      margin: 0;
-      font-size: vars.$font-size-lg;
-      font-weight: vars.$font-weight-medium;
-      color: var(--mat-sys-on-surface);
-    }
-
-    p {
-      margin: 0;
-      color: var(--mat-sys-on-surface-variant);
-    }
-  }
-
-  // Categories grid with drag-drop
-  &__categories-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: vars.$spacing-6;
-  }
-
-  &__category-drag-wrapper {
-    cursor: move;
-    transition: opacity vars.$transition-duration-normal vars.$transition-timing;
-
-    &.cdk-drag-preview {
-      opacity: 0.8;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-
-    &.cdk-drag-animating {
-      transition: transform vars.$transition-duration-slow cubic-bezier(0, 0, 0.2, 1);
-    }
-  }
-
-  &__category-card {
-    transition: transform vars.$transition-duration-normal vars.$transition-timing, box-shadow vars.$transition-duration-normal vars.$transition-timing;
-    height: 100%;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  &__category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: vars.$spacing-4;
-  }
-
-  &__category-color {
-    width: vars.$spacing-10;
-    height: vars.$spacing-10;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  &__drag-handle {
-    font-size: vars.$font-size-xl;
-    width: vars.$font-size-xl;
-    height: vars.$font-size-xl;
-    color: var(--mat-sys-on-surface-variant);
-    cursor: grab;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  &__category-stats {
-    display: flex;
-    gap: vars.$spacing-8;
-    padding: vars.$spacing-4 0;
-  }
-
-  &__stat {
-    display: flex;
-    flex-direction: column;
-    gap: vars.$spacing-1;
-  }
-
-  &__stat-value {
-    font-size: vars.$font-size-xl;
-    font-weight: vars.$font-weight-semibold;
-    color: var(--mat-sys-primary);
-  }
-
-  &__stat-label {
-    font-size: vars.$font-size-sm;
-    color: var(--mat-sys-on-surface-variant);
-  }
-
-  &__edit-btn,
-  &__delete-btn {
-    min-width: auto;
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
   }
 }
 
-// Drag-drop placeholder
+// =============================================================================
+// COLOR PICKER
+// =============================================================================
+
+.shopping-category-management__color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.shopping-category-management__color-label {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.shopping-category-management__color-options {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: vars.$spacing-2;
+}
+
+.shopping-category-management__color-swatch {
+  width: vars.$spacing-10;
+  height: vars.$spacing-10;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &--selected {
+    border-color: var(--mat-sys-on-surface);
+    box-shadow: 0 0 0 2px var(--mat-sys-surface);
+
+    &::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-weight: vars.$font-weight-bold;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    }
+  }
+}
+
+// =============================================================================
+// LIST SECTION
+// =============================================================================
+
+.shopping-category-management__list-section {
+  margin-top: vars.$spacing-8;
+}
+
+.shopping-category-management__list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: vars.$spacing-2;
+  }
+}
+
+.shopping-category-management__list-title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-medium;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+.shopping-category-management__list-hint {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+
+  amw-icon {
+    font-size: vars.$font-size-lg;
+    width: vars.$font-size-lg;
+    height: vars.$font-size-lg;
+  }
+}
+
+// =============================================================================
+// DRAG-DROP
+// =============================================================================
+
+.shopping-category-management__category-drag-wrapper {
+  cursor: move;
+  transition: opacity 0.2s ease;
+
+  &.cdk-drag-preview {
+    opacity: 0.8;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+// =============================================================================
+// CATEGORY CARD CONTENT
+// =============================================================================
+
+.shopping-category-management__category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: vars.$spacing-4;
+}
+
+.shopping-category-management__category-color {
+  width: vars.$spacing-10;
+  height: vars.$spacing-10;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.shopping-category-management__drag-handle {
+  font-size: vars.$font-size-xl;
+  width: vars.$font-size-xl;
+  height: vars.$font-size-xl;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.shopping-category-management__category-stats {
+  display: flex;
+  gap: vars.$spacing-8;
+  padding: vars.$spacing-4 0;
+}
+
+.shopping-category-management__stat {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.shopping-category-management__stat-value {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-primary);
+}
+
+.shopping-category-management__stat-label {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// =============================================================================
+// CDK DRAG-DROP GLOBAL STYLES
+// =============================================================================
+
 .cdk-drag-placeholder {
   opacity: 0;
 }
 
 .cdk-drag-animating {
-  transition: transform vars.$transition-duration-slow cubic-bezier(0, 0, 0.2, 1);
-}
-
-// Responsive styles
-@media (max-width: vars.$breakpoint-mobile) {
-  .shopping-category-management {
-    padding: vars.$spacing-4;
-
-    &__title {
-      font-size: vars.$font-size-xl;
-    }
-
-    &__title-icon {
-      font-size: vars.$spacing-8;
-      width: vars.$spacing-8;
-      height: vars.$spacing-8;
-    }
-
-    &__form-row {
-      grid-template-columns: 1fr;
-    }
-
-    &__color-options {
-      grid-template-columns: repeat(5, 1fr);
-    }
-
-    &__categories-grid {
-      grid-template-columns: 1fr;
-    }
-
-    &__list-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: vars.$spacing-2;
-    }
-
-    &__form-actions {
-      flex-direction: column;
-
-      amw-button {
-        width: 100%;
-      }
-
-      &__submit-btn {
-        margin-left: 0;
-      }
-    }
-  }
+  transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
 }

@@ -22,6 +22,10 @@ namespace Nom.Api.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Search recipes. Anonymous users can only search public, approved recipes.
+        /// </summary>
+        [AllowAnonymous]
         [HttpPost("search")]
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -44,6 +48,10 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get search suggestions for autocomplete. Anonymous access allowed.
+        /// </summary>
+        [AllowAnonymous]
         [HttpGet("suggestions")]
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSearchSuggestions([Required] string query)
@@ -60,6 +68,10 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get popular public recipes. Anonymous access allowed.
+        /// </summary>
+        [AllowAnonymous]
         [HttpGet("popular")]
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPopularRecipes([Range(1, 50)] int count = 10)
@@ -76,6 +88,10 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get recently added public recipes. Anonymous access allowed.
+        /// </summary>
+        [AllowAnonymous]
         [HttpGet("recent")]
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetRecentRecipes([Range(1, 50)] int count = 10)

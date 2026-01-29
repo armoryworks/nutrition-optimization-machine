@@ -1,7 +1,3 @@
-// Ingredient Edit Component Styles
-// Now minimal since it wraps the unified ingredient form component
-
-.nom-ingredient-edit {
-  // Minimal styling since the edit component now just wraps the unified component
-  // All form styling is handled by the unified component
-}
+// Ingredient Edit Component
+// Uses global Form-Full stereotype classes
+// Form styling handled by the child nom-ingredient-form component

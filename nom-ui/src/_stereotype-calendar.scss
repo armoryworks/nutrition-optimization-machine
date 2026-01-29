@@ -1,175 +1,274 @@
 // =============================================================================
-// CALENDAR STEREOTYPE
+// CALENDAR STEREOTYPE - GLOBAL CLASSES
 // =============================================================================
-// Use for: calendar/grid-based scheduling views
-// Components: meal-plan-calendar
+// File: _stereotype-calendar.scss
+//
+// These classes are available GLOBALLY to all components.
+// Components use them directly in HTML templates.
+// Component SCSS should NOT redefine these - only add component-specific overrides.
+//
+// USAGE IN HTML:
+//   <div class="nom-calendar">
+//     <header class="nom-calendar__header">
+//       <h2 class="nom-calendar__title">This Week</h2>
+//     </header>
+//     <div class="nom-calendar__grid">
+//       <div class="nom-calendar__day nom-calendar__day--today">
+//         <div class="nom-calendar__day-header">...</div>
+//         <div class="nom-calendar__day-content">...</div>
+//       </div>
+//     </div>
+//   </div>
+//
 // =============================================================================
 
 @use './variables' as vars;
+@use './mixins' as mixins;
 
-// -----------------------------------------------------------------------------
-// Calendar Container
-// -----------------------------------------------------------------------------
-%nom-calendar {
+// =============================================================================
+// CALENDAR CONTAINER
+// =============================================================================
+
+.nom-calendar {
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-4;
-  padding: vars.$spacing-4;
-  max-width: 1600px;
-  margin: 0 auto;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-2;
-  }
 }
 
-// -----------------------------------------------------------------------------
-// Calendar Header
-// -----------------------------------------------------------------------------
-%nom-calendar-header {
+.nom-calendar--full-height {
+  min-height: calc(100vh - vars.$header-height - vars.$footer-height - vars.$spacing-8);
+}
+
+// =============================================================================
+// CALENDAR HEADER
+// =============================================================================
+
+.nom-calendar__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: vars.$spacing-3;
   }
 }
 
-%nom-calendar-nav {
+.nom-calendar__title {
+  margin: 0;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-calendar__nav {
   display: flex;
   align-items: center;
   gap: vars.$spacing-2;
 }
 
-%nom-calendar-title {
-  margin: 0;
-  font-size: vars.$font-size-xl;
-  font-weight: vars.$font-weight-medium;
-  color: var(--mat-sys-on-surface);
+// =============================================================================
+// WEEK GRID (7-column layout)
+// =============================================================================
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    font-size: vars.$font-size-lg;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Calendar Grid
-// -----------------------------------------------------------------------------
-%nom-calendar-grid {
+.nom-calendar__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: vars.$spacing-4;
-  min-height: 600px;
+  gap: vars.$spacing-3;
 
-  @media (max-width: 1400px) {
-    gap: vars.$spacing-3;
-  }
-
-  @media (max-width: 1024px) {
+  @media (max-width: vars.$breakpoint-tablet) {
     grid-template-columns: repeat(4, 1fr);
   }
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     grid-template-columns: 1fr;
-    gap: vars.$spacing-2;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Day Column
-// -----------------------------------------------------------------------------
-%nom-calendar-day {
+.nom-calendar__grid--compact {
+  gap: vars.$spacing-2;
+}
+
+// =============================================================================
+// DAY COLUMN
+// =============================================================================
+
+.nom-calendar__day {
   display: flex;
   flex-direction: column;
-  background-color: var(--mat-sys-surface);
+  background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
   overflow: hidden;
-  transition: all vars.$transition-duration-normal vars.$transition-timing;
+  min-height: 200px;
+  @include mixins.nom-transition(all);
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-%nom-calendar-day--today {
+.nom-calendar__day--today {
   border-color: var(--mat-sys-primary);
   border-width: 2px;
-  background-color: var(--mat-sys-primary-container);
+  background: var(--mat-sys-primary-container);
 }
 
-%nom-calendar-day--past {
-  opacity: 0.7;
+.nom-calendar__day--past {
+  opacity: 0.6;
 }
 
-// -----------------------------------------------------------------------------
-// Day Header
-// -----------------------------------------------------------------------------
-%nom-calendar-day-header {
+.nom-calendar__day-header {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: vars.$spacing-3;
-  background-color: var(--mat-sys-surface-container);
+  background: var(--mat-sys-surface-container);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
-
-  @media (max-width: 1400px) {
-    padding: vars.$spacing-2;
-  }
+  text-align: center;
 }
 
-%nom-calendar-day-name {
+.nom-calendar__day-name {
   font-size: vars.$font-size-sm;
-  font-weight: vars.$font-weight-medium;
-  color: var(--mat-sys-on-surface-variant);
-  text-transform: uppercase;
-}
-
-%nom-calendar-day-number {
-  font-size: vars.$font-size-xl;
   font-weight: vars.$font-weight-semibold;
   color: var(--mat-sys-on-surface);
-
-  @media (max-width: 1400px) {
-    font-size: vars.$font-size-lg;
-  }
+  margin: 0;
 }
 
-// -----------------------------------------------------------------------------
-// Slots Container
-// -----------------------------------------------------------------------------
-%nom-calendar-slots {
+.nom-calendar__day-date {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-calendar__day-content {
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-2;
   padding: vars.$spacing-2;
   flex: 1;
+}
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: vars.$spacing-2;
+// =============================================================================
+// CALENDAR ITEMS (meals, events, etc)
+// =============================================================================
+
+.nom-calendar__item {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-sm;
+  cursor: pointer;
+  @include mixins.nom-transition(all);
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    border-color: var(--mat-sys-primary);
+    transform: translateY(-1px);
   }
 }
 
-// -----------------------------------------------------------------------------
-// Slot
-// -----------------------------------------------------------------------------
-%nom-calendar-slot {
+.nom-calendar__item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+}
+
+.nom-calendar__item-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nom-calendar__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-calendar__item-title {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0;
+  line-height: vars.$line-height-tight;
+  @include mixins.nom-text-truncate;
+}
+
+.nom-calendar__item-description {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin: vars.$spacing-1 0 0;
+  line-height: vars.$line-height-normal;
+}
+
+.nom-calendar__item-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-1;
+}
+
+// =============================================================================
+// ADD BUTTON (Empty slot)
+// =============================================================================
+
+.nom-calendar__add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: vars.$spacing-1;
+  padding: vars.$spacing-3;
+  background: transparent;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-sm;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  min-height: 60px;
+  @include mixins.nom-transition(all);
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-primary);
+  }
+}
+
+// =============================================================================
+// MONTH GRID (Card-based view for month overview)
+// =============================================================================
+
+.nom-calendar__month-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: vars.$spacing-4;
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// =============================================================================
+// MEAL TYPE SLOTS (Breakfast, Lunch, Dinner)
+// =============================================================================
+
+.nom-calendar__slot {
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-1;
-  min-height: 80px;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    min-height: 60px;
-  }
+  min-height: 60px;
 }
 
-%nom-calendar-slot-header {
+.nom-calendar__slot-header {
   display: flex;
   align-items: center;
   gap: vars.$spacing-1;
@@ -179,132 +278,26 @@
   padding: vars.$spacing-1 0;
 }
 
-// -----------------------------------------------------------------------------
-// Slot Icon (meal type indicators)
-// -----------------------------------------------------------------------------
-%nom-calendar-slot-icon {
-  font-size: 16px !important;
-  width: 16px;
-  height: 16px;
-}
-
-// -----------------------------------------------------------------------------
-// Calendar Card (item in slot)
-// -----------------------------------------------------------------------------
-%nom-calendar-card {
-  padding: vars.$spacing-2;
-  background-color: var(--mat-sys-surface-container);
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: vars.$nom-border-radius-sm;
-  cursor: pointer;
-  transition: all vars.$transition-duration-normal vars.$transition-timing;
-  flex: 1;
-
-  &:hover {
-    background-color: var(--mat-sys-surface-container-high);
-    border-color: var(--mat-sys-primary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  h4 {
-    margin: 0 0 vars.$spacing-1;
-    font-size: vars.$font-size-sm;
-    font-weight: vars.$font-weight-medium;
-    color: var(--mat-sys-on-surface);
-    line-height: vars.$line-height-tight;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-}
-
-%nom-calendar-card-notes {
-  margin: 0;
-  font-size: vars.$font-size-xs;
-  color: var(--mat-sys-on-surface-variant);
-  line-height: vars.$line-height-tight;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// -----------------------------------------------------------------------------
-// Add Button (empty slot)
-// -----------------------------------------------------------------------------
-%nom-calendar-add-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: vars.$spacing-1;
-  padding: vars.$spacing-2;
-  background: none;
-  border: 1px dashed var(--mat-sys-outline-variant);
-  border-radius: vars.$nom-border-radius-sm;
-  cursor: pointer;
-  transition: all vars.$transition-duration-normal vars.$transition-timing;
-  color: var(--mat-sys-on-surface-variant);
-  font-size: vars.$font-size-xs;
-  flex: 1;
-  min-height: 60px;
-
-  &:hover {
-    background-color: var(--mat-sys-surface-container);
-    border-color: var(--mat-sys-primary);
-    color: var(--mat-sys-primary);
-  }
-}
-
 // =============================================================================
-// Mixin-based API
+// LEGACY MIXIN SUPPORT (for gradual migration)
 // =============================================================================
+
 @mixin nom-calendar {
-  @extend %nom-calendar;
+  @extend .nom-calendar;
 }
 
 @mixin nom-calendar-header {
-  @extend %nom-calendar-header;
-}
-
-@mixin nom-calendar-nav {
-  @extend %nom-calendar-nav;
-}
-
-@mixin nom-calendar-title {
-  @extend %nom-calendar-title;
+  @extend .nom-calendar__header;
 }
 
 @mixin nom-calendar-grid {
-  @extend %nom-calendar-grid;
+  @extend .nom-calendar__grid;
 }
 
 @mixin nom-calendar-day {
-  @extend %nom-calendar-day;
+  @extend .nom-calendar__day;
 }
 
 @mixin nom-calendar-day-header {
-  @extend %nom-calendar-day-header;
-}
-
-@mixin nom-calendar-slots {
-  @extend %nom-calendar-slots;
-}
-
-@mixin nom-calendar-slot {
-  @extend %nom-calendar-slot;
-}
-
-@mixin nom-calendar-slot-header {
-  @extend %nom-calendar-slot-header;
-}
-
-@mixin nom-calendar-card {
-  @extend %nom-calendar-card;
-}
-
-@mixin nom-calendar-add-button {
-  @extend %nom-calendar-add-button;
+  @extend .nom-calendar__day-header;
 }

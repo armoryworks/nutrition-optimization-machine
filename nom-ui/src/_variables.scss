@@ -162,3 +162,57 @@ $nom-text-high-contrast-dark: $nom-neutral-50;
 // Subtle border
 $nom-border-subtle-light: $nom-neutral-200;
 $nom-border-subtle-dark: $nom-neutral-700;
+
+// =============================================================================
+// LAYOUT DIMENSIONS
+// =============================================================================
+$sidebar-width: 280px;
+$sidebar-width-collapsed: 64px;
+$header-height: 64px;
+$footer-height: 48px;
+
+$content-max-narrow: 800px;
+$content-max-medium: 1200px;
+$content-max-wide: 1600px;
+
+// =============================================================================
+// CONTROL DIMENSIONS
+// =============================================================================
+$control-height: 44px;
+$control-height-sm: 36px;
+$control-height-lg: 52px;
+
+$icon-button-size: 40px;
+$icon-button-size-sm: 32px;
+$icon-button-size-lg: 48px;
+
+// =============================================================================
+// CARD DIMENSIONS
+// =============================================================================
+$card-min-width: 320px;
+$card-gap: 16px;
+$card-border-radius: 12px;
+
+// =============================================================================
+// MODAL DIMENSIONS
+// =============================================================================
+$modal-width-sm: 500px;
+$modal-width-md: 600px;
+$modal-width-lg: 800px;
+$modal-padding: 24px;
+
+// =============================================================================
+// TABLET BREAKPOINT
+// =============================================================================
+$breakpoint-tablet: 1024px;
+
+// =============================================================================
+// Z-INDEX SCALE
+// =============================================================================
+$z-base: 0;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-modal-backdrop: 900;
+$z-modal: 1000;
+$z-toast: 1100;
+$z-tooltip: 1200;

@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { Router } from '@angular/router';
 import { NotificationService } from '../../../utilities/services/notification.service';
 
-import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwInputComponent, AmwTextareaComponent, AmwButtonComponent, AmwIconComponent, loading, AmwValidationTooltipDirective, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 
 import { ShoppingService } from '../../services/shopping.service';
 import { ShoppingListCreateRequestModel } from '../../models/shopping-list-create-request.model';
@@ -19,7 +19,7 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     AmwInputComponent,
     AmwTextareaComponent,
     AmwButtonComponent,
-    AmwCardComponent,
+    AmwIconComponent,
     AmwValidationTooltipDirective
 ],
   templateUrl: './shopping-create.component.html',

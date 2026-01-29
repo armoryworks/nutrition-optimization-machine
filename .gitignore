@@ -61,6 +61,7 @@ __pycache__/
 *.log 
 
 # testing files
-screenshots/
-cypress/screenshots/
-cypress/videos/
+**/screenshots/
+**/cypress/screenshots/*
+**/cypress/videos/*
+**/screenshots/*

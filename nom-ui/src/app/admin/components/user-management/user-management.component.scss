@@ -1,6 +1,6 @@
-// User Management Component - Uses utilities and variables
+// User Management Component
+// Admin dashboard for user management - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .user-management {
   min-height: 100vh;
@@ -94,15 +94,29 @@
   }
 
   &__loading {
-    @include nom-loading-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: vars.$spacing-12;
   }
 
   &__error {
-    @include nom-empty-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: vars.$spacing-12;
+    gap: vars.$spacing-4;
   }
 
   &__empty-state {
-    @include nom-centered-container(400px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
   }
 
   &__empty-card {
@@ -131,7 +145,7 @@
 
   &__user-card {
     border-radius: vars.$nom-border-radius-lg;
-    transition: transform vars.$transition-duration-fast ease, box-shadow vars.$transition-duration-fast ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
       transform: translateY(-2px);

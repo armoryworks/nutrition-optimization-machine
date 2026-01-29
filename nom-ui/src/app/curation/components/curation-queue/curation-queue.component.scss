@@ -1,75 +1,50 @@
-// Curation Queue Component - Master-Detail Layout
-// Uses stereotype patterns from _stereotype-master-detail.scss
+// Curation Queue Component
+// Uses global .nom-master-detail* classes from _stereotype-master-detail.scss
+// This file contains only component-specific styles
+
 @use '../../../../variables' as vars;
-@use '../../../../mixins' as mixins;
-@use '../../../../utilities' as *;
 
-// Use the master-detail stereotype for host
-:host {
-  @include nom-master-detail;
+// =============================================================================
+// STAT VARIANTS - Component-specific colors for queue statistics
+// =============================================================================
+
+.curation-queue__stat--pending {
+  background-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.curation-queue__stat--recipe {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.curation-queue__stat--ingredient {
+  background-color: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
 }
 
 // =============================================================================
-// HEADER - Uses master-detail header stereotype
+// BADGE VARIANTS - Entity type badges
 // =============================================================================
-.curation-queue__header {
-  @include nom-master-detail-header;
+
+.curation-queue__badge--recipe {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 }
 
-.curation-queue__header-content {
-  @extend %nom-master-detail-header-content;
+.curation-queue__badge--ingredient {
+  background-color: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
 }
 
-.curation-queue__title {
-  @extend %nom-master-detail-title;
-}
-
-.curation-queue__subtitle {
-  @extend %nom-master-detail-subtitle;
-}
-
-.curation-queue__header-center {
-  @extend %nom-master-detail-header-center;
-}
-
-.curation-queue__stats {
-  @extend %nom-master-detail-stats;
-}
-
-.curation-queue__stat {
-  @extend %nom-master-detail-stat;
-
-  // Stat variants - these are component-specific colors
-  &--pending {
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
-  }
-
-  &--recipe {
-    background-color: var(--mat-sys-secondary-container);
-    color: var(--mat-sys-on-secondary-container);
-  }
-
-  &--ingredient {
-    background-color: var(--mat-sys-tertiary-container);
-    color: var(--mat-sys-on-tertiary-container);
-  }
-}
+// =============================================================================
+// PROGRESS & TIMESTAMPS
+// =============================================================================
 
 .curation-queue__progress {
   font-size: vars.$font-size-xs;
   font-style: italic;
   opacity: 0.8;
-}
-
-.curation-queue__header-actions {
-  @extend %nom-master-detail-header-actions;
-}
-
-.curation-queue__refresh {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-2;
 }
 
 .curation-queue__last-updated {
@@ -78,324 +53,106 @@
 }
 
 // =============================================================================
-// LOADING & ERROR STATES - Use utility mixins
+// INGREDIENT LIST ITEM - Specific layout for ingredient display
 // =============================================================================
-.curation-queue__loading,
-.curation-queue__error {
-  @include nom-empty-state(vars.$spacing-12);
 
-  h3 {
-    margin: vars.$spacing-4 0 vars.$spacing-2;
-    font-size: vars.$font-size-lg;
+.curation-queue__ingredient-item {
+  justify-content: space-between;
+}
+
+.curation-queue__ingredient-name {
+  font-weight: vars.$font-weight-medium;
+  font-size: vars.$font-size-xs;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: vars.$spacing-3;
+}
+
+.curation-queue__ingredient-quantity {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+// =============================================================================
+// INSTRUCTION LIST ITEM - Numbered step display
+// =============================================================================
+
+.curation-queue__instruction-item {
+  display: flex;
+  gap: vars.$spacing-3;
+}
+
+.curation-queue__instruction-number {
+  flex-shrink: 0;
+  width: vars.$spacing-6;
+  height: vars.$spacing-6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.curation-queue__instruction-text {
+  flex: 1;
+  line-height: vars.$line-height-normal;
+  font-size: vars.$font-size-xs;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+// =============================================================================
+// LINKS
+// =============================================================================
+
+.curation-queue__link {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
   }
+}
+
+// =============================================================================
+// HINT BOX
+// =============================================================================
+
+.curation-queue__hint {
+  margin-top: vars.$spacing-4;
+  padding: vars.$spacing-3;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-low);
 
   p {
-    margin: 0 0 vars.$spacing-4;
-    font-size: vars.$font-size-md;
-    line-height: vars.$line-height-normal;
-  }
-}
-
-// =============================================================================
-// CONTAINER & CONTENT - Uses master-detail stereotype
-// =============================================================================
-.curation-queue__container {
-  @include nom-master-detail-container;
-}
-
-.curation-queue__content {
-  @include nom-master-detail-content;
-}
-
-// =============================================================================
-// MASTER PANEL (Queue Items) - Uses master-detail stereotype
-// =============================================================================
-.queue-items {
-  @include nom-master-panel;
-
-  &__header {
-    @extend %nom-master-panel-header;
-
-    h2 {
-      @include mixins.nom-high-contrast-text;
-      font-size: vars.$font-size-lg;
-      font-weight: vars.$font-weight-semibold;
-      margin: 0 0 vars.$spacing-1;
-    }
-  }
-
-  &__subtitle {
-    @extend %nom-master-panel-subtitle;
-  }
-
-  &__list {
-    @include nom-master-panel-list;
-    position: absolute;
-    top: vars.$spacing-16 + vars.$spacing-2;
-    bottom: 0;
-    left: vars.$spacing-2;
-    right: 0;
-  }
-}
-
-// =============================================================================
-// QUEUE ITEM - Uses master-detail stereotype
-// =============================================================================
-.queue-item {
-  @include nom-master-item;
-
-  &__badge {
-    @extend %nom-master-item-badge;
-  }
-
-  &__content {
-    @extend %nom-master-item-content;
-  }
-
-  &__title {
-    @extend %nom-master-item-title;
-    @include mixins.nom-high-contrast-text;
-  }
-
-  &__meta {
-    @extend %nom-master-item-meta;
-  }
-}
-
-// =============================================================================
-// DETAIL PANEL - Uses master-detail stereotype
-// =============================================================================
-.decision-panel {
-  @include nom-detail-panel;
-
-  &__header {
-    @include nom-detail-panel-header;
-  }
-
-  &__header-actions {
-    @extend %nom-detail-panel-header-actions;
-
-    .control-menu-trigger {
-      width: vars.$spacing-8;
-      height: vars.$spacing-8;
-      line-height: vars.$spacing-8;
-    }
-  }
-
-  &__navigation {
-    @extend %nom-detail-panel-navigation;
-
-    .navigation-counter {
-      @extend %nom-detail-panel-navigation-counter;
-    }
-
-    button {
-      width: 1.75rem;
-      height: 1.75rem;
-      line-height: 1.75rem;
-
-      &[disabled] {
-        opacity: 0.4;
-      }
-    }
-  }
-
-  &__actions {
-    @extend %nom-detail-panel-actions;
-  }
-}
-
-// =============================================================================
-// DETAIL SECTION - Uses master-detail stereotype
-// =============================================================================
-.detail-section {
-  @include nom-md-detail-section;
-
-  .section-title {
-    @extend %nom-md-detail-section-title;
-    @include mixins.nom-high-contrast-text;
-  }
-
-  .detail-value {
-    @extend %nom-md-detail-value;
-  }
-
-  .detail-link {
-    @extend %nom-md-detail-link;
-  }
-}
-
-// =============================================================================
-// LISTS (Ingredients/Instructions) - Uses master-detail stereotype
-// =============================================================================
-.ingredients-list,
-.instructions-list {
-  @extend %nom-master-detail-list;
-
-  .ingredient-item,
-  .instruction-item {
-    @extend %nom-master-detail-list-item;
-  }
-
-  .ingredient-item {
-    justify-content: space-between;
-
-    .ingredient-name {
-      font-weight: vars.$font-weight-medium;
-      font-size: vars.$font-size-xs;
-      flex: 1;
-      min-width: 0;
-      @include nom-text-truncate;
-      margin-right: vars.$spacing-3;
-    }
-
-    .ingredient-quantity {
-      font-size: vars.$font-size-xs;
-      font-weight: vars.$font-weight-medium;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-  }
-
-  .instruction-item {
-    .instruction-number {
-      flex-shrink: 0;
-      width: vars.$spacing-6;
-      height: vars.$spacing-6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      font-size: vars.$font-size-xs;
-      font-weight: vars.$font-weight-semibold;
-    }
-
-    .instruction-text {
-      flex: 1;
-      line-height: vars.$line-height-normal;
-      font-size: vars.$font-size-xs;
-      min-width: 0;
-      word-wrap: break-word;
-    }
-  }
-}
-
-// =============================================================================
-// FORM - Uses master-detail stereotype
-// =============================================================================
-.decision-form {
-  @include nom-master-detail-form;
-
-  &__fields-row {
-    @extend %nom-master-detail-form-row;
-  }
-
-  &__field {
-    @extend %nom-master-detail-form-field;
-
-    &--half {
-      @extend %nom-master-detail-form-field--half;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 60px;
-      max-width: 100%;
-      overflow-x: hidden;
-      word-wrap: break-word;
-    }
-  }
-
-  &__actions {
-    @include nom-master-detail-form-actions;
-  }
-
-  &__btn {
-    min-width: 100px;
-    padding: vars.$spacing-2 vars.$spacing-4;
-    border-radius: vars.$nom-border-radius;
+    font-size: vars.$font-size-xs;
+    margin: 0;
     font-weight: vars.$font-weight-medium;
-    flex-shrink: 0;
-    font-size: vars.$font-size-sm;
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
   }
 }
 
 // =============================================================================
-// EMPTY STATES - Uses master-detail stereotype
+// DETAILS SECTION
 // =============================================================================
-.no-details,
-.empty-state {
-  @include nom-master-detail-empty;
 
-  &__icon {
-    @extend %nom-master-detail-no-selection-icon;
-  }
-
-  &__title {
-    @extend %nom-master-detail-no-selection-title;
-  }
-
-  &__text {
-    @extend %nom-master-detail-no-selection-text;
-  }
-}
-
-.no-selection {
-  @include nom-master-detail-no-selection;
-
-  &__icon {
-    @extend %nom-master-detail-no-selection-icon;
-  }
-
-  &__title {
-    @extend %nom-master-detail-no-selection-title;
-  }
-
-  &__text {
-    @extend %nom-master-detail-no-selection-text;
-  }
-
-  &__hint {
-    margin-top: vars.$spacing-4;
-    padding: vars.$spacing-3;
-    border-radius: vars.$nom-border-radius;
-    min-width: 0;
-
-    .hint-text {
-      font-size: vars.$font-size-xs;
-      margin: 0;
-      font-weight: vars.$font-weight-medium;
-    }
-  }
+.curation-queue__details {
+  margin-bottom: vars.$spacing-4;
 }
 
 // =============================================================================
-// MOBILE RESPONSIVE - Handled by stereotypes but with some overrides
+// FORM LAYOUT
 // =============================================================================
-@include mixins.breakpoint(mobile) {
-  .queue-items {
-    padding: vars.$spacing-3;
-  }
 
-  .decision-panel__header .decision-panel__navigation {
-    position: static;
-    margin-top: vars.$spacing-3;
-    justify-content: center;
-  }
-
-  .decision-form__btn {
-    width: 100%;
-  }
-}
-
-// =============================================================================
-// ACCESSIBILITY
-// =============================================================================
-:focus-visible {
-  outline-offset: 2px;
+.curation-queue__form {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }

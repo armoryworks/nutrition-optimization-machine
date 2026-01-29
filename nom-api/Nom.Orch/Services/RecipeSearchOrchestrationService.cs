@@ -61,6 +61,7 @@ namespace Nom.Orch.Services
                 return new List<string>();
 
             var suggestions = await _context.Recipes
+                .Where(r => r.CurationStatus!.Name == "Approved") // Only suggest from public/approved recipes
                 .Where(r => r.Name.Contains(query) || r.Description!.Contains(query))
                 .Select(r => r.Name)
                 .Distinct()

@@ -1,6 +1,5 @@
-// Recipe Comments Component - Uses utilities
+// Recipe Comments Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .nom-recipe-comments {
   display: flex;
@@ -24,7 +23,12 @@
   }
 
   &__error {
-    @include nom-empty-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
     padding: vars.$spacing-12 vars.$spacing-6;
     border-radius: vars.$nom-border-radius-lg;
 
@@ -45,7 +49,9 @@
   }
 
   &__form {
-    @include nom-form-field(vars.$spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-4;
   }
 
   &__field {
@@ -53,7 +59,9 @@
   }
 
   &__actions {
-    @include nom-action-group(vars.$spacing-3, flex-end);
+    display: flex;
+    gap: vars.$spacing-3;
+    justify-content: flex-end;
   }
 
   &__submit-btn {
@@ -69,7 +77,12 @@
 
   &__loading,
   &__empty {
-    @include nom-empty-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
     padding: vars.$spacing-12 vars.$spacing-6;
     border-radius: vars.$nom-border-radius-lg;
 

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, AmwProgressBarComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwIconComponent, AmwChipComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService, AmwProgressBarComponent } from 'angular-material-wrap';
 
 import { MealPlanService } from '../../services/meal-plan.service';
 import { MealPlanResponseModel } from '../../models/meal-plan-response.model';
@@ -15,7 +15,6 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     TitleCasePipe,
     AmwProgressBarComponent,
     AmwButtonComponent,
-    AmwCardComponent,
     AmwIconComponent,
     AmwChipComponent,
     AmwMenuComponent,

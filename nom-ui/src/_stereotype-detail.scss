@@ -1,242 +1,275 @@
 // =============================================================================
-// DETAIL STEREOTYPE
+// DETAIL STEREOTYPE - GLOBAL CLASSES
 // =============================================================================
-// Use for: detail/view pages showing a single entity
-// Components: shopping-detail, meal-plan-detail, recipe-detail, household-detail
+// File: _stereotype-detail.scss
+//
+// These classes are available GLOBALLY to all components.
+// Use for detail/view pages showing a single entity.
+//
+// USAGE IN HTML:
+//   <div class="nom-detail">
+//     <div class="nom-detail__actions">...</div>
+//     <div class="nom-detail__hero">
+//       <div class="nom-detail__hero-content">
+//         <h1 class="nom-detail__title">...</h1>
+//       </div>
+//     </div>
+//     <div class="nom-detail__section">
+//       <h2 class="nom-detail__section-title">...</h2>
+//       <div class="nom-detail__grid">...</div>
+//     </div>
+//   </div>
+//
 // =============================================================================
 
 @use './variables' as vars;
+@use './mixins' as mixins;
 
-// -----------------------------------------------------------------------------
-// Detail Container
-// -----------------------------------------------------------------------------
-%nom-detail {
-  max-width: 800px;
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
+.nom-detail {
+  max-width: vars.$content-max-narrow;
   margin: 0 auto;
-  padding: vars.$spacing-8 vars.$spacing-4;
+  padding: vars.$spacing-6 vars.$spacing-4;
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-4 vars.$spacing-2;
+  @include mixins.breakpoint(mobile) {
+    padding: vars.$spacing-4 vars.$spacing-3;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Header Actions
-// -----------------------------------------------------------------------------
-%nom-detail-header-actions {
+.nom-detail--wide {
+  max-width: vars.$content-max-medium;
+}
+
+// =============================================================================
+// TOP ACTIONS
+// =============================================================================
+
+.nom-detail__actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: vars.$spacing-6;
+  margin-bottom: vars.$spacing-5;
   gap: vars.$spacing-3;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
     align-items: stretch;
   }
 }
 
-%nom-detail-action-button {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-2;
-}
+// =============================================================================
+// HERO SECTION
+// =============================================================================
 
-// -----------------------------------------------------------------------------
-// Info Section (hero card)
-// -----------------------------------------------------------------------------
-%nom-detail-info-section {
+.nom-detail__hero {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$card-border-radius;
+  padding: vars.$spacing-6;
   margin-bottom: vars.$spacing-6;
 }
 
-%nom-detail-info-card {
-  border-radius: vars.$nom-border-radius-lg;
-  overflow: hidden;
-}
-
-%nom-detail-info-header {
+.nom-detail__hero-header {
   display: flex;
   align-items: flex-start;
   gap: vars.$spacing-4;
-  padding: vars.$spacing-6;
 }
 
-%nom-detail-info-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
-  margin-top: vars.$spacing-1;
+.nom-detail__hero-icon {
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  color: var(--mat-sys-primary);
   flex-shrink: 0;
 }
 
-%nom-detail-info-content {
+.nom-detail__hero-content {
   flex: 1;
   min-width: 0;
 }
 
-%nom-detail-info-title {
+.nom-detail__title {
   margin: 0;
   font-size: vars.$font-size-xl;
   font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
   line-height: vars.$line-height-tight;
 }
 
-%nom-detail-info-subtitle {
+.nom-detail__subtitle {
   margin: vars.$spacing-2 0 0;
   font-size: vars.$font-size-md;
+  color: var(--mat-sys-on-surface-variant);
   line-height: vars.$line-height-normal;
 }
 
-// -----------------------------------------------------------------------------
-// Details Section (metadata grid)
-// -----------------------------------------------------------------------------
-%nom-detail-section {
+// =============================================================================
+// SECTIONS
+// =============================================================================
+
+.nom-detail__section {
   margin-bottom: vars.$spacing-6;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-%nom-detail-section-title {
+.nom-detail__section-title {
   margin: 0 0 vars.$spacing-4;
-  font-size: 18px;
+  font-size: vars.$font-size-lg;
   font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
 }
 
-%nom-detail-card {
-  border-radius: vars.$nom-border-radius-lg;
+// =============================================================================
+// CARD (Section container)
+// =============================================================================
+
+.nom-detail__card {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$card-border-radius;
   overflow: hidden;
 }
 
-%nom-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: vars.$spacing-6;
-  padding: vars.$spacing-6;
+.nom-detail__card-content {
+  padding: vars.$spacing-5;
+}
 
-  @media (max-width: vars.$breakpoint-mobile) {
+// =============================================================================
+// METADATA GRID
+// =============================================================================
+
+.nom-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: vars.$spacing-5;
+  padding: vars.$spacing-5;
+
+  @include mixins.breakpoint(mobile) {
     grid-template-columns: 1fr;
     gap: vars.$spacing-4;
     padding: vars.$spacing-4;
   }
 }
 
-%nom-detail-item {
+.nom-detail__item {
   display: flex;
   flex-direction: column;
-  gap: vars.$spacing-2;
+  gap: vars.$spacing-1;
 }
 
-%nom-detail-item--full {
+.nom-detail__item--full {
   grid-column: 1 / -1;
 }
 
-%nom-detail-label {
-  font-size: vars.$font-size-sm;
+.nom-detail__label {
+  font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-semibold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--mat-sys-on-surface-variant);
 }
 
-%nom-detail-value {
+.nom-detail__value {
   display: flex;
   align-items: center;
-  gap: vars.$spacing-3;
+  gap: vars.$spacing-2;
   flex-wrap: wrap;
   font-size: vars.$font-size-md;
+  color: var(--mat-sys-on-surface);
 }
 
-// -----------------------------------------------------------------------------
-// Progress Section
-// -----------------------------------------------------------------------------
-%nom-detail-progress-section {
+// =============================================================================
+// PROGRESS SECTION
+// =============================================================================
+
+.nom-detail__progress {
   margin-bottom: vars.$spacing-6;
 }
 
-%nom-detail-progress-card {
-  border-radius: vars.$nom-border-radius-lg;
-  overflow: hidden;
-}
-
-%nom-detail-progress-header {
+.nom-detail__progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: vars.$spacing-4;
+  margin-bottom: vars.$spacing-3;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
     align-items: flex-start;
     gap: vars.$spacing-2;
   }
 }
 
-%nom-detail-progress-title {
+.nom-detail__progress-title {
   margin: 0;
-  font-size: 18px;
+  font-size: vars.$font-size-lg;
   font-weight: vars.$font-weight-semibold;
 }
 
-%nom-detail-progress-text {
+.nom-detail__progress-text {
   font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-%nom-detail-progress-bar {
+.nom-detail__progress-bar {
   width: 100%;
   height: 8px;
+  background: var(--mat-sys-surface-container);
   border-radius: vars.$nom-border-radius-sm;
   overflow: hidden;
   margin-bottom: vars.$spacing-2;
 }
 
-%nom-detail-progress-fill {
+.nom-detail__progress-fill {
   height: 100%;
+  background: var(--mat-sys-primary);
   border-radius: vars.$nom-border-radius-sm;
-  transition: width vars.$transition-duration-slow vars.$transition-timing;
+  @include mixins.nom-transition(width);
 }
 
-%nom-detail-progress-percentage {
+.nom-detail__progress-percentage {
   font-size: vars.$font-size-sm;
   font-weight: vars.$font-weight-semibold;
   text-align: center;
+  color: var(--mat-sys-on-surface);
 }
 
-// -----------------------------------------------------------------------------
-// Items Section (list of items)
-// -----------------------------------------------------------------------------
-%nom-detail-items-section {
-  margin-bottom: vars.$spacing-6;
-}
+// =============================================================================
+// ITEMS LIST
+// =============================================================================
 
-%nom-detail-items-title {
-  margin: 0 0 vars.$spacing-4;
-  font-size: 18px;
-  font-weight: vars.$font-weight-semibold;
-}
-
-%nom-detail-items-card {
-  border-radius: vars.$nom-border-radius-lg;
-  overflow: hidden;
-}
-
-%nom-detail-items-list {
+.nom-detail__list {
   display: flex;
   flex-direction: column;
-  gap: vars.$spacing-3;
+  gap: vars.$spacing-2;
 }
 
-%nom-detail-item-row {
+.nom-detail__list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: vars.$spacing-4;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
+  @include mixins.nom-transition(all);
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
     align-items: flex-start;
     gap: vars.$spacing-3;
   }
 }
 
-%nom-detail-item-info {
+.nom-detail__list-item-info {
   display: flex;
   align-items: center;
   gap: vars.$spacing-3;
@@ -244,121 +277,151 @@
   min-width: 0;
 }
 
-%nom-detail-item-content {
+.nom-detail__list-item-icon {
+  font-size: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
+}
+
+.nom-detail__list-item-content {
   flex: 1;
   min-width: 0;
 }
 
-%nom-detail-item-name {
+.nom-detail__list-item-title {
   margin: 0 0 vars.$spacing-1;
   font-size: vars.$font-size-md;
   font-weight: vars.$font-weight-semibold;
-  line-height: vars.$line-height-tight;
+  color: var(--mat-sys-on-surface);
+  @include mixins.nom-text-truncate;
 }
 
-%nom-detail-item-details {
+.nom-detail__list-item-meta {
   display: flex;
   gap: vars.$spacing-3;
   font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-%nom-detail-item-actions {
+.nom-detail__list-item-actions {
   display: flex;
   align-items: center;
   gap: vars.$spacing-2;
+  flex-shrink: 0;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     align-self: flex-end;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Actions Section
-// -----------------------------------------------------------------------------
-%nom-detail-actions-section {
-  margin-bottom: vars.$spacing-6;
-}
+// =============================================================================
+// ACTION BUTTONS GRID
+// =============================================================================
 
-%nom-detail-actions-card {
-  border-radius: vars.$nom-border-radius-lg;
-  overflow: hidden;
-}
-
-%nom-detail-actions-title {
-  margin: 0 0 vars.$spacing-4;
-  font-size: 18px;
-  font-weight: vars.$font-weight-semibold;
-}
-
-%nom-detail-actions-grid {
+.nom-detail__actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: vars.$spacing-3;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     grid-template-columns: 1fr;
   }
 }
 
 // =============================================================================
-// Mixin-based API
+// EMPTY STATE
 // =============================================================================
-@mixin nom-detail {
-  @extend %nom-detail;
+
+.nom-detail__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-10;
+  text-align: center;
 }
 
-@mixin nom-detail-header-actions {
-  @extend %nom-detail-header-actions;
+.nom-detail__empty-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.5;
+  margin-bottom: vars.$spacing-4;
 }
 
-@mixin nom-detail-info-section {
-  @extend %nom-detail-info-section;
+.nom-detail__empty-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-2;
 }
 
-@mixin nom-detail-info-card {
-  @extend %nom-detail-info-card;
+.nom-detail__empty-message {
+  color: var(--mat-sys-on-surface-variant);
+  max-width: 400px;
+  margin: 0;
 }
 
-@mixin nom-detail-info-header {
-  @extend %nom-detail-info-header;
-}
+// =============================================================================
+// LEGACY MIXIN SUPPORT
+// =============================================================================
 
-@mixin nom-detail-section {
-  @extend %nom-detail-section;
-}
+@mixin nom-detail { @extend .nom-detail; }
+@mixin nom-detail-header-actions { @extend .nom-detail__actions; }
+@mixin nom-detail-info-section { margin-bottom: vars.$spacing-6; }
+@mixin nom-detail-info-card { @extend .nom-detail__hero; }
+@mixin nom-detail-info-header { @extend .nom-detail__hero-header; }
+@mixin nom-detail-section { @extend .nom-detail__section; }
+@mixin nom-detail-card { @extend .nom-detail__card; }
+@mixin nom-detail-grid { @extend .nom-detail__grid; }
+@mixin nom-detail-item { @extend .nom-detail__item; }
+@mixin nom-detail-progress-section { @extend .nom-detail__progress; }
+@mixin nom-detail-items-section { @extend .nom-detail__section; }
+@mixin nom-detail-items-list { @extend .nom-detail__list; }
+@mixin nom-detail-item-row { @extend .nom-detail__list-item; }
+@mixin nom-detail-actions-section { @extend .nom-detail__section; }
+@mixin nom-detail-actions-grid { @extend .nom-detail__actions-grid; }
 
-@mixin nom-detail-card {
-  @extend %nom-detail-card;
-}
-
-@mixin nom-detail-grid {
-  @extend %nom-detail-grid;
-}
-
-@mixin nom-detail-item {
-  @extend %nom-detail-item;
-}
-
-@mixin nom-detail-progress-section {
-  @extend %nom-detail-progress-section;
-}
-
-@mixin nom-detail-items-section {
-  @extend %nom-detail-items-section;
-}
-
-@mixin nom-detail-items-list {
-  @extend %nom-detail-items-list;
-}
-
-@mixin nom-detail-item-row {
-  @extend %nom-detail-item-row;
-}
-
-@mixin nom-detail-actions-section {
-  @extend %nom-detail-actions-section;
-}
-
-@mixin nom-detail-actions-grid {
-  @extend %nom-detail-actions-grid;
-}
+// Legacy placeholders
+%nom-detail { @extend .nom-detail; }
+%nom-detail-header-actions { @extend .nom-detail__actions; }
+%nom-detail-info-card { @extend .nom-detail__hero; }
+%nom-detail-info-header { @extend .nom-detail__hero-header; }
+%nom-detail-info-icon { @extend .nom-detail__hero-icon; }
+%nom-detail-info-content { @extend .nom-detail__hero-content; }
+%nom-detail-info-title { @extend .nom-detail__title; }
+%nom-detail-info-subtitle { @extend .nom-detail__subtitle; }
+%nom-detail-section { @extend .nom-detail__section; }
+%nom-detail-section-title { @extend .nom-detail__section-title; }
+%nom-detail-card { @extend .nom-detail__card; }
+%nom-detail-grid { @extend .nom-detail__grid; }
+%nom-detail-item { @extend .nom-detail__item; }
+%nom-detail-item--full { @extend .nom-detail__item--full; }
+%nom-detail-label { @extend .nom-detail__label; }
+%nom-detail-value { @extend .nom-detail__value; }
+%nom-detail-items-list { @extend .nom-detail__list; }
+%nom-detail-item-row { @extend .nom-detail__list-item; }
+%nom-detail-item-info { @extend .nom-detail__list-item-info; }
+%nom-detail-item-content { @extend .nom-detail__list-item-content; }
+%nom-detail-item-name { @extend .nom-detail__list-item-title; }
+%nom-detail-item-details { @extend .nom-detail__list-item-meta; }
+%nom-detail-item-actions { @extend .nom-detail__list-item-actions; }
+%nom-detail-actions-grid { @extend .nom-detail__actions-grid; }
+%nom-detail-info-section { margin-bottom: vars.$spacing-6; }
+%nom-detail-action-button { display: flex; align-items: center; gap: vars.$spacing-2; }
+%nom-detail-progress-section { @extend .nom-detail__progress; }
+%nom-detail-progress-card { @extend .nom-detail__card; }
+%nom-detail-progress-header { @extend .nom-detail__progress-header; }
+%nom-detail-progress-title { @extend .nom-detail__progress-title; }
+%nom-detail-progress-text { @extend .nom-detail__progress-text; }
+%nom-detail-progress-bar { @extend .nom-detail__progress-bar; }
+%nom-detail-progress-fill { @extend .nom-detail__progress-fill; }
+%nom-detail-progress-percentage { @extend .nom-detail__progress-percentage; }
+%nom-detail-items-section { @extend .nom-detail__section; }
+%nom-detail-items-title { @extend .nom-detail__section-title; }
+%nom-detail-items-card { @extend .nom-detail__card; }
+%nom-detail-actions-section { @extend .nom-detail__section; }
+%nom-detail-actions-card { @extend .nom-detail__card; }
+%nom-detail-actions-title { @extend .nom-detail__section-title; }

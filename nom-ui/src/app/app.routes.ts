@@ -14,15 +14,21 @@ import { PrivacySettingsComponent } from './user/components/privacy-settings/pri
 import { IngredientSearchComponent } from './recipe/components/ingredient-search/ingredient-search.component';
 import { PersonProfileEditComponent } from './person/components/person-profile-edit/person-profile-edit.component';
 import { AuthGuard } from './guards/auth.guard';
+import { NoAuthGuard } from './guards/no-auth.guard';
 
 export const routes: Routes = [
   // Public routes - accessible to everyone
   { path: '', redirectTo: 'home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'about', component: HomeComponent }, // Show home content for now since about page isn't implemented
+  {
+    path: 'search',
+    loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
+    title: 'Recipe Search'
+  },
 
-  // Auth routes - accessible to everyone (using existing structure)
-  { path: 'register', component: RegistrationComponent },
+  // Guest-only routes - redirects authenticated users to onboarding
+  { path: 'register', component: RegistrationComponent, canActivate: [NoAuthGuard] },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },

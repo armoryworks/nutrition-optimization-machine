@@ -1,28 +1,124 @@
-<div class="nom-page-container recipe-search">
-  <!-- Public Landing Page -->
-  <div class="recipe-search__public-landing">
-    <amw-card headerTitle="Discover Amazing Recipes"
-      headerSubtitle="Browse our collection of delicious recipes from around the world" headerIcon="restaurant"
-      class="recipe-search__welcome-card">
-      <ng-template #cardContent>
-        <div class="recipe-search__public-actions">
-          <amw-button variant="filled" color="primary" icon="restaurant" (click)="browsePublicRecipes()">
-            Browse Recipes
-          </amw-button>
-
-          <div class="recipe-search__auth-prompt">
-            <p>Want to create your own recipes and save favorites?</p>
-            <div class="recipe-search__auth-buttons">
-              <amw-button variant="text" color="accent" icon="login" (click)="onLogin()">
-                Login
-              </amw-button>
-              <amw-button variant="text" color="accent" icon="person_add" (click)="onRegister()">
-                Create Account
-              </amw-button>
-            </div>
-          </div>
-        </div>
-      </ng-template>
-    </amw-card>
+<div class="nom-search">
+  <!-- Header with Title and Search -->
+  <div class="nom-landing__hero nom-landing__hero--centered">
+    <h1 class="nom-landing__title">Recipe Search</h1>
+    <p class="nom-landing__subtitle">Find delicious recipes from our public collection</p>
   </div>
+
+  <!-- Search Form -->
+  <div class="nom-search__form">
+    <div class="nom-search__row">
+      <amw-input
+        class="nom-search__field"
+        [formControl]="searchControl"
+        label="Search recipes"
+        placeholder="Try 'spaghetti', 'chicken', or 'healthy breakfast'..."
+        (keyup.enter)="onSearchSubmit()">
+      </amw-input>
+      <amw-button
+        class="nom-search__button"
+        variant="filled"
+        color="primary"
+        icon="search"
+        (click)="onSearchSubmit()">
+        Search
+      </amw-button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="nom-search__loading">
+      <amw-icon name="hourglass_empty" class="nom-search__loading-icon"></amw-icon>
+      <p>Searching for "{{ searchQuery() }}"...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (hasError() && !isLoading()) {
+    <div class="nom-search__empty nom-search__empty--error">
+      <amw-icon name="error_outline" class="nom-search__empty-icon"></amw-icon>
+      <h3 class="nom-search__empty-title">Search Failed</h3>
+      <p class="nom-search__empty-message">{{ errorMessage() }}</p>
+      <amw-button variant="filled" color="primary" icon="refresh" (click)="onSearchSubmit()">
+        Try Again
+      </amw-button>
+    </div>
+  }
+
+  <!-- Search Results -->
+  @if (hasSearched() && !isLoading() && !hasError()) {
+    <div class="nom-search__results">
+      @if (searchResults().length > 0) {
+        <p class="nom-search__results-info">{{ totalCount() }} recipes found for "{{ searchQuery() }}"</p>
+        <div class="nom-search__grid">
+          @for (recipe of searchResults(); track recipe.id) {
+            <div class="nom-search__card nom-search__card--clickable" (click)="viewRecipe(recipe)">
+              @if (recipe.imageUrl) {
+                <img [src]="recipe.imageUrl" [alt]="recipe.name" class="nom-search__card-image" />
+              } @else {
+                <div class="nom-search__card-image nom-search__card-image--placeholder">
+                  <amw-icon name="restaurant"></amw-icon>
+                </div>
+              }
+              <div class="nom-search__card-content">
+                <h3 class="nom-search__card-title">{{ recipe.name }}</h3>
+                @if (recipe.description) {
+                  <p class="nom-search__card-description">{{ recipe.description }}</p>
+                }
+                <div class="nom-search__card-meta">
+                  @if (recipe.totalTime) {
+                    <span class="nom-search__card-meta-item">
+                      <amw-icon name="schedule"></amw-icon>
+                      {{ recipe.totalTime }} min
+                    </span>
+                  }
+                  @if (recipe.averageRating > 0) {
+                    <span class="nom-search__card-meta-item">
+                      <amw-icon name="star"></amw-icon>
+                      {{ recipe.averageRating | number:'1.1-1' }}
+                    </span>
+                  }
+                </div>
+                <p class="nom-search__card-subtitle">by {{ recipe.authorName }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="nom-search__empty">
+          <amw-icon name="search_off" class="nom-search__empty-icon"></amw-icon>
+          <h3 class="nom-search__empty-title">No Results Found</h3>
+          <p class="nom-search__empty-message">
+            No recipes found matching "{{ searchQuery() }}".
+            Try different keywords or browse our popular recipes.
+          </p>
+          <amw-button variant="filled" color="primary" icon="restaurant" (click)="browsePublicRecipes()">
+            Browse Popular Recipes
+          </amw-button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Landing State (no search performed) -->
+  @if (!hasSearched() && !isLoading()) {
+    <div class="nom-landing__features">
+      <div class="nom-landing__feature" (click)="browsePublicRecipes()">
+        <amw-icon name="restaurant" class="nom-landing__feature-icon"></amw-icon>
+        <h3 class="nom-landing__feature-title">Browse Recipes</h3>
+        <p class="nom-landing__feature-description">Explore our collection of popular and trending recipes</p>
+      </div>
+      <div class="nom-landing__feature" (click)="onLogin()">
+        <amw-icon name="bookmark" class="nom-landing__feature-icon"></amw-icon>
+        <h3 class="nom-landing__feature-title">Save Favorites</h3>
+        <p class="nom-landing__feature-description">Login to save recipes and create your personal cookbook</p>
+      </div>
+      <div class="nom-landing__feature" (click)="onRegister()">
+        <amw-icon name="edit" class="nom-landing__feature-icon"></amw-icon>
+        <h3 class="nom-landing__feature-title">Share Your Recipes</h3>
+        <p class="nom-landing__feature-description">Create an account to publish and share your own recipes</p>
+      </div>
+    </div>
+  }
 </div>

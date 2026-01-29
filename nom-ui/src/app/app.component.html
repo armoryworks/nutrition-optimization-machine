@@ -2,104 +2,96 @@
 <a href="#main-content" class="nom-skip-link">Skip to main content</a>
 
 <header class="nom-header" role="banner">
-  <div class="nom-header__left">
-    <h1 class="nom-header__title">NOM</h1>
-    <p class="nom-header__subtitle">Nutrition Optimization Machine</p>
+  <div class="nom-header__brand">
+    <a routerLink="/home" class="nom-header__logo">
+      <span class="nom-header__logo-text">N<span class="nom-header__logo-accent">O</span>M</span>
+    </a>
+    <span class="nom-header__tagline">Nutrition Optimization Machine</span>
   </div>
 
-  <div class="nom-header__center">
-    <!-- Main Navigation - Always Visible -->
-    <nav class="nom-main-nav" role="navigation" aria-label="Main navigation">
-      <!-- PUBLIC SECTION - Always visible -->
-      <div class="nom-main-nav__public">
-        <a routerLink="/home" routerLinkActive="active" class="nom-main-nav__link">
-          <amw-icon name="home"></amw-icon>
-          <span>Home</span>
-        </a>
-        <a routerLink="/register" routerLinkActive="active" class="nom-main-nav__link">
-          <amw-icon name="person_add"></amw-icon>
-          <span>Get Started</span>
-        </a>
-        <a routerLink="/home" routerLinkActive="active" class="nom-main-nav__link">
-          <amw-icon name="info"></amw-icon>
-          <span>About</span>
-        </a>
-      </div>
-    </nav>
+  <div class="nom-header__search">
+    <amw-icon name="search" class="nom-header__search-icon"></amw-icon>
+    <input
+      type="text"
+      class="nom-header__search-input"
+      placeholder="Search recipes..."
+      aria-label="Search recipes"
+      (keyup.enter)="onSearch($event)"
+    />
   </div>
 
-  <div class="nom-header__right">
-    <!-- Theme Toggle - Always visible -->
-    <amw-icon-button
-      [icon]="isDarkTheme() ? 'light_mode' : 'dark_mode'"
-      class="nom-header__theme-toggle"
-      (click)="toggleTheme()"
-      [ariaLabel]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
-    </amw-icon-button>
+  <nav class="nom-header__nav" role="navigation" aria-label="Main navigation">
+    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nom-header__nav-link">
+      <amw-icon name="home"></amw-icon>
+      <span>Home</span>
+    </a>
+    @if (!(isLoggedIn$ | async)) {
+      <a routerLink="/register" routerLinkActive="active" class="nom-header__nav-link">
+        <amw-icon name="rocket_launch"></amw-icon>
+        <span>Get Started</span>
+      </a>
+    } @else {
+      <a routerLink="/meal-plan" routerLinkActive="active" class="nom-header__nav-link">
+        <amw-icon name="restaurant_menu"></amw-icon>
+        <span>Meal Plans</span>
+      </a>
+      <a routerLink="/recipes" routerLinkActive="active" class="nom-header__nav-link">
+        <amw-icon name="menu_book"></amw-icon>
+        <span>Recipes</span>
+      </a>
+    }
+    <a routerLink="/about" routerLinkActive="active" class="nom-header__nav-link">
+      <amw-icon name="info"></amw-icon>
+      <span>About</span>
+    </a>
+  </nav>
+
+  <div class="nom-header__actions">
+    <!-- Theme Toggle -->
+    <button class="nom-header__icon-btn" (click)="toggleTheme()"
+      [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
+      <amw-icon [name]="isDarkTheme() ? 'light_mode' : 'dark_mode'"></amw-icon>
+    </button>
 
     <!-- User Menu - Only visible when logged in -->
     @if (isLoggedIn$ | async) {
-      <div class="nom-user-menu" data-cy="user-menu">
-        <amw-icon-button
-          icon="menu"
-          [amwMenuTriggerFor]="userMenu"
-          class="nom-user-menu__trigger"
-          ariaLabel="User menu">
-        </amw-icon-button>
-        
-        <amw-menu #userMenu menuClass="nom-user-menu__dropdown">
-          <!-- User Profile Section -->
-          <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
-          <amw-menu-item [isDivider]="true"></amw-menu-item>
-
-          <!-- Main Navigation Section -->
-          <amw-menu-item label="Dashboard" icon="dashboard" routerLink="/user/dashboard"></amw-menu-item>
-          <amw-menu-item label="Households" icon="home" routerLink="/household"></amw-menu-item>
-          <amw-menu-item label="Shopping" icon="shopping_cart" routerLink="/shopping"></amw-menu-item>
-          <amw-menu-item label="Meal Plans" icon="restaurant_menu" routerLink="/meal-plan"></amw-menu-item>
-          <amw-menu-item label="Messages" icon="message" routerLink="/messaging"></amw-menu-item>
-          <amw-menu-item label="Ingredient Search" icon="search" routerLink="/ingredient-search"></amw-menu-item>
-          <amw-menu-item label="Curated Plans" icon="schedule" routerLink="/curated-plans"></amw-menu-item>
-          @if (authManagerService.canManageCuration()) {
-            <amw-menu-item label="Curation Queue" icon="rate_review" routerLink="/curation"></amw-menu-item>
-          }
-
-          <amw-menu-item [isDivider]="true"></amw-menu-item>
-
-          <!-- User Management Section -->
-          <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
-          <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
-          <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()"></amw-menu-item>
-        </amw-menu>
-      </div>
+    <div class="nom-user-menu" data-cy="user-menu">
+      <amw-menu #userMenu triggerIcon="account_circle" menuClass="nom-user-menu__dropdown">
+        <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
+        <amw-menu-item [isDivider]="true"></amw-menu-item>
+        <amw-menu-item label="Households" icon="home" routerLink="/household"></amw-menu-item>
+        <amw-menu-item label="Shopping" icon="shopping_cart" routerLink="/shopping"></amw-menu-item>
+        <amw-menu-item label="Meal Plans" icon="restaurant_menu" routerLink="/meal-plan"></amw-menu-item>
+        <amw-menu-item label="Messages" icon="message" routerLink="/messaging"></amw-menu-item>
+        <amw-menu-item label="Recipes" icon="menu_book" routerLink="/recipes"></amw-menu-item>
+        <amw-menu-item label="Ingredient Search" icon="search" routerLink="/ingredient-search"></amw-menu-item>
+        <amw-menu-item label="Curated Plans" icon="schedule" routerLink="/curated-plans"></amw-menu-item>
+        @if (authManagerService.canManageCuration()) {
+        <amw-menu-item label="Curation Queue" icon="rate_review" routerLink="/curation"></amw-menu-item>
+        }
+        <amw-menu-item [isDivider]="true"></amw-menu-item>
+        <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
+        <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
+        <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()"></amw-menu-item>
+      </amw-menu>
+    </div>
     }
-    
-    <!-- Login/Register buttons - Only visible when NOT logged in -->
+
+    <!-- Login - Only visible when NOT logged in -->
     @if (!(isLoggedIn$ | async)) {
-      <div class="nom-header__auth-buttons">
-        <amw-button
-          variant="text"
-          color="accent"
-          icon="login"
-          (click)="openLoginPopover()"
-          class="nom-header__auth-button">
-          Login
-        </amw-button>
-        <a routerLink="/register" class="nom-header__auth-button">
-          <amw-icon name="person_add"></amw-icon>
-          <span>Register</span>
-        </a>
-      </div>
+    <button class="nom-header__icon-btn" (click)="openLoginPopover()" aria-label="Login">
+      <amw-icon name="person"></amw-icon>
+    </button>
     }
   </div>
 </header>
 
 <!-- Login Popover - Only visible when not logged in and login button is clicked -->
 @if (!(isLoggedIn$ | async) && showLoginPopover()) {
-  <div class="nom-login-popover-backdrop" (click)="closeLoginPopover()"></div>
-  <div class="nom-login-popover" data-cy="login-popover">
-    <nom-login></nom-login>
-  </div>
+<div class="nom-popover-backdrop" (click)="closeLoginPopover()"></div>
+<div class="nom-popover" data-cy="login-popover">
+  <nom-login (closeRequested)="closeLoginPopover()"></nom-login>
+</div>
 }
 
 <main id="main-content" class="nom-main" role="main">
@@ -114,7 +106,18 @@
 <nom-validation-tooltip-overlay></nom-validation-tooltip-overlay>
 
 <footer class="nom-footer" role="contentinfo">
-  <p>Powered by Mealie: <a href="https://github.com/mealie-recipes/mealie"
-    target="_blank">https://github.com/mealie-recipes/mealie</a>. A big Thank you to the contributors of that project!</p>
-  <p>&copy; 2024 NOM - Nutrition Optimization Machine. All rights reserved.</p>
+  <div class="nom-footer__left">
+    <span>Powered by Mealie</span>
+    <a href="https://github.com/mealie-recipes/mealie" target="_blank" rel="noopener noreferrer">
+      <i class="fa-brands fa-github"></i>
+      github.com/mealie-recipes/mealie
+    </a>
+  </div>
+  <div class="nom-footer__right">
+    <span>{{ currentYear }} NOM</span>
+    <a href="https://github.com/danielhokanson/nutrition-optimization-machine" target="_blank" rel="noopener noreferrer">
+      <i class="fa-brands fa-github"></i>
+      github.com/danielhokanson/nutrition-optimization-machine
+    </a>
+  </div>
 </footer>

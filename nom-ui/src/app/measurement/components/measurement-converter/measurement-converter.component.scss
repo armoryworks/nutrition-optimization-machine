@@ -1,6 +1,5 @@
-// Measurement Converter Component - Uses utilities and variables
+// Measurement Converter Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .measurement-converter {
   max-width: 800px;
@@ -73,7 +72,9 @@
 }
 
 .form-actions {
-  @include nom-action-group(vars.$spacing-4, center);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
   margin-top: vars.$spacing-6;
 
   @media (max-width: vars.$breakpoint-mobile) {

@@ -1,117 +1,113 @@
-<div class="nom-page-container shopping-dashboard">
-  <!-- Compact Page Header -->
-    <div class="nom-compact-header">
-      <div class="nom-compact-header__left">
-        <h1 class="nom-compact-header__title">{{ pageTitle }}</h1>
-        <span class="nom-compact-header__subtitle">{{ pageSubtitle }}</span>
-      </div>
-      <div class="nom-compact-header__center">
-        @if (!isLoading() && !error()) {
-        <amw-input type="text" [formControl]="searchControl" placeholder="Search lists..." icon="search"
-          class="nom-compact-header__search">
-        </amw-input>
-        <div class="nom-stat-pill">
-          <amw-icon name="shopping_cart"></amw-icon>
-          <span>{{ filteredLists().length }} list{{ filteredLists().length !== 1
-            ? 's' : '' }}</span>
-        </div>
-        }
-      </div>
-      <div class="nom-compact-header__right">
-        <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
-          Refresh
-        </amw-button>
-        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
-          Create List
-        </amw-button>
-      </div>
+<div class="nom-dashboard">
+  <!-- Header -->
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">{{ pageTitle }}</h1>
+      <span class="nom-dashboard__subtitle">{{ pageSubtitle }}</span>
     </div>
+    <div class="nom-dashboard__header-center">
+      @if (!isLoading() && !error()) {
+        <amw-input
+          type="text"
+          [formControl]="searchControl"
+          placeholder="Search lists..."
+          icon="search">
+        </amw-input>
+        <span class="nom-dashboard__stat">
+          <amw-icon name="shopping_cart"></amw-icon>
+          <span>{{ filteredLists().length }} list{{ filteredLists().length !== 1 ? 's' : '' }}</span>
+        </span>
+      }
+    </div>
+    <div class="nom-dashboard__header-right">
+      <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
+        Refresh
+      </amw-button>
+      <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+        Create List
+      </amw-button>
+    </div>
+  </header>
 
-    <!-- Loading State -->
-    @if (isLoading()) {
-    <amw-inline-loading message="Loading shopping lists..." />
-    }
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="nom-dashboard__loading">
+      <amw-inline-loading message="Loading shopping lists..." />
+    </div>
+  }
 
-    <!-- Error State -->
-    @if (error() && !isLoading()) {
-    <div class="nom-error-state" role="alert">
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRefresh()">
         Try Again
       </amw-button>
     </div>
-    }
+  }
 
-    <!-- Content -->
-    @if (!isLoading() && !error()) {
-
+  <!-- Content -->
+  @if (!isLoading() && !error()) {
     <!-- Empty State -->
     @if (filteredLists().length === 0) {
-    <div class="nom-empty-state">
-      <amw-icon name="shopping_cart" class="nom-empty-state__icon"></amw-icon>
-      <h3 class="nom-empty-state__title">No Shopping Lists Found</h3>
-      @if (searchControl.value) {
-      <p class="nom-empty-state__message">No shopping lists match your search criteria.</p>
-      } @else {
-      <p class="nom-empty-state__message">Create your first shopping list to get started.</p>
-      }
-      <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
-        Create Shopping List
-      </amw-button>
-    </div>
+      <div class="nom-dashboard__empty">
+        <amw-icon name="shopping_cart" class="nom-dashboard__empty-icon"></amw-icon>
+        <h3 class="nom-dashboard__empty-title">No Shopping Lists Found</h3>
+        @if (searchControl.value) {
+          <p class="nom-dashboard__empty-message">No shopping lists match your search criteria.</p>
+        } @else {
+          <p class="nom-dashboard__empty-message">Create your first shopping list to get started.</p>
+        }
+        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+          Create Shopping List
+        </amw-button>
+      </div>
     }
 
     <!-- Shopping Lists Grid -->
     @if (filteredLists().length > 0) {
-    <div class="nom-grid--auto">
-      @for (list of filteredLists(); track list.id) {
-      <amw-card class="nom-card dashboard-card" [headerTitle]="list.name"
-        [headerSubtitle]="list.description || ''" headerIcon="shopping_basket">
-        <ng-template #cardContent>
-          <div class="dashboard-card__stats">
-            <div class="dashboard-card__stat">
-              <amw-icon name="list"></amw-icon>
-              <span>{{ list.totalItems || 0 }} items</span>
-            </div>
-            <div class="dashboard-card__stat">
-              <amw-icon name="check_circle"></amw-icon>
-              <span>{{ list.completedItems || 0 }} completed</span>
-            </div>
-          </div>
+      <div class="nom-dashboard__grid">
+        @for (list of filteredLists(); track list.id) {
+          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewList(list.id)">
+            <div class="nom-dashboard__card-content">
+              <h2 class="nom-dashboard__card-title">{{ list.name }}</h2>
+              @if (list.description) {
+                <p class="nom-dashboard__card-subtitle">{{ list.description }}</p>
+              }
+              <div class="nom-dashboard__card-meta">
+                <span><amw-icon name="list"></amw-icon> {{ list.totalItems || 0 }} items</span>
+                <span><amw-icon name="check_circle"></amw-icon> {{ list.completedItems || 0 }} completed</span>
+              </div>
 
-          <!-- Progress Bar -->
-          @if (list.totalItems && list.totalItems > 0) {
-          <div class="nom-progress-bar">
-            <div class="nom-progress-bar__track">
-              <div class="nom-progress-bar__fill"
-                [class.nom-progress-bar__fill--primary]="getProgressColor(getProgressPercentage(list)) === 'primary'"
-                [class.nom-progress-bar__fill--accent]="getProgressColor(getProgressPercentage(list)) === 'accent'"
-                [class.nom-progress-bar__fill--warn]="getProgressColor(getProgressPercentage(list)) === 'warn'"
-                [style.width.%]="getProgressPercentage(list)"></div>
+              @if (list.totalItems && list.totalItems > 0) {
+                <div class="nom-progress-bar">
+                  <div class="nom-progress-bar__track">
+                    <div class="nom-progress-bar__fill"
+                      [class.nom-progress-bar__fill--primary]="getProgressColor(getProgressPercentage(list)) === 'primary'"
+                      [class.nom-progress-bar__fill--accent]="getProgressColor(getProgressPercentage(list)) === 'accent'"
+                      [class.nom-progress-bar__fill--warn]="getProgressColor(getProgressPercentage(list)) === 'warn'"
+                      [style.width.%]="getProgressPercentage(list)">
+                    </div>
+                  </div>
+                  <span class="nom-progress-bar__text">{{ getProgressPercentage(list) }}% complete</span>
+                </div>
+              }
             </div>
-            <span class="nom-progress-bar__text">
-              {{ getProgressPercentage(list) }}% complete
-            </span>
-          </div>
-          }
-        </ng-template>
-        <ng-template #actionsTemplate>
-          <amw-button variant="text" color="primary" icon="visibility"
-            (click)="onViewList(list.id); $event.stopPropagation()">
-            View
-          </amw-button>
-          <amw-button variant="text" color="accent" icon="edit" (click)="onEditList(list.id); $event.stopPropagation()">
-            Edit
-          </amw-button>
-          <amw-button variant="text" color="warn" icon="delete"
-            (click)="onDeleteList(list.id); $event.stopPropagation()">
-            Delete
-          </amw-button>
-        </ng-template>
-      </amw-card>
-      }
-    </div>
+            <div class="nom-dashboard__card-actions">
+              <amw-button variant="text" color="primary" icon="visibility" (click)="onViewList(list.id); $event.stopPropagation()">
+                View
+              </amw-button>
+              <amw-button variant="text" color="accent" icon="edit" (click)="onEditList(list.id); $event.stopPropagation()">
+                Edit
+              </amw-button>
+              <amw-button variant="text" color="warn" icon="delete" (click)="onDeleteList(list.id); $event.stopPropagation()">
+                Delete
+              </amw-button>
+            </div>
+          </article>
+        }
+      </div>
     }
-    }
+  }
 </div>

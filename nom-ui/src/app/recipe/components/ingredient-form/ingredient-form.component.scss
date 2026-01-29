@@ -1,141 +1,17 @@
-// Unified Ingredient Form Component Styles
-// Works for both modal and page contexts
+// Unified Ingredient Form Component
+// Uses global Form and Modal stereotype classes
+// Component-specific: nutrient row grid layout
+
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
-.nom-ingredient-form {
-  &__loading {
-    @include nom-loading-state(vars.$spacing-4);
-    min-height: 200px;
-  }
+.ingredient-form__nutrient-row {
+  display: grid;
+  grid-template-columns: 2fr 100px 120px auto;
+  gap: vars.$spacing-3;
+  align-items: center;
 
-  &__form-field {
-    width: 100%;
-    margin-bottom: vars.$spacing-4;
-  }
-
-  &__section {
-    border-radius: vars.$nom-border-radius-lg;
-    padding: vars.$spacing-6;
-    margin-bottom: vars.$spacing-6;
-  }
-
-  &__section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: vars.$spacing-4;
-  }
-
-  &__section-title {
-    font-size: vars.$font-size-xl;
-    font-weight: vars.$font-weight-semibold;
-    margin: 0;
-  }
-
-  &__nutrient-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr auto;
-    gap: vars.$spacing-4;
-    align-items: center;
-    padding: vars.$spacing-4;
-    border-radius: vars.$nom-border-radius;
-    transition: all vars.$transition-duration-fast ease;
-    margin-bottom: vars.$spacing-3;
-  }
-
-  &__nutrient-field {
-    width: 100%;
-  }
-
-  &__remove-button {
-    // Inherits error color from theme
-  }
-
-  &__empty-message {
-    text-align: center;
-    padding: vars.$spacing-8;
-    font-style: italic;
-    border-radius: vars.$nom-border-radius;
-  }
-
-  &__add-button {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-2;
-  }
-
-  // Duplicate warning styles (for modal context)
-  &__duplicate-warning {
-    border-radius: vars.$nom-border-radius;
-    padding: vars.$spacing-4;
-    margin-bottom: vars.$spacing-4;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: vars.$spacing-4;
-  }
-
-  &__duplicate-content {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-2;
-
-    strong {
-      font-weight: vars.$font-weight-semibold;
-    }
-  }
-
-  &__use-existing-btn {
-    white-space: nowrap;
-  }
-}
-
-// Form actions for page context
-.form-actions {
-  margin-top: vars.$spacing-8;
-  padding-top: vars.$spacing-6;
-}
-
-.action-buttons {
-  @include nom-action-group(vars.$spacing-4, flex-end);
-}
-
-// Base form container styles
-.base-form-container {
-  margin: 0 auto;
-  padding: vars.$spacing-4;
-}
-
-// Form content styles
-.form-content {
-  margin-bottom: vars.$spacing-4;
-}
-
-// Responsive design
-@media (max-width: vars.$breakpoint-mobile) {
-  .nom-ingredient-form {
-    &__nutrient-row {
-      grid-template-columns: 1fr;
-      gap: vars.$spacing-2;
-    }
-
-    &__section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: vars.$spacing-4;
-    }
-
-    &__duplicate-warning {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: vars.$spacing-4;
-    }
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
     gap: vars.$spacing-2;
   }
 }

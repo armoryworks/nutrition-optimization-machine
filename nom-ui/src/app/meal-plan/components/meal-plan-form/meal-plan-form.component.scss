@@ -1,6 +1,5 @@
-// Meal Plan Form Component - Uses utilities
+// Meal Plan Form Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .meal-plan-form {
   max-width: 900px;
@@ -165,7 +164,9 @@
 }
 
 .form-actions {
-  @include nom-action-group(vars.$spacing-4, flex-end);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: flex-end;
   margin-top: vars.$spacing-8;
   padding-top: vars.$spacing-6;
   border-top: 1px solid vars.$nom-neutral-200;

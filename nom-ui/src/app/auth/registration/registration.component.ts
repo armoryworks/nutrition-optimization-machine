@@ -7,7 +7,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { AmwInputComponent, AmwButtonComponent, AmwCardComponent, loading, AmwValidationTooltipDirective, AmwValidators, AmwValidationService, ValidationContext } from 'angular-material-wrap';
+import { AmwInputComponent, AmwButtonComponent, loading, AmwValidationTooltipDirective, AmwValidators, AmwValidationService, ValidationContext } from 'angular-material-wrap';
 import { switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../auth.service';
@@ -23,7 +23,6 @@ import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
     ReactiveFormsModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwCardComponent,
     AmwValidationTooltipDirective
   ],
   templateUrl: './registration.component.html',

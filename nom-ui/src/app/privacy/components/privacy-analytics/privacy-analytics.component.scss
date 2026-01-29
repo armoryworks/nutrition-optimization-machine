@@ -1,6 +1,5 @@
-// Privacy Analytics Component - Uses utilities and variables
+// Privacy Analytics Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .privacy-analytics {
   display: flex;
@@ -192,7 +191,13 @@
   }
 
   &__empty {
-    @include nom-empty-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-12;
   }
 
   &__empty-icon {

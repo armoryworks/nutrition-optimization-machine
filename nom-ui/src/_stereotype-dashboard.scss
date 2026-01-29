@@ -1,396 +1,726 @@
 // =============================================================================
-// DASHBOARD STEREOTYPE
+// DASHBOARD STEREOTYPE - GLOBAL CLASSES
 // =============================================================================
-// Use for: dashboard pages with stats, cards, lists
-// Components: shopping-dashboard, household-dashboard, meal-plan-dashboard
+// File: _stereotype-dashboard.scss
+//
+// These classes are available GLOBALLY to all components.
+// Components use them directly in HTML templates.
+// Component SCSS should NOT redefine these - only add component-specific overrides.
+//
+// USAGE IN HTML:
+//   <div class="nom-dashboard nom-dashboard--with-sidebar">
+//     <aside class="nom-dashboard__sidebar">...</aside>
+//     <main class="nom-dashboard__main">
+//       <header class="nom-dashboard__header">...</header>
+//       <div class="nom-dashboard__grid">...</div>
+//     </main>
+//   </div>
+//
 // =============================================================================
 
 @use './variables' as vars;
+@use './mixins' as mixins;
 
-// -----------------------------------------------------------------------------
-// Dashboard Container
-// -----------------------------------------------------------------------------
-%nom-dashboard {
-  max-width: 1200px;
+// =============================================================================
+// CONTAINER VARIANTS
+// =============================================================================
+
+.nom-dashboard {
+  width: 100%;
+  max-width: vars.$content-max-medium;
   margin: 0 auto;
-  padding: vars.$spacing-8 vars.$spacing-4;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-4 vars.$spacing-2;
+  @include mixins.breakpoint(mobile) {
+    padding: vars.$spacing-3 vars.$spacing-4;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Page Header (Compact 3-column layout)
-// -----------------------------------------------------------------------------
-%nom-dashboard-page-header {
+.nom-dashboard--with-sidebar {
+  display: grid;
+  grid-template-columns: vars.$sidebar-width 1fr;
+  gap: 0;
+  max-width: none;
+  padding: 0;
+  height: calc(100vh - vars.$header-height - vars.$footer-height);
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-dashboard--full-width {
+  max-width: none;
+}
+
+.nom-dashboard--compact {
+  padding: vars.$spacing-2 vars.$spacing-4;
+}
+
+// =============================================================================
+// SIDEBAR
+// =============================================================================
+
+.nom-dashboard__sidebar {
+  background: var(--mat-sys-surface-container-low);
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  padding: vars.$spacing-5;
+  position: sticky;
+  top: vars.$header-height;
+  height: calc(100vh - vars.$header-height - vars.$footer-height);
+  overflow-y: auto;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
+    border-radius: 3px;
+  }
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    display: none;
+  }
+}
+
+.nom-dashboard__main {
+  padding: vars.$spacing-4 vars.$spacing-6;
+  overflow-y: auto;
+  height: 100%;
+
+  @include mixins.breakpoint(mobile) {
+    padding: vars.$spacing-3 vars.$spacing-4;
+  }
+}
+
+// =============================================================================
+// FILTER GROUPS (Sidebar)
+// =============================================================================
+
+.nom-dashboard__filter-group {
   margin-bottom: vars.$spacing-6;
 }
 
-%nom-dashboard-page-header--compact {
+.nom-dashboard__filter-title {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 vars.$spacing-3;
+}
+
+.nom-dashboard__filter-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: vars.$spacing-6;
-  min-height: 60px;
-  padding: vars.$spacing-3 0;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-radius: vars.$nom-border-radius;
+  cursor: pointer;
+  @include mixins.nom-transition(background-color);
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: vars.$spacing-3;
-    min-height: auto;
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--mat-sys-primary);
+    cursor: pointer;
+  }
+
+  span,
+  label {
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface);
+    cursor: pointer;
   }
 }
 
-%nom-dashboard-header-left {
+// =============================================================================
+// HEADER
+// =============================================================================
+
+.nom-dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: vars.$spacing-6;
+  margin-bottom: vars.$spacing-6;
+  min-height: 48px;
+
+  @include mixins.breakpoint(mobile) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: vars.$spacing-3;
+  }
+}
+
+.nom-dashboard__header-left {
   display: flex;
   align-items: baseline;
   gap: vars.$spacing-3;
   flex-shrink: 0;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
-    align-items: flex-start;
     gap: vars.$spacing-1;
-    width: 100%;
   }
 }
 
-%nom-dashboard-header-center {
+.nom-dashboard__header-center {
   display: flex;
   align-items: center;
   gap: vars.$spacing-3;
   flex: 1;
   justify-content: center;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     justify-content: flex-start;
-    width: 100%;
     flex-wrap: wrap;
   }
 }
 
-%nom-dashboard-header-right {
+.nom-dashboard__header-right {
   display: flex;
   align-items: center;
   gap: vars.$spacing-3;
   flex-shrink: 0;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: stretch;
+
+    > * {
+      flex: 1;
+    }
   }
 }
 
-// -----------------------------------------------------------------------------
-// Title Section
-// -----------------------------------------------------------------------------
-%nom-dashboard-title {
+.nom-dashboard__title {
   font-size: vars.$font-size-xl;
-  font-weight: vars.$font-weight-medium;
+  font-weight: vars.$font-weight-semibold;
   margin: 0;
   color: var(--mat-sys-on-surface);
   line-height: vars.$line-height-tight;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     font-size: vars.$font-size-lg;
   }
 }
 
-%nom-dashboard-subtitle {
+.nom-dashboard__subtitle {
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    max-width: 100%;
-    white-space: normal;
-  }
+  margin: 0;
 }
 
-// -----------------------------------------------------------------------------
-// Stats Pill (inline stat display)
-// -----------------------------------------------------------------------------
-%nom-dashboard-stats-pill {
+// =============================================================================
+// STATS PILLS
+// =============================================================================
+
+.nom-dashboard__stats {
   display: flex;
-  align-items: center;
   gap: vars.$spacing-2;
-  padding: vars.$spacing-2 vars.$spacing-4;
-  background-color: var(--mat-sys-surface-container-high);
-  border-radius: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.nom-dashboard__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: vars.$spacing-1 vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 20px;
   font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface);
-  flex-shrink: 0;
-}
-
-%nom-dashboard-stats-icon {
-  font-size: 1rem;
-  width: 1rem;
-  height: 1rem;
-  color: var(--mat-sys-primary);
-}
-
-%nom-dashboard-stats-text {
   font-weight: vars.$font-weight-medium;
-}
+  @include mixins.nom-transition(all);
 
-// -----------------------------------------------------------------------------
-// Stats Grid
-// -----------------------------------------------------------------------------
-%nom-dashboard-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: vars.$spacing-6;
-  margin-bottom: vars.$spacing-8;
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    transform: translateY(-1px);
+  }
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    grid-template-columns: 1fr;
+  mat-icon,
+  amw-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--mat-sys-primary);
   }
 }
 
-%nom-dashboard-stat-card {
-  border-radius: vars.$nom-border-radius-lg;
-  padding: vars.$spacing-6;
-}
+// =============================================================================
+// TABS
+// =============================================================================
 
-%nom-dashboard-stat-header {
+.nom-dashboard__tabs {
   display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-  margin-bottom: vars.$spacing-4;
-}
+  gap: vars.$spacing-1;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  margin-bottom: vars.$spacing-6;
 
-%nom-dashboard-stat-icon {
-  font-size: vars.$font-size-xl;
-  width: vars.$font-size-xl;
-  height: vars.$font-size-xl;
-}
+  @include mixins.breakpoint(mobile) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 
-%nom-dashboard-stat-title {
-  margin: 0;
-}
-
-%nom-dashboard-stat-value {
-  margin: 0;
-  font-weight: vars.$font-weight-semibold;
-}
-
-%nom-dashboard-stat-description {
-  margin: vars.$spacing-2 0 0;
-}
-
-// -----------------------------------------------------------------------------
-// Content Grid (for cards/items)
-// -----------------------------------------------------------------------------
-%nom-dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: vars.$spacing-4;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    grid-template-columns: 1fr;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 
-// -----------------------------------------------------------------------------
-// Section Container
-// -----------------------------------------------------------------------------
-%nom-dashboard-section {
-  border-radius: vars.$nom-border-radius-lg;
-  padding: vars.$spacing-8;
-  margin-bottom: vars.$spacing-8;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-6 vars.$spacing-4;
-  }
-}
-
-%nom-dashboard-section-title {
-  margin: 0 0 vars.$spacing-6;
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-}
-
-// -----------------------------------------------------------------------------
-// Item Card
-// -----------------------------------------------------------------------------
-%nom-dashboard-item-card {
+.nom-dashboard__tab {
+  padding: vars.$spacing-3 vars.$spacing-5;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface-variant);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all vars.$transition-duration-normal vars.$transition-timing;
-  border-radius: vars.$nom-border-radius-lg;
+  white-space: nowrap;
+  @include mixins.nom-transition(color);
+  @include mixins.nom-transition(border-color);
+
+  &:hover {
+    color: var(--mat-sys-on-surface);
+  }
+
+  &--active {
+    color: var(--mat-sys-primary);
+    border-bottom-color: var(--mat-sys-primary);
+  }
+}
+
+// =============================================================================
+// CARD GRID
+// =============================================================================
+
+.nom-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(vars.$card-min-width, 1fr));
+  gap: vars.$card-gap;
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-dashboard__grid--2col {
+  grid-template-columns: repeat(2, 1fr);
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-dashboard__grid--3col {
+  grid-template-columns: repeat(3, 1fr);
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-dashboard__grid--4col {
+  grid-template-columns: repeat(4, 1fr);
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// =============================================================================
+// CARDS
+// =============================================================================
+
+.nom-dashboard__card {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$card-border-radius;
   overflow: hidden;
+  @include mixins.nom-transition(transform);
+  @include mixins.nom-transition(box-shadow);
 
   &:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &--clickable {
+    cursor: pointer;
+  }
+
+  &--flat {
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
   }
 }
 
-%nom-dashboard-item-header {
+.nom-dashboard__card-image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--mat-sys-surface-container);
+}
+
+.nom-dashboard__card-content {
+  padding: vars.$spacing-5;
+}
+
+.nom-dashboard__card-header {
+  padding: vars.$spacing-4 vars.$spacing-5 0;
   display: flex;
   align-items: flex-start;
   gap: vars.$spacing-3;
-  padding: vars.$spacing-3 vars.$spacing-3 0;
 }
 
-%nom-dashboard-item-icon {
+.nom-dashboard__card-icon {
   font-size: vars.$font-size-xl;
-  width: vars.$font-size-xl;
-  height: vars.$font-size-xl;
-  margin-top: vars.$spacing-1;
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
 }
 
-%nom-dashboard-item-title-info {
-  flex: 1;
-}
-
-%nom-dashboard-item-title {
-  margin: 0;
-  font-size: 18px;
+.nom-dashboard__card-title {
+  font-size: vars.$font-size-lg;
   font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-2;
+  color: var(--mat-sys-on-surface);
   line-height: vars.$line-height-tight;
 }
 
-%nom-dashboard-item-subtitle {
-  margin: vars.$spacing-1 0 0;
+.nom-dashboard__card-subtitle {
   font-size: vars.$font-size-sm;
-  line-height: vars.$line-height-normal;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
 }
 
-%nom-dashboard-item-content {
-  padding: vars.$spacing-3 vars.$spacing-3 0;
-}
-
-%nom-dashboard-item-stats {
+.nom-dashboard__card-meta {
   display: flex;
-  gap: vars.$spacing-4;
+  align-items: center;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-3;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-    gap: vars.$spacing-3;
+.nom-dashboard__card-actions {
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-2;
+}
+
+// =============================================================================
+// DATA TABLE
+// =============================================================================
+
+.nom-dashboard__table-container {
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-dashboard__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th,
+  td {
+    padding: vars.$spacing-3 vars.$spacing-4;
+    text-align: left;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  th {
+    font-weight: vars.$font-weight-semibold;
+    font-size: vars.$font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mat-sys-on-surface-variant);
+    background: var(--mat-sys-surface-container-low);
+    position: sticky;
+    top: 0;
+    z-index: vars.$z-sticky;
+  }
+
+  tbody tr {
+    @include mixins.nom-transition(background-color);
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  .action-cell {
+    text-align: right;
+    white-space: nowrap;
   }
 }
 
-%nom-dashboard-item-stat {
+// =============================================================================
+// PAGINATION
+// =============================================================================
+
+.nom-dashboard__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-4 0;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-dashboard__pagination-info {
+  white-space: nowrap;
+}
+
+.nom-dashboard__pagination-controls {
+  display: flex;
+  gap: vars.$spacing-1;
+}
+
+.nom-dashboard__per-page {
   display: flex;
   align-items: center;
   gap: vars.$spacing-2;
 }
 
-%nom-dashboard-item-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: vars.$spacing-2;
-  padding: vars.$spacing-3 vars.$spacing-3 vars.$spacing-4;
+// =============================================================================
+// SECTIONS
+// =============================================================================
+
+.nom-dashboard__section {
+  margin-bottom: vars.$spacing-8;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-// -----------------------------------------------------------------------------
-// Header Actions
-// -----------------------------------------------------------------------------
-%nom-dashboard-header-actions {
+.nom-dashboard__section-header {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: vars.$spacing-6;
-  gap: vars.$spacing-3;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: vars.$spacing-4;
+  gap: vars.$spacing-4;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
     align-items: stretch;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Progress Section
-// -----------------------------------------------------------------------------
-%nom-dashboard-progress-section {
-  margin-top: vars.$spacing-3;
+.nom-dashboard__section-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
 }
 
-%nom-dashboard-progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: var(--mat-sys-surface-container-highest);
-  border-radius: vars.$nom-border-radius-sm;
-  overflow: hidden;
-  margin-bottom: vars.$spacing-2;
+.nom-dashboard__section-actions {
+  display: flex;
+  gap: vars.$spacing-2;
+  flex-shrink: 0;
 }
 
-%nom-dashboard-progress-fill {
-  height: 100%;
-  transition: width vars.$transition-duration-slow vars.$transition-timing;
+// =============================================================================
+// FILTERS (Inline)
+// =============================================================================
+
+.nom-dashboard__filters {
+  display: flex;
+  gap: vars.$spacing-4;
+  align-items: flex-end;
+  margin-bottom: vars.$spacing-4;
+
+  @include mixins.breakpoint(mobile) {
+    flex-direction: column;
+    gap: vars.$spacing-2;
+  }
 }
 
-%nom-dashboard-progress-text {
+.nom-dashboard__filter-field {
+  flex: 1;
+  min-width: 180px;
+  max-width: 300px;
+
+  @include mixins.breakpoint(mobile) {
+    width: 100%;
+    min-width: unset;
+    max-width: none;
+  }
+}
+
+// =============================================================================
+// EMPTY STATE
+// =============================================================================
+
+.nom-dashboard__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-12;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.nom-dashboard__empty-icon {
+  font-size: 4rem;
+  width: 4rem;
+  height: 4rem;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.5;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-dashboard__empty-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-2;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-dashboard__empty-message {
+  color: var(--mat-sys-on-surface-variant);
+  max-width: 400px;
+  margin: 0 0 vars.$spacing-4;
+  line-height: vars.$line-height-normal;
+}
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
+
+.nom-dashboard__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-12;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.nom-dashboard__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-8;
+  text-align: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: vars.$nom-border-radius;
+  color: var(--mat-sys-error);
+
+  p {
+    margin: vars.$spacing-2 0 vars.$spacing-4;
+  }
+}
+
+// =============================================================================
+// ITEM LIST (Alternative to Cards)
+// =============================================================================
+
+.nom-dashboard__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-dashboard__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  @include mixins.nom-transition(all);
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    transform: translateY(-1px);
+  }
+
+  &--clickable {
+    cursor: pointer;
+  }
+}
+
+.nom-dashboard__list-item-content {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-dashboard__list-item-title {
+  font-weight: vars.$font-weight-medium;
+  margin: 0;
+  @include mixins.nom-text-truncate;
+}
+
+.nom-dashboard__list-item-meta {
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
 }
 
+.nom-dashboard__list-item-actions {
+  display: flex;
+  gap: vars.$spacing-1;
+  flex-shrink: 0;
+}
+
 // =============================================================================
-// Mixin-based API for easy usage
+// LEGACY MIXIN SUPPORT (for gradual migration)
 // =============================================================================
+
 @mixin nom-dashboard {
-  @extend %nom-dashboard;
+  @extend .nom-dashboard;
 }
 
 @mixin nom-dashboard-page-header($compact: false) {
-  @extend %nom-dashboard-page-header;
-  @if $compact {
-    @extend %nom-dashboard-page-header--compact;
-  }
-}
-
-@mixin nom-dashboard-header-left {
-  @extend %nom-dashboard-header-left;
-}
-
-@mixin nom-dashboard-header-center {
-  @extend %nom-dashboard-header-center;
-}
-
-@mixin nom-dashboard-header-right {
-  @extend %nom-dashboard-header-right;
-}
-
-@mixin nom-dashboard-title {
-  @extend %nom-dashboard-title;
-}
-
-@mixin nom-dashboard-subtitle {
-  @extend %nom-dashboard-subtitle;
-}
-
-@mixin nom-dashboard-stats-pill {
-  @extend %nom-dashboard-stats-pill;
-}
-
-@mixin nom-dashboard-stats-grid {
-  @extend %nom-dashboard-stats-grid;
-}
-
-@mixin nom-dashboard-stat-card {
-  @extend %nom-dashboard-stat-card;
+  @extend .nom-dashboard__header;
 }
 
 @mixin nom-dashboard-grid {
-  @extend %nom-dashboard-grid;
-}
-
-@mixin nom-dashboard-section {
-  @extend %nom-dashboard-section;
+  @extend .nom-dashboard__grid;
 }
 
 @mixin nom-dashboard-item-card {
-  @extend %nom-dashboard-item-card;
-}
-
-@mixin nom-dashboard-header-actions {
-  @extend %nom-dashboard-header-actions;
-}
-
-@mixin nom-dashboard-progress-bar {
-  @extend %nom-dashboard-progress-bar;
+  @extend .nom-dashboard__card;
 }

@@ -1,39 +1,61 @@
-<div class="nom-page-container meal-plan-create">
-  <amw-card class="nom-card" headerTitle="Create Meal Plan"
-    headerSubtitle="Create a new meal plan to organize your meals">
-    <ng-template #cardContent>
+<div class="nom-form--card">
+  <div class="nom-form__card">
+    <div class="nom-form__card-icon">
+      <amw-icon name="calendar_month"></amw-icon>
+    </div>
+    <div class="nom-form__card-header">
+      <h1 class="nom-form__card-title">Create Meal Plan</h1>
+      <p class="nom-form__card-subtitle">Create a new meal plan to organize your meals</p>
+    </div>
+    <div class="nom-form__card-content">
       @if (isLoading()) {
-      <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-      </amw-progress-bar>
+        <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
       }
 
-      <form [formGroup]="mealPlanForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <amw-input formControlName="recipeName" label="Recipe Name" placeholder="Enter recipe name..."
-          icon="restaurant_menu" [required]="true" class="nom-form__field">
+      <form [formGroup]="mealPlanForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+        <amw-input
+          formControlName="recipeName"
+          label="Recipe Name"
+          placeholder="Enter recipe name..."
+          icon="restaurant_menu"
+          [required]="true">
         </amw-input>
 
-        <amw-select formControlName="mealType" label="Meal Type" [options]="mealTypes" [required]="true"
-          class="nom-form__field">
+        <amw-select
+          formControlName="mealType"
+          label="Meal Type"
+          [options]="mealTypes"
+          [required]="true">
         </amw-select>
 
-        <amw-datepicker formControlName="date" label="Date" [required]="true" class="nom-form__field">
+        <amw-datepicker
+          formControlName="date"
+          label="Date"
+          [required]="true">
         </amw-datepicker>
 
-        <amw-textarea formControlName="description" label="Description (Optional)"
-          placeholder="Add a description for your meal plan..." [rows]="3" class="nom-form__field">
+        <amw-textarea
+          formControlName="description"
+          label="Description (Optional)"
+          placeholder="Add a description for your meal plan..."
+          [rows]="3">
         </amw-textarea>
-
-        <div class="nom-form__actions">
-          <amw-button type="button" variant="text" (click)="onCancel()" class="nom-button">
-            Cancel
-          </amw-button>
-          <amw-button type="submit" variant="filled" color="primary" [disabled]="mealPlanForm.invalid || isLoading()"
-            [amwValidationTooltip]="validationContext"
-            [loading]="isLoading()" class="nom-button">
-            Create Meal Plan
-          </amw-button>
-        </div>
       </form>
-    </ng-template>
-  </amw-card>
+    </div>
+    <div class="nom-form__card-actions">
+      <amw-button type="button" variant="text" (click)="onCancel()">
+        Cancel
+      </amw-button>
+      <amw-button
+        type="submit"
+        variant="filled"
+        color="primary"
+        [disabled]="mealPlanForm.invalid || isLoading()"
+        [amwValidationTooltip]="validationContext"
+        [loading]="isLoading()"
+        (click)="onSubmit()">
+        Create Meal Plan
+      </amw-button>
+    </div>
+  </div>
 </div>

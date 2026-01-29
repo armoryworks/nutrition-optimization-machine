@@ -1,6 +1,5 @@
-// Recipe Tags Component - Uses utilities and variables
+// Recipe Tags Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .recipe-tags {
   &__header {
@@ -40,7 +39,9 @@
   }
 
   &__form {
-    @include nom-form-field(vars.$spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-4;
   }
 
   &__form-row {
@@ -58,11 +59,18 @@
   }
 
   &__form-actions {
-    @include nom-action-group(vars.$spacing-2, flex-end);
+    display: flex;
+    gap: vars.$spacing-2;
+    justify-content: flex-end;
   }
 
   &__loading {
-    @include nom-loading-state(vars.$spacing-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
     padding: vars.$spacing-12 vars.$spacing-4;
 
     p {
@@ -75,7 +83,13 @@
   }
 
   &__error-content {
-    @include nom-empty-state(vars.$spacing-4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-4;
 
     p {
       margin: 0 0 vars.$spacing-4 0;

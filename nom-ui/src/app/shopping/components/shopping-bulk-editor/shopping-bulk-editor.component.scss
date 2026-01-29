@@ -1,29 +1,23 @@
-// Shopping Bulk Editor Component - Uses utilities
+// Shopping Bulk Editor Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
-.nom-loading-container,
-.nom-error-container {
-  @include nom-empty-state(vars.$spacing-8);
-}
-
-.nom-error-message {
-  color: var(--mat-sys-error);
-  margin: 0;
-  text-align: center;
-}
-
-.nom-error-actions {
-  @include nom-action-group(vars.$spacing-4, center);
-  margin-top: 0;
-}
+// =============================================================================
+// CONTAINER
+// =============================================================================
 
 .nom-bulk-editor-container {
-  @include nom-form-field(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-4;
   max-width: 1200px;
   margin: 0 auto;
 }
+
+// =============================================================================
+// HEADER
+// =============================================================================
 
 .nom-header {
   display: flex;
@@ -50,6 +44,10 @@
   color: var(--mat-sys-on-surface-variant);
   font-size: vars.$font-size-sm;
 }
+
+// =============================================================================
+// ACTIONS BAR
+// =============================================================================
 
 .nom-actions-bar {
   display: flex;
@@ -97,8 +95,16 @@
   flex: 1;
 }
 
+// =============================================================================
+// PROCESSING OVERLAY
+// =============================================================================
+
 .nom-processing-overlay {
-  @include nom-loading-state(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: vars.$spacing-4;
   position: absolute;
   top: 0;
   left: 0;
@@ -115,8 +121,14 @@
   }
 }
 
+// =============================================================================
+// ITEMS LIST
+// =============================================================================
+
 .nom-items-list {
-  @include nom-form-field(vars.$spacing-2);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
 
   h3 {
     margin: 0 0 vars.$spacing-4 0;
@@ -131,7 +143,7 @@
   padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
-  transition: background-color vars.$transition-duration-normal vars.$transition-timing;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -143,7 +155,9 @@
 }
 
 .nom-item-content {
-  @include nom-form-field(vars.$spacing-2);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
   flex: 1;
 }
 
@@ -184,8 +198,17 @@
   font-style: italic;
 }
 
+// =============================================================================
+// EMPTY & ERROR STATES
+// =============================================================================
+
 .nom-empty-state {
-  @include nom-empty-state(vars.$spacing-12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-12 vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 
@@ -198,7 +221,34 @@
   }
 }
 
-// Responsive design
+.nom-loading-container,
+.nom-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-8;
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+  text-align: center;
+}
+
+.nom-error-actions {
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
+  margin-top: 0;
+}
+
+// =============================================================================
+// RESPONSIVE
+// =============================================================================
+
 @media (max-width: 1024px) {
   .nom-bulk-actions {
     flex-direction: column;

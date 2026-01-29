@@ -1,97 +1,78 @@
-<div class="nom-page-container household-dashboard">
-    <!-- Compact Page Header -->
-    <div class="nom-compact-header">
-      <div class="nom-compact-header__left">
-        <h1 class="nom-compact-header__title">{{ pageTitle }}</h1>
-        <span class="nom-compact-header__subtitle">{{ pageSubtitle }}</span>
-      </div>
-      <div class="nom-compact-header__center">
-        @if (!loading() && !error()) {
-        <div class="nom-stat-pill">
-          <amw-icon name="home"></amw-icon>
-          <span>{{ households().length }} household{{ households().length !== 1
-            ? 's' : '' }}</span>
-        </div>
-        }
-      </div>
-      <div class="nom-compact-header__right">
-        <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()">
-          Refresh
-        </amw-button>
-        <amw-button variant="filled" color="primary" icon="add" (click)="createHousehold()">
-          Create Household
-        </amw-button>
-      </div>
+<div class="nom-dashboard">
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">{{ pageTitle }}</h1>
+      <span class="nom-dashboard__subtitle">{{ pageSubtitle }}</span>
     </div>
+    <div class="nom-dashboard__header-center">
+      @if (!loading() && !error()) {
+        <span class="nom-dashboard__stat">
+          <amw-icon name="home"></amw-icon>
+          <span>{{ households().length }} household{{ households().length !== 1 ? 's' : '' }}</span>
+        </span>
+      }
+    </div>
+    <div class="nom-dashboard__header-right">
+      <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()">
+        Refresh
+      </amw-button>
+      <amw-button variant="filled" color="primary" icon="add" (click)="createHousehold()">
+        Create Household
+      </amw-button>
+    </div>
+  </header>
 
-    <!-- Loading State -->
-    @if (loading()) {
-    <amw-inline-loading message="Loading households..." />
-    }
+  @if (loading()) {
+    <div class="nom-dashboard__loading">
+      <amw-inline-loading message="Loading households..." />
+    </div>
+  }
 
-    <!-- Error State -->
-    @if (error() && !loading()) {
-    <div class="nom-error-state" role="alert">
+  @if (error() && !loading()) {
+    <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
         Try Again
       </amw-button>
     </div>
-    }
+  }
 
-    <!-- Content -->
-    @if (!loading() && !error()) {
-    <div class="household-dashboard__content">
-      <!-- Empty State -->
-      @if (households().length === 0) {
-      <div class="nom-empty-state">
-        <amw-icon name="home" class="nom-empty-state__icon"></amw-icon>
-        <h3 class="nom-empty-state__title">No Households Found</h3>
-        <p class="nom-empty-state__message">Create your first household to get started with shared meal planning and shopping lists.</p>
+  @if (!loading() && !error()) {
+    @if (households().length === 0) {
+      <div class="nom-dashboard__empty">
+        <amw-icon name="home" class="nom-dashboard__empty-icon"></amw-icon>
+        <h3 class="nom-dashboard__empty-title">No Households Found</h3>
+        <p class="nom-dashboard__empty-message">Create your first household to get started with shared meal planning and shopping lists.</p>
         <amw-button variant="filled" color="primary" icon="add" (click)="createHousehold()">
           Create Household
         </amw-button>
       </div>
-      }
-
-      <!-- Households Grid -->
-      @if (households().length > 0) {
-      <div class="nom-grid--auto">
+    } @else {
+      <div class="nom-dashboard__grid">
         @for (household of households(); track household.id) {
-        <amw-card [headerTitle]="household.name" headerIcon="home" class="nom-card dashboard-card"
-          (click)="viewHousehold(household)">
-          <ng-template #cardContent>
-            @if (household.description) {
-            <p class="nom-small-text">
-              {{ household.description }}
-            </p>
-            }
-            <div class="dashboard-card__stats">
-              <div class="dashboard-card__stat">
-                <amw-icon name="people"></amw-icon>
-                <span>{{ household.memberCount || 0 }} members</span>
-              </div>
-              <div class="dashboard-card__stat">
-                <amw-icon name="restaurant_menu"></amw-icon>
-                <span>{{ household.planCount || 0 }} plans</span>
+          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="viewHousehold(household)">
+            <div class="nom-dashboard__card-content">
+              <h2 class="nom-dashboard__card-title">{{ household.name }}</h2>
+              @if (household.description) {
+                <p class="nom-dashboard__card-subtitle">{{ household.description }}</p>
+              }
+              <div class="nom-dashboard__card-meta">
+                <span><amw-icon name="people"></amw-icon> {{ household.memberCount || 0 }} members</span>
+                <span><amw-icon name="restaurant_menu"></amw-icon> {{ household.planCount || 0 }} plans</span>
               </div>
             </div>
-            <div class="nom-actions --end">
-              <amw-button variant="text" color="primary" icon="edit"
-                (click)="editHousehold(household); $event.stopPropagation()">
+            <div class="nom-dashboard__card-actions">
+              <amw-button variant="text" color="primary" icon="edit" (click)="editHousehold(household); $event.stopPropagation()">
                 Edit
               </amw-button>
-              <amw-button variant="text" color="accent" icon="person_add"
-                (click)="inviteMembers(household); $event.stopPropagation()">
+              <amw-button variant="text" color="accent" icon="person_add" (click)="inviteMembers(household); $event.stopPropagation()">
                 Invite
               </amw-button>
             </div>
-          </ng-template>
-        </amw-card>
+          </article>
         }
       </div>
-      }
-    </div>
     }
+  }
 </div>

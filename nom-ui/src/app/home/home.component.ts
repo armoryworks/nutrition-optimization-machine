@@ -2,14 +2,13 @@ import { Component, inject } from '@angular/core';
 
 import { RouterLink, Router } from '@angular/router';
 
-import { AmwButtonComponent, AmwIconComponent } from 'angular-material-wrap';
+import { AmwIconComponent } from 'angular-material-wrap';
 
 @Component({
   selector: 'nom-home',
   standalone: true,
   imports: [
     RouterLink,
-    AmwButtonComponent,
     AmwIconComponent,
   ],
   templateUrl: './home.component.html',

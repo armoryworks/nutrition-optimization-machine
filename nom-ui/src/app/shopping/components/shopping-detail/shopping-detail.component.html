@@ -1,136 +1,107 @@
-<div class="nom-page-container shopping-detail">
+<div class="nom-detail">
   <!-- Page Header -->
-    <div class="shopping-detail__page-header">
-      <div class="shopping-detail__title-section">
-        <amw-button variant="text" icon="arrow_back" (click)="onBack()">
-          Back
-        </amw-button>
-        <h1>{{ pageTitle }}</h1>
-        <p class="subtitle">{{ pageSubtitle }}</p>
-      </div>
-    </div>
+  <div class="nom-detail__actions" style="justify-content: flex-start;">
+    <amw-button variant="text" icon="arrow_back" (click)="onBack()">Back</amw-button>
+  </div>
 
-    <!-- Loading State -->
-    @if (isLoading()) {
+  <!-- Loading State -->
+  @if (isLoading()) {
     <amw-inline-loading message="Loading shopping list..." />
-    }
+  }
 
-    <!-- Error State -->
-    @if (error() && !isLoading()) {
-    <div class="shopping-detail__error">
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="nom-dashboard__error">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
-        Try Again
-      </amw-button>
+      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">Try Again</amw-button>
     </div>
-    }
+  }
 
-    <!-- Content -->
-    @if (shoppingList() && !isLoading() && !error()) {
+  <!-- Content -->
+  @if (shoppingList() && !isLoading() && !error()) {
     <!-- Header Actions -->
-    <div class="shopping-detail__header-actions">
-      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditShoppingList()">
-        Edit List
-      </amw-button>
-      <amw-button variant="outlined" color="accent" icon="add" (click)="onAddItem()">
-        Add Item
-      </amw-button>
+    <div class="nom-detail__actions">
+      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditShoppingList()">Edit List</amw-button>
+      <amw-button variant="outlined" color="accent" icon="add" (click)="onAddItem()">Add Item</amw-button>
       <amw-button variant="icon" [amwMenuTriggerFor]="menu">
         <amw-icon name="more_vert"></amw-icon>
       </amw-button>
       <amw-menu #menu>
-        <amw-menu-item label="Delete List" icon="delete" (itemClick)="onDeleteShoppingList()">
-        </amw-menu-item>
+        <amw-menu-item label="Delete List" icon="delete" (itemClick)="onDeleteShoppingList()"></amw-menu-item>
       </amw-menu>
     </div>
 
     <!-- Shopping List Info -->
-    <div class="shopping-detail__info-section">
-      <amw-card class="shopping-detail__info-card" [headerTitle]="shoppingList()!.name"
-        [headerSubtitle]="shoppingList()!.description || ''" headerIcon="shopping_basket">
-      </amw-card>
+    <div class="nom-detail__hero">
+      <div class="nom-detail__hero-header">
+        <amw-icon name="shopping_basket" class="nom-detail__hero-icon"></amw-icon>
+        <div class="nom-detail__hero-content">
+          <h1 class="nom-detail__title">{{ shoppingList()!.name }}</h1>
+          @if (shoppingList()!.description) {
+            <p class="nom-detail__subtitle">{{ shoppingList()!.description }}</p>
+          }
+        </div>
+      </div>
     </div>
 
     <!-- Progress Section -->
     @if (shoppingList()!.totalItems && shoppingList()!.totalItems > 0) {
-    <div class="shopping-detail__progress-section">
-      <amw-card class="shopping-detail__progress-card">
-        <ng-template #cardContent>
-          <div class="shopping-detail__progress-header">
-            <h3 class="shopping-detail__progress-title">Progress</h3>
-            <span class="shopping-detail__progress-text">
-              {{ shoppingList()!.completedItems || 0 }} of {{ shoppingList()!.totalItems }} items completed
-            </span>
+      <div class="nom-detail__section">
+        <div class="nom-detail__card">
+          <div class="nom-detail__card-content">
+            <div class="nom-detail__progress-header">
+              <h3 class="nom-detail__progress-title">Progress</h3>
+              <span class="nom-detail__progress-text">
+                {{ shoppingList()!.completedItems || 0 }} of {{ shoppingList()!.totalItems }} items completed
+              </span>
+            </div>
+            <div class="nom-detail__progress-bar">
+              <div class="nom-detail__progress-fill" [style.width.%]="getProgressPercentage()"></div>
+            </div>
+            <div class="nom-detail__progress-percentage">{{ getProgressPercentage() }}% complete</div>
           </div>
-          <div class="shopping-detail__progress-bar">
-            <div class="shopping-detail__progress-fill" [style.width.%]="getProgressPercentage()"
-              [class]="'shopping-detail__progress-fill--' + getProgressColor(getProgressPercentage())"></div>
-          </div>
-          <div class="shopping-detail__progress-percentage">
-            {{ getProgressPercentage() }}% complete
-          </div>
-        </ng-template>
-      </amw-card>
-    </div>
+        </div>
+      </div>
     }
 
     <!-- Items Section -->
-    <div class="shopping-detail__items-section">
-      <h3 class="shopping-detail__items-title">Shopping Items</h3>
+    <div class="nom-detail__section">
+      <h3 class="nom-detail__section-title">Shopping Items</h3>
       @if (shoppingList()!.items && shoppingList()!.items.length > 0) {
-      <amw-card class="shopping-detail__items-card">
-        <ng-template #cardContent>
-          <div class="shopping-detail__items-list">
-            @for (item of shoppingList()!.items; track item.id) {
-            <div class="shopping-detail__item">
-              <div class="shopping-detail__item-info">
-                <amw-checkbox [checked]="item.isCompleted" (change)="onToggleItemComplete(item.id)"
-                  class="shopping-detail__item-checkbox">
-                </amw-checkbox>
-                <div class="shopping-detail__item-content">
-                  <h4 class="shopping-detail__item-name" [class.completed]="item.isCompleted">
-                    {{ item.name }}
-                  </h4>
+        <div class="nom-detail__list">
+          @for (item of shoppingList()!.items; track item.id) {
+            <div class="nom-detail__list-item">
+              <div class="nom-detail__list-item-info">
+                <amw-checkbox [checked]="item.isCompleted" (change)="onToggleItemComplete(item.id)"></amw-checkbox>
+                <div class="nom-detail__list-item-content">
+                  <h4 class="nom-detail__list-item-title" [class.completed]="item.isCompleted">{{ item.name }}</h4>
                   @if (item.quantity || item.notes) {
-                  <div class="shopping-detail__item-details">
-                    @if (item.quantity) {
-                    <span class="shopping-detail__item-quantity">
-                      Qty: {{ item.quantity }}
-                    </span>
-                    }
-                    @if (item.notes) {
-                    <span class="shopping-detail__item-notes">
-                      {{ item.notes }}
-                    </span>
-                    }
-                  </div>
+                    <div class="nom-detail__list-item-meta">
+                      @if (item.quantity) {
+                        <span>Qty: {{ item.quantity }}</span>
+                      }
+                      @if (item.notes) {
+                        <span>{{ item.notes }}</span>
+                      }
+                    </div>
                   }
                 </div>
               </div>
-              <div class="shopping-detail__item-actions">
-                <amw-button variant="icon" icon="delete" (click)="onDeleteItem(item.id)">
-                </amw-button>
+              <div class="nom-detail__list-item-actions">
+                <amw-button variant="icon" icon="delete" (click)="onDeleteItem(item.id)"></amw-button>
               </div>
             </div>
-            }
-          </div>
-        </ng-template>
-      </amw-card>
+          }
+        </div>
       } @else {
-      <div class="shopping-detail__empty-state">
-        <amw-card class="shopping-detail__empty-card">
-          <ng-template #cardContent>
-            <amw-icon name="shopping_cart" class="shopping-detail__empty-icon"></amw-icon>
-            <h3>No Items Yet</h3>
-            <p>Add items to your shopping list to get started.</p>
-            <amw-button variant="filled" color="primary" icon="add" (click)="onAddItem()">
-              Add First Item
-            </amw-button>
-          </ng-template>
-        </amw-card>
-      </div>
+        <div class="nom-detail__empty">
+          <amw-icon name="shopping_cart" class="nom-detail__empty-icon"></amw-icon>
+          <h3 class="nom-detail__empty-title">No Items Yet</h3>
+          <p class="nom-detail__empty-message">Add items to your shopping list to get started.</p>
+          <amw-button variant="filled" color="primary" icon="add" (click)="onAddItem()">Add First Item</amw-button>
+        </div>
       }
     </div>
-    }
+  }
 </div>

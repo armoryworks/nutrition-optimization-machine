@@ -1,141 +1,139 @@
-<div class="nom-page-container recipe-edit">
+<div class="nom-form--full">
   <amw-card [headerTitle]="pageTitle()"
     [headerSubtitle]="isEditMode() ? 'Update your recipe' : 'Add a new recipe to your collection'"
     headerIcon="restaurant">
     <ng-template #cardContent>
       @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Loading recipe">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-        </amw-progress-bar>
-        <span class="sr-only">Loading recipe, please wait...</span>
-      </div>
+        <div class="nom-dashboard__loading" role="status" aria-live="polite" aria-label="Loading recipe">
+          <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
+          <span class="sr-only">Loading recipe, please wait...</span>
+        </div>
       }
 
       @if (error()) {
-      <div class="nom-error-state" role="alert" aria-live="assertive">
-        <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
-        <p class="nom-error-state__message">{{ error() }}</p>
-        <div class="nom-error-state__actions">
-          <amw-button variant="text" (click)="onBack()">
-            Go Back
-          </amw-button>
-          <amw-button variant="filled" color="primary" (click)="onRetry()">
-            Try Again
-          </amw-button>
+        <div class="nom-form__error" role="alert" aria-live="assertive">
+          <amw-icon name="error_outline"></amw-icon>
+          <span>{{ error() }}</span>
         </div>
-      </div>
-      } @else {
-      <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <!-- General Information -->
-        <div class="nom-recipe-edit__section">
-          <h3 class="nom-recipe-edit__section-title">General Information</h3>
-
-          <amw-input formControlName="name" label="Recipe Name" placeholder="e.g., Classic Lasagna" [required]="true"
-            class="nom-form__field"
-            [attr.aria-invalid]="recipeForm.get('name')?.invalid && recipeForm.get('name')?.touched"
-            [attr.aria-describedby]="recipeForm.get('name')?.invalid && recipeForm.get('name')?.touched ? 'recipe-name-error' : null">
-          </amw-input>
-          @if (recipeForm.get('name')?.invalid && recipeForm.get('name')?.touched) {
-            <span id="recipe-name-error" class="nom-form__error" role="alert">
-              Recipe name is required
-            </span>
-          }
-
-          <amw-textarea formControlName="description" label="Description" placeholder="A short summary of the recipe..."
-            [rows]="4" class="nom-form__field">
-          </amw-textarea>
-        </div>
-
-        <!-- Ingredients Section -->
-        <div class="nom-recipe-edit__section">
-          <div class="nom-recipe-edit__section-header">
-            <h3 class="nom-recipe-edit__section-title">Ingredients</h3>
-          </div>
-          <div class="nom-ingredient-search">
-            <amw-autocomplete [formControl]="ingredientSearchCtrl" label="Add an Ingredient"
-              placeholder="Start typing to search..." [options]="ingredientAutocompleteOptions()"
-              [displayWith]="displayIngredient" (inputChanged)="onIngredientInputChanged($event)"
-              (optionSelected)="onIngredientAutocompleteSelected($event)" class="nom-ingredient-search__form-field">
-            </amw-autocomplete>
-            <amw-button variant="outlined" type="button" (click)="openCreateIngredientModal()">
-              Create New Ingredient
-            </amw-button>
-          </div>
-
-          <div class="nom-ingredient-list" formArrayName="ingredients">
-            @for (ingredient of ingredients.controls; track $index; let i = $index) {
-            <div [formGroupName]="i" class="nom-ingredient-list__item">
-              <span class="nom-ingredient-list__item-name">{{ ingredient.get('name')?.value }}</span>
-              <div class="nom-ingredient-list__item-inputs">
-                <amw-input type="number" formControlName="quantity" label="Qty"
-                  class="nom-ingredient-list__quantity-field">
-                </amw-input>
-                <amw-select formControlName="measurementId" label="Unit" [options]="getMeasurementOptions()"
-                  class="nom-ingredient-list__unit-field">
-                </amw-select>
-              </div>
-              <amw-button variant="icon" type="button" (click)="removeIngredient(i)" title="Remove Ingredient">
-                <amw-icon name="delete_outline"></amw-icon>
-              </amw-button>
-            </div>
-            }
-          </div>
-          @if (ingredients.length === 0) {
-          <p class="nom-ingredient-list__empty-message" role="status">No ingredients added yet.</p>
-          }
-        </div>
-
-        <!-- Instructions Section -->
-        <div class="nom-recipe-edit__section">
-          <div class="nom-recipe-edit__section-header">
-            <h3 class="nom-recipe-edit__section-title">Instructions</h3>
-            <amw-button variant="outlined" type="button" icon="add" (click)="addStep()">
-              Add Step
-            </amw-button>
-          </div>
-          <div class="nom-step-list" cdkDropList (cdkDropListDropped)="dropStep($event)" formArrayName="steps">
-            @for (step of steps.controls; track $index; let i = $index) {
-            <div [formGroupName]="i" class="nom-step-list__item" cdkDrag>
-              <div class="nom-step-list__drag-handle" cdkDragHandle>
-                <amw-icon name="drag_indicator"></amw-icon>
-              </div>
-              <span class="nom-step-list__item-number">{{ i + 1 }}.</span>
-              <amw-textarea formControlName="description" label="Step" [autoResize]="true" [minRows]="2"
-                class="nom-step-list__item-field">
-              </amw-textarea>
-              <amw-button variant="icon" type="button" (click)="removeStep(i)" title="Remove Step"
-                class="nom-step-list__remove-button">
-                <amw-icon name="delete_outline"></amw-icon>
-              </amw-button>
-            </div>
-            }
-          </div>
-          @if (steps.length === 0) {
-          <p class="nom-step-list__empty-message">No steps added yet.</p>
-          }
-        </div>
-
-        @if (isEditMode()) {
-        <div class="nom-recipe-edit__additional-actions">
-          <amw-button variant="outlined" type="button" icon="send" (click)="submitForCuration()"
-            [disabled]="isSubmitting()">
-            Submit for Curation
-          </amw-button>
-        </div>
-        }
-
-        <!-- Form Actions -->
         <div class="nom-form__actions">
-          <amw-button type="button" variant="text" (click)="onCancel()">
-            Cancel
-          </amw-button>
-          <amw-button type="submit" variant="filled" color="primary" [disabled]="recipeForm.invalid || isSubmitting()"
-            [amwValidationTooltip]="validationContext"
-            [loading]="isSubmitting()">
-            {{ isEditMode() ? 'Update Recipe' : 'Create Recipe' }}
-          </amw-button>
+          <amw-button variant="text" (click)="onBack()">Go Back</amw-button>
+          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
         </div>
-      </form>
+      } @else {
+        <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+          <!-- General Information -->
+          <div class="nom-form__section">
+            <h3 class="nom-form__section-title">General Information</h3>
+            <div class="nom-form__fields">
+              <amw-input
+                formControlName="name"
+                label="Recipe Name"
+                placeholder="e.g., Classic Lasagna"
+                [required]="true">
+              </amw-input>
+              <amw-textarea
+                formControlName="description"
+                label="Description"
+                placeholder="A short summary of the recipe..."
+                [rows]="4">
+              </amw-textarea>
+            </div>
+          </div>
+
+          <!-- Ingredients Section -->
+          <div class="nom-form__section">
+            <div class="nom-dashboard__section-header">
+              <h3 class="nom-form__section-title">Ingredients</h3>
+            </div>
+            <div class="recipe-edit__ingredient-search">
+              <amw-autocomplete
+                [formControl]="ingredientSearchCtrl"
+                label="Add an Ingredient"
+                placeholder="Start typing to search..."
+                [options]="ingredientAutocompleteOptions()"
+                [displayWith]="displayIngredient"
+                (inputChanged)="onIngredientInputChanged($event)"
+                (optionSelected)="onIngredientAutocompleteSelected($event)">
+              </amw-autocomplete>
+              <amw-button variant="outlined" type="button" (click)="openCreateIngredientModal()">
+                Create New Ingredient
+              </amw-button>
+            </div>
+
+            <div class="nom-dashboard__list" formArrayName="ingredients">
+              @for (ingredient of ingredients.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="nom-dashboard__list-item">
+                  <div class="nom-dashboard__list-item-content">
+                    <span class="nom-dashboard__list-item-title">{{ ingredient.get('name')?.value }}</span>
+                  </div>
+                  <div class="recipe-edit__ingredient-inputs">
+                    <amw-input type="number" formControlName="quantity" label="Qty" class="recipe-edit__qty-field"></amw-input>
+                    <amw-select formControlName="measurementId" label="Unit" [options]="getMeasurementOptions()" class="recipe-edit__unit-field"></amw-select>
+                  </div>
+                  <div class="nom-dashboard__list-item-actions">
+                    <amw-button variant="icon" type="button" (click)="removeIngredient(i)" title="Remove Ingredient">
+                      <amw-icon name="delete_outline"></amw-icon>
+                    </amw-button>
+                  </div>
+                </div>
+              }
+            </div>
+            @if (ingredients.length === 0) {
+              <p class="nom-dashboard__empty-message" role="status">No ingredients added yet.</p>
+            }
+          </div>
+
+          <!-- Instructions Section -->
+          <div class="nom-form__section">
+            <div class="nom-dashboard__section-header">
+              <h3 class="nom-form__section-title">Instructions</h3>
+              <amw-button variant="outlined" type="button" icon="add" (click)="addStep()">
+                Add Step
+              </amw-button>
+            </div>
+            <div class="nom-dashboard__list" cdkDropList (cdkDropListDropped)="dropStep($event)" formArrayName="steps">
+              @for (step of steps.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="nom-dashboard__list-item recipe-edit__step-item" cdkDrag>
+                  <div class="recipe-edit__drag-handle" cdkDragHandle>
+                    <amw-icon name="drag_indicator"></amw-icon>
+                  </div>
+                  <span class="recipe-edit__step-number">{{ i + 1 }}.</span>
+                  <amw-textarea formControlName="description" label="Step" [autoResize]="true" [minRows]="2" class="recipe-edit__step-field"></amw-textarea>
+                  <div class="nom-dashboard__list-item-actions">
+                    <amw-button variant="icon" type="button" (click)="removeStep(i)" title="Remove Step">
+                      <amw-icon name="delete_outline"></amw-icon>
+                    </amw-button>
+                  </div>
+                </div>
+              }
+            </div>
+            @if (steps.length === 0) {
+              <p class="nom-dashboard__empty-message">No steps added yet.</p>
+            }
+          </div>
+
+          @if (isEditMode()) {
+            <div class="nom-form__actions" style="justify-content: flex-start;">
+              <amw-button variant="outlined" type="button" icon="send" (click)="submitForCuration()" [disabled]="isSubmitting()">
+                Submit for Curation
+              </amw-button>
+            </div>
+          }
+
+          <!-- Form Actions -->
+          <div class="nom-form__actions">
+            <amw-button type="button" variant="text" (click)="onCancel()">Cancel</amw-button>
+            <amw-button
+              type="submit"
+              variant="filled"
+              color="primary"
+              [disabled]="recipeForm.invalid || isSubmitting()"
+              [amwValidationTooltip]="validationContext"
+              [loading]="isSubmitting()">
+              {{ isEditMode() ? 'Update Recipe' : 'Create Recipe' }}
+            </amw-button>
+          </div>
+        </form>
       }
     </ng-template>
   </amw-card>

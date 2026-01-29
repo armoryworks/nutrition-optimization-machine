@@ -1,13 +1,13 @@
-// File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.scss
-@use '../../../../_utilities' as *;
+// Privacy Settings Component
+@use '../../../../variables' as vars;
 
 .privacy-settings {
   &__consent-item {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
+    margin-bottom: vars.$spacing-5;
+    padding-bottom: vars.$spacing-4;
 
     &:last-of-type {
-      margin-bottom: 10px;
+      margin-bottom: vars.$spacing-3;
     }
 
     .nom-label-large {
@@ -15,7 +15,7 @@
     }
 
     .nom-small-text {
-      margin-top: 8px;
+      margin-top: vars.$spacing-2;
       margin-left: 55px; // Align with the text of the slide toggle
     }
   }

@@ -1,128 +1,124 @@
-<div class="nom-page-container shopping-category-management">
+<div class="nom-dashboard shopping-category-management">
   <!-- Header -->
-    <div class="shopping-category-management__header">
-      <div class="shopping-category-management__header-content">
-        <div class="shopping-category-management__title-section">
-          <amw-icon name="category" class="shopping-category-management__title-icon"></amw-icon>
-          <div class="shopping-category-management__title-info">
-            <h1 class="shopping-category-management__title">Shopping Categories</h1>
-            <p class="shopping-category-management__subtitle">Manage categories for organizing your shopping items</p>
-          </div>
-        </div>
-      </div>
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-icon">
+      <amw-icon name="category"></amw-icon>
     </div>
+    <div class="nom-dashboard__header-text">
+      <h1 class="nom-dashboard__title">Shopping Categories</h1>
+      <p class="nom-dashboard__subtitle">Manage categories for organizing your shopping items</p>
+    </div>
+  </header>
 
-    <!-- Add Category Form -->
-    <amw-card class="shopping-category-management__form-card"
-      [headerTitle]="isEditing() ? 'Edit Category' : 'Add New Category'">
-      <ng-template #cardContent>
-        <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="shopping-category-management__form">
-          <amw-input formControlName="name" label="Category Name" placeholder="Enter category name..." [required]="true"
-            class="shopping-category-management__field">
-          </amw-input>
+  <!-- Add Category Form -->
+  <amw-card class="shopping-category-management__form-card"
+    [headerTitle]="isEditing() ? 'Edit Category' : 'Add New Category'">
+    <ng-template #cardContent>
+      <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+        <amw-input formControlName="name" label="Category Name" placeholder="Enter category name..." [required]="true">
+        </amw-input>
 
-          <amw-textarea formControlName="description" label="Description (Optional)"
-            placeholder="Add a description for this category..." class="shopping-category-management__field">
-          </amw-textarea>
+        <amw-textarea formControlName="description" label="Description (Optional)"
+          placeholder="Add a description for this category...">
+        </amw-textarea>
 
-          <div class="shopping-category-management__form-row">
-            <div class="shopping-category-management__color-picker">
-              <label class="shopping-category-management__color-label">Color</label>
-              <div class="shopping-category-management__color-options">
-                @for (color of availableColors; track color) {
+        <div class="shopping-category-management__form-row">
+          <div class="shopping-category-management__color-picker">
+            <label class="shopping-category-management__color-label">Color</label>
+            <div class="shopping-category-management__color-options">
+              @for (color of availableColors; track color) {
                 <button type="button" class="shopping-category-management__color-swatch"
                   [class.shopping-category-management__color-swatch--selected]="categoryForm.value.color === color"
                   [style.background-color]="color" (click)="categoryForm.patchValue({ color: color })">
                 </button>
-                }
-              </div>
-            </div>
-
-            <amw-select formControlName="icon" label="Icon" placeholder="Select an icon"
-              class="shopping-category-management__field shopping-category-management__icon-select">
-              @for (icon of availableIcons; track icon.value) {
-              <option [value]="icon.value">{{ icon.label }}</option>
               }
-            </amw-select>
+            </div>
           </div>
 
-          <div class="shopping-category-management__form-actions">
-            @if (isEditing()) {
+          <amw-select formControlName="icon" label="Icon" placeholder="Select an icon">
+            @for (icon of availableIcons; track icon.value) {
+              <option [value]="icon.value">{{ icon.label }}</option>
+            }
+          </amw-select>
+        </div>
+
+        <div class="nom-form__actions">
+          @if (isEditing()) {
             <amw-button type="button" variant="text" (click)="cancelEdit()">
               Cancel
             </amw-button>
-            }
-            <amw-button type="submit" variant="filled" color="primary" [icon]="isEditing() ? 'save' : 'add'"
-              [disabled]="categoryForm.invalid || isSubmitting()" [loading]="isSubmitting()"
-              [amwValidationTooltip]="validationContext" class="shopping-category-management__submit-btn">
-              {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
-            </amw-button>
-          </div>
-        </form>
-      </ng-template>
-    </amw-card>
-
-    <!-- Categories List -->
-    <div class="shopping-category-management__list-section">
-      <div class="shopping-category-management__list-header">
-        <h2 class="shopping-category-management__list-title">Existing Categories</h2>
-        <p class="shopping-category-management__list-hint">
-          <amw-icon name="drag_indicator"></amw-icon>
-          Drag categories to reorder
-        </p>
-      </div>
-
-      @if (loading()) {
-      <amw-inline-loading message="Loading categories..." />
-      }
-
-      @if (!loading() && categories().length === 0) {
-      <div class="shopping-category-management__no-categories">
-        <amw-icon name="category" class="shopping-category-management__empty-icon"></amw-icon>
-        <h3>No Categories Yet</h3>
-        <p>Create your first shopping category to get started.</p>
-      </div>
-      }
-
-      @if (!loading() && categories().length > 0) {
-      <div class="shopping-category-management__categories-grid" cdkDropList (cdkDropListDropped)="drop($event)">
-        @for (category of categories(); track category.id) {
-        <div cdkDrag class="shopping-category-management__category-drag-wrapper">
-          <amw-card class="shopping-category-management__category-card" [headerTitle]="category.name"
-            [headerSubtitle]="category.description || 'No description'">
-            <ng-template #cardContent>
-              <div class="shopping-category-management__category-header">
-                <div class="shopping-category-management__category-color"
-                  [style.background-color]="getCategoryColor(category)">
-                </div>
-                <amw-icon name="drag_indicator" class="shopping-category-management__drag-handle"
-                  cdkDragHandle></amw-icon>
-              </div>
-              <div class="shopping-category-management__category-stats">
-                <div class="shopping-category-management__stat">
-                  <span class="shopping-category-management__stat-value">{{ category.itemCount || 0 }}</span>
-                  <span class="shopping-category-management__stat-label">Items</span>
-                </div>
-                <div class="shopping-category-management__stat">
-                  <span class="shopping-category-management__stat-value">{{ category.listCount || 0 }}</span>
-                  <span class="shopping-category-management__stat-label">Lists</span>
-                </div>
-              </div>
-            </ng-template>
-            <ng-template #actionsTemplate>
-              <amw-button variant="text" color="primary" icon="edit" (click)="editCategory(category)"
-                class="shopping-category-management__edit-btn">
-                Edit
-              </amw-button>
-              <amw-button variant="text" color="warn" icon="delete" (click)="deleteCategory(category)"
-                class="shopping-category-management__delete-btn">
-                Delete
-              </amw-button>
-            </ng-template>
-          </amw-card>
+          }
+          <amw-button type="submit" variant="filled" color="primary" [icon]="isEditing() ? 'save' : 'add'"
+            [disabled]="categoryForm.invalid || isSubmitting()" [loading]="isSubmitting()"
+            [amwValidationTooltip]="validationContext">
+            {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
+          </amw-button>
         </div>
+      </form>
+    </ng-template>
+  </amw-card>
+
+  <!-- Categories List -->
+  <section class="shopping-category-management__list-section">
+    <div class="shopping-category-management__list-header">
+      <h2 class="shopping-category-management__list-title">Existing Categories</h2>
+      <p class="shopping-category-management__list-hint">
+        <amw-icon name="drag_indicator"></amw-icon>
+        Drag categories to reorder
+      </p>
+    </div>
+
+    @if (loading()) {
+      <div class="nom-dashboard__empty">
+        <amw-inline-loading message="Loading categories..." />
+      </div>
+    }
+
+    @if (!loading() && categories().length === 0) {
+      <div class="nom-dashboard__empty">
+        <amw-icon name="category" class="nom-dashboard__empty-icon"></amw-icon>
+        <h3 class="nom-dashboard__empty-title">No Categories Yet</h3>
+        <p class="nom-dashboard__empty-message">Create your first shopping category to get started.</p>
+      </div>
+    }
+
+    @if (!loading() && categories().length > 0) {
+      <div class="nom-dashboard__grid--3col" cdkDropList (cdkDropListDropped)="drop($event)">
+        @for (category of categories(); track category.id) {
+          <div cdkDrag class="shopping-category-management__category-drag-wrapper">
+            <amw-card class="nom-dashboard__card" [headerTitle]="category.name"
+              [headerSubtitle]="category.description || 'No description'">
+              <ng-template #cardContent>
+                <div class="shopping-category-management__category-header">
+                  <div class="shopping-category-management__category-color"
+                    [style.background-color]="getCategoryColor(category)">
+                  </div>
+                  <amw-icon name="drag_indicator" class="shopping-category-management__drag-handle"
+                    cdkDragHandle></amw-icon>
+                </div>
+                <div class="shopping-category-management__category-stats">
+                  <div class="shopping-category-management__stat">
+                    <span class="shopping-category-management__stat-value">{{ category.itemCount || 0 }}</span>
+                    <span class="shopping-category-management__stat-label">Items</span>
+                  </div>
+                  <div class="shopping-category-management__stat">
+                    <span class="shopping-category-management__stat-value">{{ category.listCount || 0 }}</span>
+                    <span class="shopping-category-management__stat-label">Lists</span>
+                  </div>
+                </div>
+              </ng-template>
+              <ng-template #actionsTemplate>
+                <amw-button variant="text" color="primary" icon="edit" (click)="editCategory(category)">
+                  Edit
+                </amw-button>
+                <amw-button variant="text" color="warn" icon="delete" (click)="deleteCategory(category)">
+                  Delete
+                </amw-button>
+              </ng-template>
+            </amw-card>
+          </div>
         }
       </div>
-      }
-    </div>
+    }
+  </section>
 </div>

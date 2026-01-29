@@ -1,6 +1,6 @@
-// Ingredient Details Component - Uses utilities and variables
+// Ingredient Details Component
+// Component-specific styles for nutrition/ingredient detail display
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .ingredient-details {
   width: 100%;
@@ -35,7 +35,9 @@
 
 // Content Styles
 .ingredient-content {
-  @include nom-form-field(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-8;
 }
 
 // Section Headers
@@ -166,7 +168,12 @@
 
 // No Nutrition Data
 .no-nutrition {
-  @include nom-empty-state(vars.$spacing-10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-10;
   padding: vars.$spacing-10 vars.$spacing-5;
 
   .no-data-icon {

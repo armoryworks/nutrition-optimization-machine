@@ -3,7 +3,7 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { AmwButtonComponent, AmwIconButtonComponent, AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwFullScreenLoadingComponent, AmwValidationTooltipOverlayComponent } from 'angular-material-wrap';
+import { AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwFullScreenLoadingComponent, AmwValidationTooltipOverlayComponent } from 'angular-material-wrap';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './auth/auth.service';
 import { AuthManagerService } from './utilities/services/auth-manager.service';
@@ -17,12 +17,9 @@ import { ValidationTooltipOverlayComponent } from './shared/components/validatio
   imports: [
     CommonModule,
     RouterModule,
-    AmwButtonComponent,
-    AmwIconButtonComponent,
     AmwIconComponent,
     AmwMenuComponent,
     AmwMenuItemComponent,
-    AmwMenuTriggerForDirective,
     AmwFullScreenLoadingComponent,
     AmwValidationTooltipOverlayComponent,
     ValidationTooltipOverlayComponent,
@@ -40,6 +37,7 @@ export class AppComponent implements OnInit {
   isDarkTheme = computed(() => this.themeService.getCurrentTheme() === 'dark');
   isLoggedIn$ = this.authService.isLoggedIn$;
   showLoginPopover = signal(false);
+  currentYear = new Date().getFullYear();
 
   constructor() {
   }
@@ -77,5 +75,14 @@ export class AppComponent implements OnInit {
         console.error('Logout failed:', error);
       }
     });
+  }
+
+  onSearch(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const query = input.value.trim();
+    if (query) {
+      this.router.navigate(['/search'], { queryParams: { q: query } });
+      input.value = ''; // Clear the search input after navigation
+    }
   }
 }

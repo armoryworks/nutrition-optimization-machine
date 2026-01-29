@@ -1,235 +1,103 @@
-@use '../../../../_variables' as vars;
-@use '../../../../_mixins' as mixins;
-@use '../../../../_utilities' as *;
+// Curated Plans Component
+// Uses global .nom-search* and .nom-dashboard* classes
+// This file contains only component-specific styles
 
-.curated-plans {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: vars.$spacing-large;
+@use '../../../../variables' as vars;
 
-  @include mixins.breakpoint(mobile) {
-    padding: vars.$spacing-medium;
+// =============================================================================
+// GRID - Wider columns for plan cards
+// =============================================================================
+
+.curated-plans__grid {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    grid-template-columns: 1fr;
   }
+}
 
-  &__header {
-    text-align: center;
-    margin-bottom: vars.$spacing-xxlarge;
+// =============================================================================
+// PLAN CARD HEADER
+// =============================================================================
 
-    .curated-plans__title {
-      font: var(--mat-sys-headline-large);
-      color: var(--mat-sys-on-surface);
-      margin: 0 0 vars.$spacing-medium 0;
-    }
+.curated-plans__plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: vars.$spacing-4;
+  margin-bottom: vars.$spacing-3;
+}
 
-    .curated-plans__subtitle {
-      font: var(--mat-sys-body-large);
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0;
-      max-width: 600px;
-      margin: 0 auto;
-    }
+.curated-plans__plan-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.curated-plans__plan-status {
+  flex-shrink: 0;
+}
+
+// =============================================================================
+// SECTIONS (Goals, Restrictions)
+// =============================================================================
+
+.curated-plans__section {
+  margin-bottom: vars.$spacing-4;
+}
+
+.curated-plans__section-title {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2 0;
+}
+
+.curated-plans__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.curated-plans__list-item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  amw-icon {
+    font-size: vars.$font-size-md;
+    width: vars.$font-size-md;
+    height: vars.$font-size-md;
   }
+}
 
-  &__loading {
-    @include nom-loading-state(vars.$spacing-xxlarge);
-    gap: vars.$spacing-medium;
-    padding-top: 0;
+// =============================================================================
+// ICON VARIANTS
+// =============================================================================
 
-    p {
-      font: var(--mat-sys-body-medium);
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0;
-    }
-  }
+.curated-plans__icon--goal {
+  color: var(--mat-sys-primary);
+}
 
-  &__error {
-    @include nom-empty-state(vars.$spacing-xxlarge);
-    gap: vars.$spacing-medium;
-    padding-top: 0;
+.curated-plans__icon--restriction {
+  color: var(--mat-sys-error);
+}
 
-    mat-icon {
-      font-size: vars.$spacing-12;
-      width: vars.$spacing-12;
-      height: vars.$spacing-12;
-      color: var(--mat-sys-error);
-    }
+// =============================================================================
+// ERROR ICON
+// =============================================================================
 
-    p {
-      font: var(--mat-sys-body-large);
-      color: var(--mat-sys-error);
-      margin: 0;
-    }
+.curated-plans__error-icon {
+  color: var(--mat-sys-error);
+}
 
-    button {
-      display: flex;
-      align-items: center;
-      gap: vars.$spacing-small;
-    }
-  }
+// =============================================================================
+// ACTIONS
+// =============================================================================
 
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: vars.$spacing-large;
-
-    @include mixins.breakpoint(mobile) {
-      grid-template-columns: 1fr;
-      gap: vars.$spacing-medium;
-    }
-  }
-
-  &__plan-card {
-    transition: transform vars.$transition-duration-fast ease, box-shadow vars.$transition-duration-fast ease;
-    border: 1px solid var(--mat-sys-outline-variant);
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(var(--mat-sys-shadow), 0.15);
-    }
-  }
-
-  &__plan-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: vars.$spacing-medium;
-    margin-bottom: vars.$spacing-medium;
-
-    .curated-plans__plan-info {
-      flex: 1;
-      min-width: 0;
-
-      .curated-plans__plan-title {
-        font: var(--mat-sys-headline-small);
-        color: var(--mat-sys-on-surface);
-        margin: 0 0 vars.$spacing-xsmall 0;
-        line-height: 1.3;
-      }
-
-      .curated-plans__plan-author {
-        font: var(--mat-sys-body-small);
-        color: var(--mat-sys-on-surface-variant);
-        margin: 0 0 vars.$spacing-xsmall 0;
-        font-style: italic;
-      }
-
-      .curated-plans__plan-duration {
-        font: var(--mat-sys-body-small);
-        color: var(--mat-sys-on-surface-variant);
-        margin: 0;
-      }
-    }
-
-    .curated-plans__plan-status {
-      flex-shrink: 0;
-    }
-  }
-
-  &__plan-description {
-    margin-bottom: vars.$spacing-medium;
-
-    p {
-      font: var(--mat-sys-body-medium);
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0;
-      line-height: 1.5;
-    }
-  }
-
-  &__plan-stats {
-    display: flex;
-    gap: vars.$spacing-medium;
-    margin-bottom: vars.$spacing-medium;
-    flex-wrap: wrap;
-
-    .curated-plans__stat {
-      display: flex;
-      align-items: center;
-      gap: vars.$spacing-xsmall;
-      font: var(--mat-sys-body-small);
-      color: var(--mat-sys-on-surface-variant);
-
-      mat-icon {
-        font-size: vars.$font-size-md;
-        width: vars.$font-size-md;
-        height: vars.$font-size-md;
-      }
-    }
-  }
-
-  &__plan-goals,
-  &__plan-restrictions {
-    margin-bottom: vars.$spacing-medium;
-
-    h4 {
-      font: var(--mat-sys-title-small);
-      color: var(--mat-sys-on-surface);
-      margin: 0 0 vars.$spacing-small 0;
-    }
-
-    .curated-plans__goals-list,
-    .curated-plans__restrictions-list {
-      display: flex;
-      flex-direction: column;
-      gap: vars.$spacing-xsmall;
-    }
-
-    .curated-plans__goal,
-    .curated-plans__restriction {
-      display: flex;
-      align-items: center;
-      gap: vars.$spacing-xsmall;
-      font: var(--mat-sys-body-small);
-      color: var(--mat-sys-on-surface-variant);
-
-      mat-icon {
-        font-size: vars.$font-size-md;
-        width: vars.$font-size-md;
-        height: vars.$font-size-md;
-        color: var(--mat-sys-primary);
-      }
-    }
-
-    .curated-plans__restriction mat-icon {
-      color: var(--mat-sys-warning);
-    }
-  }
-
-  &__plan-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: vars.$spacing-medium;
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: vars.$spacing-small;
-    }
-  }
-
-  &__empty {
-    @include nom-empty-state(vars.$spacing-xxlarge);
-    gap: vars.$spacing-medium;
-    padding-top: 0;
-
-    .curated-plans__empty-icon {
-      font-size: vars.$spacing-16;
-      width: vars.$spacing-16;
-      height: vars.$spacing-16;
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    h3 {
-      font: var(--mat-sys-headline-medium);
-      color: var(--mat-sys-on-surface);
-      margin: 0;
-    }
-
-    p {
-      font: var(--mat-sys-body-large);
-      color: var(--mat-sys-on-surface-variant);
-      margin: 0;
-      max-width: 400px;
-    }
-  }
-} 
+.curated-plans__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: vars.$spacing-4;
+}

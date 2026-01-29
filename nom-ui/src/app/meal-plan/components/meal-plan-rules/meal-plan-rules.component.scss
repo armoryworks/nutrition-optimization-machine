@@ -1,6 +1,5 @@
-// Meal Plan Rules Component - Uses utilities and variables
+// Meal Plan Rules Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .meal-plan-rules-container {
   max-width: 800px;
@@ -47,13 +46,23 @@
 }
 
 .loading-container {
-  @include nom-loading-state(vars.$spacing-10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-10;
   gap: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 }
 
 .no-rules {
-  @include nom-empty-state(vars.$spacing-10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-10;
   gap: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 
@@ -71,7 +80,9 @@
 }
 
 .rules-list {
-  @include nom-form-field(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
 }
 
 .rule-card {

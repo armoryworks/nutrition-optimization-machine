@@ -1,13 +1,17 @@
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .full-width {
   width: 100%;
 }
 
 .error-message {
-  @include nom-error-message;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3;
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  border-radius: vars.$nom-border-radius-sm;
   font-size: vars.$font-size-sm;
   margin-top: vars.$spacing-4;
-  gap: vars.$spacing-2;
 }

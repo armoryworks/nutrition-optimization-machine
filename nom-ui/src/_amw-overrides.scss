@@ -374,3 +374,25 @@ body.dark-theme,
     opacity: 0.92 !important;
   }
 }
+
+// -------------------------------------------
+// User Menu Dropdown Width
+// -------------------------------------------
+// The CDK overlay panel renders outside the component tree,
+// so this must be a global style.
+
+// Target the overlay panel that wraps our menu
+.mat-mdc-menu-panel:has(.nom-user-menu__dropdown) {
+  min-width: 260px;
+}
+
+// Ensure menu items display icon + label in a row
+.nom-user-menu__dropdown {
+  .mat-mdc-menu-item {
+    .mat-mdc-menu-item-text {
+      display: flex;
+      align-items: center;
+      gap: vars.$spacing-3;
+    }
+  }
+}

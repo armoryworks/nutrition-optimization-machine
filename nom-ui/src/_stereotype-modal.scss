@@ -1,0 +1,399 @@
+// =============================================================================
+// MODAL STEREOTYPE - GLOBAL CLASSES
+// =============================================================================
+// File: _stereotype-modal.scss
+//
+// Use for: Dialog overlays, popups, contextual forms
+// Components: login-popover, item-editor, export/share dialogs, compose
+//
+// Note: These classes work WITH Angular Material dialogs, not replace them.
+// Apply these classes to the content INSIDE mat-dialog-content.
+//
+// USAGE IN HTML:
+//   <div class="nom-modal">
+//     <div class="nom-modal__header">
+//       <h2 class="nom-modal__title">Title</h2>
+//     </div>
+//     <div class="nom-modal__content">
+//       <!-- form or content -->
+//     </div>
+//     <div class="nom-modal__actions">
+//       <button>Cancel</button>
+//       <button>Save</button>
+//     </div>
+//   </div>
+//
+// =============================================================================
+
+@use './variables' as vars;
+@use './mixins' as mixins;
+
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
+.nom-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius-lg;
+}
+
+.nom-modal--narrow {
+  width: vars.$modal-width-sm;
+  max-width: 95vw;
+}
+
+.nom-modal--medium {
+  width: vars.$modal-width-md;
+  max-width: 95vw;
+}
+
+.nom-modal--wide {
+  width: vars.$modal-width-lg;
+  max-width: 95vw;
+}
+
+.nom-modal--full {
+  width: 95vw;
+  height: 90vh;
+}
+
+// =============================================================================
+// HEADER
+// =============================================================================
+
+.nom-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  flex-shrink: 0;
+}
+
+.nom-modal__title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-modal__subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: vars.$spacing-1 0 0;
+}
+
+.nom-modal__close {
+  flex-shrink: 0;
+}
+
+// =============================================================================
+// CONTENT
+// =============================================================================
+
+.nom-modal__content {
+  padding: vars.$spacing-6;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nom-modal__content--no-padding {
+  padding: 0;
+}
+
+// Two-column layout (form + preview)
+.nom-modal__content--two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: vars.$spacing-6;
+  padding: vars.$spacing-6;
+
+  @include mixins.breakpoint(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-modal__preview {
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius;
+  padding: vars.$spacing-4;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-modal__preview-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-high);
+}
+
+// =============================================================================
+// ACTIONS
+// =============================================================================
+
+.nom-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  flex-shrink: 0;
+  white-space: nowrap;
+  flex-wrap: wrap;
+
+  // Ensure buttons don't get too narrow
+  amw-button {
+    min-width: 100px;
+  }
+}
+
+.nom-modal__actions--between {
+  justify-content: space-between;
+  gap: vars.$spacing-6;
+}
+
+.nom-modal__actions--sticky {
+  position: sticky;
+  bottom: 0;
+  background: var(--mat-sys-surface-container-low);
+}
+
+// =============================================================================
+// SECTIONS (for multi-section modals)
+// =============================================================================
+
+.nom-modal__section {
+  margin-bottom: vars.$spacing-6;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.nom-modal__section-title {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-3;
+  color: var(--mat-sys-on-surface);
+}
+
+// =============================================================================
+// CONFIRMATION DIALOG
+// =============================================================================
+
+.nom-modal__confirm {
+  text-align: center;
+  padding: vars.$spacing-6;
+}
+
+.nom-modal__confirm-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: vars.$spacing-4;
+
+  &--warning {
+    color: var(--mat-sys-error);
+  }
+
+  &--info {
+    color: var(--mat-sys-primary);
+  }
+
+  &--success {
+    color: var(--mat-sys-tertiary);
+  }
+}
+
+.nom-modal__confirm-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-modal__confirm-message {
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: vars.$line-height-normal;
+}
+
+// =============================================================================
+// LOADING STATE
+// =============================================================================
+
+.nom-modal__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-12;
+  text-align: center;
+}
+
+// =============================================================================
+// SHARE DIALOG SPECIFICS
+// =============================================================================
+
+.nom-modal__share-link {
+  display: flex;
+  gap: vars.$spacing-2;
+  align-items: stretch;
+
+  input {
+    flex: 1;
+    padding: vars.$spacing-3;
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: vars.$nom-border-radius;
+    color: var(--mat-sys-on-surface);
+    font-family: monospace;
+    font-size: vars.$font-size-sm;
+  }
+}
+
+.nom-modal__share-options {
+  display: flex;
+  gap: vars.$spacing-4;
+  flex-wrap: wrap;
+  margin-top: vars.$spacing-4;
+}
+
+// =============================================================================
+// DIALOG PATTERN (for popovers, inline dialogs)
+// =============================================================================
+// Use when you need a card-style dialog (login, quick forms, etc.)
+// Actions go in footer-right, secondary options in footer-left
+
+.nom-dialog {
+  display: flex;
+  flex-direction: column;
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius-lg;
+  border: 1px solid var(--mat-sys-outline-variant);
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.nom-dialog__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: vars.$spacing-6;
+  padding-bottom: vars.$spacing-4;
+}
+
+.nom-dialog__header-text {
+  flex: 1;
+}
+
+.nom-dialog__title {
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-bold;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-dialog__subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: vars.$spacing-1 0 0;
+}
+
+.nom-dialog__header-icon {
+  font-size: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  @include mixins.nom-transition(color);
+
+  &:hover {
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-dialog__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  border-radius: vars.$nom-border-radius;
+  cursor: pointer;
+  @include mixins.nom-transition(all);
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    color: var(--mat-sys-on-surface);
+  }
+
+  amw-icon {
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.nom-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+  padding: 0 vars.$spacing-6;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+
+  // Reset form field margins since gap handles spacing
+  .nom-form__field {
+    margin-bottom: 0;
+  }
+}
+
+.nom-dialog__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  gap: vars.$spacing-4;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+.nom-dialog__footer-left {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  white-space: nowrap;
+}
+
+.nom-dialog__footer-right {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  white-space: nowrap;
+  margin-left: auto;
+
+  // Ensure buttons don't get too narrow
+  amw-button {
+    min-width: 120px;
+  }
+}

@@ -1,28 +1,23 @@
+// Shopping List Share Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
-.nom-loading-container,
-.nom-error-container {
-  @include nom-empty-state(vars.$spacing-8);
-}
-
-.nom-error-message {
-  color: var(--mat-sys-error);
-  margin: 0;
-  text-align: center;
-}
-
-.nom-error-actions {
-  @include nom-action-group(vars.$spacing-4, center);
-  margin-top: 0;
-}
+// =============================================================================
+// CONTAINER
+// =============================================================================
 
 .nom-share-container {
-  @include nom-form-field(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-4;
   max-width: 800px;
   margin: 0 auto;
 }
+
+// =============================================================================
+// HEADER
+// =============================================================================
 
 .nom-header {
   display: flex;
@@ -63,6 +58,10 @@ h3 {
   line-height: vars.$line-height-normal;
 }
 
+// =============================================================================
+// LINK SHARING
+// =============================================================================
+
 .nom-link-container {
   display: flex;
   gap: vars.$spacing-4;
@@ -94,6 +93,10 @@ h3 {
   text-overflow: ellipsis;
 }
 
+// =============================================================================
+// NOTICE
+// =============================================================================
+
 .nom-notice {
   display: flex;
   gap: vars.$spacing-4;
@@ -121,8 +124,14 @@ h3 {
   }
 }
 
+// =============================================================================
+// TARGETS LIST
+// =============================================================================
+
 .nom-targets-list {
-  @include nom-form-field(vars.$spacing-2);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
   margin-bottom: vars.$spacing-4;
 }
 
@@ -133,7 +142,7 @@ h3 {
   padding: vars.$spacing-4;
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
-  transition: background-color vars.$transition-duration-fast ease;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: var(--mat-sys-surface-container);
@@ -141,7 +150,9 @@ h3 {
 }
 
 .nom-target-info {
-  @include nom-form-field(vars.$spacing-1);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
   flex: 1;
 }
 
@@ -154,6 +165,10 @@ h3 {
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
 }
+
+// =============================================================================
+// ACTIONS & SUMMARY
+// =============================================================================
 
 .nom-actions {
   display: flex;
@@ -173,8 +188,14 @@ h3 {
   font-size: vars.$font-size-sm;
 }
 
+// =============================================================================
+// HELP CONTENT
+// =============================================================================
+
 .nom-help-content {
-  @include nom-form-field(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
 }
 
 .nom-help-item {
@@ -202,7 +223,38 @@ h3 {
   }
 }
 
-// Responsive design
+// =============================================================================
+// ERROR STATES
+// =============================================================================
+
+.nom-loading-container,
+.nom-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-8;
+}
+
+.nom-error-message {
+  color: var(--mat-sys-error);
+  margin: 0;
+  text-align: center;
+}
+
+.nom-error-actions {
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
+  margin-top: 0;
+}
+
+// =============================================================================
+// RESPONSIVE
+// =============================================================================
+
 @media (max-width: vars.$breakpoint-mobile) {
   .nom-share-container {
     padding: vars.$spacing-2;

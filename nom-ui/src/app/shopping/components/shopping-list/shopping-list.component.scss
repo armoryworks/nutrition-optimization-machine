@@ -1,6 +1,5 @@
-// Shopping List Component - Uses utilities
+// Shopping List Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .shopping-list {
   min-height: 100vh;
@@ -75,7 +74,9 @@
   }
 
   &__filter-group {
-    @include nom-form-field(vars.$spacing-2);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-2;
   }
 
   &__filter-label {
@@ -88,7 +89,9 @@
   }
 
   &__items {
-    @include nom-form-field(vars.$spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-4;
   }
 
   &__item {
@@ -150,7 +153,13 @@
   }
 
   &__empty-state {
-    @include nom-empty-state(vars.$spacing-8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-8;
   }
 
   &__empty-icon {

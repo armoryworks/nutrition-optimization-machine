@@ -1,120 +1,106 @@
-<div class="nom-page-container">
-  <amw-card [headerTitle]="currentQuestion?.text || ''" [headerSubtitle]="currentQuestion?.hint || ''" class="nom-card">
-    <ng-template #cardContent>
+<div class="nom-wizard">
+  <div class="nom-wizard__card">
+    <div class="nom-wizard__header">
+      <h2 class="nom-wizard__title">{{ currentQuestion?.text || '' }}</h2>
+      @if (currentQuestion?.hint) {
+        <p class="nom-wizard__subtitle">{{ currentQuestion?.hint }}</p>
+      }
+    </div>
+
+    <div class="nom-wizard__content">
       @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Loading onboarding questions">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
-        <span class="sr-only">Loading onboarding questions, please wait...</span>
-      </div>
+        <div role="status" aria-live="polite" aria-label="Loading onboarding questions">
+          <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
+          <span class="sr-only">Loading onboarding questions, please wait...</span>
+        </div>
       }
 
       @if (!isLoading() && error() && !submitMessage()) {
-      <div class="nom-form__error form-level-error nom-message-text mb-4" role="alert" aria-live="assertive">
-        {{ error() }}
-      </div>
+        <div class="nom-wizard__error-box" role="alert" aria-live="assertive">
+          {{ error() }}
+        </div>
       } @else if (!isLoading() && questions().length === 0 && !error()) {
-      <div class="text-center py-8">
-        <p class="nom-message-text">No onboarding questions available.</p>
-      </div>
-      } @else if (!isLoading() && questions().length > 0 && !submitMessage() &&
-      currentQuestion) {
-      <form [formGroup]="currentAnswerForm" class="nom-form">
-        <div class="nom-section mb-8">
-          <!-- Dynamic input rendering based on answerType -->
-          @switch (currentQuestion.answerType) { @case ('TextInput') {
-          <amw-input formControlName="answer" label="Your Answer"
-            [placeholder]="currentQuestion.hint || 'Type your answer here...'" [required]="true"
-            class="nom-form__field"
-            [attr.aria-invalid]="currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched"
-            [attr.aria-describedby]="currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched ? 'text-answer-error' : null">
-          </amw-input>
-          @if (currentAnswerForm.get('answer')?.invalid && currentAnswerForm.get('answer')?.touched) {
-          <span id="text-answer-error" class="nom-form__error" role="alert">
-            This field is required
-          </span>
-          }
-          } @case ('YesNo') {
-          <amw-radio-group formControlName="answer" [options]="getYesNoOptions()" orientation="horizontal"
-            (selectionChange)="onAnswerChange($event.value)" class="nom-horizontal-group flex-wrap justify-center my-4"
-            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
-            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'yesno-answer-error' : null">
-          </amw-radio-group>
-          @if (currentAnswerForm.get('answer')?.hasError('required') &&
-          currentAnswerForm.get('answer')?.touched) {
-          <p id="yesno-answer-error" class="nom-form__error text-center" role="alert">
-            This field is required.
-          </p>
-          } } @case ('MultiSelect') {
-          <div class="my-4 grid grid-cols-2 gap-4" role="group"
-            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
-            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'multiselect-answer-error' : null">
-            @if (currentQuestion.options; as options) { @for (option of options;
-            track option) {
-            <div class="flex items-start p-3 bg-gray-100 rounded-md hover:bg-gray-200">
-              <amw-checkbox [checked]="
-                  (
-                    currentAnswerForm.get('answer')?.value | jsonParseCommon
-                  )?.includes(option)
-                " (change)="onAnswerChange(option)" [label]="option">
-              </amw-checkbox>
-            </div>
-            } } @else {
-            <p class="nom-message-text text-red-500">
-              No options available for this multi-select question.
-            </p>
+        <div class="nom-dashboard__empty">
+          <p class="nom-dashboard__empty-message">No onboarding questions available.</p>
+        </div>
+      } @else if (!isLoading() && questions().length > 0 && !submitMessage() && currentQuestion) {
+        <form [formGroup]="currentAnswerForm" class="nom-wizard__form">
+          <div class="nom-wizard__section">
+            @switch (currentQuestion.answerType) {
+              @case ('TextInput') {
+                <amw-input
+                  formControlName="answer"
+                  label="Your Answer"
+                  [placeholder]="currentQuestion.hint || 'Type your answer here...'"
+                  [required]="true">
+                </amw-input>
+              }
+              @case ('YesNo') {
+                <amw-radio-group
+                  formControlName="answer"
+                  [options]="getYesNoOptions()"
+                  orientation="horizontal"
+                  (selectionChange)="onAnswerChange($event.value)">
+                </amw-radio-group>
+              }
+              @case ('MultiSelect') {
+                <div class="nom-dashboard__grid--2col" role="group">
+                  @if (currentQuestion.options; as options) {
+                    @for (option of options; track option) {
+                      <div class="nom-dashboard__card" style="padding: 0.75rem;">
+                        <amw-checkbox
+                          [checked]="(currentAnswerForm.get('answer')?.value | jsonParseCommon)?.includes(option)"
+                          (change)="onAnswerChange(option)"
+                          [label]="option">
+                        </amw-checkbox>
+                      </div>
+                    }
+                  } @else {
+                    <p class="nom-dashboard__empty-message">No options available for this multi-select question.</p>
+                  }
+                </div>
+              }
+              @case ('SingleSelect') {
+                @if (currentQuestion.options && currentQuestion.options.length > 0) {
+                  <amw-radio-group
+                    formControlName="answer"
+                    [options]="getSingleSelectOptions()"
+                    orientation="horizontal"
+                    (selectionChange)="onAnswerChange($event.value)">
+                  </amw-radio-group>
+                } @else {
+                  <p class="nom-dashboard__empty-message">No options available for this single-select question.</p>
+                }
+              }
+              @default {
+                <p class="nom-dashboard__empty-message">Unsupported answer type: {{ currentQuestion.answerType }}</p>
+              }
             }
           </div>
-          @if (currentAnswerForm.get('answer')?.hasError('required') &&
-          currentAnswerForm.get('answer')?.touched) {
-          <p id="multiselect-answer-error" class="nom-form__error text-center" role="alert">
-            Please select at least one option.
-          </p>
-          } } @case ('SingleSelect') {
-          @if (currentQuestion.options && currentQuestion.options.length > 0) {
-          <amw-radio-group formControlName="answer" [options]="getSingleSelectOptions()" orientation="horizontal"
-            (selectionChange)="onAnswerChange($event.value)" class="nom-horizontal-group flex-wrap justify-center my-4"
-            [attr.aria-invalid]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched"
-            [attr.aria-describedby]="currentAnswerForm.get('answer')?.hasError('required') && currentAnswerForm.get('answer')?.touched ? 'singleselect-answer-error' : null">
-          </amw-radio-group>
-          } @else {
-          <p class="nom-message-text text-red-500">
-            No options available for this single-select question.
-          </p>
-          }
-          @if (currentAnswerForm.get('answer')?.hasError('required') &&
-          currentAnswerForm.get('answer')?.touched) {
-          <p id="singleselect-answer-error" class="nom-form__error text-center" role="alert">
-            Please select an option.
-          </p>
-          } } @default {
-          <p class="nom-message-text text-red-500">
-            Unsupported answer type: {{ currentQuestion.answerType }}
-          </p>
-          } }
-        </div>
-
-        <div class="flex justify-between items-center mt-6">
-          <amw-button variant="filled" color="accent" (click)="goToPreviousQuestion()"
-            [disabled]="currentQuestionIndex() === 0 || isSubmitting()">
-            Previous
-          </amw-button>
-          <amw-button variant="filled" color="primary" (click)="goToNextQuestion()" [disabled]="isSubmitting()"
-            [loading]="isSubmitting()">
-            {{ currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next' }}
-          </amw-button>
-        </div>
-      </form>
+        </form>
       } @else if (!isLoading() && submitMessage()) {
-      <div class="text-center p-4 rounded-md" role="alert" aria-live="polite" [ngClass]="{
-          'bg-green-100 text-green-700': submitMessage()!.includes('successfully'),
-          'bg-red-100 text-red-700': !submitMessage()!.includes('successfully')
-        }">
-        <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
-        <amw-button variant="filled" color="primary" (click)="onGoToDashboard()" class="mt-4">
-          Go to Dashboard
+        <div class="nom-wizard__complete" role="alert" aria-live="polite">
+          @if (submitMessage()!.includes('successfully')) {
+            <amw-icon name="check_circle" class="nom-wizard__complete-icon"></amw-icon>
+          } @else {
+            <amw-icon name="error" class="nom-wizard__complete-icon" style="color: var(--mat-sys-error);"></amw-icon>
+          }
+          <h3 class="nom-wizard__complete-title">{{ submitMessage()!.includes('successfully') ? 'All Done!' : 'Error' }}</h3>
+          <p class="nom-wizard__complete-message">{{ submitMessage() }}</p>
+          <amw-button variant="filled" color="primary" (click)="onGoToDashboard()">Go to Dashboard</amw-button>
+        </div>
+      }
+    </div>
+
+    @if (!isLoading() && questions().length > 0 && !submitMessage() && currentQuestion) {
+      <div class="nom-wizard__actions nom-wizard__actions--between">
+        <amw-button variant="outlined" (click)="goToPreviousQuestion()" [disabled]="currentQuestionIndex() === 0 || isSubmitting()">
+          Previous
+        </amw-button>
+        <amw-button variant="filled" color="primary" (click)="goToNextQuestion()" [disabled]="isSubmitting()" [loading]="isSubmitting()">
+          {{ currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next' }}
         </amw-button>
       </div>
-      }
-    </ng-template>
-  </amw-card>
+    }
+  </div>
 </div>

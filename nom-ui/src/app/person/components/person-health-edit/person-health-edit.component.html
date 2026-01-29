@@ -1,56 +1,63 @@
-<div class="nom-page-container person-health-edit">
-  <amw-card [headerTitle]="pageTitle" [headerSubtitle]="pageSubtitle" class="nom-card">
+<div class="nom-form--full">
+  <amw-card [headerTitle]="pageTitle" [headerSubtitle]="pageSubtitle">
     <ng-template #cardContent>
       @if (isLoading()) {
-      <div role="status" aria-live="polite" aria-label="Loading health information">
-        <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
-        <span class="sr-only">Loading health information, please wait...</span>
-      </div>
+        <div class="nom-dashboard__loading" role="status" aria-live="polite" aria-label="Loading health information">
+          <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
+          <span class="sr-only">Loading health information, please wait...</span>
+        </div>
       }
 
       @if (error()) {
-      <div class="nom-error-state" role="alert" aria-live="assertive">
-        <amw-icon name="error_outline" class="nom-error-state__icon"></amw-icon>
-        <p class="nom-error-state__message">{{ error() }}</p>
-        <amw-button variant="filled" color="primary" (click)="onRetry()">
-          Try Again
-        </amw-button>
-      </div>
-      } @else {
-      <form [formGroup]="healthAttributesForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <div class="nom-section">
-          <h3 class="nom-section__heading">Health Attributes (Optional)</h3>
-          <p class="nom-instruction-text">
-            Provide some health details to help us personalize your plan.
-          </p>
-
-          @for (attrType of attributeTypes; track attrType.id) {
-          @if (attrType.options) {
-          <!-- For select-box attributes like 'Activity Level' -->
-          <amw-select [formControlName]="getFormControlName(attrType.name)" [label]="attrType.label || ''"
-            [options]="attrType.options" class="nom-form__field">
-          </amw-select>
-          } @else {
-          <!-- For text input attributes like 'Height', 'Weight' -->
-          <amw-input [formControlName]="getFormControlName(attrType.name)"
-            [label]="(attrType.label || '') + (attrType.unit ? ' (' + attrType.unit + ')' : '')"
-            [placeholder]="'Enter ' + (attrType.label?.toLowerCase() || '')" [ngClass]="attrType.class"
-            class="nom-form__field">
-          </amw-input>
-          }
-          }
+        <div class="nom-form__error" role="alert" aria-live="assertive">
+          <amw-icon name="error_outline"></amw-icon>
+          <span>{{ error() }}</span>
         </div>
-
+        <div class="nom-form__actions">
+          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+        </div>
+      } @else {
+        <form [formGroup]="healthAttributesForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+          <div class="nom-form__section">
+            <h3 class="nom-form__section-title">Health Attributes (Optional)</h3>
+            <p class="nom-form__section-description">
+              Provide some health details to help us personalize your plan.
+            </p>
+            <div class="nom-form__fields">
+              @for (attrType of attributeTypes; track attrType.id) {
+                @if (attrType.options) {
+                  <amw-select
+                    [formControlName]="getFormControlName(attrType.name)"
+                    [label]="attrType.label || ''"
+                    [options]="attrType.options">
+                  </amw-select>
+                } @else {
+                  <amw-input
+                    [formControlName]="getFormControlName(attrType.name)"
+                    [label]="(attrType.label || '') + (attrType.unit ? ' (' + attrType.unit + ')' : '')"
+                    [placeholder]="'Enter ' + (attrType.label?.toLowerCase() || '')"
+                    [ngClass]="attrType.class">
+                  </amw-input>
+                }
+              }
+            </div>
+          </div>
+        </form>
         <div class="nom-form__actions">
           <amw-button type="button" variant="text" (click)="onCancel()">
             {{ cancelText }}
           </amw-button>
-          <amw-button type="submit" variant="filled" color="primary" [disabled]="isSubmitting()"
-            [loading]="isSubmitting()" [amwValidationTooltip]="validationContext">
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            [disabled]="isSubmitting()"
+            [loading]="isSubmitting()"
+            [amwValidationTooltip]="validationContext"
+            (click)="onSubmit()">
             {{ submitText }}
           </amw-button>
         </div>
-      </form>
       }
     </ng-template>
   </amw-card>

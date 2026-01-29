@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwChipComponent, AmwInlineLoadingComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwIconComponent, AmwChipComponent, AmwInlineLoadingComponent, AmwMenuComponent, AmwMenuItemComponent, AmwMenuTriggerForDirective, AmwDialogService } from 'angular-material-wrap';
 
 import { HouseholdService } from '../../services/household.service';
 import { HouseholdResponseModel } from '../../models/household-response.model';
@@ -13,7 +13,6 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
     standalone: true,
     imports: [
         AmwButtonComponent,
-        AmwCardComponent,
         AmwIconComponent,
         AmwChipComponent,
         AmwInlineLoadingComponent,

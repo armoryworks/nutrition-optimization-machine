@@ -26,13 +26,15 @@
 //
 // STEREOTYPE FILES:
 // =================
+// - _stereotype-landing.scss    - Public/marketing pages with hero sections
 // - _stereotype-dashboard.scss  - Dashboard pages with stats, grids, cards
 // - _stereotype-detail.scss     - Detail/view pages (complements AmwDetailPage)
-// - _stereotype-form.scss       - Form patterns (complements AmwFormPage)
+// - _stereotype-form.scss       - Form patterns (card and full-width variants)
 // - _stereotype-search.scss     - Search pages with filters, result grids
 // - _stereotype-master-detail.scss - Split-panel layouts (list + detail)
 // - _stereotype-wizard.scss     - Multi-step wizard flows
 // - _stereotype-calendar.scss   - Calendar/grid scheduling views
+// - _stereotype-modal.scss      - Dialog/overlay patterns
 //
 // USAGE:
 // ======
@@ -50,6 +52,7 @@
 // =============================================================================
 
 // Import all stereotypes
+@forward './stereotype-landing';
 @forward './stereotype-dashboard';
 @forward './stereotype-detail';
 @forward './stereotype-form';
@@ -57,3 +60,4 @@
 @forward './stereotype-master-detail';
 @forward './stereotype-wizard';
 @forward './stereotype-calendar';
+@forward './stereotype-modal';

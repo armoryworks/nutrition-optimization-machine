@@ -1,6 +1,5 @@
-// Recipe Timeline Events Component - Uses utilities and variables
+// Recipe Timeline Events Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .recipe-timeline-events {
   &__card {
@@ -46,7 +45,9 @@
   }
 
   &__form-actions {
-    @include nom-action-group(vars.$spacing-4, flex-end);
+    display: flex;
+    gap: vars.$spacing-4;
+    justify-content: flex-end;
     margin-top: vars.$spacing-4;
   }
 
@@ -76,7 +77,13 @@
   }
 
   &__loading-container {
-    @include nom-loading-state(vars.$spacing-8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-8;
   }
 
   &__loading-icon {
@@ -90,9 +97,13 @@
   &__loading,
   &__empty,
   &__error {
-    @include nom-empty-state(vars.$spacing-8);
-    padding: vars.$spacing-12 vars.$spacing-6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    gap: vars.$spacing-4;
+    padding: vars.$spacing-12 vars.$spacing-6;
 
     h3 {
       margin: vars.$spacing-4 0 vars.$spacing-2;

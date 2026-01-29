@@ -1,7 +1,6 @@
 // File: nom-ui/src/app/curation/components/curation-queue/curation-queue.component.ts
 
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, NonNullableFormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { Subject, takeUntil, finalize } from 'rxjs';
@@ -18,7 +17,6 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
   selector: 'nom-curation-queue',
   standalone: true,
   imports: [
-    NgClass,
     FormsModule,
     ReactiveFormsModule,
     AmwButtonComponent,

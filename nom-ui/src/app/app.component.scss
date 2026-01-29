@@ -16,271 +16,209 @@ body {
 }
 
 .nom-header {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 72px !important;
-  padding: 0 !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  z-index: 1000 !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  padding: 0 vars.$spacing-6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  z-index: 1000;
 
-  // Responsive height adjustments
   @media (max-width: vars.$breakpoint-mobile) {
-    height: 68px !important;
+    height: 56px;
+    padding: 0 vars.$spacing-4;
   }
 
-  @media (max-width: 480px) {
-    height: 64px !important;
-  }
-
-  &__left {
+  // Brand Section (Logo + Tagline)
+  &__brand {
     display: flex;
     align-items: center;
-    flex: 1;
-    padding: 0 vars.$spacing-5;
-    min-width: 0;
+    gap: vars.$spacing-4;
+    flex-shrink: 0;
   }
 
-  &__title {
-    margin: 0;
+  &__logo {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+
+  &__logo-text {
     font-size: vars.$font-size-2xl;
     font-weight: vars.$font-weight-bold;
-    margin-right: vars.$spacing-3;
-    white-space: nowrap;
+    color: var(--mat-sys-on-surface);
+    letter-spacing: 0.02em;
   }
 
-  &__subtitle {
-    margin: 0;
+  &__logo-accent {
+    color: var(--mat-sys-primary);
+  }
+
+  &__tagline {
     font-size: vars.$font-size-sm;
-    font-weight: vars.$font-weight-normal;
+    color: var(--mat-sys-on-surface-variant);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
 
-    // Responsive adjustments
-    @media (max-width: vars.$breakpoint-mobile) {
-      max-width: 150px;
-      font-size: vars.$font-size-xs;
-    }
-
-    @media (max-width: 480px) {
-      max-width: 120px;
-      font-size: vars.$font-size-xs;
+    @media (max-width: 900px) {
+      display: none;
     }
   }
 
-  &__center {
+  // Search Section
+  &__search {
+    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex: 2;
-    gap: vars.$spacing-5;
-    padding: 0 vars.$spacing-5;
-    min-width: 0;
+    max-width: 500px;
+    margin: 0 vars.$spacing-6;
+    padding: vars.$spacing-2 vars.$spacing-4;
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: vars.$nom-border-radius-lg;
+    transition: all vars.$transition-duration-fast ease;
 
-    @media (max-width: vars.$breakpoint-mobile) {
-      padding: 0 vars.$spacing-4;
-      gap: vars.$spacing-4;
+    &:focus-within {
+      border-color: var(--mat-sys-primary);
+      background: var(--mat-sys-surface-container-high);
     }
 
-    @media (max-width: 480px) {
-      padding: 0 vars.$spacing-3;
-      gap: vars.$spacing-3;
+    @media (max-width: vars.$breakpoint-mobile) {
+      margin: 0 vars.$spacing-2;
+      padding: vars.$spacing-1 vars.$spacing-3;
+    }
+
+    @media (max-width: 600px) {
+      display: none;
     }
   }
 
-  &__right {
-    display: flex;
-    align-items: center;
-    position: relative;
-    gap: vars.$spacing-3;
-    padding: vars.$spacing-4 vars.$spacing-5;
+  &__search-icon {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: vars.$spacing-2;
     flex-shrink: 0;
+  }
+
+  &__search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--mat-sys-on-surface);
+    font-size: vars.$font-size-sm;
+    outline: none;
     min-width: 0;
+
+    &::placeholder {
+      color: var(--mat-sys-on-surface-variant);
+    }
   }
 
-  &__theme-toggle {
-    // Inherits theme colors
-  }
-
-  &__auth-buttons {
+  // Navigation Section
+  &__nav {
     display: flex;
-    gap: vars.$spacing-3;
     align-items: center;
+    gap: vars.$spacing-1;
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      gap: 0;
+    }
   }
 
-  &__auth-button {
+  &__nav-link {
     display: flex;
     align-items: center;
     gap: vars.$spacing-2;
-    padding: vars.$spacing-3 vars.$spacing-4;
-    border-radius: vars.$nom-border-radius-sm;
-    font-weight: vars.$font-weight-medium;
+    padding: vars.$spacing-2 vars.$spacing-4;
     text-decoration: none;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-medium;
+    border-radius: vars.$nom-border-radius;
     transition: all vars.$transition-duration-fast ease;
-    cursor: pointer;
-    height: vars.$spacing-10;
-    line-height: 1;
-    box-sizing: border-box;
-    justify-content: center;
 
     &:hover {
-      transform: translateY(-1px);
+      color: var(--mat-sys-on-surface);
+      background: var(--mat-sys-surface-container);
     }
 
-    &:active {
-      transform: translateY(0);
+    &.active {
+      color: var(--mat-sys-primary);
+      background: var(--mat-sys-primary-container);
     }
 
-    span {
-      font-weight: vars.$font-weight-medium;
-      white-space: nowrap;
-      line-height: 1;
+    amw-icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    @media (max-width: vars.$breakpoint-mobile) {
+      padding: vars.$spacing-2;
+
+      span {
+        display: none;
+      }
     }
   }
+
+  // Actions Section (Theme, User, Register)
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-3;
+    flex-shrink: 0;
+  }
+
+  &__icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--mat-sys-on-surface-variant);
+    border-radius: vars.$nom-border-radius;
+    cursor: pointer;
+    transition: all vars.$transition-duration-fast ease;
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+      color: var(--mat-sys-on-surface);
+    }
+
+    &:focus {
+      outline: 2px solid var(--mat-sys-primary);
+      outline-offset: 2px;
+    }
+
+    amw-icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
+
 }
 
 // Main content area — clears the fixed header and footer
-// Pages using .nom-page-container (position: fixed) are unaffected.
-// Pages with custom containers (compose, inbox, dashboards) get
-// proper offset so content doesn't render behind fixed elements.
 .nom-main {
   flex: 1;
-  padding-top: 72px;   // Match .nom-header height
-  padding-bottom: 55px; // Match .nom-footer height
+  padding-top: 60px;   // Match .nom-header height
+  padding-bottom: 40px; // Match .nom-footer height
   overflow-y: auto;
   box-sizing: border-box;
 
   @media (max-width: vars.$breakpoint-mobile) {
-    padding-top: 68px;  // Match responsive header height
-  }
-
-  @media (max-width: 480px) {
-    padding-top: 64px;  // Match smallest header height
-  }
-}
-
-// Main Navigation Styles
-.nom-main-nav {
-  display: flex !important;
-  align-items: center !important;
-  gap: vars.$spacing-4 !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  width: 100% !important;
-
-  // Responsive adjustments
-  @media (max-width: 1024px) {
-    gap: vars.$spacing-3 !important;
-  }
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    gap: vars.$spacing-2 !important;
-  }
-
-  @media (max-width: 480px) {
-    gap: vars.$spacing-2 !important;
-  }
-
-  // Navigation sections
-  &__public {
-    display: flex !important;
-    align-items: center !important;
-    gap: vars.$spacing-4 !important;
-    padding-right: vars.$spacing-4 !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-
-    @media (max-width: vars.$breakpoint-mobile) {
-      gap: vars.$spacing-2 !important;
-      padding-right: vars.$spacing-2 !important;
-    }
-
-    @media (max-width: 480px) {
-      gap: vars.$spacing-2 !important;
-      padding-right: vars.$spacing-2 !important;
-    }
-  }
-
-  &__authenticated {
-    display: flex !important;
-    align-items: center !important;
-    gap: vars.$spacing-4 !important;
-    padding-left: vars.$spacing-4 !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-
-    @media (max-width: vars.$breakpoint-mobile) {
-      gap: vars.$spacing-2 !important;
-      padding-left: vars.$spacing-2 !important;
-    }
-
-    @media (max-width: 480px) {
-      gap: vars.$spacing-2 !important;
-      padding-left: vars.$spacing-2 !important;
-    }
-  }
-
-  &__auth {
-    display: flex !important;
-    align-items: center !important;
-    gap: vars.$spacing-4 !important;
-    flex-wrap: wrap !important;
-
-    @media (max-width: vars.$breakpoint-mobile) {
-      gap: vars.$spacing-2 !important;
-    }
-
-    @media (max-width: 480px) {
-      gap: vars.$spacing-2 !important;
-    }
-  }
-
-  &__link {
-    display: flex !important;
-    align-items: center !important;
-    gap: vars.$spacing-2 !important;
-    padding: vars.$spacing-2 vars.$spacing-3 !important;
-    text-decoration: none !important;
-    border-radius: vars.$nom-border-radius !important;
-    transition: all vars.$transition-duration-fast ease !important;
-    white-space: nowrap !important;
-    font-weight: vars.$font-weight-medium !important;
-    min-width: 0 !important;
-    height: vars.$spacing-10 !important;
-
-    // Responsive adjustments
-    @media (max-width: vars.$breakpoint-mobile) {
-      padding: vars.$spacing-2 !important;
-      gap: vars.$spacing-1 !important;
-      height: vars.$spacing-8 !important;
-    }
-
-    @media (max-width: 480px) {
-      padding: vars.$spacing-1 vars.$spacing-2 !important;
-      gap: vars.$spacing-1 !important;
-      height: vars.$spacing-8 !important;
-    }
-
-    span {
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      white-space: nowrap !important;
-      min-width: 0 !important;
-
-      @media (max-width: vars.$breakpoint-mobile) {
-        font-size: vars.$font-size-sm !important;
-      }
-
-      @media (max-width: 480px) {
-        font-size: vars.$font-size-xs !important;
-      }
-    }
+    padding-top: 56px;  // Match responsive header height
   }
 }
 
@@ -337,7 +275,7 @@ body {
   }
 
   &__dropdown {
-    // Handled by theme
+    // Styled globally in _styles.scss (overlay renders outside component)
   }
 
   &__section {
@@ -416,30 +354,21 @@ body {
   }
 }
 
-// Login Popover Styles
-.nom-login-popover-backdrop {
+// Generic centered popover - content determines size
+.nom-popover-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 9998;
   cursor: pointer;
 }
 
-.nom-login-popover {
+.nom-popover {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
-  margin: 0;
-  min-width: 400px;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: vars.$nom-border-radius-lg;
 }
 
 // Footer Styles
@@ -448,59 +377,67 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 55px;
-  text-align: center;
+  height: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--mat-sys-surface-container);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  padding: 0 vars.$spacing-6;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
 
-  p {
-    margin: vars.$spacing-2 0;
-    font-size: vars.$font-size-xs;
-    line-height: vars.$line-height-normal;
-  }
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-3;
 
-  a {
-    text-decoration: none;
+    a {
+      display: flex;
+      align-items: center;
+      gap: vars.$spacing-1;
+      color: var(--mat-sys-primary);
+      text-decoration: none;
 
-    &:hover {
-      text-decoration: underline;
+      &:hover {
+        text-decoration: underline;
+      }
+
+      i {
+        font-size: 1rem;
+      }
     }
   }
-}
 
-@media (max-width: vars.$breakpoint-mobile) {
-  .nom-header {
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-3;
+    color: var(--mat-sys-on-surface-variant);
+
+    a {
+      display: flex;
+      align-items: center;
+      gap: vars.$spacing-1;
+      color: var(--mat-sys-primary);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      i {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: 0 vars.$spacing-3;
+    font-size: 10px;
+
     &__left {
-      gap: vars.$spacing-sm;
-      padding: 0 vars.$spacing-3;
+      gap: vars.$spacing-2;
     }
-
-    &__right {
-      .nom-user-menu__burger-menu {
-        display: block;
-      }
-    }
-  }
-
-  .nom-search {
-    width: 200px;
-  }
-}
-
-@media (min-width: vars.$breakpoint-mobile + 1px) {
-  .nom-header {
-    &__right {
-      .nom-user-menu__burger-menu {
-        display: none;
-      }
-    }
-  }
-
-  .nom-sidenav {
-    position: relative;
-    right: auto;
-    width: 200px;
-    height: auto;
-    padding-top: 0;
-    box-shadow: none;
-    flex-shrink: 0;
   }
 }

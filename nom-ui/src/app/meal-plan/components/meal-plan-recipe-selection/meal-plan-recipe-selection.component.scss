@@ -1,8 +1,13 @@
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .nom-loading {
-  @include nom-loading-state(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-8;
 }
 
 .nom-container {

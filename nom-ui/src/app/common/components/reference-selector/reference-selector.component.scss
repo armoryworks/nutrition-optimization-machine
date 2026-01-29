@@ -1,9 +1,10 @@
-// Reference Selector Component - Uses utilities and variables
+// Reference Selector Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .reference-selector {
-  @include nom-form-field(vars.$spacing-2);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
 
   &__label {
     font-weight: vars.$font-weight-medium;

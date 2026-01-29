@@ -13,7 +13,7 @@ module.exports = defineConfig({
     requestTimeout: 10000,
     responseTimeout: 10000,
     env: {
-      apiUrl: 'http://localhost:5000', // .NET API server
+      apiUrl: 'http://localhost:7053', // .NET API server
     },
     setupNodeEvents(on, config) {
       // implement node event listeners here

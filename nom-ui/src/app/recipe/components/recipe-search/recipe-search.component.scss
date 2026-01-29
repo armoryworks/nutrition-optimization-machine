@@ -1,174 +1,51 @@
-// Recipe Search Component - Uses search stereotype
-@use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
+// Recipe Search Component
+// Uses global stereotype classes from _stereotype-search.scss and _stereotype-landing.scss
+// Only component-specific overrides below
 
-.recipe-search {
-  @include nom-search-page;
+@use '../../../variables' as vars;
 
-  .search-form {
-    margin-bottom: vars.$spacing-8;
+// Loading icon animation
+.nom-search__loading-icon {
+  animation: spin 1s linear infinite;
+}
 
-    .search-row {
-      display: flex;
-      gap: vars.$spacing-5;
-      align-items: flex-end;
-      margin-bottom: vars.$spacing-5;
+// Error state modifier (extends empty state with error colors)
+.nom-search__empty--error {
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
 
-      .search-field {
-        flex: 1;
-      }
-
-      button {
-        min-width: 120px;
-      }
-
-      @media (max-width: vars.$breakpoint-mobile) {
-        flex-direction: column;
-        gap: vars.$spacing-3;
-      }
-    }
-
-    .filters-grid {
-      .filter-row {
-        display: flex;
-        gap: vars.$spacing-5;
-        margin-bottom: vars.$spacing-5;
-        align-items: center;
-
-        @media (max-width: vars.$breakpoint-mobile) {
-          flex-direction: column;
-          gap: vars.$spacing-3;
-        }
-      }
-
-      .filter-actions {
-        @include nom-action-group(vars.$spacing-2, flex-end);
-        margin-top: vars.$spacing-5;
-      }
-    }
-
-    .quick-actions {
-      @include nom-action-group(vars.$spacing-3, flex-start);
-      margin-top: vars.$spacing-5;
-
-      button {
-        flex: 1;
-      }
-
-      @media (max-width: vars.$breakpoint-mobile) {
-        flex-direction: column;
-      }
-    }
+  .nom-search__empty-icon {
+    color: var(--mat-sys-error);
   }
 
-  .search-results {
-    .loading {
-      @include nom-loading-state(vars.$spacing-10);
-
-      p {
-        margin-top: vars.$spacing-3;
-      }
-    }
-
-    .no-results {
-      @include nom-empty-state(vars.$spacing-10);
-
-      p {
-        margin: vars.$spacing-1 0;
-        font-size: vars.$font-size-lg;
-      }
-    }
-
-    .results-info {
-      margin-bottom: vars.$spacing-5;
-      font-size: vars.$font-size-sm;
-    }
-
-    .recipe-grid {
-      @include nom-search-grid;
-      margin-bottom: vars.$spacing-8;
-
-      .recipe-card {
-        height: fit-content;
-
-        .recipe-avatar {
-          width: vars.$spacing-10;
-          height: vars.$spacing-10;
-          border-radius: 50%;
-          overflow: hidden;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-        }
-
-        .recipe-description {
-          font-size: vars.$font-size-sm;
-          line-height: vars.$line-height-normal;
-          margin-bottom: vars.$spacing-4;
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .recipe-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: vars.$spacing-4;
-          margin-bottom: vars.$spacing-4;
-
-          .meta-item {
-            display: flex;
-            align-items: center;
-            gap: vars.$spacing-1;
-            font-size: vars.$font-size-xs;
-          }
-        }
-
-        .recipe-tags {
-          margin-bottom: vars.$spacing-4;
-        }
-
-        .recipe-ingredients {
-          margin-top: vars.$spacing-4;
-          padding-top: vars.$spacing-4;
-
-          h4 {
-            margin: 0 0 vars.$spacing-3 0;
-            font-size: vars.$font-size-sm;
-          }
-
-          ul {
-            margin: 0;
-            padding-left: vars.$spacing-5;
-            font-size: vars.$font-size-xs;
-
-            li {
-              margin-bottom: vars.$spacing-1;
-            }
-          }
-        }
-      }
-    }
+  .nom-search__empty-title,
+  .nom-search__empty-message {
+    color: var(--mat-sys-on-error-container);
   }
+}
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-3;
+// Image placeholder for cards without images
+.nom-search__card-image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-surface-container-high);
 
-    .recipe-grid {
-      grid-template-columns: 1fr;
-      gap: vars.$spacing-4;
-    }
-
-    .search-form {
-      .search-row {
-        .search-field {
-          width: 100%;
-        }
-      }
-    }
+  amw-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.3;
   }
+}
+
+// Make feature cards clickable
+.nom-landing__feature {
+  cursor: pointer;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

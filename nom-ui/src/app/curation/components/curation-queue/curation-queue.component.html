@@ -1,51 +1,53 @@
-<div class="nom-page-container full-canvas nom-compact-top-minima">
+<div class="nom-master-detail">
   <!-- Header -->
-  <div class="curation-queue__header">
-    <div class="curation-queue__header-content">
-      <h1 class="curation-queue__title">Curation Queue</h1>
-      <p class="curation-queue__subtitle">Review and approve submitted content</p>
+  <header class="nom-master-detail__header">
+    <div class="nom-master-detail__header-left">
+      <h1 class="nom-master-detail__title">Curation Queue</h1>
+      <p class="nom-master-detail__subtitle">Review and approve submitted content</p>
     </div>
 
-    <div class="curation-queue__header-center">
-      <div class="curation-queue__stats">
-        <span class="curation-queue__stat curation-queue__stat--pending">
+    <div class="nom-master-detail__header-center">
+      <div class="nom-master-detail__stats">
+        <span class="nom-master-detail__stat curation-queue__stat--pending">
           {{ queueItems().length }} Pending
         </span>
-        <span class="curation-queue__stat curation-queue__stat--recipe">
+        <span class="nom-master-detail__stat curation-queue__stat--recipe">
           {{ recipeCount() }} Recipes
         </span>
-        <span class="curation-queue__stat curation-queue__stat--ingredient">
+        <span class="nom-master-detail__stat curation-queue__stat--ingredient">
           {{ ingredientCount() }} Ingredients
         </span>
       </div>
-      <div class="curation-queue__progress">
-        <span class="curation-queue__progress-text">{{ progressText() }}</span>
-      </div>
+      @if (progressText()) {
+        <div class="curation-queue__progress">
+          <span>{{ progressText() }}</span>
+        </div>
+      }
     </div>
 
-    <div class="curation-queue__header-actions">
-      <div class="curation-queue__refresh">
-        @if (lastRefreshTime()) {
-          <span class="curation-queue__last-updated">{{ formatRelativeTime(lastRefreshTime()!) }}</span>
-        }
-        <amw-button variant="text" (click)="onRefresh()" icon="refresh">
-          Refresh
-        </amw-button>
-      </div>
+    <div class="nom-master-detail__header-right">
+      @if (lastRefreshTime()) {
+        <span class="curation-queue__last-updated">{{ formatRelativeTime(lastRefreshTime()!) }}</span>
+      }
+      <amw-button variant="text" (click)="onRefresh()" icon="refresh">
+        Refresh
+      </amw-button>
     </div>
-  </div>
+  </header>
 
   <!-- Loading State -->
   @if (isLoading()) {
-    <amw-inline-loading message="Loading queue..." />
+    <div class="nom-master-detail__empty">
+      <amw-inline-loading message="Loading queue..." />
+    </div>
   }
 
   <!-- Error State -->
   @if (error() && !isLoading()) {
-    <div class="curation-queue__error">
-      <amw-icon name="error" color="warn"></amw-icon>
-      <h3>Error</h3>
-      <p>{{ error() }}</p>
+    <div class="nom-master-detail__empty">
+      <amw-icon name="error" class="nom-master-detail__empty-icon" color="warn"></amw-icon>
+      <h3 class="nom-master-detail__empty-title">Error</h3>
+      <p class="nom-master-detail__empty-message">{{ error() }}</p>
       <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
         Try Again
       </amw-button>
@@ -54,52 +56,55 @@
 
   <!-- Content -->
   @if (!isLoading() && !error()) {
-    <div class="curation-queue__container">
-      <!-- Queue Items -->
-      <div class="queue-items">
-        <h2 class="queue-items__header">
-          Pending Items
-        </h2>
+    <div class="nom-master-detail__container">
+      <!-- Queue Items (Master Panel) -->
+      <aside class="nom-master-detail__master">
+        <div class="nom-master-detail__master-header">
+          <h2>Pending Items</h2>
+        </div>
 
-        <div class="queue-items__list">
+        <div class="nom-master-detail__list">
           @if (hasItems()) {
             @for (item of queueItems(); track item.id) {
-              <button type="button" class="queue-item" [class.selected]="selectedItem()?.id === item.id"
-                (click)="selectItem(item)" (keydown)="onKeyDown($event, item)"
+              <button type="button"
+                class="nom-master-detail__item"
+                [class.nom-master-detail__item--selected]="selectedItem()?.id === item.id"
+                (click)="selectItem(item)"
+                (keydown)="onKeyDown($event, item)"
                 [attr.aria-label]="'Select ' + item.entityType + ': ' + item.name"
                 [attr.aria-pressed]="selectedItem()?.id === item.id">
-                <div class="queue-item__badge" [ngClass]="'queue-item__badge--' + item.entityType.toLowerCase()">
+                <div class="nom-master-detail__item-badge curation-queue__badge--{{ item.entityType.toLowerCase() }}">
                   {{ item.entityType }}
                 </div>
-                <div class="queue-item__content">
-                  <h3 class="queue-item__title" [amwTooltip]="item.name" amwTooltipPosition="above">
+                <div class="nom-master-detail__item-content">
+                  <h3 class="nom-master-detail__item-title" [amwTooltip]="item.name" amwTooltipPosition="above">
                     {{ item.name }}
                   </h3>
-                  <p class="queue-item__meta">
+                  <p class="nom-master-detail__item-meta">
                     By {{ item.authorName }} • {{ formatDate(item.dateSubmitted) }}
                   </p>
                 </div>
               </button>
             }
           } @else {
-            <div class="empty-state">
-              <amw-icon name="check_circle" class="empty-state__icon"></amw-icon>
-              <h3 class="empty-state__title">No Pending Items</h3>
-              <p class="empty-state__text">All items have been reviewed. The queue is currently empty.</p>
+            <div class="nom-master-detail__empty">
+              <amw-icon name="check_circle" class="nom-master-detail__empty-icon"></amw-icon>
+              <h3 class="nom-master-detail__empty-title">No Pending Items</h3>
+              <p class="nom-master-detail__empty-message">All items have been reviewed. The queue is currently empty.</p>
             </div>
           }
         </div>
-      </div>
+      </aside>
 
-      <!-- Decision Panel -->
+      <!-- Decision Panel (Detail Panel) -->
       @if (selectedItem()) {
-        <div class="decision-panel">
-          <form [formGroup]="decisionForm" class="decision-form">
+        <main class="nom-master-detail__detail">
+          <form [formGroup]="decisionForm" class="curation-queue__form">
             <amw-card [headerTitle]="'Review ' + selectedItem()!.entityType + ' - ' + selectedItem()!.name">
               <ng-template #cardContent>
-                <div class="decision-panel__header-actions">
+                <div class="nom-master-detail__detail-actions">
                   <!-- Control Buttons Context Menu -->
-                  <amw-icon-button icon="more_vert" [amwMenuTriggerFor]="controlMenu" class="control-menu-trigger"
+                  <amw-icon-button icon="more_vert" [amwMenuTriggerFor]="controlMenu"
                     ariaLabel="Open control menu">
                   </amw-icon-button>
 
@@ -119,11 +124,11 @@
 
                   <!-- Navigation Buttons -->
                   @if (selectedItemIndex() >= 0 && queueItems().length > 1) {
-                    <div class="decision-panel__navigation">
+                    <div class="nom-master-detail__navigation">
                       <amw-icon-button icon="keyboard_arrow_up" [disabled]="selectedItemIndex() === 0"
                         (click)="selectPreviousItem()" ariaLabel="Previous item">
                       </amw-icon-button>
-                      <span class="navigation-counter">{{ selectedItemIndex() + 1 }} of {{ queueItems().length }}</span>
+                      <span class="nom-master-detail__navigation-counter">{{ selectedItemIndex() + 1 }} of {{ queueItems().length }}</span>
                       <amw-icon-button icon="keyboard_arrow_down" [disabled]="selectedItemIndex() === queueItems().length - 1"
                         (click)="selectNextItem()" ariaLabel="Next item">
                       </amw-icon-button>
@@ -133,23 +138,23 @@
 
                 <!-- Recipe Details Section -->
                 @if (selectedItem()!.entityType === 'Recipe') {
-                  <div class="recipe-details">
+                  <div class="curation-queue__details">
                     <amw-accordion>
                       <!-- General Information -->
                       @if (selectedItem()!.description) {
                         <amw-accordion-panel amwTitle="Description">
-                          <p class="detail-value">{{ selectedItem()!.description }}</p>
+                          <p class="nom-master-detail__section-content">{{ selectedItem()!.description }}</p>
                         </amw-accordion-panel>
                       }
 
                       <!-- Ingredients Section -->
                       @if (selectedItem()!.rawIngredientsString) {
                         <amw-accordion-panel amwTitle="Ingredients">
-                          <div class="ingredients-list">
+                          <div class="nom-master-detail__detail-list">
                             @for (ingredient of parseIngredients(selectedItem()!.rawIngredientsString); track ingredient.name) {
-                              <div class="ingredient-item">
-                                <span class="ingredient-name">{{ ingredient.name }}</span>
-                                <span class="ingredient-quantity">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                              <div class="nom-master-detail__detail-list-item curation-queue__ingredient-item">
+                                <span class="curation-queue__ingredient-name">{{ ingredient.name }}</span>
+                                <span class="curation-queue__ingredient-quantity">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
                               </div>
                             }
                           </div>
@@ -158,11 +163,11 @@
 
                       <!-- Instructions Section -->
                       <amw-accordion-panel amwTitle="Instructions">
-                        <div class="instructions-list">
+                        <div class="nom-master-detail__detail-list">
                           @for (instruction of getRecipeSteps(selectedItem()!); track $index) {
-                            <div class="instruction-item">
-                              <span class="instruction-number">{{ $index + 1 }}</span>
-                              <span class="instruction-text">{{ instruction }}</span>
+                            <div class="nom-master-detail__detail-list-item curation-queue__instruction-item">
+                              <span class="curation-queue__instruction-number">{{ $index + 1 }}</span>
+                              <span class="curation-queue__instruction-text">{{ instruction }}</span>
                             </div>
                           }
                         </div>
@@ -171,7 +176,7 @@
                       <!-- Additional Information -->
                       @if (selectedItem()!.sourceUrl) {
                         <amw-accordion-panel amwTitle="Source">
-                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
+                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="curation-queue__link" rel="noopener noreferrer">
                             {{ selectedItem()!.sourceUrl }}
                           </a>
                         </amw-accordion-panel>
@@ -181,11 +186,12 @@
                       @if (!selectedItem()!.description && !selectedItem()!.rawIngredientsString &&
                       !selectedItem()!.instructions &&
                       !selectedItem()!.sourceUrl) {
-                        <amw-accordion-panel amwTitle="Additional Information" class="no-details">
-                          <amw-icon name="info" class="no-details__icon"></amw-icon>
-                          <h3 class="no-details__title">No Additional Details</h3>
-                          <p class="no-details__text">This recipe only contains basic information. Consider requesting more
-                            details from the author.</p>
+                        <amw-accordion-panel amwTitle="Additional Information">
+                          <div class="nom-master-detail__empty">
+                            <amw-icon name="info" class="nom-master-detail__empty-icon"></amw-icon>
+                            <h3 class="nom-master-detail__empty-title">No Additional Details</h3>
+                            <p class="nom-master-detail__empty-message">This recipe only contains basic information. Consider requesting more details from the author.</p>
+                          </div>
                         </amw-accordion-panel>
                       }
                     </amw-accordion>
@@ -194,27 +200,29 @@
 
                 <!-- Ingredient Details Section -->
                 @if (selectedItem()!.entityType === 'Ingredient') {
-                  <div class="ingredient-details">
+                  <div class="curation-queue__details">
                     <amw-accordion>
                       @if (selectedItem()!.description) {
                         <amw-accordion-panel amwTitle="Description">
-                          <p class="detail-value">{{ selectedItem()!.description }}</p>
+                          <p class="nom-master-detail__section-content">{{ selectedItem()!.description }}</p>
                         </amw-accordion-panel>
                       }
 
                       @if (selectedItem()!.sourceUrl) {
                         <amw-accordion-panel amwTitle="Source">
-                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="detail-link" rel="noopener noreferrer">
+                          <a [href]="selectedItem()!.sourceUrl" target="_blank" class="curation-queue__link" rel="noopener noreferrer">
                             {{ selectedItem()!.sourceUrl }}
                           </a>
                         </amw-accordion-panel>
                       }
 
                       @if (!selectedItem()!.description && !selectedItem()!.sourceUrl) {
-                        <amw-accordion-panel amwTitle="Additional Information" class="no-details">
-                          <amw-icon name="info" class="no-details__icon"></amw-icon>
-                          <h3 class="no-details__title">No Additional Details</h3>
-                          <p class="no-details__text">This ingredient only contains basic information.</p>
+                        <amw-accordion-panel amwTitle="Additional Information">
+                          <div class="nom-master-detail__empty">
+                            <amw-icon name="info" class="nom-master-detail__empty-icon"></amw-icon>
+                            <h3 class="nom-master-detail__empty-title">No Additional Details</h3>
+                            <p class="nom-master-detail__empty-message">This ingredient only contains basic information.</p>
+                          </div>
                         </amw-accordion-panel>
                       }
                     </amw-accordion>
@@ -222,58 +230,55 @@
                 }
 
                 <!-- Decision Form -->
-                <div class="decision-form__fields-row">
-                  <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true"
-                    class="decision-form__field decision-form__field--half">
+                <div class="nom-master-detail__form-row">
+                  <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true">
                   </amw-textarea>
 
-                  <amw-textarea formControlName="publicNotes" label="Public Notes (Optional)"
-                    class="decision-form__field decision-form__field--half">
+                  <amw-textarea formControlName="publicNotes" label="Public Notes (Optional)">
                   </amw-textarea>
                 </div>
 
-                <div class="decision-panel__actions">
-                  <div class="decision-form__actions">
-                    <amw-button variant="filled" color="primary" type="button" (click)="approve()"
-                      [disabled]="decisionForm.invalid || isSubmitting()"
-                      class="decision-form__btn decision-form__btn--approve" aria-label="Approve this item" icon="check">
-                      Approve
-                    </amw-button>
+                <div class="nom-master-detail__form-actions">
+                  <amw-button variant="filled" color="primary" type="button" (click)="approve()"
+                    [disabled]="decisionForm.invalid || isSubmitting()"
+                    aria-label="Approve this item" icon="check">
+                    Approve
+                  </amw-button>
 
-                    <amw-button variant="outlined" color="accent" type="button" (click)="requestRevision()"
-                      [disabled]="decisionForm.invalid || isSubmitting()"
-                      class="decision-form__btn decision-form__btn--revision" aria-label="Request revision for this item"
-                      icon="edit">
-                      Request Revision
-                    </amw-button>
+                  <amw-button variant="outlined" color="accent" type="button" (click)="requestRevision()"
+                    [disabled]="decisionForm.invalid || isSubmitting()"
+                    aria-label="Request revision for this item" icon="edit">
+                    Request Revision
+                  </amw-button>
 
-                    <amw-button variant="outlined" color="warn" type="button" (click)="reject()"
-                      [disabled]="decisionForm.invalid || isSubmitting()"
-                      class="decision-form__btn decision-form__btn--reject" aria-label="Reject this item" icon="close">
-                      Reject
-                    </amw-button>
+                  <amw-button variant="outlined" color="warn" type="button" (click)="reject()"
+                    [disabled]="decisionForm.invalid || isSubmitting()"
+                    aria-label="Reject this item" icon="close">
+                    Reject
+                  </amw-button>
 
-                    <amw-button variant="text" type="button" (click)="cancel()" [disabled]="isSubmitting()"
-                      class="decision-form__btn decision-form__btn--cancel" aria-label="Cancel review">
-                      Cancel
-                    </amw-button>
-                  </div>
+                  <amw-button variant="text" type="button" (click)="cancel()" [disabled]="isSubmitting()"
+                    aria-label="Cancel review">
+                    Cancel
+                  </amw-button>
                 </div>
               </ng-template>
             </amw-card>
           </form>
-        </div>
+        </main>
       } @else {
-        <div class="no-selection">
-          <amw-icon name="assignment" class="no-selection__icon"></amw-icon>
-          <h3 class="no-selection__title">Select an Item to Review</h3>
-          <p class="no-selection__text">Choose an item from the pending queue to begin the review process.</p>
-          @if (hasItems()) {
-            <div class="no-selection__hint">
-              <p class="hint-text">Tip: Use arrow keys to navigate between items</p>
-            </div>
-          }
-        </div>
+        <main class="nom-master-detail__detail">
+          <div class="nom-master-detail__empty">
+            <amw-icon name="assignment" class="nom-master-detail__empty-icon"></amw-icon>
+            <h3 class="nom-master-detail__empty-title">Select an Item to Review</h3>
+            <p class="nom-master-detail__empty-message">Choose an item from the pending queue to begin the review process.</p>
+            @if (hasItems()) {
+              <div class="curation-queue__hint">
+                <p>Tip: Use arrow keys to navigate between items</p>
+              </div>
+            }
+          </div>
+        </main>
       }
     </div>
   }

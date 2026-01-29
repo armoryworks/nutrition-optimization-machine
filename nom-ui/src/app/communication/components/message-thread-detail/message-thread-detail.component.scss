@@ -1,25 +1,13 @@
 // Message Thread Detail Component
-// Layout handled by universal classes: nom-page-container, nom-card,
-// nom-loading-state, nom-empty-state, nom-compact-header, nom-list,
-// nom-form, nom-actions, nom-heading-4, nom-small-text, nom-button.
+// Uses global Detail stereotype classes
+// Component-specific: message/chat styling
+
 @use '../../../../variables' as vars;
 
-// Component-specific: message item layout (chat bubble style)
+// Message item layout (chat bubble style)
 .message-item {
   display: flex;
   gap: vars.$spacing-4;
-  animation: fadeIn vars.$transition-duration-slow ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .message-avatar {

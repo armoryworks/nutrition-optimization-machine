@@ -1,115 +1,117 @@
-<div class="nom-page-container">
-  <div class="curated-plans">
-    <div class="curated-plans__header">
-      <h1 class="curated-plans__title">Curated Meal Plans</h1>
-      <p class="curated-plans__subtitle">
+<div class="nom-search">
+  <!-- Header -->
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-text">
+      <h1 class="nom-dashboard__title">Curated Meal Plans</h1>
+      <p class="nom-dashboard__subtitle">
         Discover professionally curated meal plans. Clone any plan to customize it for your needs.
       </p>
     </div>
+  </header>
 
-    @if (isLoading()) {
-    <amw-inline-loading message="Loading curated plans..." />
-    } @else if (error()) {
-    <div class="curated-plans__error">
-      <amw-icon name="error"></amw-icon>
-      <p>{{ error() }}</p>
+  @if (isLoading()) {
+    <div class="nom-search__loading">
+      <amw-inline-loading message="Loading curated plans..." />
+    </div>
+  } @else if (error()) {
+    <div class="nom-search__empty">
+      <amw-icon name="error" class="nom-search__empty-icon curated-plans__error-icon"></amw-icon>
+      <h3 class="nom-search__empty-title">Error</h3>
+      <p class="nom-search__empty-message">{{ error() }}</p>
       <amw-button variant="filled" color="primary" (click)="loadCuratedPlans()" icon="refresh">
         Try Again
       </amw-button>
     </div>
-    } @else {
-    <div class="curated-plans__content">
+  } @else {
+    <div class="nom-search__results">
       @if (curatedPlans().length > 0) {
-      <div class="curated-plans__grid">
-        @for (plan of curatedPlans(); track plan.id) {
-        <amw-card class="curated-plans__plan-card">
-          <ng-template #cardContent>
-            <div class="curated-plans__plan-header">
-              <div class="curated-plans__plan-info">
-                <h3 class="curated-plans__plan-title">{{ plan.name }}</h3>
-                <p class="curated-plans__plan-author">by {{ plan.authorName }}</p>
-                <p class="curated-plans__plan-duration">{{ getPlanDuration(plan) }}</p>
-              </div>
-              <div class="curated-plans__plan-status">
-                <amw-chip [label]="plan.curationStatus" [color]="getStatusColor(plan.curationStatus)" [selected]="true">
-                </amw-chip>
-              </div>
-            </div>
-
-            @if (plan.description) {
-            <div class="curated-plans__plan-description">
-              <p>{{ plan.description }}</p>
-            </div>
-            }
-
-            <div class="curated-plans__plan-stats">
-              @if (getPlanStats(plan).goals > 0) {
-              <div class="curated-plans__stat">
-                <amw-icon name="flag"></amw-icon>
-                <span>{{ getPlanStats(plan).goals }} Goals</span>
-              </div>
-              }
-              @if (getPlanStats(plan).meals > 0) {
-              <div class="curated-plans__stat">
-                <amw-icon name="restaurant"></amw-icon>
-                <span>{{ getPlanStats(plan).meals }} Meals</span>
-              </div>
-              }
-              @if (getPlanStats(plan).recipes > 0) {
-              <div class="curated-plans__stat">
-                <amw-icon name="menu_book"></amw-icon>
-                <span>{{ getPlanStats(plan).recipes }} Recipes</span>
-              </div>
-              }
-            </div>
-
-            @if (plan.goals.length > 0) {
-            <div class="curated-plans__plan-goals">
-              <h4>Goals</h4>
-              <div class="curated-plans__goals-list">
-                @for (goal of plan.goals; track goal.id) {
-                <div class="curated-plans__goal">
-                  <amw-icon name="flag"></amw-icon>
-                  <span>{{ goal.name }}</span>
+        <div class="nom-search__grid curated-plans__grid">
+          @for (plan of curatedPlans(); track plan.id) {
+            <amw-card class="nom-search__card">
+              <ng-template #cardContent>
+                <div class="curated-plans__plan-header">
+                  <div class="curated-plans__plan-info">
+                    <h3 class="nom-search__card-title">{{ plan.name }}</h3>
+                    <p class="nom-search__card-subtitle">by {{ plan.authorName }}</p>
+                    <p class="nom-search__card-subtitle">{{ getPlanDuration(plan) }}</p>
+                  </div>
+                  <div class="curated-plans__plan-status">
+                    <amw-chip [label]="plan.curationStatus" [color]="getStatusColor(plan.curationStatus)" [selected]="true">
+                    </amw-chip>
+                  </div>
                 </div>
-                }
-              </div>
-            </div>
-            }
 
-            @if (plan.restrictions.length > 0) {
-            <div class="curated-plans__plan-restrictions">
-              <h4>Restrictions</h4>
-              <div class="curated-plans__restrictions-list">
-                @for (restriction of plan.restrictions; track restriction.id) {
-                <div class="curated-plans__restriction">
-                  <amw-icon name="warning"></amw-icon>
-                  <span>{{ restriction.name }}</span>
+                @if (plan.description) {
+                  <p class="nom-search__card-description">{{ plan.description }}</p>
+                }
+
+                <div class="nom-search__card-meta">
+                  @if (getPlanStats(plan).goals > 0) {
+                    <div class="nom-search__card-meta-item">
+                      <amw-icon name="flag"></amw-icon>
+                      <span>{{ getPlanStats(plan).goals }} Goals</span>
+                    </div>
+                  }
+                  @if (getPlanStats(plan).meals > 0) {
+                    <div class="nom-search__card-meta-item">
+                      <amw-icon name="restaurant"></amw-icon>
+                      <span>{{ getPlanStats(plan).meals }} Meals</span>
+                    </div>
+                  }
+                  @if (getPlanStats(plan).recipes > 0) {
+                    <div class="nom-search__card-meta-item">
+                      <amw-icon name="menu_book"></amw-icon>
+                      <span>{{ getPlanStats(plan).recipes }} Recipes</span>
+                    </div>
+                  }
                 </div>
-                }
-              </div>
-            </div>
-            }
 
-            <div class="curated-plans__plan-actions">
-              <amw-button variant="filled" color="primary" [disabled]="cloningPlanId() === plan.id"
-                [loading]="cloningPlanId() === plan.id" (click)="clonePlan(plan.id)" class="curated-plans__clone-btn"
-                icon="content_copy">
-                {{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}
-              </amw-button>
-            </div>
-          </ng-template>
-        </amw-card>
-        }
-      </div>
+                @if (plan.goals.length > 0) {
+                  <div class="curated-plans__section">
+                    <h4 class="curated-plans__section-title">Goals</h4>
+                    <div class="curated-plans__list">
+                      @for (goal of plan.goals; track goal.id) {
+                        <div class="curated-plans__list-item">
+                          <amw-icon name="flag" class="curated-plans__icon--goal"></amw-icon>
+                          <span>{{ goal.name }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (plan.restrictions.length > 0) {
+                  <div class="curated-plans__section">
+                    <h4 class="curated-plans__section-title">Restrictions</h4>
+                    <div class="curated-plans__list">
+                      @for (restriction of plan.restrictions; track restriction.id) {
+                        <div class="curated-plans__list-item">
+                          <amw-icon name="warning" class="curated-plans__icon--restriction"></amw-icon>
+                          <span>{{ restriction.name }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <div class="curated-plans__actions">
+                  <amw-button variant="filled" color="primary" [disabled]="cloningPlanId() === plan.id"
+                    [loading]="cloningPlanId() === plan.id" (click)="clonePlan(plan.id)"
+                    icon="content_copy">
+                    {{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}
+                  </amw-button>
+                </div>
+              </ng-template>
+            </amw-card>
+          }
+        </div>
       } @else {
-      <div class="curated-plans__empty">
-        <amw-icon name="schedule" class="curated-plans__empty-icon"></amw-icon>
-        <h3>No curated plans available</h3>
-        <p>Check back later for professionally curated meal plans</p>
-      </div>
+        <div class="nom-search__empty">
+          <amw-icon name="schedule" class="nom-search__empty-icon"></amw-icon>
+          <h3 class="nom-search__empty-title">No curated plans available</h3>
+          <p class="nom-search__empty-message">Check back later for professionally curated meal plans</p>
+        </div>
       }
     </div>
-    }
-  </div>
+  }
 </div>

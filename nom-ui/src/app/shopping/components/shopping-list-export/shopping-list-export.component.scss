@@ -1,9 +1,20 @@
+// Shopping List Export Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
 
 .nom-loading,
 .nom-error {
-  @include nom-empty-state(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-8;
+  gap: vars.$spacing-4;
 }
 
 .nom-error-message {
@@ -11,6 +22,10 @@
   margin: 0;
   text-align: center;
 }
+
+// =============================================================================
+// CONTAINER
+// =============================================================================
 
 .nom-export-container {
   max-width: 800px;
@@ -37,6 +52,10 @@ h2 {
   margin: 0 0 vars.$spacing-8 0;
 }
 
+// =============================================================================
+// EXPORT OPTIONS
+// =============================================================================
+
 .nom-export-options {
   margin: vars.$spacing-8 0;
 
@@ -57,7 +76,7 @@ h2 {
   background-color: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
-  transition: all vars.$transition-duration-fast ease;
+  transition: all 0.2s ease;
 
   &:hover {
     background-color: var(--mat-sys-surface-container-high);
@@ -87,12 +106,22 @@ h2 {
   }
 }
 
+// =============================================================================
+// ACTIONS
+// =============================================================================
+
 .nom-actions {
-  @include nom-action-group(vars.$spacing-2, flex-start);
+  display: flex;
+  gap: vars.$spacing-2;
+  justify-content: flex-start;
   margin-top: vars.$spacing-8;
   padding-top: vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
+
+// =============================================================================
+// RESPONSIVE
+// =============================================================================
 
 @media (max-width: vars.$breakpoint-mobile) {
   .nom-export-container {

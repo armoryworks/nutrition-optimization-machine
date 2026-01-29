@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import {
-  AmwCardComponent,
   AmwButtonComponent,
   AmwTextareaComponent,
   AmwInlineLoadingComponent,
@@ -24,7 +23,6 @@ import { ERROR_MESSAGES } from '../../../shared/constants/error-messages';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    AmwCardComponent,
     AmwButtonComponent,
     AmwTextareaComponent,
     AmwInlineLoadingComponent,

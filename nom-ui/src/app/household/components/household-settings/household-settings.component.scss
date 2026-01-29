@@ -1,10 +1,19 @@
-// Household Settings Component - Uses utilities
+// Household Settings Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
 
 .nom-loading,
 .nom-error {
-  @include nom-empty-state(vars.$spacing-12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-12 vars.$spacing-8;
 }
 
@@ -14,7 +23,9 @@
 }
 
 .nom-error-actions {
-  @include nom-action-group(vars.$spacing-4, center);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
   margin-top: 0;
 
   @media (max-width: vars.$breakpoint-mobile) {
@@ -27,8 +38,14 @@
   }
 }
 
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
 .nom-settings-container {
-  @include nom-form-field(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-8;
   max-width: 900px;
   margin: 0 auto;
   padding: vars.$spacing-8 vars.$spacing-4;
@@ -37,6 +54,10 @@
     padding: vars.$spacing-4;
   }
 }
+
+// =============================================================================
+// HEADER
+// =============================================================================
 
 .nom-settings-header {
   margin-bottom: vars.$spacing-4;
@@ -59,13 +80,21 @@
   margin: vars.$spacing-2 0 0 0;
 }
 
+// =============================================================================
+// FORM
+// =============================================================================
+
 .nom-settings-form {
-  @include nom-form-field(vars.$spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-6;
   padding: vars.$spacing-4 0;
 }
 
 .nom-form-actions {
-  @include nom-action-group(vars.$spacing-4, flex-start);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: flex-start;
   margin-top: 0;
   padding-top: vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
@@ -78,6 +107,10 @@
     }
   }
 }
+
+// =============================================================================
+// INFO BANNER
+// =============================================================================
 
 .nom-info-banner {
   background-color: var(--mat-sys-secondary-container);
@@ -92,6 +125,10 @@
     line-height: vars.$line-height-normal;
   }
 }
+
+// =============================================================================
+// CARD STYLES
+// =============================================================================
 
 amw-card {
   h2 {

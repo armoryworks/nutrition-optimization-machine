@@ -1,35 +1,44 @@
-<!-- File: nom-ui/src/app/recipe/components/ingredient-search/ingredient-search.component.html -->
-<div class="nom-page-container ingredient-search">
-  <amw-card headerTitle="Search for an Ingredient" headerSubtitle="Find nutritional information for any ingredient"
-    headerIcon="search" class="nom-card ingredient-card">
+<div class="nom-search">
+  <amw-card
+    headerTitle="Search for an Ingredient"
+    headerSubtitle="Find nutritional information for any ingredient"
+    headerIcon="search">
     <ng-template #cardContent>
       <!-- Search form -->
-      <div class="ingredient-card__header">
-        <amw-autocomplete [formControl]="searchControl" label="Search for an Ingredient"
-          placeholder="e.g., chicken breast, rice, tomato" [options]="autocompleteOptions()" [loading]="isLoading()"
-          startIcon="search" [displayWith]="displayFn" noResultsText="No ingredients found"
-          (inputChanged)="onInputChanged($event)" (optionSelected)="onOptionSelected($event)" [hasError]="!!error()"
-          [errorMessage]="error() || ''" class="search-field">
+      <div class="nom-search__form">
+        <amw-autocomplete
+          [formControl]="searchControl"
+          label="Search for an Ingredient"
+          placeholder="e.g., chicken breast, rice, tomato"
+          [options]="autocompleteOptions()"
+          [loading]="isLoading()"
+          startIcon="search"
+          [displayWith]="displayFn"
+          noResultsText="No ingredients found"
+          (inputChanged)="onInputChanged($event)"
+          (optionSelected)="onOptionSelected($event)"
+          [hasError]="!!error()"
+          [errorMessage]="error() || ''"
+          class="nom-search__field">
         </amw-autocomplete>
       </div>
 
       @if (isLoading()) {
-      <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar"></amw-progress-bar>
+        <div class="nom-search__loading">
+          <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
+        </div>
       }
 
       <!-- Ingredient details as card content -->
-      <div class="ingredient-card__content">
-        @if (selectedIngredient()) {
+      @if (selectedIngredient()) {
         <nom-ingredient-details [ingredient]="selectedIngredient()!"></nom-ingredient-details>
-        } @else {
-        <div class="ingredient-card__placeholder">
-          <amw-icon name="search" class="ingredient-card__placeholder-icon"></amw-icon>
-          <h3 class="ingredient-card__placeholder-title">Search for an Ingredient</h3>
-          <p class="ingredient-card__placeholder-text">Enter an ingredient name above to view detailed nutritional
-            information</p>
+      } @else {
+        <div class="nom-search__empty">
+          <amw-icon name="search" class="nom-search__empty-icon"></amw-icon>
+          <h3 class="nom-search__empty-title">Search for an Ingredient</h3>
+          <p class="nom-search__empty-message">Enter an ingredient name above to view detailed nutritional information</p>
         </div>
-        }
-      </div>
+      }
     </ng-template>
   </amw-card>
 </div>

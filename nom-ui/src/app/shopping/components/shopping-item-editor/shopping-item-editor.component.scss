@@ -1,6 +1,5 @@
-// Shopping Item Editor Component - Uses utilities
+// Shopping Item Editor Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .shopping-item-editor {
   min-width: 500px;
@@ -37,7 +36,9 @@
   }
 
   .editor-actions {
-    @include nom-action-group(vars.$spacing-2, flex-end);
+    display: flex;
+    gap: vars.$spacing-2;
+    justify-content: flex-end;
     padding: vars.$spacing-4 0;
   }
 

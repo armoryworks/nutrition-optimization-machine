@@ -1,6 +1,5 @@
-// Recipe Form Component - Uses utilities
+// Recipe Form Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .recipe-form {
   max-width: 800px;
@@ -55,7 +54,9 @@
 }
 
 .form-actions {
-  @include nom-action-group(vars.$spacing-4, flex-end);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: flex-end;
   margin-top: vars.$spacing-8;
   padding-top: vars.$spacing-6;
 

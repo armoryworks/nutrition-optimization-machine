@@ -1,6 +1,5 @@
-// Shopping Item Form Component - Uses utilities and variables
+// Shopping Item Form Component
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .shopping-item-form {
   max-width: 600px;
@@ -23,7 +22,9 @@
   }
 
   .form-actions {
-    @include nom-action-group(vars.$spacing-3, flex-end);
+    display: flex;
+    gap: vars.$spacing-3;
+    justify-content: flex-end;
     margin-top: vars.$spacing-8;
     padding-top: vars.$spacing-5;
 

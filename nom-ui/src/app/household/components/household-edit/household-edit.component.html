@@ -1,40 +1,39 @@
-<div class="nom-page-container household-edit">
-  <amw-card [headerTitle]="formConfig.title" headerIcon="home" class="household-edit__card">
+<div class="nom-form--full">
+  <amw-card [headerTitle]="formConfig.title" headerIcon="home">
     <ng-template #cardContent>
       @if (isLoading() && !household()) {
-      <amw-inline-loading message="Loading household..." />
+        <amw-inline-loading message="Loading household..." />
       } @else {
-      <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="household-edit__form">
-        <!-- Household Name Field - Using AMW -->
-        <amw-input type="text" formControlName="name" placeholder="Enter a name for your household..."
-          label="Household Name" [required]="true" class="household-edit__field"
-          [attr.aria-invalid]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched"
-          [attr.aria-describedby]="householdForm.get('name')?.invalid && householdForm.get('name')?.touched ? 'household-edit-name-error' : null">
-        </amw-input>
-        @if (householdForm.get('name')?.invalid && householdForm.get('name')?.touched) {
-          <span id="household-edit-name-error" class="nom-form__error" role="alert">
-            Household name is required
-          </span>
-        }
-
-        <!-- Description Field - Using AMW -->
-        <amw-textarea formControlName="description" placeholder="Add a description to help identify your household..."
-          label="Description (Optional)" class="household-edit__field">
-        </amw-textarea>
-
-        <!-- Form Actions -->
-        <div class="household-edit__actions">
+        <form [formGroup]="householdForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+          <amw-input
+            type="text"
+            formControlName="name"
+            placeholder="Enter a name for your household..."
+            label="Household Name"
+            [required]="true">
+          </amw-input>
+          <amw-textarea
+            formControlName="description"
+            placeholder="Add a description to help identify your household..."
+            label="Description (Optional)">
+          </amw-textarea>
+        </form>
+        <div class="nom-form__actions">
           <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
             {{ formConfig.cancelText || 'Cancel' }}
           </amw-button>
-
-          <amw-button type="submit" variant="filled" color="primary" icon="check" [loading]="isLoading()"
+          <amw-button
+            type="submit"
+            variant="filled"
+            color="primary"
+            icon="check"
+            [loading]="isLoading()"
             [amwValidationTooltip]="validationContext"
-            [disabled]="householdForm.invalid">
+            [disabled]="householdForm.invalid"
+            (click)="onSubmit()">
             {{ formConfig.submitText || 'Update Household' }}
           </amw-button>
         </div>
-      </form>
       }
     </ng-template>
   </amw-card>

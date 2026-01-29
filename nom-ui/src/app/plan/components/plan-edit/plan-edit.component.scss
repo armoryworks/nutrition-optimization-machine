@@ -1,10 +1,2 @@
-@use '../../../../variables' as vars;
-
-.plan-edit {
-  &__restriction-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: vars.$spacing-4;
-    margin-top: vars.$spacing-4;
-  }
-}
+// Plan Edit Component
+// Uses global Form-Full and Dashboard stereotype classes

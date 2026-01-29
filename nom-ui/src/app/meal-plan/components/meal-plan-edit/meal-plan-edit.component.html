@@ -1,38 +1,50 @@
-<div class="nom-page-container meal-plan-edit">
-  <amw-card class="nom-card" headerTitle="Edit Meal Plan" headerSubtitle="Update your meal plan information">
+<div class="nom-form--full">
+  <amw-card headerTitle="Edit Meal Plan" headerSubtitle="Update your meal plan information">
     <ng-template #cardContent>
       @if (isLoading()) {
-      <amw-progress-bar mode="indeterminate" color="primary" class="nom-card__progress-bar">
-      </amw-progress-bar>
-      }
-
-      <form [formGroup]="mealPlanForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <amw-input formControlName="recipeName" label="Recipe Name" placeholder="Enter recipe name"
-          icon="restaurant_menu" [required]="true" class="nom-form__field">
-        </amw-input>
-
-        <amw-select formControlName="mealType" label="Meal Type" [options]="mealTypes" [required]="true"
-          class="nom-form__field">
-        </amw-select>
-
-        <amw-datepicker formControlName="date" label="Date" [required]="true" class="nom-form__field">
-        </amw-datepicker>
-
-        <amw-textarea formControlName="description" label="Description (Optional)"
-          placeholder="Enter meal plan description" [rows]="4" class="nom-form__field">
-        </amw-textarea>
-
-        <div class="nom-form__actions">
-          <amw-button type="button" variant="text" (click)="onCancel()" class="nom-button">
-            Cancel
-          </amw-button>
-          <amw-button type="submit" variant="filled" color="primary" [disabled]="mealPlanForm.invalid || isLoading()"
-            [amwValidationTooltip]="validationContext"
-            [loading]="isLoading()" class="nom-button">
-            Update Meal Plan
-          </amw-button>
+        <div class="nom-dashboard__loading">
+          <amw-progress-bar mode="indeterminate" color="primary"></amw-progress-bar>
         </div>
+      }
+      <form [formGroup]="mealPlanForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+        <amw-input
+          formControlName="recipeName"
+          label="Recipe Name"
+          placeholder="Enter recipe name"
+          icon="restaurant_menu"
+          [required]="true">
+        </amw-input>
+        <amw-select
+          formControlName="mealType"
+          label="Meal Type"
+          [options]="mealTypes"
+          [required]="true">
+        </amw-select>
+        <amw-datepicker
+          formControlName="date"
+          label="Date"
+          [required]="true">
+        </amw-datepicker>
+        <amw-textarea
+          formControlName="description"
+          label="Description (Optional)"
+          placeholder="Enter meal plan description"
+          [rows]="4">
+        </amw-textarea>
       </form>
+      <div class="nom-form__actions">
+        <amw-button type="button" variant="text" (click)="onCancel()">Cancel</amw-button>
+        <amw-button
+          type="submit"
+          variant="filled"
+          color="primary"
+          [disabled]="mealPlanForm.invalid || isLoading()"
+          [amwValidationTooltip]="validationContext"
+          [loading]="isLoading()"
+          (click)="onSubmit()">
+          Update Meal Plan
+        </amw-button>
+      </div>
     </ng-template>
   </amw-card>
 </div>

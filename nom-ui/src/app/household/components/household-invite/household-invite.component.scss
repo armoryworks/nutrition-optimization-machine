@@ -1,9 +1,11 @@
-// Household Invite Component - Uses form stereotype
+// Household Invite Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
 
 .household-invite {
-  @include nom-form-page;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: vars.$spacing-6 vars.$spacing-4;
 
   &__header {
     margin-bottom: vars.$spacing-8;
@@ -56,7 +58,9 @@
   }
 
   &__form {
-    @include nom-form-field(vars.$spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-4;
   }
 
   &__field {
@@ -64,7 +68,9 @@
   }
 
   &__form-actions {
-    @include nom-action-group(vars.$spacing-4, flex-end);
+    display: flex;
+    gap: vars.$spacing-4;
+    justify-content: flex-end;
     margin-top: 0;
 
     @media (max-width: vars.$breakpoint-mobile) {
@@ -110,7 +116,9 @@
   }
 
   &__link-actions {
-    @include nom-action-group(vars.$spacing-4, flex-start);
+    display: flex;
+    gap: vars.$spacing-4;
+    justify-content: flex-start;
     margin-top: 0;
 
     @media (max-width: vars.$breakpoint-mobile) {

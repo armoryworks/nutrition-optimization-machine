@@ -1,12 +1,27 @@
+// Meal Plan Nutrition Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
+
+// =============================================================================
+// LOADING & ERROR STATES
+// =============================================================================
 
 .nom-loading {
-  @include nom-loading-state(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-8;
 }
 
 .nom-error {
-  @include nom-empty-state(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-8;
+  gap: vars.$spacing-4;
 }
 
 .nom-error-message {
@@ -19,12 +34,22 @@
   gap: vars.$spacing-4;
 }
 
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
 .nom-container {
-  @include nom-form-field(vars.$spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-4;
   max-width: 1000px;
   margin: 0 auto;
 }
+
+// =============================================================================
+// HEADER
+// =============================================================================
 
 .nom-header {
   display: flex;
@@ -41,6 +66,10 @@
     margin: 0;
   }
 }
+
+// =============================================================================
+// STATS GRID
+// =============================================================================
 
 .nom-stats {
   display: grid;
@@ -107,8 +136,18 @@
   color: var(--mat-sys-on-surface);
 }
 
+// =============================================================================
+// EMPTY & NOTICE
+// =============================================================================
+
 .nom-empty {
-  @include nom-empty-state(vars.$spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-8;
+  gap: vars.$spacing-4;
   color: var(--mat-sys-on-surface-variant);
 }
 

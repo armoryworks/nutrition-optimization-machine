@@ -1,52 +1,50 @@
 <div class="login">
-  <amw-card headerTitle="Welcome Back!" headerSubtitle="Sign in to your account" headerIcon="login">
-    <ng-template #cardContent>
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="nom-form">
-        <amw-input type="email" formControlName="email" label="Email Address" icon="email" [required]="true"
-          class="nom-form__field" data-cy="email-input"
-          [attr.aria-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
-          [attr.aria-describedby]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'login-email-error' : null">
-        </amw-input>
-        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-          <span id="login-email-error" class="nom-form__error" role="alert">
-            @if (loginForm.get('email')?.hasError('required')) {
-              Email is required
-            }
-            @if (loginForm.get('email')?.hasError('email')) {
-              Please enter a valid email address
-            }
-          </span>
-        }
+  <div class="login__header">
+    <div class="login__header-text">
+      <h2 class="login__title">Welcome Back!</h2>
+      <p class="login__subtitle">Sign in to your account</p>
+    </div>
+    <button type="button" class="login__close" (click)="closeRequested.emit()" aria-label="Close">
+      <amw-icon name="close"></amw-icon>
+    </button>
+  </div>
 
-        <amw-input type="password" formControlName="password" label="Password" icon="lock" [required]="true"
-          class="nom-form__field" data-cy="password-input"
-          [attr.aria-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-          [attr.aria-describedby]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched ? 'login-password-error' : null">
-        </amw-input>
-        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-          <span id="login-password-error" class="nom-form__error" role="alert">
-            Password is required
-          </span>
-        }
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login__form">
+    <amw-input
+      type="email"
+      formControlName="email"
+      label="Email Address"
+      [required]="true"
+      data-cy="email-input">
+    </amw-input>
 
-        <div class="login__options-row">
-          <amw-checkbox formControlName="rememberMe" label="Remember Me"></amw-checkbox>
-          <a routerLink="/forgot-password" class="nom-link">Forgot Password?</a>
-        </div>
+    <amw-input
+      type="password"
+      formControlName="password"
+      label="Password"
+      [required]="true"
+      data-cy="password-input">
+    </amw-input>
 
-        <amw-button type="submit" variant="filled" color="primary"
-          [amwValidationTooltip]="validationContext"
-          [disabled]="loginForm.invalid"
-          class="nom-button" data-cy="login-button">
-          Sign In
-        </amw-button>
-      </form>
-    </ng-template>
-    <ng-template #actionsTemplate>
-      <p class="nom-prompt-text">
-        New to our platform?
-        <a routerLink="/register" class="nom-link">Create an Account</a>
-      </p>
-    </ng-template>
-  </amw-card>
+    <div class="login__actions">
+      <div class="login__actions-left">
+        <amw-checkbox formControlName="rememberMe" label="Remember Me"></amw-checkbox>
+        <a routerLink="/forgot-password" class="nom-link" (click)="closeRequested.emit()">Forgot Password?</a>
+      </div>
+      <amw-button
+        type="submit"
+        variant="filled"
+        color="primary"
+        [amwValidationTooltip]="validationContext"
+        [disabled]="loginForm.invalid"
+        data-cy="login-button">
+        Sign In
+      </amw-button>
+    </div>
+  </form>
+
+  <div class="login__register-prompt">
+    Don't have an account?
+    <a routerLink="/register" class="nom-link" (click)="closeRequested.emit()">Get Started</a>
+  </div>
 </div>

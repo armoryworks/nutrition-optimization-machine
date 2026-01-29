@@ -1,11 +1,20 @@
-// Household Join Component - Uses utilities
+// Household Join Component
+// Component-specific styles - no utility mixins
 @use '../../../../variables' as vars;
-@use '../../../../_utilities' as *;
+
+// =============================================================================
+// LOADING, ERROR & SUCCESS STATES
+// =============================================================================
 
 .nom-loading,
 .nom-error,
 .nom-success {
-  @include nom-empty-state(vars.$spacing-12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: vars.$spacing-4;
   padding: vars.$spacing-12 vars.$spacing-8;
 }
 
@@ -34,6 +43,10 @@
   margin-bottom: vars.$spacing-4;
 }
 
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
 .nom-join-container {
   max-width: 600px;
   margin: vars.$spacing-8 auto;
@@ -56,6 +69,10 @@
     padding: vars.$spacing-6;
   }
 }
+
+// =============================================================================
+// INVITE DISPLAY
+// =============================================================================
 
 .nom-invite-icon {
   font-size: 4.5rem;
@@ -90,6 +107,10 @@ h2 {
   max-width: 500px;
 }
 
+// =============================================================================
+// TOKEN INFO
+// =============================================================================
+
 .nom-token-info {
   background-color: var(--mat-sys-surface-container-high);
   border: 1px solid var(--mat-sys-outline-variant);
@@ -117,8 +138,14 @@ h2 {
   word-break: break-all;
 }
 
+// =============================================================================
+// ACTIONS
+// =============================================================================
+
 .nom-join-actions {
-  @include nom-action-group(vars.$spacing-4, center);
+  display: flex;
+  gap: vars.$spacing-4;
+  justify-content: center;
   margin-top: 0;
 
   @media (max-width: vars.$breakpoint-mobile) {

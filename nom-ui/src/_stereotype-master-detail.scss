@@ -1,516 +1,508 @@
 // =============================================================================
-// MASTER-DETAIL STEREOTYPE
+// MASTER-DETAIL STEREOTYPE - GLOBAL CLASSES
 // =============================================================================
-// Use for: split-panel layouts with list on left, detail on right
-// Components: curation-queue
+// File: _stereotype-master-detail.scss
+//
+// These classes are available GLOBALLY to all components.
+// Use for split-panel layouts with list on left, detail on right.
+//
+// USAGE IN HTML:
+//   <div class="nom-master-detail">
+//     <header class="nom-master-detail__header">...</header>
+//     <div class="nom-master-detail__container">
+//       <aside class="nom-master-detail__master">
+//         <div class="nom-master-detail__list">
+//           <div class="nom-master-detail__item">...</div>
+//         </div>
+//       </aside>
+//       <main class="nom-master-detail__detail">...</main>
+//     </div>
+//   </div>
+//
 // =============================================================================
 
 @use './variables' as vars;
+@use './mixins' as mixins;
 
-// -----------------------------------------------------------------------------
-// Master-Detail Container
-// -----------------------------------------------------------------------------
-%nom-master-detail {
+// =============================================================================
+// CONTAINER
+// =============================================================================
+
+.nom-master-detail {
   display: block;
   width: 100%;
-  overflow-x: hidden;
+  height: calc(100vh - vars.$header-height - vars.$footer-height);
+  overflow: hidden;
 }
 
-// -----------------------------------------------------------------------------
-// Page Header
-// -----------------------------------------------------------------------------
-%nom-master-detail-header {
+// =============================================================================
+// HEADER
+// =============================================================================
+
+.nom-master-detail__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: vars.$spacing-4;
-  flex-wrap: wrap;
+  padding: vars.$spacing-3 vars.$spacing-5;
   gap: vars.$spacing-4;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-low);
 }
 
-%nom-master-detail-header-content {
+.nom-master-detail__header-left {
   flex: 1;
   min-width: 200px;
 }
 
-%nom-master-detail-title {
+.nom-master-detail__title {
   margin: 0 0 vars.$spacing-1;
   font-size: vars.$font-size-xl;
-  font-weight: vars.$font-weight-medium;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
 }
 
-%nom-master-detail-subtitle {
+.nom-master-detail__subtitle {
   margin: 0;
   font-size: vars.$font-size-sm;
-  opacity: 0.7;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-%nom-master-detail-header-center {
+.nom-master-detail__header-center {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: vars.$spacing-2;
 }
 
-%nom-master-detail-header-actions {
+.nom-master-detail__header-right {
   display: flex;
   align-items: center;
-  gap: vars.$spacing-4;
+  gap: vars.$spacing-3;
 }
 
-// -----------------------------------------------------------------------------
-// Stats Row
-// -----------------------------------------------------------------------------
-%nom-master-detail-stats {
+// =============================================================================
+// STATS
+// =============================================================================
+
+.nom-master-detail__stats {
   display: flex;
-  gap: vars.$spacing-3;
+  gap: vars.$spacing-2;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-%nom-master-detail-stat {
+.nom-master-detail__stat {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
   padding: vars.$spacing-1 vars.$spacing-3;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 16px;
   font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-medium;
 }
 
-// -----------------------------------------------------------------------------
-// Content Layout
-// -----------------------------------------------------------------------------
-%nom-master-detail-container {
-  position: absolute;
-  top: 65px;
-  left: 0;
-  right: 0;
-  bottom: 10px;
-  padding: vars.$spacing-3 vars.$spacing-4;
-  display: flex;
-  flex-direction: column;
-  gap: vars.$spacing-3;
-  height: calc(100vh - 180px);
-  overflow: hidden;
-}
+// =============================================================================
+// CONTAINER (Split Layout)
+// =============================================================================
 
-%nom-master-detail-content {
+.nom-master-detail__container {
   display: grid;
-  grid-template-columns: minmax(280px, 320px) 1fr;
-  gap: vars.$spacing-4;
-  height: calc(100vh - 180px);
+  grid-template-columns: 320px 1fr;
+  height: calc(100% - 65px);
   overflow: hidden;
-  min-width: 0;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @media (max-width: vars.$breakpoint-tablet) {
+    grid-template-columns: 280px 1fr;
+  }
+
+  @include mixins.breakpoint(mobile) {
     grid-template-columns: 1fr;
-    height: auto;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Master Panel (List)
-// -----------------------------------------------------------------------------
-%nom-master-panel {
-  position: absolute;
-  top: 0;
-  bottom: 20px;
-  left: 20px;
-  width: 300px;
+// =============================================================================
+// MASTER PANEL (List)
+// =============================================================================
+
+.nom-master-detail__master {
   display: flex;
   flex-direction: column;
+  background: var(--mat-sys-surface-container-low);
+  border-right: 1px solid var(--mat-sys-outline-variant);
   overflow: hidden;
-  border-radius: vars.$nom-border-radius-lg;
-  padding: vars.$spacing-3;
-  min-width: 0;
+
+  @include mixins.breakpoint(mobile) {
+    border-right: none;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
 }
 
-%nom-master-panel-header {
-  margin-bottom: vars.$spacing-3;
-  padding-bottom: vars.$spacing-2;
-  min-width: 0;
+.nom-master-detail__master-header {
+  padding: vars.$spacing-4;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 
   h2 {
     font-size: vars.$font-size-lg;
     font-weight: vars.$font-weight-semibold;
-    margin: 0 0 vars.$spacing-1;
+    margin: 0;
+    color: var(--mat-sys-on-surface);
   }
 }
 
-%nom-master-panel-subtitle {
-  font-size: vars.$font-size-xs;
-  margin: 0;
-  font-style: italic;
-}
-
-%nom-master-panel-list {
+.nom-master-detail__list {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  padding: vars.$spacing-2;
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-2;
-  padding-right: vars.$spacing-2;
-  min-width: 0;
 
   &::-webkit-scrollbar {
     width: 6px;
   }
 
-  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
     border-radius: 3px;
   }
 }
 
-// -----------------------------------------------------------------------------
-// Master Item
-// -----------------------------------------------------------------------------
-%nom-master-item {
+// =============================================================================
+// LIST ITEM
+// =============================================================================
+
+.nom-master-detail__item {
   display: flex;
   align-items: flex-start;
   gap: vars.$spacing-3;
   padding: vars.$spacing-3;
+  background: var(--mat-sys-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
   cursor: pointer;
-  transition: transform vars.$transition-duration-normal;
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    transition: background-color vars.$transition-duration-normal;
-  }
+  @include mixins.nom-transition(all);
 
   &:hover {
+    background: var(--mat-sys-surface-container);
     transform: translateY(-1px);
+  }
+
+  &--selected {
+    background: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
   }
 }
 
-%nom-master-item-badge {
+.nom-master-detail__item-badge {
   flex-shrink: 0;
   padding: vars.$spacing-1 vars.$spacing-2;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-semibold;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  white-space: nowrap;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 }
 
-%nom-master-item-content {
+.nom-master-detail__item-content {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
-%nom-master-item-title {
+.nom-master-detail__item-title {
   font-size: vars.$font-size-sm;
   font-weight: vars.$font-weight-semibold;
   margin: 0 0 vars.$spacing-1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: vars.$line-height-tight;
+  color: var(--mat-sys-on-surface);
+  @include mixins.nom-text-truncate;
 }
 
-%nom-master-item-meta {
+.nom-master-detail__item-meta {
   font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
   margin: 0;
-  line-height: vars.$line-height-tight;
+  @include mixins.nom-text-truncate;
+}
+
+// =============================================================================
+// DETAIL PANEL
+// =============================================================================
+
+.nom-master-detail__detail {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--mat-sys-background);
 }
 
-// -----------------------------------------------------------------------------
-// Detail Panel
-// -----------------------------------------------------------------------------
-%nom-detail-panel {
-  position: absolute;
-  top: 0;
-  bottom: 20px;
-  left: 360px;
-  right: 20px;
-  min-width: 0;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track,
-  &::-webkit-scrollbar-thumb {
-    border-radius: 3px;
-  }
-}
-
-%nom-detail-panel-header {
-  padding: vars.$spacing-3 vars.$spacing-4 vars.$spacing-2;
-  margin-bottom: vars.$spacing-2;
-  border-radius: vars.$nom-border-radius-lg vars.$nom-border-radius-lg 0 0;
-  position: relative;
-  min-width: 0;
+.nom-master-detail__detail-header {
+  padding: vars.$spacing-4;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
 
-%nom-detail-panel-header-actions {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-  flex-shrink: 0;
-  margin-left: vars.$spacing-4;
+.nom-master-detail__detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: vars.$spacing-4;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
+    border-radius: 3px;
+  }
 }
 
-%nom-detail-panel-navigation {
+.nom-master-detail__detail-actions {
+  display: flex;
+  gap: vars.$spacing-2;
+  align-items: center;
+}
+
+.nom-master-detail__navigation {
   display: flex;
   align-items: center;
   gap: vars.$spacing-1;
 }
 
-%nom-detail-panel-navigation-counter {
+.nom-master-detail__navigation-counter {
   font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-medium;
   min-width: 50px;
   text-align: center;
-  white-space: nowrap;
+  color: var(--mat-sys-on-surface-variant);
 }
 
-%nom-detail-panel-actions {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 65px;
-  padding: vars.$spacing-4;
-  border-radius: 0 0 vars.$nom-border-radius-lg vars.$nom-border-radius-lg;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+// =============================================================================
+// DETAIL SECTIONS
+// =============================================================================
+
+.nom-master-detail__section {
+  margin-bottom: vars.$spacing-5;
 }
 
-// -----------------------------------------------------------------------------
-// Detail Panel Section (content sections within the detail panel)
-// -----------------------------------------------------------------------------
-%nom-md-detail-section {
-  margin-bottom: vars.$spacing-4;
-  padding: 0 vars.$spacing-4;
-  min-width: 0;
-}
-
-%nom-md-detail-section-title {
+.nom-master-detail__section-title {
   font-size: vars.$font-size-md;
   font-weight: vars.$font-weight-semibold;
-  margin: 0 0 vars.$spacing-2;
+  margin: 0 0 vars.$spacing-3;
+  color: var(--mat-sys-on-surface);
   display: flex;
   align-items: center;
-  gap: vars.$spacing-1;
+  gap: vars.$spacing-2;
 
   &::before {
     content: '';
     width: 3px;
     height: 1rem;
+    background: var(--mat-sys-primary);
     border-radius: 2px;
-    flex-shrink: 0;
   }
 }
 
-%nom-md-detail-value {
-  line-height: vars.$line-height-normal;
-  margin: 0;
+.nom-master-detail__section-content {
   font-size: vars.$font-size-sm;
-  word-wrap: break-word;
+  line-height: vars.$line-height-normal;
+  color: var(--mat-sys-on-surface);
 }
 
-%nom-md-detail-link {
-  text-decoration: none;
-  font-weight: vars.$font-weight-medium;
+// =============================================================================
+// DETAIL LIST (Ingredients, Instructions, etc)
+// =============================================================================
 
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// List Items (ingredients, instructions)
-// -----------------------------------------------------------------------------
-%nom-master-detail-list {
+.nom-master-detail__detail-list {
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-2;
-  min-width: 0;
 }
 
-%nom-master-detail-list-item {
+.nom-master-detail__detail-list-item {
   display: flex;
   gap: vars.$spacing-3;
   align-items: flex-start;
   padding: vars.$spacing-2 vars.$spacing-3;
-  border-radius: 6px;
-  min-width: 0;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius-sm;
 }
 
-// -----------------------------------------------------------------------------
-// No Selection State
-// -----------------------------------------------------------------------------
-%nom-master-detail-no-selection {
-  position: absolute;
-  top: 0;
-  left: 360px;
-  right: 20px;
-  bottom: 20px;
+// =============================================================================
+// NO SELECTION / EMPTY STATES
+// =============================================================================
+
+.nom-master-detail__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  border-radius: vars.$nom-border-radius-lg;
-  padding: vars.$spacing-4;
-  min-width: 0;
+  padding: vars.$spacing-10;
+  height: 100%;
 }
 
-%nom-master-detail-no-selection-icon {
-  font-size: 2rem;
-  width: 2rem;
-  height: 2rem;
-  margin-bottom: vars.$spacing-2;
-  opacity: 0.4;
+.nom-master-detail__empty-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
   color: var(--mat-sys-on-surface-variant);
+  opacity: 0.4;
+  margin-bottom: vars.$spacing-4;
 }
 
-%nom-master-detail-no-selection-title {
-  font-size: vars.$font-size-md;
+.nom-master-detail__empty-title {
+  font-size: vars.$font-size-lg;
   font-weight: vars.$font-weight-semibold;
-  margin: 0 0 vars.$spacing-1;
+  margin: 0 0 vars.$spacing-2;
+  color: var(--mat-sys-on-surface);
 }
 
-%nom-master-detail-no-selection-text {
-  font-size: vars.$font-size-xs;
-  line-height: vars.$line-height-normal;
-  margin: 0 auto;
+.nom-master-detail__empty-message {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
   max-width: 300px;
+  margin: 0;
+  line-height: vars.$line-height-normal;
 }
 
-// -----------------------------------------------------------------------------
-// Empty State
-// -----------------------------------------------------------------------------
-%nom-master-detail-empty {
+// =============================================================================
+// FORM (For detail panel forms)
+// =============================================================================
+
+.nom-master-detail__form {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: vars.$spacing-4;
-  min-width: 0;
+  gap: vars.$spacing-4;
 }
 
-// -----------------------------------------------------------------------------
-// Form Section
-// -----------------------------------------------------------------------------
-%nom-master-detail-form {
-  margin-top: vars.$spacing-3;
-  min-width: 0;
-  width: 100%;
-}
-
-%nom-master-detail-form-row {
+.nom-master-detail__form-row {
   display: flex;
   gap: vars.$spacing-4;
-  width: 100%;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
-    gap: vars.$spacing-2;
+  }
+
+  > * {
+    flex: 1;
   }
 }
 
-%nom-master-detail-form-field {
-  width: 100%;
-  margin-bottom: vars.$spacing-4;
-  min-width: 0;
-}
-
-%nom-master-detail-form-field--half {
-  flex: 1;
-  min-width: 0;
-}
-
-%nom-master-detail-form-actions {
+.nom-master-detail__form-actions {
   display: flex;
   gap: vars.$spacing-2;
-  flex-wrap: wrap;
   justify-content: flex-end;
-  margin-top: -#{vars.$spacing-1};
-  min-width: 0;
-  width: 100%;
+  padding-top: vars.$spacing-4;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  margin-top: vars.$spacing-4;
 
-  @media (max-width: vars.$breakpoint-mobile) {
+  @include mixins.breakpoint(mobile) {
     flex-direction: column;
-    gap: vars.$spacing-2;
+
+    button {
+      width: 100%;
+    }
   }
 }
 
 // =============================================================================
-// Mixin-based API
+// LEGACY MIXIN SUPPORT (for gradual migration)
 // =============================================================================
+
 @mixin nom-master-detail {
-  @extend %nom-master-detail;
+  @extend .nom-master-detail;
 }
 
 @mixin nom-master-detail-header {
-  @extend %nom-master-detail-header;
+  @extend .nom-master-detail__header;
 }
 
 @mixin nom-master-detail-container {
-  @extend %nom-master-detail-container;
+  @extend .nom-master-detail__container;
+}
+
+@mixin nom-master-panel {
+  @extend .nom-master-detail__master;
+}
+
+@mixin nom-master-panel-list {
+  @extend .nom-master-detail__list;
+}
+
+@mixin nom-master-item {
+  @extend .nom-master-detail__item;
+}
+
+@mixin nom-detail-panel {
+  @extend .nom-master-detail__detail;
+}
+
+@mixin nom-detail-panel-header {
+  @extend .nom-master-detail__detail-header;
+}
+
+@mixin nom-md-detail-section {
+  @extend .nom-master-detail__section;
+}
+
+@mixin nom-master-detail-no-selection {
+  @extend .nom-master-detail__empty;
+}
+
+@mixin nom-master-detail-empty {
+  @extend .nom-master-detail__empty;
 }
 
 @mixin nom-master-detail-content {
   @extend %nom-master-detail-content;
 }
 
-@mixin nom-master-panel {
-  @extend %nom-master-panel;
-}
-
-@mixin nom-master-panel-list {
-  @extend %nom-master-panel-list;
-}
-
-@mixin nom-master-item {
-  @extend %nom-master-item;
-}
-
-@mixin nom-detail-panel {
-  @extend %nom-detail-panel;
-}
-
-@mixin nom-detail-panel-header {
-  @extend %nom-detail-panel-header;
-}
-
-@mixin nom-md-detail-section {
-  @extend %nom-md-detail-section;
-}
-
-@mixin nom-master-detail-no-selection {
-  @extend %nom-master-detail-no-selection;
-}
-
-@mixin nom-master-detail-empty {
-  @extend %nom-master-detail-empty;
-}
-
 @mixin nom-master-detail-form {
-  @extend %nom-master-detail-form;
+  @extend .nom-master-detail__form;
 }
 
 @mixin nom-master-detail-form-actions {
-  @extend %nom-master-detail-form-actions;
+  @extend .nom-master-detail__form-actions;
 }
+
+// Legacy placeholder support
+%nom-master-detail-header-content { @extend .nom-master-detail__header-left; }
+%nom-master-detail-title { @extend .nom-master-detail__title; }
+%nom-master-detail-subtitle { @extend .nom-master-detail__subtitle; }
+%nom-master-detail-header-center { @extend .nom-master-detail__header-center; }
+%nom-master-detail-stats { @extend .nom-master-detail__stats; }
+%nom-master-detail-stat { @extend .nom-master-detail__stat; }
+%nom-master-detail-header-actions { @extend .nom-master-detail__header-right; }
+%nom-master-panel-header { @extend .nom-master-detail__master-header; }
+%nom-master-panel-subtitle { color: var(--mat-sys-on-surface-variant); font-size: vars.$font-size-xs; }
+%nom-master-item-badge { @extend .nom-master-detail__item-badge; }
+%nom-master-item-content { @extend .nom-master-detail__item-content; }
+%nom-master-item-title { @extend .nom-master-detail__item-title; }
+%nom-master-item-meta { @extend .nom-master-detail__item-meta; }
+%nom-detail-panel-header-actions { @extend .nom-master-detail__detail-actions; }
+%nom-detail-panel-navigation { @extend .nom-master-detail__navigation; }
+%nom-detail-panel-navigation-counter { @extend .nom-master-detail__navigation-counter; }
+%nom-detail-panel-actions { @extend .nom-master-detail__form-actions; }
+%nom-md-detail-section-title { @extend .nom-master-detail__section-title; }
+%nom-md-detail-value { @extend .nom-master-detail__section-content; }
+%nom-md-detail-link { color: var(--mat-sys-primary); text-decoration: none; &:hover { text-decoration: underline; } }
+%nom-master-detail-list { @extend .nom-master-detail__detail-list; }
+%nom-master-detail-list-item { @extend .nom-master-detail__detail-list-item; }
+%nom-master-detail-no-selection-icon { @extend .nom-master-detail__empty-icon; }
+%nom-master-detail-no-selection-title { @extend .nom-master-detail__empty-title; }
+%nom-master-detail-no-selection-text { @extend .nom-master-detail__empty-message; }
+%nom-master-detail-form-row { @extend .nom-master-detail__form-row; }
+%nom-master-detail-form-field { width: 100%; }
+%nom-master-detail-form-field--half { flex: 1; }
+%nom-master-detail-content { @extend .nom-master-detail__container; }
