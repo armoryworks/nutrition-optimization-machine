@@ -222,22 +222,6 @@ body {
   }
 }
 
-// Search Styles
-.nom-search {
-  width: 100%;
-  max-width: 600px;
-  min-width: 300px;
-
-  &__field {
-    width: 100%;
-
-    input {
-      padding: vars.$spacing-2 vars.$spacing-3;
-      font-size: vars.$font-size-sm;
-    }
-  }
-}
-
 .nom-user-menu {
   position: relative;
   cursor: pointer;

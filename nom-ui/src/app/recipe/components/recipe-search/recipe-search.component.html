@@ -13,16 +13,9 @@
         [formControl]="searchControl"
         label="Search recipes"
         placeholder="Try 'spaghetti', 'chicken', or 'healthy breakfast'..."
+        [suffixIcon]="null"
         (keyup.enter)="onSearchSubmit()">
       </amw-input>
-      <amw-button
-        class="nom-search__button"
-        variant="filled"
-        color="primary"
-        icon="search"
-        (click)="onSearchSubmit()">
-        Search
-      </amw-button>
     </div>
   </div>
 
