@@ -3,7 +3,8 @@
 
 :host {
     display: block;
-    max-width: 320px; // Typical width for a nutrition label
+    min-width: 400px;
+    max-width: 520px; // Wider for two-column layout
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -51,12 +52,57 @@
         padding-top: vars.$spacing-1;
     }
 
-    &__nutrient-row {
+    &__nutrients {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: vars.$spacing-1 vars.$spacing-4;
+        border-top: 1px solid var(--mat-sys-on-surface);
+        padding-top: vars.$spacing-2;
+
+        // Macronutrients section - standard styling
+        &--macros {
+            padding-bottom: vars.$spacing-1;
+        }
+
+        // Micronutrients section (Vitamins & Minerals)
+        &--micros {
+            border-top: none; // Divider is handled by <hr> above
+            padding-top: vars.$spacing-1;
+        }
+    }
+
+    &__nutrient-item {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: vars.$spacing-1;
+        align-items: baseline;
         padding: vars.$spacing-1 0;
+        border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0,0,0,0.12));
+        font-size: vars.$font-size-sm;
 
         &--indented {
-            margin-left: vars.$spacing-5;
+            padding-left: vars.$spacing-3;
         }
+    }
+
+    &__nutrient-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &--bold {
+            font-weight: vars.$font-weight-bold;
+        }
+    }
+
+    &__nutrient-value {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    &__nutrient-dv {
+        text-align: right;
+        min-width: 32px;
 
         &--bold {
             font-weight: vars.$font-weight-bold;

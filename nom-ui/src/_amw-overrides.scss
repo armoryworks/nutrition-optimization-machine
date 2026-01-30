@@ -13,6 +13,7 @@
 //   FIX #2 - Card header title/subtitle overlap
 //   FIX #3 - AMW card header icon contrast
 //   FIX #4 - AMW input hint text color
+//   FIX #6 - AMW popover theme, sizing, positioning
 //   BUG #2 - Toggle visibility in dark mode
 //   BUG #3 - Icon button contrast
 //   BUG #4 - Error state semantic colors
@@ -21,6 +22,90 @@
 //   ENH #2 - Card subtitle contrast boost
 
 @use 'variables' as vars;
+
+// -------------------------------------------
+// MDC Theme Token Mapping (Angular Material 21)
+// -------------------------------------------
+// AMW uses legacy --mdc-theme-* tokens internally.
+// Angular Material 21 may use --mat-sys-* tokens, but they're not
+// always available. Provide explicit fallbacks for both token sets.
+
+// Light theme defaults
+:root {
+  // Surface colors
+  --mdc-theme-surface: var(--mat-sys-surface, var(--mat-app-surface, #fff));
+  --mdc-theme-on-surface: var(--mat-sys-on-surface, var(--mat-app-on-surface, #1c1b1f));
+  --mdc-theme-on-surface-variant: var(--mat-sys-on-surface-variant, #49454f);
+  --mdc-theme-surface-variant: var(--mat-sys-surface-variant, var(--mat-app-surface-variant, #e7e0ec));
+  --mdc-theme-surface-container: var(--mat-sys-surface-container, #f3edf7);
+  --mdc-theme-surface-container-high: var(--mat-sys-surface-container-high, #ece6f0);
+
+  // Outline colors
+  --mdc-theme-outline: var(--mat-sys-outline, #79747e);
+  --mdc-theme-outline-variant: var(--mat-sys-outline-variant, #cac4d0);
+
+  // Primary colors
+  --mdc-theme-primary: var(--mat-sys-primary, var(--mat-app-primary, #6750a4));
+  --mdc-theme-on-primary: var(--mat-sys-on-primary, var(--mat-app-on-primary, #fff));
+
+  // Secondary colors
+  --mdc-theme-secondary: var(--mat-sys-secondary, var(--mat-app-secondary, #625b71));
+  --mdc-theme-on-secondary: var(--mat-sys-on-secondary, var(--mat-app-on-secondary, #fff));
+
+  // Error colors
+  --mdc-theme-error: var(--mat-sys-error, var(--mat-app-error, #b3261e));
+  --mdc-theme-on-error: var(--mat-sys-on-error, var(--mat-app-on-error, #fff));
+
+  // Background aliases
+  --mdc-theme-background: var(--mdc-theme-surface);
+  --mdc-theme-on-background: var(--mdc-theme-on-surface);
+}
+
+// Dark theme overrides
+body.dark-theme,
+.dark-theme,
+[data-theme='dark'],
+.mat-theme-dark {
+  // Surface colors (dark theme)
+  --mdc-theme-surface: var(--mat-sys-surface, var(--mat-app-surface, #1c1b1f));
+  --mdc-theme-on-surface: var(--mat-sys-on-surface, var(--mat-app-on-surface, #e6e1e5));
+  --mdc-theme-on-surface-variant: var(--mat-sys-on-surface-variant, #cac4d0);
+  --mdc-theme-surface-variant: var(--mat-sys-surface-variant, var(--mat-app-surface-variant, #49454f));
+  --mdc-theme-surface-container: var(--mat-sys-surface-container, #211f26);
+  --mdc-theme-surface-container-high: var(--mat-sys-surface-container-high, #2b2930);
+
+  // Outline colors (dark theme)
+  --mdc-theme-outline: var(--mat-sys-outline, #938f99);
+  --mdc-theme-outline-variant: var(--mat-sys-outline-variant, #49454f);
+
+  // Primary colors (dark theme - typically lighter tint)
+  --mdc-theme-primary: var(--mat-sys-primary, var(--mat-app-primary, #d0bcff));
+  --mdc-theme-on-primary: var(--mat-sys-on-primary, var(--mat-app-on-primary, #381e72));
+
+  // Secondary colors (dark theme)
+  --mdc-theme-secondary: var(--mat-sys-secondary, var(--mat-app-secondary, #ccc2dc));
+  --mdc-theme-on-secondary: var(--mat-sys-on-secondary, var(--mat-app-on-secondary, #332d41));
+
+  // Error colors (dark theme)
+  --mdc-theme-error: var(--mat-sys-error, var(--mat-app-error, #f2b8b5));
+  --mdc-theme-on-error: var(--mat-sys-on-error, var(--mat-app-on-error, #601410));
+}
+
+// Also support prefers-color-scheme for system dark mode
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-theme):not([data-theme='light']) {
+    --mdc-theme-surface: var(--mat-sys-surface, var(--mat-app-surface, #1c1b1f));
+    --mdc-theme-on-surface: var(--mat-sys-on-surface, var(--mat-app-on-surface, #e6e1e5));
+    --mdc-theme-on-surface-variant: var(--mat-sys-on-surface-variant, #cac4d0);
+    --mdc-theme-surface-variant: var(--mat-sys-surface-variant, var(--mat-app-surface-variant, #49454f));
+    --mdc-theme-surface-container: var(--mat-sys-surface-container, #211f26);
+    --mdc-theme-surface-container-high: var(--mat-sys-surface-container-high, #2b2930);
+    --mdc-theme-outline: var(--mat-sys-outline, #938f99);
+    --mdc-theme-outline-variant: var(--mat-sys-outline-variant, #49454f);
+    --mdc-theme-primary: var(--mat-sys-primary, var(--mat-app-primary, #d0bcff));
+    --mdc-theme-on-primary: var(--mat-sys-on-primary, var(--mat-app-on-primary, #381e72));
+  }
+}
 
 // -------------------------------------------
 // FIX #1: Input Padding — Single Source of Truth
@@ -291,12 +376,26 @@ mat-hint.amw-input__hint {
 }
 
 // -------------------------------------------
-// FIX #3: AMW Card Header Icon Contrast
+// FIX #3: AMW Card Theme & Icon Contrast
 // -------------------------------------------
-// AMW card header icons render too faintly.
-// Ensure they use proper on-surface color.
+// AMW cards don't properly inherit theme background.
+// Force cards to use themed surface colors.
 
-mat-card.amw-card {
+
+.amw-card {
+  height: 100%;
+  // Force themed background
+  background-color: var(--mat-sys-surface-container-low) !important;
+  color: var(--mat-sys-on-surface) !important;
+  border: 1px solid var(--mat-sys-outline-variant);
+
+  // The inner mat-card also needs theming
+  mat-card,
+  .mat-mdc-card {
+    background-color: var(--mat-sys-surface-container-low) !important;
+    color: var(--mat-sys-on-surface) !important;
+  }
+
   .mat-mdc-card-header {
     mat-icon,
     .mat-icon {
@@ -321,6 +420,230 @@ mat-card.amw-card {
     p {
       color: var(--mat-sys-on-surface-variant) !important;
     }
+  }
+
+  // Card image styling
+  .amw-card__image,
+  .mat-mdc-card-image {
+    background-color: var(--mat-sys-surface-container-high);
+  }
+}
+
+// -------------------------------------------
+// FIX #6: AMW Popover Theme & Styling
+// -------------------------------------------
+// Comprehensive AMW popover overrides for theme compliance,
+// positioning, and sizing. Uses Material Design tokens.
+
+.amw-popover {
+  // -------------------------------------------------------------------------
+  // TRIGGER - Ensure proper sizing
+  // -------------------------------------------------------------------------
+  &__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 44px; // Touch target minimum
+    min-height: 44px;
+  }
+
+  // -------------------------------------------------------------------------
+  // POPOVER CONTAINER - Shadow and positioning
+  // -------------------------------------------------------------------------
+  &__popover {
+    filter:
+      drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08))
+      drop-shadow(0 8px 24px rgba(0, 0, 0, 0.12));
+    z-index: 1000;
+  }
+
+  // -------------------------------------------------------------------------
+  // BUBBLE (Main Container)
+  // -------------------------------------------------------------------------
+  &__bubble-content {
+    background: var(--mat-sys-surface, var(--mdc-theme-surface)) !important;
+    border: 1px solid var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+    border-radius: vars.$nom-border-radius;
+  }
+
+  // -------------------------------------------------------------------------
+  // ARROW
+  // -------------------------------------------------------------------------
+  &__arrow {
+    background: var(--mat-sys-surface, var(--mdc-theme-surface)) !important;
+    border-color: var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+  }
+
+  // -------------------------------------------------------------------------
+  // HEADER
+  // -------------------------------------------------------------------------
+  &__header {
+    background: var(--mat-sys-surface-container, var(--mdc-theme-surface-container)) !important;
+    border-bottom: 1px solid var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+    padding: vars.$spacing-3 vars.$spacing-4;
+
+    &-title {
+      color: var(--mat-sys-on-surface, var(--mdc-theme-on-surface)) !important;
+      font-weight: vars.$font-weight-medium;
+      font-size: vars.$font-size-md;
+    }
+
+    &-subtitle {
+      color: var(--mat-sys-on-surface-variant, var(--mdc-theme-on-surface-variant)) !important;
+      font-size: vars.$font-size-sm;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // CONTENT
+  // -------------------------------------------------------------------------
+  &__content {
+    color: var(--mat-sys-on-surface, var(--mdc-theme-on-surface)) !important;
+    padding: vars.$spacing-3 vars.$spacing-4;
+
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--mat-sys-surface-variant, var(--mdc-theme-surface-variant));
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--mat-sys-outline, var(--mdc-theme-outline));
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--mat-sys-primary, var(--mdc-theme-primary));
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // CLOSE BUTTON
+  // -------------------------------------------------------------------------
+  &__close {
+    color: var(--mat-sys-on-surface-variant, var(--mdc-theme-on-surface-variant)) !important;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 50%;
+
+    &:hover {
+      color: var(--mat-sys-on-surface, var(--mdc-theme-on-surface)) !important;
+      background: var(--mat-sys-surface-variant, var(--mdc-theme-surface-variant)) !important;
+    }
+
+    &:focus {
+      outline: 2px solid var(--mat-sys-primary, var(--mdc-theme-primary));
+      outline-offset: 2px;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // FOOTER
+  // -------------------------------------------------------------------------
+  &__footer {
+    background: var(--mat-sys-surface-container, var(--mdc-theme-surface-container)) !important;
+    border-top: 1px solid var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+    color: var(--mat-sys-on-surface-variant, var(--mdc-theme-on-surface-variant)) !important;
+    padding: vars.$spacing-2 vars.$spacing-4;
+  }
+
+  // -------------------------------------------------------------------------
+  // BACKDROP (if using showBackdrop)
+  // -------------------------------------------------------------------------
+  &__backdrop {
+    background: rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(2px);
+  }
+
+  // -------------------------------------------------------------------------
+  // PANEL (CDK overlay)
+  // -------------------------------------------------------------------------
+  &__panel {
+    background: var(--mat-sys-surface, var(--mdc-theme-surface)) !important;
+    color: var(--mat-sys-on-surface, var(--mdc-theme-on-surface)) !important;
+    border: 1px solid var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+    border-radius: vars.$nom-border-radius;
+  }
+}
+
+// Also target the component element directly
+amw-popover {
+  .amw-popover__bubble-content,
+  .amw-popover__panel {
+    background: var(--mat-sys-surface, var(--mdc-theme-surface)) !important;
+    color: var(--mat-sys-on-surface, var(--mdc-theme-on-surface)) !important;
+    border: 1px solid var(--mat-sys-outline-variant, var(--mdc-theme-outline-variant)) !important;
+  }
+}
+
+// -------------------------------------------------------------------------
+// Dark Theme Overrides
+// -------------------------------------------------------------------------
+body.dark-theme,
+[data-theme='dark'] {
+  .amw-popover {
+    &__popover {
+      // Stronger shadows for dark mode
+      filter:
+        drop-shadow(0 4px 8px rgba(0, 0, 0, 0.24))
+        drop-shadow(0 8px 24px rgba(0, 0, 0, 0.32));
+    }
+
+    &__backdrop {
+      background: rgba(0, 0, 0, 0.56);
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// Size Overrides
+// -------------------------------------------------------------------------
+.amw-popover__popover {
+  &--small {
+    min-width: 180px;
+    max-width: 220px;
+  }
+
+  &--medium {
+    min-width: 280px;
+    max-width: 320px;
+  }
+
+  &--large {
+    min-width: 380px;
+    max-width: 440px;
+  }
+
+  &--extra-large {
+    min-width: 500px;
+    max-width: 600px;
+  }
+}
+
+// -------------------------------------------------------------------------
+// Accessibility Enhancements
+// -------------------------------------------------------------------------
+@media (prefers-contrast: high) {
+  .amw-popover {
+    &__bubble-content {
+      border-width: 2px;
+    }
+
+    &__close:focus {
+      outline-width: 3px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .amw-popover * {
+    transition: none !important;
+    animation: none !important;
   }
 }
 

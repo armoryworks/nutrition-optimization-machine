@@ -242,11 +242,14 @@ namespace Nom.Orch.Services
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
+                .Include(r => r.CurationStatus)
                 .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Ingredient)
                 .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Measurement)
                 .Include(r => r.RecipeSteps)
+                .Include(r => r.Nutrition)
+                    .ThenInclude(n => n.Nutrient)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
@@ -259,23 +262,38 @@ namespace Nom.Orch.Services
                 Description = recipe.Description ?? string.Empty,
                 AuthorId = recipe.AuthorId,
                 AuthorName = recipe.Author?.Name ?? "Unknown",
+                ImageUrl = recipe.Image,
+                PrepTimeMinutes = recipe.PrepTimeMinutes,
+                CookTimeMinutes = recipe.CookTimeMinutes,
+                Servings = recipe.Servings,
                 Rating = recipe.Rating ?? 0,
                 CommentCount = recipe.Comments?.Count ?? 0,
                 RatingCount = recipe.Ratings?.Count ?? 0,
                 CreatedDate = recipe.CreatedDate,
                 ModifiedDate = recipe.LastModifiedDate,
+                CurationStatus = recipe.CurationStatus?.Name ?? "Draft",
                 Ingredients = recipe.RecipeIngredients?.Select(ri => new RecipeIngredientModel
                 {
                     IngredientId = ri.IngredientId,
                     Quantity = ri.Quantity,
                     MeasurementId = ri.MeasurementId,
-                    Name = ri.Ingredient?.Name ?? string.Empty
+                    Name = ri.Ingredient?.Name ?? string.Empty,
+                    Measurement = ri.Measurement?.Name ?? string.Empty,
+                    Notes = ri.RawLine
                 }).ToList() ?? new List<RecipeIngredientModel>(),
                 Steps = recipe.RecipeSteps?.Select(rs => new RecipeStepModel
                 {
                     Description = rs.Description ?? string.Empty,
                     Order = rs.StepNumber
-                }).OrderBy(s => s.Order).ToList() ?? new List<RecipeStepModel>()
+                }).OrderBy(s => s.Order).ToList() ?? new List<RecipeStepModel>(),
+                Nutrition = recipe.Nutrition?.Select(n => new RecipeNutritionSearchModel
+                {
+                    Id = n.NutrientId,
+                    NutrientName = n.Nutrient?.Name ?? string.Empty,
+                    Amount = n.Amount,
+                    Unit = n.Unit ?? string.Empty,
+                    DailyValuePercent = n.DailyValuePercentage
+                }).ToList() ?? new List<RecipeNutritionSearchModel>()
             };
         }
 

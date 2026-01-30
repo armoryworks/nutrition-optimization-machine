@@ -82,6 +82,11 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get a single recipe by ID. Anonymous access allowed for public (Approved) recipes.
+        /// Private recipes require authentication and ownership.
+        /// </summary>
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
         {
@@ -92,6 +97,26 @@ namespace Nom.Api.Controllers
                 {
                     return NotFound(new { message = "Recipe not found" });
                 }
+
+                // Check if recipe is public (Approved)
+                var isPublic = recipe.CurationStatus == "Approved";
+
+                if (!isPublic)
+                {
+                    // Recipe is private - require authentication and ownership
+                    var currentPersonId = GetCurrentPersonId();
+                    if (!currentPersonId.HasValue)
+                    {
+                        return Unauthorized(new { message = "Authentication required to view this recipe" });
+                    }
+
+                    // Check if user is the author
+                    if (recipe.AuthorId != currentPersonId.Value)
+                    {
+                        return Forbid("You do not have permission to view this recipe");
+                    }
+                }
+
                 return Ok(recipe);
             }
             catch (Exception ex)

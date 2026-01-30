@@ -1,0 +1,351 @@
+// Public Recipe View - 3 Column Layout
+@use '../../../../variables' as vars;
+
+:host {
+  display: block;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--mat-sys-surface);
+  overflow: hidden;
+}
+
+.nom-recipe-view {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: vars.$spacing-4;
+  position: relative;
+  background: var(--mat-sys-surface);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Loading & Error States
+.nom-recipe-view__loading,
+.nom-recipe-view__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-10;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-recipe-view__loading-icon {
+  font-size: 2.5rem;
+  color: var(--mat-sys-primary);
+  animation: spin 1s linear infinite;
+}
+
+.nom-recipe-view__error-icon {
+  font-size: 3rem;
+  color: var(--mat-sys-error);
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-recipe-view__error-actions {
+  display: flex;
+  gap: vars.$spacing-2;
+  margin-top: vars.$spacing-3;
+}
+
+// Back Button - First grid column
+.nom-recipe-view__back {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: vars.$spacing-3;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  amw-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 50%;
+    font-size: 1.25rem;
+    color: var(--mat-sys-on-surface);
+    transition: all 0.15s ease;
+  }
+
+  &:hover amw-icon {
+    background: var(--mat-sys-surface-container-high);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+// Title Card (Title + Attribution + Description) - Expands to fill remaining height
+.nom-recipe-view__title-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.nom-recipe-view__description {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+// Main Content Grid - Back button + 3 Columns
+.nom-recipe-view__content {
+  display: grid;
+  grid-template-columns: 48px 24% 24% 1fr;
+  gap: vars.$spacing-3;
+  flex: 1;
+  min-height: 0; // Critical for flex child with overflow
+  align-items: stretch; // All columns same height
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 48px 30% 1fr;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 48px 1fr;
+    grid-auto-rows: auto;
+  }
+}
+
+// Column 1: Sidebar (Attribution + Image + Meta)
+.nom-recipe-view__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+  overflow-y: auto;
+}
+
+.nom-recipe-view__image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: vars.$nom-border-radius;
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+// Quick Meta
+.nom-recipe-view__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-recipe-view__meta-item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface);
+
+  amw-icon {
+    font-size: 1rem;
+    color: var(--mat-sys-primary);
+  }
+}
+
+// Macros Summary
+.nom-recipe-view__macros-wrapper {
+  grid-column: span 2;
+  position: relative;
+}
+
+.nom-recipe-view__macros {
+  display: flex;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2;
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius vars.$nom-border-radius 0 0;
+}
+
+.nom-recipe-view__macro-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: vars.$spacing-1 vars.$spacing-2;
+}
+
+.nom-recipe-view__macro-value {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-bold;
+  color: var(--mat-sys-primary);
+}
+
+.nom-recipe-view__macro-label {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Nutrition Popover Trigger - style the amw-popover container
+.nom-recipe-view__nutrition-popover-trigger {
+  display: block;
+  width: 100%;
+}
+
+// Nutrition Link Button - trigger for the popover
+.nom-recipe-view__nutrition-link {
+  display: block;
+  width: 100%;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  background: var(--mat-sys-surface-container-high);
+  border: none;
+  border-radius: 0 0 vars.$nom-border-radius vars.$nom-border-radius;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-primary);
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-highest);
+    text-decoration: underline;
+  }
+}
+
+// Section Titles
+.nom-recipe-view__section-title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+  padding-bottom: vars.$spacing-2;
+  border-bottom: 2px solid var(--mat-sys-primary);
+  flex-shrink: 0; // Don't shrink when content scrolls
+
+  amw-icon {
+    font-size: 1.25rem;
+    color: var(--mat-sys-primary);
+  }
+}
+
+// Column 2: Ingredients - Full Height Card
+.nom-recipe-view__ingredients {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Critical for flex child with overflow
+
+  @media (max-width: 1024px) {
+    display: none; // Hide on tablet - ingredients move to sidebar
+  }
+}
+
+// Scrollable body container
+.nom-recipe-view__scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.nom-recipe-view__ingredient-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: vars.$font-size-sm;
+
+  li {
+    padding: vars.$spacing-1 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    color: var(--mat-sys-on-surface);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.nom-recipe-view__qty {
+  color: var(--mat-sys-primary);
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-recipe-view__notes {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+// Column 3: Instructions - Full Height Card
+.nom-recipe-view__instructions {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Critical for flex child with overflow
+}
+
+.nom-recipe-view__step-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nom-recipe-view__step {
+  display: flex;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  p {
+    margin: 0;
+    font-size: vars.$font-size-sm;
+    line-height: 1.5;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.nom-recipe-view__step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  border-radius: 50%;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-bold;
+}
+
+// Tags
+.nom-recipe-view__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-1;
+}
+
+.nom-recipe-view__tag {
+  padding: vars.$spacing-1 vars.$spacing-2;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+
+  &--category {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

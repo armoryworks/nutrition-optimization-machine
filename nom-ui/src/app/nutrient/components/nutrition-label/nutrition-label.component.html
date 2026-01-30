@@ -23,19 +23,47 @@
         <span>% Daily Value*</span>
     </div>
 
-    <div class="nutrition-label__nutrients">
-        @for (nutrient of data.nutrients; track nutrient.name) {
-        <div class="nutrition-label__nutrient-row"
-            [class.nutrition-label__nutrient-row--indented]="nutrient.isIndented">
-            <span [class.nutrition-label__nutrient-row--bold]="nutrient.isBold">
+    <!-- Macronutrients Section -->
+    <div class="nutrition-label__nutrients nutrition-label__nutrients--macros">
+        @for (nutrient of macronutrients(); track nutrient.name) {
+        <div class="nutrition-label__nutrient-item"
+            [class.nutrition-label__nutrient-item--indented]="nutrient.isIndented">
+            <span class="nutrition-label__nutrient-name" [class.nutrition-label__nutrient-name--bold]="nutrient.isBold">
                 {{ nutrient.name }}
+            </span>
+            <span class="nutrition-label__nutrient-value">
                 {{ nutrient.amount | formatMass:nutrient.unit }}
             </span>
-            <span [class.nutrition-label__nutrient-row--bold]="nutrient.isBold">{{ nutrient.dailyValue }}%</span>
+            <span class="nutrition-label__nutrient-dv" [class.nutrition-label__nutrient-dv--bold]="nutrient.isBold">
+                @if (nutrient.dailyValue !== undefined) {
+                {{ nutrient.dailyValue }}%
+                }
+            </span>
         </div>
-        <hr class="nutrition-label__divider--thin" />
         }
     </div>
+
+    <!-- Micronutrients Section (Vitamins & Minerals) -->
+    @if (micronutrients().length > 0) {
+    <hr class="nutrition-label__divider--thick" />
+    <div class="nutrition-label__nutrients nutrition-label__nutrients--micros">
+        @for (nutrient of micronutrients(); track nutrient.name) {
+        <div class="nutrition-label__nutrient-item">
+            <span class="nutrition-label__nutrient-name">
+                {{ nutrient.name }}
+            </span>
+            <span class="nutrition-label__nutrient-value">
+                {{ nutrient.amount | formatMass:nutrient.unit }}
+            </span>
+            <span class="nutrition-label__nutrient-dv">
+                @if (nutrient.dailyValue !== undefined) {
+                {{ nutrient.dailyValue }}%
+                }
+            </span>
+        </div>
+        }
+    </div>
+    }
     <hr class="nutrition-label__divider--thick" />
     <p class="nutrition-label__footnote">
         * The % Daily Value (DV) tells you how much a nutrient in a serving of food

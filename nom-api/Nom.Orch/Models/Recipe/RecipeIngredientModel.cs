@@ -16,5 +16,9 @@ namespace Nom.Orch.Models.Recipe
 
         [Required]
         public long MeasurementId { get; set; }
+
+        public string? Measurement { get; set; }
+
+        public string? Notes { get; set; }
     }
 }

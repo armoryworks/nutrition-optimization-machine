@@ -2,7 +2,7 @@
 // Uses global stereotype classes from _stereotype-search.scss and _stereotype-landing.scss
 // Only component-specific overrides below
 
-@use '../../../variables' as vars;
+@use '../../../../variables' as vars;
 
 // Loading icon animation
 .nom-search__loading-icon {
@@ -24,25 +24,41 @@
   }
 }
 
-// Image placeholder for cards without images
-.nom-search__card-image--placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mat-sys-surface-container-high);
-
-  amw-icon {
-    font-size: 4rem;
-    width: 4rem;
-    height: 4rem;
-    color: var(--mat-sys-on-surface-variant);
-    opacity: 0.3;
-  }
-}
-
 // Make feature cards clickable
 .nom-landing__feature {
   cursor: pointer;
+}
+
+// Card meta row - horizontal layout with info button
+.nom-search__card-meta {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex-wrap: wrap;
+}
+
+.nom-search__card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  amw-icon {
+    font-size: 1rem;
+  }
+}
+
+.nom-search__card-meta-item--rating {
+  amw-icon {
+    color: var(--mat-sys-tertiary);
+  }
+}
+
+// AMW Popover trigger styling
+.nom-search__card-info-popover {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 @keyframes spin {

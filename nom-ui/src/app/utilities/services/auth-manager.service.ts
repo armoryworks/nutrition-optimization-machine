@@ -261,11 +261,21 @@ export class AuthManagerService {
     if (isLoggedIn) {
       this.loadUserClaims();
     } else {
-      this.logout();
+      // Only clear local state, don't redirect - user may be accessing public routes
+      this.clearLocalAuthState();
     }
     if (this.userLogin() !== isLoggedIn) {
       this.userLogin.set(isLoggedIn);
     }
+  }
+
+  private clearLocalAuthState(): void {
+    // Clear auth state without navigating away - allows public route access
+    this._accessToken = undefined;
+    this._refreshToken = undefined;
+    this._tokenExpiration = undefined;
+    this.userLogin.set(false);
+    this.clearClaims();
   }
 
   hasAccessToken(): boolean {

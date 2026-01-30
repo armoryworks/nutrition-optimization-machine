@@ -33,10 +33,13 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(
       catchError((error) => {
         if (error instanceof HttpErrorResponse && error.status === 401) {
-          // Check if it's an API request that requires authentication
-          // You might have specific patterns for authenticated API routes
-          // e.g., if (!request.url.includes('/api/auth/')) { ... }
-          return this.handle401Error(request, next);
+          // Only attempt token refresh if user was authenticated (had a token)
+          // For anonymous requests that get 401, just propagate the error
+          if (accessToken) {
+            return this.handle401Error(request, next);
+          }
+          // No token = anonymous request, don't try to refresh
+          return throwError(() => error);
         } else {
           // For other errors, just re-throw
           return throwError(() => error);

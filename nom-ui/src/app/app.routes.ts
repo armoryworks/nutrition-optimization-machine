@@ -26,6 +26,11 @@ export const routes: Routes = [
     loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
     title: 'Recipe Search'
   },
+  {
+    path: 'recipe/:id',
+    loadComponent: () => import('./recipe/components/recipe-detail-public/recipe-detail-public.component').then(m => m.RecipeDetailPublicComponent),
+    title: 'Recipe Details'
+  },
 
   // Guest-only routes - redirects authenticated users to onboarding
   { path: 'register', component: RegistrationComponent, canActivate: [NoAuthGuard] },
@@ -127,5 +132,8 @@ export const routes: Routes = [
     path: 'curated-plans',
     loadComponent: () => import('./plan/components/curated-plans/curated-plans.component').then(m => m.CuratedPlansComponent),
     canActivate: [AuthGuard]
-  }
+  },
+
+  // Wildcard route - catches all unmatched paths and redirects to home
+  { path: '**', redirectTo: 'home' }
 ];

@@ -1,0 +1,179 @@
+<div class="nom-recipe-view">
+  <!-- Loading State -->
+  @if (isLoading()) {
+  <div class="nom-recipe-view__loading">
+    <amw-icon name="hourglass_empty" class="nom-recipe-view__loading-icon"></amw-icon>
+    <p>Loading recipe...</p>
+  </div>
+  }
+
+  <!-- Error State -->
+  @if (hasError() && !isLoading()) {
+  <div class="nom-recipe-view__error">
+    <amw-icon name="error_outline" class="nom-recipe-view__error-icon"></amw-icon>
+    <h2>{{ errorMessage() }}</h2>
+    <div class="nom-recipe-view__error-actions">
+      <amw-button variant="outlined" (click)="goBack()" icon="arrow_back">Back to Search</amw-button>
+      <amw-button variant="filled" color="primary" (click)="retry()" icon="refresh">Try Again</amw-button>
+    </div>
+  </div>
+  }
+
+  <!-- Recipe Content -->
+  @if (recipe() && !isLoading() && !hasError()) {
+  <!-- Main Content: Three Column Layout -->
+  <div class="nom-recipe-view__content">
+    <!-- Back Navigation -->
+    <button class="nom-recipe-view__back" (click)="goBack()">
+      <amw-icon name="arrow_back"></amw-icon>
+    </button>
+
+    <!-- Column 1: Title + Attribution + Image + Meta -->
+    <aside class="nom-recipe-view__sidebar">
+      <!-- Title, Attribution & Description Card -->
+      <amw-card class="nom-recipe-view__title-card" [headerTitle]="recipe()!.name"
+        [headerSubtitle]="recipe()!.authorName ? 'by ' + recipe()!.authorName : ''">
+        <ng-template #cardContent>
+          @if (recipe()!.description) {
+          <p class="nom-recipe-view__description">{{ recipe()!.description }}</p>
+          }
+        </ng-template>
+      </amw-card>
+
+      <img [src]="recipeImageUrl()" [alt]="recipe()!.name" class="nom-recipe-view__image"
+        (error)="onImageError($event)" />
+
+      <!-- Quick Meta -->
+      <div class="nom-recipe-view__meta">
+        @if (recipe()!.prepTimeMinutes) {
+        <div class="nom-recipe-view__meta-item">
+          <amw-icon name="schedule"></amw-icon>
+          <span>Prep: {{ formatTime(recipe()!.prepTimeMinutes) }}</span>
+        </div>
+        }
+        @if (recipe()!.cookTimeMinutes) {
+        <div class="nom-recipe-view__meta-item">
+          <amw-icon name="local_fire_department"></amw-icon>
+          <span>Cook: {{ formatTime(recipe()!.cookTimeMinutes) }}</span>
+        </div>
+        }
+        @if (recipe()!.servings) {
+        <div class="nom-recipe-view__meta-item">
+          <amw-icon name="restaurant"></amw-icon>
+          <span>Serves: {{ recipe()!.servings }}</span>
+        </div>
+        }
+        @if (recipe()!.averageRating && recipe()!.averageRating! > 0) {
+        <div class="nom-recipe-view__meta-item">
+          <amw-icon name="star"></amw-icon>
+          <span>{{ recipe()!.averageRating | number:'1.1-1' }}</span>
+        </div>
+        }
+        <!-- Macros Summary -->
+        @if (macroSummary()) {
+        <div class="nom-recipe-view__macros-wrapper">
+          <div class="nom-recipe-view__macros">
+            @if (macroSummary()!.calories) {
+            <div class="nom-recipe-view__macro-pill">
+              <span class="nom-recipe-view__macro-value">{{ macroSummary()!.calories!.amount }}</span>
+              <span class="nom-recipe-view__macro-label">Cal</span>
+            </div>
+            }
+            @if (macroSummary()!.carbs) {
+            <div class="nom-recipe-view__macro-pill">
+              <span class="nom-recipe-view__macro-value">{{ macroSummary()!.carbs!.amount }}{{
+                macroSummary()!.carbs!.unit }}</span>
+              <span class="nom-recipe-view__macro-label">Carbs</span>
+            </div>
+            }
+            @if (macroSummary()!.fat) {
+            <div class="nom-recipe-view__macro-pill">
+              <span class="nom-recipe-view__macro-value">{{ macroSummary()!.fat!.amount }}{{ macroSummary()!.fat!.unit
+                }}</span>
+              <span class="nom-recipe-view__macro-label">Fat</span>
+            </div>
+            }
+            @if (macroSummary()!.protein) {
+            <div class="nom-recipe-view__macro-pill">
+              <span class="nom-recipe-view__macro-value">{{ macroSummary()!.protein!.amount }}{{
+                macroSummary()!.protein!.unit }}</span>
+              <span class="nom-recipe-view__macro-label">Protein</span>
+            </div>
+            }
+          </div>
+          <!-- Nutrition Label Popover - uses AmwPopoverComponent -->
+          <amw-popover class="nom-recipe-view__nutrition-popover-trigger" [trigger]="nutritionPopoverTrigger"
+            [(opened)]="nutritionPopoverOpen" position="auto" [showArrow]="true" [showClose]="true" [showHeader]="false"
+            size="auto" [showFooter]="false" closeButtonIcon="close">
+            <!-- Trigger Button -->
+            <ng-template #trigger>
+              <button class="nom-recipe-view__nutrition-link">
+                Detailed nutrition information
+              </button>
+            </ng-template>
+            <!-- Popover Content -->
+            <ng-template #content>
+              <nom-nutrition-label [data]="nutritionLabelData()"></nom-nutrition-label>
+            </ng-template>
+          </amw-popover>
+        </div>
+        }
+      </div>
+
+      <!-- Tags -->
+      @if (recipe()!.categories?.length || recipe()!.tags?.length) {
+      <div class="nom-recipe-view__tags">
+        @for (category of recipe()!.categories; track category) {
+        <span class="nom-recipe-view__tag nom-recipe-view__tag--category">{{ category }}</span>
+        }
+        @for (tag of recipe()!.tags; track tag) {
+        <span class="nom-recipe-view__tag">{{ tag }}</span>
+        }
+      </div>
+      }
+    </aside>
+
+    <!-- Column 2: Ingredients -->
+    @if (recipe()!.ingredients?.length) {
+    <amw-card class="nom-recipe-view__ingredients" headerTitle="Ingredients">
+      <ng-template #cardContent>
+        <div class="nom-recipe-view__scroll-body">
+          <ul class="nom-recipe-view__ingredient-list">
+            @for (ingredient of recipe()!.ingredients; track ingredient.name) {
+            <li>
+              @if (ingredient.quantity || ingredient.measurement) {
+              <span class="nom-recipe-view__qty">{{ formatQuantity(ingredient.quantity) }} {{ ingredient.measurement
+                }}</span>
+              }
+              {{ ingredient.name }}
+              @if (ingredient.notes) {
+              <span class="nom-recipe-view__notes">({{ ingredient.notes }})</span>
+              }
+            </li>
+            }
+          </ul>
+        </div>
+      </ng-template>
+    </amw-card>
+    }
+
+    <!-- Column 3: Instructions -->
+    @if (recipe()!.steps?.length) {
+    <amw-card class="nom-recipe-view__instructions" headerTitle="Instructions">
+      <ng-template #cardContent>
+        <div class="nom-recipe-view__scroll-body">
+          <ol class="nom-recipe-view__step-list">
+            @for (step of recipe()!.steps; track step.stepNumber) {
+            <li class="nom-recipe-view__step">
+              <span class="nom-recipe-view__step-num">{{ step.stepNumber }}</span>
+              <p>{{ step.description }}</p>
+            </li>
+            }
+          </ol>
+        </div>
+      </ng-template>
+    </amw-card>
+    }
+  </div>
+  }
+</div>

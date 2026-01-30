@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-import { AmwButtonComponent, AmwCardComponent, AmwIconComponent, AmwInputComponent } from 'angular-material-wrap';
+import { AmwButtonComponent, AmwIconComponent, AmwInputComponent, AmwCardComponent, AmwPopoverComponent } from 'angular-material-wrap';
 import { RecipeSearchService } from '../../services/recipe-search.service';
 import { RecipeSearchResult } from '../../models/recipe-search.model';
 
@@ -15,9 +15,10 @@ import { RecipeSearchResult } from '../../models/recipe-search.model';
     CommonModule,
     ReactiveFormsModule,
     AmwButtonComponent,
-    AmwCardComponent,
     AmwIconComponent,
-    AmwInputComponent
+    AmwInputComponent,
+    AmwCardComponent,
+    AmwPopoverComponent
   ],
   templateUrl: './recipe-search.component.html',
   styleUrls: ['./recipe-search.component.scss']
@@ -27,6 +28,9 @@ export class RecipeSearchComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private recipeSearchService = inject(RecipeSearchService);
   private destroy$ = new Subject<void>();
+
+  // Fallback placeholder image - plate and utensils SVG
+  readonly placeholderImage = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect fill='%23374151' width='400' height='400'/%3E%3Cg fill='%239CA3AF' transform='translate(100,100)'%3E%3Ccircle cx='100' cy='100' r='90' fill='none' stroke='%239CA3AF' stroke-width='8'/%3E%3Ccircle cx='100' cy='100' r='60' fill='none' stroke='%239CA3AF' stroke-width='4'/%3E%3Cpath d='M30 40 L30 100 M30 40 L30 20 M25 20 L25 50 M35 20 L35 50 M20 20 L20 45 M40 20 L40 45' stroke='%239CA3AF' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M170 40 L170 100 M170 20 L175 60 L170 60 Z' stroke='%239CA3AF' stroke-width='4' stroke-linecap='round' fill='%239CA3AF'/%3E%3C/g%3E%3C/svg%3E`;
 
   searchControl = new FormControl('');
   searchResults = signal<RecipeSearchResult[]>([]);
@@ -118,7 +122,7 @@ export class RecipeSearchComponent implements OnInit, OnDestroy {
   }
 
   viewRecipe(recipe: RecipeSearchResult): void {
-    this.router.navigate(['/recipes', recipe.id]);
+    this.router.navigate(['/recipe', recipe.id]);
   }
 
   // Public user methods
@@ -143,4 +147,12 @@ export class RecipeSearchComponent implements OnInit, OnDestroy {
   onRegister(): void {
     this.router.navigate(['/register']);
   }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img.src !== this.placeholderImage) {
+      img.src = this.placeholderImage;
+    }
+  }
+
 }
