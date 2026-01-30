@@ -394,14 +394,34 @@ mat-hint.amw-input__hint {
   .mat-mdc-card {
     background-color: var(--mat-sys-surface-container-low) !important;
     color: var(--mat-sys-on-surface) !important;
+    padding: 0 !important; // Remove default mat-card padding
   }
 
+  // Compact card header - reduce padding
   .mat-mdc-card-header {
+    padding: vars.$spacing-2 vars.$spacing-3 !important;
+
     mat-icon,
     .mat-icon {
       color: var(--mat-sys-on-surface-variant) !important;
       opacity: 0.87;
     }
+  }
+
+  // Card header title - tighter spacing
+  .mat-mdc-card-header-text {
+    padding: 0 !important;
+  }
+
+  .mat-mdc-card-title {
+    margin-bottom: vars.$spacing-1 !important;
+    font-size: vars.$font-size-lg;
+    line-height: 1.3;
+  }
+
+  .mat-mdc-card-subtitle {
+    margin-bottom: 0 !important;
+    font-size: vars.$font-size-sm;
   }
 
   // Ensure avatar icon has proper contrast
@@ -412,9 +432,11 @@ mat-hint.amw-input__hint {
     }
   }
 
-  // Ensure card content text is readable
+  // Card content - compact padding
   .mat-mdc-card-content,
-  mat-card-content {
+  mat-card-content,
+  .amw-card__content {
+    padding: vars.$spacing-2 vars.$spacing-3 !important;
     color: var(--mat-sys-on-surface) !important;
 
     p {

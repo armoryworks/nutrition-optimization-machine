@@ -184,3 +184,27 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+// ============================================
+// ANIMATION UTILITIES
+// ============================================
+
+// Spin animation (used for loading indicators)
+@keyframes nom-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// Spin mixin for loading icons
+@mixin nom-spin($duration: 1s) {
+  animation: nom-spin $duration linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// Class for spinning elements (e.g., loading icons)
+.nom-spin {
+  @include nom-spin;
+}
