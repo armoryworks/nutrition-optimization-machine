@@ -2,7 +2,7 @@
 
 This guide provides solutions for common issues encountered during NOM development. Each issue includes symptoms, causes, and step-by-step solutions.
 
-## 🚨 **Common Issues**
+## **Common Issues**
 
 ### Component Not Loading
 
@@ -21,7 +21,7 @@ This guide provides solutions for common issues encountered during NOM developme
 **Solutions:**
 
 ```typescript
-// ✅ CORRECT - Proper imports
+//  CORRECT - Proper imports
 import { Component } from "@angular/core";
 import {
   BasePageComponent,
@@ -56,7 +56,7 @@ export class MyComponent extends BasePageComponent {
 **Solutions:**
 
 ```typescript
-// ✅ CORRECT - Proper loading states
+//  CORRECT - Proper loading states
 export class MyComponent extends BasePageComponent {
   isLoading = false;
   error: string | null = null;
@@ -99,14 +99,14 @@ export class MyComponent extends BasePageComponent {
 **Solutions:**
 
 ```scss
-// ✅ CORRECT - Use theme variables
+//  CORRECT - Use theme variables
 .my-component {
   background-color: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
   border: 1px solid var(--md-sys-color-outline);
 }
 
-// ❌ INCORRECT - Hardcoded colors
+//  INCORRECT - Hardcoded colors
 .my-component {
   background-color: #ffffff;
   color: #000000;
@@ -131,7 +131,7 @@ export class MyComponent extends BasePageComponent {
 **Solutions:**
 
 ```typescript
-// ✅ CORRECT - Proper form validation
+//  CORRECT - Proper form validation
 export class MyFormComponent extends BaseFormComponent {
   form: FormGroup;
 
@@ -167,7 +167,7 @@ export class MyFormComponent extends BaseFormComponent {
 **Solutions:**
 
 ```typescript
-// ✅ CORRECT - Proper subscription management
+//  CORRECT - Proper subscription management
 export class MyComponent
   extends BasePageComponent
   implements OnInit, OnDestroy
@@ -207,7 +207,7 @@ export class MyComponent
 **Solutions:**
 
 ```typescript
-// ✅ CORRECT - Proper navigation
+//  CORRECT - Proper navigation
 export class MyComponent extends BasePageComponent {
   constructor(private router: Router) {
     super();
@@ -223,7 +223,7 @@ export class MyComponent extends BasePageComponent {
 }
 ```
 
-## 🔧 **Debugging Techniques**
+## **Debugging Techniques**
 
 ### Console Debugging
 
@@ -312,7 +312,7 @@ export class MyComponent extends BasePageComponent {
 }
 ```
 
-## 🚀 **Performance Issues**
+## **Performance Issues**
 
 ### Slow Component Loading
 
@@ -378,7 +378,7 @@ export class MyComponent {
 }
 ```
 
-## 🔒 **Security Issues**
+## **Security Issues**
 
 ### Authentication Problems
 
@@ -445,7 +445,7 @@ export class MyComponent {
 }
 ```
 
-## 📱 **Responsive Design Issues**
+## **Responsive Design Issues**
 
 ### Mobile Layout Problems
 
@@ -488,7 +488,7 @@ export class MyComponent {
 }
 ```
 
-## 🧪 **Testing Issues**
+## **Testing Issues**
 
 ### Unit Test Failures
 
@@ -526,7 +526,7 @@ describe("MyComponent", () => {
 });
 ```
 
-## 🔍 **Common Error Messages**
+## **Common Error Messages**
 
 ### "Cannot find module"
 
@@ -548,7 +548,7 @@ describe("MyComponent", () => {
 
 **Solution:** Add null checks and proper initialization
 
-## 📞 **Getting Help**
+## **Getting Help**
 
 ### When to Ask for Help
 

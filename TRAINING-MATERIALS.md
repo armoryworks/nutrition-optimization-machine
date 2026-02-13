@@ -18,10 +18,10 @@ By the end of this training, developers will be able to:
 
 Before starting this training, developers should have:
 
-- ✅ **Angular Knowledge**: Understanding of Angular components, services, and forms
-- ✅ **TypeScript Experience**: Familiarity with TypeScript interfaces and types
-- ✅ **Reactive Forms**: Experience with Angular Reactive Forms
-- ✅ **HTTP Services**: Understanding of Angular HTTP services and observables
+- **Angular Knowledge**: Understanding of Angular components, services, and forms
+- **TypeScript Experience**: Familiarity with TypeScript interfaces and types
+- **Reactive Forms**: Experience with Angular Reactive Forms
+- **HTTP Services**: Understanding of Angular HTTP services and observables
 
 ## Module 1: System Architecture Overview
 
@@ -527,7 +527,7 @@ ngOnInit(): void {
 #### Use Bulk Loading
 
 ```typescript
-// ✅ Good: Single API call
+//  Good: Single API call
 this.recipeService
   .getRecipeReferencesBulk()
   .subscribe(({ difficulties, cuisines, mealTypes }) => {
@@ -536,7 +536,7 @@ this.recipeService
     this.mealTypes = mealTypes;
   });
 
-// ❌ Avoid: Multiple API calls
+//  Avoid: Multiple API calls
 this.recipeService
   .getRecipeDifficulties()
   .subscribe((d) => (this.difficulties = d));
@@ -608,12 +608,12 @@ export class SafeComponent implements OnInit {
 #### Use Proper Interfaces
 
 ```typescript
-// ✅ Good: Strong typing
+//  Good: Strong typing
 onSelectionChange(priority: ReferenceItem): void {
   console.log('Priority:', priority.referenceName);
 }
 
-// ❌ Avoid: Any types
+//  Avoid: Any types
 onSelectionChange(priority: any): void {
   console.log('Priority:', priority.name); // Might fail
 }
@@ -622,10 +622,10 @@ onSelectionChange(priority: any): void {
 #### Use Constants
 
 ```typescript
-// ✅ Good: Use constants
+//  Good: Use constants
 const priorityId = REFERENCE_IDS.SHOPPING_PRIORITY_TYPE;
 
-// ❌ Avoid: Magic numbers
+//  Avoid: Magic numbers
 const priorityId = 6000; // What does this mean?
 ```
 
@@ -895,11 +895,11 @@ export class ExternalReferenceService {
 
 **Evaluation Criteria:**
 
-- ✅ Component compiles without errors
-- ✅ Data loads correctly from backend
-- ✅ Filtering works as expected
-- ✅ Error handling is implemented
-- ✅ Performance optimizations are used
+- Component compiles without errors
+- Data loads correctly from backend
+- Filtering works as expected
+- Error handling is implemented
+- Performance optimizations are used
 
 ### 9.3 Certification Levels
 

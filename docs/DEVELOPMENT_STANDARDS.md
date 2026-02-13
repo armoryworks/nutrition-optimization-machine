@@ -39,7 +39,7 @@
 #### **Allowed File Structures**
 
 ```
-✅ CORRECT:
+ CORRECT:
 - IInputConfig.ts (single interface)
 - _BaseService.ts (single abstract class)
 - ButtonComponent.ts (single concrete class)
@@ -49,7 +49,7 @@
 #### **Forbidden File Structures**
 
 ```
-❌ FORBIDDEN:
+ FORBIDDEN:
 - _BaseService.ts (multiple interfaces + abstract class)
 - IInputConfig.ts (multiple interfaces)
 - ButtonComponent.ts (interface + concrete class)
@@ -62,7 +62,7 @@
 #### **Required File Structure**
 
 ```
-✅ CORRECT:
+ CORRECT:
 - ButtonComponent.ts (TypeScript logic)
 - ButtonComponent.html (HTML template)
 - ButtonComponent.scss (SCSS styles)
@@ -71,7 +71,7 @@
 #### **Forbidden File Structures**
 
 ```
-❌ FORBIDDEN:
+ FORBIDDEN:
 - ButtonComponent.ts (embedded template: template: `...`)
 - ButtonComponent.ts (embedded styles: styles: [`...`])
 - ButtonComponent.ts (inline template and styles)
@@ -86,7 +86,7 @@
 #### **Correct Domain-Based Structure**
 
 ```
-✅ CORRECT:
+ CORRECT:
 src/app/shared/
 ├── interfaces/
 │   ├── input/
@@ -116,7 +116,7 @@ src/app/shared/
 #### **Forbidden Structure**
 
 ```
-❌ FORBIDDEN:
+ FORBIDDEN:
 src/app/
 ├── _Abstractions/
 │   ├── _Components/
@@ -136,12 +136,12 @@ src/app/
 #### **Viewport Requirements**
 
 ```scss
-✅correct: .main-container {
+correct: .main-container {
   height: calc(100vh - 120px); // Account for compact header
   overflow: hidden;
 }
 
-❌forbidden: .main-container {
+forbidden: .main-container {
   height: 1200px; // Fixed height that may cause scrolling
   overflow: scroll; // Allows scrolling
 }
@@ -150,7 +150,7 @@ src/app/
 #### **Compact Header Pattern (Required for Desktop Interfaces)**
 
 ```scss
-✅correct: .compact-header {
+correct: .compact-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -158,7 +158,7 @@ src/app/
   // Title, subtitle, and controls on same horizontal line
 }
 
-❌forbidden: .tall-header {
+forbidden: .tall-header {
   padding: 2rem 0;
   // Title, subtitle, and controls stacked vertically
 }
@@ -183,7 +183,7 @@ src/app/
 #### **Correct Selector Usage**
 
 ```typescript
-✅ CORRECT:
+ CORRECT:
 @Component({
   selector: 'nom-button',
   templateUrl: './ButtonComponent.html',
@@ -197,7 +197,7 @@ export class ButtonComponent extends _BaseButtonComponent {
 #### **Forbidden Selector Usage**
 
 ```typescript
-❌ FORBIDDEN:
+ FORBIDDEN:
 @Component({
   selector: 'app-button',  // Wrong prefix (should be 'nom-button')
   selector: 'button',      // No prefix

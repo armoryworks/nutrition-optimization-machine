@@ -1,4 +1,4 @@
-# 🔧 NOM API - Backend Service
+# NOM API - Backend Service
 
 The backend API service for the Nutrition Optimization Machine (NOM), built with .NET 9 and Entity Framework Core.
 
@@ -7,34 +7,34 @@ The backend API service for the Nutrition Optimization Machine (NOM), built with
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](Dockerfile)
 [![Health Checks](https://img.shields.io/badge/Health-Monitored-green.svg)](/health)
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ### **Project Structure**
 
 ```
 nom-api/
-├── 📁 Nom.Api/              # 🌐 API controllers & middleware
+├──  Nom.Api/              #  API controllers & middleware
 │   ├── Controllers/         # RESTful API endpoints
 │   ├── Middleware/          # Security, logging, rate limiting
 │   ├── Core/               # Base classes & abstractions
 │   └── Program.cs          # Application startup
-├── 📁 Nom.Data/             # 🗄️ Entity Framework & database
+├──  Nom.Data/             #  Entity Framework & database
 │   ├── Entities/           # Database entities (TPH pattern)
 │   ├── Migrations/         # EF Core migrations
 │   └── ApplicationDbContext.cs
-├── 📁 Nom.Orch/             # 🎭 Business logic & orchestration
+├──  Nom.Orch/             #  Business logic & orchestration
 │   ├── Services/           # Business logic services
 │   ├── Models/             # Request/response models
 │   └── Interfaces/         # Service contracts
-├── 📁 Nom.Import/           # 📥 Data import & seeding
+├──  Nom.Import/           #  Data import & seeding
 │   ├── Services/           # Import services
 │   └── DataImportScripts/  # SQL seeding scripts
-└── 📁 Nom.Api.Tests/        # 🧪 Unit & integration tests
+└──  Nom.Api.Tests/        #  Unit & integration tests
     ├── Services/           # Service tests
     └── Integration/        # Integration tests
 ```
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Development Setup**
 
@@ -63,7 +63,7 @@ docker run -p 8080:8080 nom-api
 docker-compose up nom-api
 ```
 
-## 🔧 **Configuration**
+## **Configuration**
 
 ### **Environment Variables**
 
@@ -86,7 +86,7 @@ docker-compose up nom-api
 }
 ```
 
-## 🏛️ **Architecture Patterns**
+## **Architecture Patterns**
 
 ### **Domain-Driven Design**
 
@@ -125,22 +125,22 @@ app.UseAuthentication();            // JWT authentication
 app.UseAuthorization();             // Claims-based authorization
 ```
 
-## 🔐 **Security Features**
+## **Security Features**
 
 ### **Authentication & Authorization**
 
-- ✅ **JWT Bearer Tokens** - Secure token-based authentication
-- ✅ **Claims-Based Authorization** - Role and permission-based access
-- ✅ **Token Expiration** - 24-hour token lifecycle
-- ✅ **Dual Bearer Support** - ASP.NET Identity + JWT
+- **JWT Bearer Tokens** - Secure token-based authentication
+- **Claims-Based Authorization** - Role and permission-based access
+- **Token Expiration** - 24-hour token lifecycle
+- **Dual Bearer Support** - ASP.NET Identity + JWT
 
 ### **Security Middleware**
 
-- ✅ **Security Headers** - CSP, HSTS, XSS protection, frame options
-- ✅ **Rate Limiting** - Sophisticated request throttling with burst protection
-- ✅ **Audit Logging** - Complete request/response logging for compliance
-- ✅ **Input Validation** - Comprehensive request validation
-- ✅ **Container Security** - Container-specific security hardening
+- **Security Headers** - CSP, HSTS, XSS protection, frame options
+- **Rate Limiting** - Sophisticated request throttling with burst protection
+- **Audit Logging** - Complete request/response logging for compliance
+- **Input Validation** - Comprehensive request validation
+- **Container Security** - Container-specific security hardening
 
 ### **Security Headers**
 
@@ -153,7 +153,7 @@ Content-Security-Policy: default-src 'self'; ...
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 ```
 
-## 📊 **API Endpoints**
+## **API Endpoints**
 
 ### **Health & Monitoring**
 
@@ -186,7 +186,7 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 | **Households**      | `/api/household/*`          | Multi-user household management   |
 | **Messaging**       | `/api/messaging/*`          | In-app messaging system           |
 
-## 🧪 **Testing**
+## **Testing**
 
 ### **Test Categories**
 
@@ -204,12 +204,12 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### **Test Infrastructure**
 
-- ✅ **xUnit** - Modern .NET testing framework
-- ✅ **FluentAssertions** - Readable test assertions
-- ✅ **Moq** - Mocking framework
-- ✅ **AutoFixture** - Test data generation
-- ✅ **In-Memory Database** - Fast test execution
-- ✅ **WebApplicationFactory** - Integration testing
+- **xUnit** - Modern .NET testing framework
+- **FluentAssertions** - Readable test assertions
+- **Moq** - Mocking framework
+- **AutoFixture** - Test data generation
+- **In-Memory Database** - Fast test execution
+- **WebApplicationFactory** - Integration testing
 
 ### **Integration Tests**
 
@@ -222,7 +222,7 @@ dotnet test --filter "FullyQualifiedName~RecipeManagementIntegrationTests"
 dotnet test --filter "FullyQualifiedName~HouseholdManagementIntegrationTests"
 ```
 
-## 🔍 **Health Monitoring**
+## **Health Monitoring**
 
 ### **Health Check Endpoints**
 
@@ -241,28 +241,28 @@ curl http://localhost:8080/health/live
 
 ### **Health Check Components**
 
-- ✅ **Database Connectivity** - PostgreSQL connection health
-- ✅ **Redis Cache** - Cache service availability (if configured)
-- ✅ **Application Health** - Basic application responsiveness
-- ✅ **External Services** - Third-party service dependencies
+- **Database Connectivity** - PostgreSQL connection health
+- **Redis Cache** - Cache service availability (if configured)
+- **Application Health** - Basic application responsiveness
+- **External Services** - Third-party service dependencies
 
-## 📈 **Performance Features**
+## **Performance Features**
 
 ### **Database Optimization**
 
-- ✅ **Compiled Queries** - Pre-compiled EF queries for performance
-- ✅ **Efficient Loading** - AsNoTracking for read-only operations
-- ✅ **Proper Indexing** - Optimized database indexes
-- ✅ **Connection Pooling** - Efficient database connection management
+- **Compiled Queries** - Pre-compiled EF queries for performance
+- **Efficient Loading** - AsNoTracking for read-only operations
+- **Proper Indexing** - Optimized database indexes
+- **Connection Pooling** - Efficient database connection management
 
 ### **Caching Strategy**
 
-- ✅ **Memory Caching** - In-memory caching for reference data
-- ✅ **Redis Caching** - Distributed caching for sessions
-- ✅ **Cache Invalidation** - Smart cache invalidation strategies
-- ✅ **Performance Monitoring** - Cache hit/miss metrics
+- **Memory Caching** - In-memory caching for reference data
+- **Redis Caching** - Distributed caching for sessions
+- **Cache Invalidation** - Smart cache invalidation strategies
+- **Performance Monitoring** - Cache hit/miss metrics
 
-## 🐳 **Docker Deployment**
+## **Docker Deployment**
 
 ### **Multi-Stage Dockerfile**
 
@@ -280,12 +280,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
 ### **Production Features**
 
-- ✅ **Non-Root User** - Security-hardened container
-- ✅ **Health Checks** - Built-in Docker health checks
-- ✅ **Minimal Base Image** - Optimized for production
-- ✅ **Multi-Architecture** - Supports AMD64 and ARM64
+- **Non-Root User** - Security-hardened container
+- **Health Checks** - Built-in Docker health checks
+- **Minimal Base Image** - Optimized for production
+- **Multi-Architecture** - Supports AMD64 and ARM64
 
-## 🔧 **Development Tools**
+## **Development Tools**
 
 ### **Database Management**
 
@@ -310,21 +310,21 @@ dotnet new webapi -n NewController
 dotnet new classlib -n NewService
 ```
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **API Documentation**
 
-- 📖 **[OpenAPI/Swagger](http://localhost:8080/swagger)** - Interactive API documentation
-- 📋 **[API Reference](../docs/API_REFERENCE.md)** - Complete endpoint documentation
-- 🏛️ **[Architecture Guide](../docs/architecture/csharp-entity-framework-patterns.md)** - Backend patterns
+- **[OpenAPI/Swagger](http://localhost:8080/swagger)** - Interactive API documentation
+- **[API Reference](../docs/API_REFERENCE.md)** - Complete endpoint documentation
+- **[Architecture Guide](../docs/architecture/csharp-entity-framework-patterns.md)** - Backend patterns
 
 ### **Specialized Documentation**
 
-- 🔢 **[Measurement System](README_MEASUREMENT_SYSTEM.md)** - Measurement unit management
-- 📥 **[Data Import](Nom.Import/README_ENHANCED_IMPORT.md)** - Data import utilities
-- 🔒 **[Security Inventory](SECURITY_INVENTORY.md)** - Security implementation details
+- **[Measurement System](README_MEASUREMENT_SYSTEM.md)** - Measurement unit management
+- **[Data Import](Nom.Import/README_ENHANCED_IMPORT.md)** - Data import utilities
+- **[Security Inventory](SECURITY_INVENTORY.md)** - Security implementation details
 
-## 🤝 **Contributing**
+## **Contributing**
 
 ### **Development Standards**
 
@@ -336,11 +336,11 @@ dotnet new classlib -n NewService
 
 ### **Code Quality**
 
-- ✅ **File Separation** - One class per file (strictly enforced)
-- ✅ **Naming Conventions** - Follow established patterns
-- ✅ **Error Handling** - Consistent error responses
-- ✅ **Logging** - Structured logging throughout
-- ✅ **Validation** - Input validation on all endpoints
+- **File Separation** - One class per file (strictly enforced)
+- **Naming Conventions** - Follow established patterns
+- **Error Handling** - Consistent error responses
+- **Logging** - Structured logging throughout
+- **Validation** - Input validation on all endpoints
 
 ## 🆘 **Troubleshooting**
 
@@ -353,10 +353,10 @@ dotnet new classlib -n NewService
 
 ### **Development Support**
 
-- 📚 **Documentation**: [../docs/README.md](../docs/README.md)
-- 🐛 **Troubleshooting**: [../docs/development/troubleshooting.md](../docs/development/troubleshooting.md)
-- 🧪 **Testing Guide**: [../nom-test/README.md](../nom-test/README.md)
+- **Documentation**: [../docs/README.md](../docs/README.md)
+- **Troubleshooting**: [../docs/development/troubleshooting.md](../docs/development/troubleshooting.md)
+- **Testing Guide**: [../nom-test/README.md](../nom-test/README.md)
 
 ---
 
-**The NOM API is production-ready and secure!** 🚀
+**The NOM API is production-ready and secure!** 

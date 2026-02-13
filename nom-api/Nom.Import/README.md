@@ -1,4 +1,4 @@
-# 📥 NOM Import - Data Import & Seeding Utilities
+# NOM Import - Data Import & Seeding Utilities
 
 Data import and seeding utilities for the Nutrition Optimization Machine (NOM), providing comprehensive data management and database initialization capabilities.
 
@@ -6,40 +6,40 @@ Data import and seeding utilities for the Nutrition Optimization Machine (NOM), 
 [![Console App](https://img.shields.io/badge/Type-Console%20App-green.svg)](Program.cs)
 [![Data Management](https://img.shields.io/badge/Purpose-Data%20Import-orange.svg)](#data-import-features)
 
-## 🎯 **Purpose**
+## **Purpose**
 
 The Nom.Import project handles all data import, seeding, and database initialization tasks for the NOM application, including:
 
-- ✅ **Ingredient Data Import** - High-quality ingredient database with nutrition data
-- ✅ **Reference Data Seeding** - System reference data and lookup tables
-- ✅ **Measurement System** - Comprehensive measurement units and conversions
-- ✅ **Database Initialization** - Complete database setup and configuration
-- ✅ **Data Validation** - Quality assurance and data integrity checks
+- **Ingredient Data Import** - High-quality ingredient database with nutrition data
+- **Reference Data Seeding** - System reference data and lookup tables
+- **Measurement System** - Comprehensive measurement units and conversions
+- **Database Initialization** - Complete database setup and configuration
+- **Data Validation** - Quality assurance and data integrity checks
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ### **Project Structure**
 
 ```
 Nom.Import/
-├── 📁 Services/                 # 🔧 Import and seeding services
+├──  Services/                 #  Import and seeding services
 │   ├── IngredientImportService.cs
 │   ├── ReferenceDataSeeder.cs
 │   ├── MeasurementSeeder.cs
 │   └── DatabaseInitializer.cs
-├── 📁 Settings/                 # ⚙️ Configuration and settings
+├──  Settings/                 #  Configuration and settings
 │   ├── ImportSettings.cs
 │   ├── DatabaseSettings.cs
 │   └── ValidationSettings.cs
-├── 📁 DataImportScripts/        # 📄 SQL seeding scripts
+├──  DataImportScripts/        #  SQL seeding scripts
 │   ├── reference_data.sql
 │   ├── measurement_data.sql
 │   └── initial_setup.sql
-├── 📄 Program.cs                # 🚀 Console application entry point
-└── 📄 README_ENHANCED_IMPORT.md # 📚 Enhanced import documentation
+├──  Program.cs                #  Console application entry point
+└──  README_ENHANCED_IMPORT.md #  Enhanced import documentation
 ```
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Running Data Import**
 
@@ -72,33 +72,33 @@ dotnet run --task seed-references
 dotnet run --task import-ingredients --validate
 ```
 
-## 📊 **Data Import Features**
+## **Data Import Features**
 
 ### **Ingredient Database**
 
-- ✅ **8,049 High-Quality Ingredients** - Filtered from 490K+ raw ingredients
-- ✅ **Comprehensive Nutrition Data** - Complete nutritional profiles
-- ✅ **Quality Filtering** - Automated quality assurance and validation
-- ✅ **Duplicate Detection** - Intelligent deduplication algorithms
-- ✅ **Data Enhancement** - AI-powered data enrichment
+- **8,049 High-Quality Ingredients** - Filtered from 490K+ raw ingredients
+- **Comprehensive Nutrition Data** - Complete nutritional profiles
+- **Quality Filtering** - Automated quality assurance and validation
+- **Duplicate Detection** - Intelligent deduplication algorithms
+- **Data Enhancement** - AI-powered data enrichment
 
 ### **Reference Data Management**
 
-- ✅ **System References** - Core application lookup data
-- ✅ **UI Data Conversion** - Dynamic UI reference data (6000-6999 series)
-- ✅ **Measurement Types** - Comprehensive measurement unit system
-- ✅ **Dietary Restrictions** - Complete dietary restriction database
-- ✅ **Cuisine Types** - International cuisine classification
+- **System References** - Core application lookup data
+- **UI Data Conversion** - Dynamic UI reference data (6000-6999 series)
+- **Measurement Types** - Comprehensive measurement unit system
+- **Dietary Restrictions** - Complete dietary restriction database
+- **Cuisine Types** - International cuisine classification
 
 ### **Measurement System Seeding**
 
-- ✅ **Measurement Categories** - Mass, Volume, Count, Temperature, etc.
-- ✅ **Base Units** - Fundamental measurement units (grams, liters, etc.)
-- ✅ **Conversion Rules** - Comprehensive unit conversion matrix
-- ✅ **Ingredient-Specific Units** - Specialized measurement preferences
-- ✅ **Nutrient Standards** - Standard nutrient measurement units
+- **Measurement Categories** - Mass, Volume, Count, Temperature, etc.
+- **Base Units** - Fundamental measurement units (grams, liters, etc.)
+- **Conversion Rules** - Comprehensive unit conversion matrix
+- **Ingredient-Specific Units** - Specialized measurement preferences
+- **Nutrient Standards** - Standard nutrient measurement units
 
-## 🔧 **Configuration**
+## **Configuration**
 
 ### **Connection Strings**
 
@@ -138,7 +138,7 @@ dotnet run --task import-ingredients --validate
 }
 ```
 
-## 📈 **Import Statistics**
+## **Import Statistics**
 
 ### **Data Quality Metrics**
 
@@ -151,12 +151,12 @@ dotnet run --task import-ingredients --validate
 
 ### **Performance Metrics**
 
-- ✅ **Import Speed** - 1,000+ ingredients per minute
-- ✅ **Memory Efficiency** - Optimized for large datasets
-- ✅ **Error Handling** - Graceful failure recovery
-- ✅ **Progress Tracking** - Real-time import progress
+- **Import Speed** - 1,000+ ingredients per minute
+- **Memory Efficiency** - Optimized for large datasets
+- **Error Handling** - Graceful failure recovery
+- **Progress Tracking** - Real-time import progress
 
-## 🔍 **Data Validation**
+## **Data Validation**
 
 ### **Quality Assurance**
 
@@ -176,13 +176,13 @@ public class IngredientValidator
 
 ### **Validation Rules**
 
-- ✅ **Required Fields** - Name, basic nutrients, category
-- ✅ **Nutrient Ranges** - Realistic nutrient value ranges
-- ✅ **Data Consistency** - Cross-field validation
-- ✅ **Format Validation** - Proper data types and formats
-- ✅ **Business Rules** - Domain-specific validation
+- **Required Fields** - Name, basic nutrients, category
+- **Nutrient Ranges** - Realistic nutrient value ranges
+- **Data Consistency** - Cross-field validation
+- **Format Validation** - Proper data types and formats
+- **Business Rules** - Domain-specific validation
 
-## 🛠️ **Available Commands**
+## **Available Commands**
 
 ### **Import Commands**
 
@@ -204,14 +204,14 @@ public class IngredientValidator
 | `--dry-run`    | Simulate import   | false   |
 | `--force`      | Force overwrite   | false   |
 
-## 📊 **Enhanced Import Features**
+## **Enhanced Import Features**
 
 ### **AI-Powered Enhancement**
 
-- ✅ **Data Enrichment** - AI-powered data completion
-- ✅ **Classification** - Automatic ingredient categorization
-- ✅ **Standardization** - Consistent naming and formatting
-- ✅ **Duplicate Detection** - Advanced similarity matching
+- **Data Enrichment** - AI-powered data completion
+- **Classification** - Automatic ingredient categorization
+- **Standardization** - Consistent naming and formatting
+- **Duplicate Detection** - Advanced similarity matching
 
 ### **Advanced Filtering**
 
@@ -226,7 +226,7 @@ public class QualityFilter
 }
 ```
 
-## 🧪 **Testing**
+## **Testing**
 
 ### **Import Testing**
 
@@ -254,22 +254,22 @@ dotnet run --task test-measurements
 dotnet run --task integrity-check
 ```
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **Specialized Guides**
 
-- 📥 **[Enhanced Import Guide](README_ENHANCED_IMPORT.md)** - Detailed import procedures
-- 🔢 **[Measurement System](../README_MEASUREMENT_SYSTEM.md)** - Measurement unit system
-- 🏛️ **[Architecture Guide](../../docs/architecture/system-architecture.md)** - System architecture
+- **[Enhanced Import Guide](README_ENHANCED_IMPORT.md)** - Detailed import procedures
+- **[Measurement System](../README_MEASUREMENT_SYSTEM.md)** - Measurement unit system
+- **[Architecture Guide](../../docs/architecture/system-architecture.md)** - System architecture
 
 ### **Data Sources**
 
-- 🥗 **USDA Food Data Central** - Primary nutrition data source
-- 🌍 **International Food Composition** - Global food database
-- 🏪 **Commercial Food Products** - Branded food items
-- 👥 **Community Contributions** - User-submitted data
+- **USDA Food Data Central** - Primary nutrition data source
+- **International Food Composition** - Global food database
+- **Commercial Food Products** - Branded food items
+- **Community Contributions** - User-submitted data
 
-## 🔧 **Development**
+## **Development**
 
 ### **Adding New Import Sources**
 
@@ -295,21 +295,21 @@ public class CustomTransformer : IDataTransformer
 }
 ```
 
-## 🔒 **Security Considerations**
+## **Security Considerations**
 
 ### **Data Security**
 
-- ✅ **Connection Security** - Encrypted database connections
-- ✅ **Input Validation** - Comprehensive data validation
-- ✅ **Access Control** - Restricted import permissions
-- ✅ **Audit Logging** - Complete import audit trail
+- **Connection Security** - Encrypted database connections
+- **Input Validation** - Comprehensive data validation
+- **Access Control** - Restricted import permissions
+- **Audit Logging** - Complete import audit trail
 
 ### **Data Privacy**
 
-- ✅ **No Personal Data** - Only public food/nutrition data
-- ✅ **Source Attribution** - Proper data source attribution
-- ✅ **License Compliance** - Compliance with data licenses
-- ✅ **Data Retention** - Appropriate data retention policies
+- **No Personal Data** - Only public food/nutrition data
+- **Source Attribution** - Proper data source attribution
+- **License Compliance** - Compliance with data licenses
+- **Data Retention** - Appropriate data retention policies
 
 ## 🆘 **Troubleshooting**
 
@@ -342,7 +342,7 @@ public class CustomTransformer : IDataTransformer
 - **Network Issues** - Check database connectivity
 - **Disk Space** - Ensure adequate storage
 
-## 🤝 **Contributing**
+## **Contributing**
 
 ### **Development Guidelines**
 
@@ -354,12 +354,12 @@ public class CustomTransformer : IDataTransformer
 
 ### **Code Quality**
 
-- ✅ **Error Handling** - Comprehensive exception handling
-- ✅ **Logging** - Structured logging throughout
-- ✅ **Performance** - Optimized for large datasets
-- ✅ **Maintainability** - Clean, readable code
-- ✅ **Testing** - Comprehensive test coverage
+- **Error Handling** - Comprehensive exception handling
+- **Logging** - Structured logging throughout
+- **Performance** - Optimized for large datasets
+- **Maintainability** - Clean, readable code
+- **Testing** - Comprehensive test coverage
 
 ---
 
-**The NOM Import system ensures high-quality, comprehensive data for the application!** 📊
+**The NOM Import system ensures high-quality, comprehensive data for the application!** 

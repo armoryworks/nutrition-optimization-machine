@@ -2,7 +2,7 @@
 
 > **Version**: 1.0.0
 > **Last Updated**: January 2026
-> **Status**: ✅ Complete
+> **Status**:  Complete
 
 This style guide documents the standardized UI patterns, SCSS architecture, and accessibility guidelines for the NOM application.
 
@@ -266,11 +266,11 @@ This automatically disables animations for users with `prefers-reduced-motion: r
 ### WCAG 2.1 AA Compliance
 
 All components must meet WCAG 2.1 AA standards:
-- ✅ Color contrast ratio of 4.5:1 for normal text
-- ✅ Color contrast ratio of 3:1 for large text
-- ✅ Keyboard navigation support
-- ✅ Screen reader compatibility
-- ✅ Touch target size of 44x44px minimum
+- Color contrast ratio of 4.5:1 for normal text
+- Color contrast ratio of 3:1 for large text
+- Keyboard navigation support
+- Screen reader compatibility
+- Touch target size of 44x44px minimum
 
 ### ARIA Patterns
 
@@ -357,14 +357,14 @@ The skip link is hidden by default and appears on focus.
 
 ### Semantic HTML
 
-✅ **DO**:
+ **DO**:
 - Use `<button>` for clickable elements
 - Use `<nav>` for navigation sections
 - Use `<main>` for primary content
 - Use `<header>` and `<footer>` for page sections
 - Use proper heading hierarchy (`<h1>` → `<h2>` → `<h3>`)
 
-❌ **DON'T**:
+ **DON'T**:
 - Don't use `<div>` with `(click)` handlers
 - Don't skip heading levels
 - Don't use `<span>` for interactive elements
@@ -441,10 +441,10 @@ The skip link is hidden by default and appears on focus.
 ```
 
 **Benefits**:
-- ✅ Removed 3 unnecessary wrapper divs
-- ✅ Eliminated 15 lines of duplicated SCSS
-- ✅ Added proper ARIA attributes
-- ✅ Improved maintainability
+- Removed 3 unnecessary wrapper divs
+- Eliminated 15 lines of duplicated SCSS
+- Added proper ARIA attributes
+- Improved maintainability
 
 ---
 
@@ -452,7 +452,7 @@ The skip link is hidden by default and appears on focus.
 
 ### HTML Structure
 
-#### ❌ DON'T: Single-child container wrappers
+#### DON'T: Single-child container wrappers
 
 ```html
 <!-- BAD: Unnecessary wrapper -->
@@ -461,7 +461,7 @@ The skip link is hidden by default and appears on focus.
 </div>
 ```
 
-#### ✅ DO: Direct component usage
+#### DO: Direct component usage
 
 ```html
 <!-- GOOD: Clean structure -->
@@ -470,7 +470,7 @@ The skip link is hidden by default and appears on focus.
 
 ---
 
-#### ❌ DON'T: Nested empty state wrappers
+#### DON'T: Nested empty state wrappers
 
 ```html
 <!-- BAD: Unnecessary nesting -->
@@ -482,7 +482,7 @@ The skip link is hidden by default and appears on focus.
 </div>
 ```
 
-#### ✅ DO: Flat empty state structure
+#### DO: Flat empty state structure
 
 ```html
 <!-- GOOD: Flat structure with ARIA -->
@@ -494,7 +494,7 @@ The skip link is hidden by default and appears on focus.
 
 ---
 
-#### ❌ DON'T: Interactive divs
+#### DON'T: Interactive divs
 
 ```html
 <!-- BAD: Non-semantic, poor accessibility -->
@@ -504,7 +504,7 @@ The skip link is hidden by default and appears on focus.
 </div>
 ```
 
-#### ✅ DO: Semantic buttons
+#### DO: Semantic buttons
 
 ```html
 <!-- GOOD: Semantic, accessible -->
@@ -518,7 +518,7 @@ The skip link is hidden by default and appears on focus.
 
 ### SCSS Patterns
 
-#### ❌ DON'T: Duplicate centering patterns
+#### DON'T: Duplicate centering patterns
 
 ```scss
 // BAD: Duplicated 40+ times across codebase
@@ -532,7 +532,7 @@ The skip link is hidden by default and appears on focus.
 }
 ```
 
-#### ✅ DO: Use utility mixins
+#### DO: Use utility mixins
 
 ```scss
 // GOOD: Reusable mixin
@@ -547,7 +547,7 @@ The skip link is hidden by default and appears on focus.
 
 ---
 
-#### ❌ DON'T: Hardcoded transitions
+#### DON'T: Hardcoded transitions
 
 ```scss
 // BAD: Doesn't respect user preferences
@@ -558,7 +558,7 @@ The skip link is hidden by default and appears on focus.
 }
 ```
 
-#### ✅ DO: Use transition mixin
+#### DO: Use transition mixin
 
 ```scss
 // GOOD: Respects prefers-reduced-motion
@@ -573,7 +573,7 @@ The skip link is hidden by default and appears on focus.
 
 ### Accessibility
 
-#### ❌ DON'T: Missing ARIA attributes
+#### DON'T: Missing ARIA attributes
 
 ```html
 <!-- BAD: No accessibility support -->
@@ -583,7 +583,7 @@ The skip link is hidden by default and appears on focus.
 }
 ```
 
-#### ✅ DO: Complete ARIA support
+#### DO: Complete ARIA support
 
 ```html
 <!-- GOOD: Full accessibility -->
@@ -660,7 +660,7 @@ npm run test:a11y
 
 ### Success Criteria
 
-✅ **Component is ready when**:
+ **Component is ready when**:
 - Lighthouse Accessibility score >95
 - Zero critical/serious axe-core violations
 - Full keyboard navigation works without mouse
@@ -688,4 +688,4 @@ For questions about this style guide or to suggest improvements, please:
 
 ---
 
-**Generated with Claude Code** 🤖
+**Generated with Claude Code** 

@@ -74,7 +74,7 @@ public class PersonOrchestrationService : IPersonOrchestrationService
 **Include Pattern:**
 
 ```csharp
-// ✅ CORRECT: Use Include for related data
+//  CORRECT: Use Include for related data
 var person = await _dbContext.Persons
     .Include(p => p.Attributes)
     .Include(p => p.Restrictions)
@@ -86,7 +86,7 @@ var person = await _dbContext.Persons
 **Projection Pattern:**
 
 ```csharp
-// ✅ CORRECT: Use Select for efficient projections
+//  CORRECT: Use Select for efficient projections
 var personModels = await _dbContext.Persons
     .Where(p => p.PlanParticipations.Any(pp => pp.PlanId == planId))
     .Select(p => new PersonModel
@@ -102,7 +102,7 @@ var personModels = await _dbContext.Persons
 **Filtering Pattern:**
 
 ```csharp
-// ✅ CORRECT: Use Where for efficient filtering
+//  CORRECT: Use Where for efficient filtering
 var activePersons = await _dbContext.Persons
     .Where(p => p.UserId != null && p.CreatedDate >= DateTime.UtcNow.AddDays(-30))
     .ToListAsync();
@@ -149,7 +149,7 @@ public async Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel
 **Transaction Patterns:**
 
 ```csharp
-// ✅ CORRECT: Explicit transaction management
+//  CORRECT: Explicit transaction management
 public async Task<bool> TransferPersonAsync(long fromPersonId, long toPersonId)
 {
     using var transaction = await _dbContext.Database.BeginTransactionAsync();

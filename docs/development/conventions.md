@@ -16,7 +16,7 @@ This document outlines the comprehensive conventions, patterns, and standards us
 10. [Security & Privacy Conventions](#security--privacy-conventions)
 11. [Forbidden Patterns](#forbidden-patterns)
 
-## ✅ COMPLETED: TypeScript File Splitting
+## COMPLETED: TypeScript File Splitting
 
 **STATUS: COMPLETED** - All TypeScript files have been successfully split to follow the 1:1 convention.
 
@@ -36,7 +36,7 @@ This document outlines the comprehensive conventions, patterns, and standards us
 
 ## Critical Naming Rules
 
-### 🚨 CRITICAL: NO DTO SUFFIXES ALLOWED
+### CRITICAL: NO DTO SUFFIXES ALLOWED
 
 **NEVER USE** `DTO`, `Dto`, or `dto` suffixes in any model or data transport class.
 
@@ -49,12 +49,12 @@ This document outlines the comprehensive conventions, patterns, and standards us
 **Examples:**
 
 ```typescript
-// ✅ CORRECT
+//  CORRECT
 export class PersonModel {}
 export class OnboardingCompleteRequestModel {}
 export class ApiResponseCommonModel {}
 
-// ❌ FORBIDDEN
+//  FORBIDDEN
 export class PersonDTO {}
 export class OnboardingCompleteRequestDto {}
 export class ApiResponseDto {}
@@ -514,15 +514,15 @@ All desktop interfaces MUST use compact header patterns that place title, subtit
 
 **Examples of Interfaces Requiring Compact Headers:**
 
-- Curation Queue ✅ (Completed) - Uses Base-List Integration Pattern
-- Recipe Management 🔄 (TODO: Implement compact header)
-- User Management 🔄 (TODO: Implement compact header)
-- Household Management 🔄 (TODO: Implement compact header)
-- Dashboard 🔄 (TODO: Implement compact header)
-- Recipe Search 🔄 (TODO: Implement compact header)
-- Meal Plan Management 🔄 (TODO: Implement compact header)
-- Shopping Lists 🔄 (TODO: Implement compact header)
-- Profile Management 🔄 (TODO: Implement compact header)
+- Curation Queue  (Completed) - Uses Base-List Integration Pattern
+- Recipe Management  (TODO: Implement compact header)
+- User Management  (TODO: Implement compact header)
+- Household Management  (TODO: Implement compact header)
+- Dashboard  (TODO: Implement compact header)
+- Recipe Search  (TODO: Implement compact header)
+- Meal Plan Management  (TODO: Implement compact header)
+- Shopping Lists  (TODO: Implement compact header)
+- Profile Management  (TODO: Implement compact header)
 
 **TODO: Compact Header Implementation Priority**
 
@@ -534,15 +534,15 @@ All desktop interfaces MUST use compact header patterns that place title, subtit
 
 **For List Interfaces (extending BaseListComponent):**
 
-- ✅ **Use Base-List Integration Pattern** (like Curation Queue)
-- ✅ **Extend BaseListConfig** with stats, progress, custom actions
-- ✅ **Eliminate duplicate headers** by integrating into base-list
+- **Use Base-List Integration Pattern** (like Curation Queue)
+- **Extend BaseListConfig** with stats, progress, custom actions
+- **Eliminate duplicate headers** by integrating into base-list
 
 **For Other Interfaces:**
 
-- 🔄 **Use Direct Component Implementation Pattern**
-- 🔄 **Create custom compact header layouts**
-- 🔄 **Follow the same three-section structure**
+- **Use Direct Component Implementation Pattern**
+- **Create custom compact header layouts**
+- **Follow the same three-section structure**
 
 ### **Base-List Integration Pattern (Recommended for List Interfaces)**
 
@@ -587,11 +587,11 @@ listConfig: BaseListConfig = {
 
 **Benefits:**
 
-- ✅ **No duplicate headers** - Single source of truth
-- ✅ **Consistent styling** - Uses base-list component styles
-- ✅ **Reusable pattern** - Can be applied to other list interfaces
-- ✅ **Better maintainability** - Centralized header logic
-- ✅ **Space efficiency** - Eliminates vertical waste
+- **No duplicate headers** - Single source of truth
+- **Consistent styling** - Uses base-list component styles
+- **Reusable pattern** - Can be applied to other list interfaces
+- **Better maintainability** - Centralized header logic
+- **Space efficiency** - Eliminates vertical waste
 
 ### **Control Buttons Pattern (Curation Interfaces)**
 
@@ -639,11 +639,11 @@ listConfig: BaseListConfig = {
 
 **Benefits:**
 
-- ✅ **Always visible** - Controls never hidden by scrolling
-- ✅ **Quick access** - Primary actions in header
-- ✅ **Context-aware** - Automatically disabled when invalid
-- ✅ **Consistent layout** - Same position across interfaces
-- ✅ **Logical grouping** - Control actions grouped with navigation actions
+- **Always visible** - Controls never hidden by scrolling
+- **Quick access** - Primary actions in header
+- **Context-aware** - Automatically disabled when invalid
+- **Consistent layout** - Same position across interfaces
+- **Logical grouping** - Control actions grouped with navigation actions
 
 ### **Compact Header Stats Pattern (List Interfaces)**
 
@@ -678,10 +678,10 @@ listConfig: BaseListConfig = {
 
 **Benefits:**
 
-- ✅ **Space efficient** - Reduces header height by 50%
-- ✅ **Better information density** - More data in less space
-- ✅ **Improved scanability** - Related information grouped together
-- ✅ **Responsive design** - Adapts to different screen sizes
+- **Space efficient** - Reduces header height by 50%
+- **Better information density** - More data in less space
+- **Improved scanability** - Related information grouped together
+- **Responsive design** - Adapts to different screen sizes
 
 ### **Accordion Content Pattern (Content Organization)**
 
@@ -733,12 +733,12 @@ listConfig: BaseListConfig = {
 
 **Benefits:**
 
-- ✅ **Space efficient** - Reduces vertical scrolling
-- ✅ **Better organization** - Groups related information
-- ✅ **Improved scanability** - Users can focus on relevant sections
-- ✅ **Consistent styling** - Material Design 3 accordion theming
-- ✅ **Scrollable content** - Long content contained within viewport constraints
-- ✅ **Custom scrollbars** - Consistent with Material Design 3 theming
+- **Space efficient** - Reduces vertical scrolling
+- **Better organization** - Groups related information
+- **Improved scanability** - Users can focus on relevant sections
+- **Consistent styling** - Material Design 3 accordion theming
+- **Scrollable content** - Long content contained within viewport constraints
+- **Custom scrollbars** - Consistent with Material Design 3 theming
 
 ### **Horizontal Form Fields Pattern (Space Efficiency)**
 
@@ -785,14 +785,14 @@ listConfig: BaseListConfig = {
 
 **Benefits:**
 
-- ✅ **Space efficient** - Reduces vertical form height
-- ✅ **Better organization** - Related fields grouped horizontally
-- ✅ **Responsive** - Stacks vertically on mobile devices
-- ✅ **Equal width distribution** - Each field gets 50% of available width
+- **Space efficient** - Reduces vertical form height
+- **Better organization** - Related fields grouped horizontally
+- **Responsive** - Stacks vertically on mobile devices
+- **Equal width distribution** - Each field gets 50% of available width
 
 ### **Universal Scrolling Pattern (Footer Collision Prevention)**
 
-**🚨 CRITICAL: Universal Rule for All Components**
+** CRITICAL: Universal Rule for All Components**
 
 **When to Use:**
 
@@ -919,14 +919,14 @@ When any component content approaches the footer at 10px above it, the content m
 
 **Benefits:**
 
-- ✅ **Prevents content cutoff** - Content never gets hidden by footer
-- ✅ **Fixed navigation** - Headers and controls always accessible
-- ✅ **Consistent UX** - Same behavior across all components
-- ✅ **Responsive** - Adapts to different screen sizes
-- ✅ **Accessible** - Custom scrollbar styling
-- ✅ **Reusable** - Single utility class system
-- ✅ **Action preservation** - Bottom buttons always visible
-- ✅ **Focused scrolling** - Only content scrolls, headers stay put
+- **Prevents content cutoff** - Content never gets hidden by footer
+- **Fixed navigation** - Headers and controls always accessible
+- **Consistent UX** - Same behavior across all components
+- **Responsive** - Adapts to different screen sizes
+- **Accessible** - Custom scrollbar styling
+- **Reusable** - Single utility class system
+- **Action preservation** - Bottom buttons always visible
+- **Focused scrolling** - Only content scrolls, headers stay put
 
 **Migration Requirements:**
 
@@ -1014,11 +1014,11 @@ When any component content approaches the footer at 10px above it, the content m
 
 **Benefits:**
 
-- ✅ **Clean header layout** - Actions organized in logical groups
-- ✅ **Space efficient** - Control buttons consolidated in context menu
-- ✅ **Better UX** - Related actions grouped together
-- ✅ **Responsive design** - Adapts to different screen sizes
-- ✅ **Material Design 3** - Consistent with design system
+- **Clean header layout** - Actions organized in logical groups
+- **Space efficient** - Control buttons consolidated in context menu
+- **Better UX** - Related actions grouped together
+- **Responsive design** - Adapts to different screen sizes
+- **Material Design 3** - Consistent with design system
 
 ### Angular Component Structure
 
@@ -1030,16 +1030,16 @@ All Angular components MUST have their HTML templates in separate `.html` files.
 @Component({
   selector: "nom-person-edit",
   standalone: true,
-  templateUrl: './person-edit.component.html',  // ✅ REQUIRED
+  templateUrl: './person-edit.component.html',  //  REQUIRED
   styleUrls: ['./person-edit.component.scss']
 })
 ```
 
-**❌ FORBIDDEN:**
+** FORBIDDEN:**
 
 ```typescript
 @Component({
-  template: `...`  // ❌ NEVER use inline templates
+  template: `...`  //  NEVER use inline templates
 })
 ```
 
@@ -1049,7 +1049,7 @@ All Angular components MUST have their HTML templates in separate `.html` files.
 
 All components MUST use the modern Angular control flow syntax instead of structural directives.
 
-#### ✅ REQUIRED: Modern Control Flow
+#### REQUIRED: Modern Control Flow
 
 ```html
 <!-- Conditional Rendering -->
@@ -1090,10 +1090,10 @@ All components MUST use the modern Angular control flow syntax instead of struct
 }
 ```
 
-#### ❌ FORBIDDEN: Structural Directives
+#### FORBIDDEN: Structural Directives
 
 ```html
-<!-- ❌ NEVER use these -->
+<!--  NEVER use these -->
 <div *ngIf="condition">Content</div>
 <div *ngFor="let item of items">Content</div>
 <div *ngSwitch="value">Content</div>
@@ -1176,7 +1176,7 @@ export class PersonEditComponent implements OnInit {
 ### Model Instantiation Pattern
 
 ```typescript
-// ✅ CORRECT: Explicit property-by-property assignment
+//  CORRECT: Explicit property-by-property assignment
 export class PersonModel implements IPersonModel {
   id?: number;
   name: string;
@@ -1497,7 +1497,7 @@ services.AddAuthentication(options =>
 
 ## File Structure Conventions
 
-### 🚨 CRITICAL: Atomic File Organization
+### CRITICAL: Atomic File Organization
 
 **ALWAYS PLACE** each class, interface, and enum in its own separate file.
 
@@ -1510,26 +1510,26 @@ services.AddAuthentication(options =>
 **Examples:**
 
 ```typescript
-// ✅ CORRECT: Single class per file
+//  CORRECT: Single class per file
 // person.model.ts
 export class PersonModel {
   // Person model implementation
 }
 
-// ✅ CORRECT: Single interface per file
+//  CORRECT: Single interface per file
 // person.model.interface.ts
 export interface IPersonModel {
   // Person interface definition
 }
 
-// ✅ CORRECT: Single enum per file
+//  CORRECT: Single enum per file
 // person-status.enum.ts
 export enum PersonStatus {
   Active = "active",
   Inactive = "inactive",
 }
 
-// ❌ FORBIDDEN: Multiple classes in one file
+//  FORBIDDEN: Multiple classes in one file
 // person.ts - DON'T DO THIS
 export class PersonModel {}
 export class PersonService {}
@@ -1538,21 +1538,21 @@ export enum PersonStatus {}
 ```
 
 ```csharp
-// ✅ CORRECT: Single class per file
+//  CORRECT: Single class per file
 // PersonEntity.cs
 public class PersonEntity : BaseEntity
 {
     // Person entity implementation
 }
 
-// ✅ CORRECT: Single interface per file
+//  CORRECT: Single interface per file
 // IPersonOrchestrationService.cs
 public interface IPersonOrchestrationService
 {
     // Service contract definition
 }
 
-// ✅ CORRECT: Single enum per file
+//  CORRECT: Single enum per file
 // PersonStatusEnum.cs
 public enum PersonStatusEnum
 {
@@ -1560,7 +1560,7 @@ public enum PersonStatusEnum
     Inactive
 }
 
-// ❌ FORBIDDEN: Multiple classes in one file
+//  FORBIDDEN: Multiple classes in one file
 // Person.cs - DON'T DO THIS
 public class PersonEntity { }
 public class PersonService { }
@@ -1587,23 +1587,23 @@ public enum PersonStatus { }
 **ALWAYS IMPORT DIRECTLY** from the specific model file:
 
 ```typescript
-// ✅ CORRECT: Direct imports
+//  CORRECT: Direct imports
 import { HouseholdModel } from "./models/household.model";
 import { IHouseholdModel } from "./models/household.model.interface";
 import { MealPlanCreateRequestModel } from "./models/meal-plan-create-request.model";
 import { IMealPlanCreateRequestModel } from "./models/meal-plan-create-request.model.interface";
 
-// ❌ FORBIDDEN: Barrel file imports
+//  FORBIDDEN: Barrel file imports
 import { HouseholdModel } from "./models/household.classes";
 import { IHouseholdModel } from "./models/household.interfaces";
 ```
 
 **NEVER CREATE** centralized export files (barrel files) for models:
 
-- ❌ `household.classes.ts`
-- ❌ `household.interfaces.ts`
-- ❌ `meal-plan.classes.ts`
-- ❌ `meal-plan.interfaces.ts`
+- `household.classes.ts`
+- `household.interfaces.ts`
+- `meal-plan.classes.ts`
+- `meal-plan.interfaces.ts`
 
 **WHY AVOID BARREL FILES FOR MODELS:**
 
@@ -1617,26 +1617,26 @@ import { IHouseholdModel } from "./models/household.interfaces";
 **EXAMPLES:**
 
 ```typescript
-// ✅ CORRECT: Model class file
+//  CORRECT: Model class file
 // household.model.ts
 export class HouseholdModel implements IHouseholdModel {
   // Implementation
 }
 
-// ✅ CORRECT: Model interface file
+//  CORRECT: Model interface file
 // household.model.interface.ts
 export interface IHouseholdModel {
   // Interface definition
 }
 
-// ✅ CORRECT: Request model
+//  CORRECT: Request model
 // household-create-request.model.ts
 export class HouseholdCreateRequestModel
   implements IHouseholdCreateRequestModel {
   // Implementation
 }
 
-// ✅ CORRECT: Request interface
+//  CORRECT: Request interface
 // household-create-request.model.interface.ts
 export interface IHouseholdCreateRequestModel {
   // Interface definition
@@ -1782,7 +1782,7 @@ export class NotificationService {
 **DOMAIN SERVICES** handle specific business domain API calls:
 
 ```typescript
-// ✅ CORRECT: Domain service (AuthService)
+//  CORRECT: Domain service (AuthService)
 @Injectable({ providedIn: "root" })
 export class AuthService {
   private readonly apiUrl = "/api/auth";
@@ -1805,7 +1805,7 @@ export class AuthService {
 **UTILITY SERVICES** handle cross-cutting concerns and state management:
 
 ```typescript
-// ✅ CORRECT: Utility service (AuthManagerService)
+//  CORRECT: Utility service (AuthManagerService)
 @Injectable({ providedIn: "root" })
 export class AuthManagerService {
   public userLogin = new BehaviorSubject<boolean>(false);
@@ -1950,7 +1950,7 @@ public class DataProcessingLogEntity : BaseEntity
 
 ### Naming Conventions
 
-| ❌ NEVER USE                                           | ✅ ALWAYS USE                                                     |
+|  NEVER USE                                           |  ALWAYS USE                                                     |
 | ------------------------------------------------------ | ----------------------------------------------------------------- |
 | `DTO`, `Dto`, `dto` suffixes                           | `Model`, `Request`, `Response` suffixes                           |
 | Hungarian notation (`strUserName`, `intCount`)         | Descriptive, full words (`ConsentManagementService`)              |
@@ -1959,7 +1959,7 @@ public class DataProcessingLogEntity : BaseEntity
 
 ### Code Patterns
 
-| ❌ AVOID                           | ✅ PREFER                                 |
+|  AVOID                           |  PREFER                                 |
 | ---------------------------------- | ----------------------------------------- |
 | Direct DOM manipulation in Angular | Angular's data binding and reactive forms |
 | Complex logic in HTML templates    | TypeScript methods and getters            |
@@ -1970,7 +1970,7 @@ public class DataProcessingLogEntity : BaseEntity
 
 ### Security Anti-Patterns
 
-| ❌ NEVER DO                                | ✅ ALWAYS DO                      |
+|  NEVER DO                                |  ALWAYS DO                      |
 | ------------------------------------------ | --------------------------------- |
 | Store sensitive data in localStorage       | Use secure HTTP-only cookies      |
 | Trust client-side validation               | Implement server-side validation  |
@@ -1981,7 +1981,7 @@ public class DataProcessingLogEntity : BaseEntity
 
 ### User ID Security Requirements
 
-**🚨 CRITICAL: NEVER pass user identification of the in-context user from frontend to backend**
+** CRITICAL: NEVER pass user identification of the in-context user from frontend to backend**
 
 **Security Principle:**
 
@@ -1998,27 +1998,27 @@ public class DataProcessingLogEntity : BaseEntity
 - **Services**: Accept `long currentPersonId` as a parameter from the controller
 - **Entities**: Set `AuthorId`, `CreatedByPersonId` from the service parameter, not from request models
 
-**❌ FORBIDDEN Patterns:**
+** FORBIDDEN Patterns:**
 
 ```typescript
 // Frontend models - NEVER include user ID fields
 export interface RecipeCreateModel {
   name: string;
   description: string;
-  authorId: number; // ❌ FORBIDDEN - Remove this field
-  personId: number; // ❌ FORBIDDEN - Remove this field
+  authorId: number; //  FORBIDDEN - Remove this field
+  personId: number; //  FORBIDDEN - Remove this field
   ingredients: string[];
 }
 
 // Frontend components - NEVER set user ID in requests
 const request = {
   name: "My Recipe",
-  authorId: currentUser.id, // ❌ FORBIDDEN - Remove this assignment
-  personId: currentUser.personId, // ❌ FORBIDDEN - Remove this assignment
+  authorId: currentUser.id, //  FORBIDDEN - Remove this assignment
+  personId: currentUser.personId, //  FORBIDDEN - Remove this assignment
 };
 ```
 
-**✅ REQUIRED Patterns:**
+** REQUIRED Patterns:**
 
 **Backend - Getting In-Context User ID:**
 
@@ -2026,7 +2026,7 @@ const request = {
 // In Controllers - Use base controller method
 public async Task<ActionResult<RecipeModel>> CreateRecipe([FromBody] RecipeCreateRequest request)
 {
-    var currentPersonId = GetCurrentPersonIdRequired(); // ✅ Gets authenticated user's person ID
+    var currentPersonId = GetCurrentPersonIdRequired(); //  Gets authenticated user's person ID
     var recipe = await _recipeService.CreateAsync(request, currentPersonId);
     return Ok(recipe);
 }
@@ -2037,7 +2037,7 @@ public async Task<RecipeModel> CreateAsync(RecipeCreateRequest request, long cur
     var recipe = new RecipeEntity
     {
         Name = request.Name,
-        AuthorId = currentPersonId, // ✅ Set from parameter, not from request
+        AuthorId = currentPersonId, //  Set from parameter, not from request
         CreatedByPersonId = currentPersonId
     };
     // ... rest of implementation
@@ -2052,20 +2052,20 @@ export interface RecipeCreateModel {
   name: string;
   description: string;
   ingredients: string[];
-  // ✅ Clean - No in-context user ID fields
+  //  Clean - No in-context user ID fields
 }
 
 // Frontend models - CAN include other user IDs when referencing someone else
 export interface InvitationClaimModel {
   invitationCode: string;
-  inviteePersonId: number; // ✅ Acceptable - This is someone else's ID
+  inviteePersonId: number; //  Acceptable - This is someone else's ID
 }
 
 // Frontend components - Only send business data
 const request = {
   name: "My Recipe",
   ingredients: ["flour", "sugar"],
-  // ✅ Clean - No user ID assignment
+  //  Clean - No user ID assignment
 };
 ```
 
@@ -2082,10 +2082,10 @@ const request = {
 
 **Important Distinction:**
 
-- **❌ FORBIDDEN**: `authorId: number` - Numeric user ID that could be manipulated
-- **✅ ACCEPTABLE**: `authorName: string` - Display name for showing who created content
-- **❌ FORBIDDEN**: `CreatedById: number` - Numeric user ID in request payloads
-- **✅ ACCEPTABLE**: `creatorName: string` - Display name in response models
+- ** FORBIDDEN**: `authorId: number` - Numeric user ID that could be manipulated
+- ** ACCEPTABLE**: `authorName: string` - Display name for showing who created content
+- ** FORBIDDEN**: `CreatedById: number` - Numeric user ID in request payloads
+- ** ACCEPTABLE**: `creatorName: string` - Display name in response models
 
 **Why This Matters:**
 
@@ -2108,14 +2108,14 @@ const request = {
 ### Theme Variable Examples
 
 ```scss
-// ✅ CORRECT: Using theme variables
+//  CORRECT: Using theme variables
 .nom-card {
   background-color: var(--mat-sys-surface-container);
   color: var(--mat-sys-on-surface);
   box-shadow: 0 4px 8px rgba(var(--mat-sys-shadow), 0.1);
 }
 
-// ❌ FORBIDDEN: Hardcoded values
+//  FORBIDDEN: Hardcoded values
 .nom-card {
   background-color: #ffffff;
   color: #000000;
@@ -2392,10 +2392,10 @@ check_file() {
     local file=$1
     local description=$2
     if [ -f "$file" ]; then
-        print_status $GREEN "✅ $description: $file"
+        print_status $GREEN " $description: $file"
         return 0
     else
-        print_status $RED "❌ $description: $file (NOT FOUND)"
+        print_status $RED " $description: $file (NOT FOUND)"
         return 1
     fi
 }
@@ -2524,7 +2524,7 @@ body {
 
 ## Reference Domain Usage Conventions
 
-### 🚨 CRITICAL: Reference Domain Integration
+### CRITICAL: Reference Domain Integration
 
 **ALWAYS USE** the Reference domain structure for any categorical, type, or classification data throughout the entire application stack.
 
@@ -2539,7 +2539,7 @@ body {
 ### Reference Domain Pattern
 
 ```csharp
-// ✅ CORRECT: Using Reference domain structure
+//  CORRECT: Using Reference domain structure
 public class RecipeTimelineEventEntity : BaseEntity
 {
     [Required]
@@ -2562,7 +2562,7 @@ public class RecipeTimelineEventEntity : BaseEntity
     public DateTime EventDate { get; set; }
 }
 
-// ✅ CORRECT: Model using Reference ID
+//  CORRECT: Model using Reference ID
 public class RecipeTimelineEventCreateModel
 {
     [Required(ErrorMessage = "Recipe ID is required.")]
@@ -2581,7 +2581,7 @@ public class RecipeTimelineEventCreateModel
     public DateTime EventDate { get; set; } = DateTime.UtcNow;
 }
 
-// ✅ CORRECT: Response model with Reference data
+//  CORRECT: Response model with Reference data
 public class RecipeTimelineEventResponseModel
 {
     public long Id { get; set; }
@@ -2600,7 +2600,7 @@ public class RecipeTimelineEventResponseModel
 ### Frontend Reference Integration
 
 ```typescript
-// ✅ CORRECT: TypeScript interfaces using Reference IDs
+//  CORRECT: TypeScript interfaces using Reference IDs
 export interface RecipeTimelineEventModel {
   id: number;
   recipeId: number;
@@ -2622,7 +2622,7 @@ export interface RecipeTimelineEventCreateModel {
   eventDate: Date;
 }
 
-// ✅ CORRECT: Service methods using Reference IDs
+//  CORRECT: Service methods using Reference IDs
 @Injectable({
   providedIn: "root",
 })
@@ -2645,7 +2645,7 @@ export class RecipeTimelineService {
 ### Reference Data Seeding Pattern
 
 ```csharp
-// ✅ CORRECT: Seeding Reference data with specific IDs
+//  CORRECT: Seeding Reference data with specific IDs
 public static void SeedRecipeEventTypes(MigrationBuilder migrationBuilder)
 {
     // Recipe Timeline Event Types (10000-10099)
@@ -2700,7 +2700,7 @@ public static void SeedRecipeEventTypes(MigrationBuilder migrationBuilder)
 
 ### Forbidden Patterns
 
-| ❌ NEVER USE                                    | ✅ ALWAYS USE                           |
+|  NEVER USE                                    |  ALWAYS USE                           |
 | ----------------------------------------------- | --------------------------------------- |
 | `public string EventType { get; set; }`         | `public long EventTypeId { get; set; }` |
 | `public enum RecipeStatus { Draft, Published }` | Reference domain with seeded data       |

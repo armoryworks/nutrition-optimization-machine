@@ -1,4 +1,4 @@
-# 🎨 NOM UI - Frontend Application
+# NOM UI - Frontend Application
 
 The frontend application for the Nutrition Optimization Machine (NOM), built with Angular 17+ and Material Design 3.
 
@@ -7,38 +7,38 @@ The frontend application for the Nutrition Optimization Machine (NOM), built wit
 [![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](Dockerfile)
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ### **Modern Angular Features**
 
-- ✅ **Angular 17+** - Latest Angular features and performance improvements
-- ✅ **Standalone Components** - Modern component architecture without NgModules
-- ✅ **Material Design 3** - Latest Material Design system
-- ✅ **Reactive Forms** - Type-safe form handling
-- ✅ **Modern Control Flow** - `@if`, `@for`, `@switch` syntax
-- ✅ **Base Component Pattern** - Consistent, reusable component architecture
+- **Angular 17+** - Latest Angular features and performance improvements
+- **Standalone Components** - Modern component architecture without NgModules
+- **Material Design 3** - Latest Material Design system
+- **Reactive Forms** - Type-safe form handling
+- **Modern Control Flow** - `@if`, `@for`, `@switch` syntax
+- **Base Component Pattern** - Consistent, reusable component architecture
 
 ### **Project Structure**
 
 ```
 nom-ui/src/app/
-├── 📁 common/                   # 🔧 Shared utilities & base components
+├──  common/                   #  Shared utilities & base components
 │   ├── components/             # Reusable UI components
 │   ├── services/               # Shared services
 │   └── interfaces/             # TypeScript interfaces
-├── 📁 recipe/                   # 🍳 Recipe management features
+├──  recipe/                   #  Recipe management features
 │   ├── components/             # Recipe-specific components
 │   ├── services/               # Recipe business logic
 │   └── models/                 # Recipe data models
-├── 📁 meal-plan/                # 📅 Meal planning functionality
-├── 📁 shopping/                 # 🛒 Shopping list management
-├── 📁 person/                   # 👤 User management & profiles
-├── 📁 curation/                 # ✅ Content moderation
-├── 📁 privacy/                  # 🔒 Privacy & GDPR compliance
-└── 📁 household/                # 🏠 Multi-user household features
+├──  meal-plan/                #  Meal planning functionality
+├──  shopping/                 #  Shopping list management
+├──  person/                   #  User management & profiles
+├──  curation/                 #  Content moderation
+├──  privacy/                  #  Privacy & GDPR compliance
+└──  household/                #  Multi-user household features
 ```
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Development Setup**
 
@@ -67,7 +67,7 @@ docker run -p 80:80 nom-ui
 docker-compose up nom-ui
 ```
 
-## 🧩 **Component Architecture**
+## **Component Architecture**
 
 ### **Base Component Pattern**
 
@@ -110,15 +110,15 @@ Advanced components that work with backend reference data:
 </app-reference-selector>
 ```
 
-## 🎨 **Design System**
+## **Design System**
 
 ### **Material Design 3**
 
-- ✅ **Modern Theming** - Material 3 color system and typography
-- ✅ **Responsive Design** - Mobile-first approach with desktop optimization
-- ✅ **Accessibility** - WCAG 2.1 compliance throughout
-- ✅ **Dark Mode Support** - Automatic theme switching
-- ✅ **Custom Components** - Extended Material components
+- **Modern Theming** - Material 3 color system and typography
+- **Responsive Design** - Mobile-first approach with desktop optimization
+- **Accessibility** - WCAG 2.1 compliance throughout
+- **Dark Mode Support** - Automatic theme switching
+- **Custom Components** - Extended Material components
 
 ### **Styling Architecture**
 
@@ -141,12 +141,12 @@ Advanced components that work with backend reference data:
 
 ### **Desktop UI Optimization**
 
-- ✅ **Compact Headers** - 75% height reduction for desktop efficiency
-- ✅ **1800x850 Viewport** - Optimized for standard desktop resolutions
-- ✅ **No Scrolling** - Primary workflows fit within viewport
-- ✅ **Efficient Layouts** - Horizontal layouts for desktop productivity
+- **Compact Headers** - 75% height reduction for desktop efficiency
+- **1800x850 Viewport** - Optimized for standard desktop resolutions
+- **No Scrolling** - Primary workflows fit within viewport
+- **Efficient Layouts** - Horizontal layouts for desktop productivity
 
-## 🔧 **Development**
+## **Development**
 
 ### **Available Scripts**
 
@@ -181,14 +181,14 @@ ng generate service recipe/services/recipe-api
 ng generate interface recipe/models/recipe
 ```
 
-## 🧪 **Testing**
+## **Testing**
 
 ### **Testing Strategy**
 
-- ✅ **Unit Tests** - Karma + Jasmine for component testing
-- ✅ **Integration Tests** - Testing component interactions
-- ✅ **E2E Tests** - Cypress for end-to-end workflows
-- ✅ **Visual Tests** - Component screenshot testing
+- **Unit Tests** - Karma + Jasmine for component testing
+- **Integration Tests** - Testing component interactions
+- **E2E Tests** - Cypress for end-to-end workflows
+- **Visual Tests** - Component screenshot testing
 
 ### **Test Commands**
 
@@ -208,29 +208,29 @@ npm run test:recipes        # Recipe-specific tests
 
 The application maintains high test coverage across:
 
-- ✅ **Component Logic** - Business logic and user interactions
-- ✅ **Service Integration** - API communication and data handling
-- ✅ **Form Validation** - Input validation and error handling
-- ✅ **User Workflows** - Complete user journey testing
+- **Component Logic** - Business logic and user interactions
+- **Service Integration** - API communication and data handling
+- **Form Validation** - Input validation and error handling
+- **User Workflows** - Complete user journey testing
 
-## 🔐 **Security Features**
+## **Security Features**
 
 ### **Frontend Security**
 
-- ✅ **JWT Token Management** - Secure token storage and refresh
-- ✅ **Route Guards** - Authentication and authorization guards
-- ✅ **Input Sanitization** - XSS prevention throughout
-- ✅ **CSRF Protection** - Cross-site request forgery prevention
-- ✅ **Content Security Policy** - CSP headers for security
+- **JWT Token Management** - Secure token storage and refresh
+- **Route Guards** - Authentication and authorization guards
+- **Input Sanitization** - XSS prevention throughout
+- **CSRF Protection** - Cross-site request forgery prevention
+- **Content Security Policy** - CSP headers for security
 
 ### **Privacy Compliance**
 
-- ✅ **GDPR Compliance** - Complete data subject rights implementation
-- ✅ **Consent Management** - Granular consent collection and withdrawal
-- ✅ **Data Export** - User data export functionality
-- ✅ **Right to Erasure** - Complete data deletion capabilities
+- **GDPR Compliance** - Complete data subject rights implementation
+- **Consent Management** - Granular consent collection and withdrawal
+- **Data Export** - User data export functionality
+- **Right to Erasure** - Complete data deletion capabilities
 
-## 📱 **Responsive Design**
+## **Responsive Design**
 
 ### **Breakpoints**
 
@@ -251,36 +251,36 @@ The application maintains high test coverage across:
 
 ### **Mobile Features**
 
-- ✅ **Touch-Friendly** - Large touch targets and gestures
-- ✅ **Offline Support** - Service worker for offline functionality
-- ✅ **Progressive Web App** - PWA features for mobile installation
-- ✅ **Performance Optimized** - Lazy loading and code splitting
+- **Touch-Friendly** - Large touch targets and gestures
+- **Offline Support** - Service worker for offline functionality
+- **Progressive Web App** - PWA features for mobile installation
+- **Performance Optimized** - Lazy loading and code splitting
 
-## 🎯 **Key Features**
+## **Key Features**
 
 ### **Recipe Management**
 
-- ✅ **Advanced Search** - Multi-criteria recipe search with filters
-- ✅ **AI Suggestions** - Intelligent recipe recommendations
-- ✅ **Ingredient Management** - Comprehensive ingredient database
-- ✅ **Nutrition Analysis** - Real-time nutritional calculations
-- ✅ **Recipe Import** - Web scraping from popular recipe sites
+- **Advanced Search** - Multi-criteria recipe search with filters
+- **AI Suggestions** - Intelligent recipe recommendations
+- **Ingredient Management** - Comprehensive ingredient database
+- **Nutrition Analysis** - Real-time nutritional calculations
+- **Recipe Import** - Web scraping from popular recipe sites
 
 ### **Meal Planning**
 
-- ✅ **Smart Planning** - AI-assisted meal plan generation
-- ✅ **Dietary Restrictions** - Comprehensive dietary restriction support
-- ✅ **Calendar Integration** - Visual meal planning calendar
-- ✅ **Shopping Lists** - Auto-generated shopping lists from meal plans
+- **Smart Planning** - AI-assisted meal plan generation
+- **Dietary Restrictions** - Comprehensive dietary restriction support
+- **Calendar Integration** - Visual meal planning calendar
+- **Shopping Lists** - Auto-generated shopping lists from meal plans
 
 ### **User Experience**
 
-- ✅ **Multi-Step Onboarding** - Personalized user setup
-- ✅ **Household Management** - Multi-user household support
-- ✅ **Content Curation** - Community-driven quality control
-- ✅ **Messaging System** - In-app communication features
+- **Multi-Step Onboarding** - Personalized user setup
+- **Household Management** - Multi-user household support
+- **Content Curation** - Community-driven quality control
+- **Messaging System** - In-app communication features
 
-## 🔧 **Configuration**
+## **Configuration**
 
 ### **Environment Configuration**
 
@@ -311,7 +311,7 @@ export const environment = {
 }
 ```
 
-## 🐳 **Docker Deployment**
+## **Docker Deployment**
 
 ### **Multi-Stage Build**
 
@@ -333,43 +333,43 @@ EXPOSE 80
 
 ### **Production Features**
 
-- ✅ **Nginx Optimization** - Gzip compression, caching headers
-- ✅ **Security Headers** - CSP, HSTS, XSS protection
-- ✅ **Rate Limiting** - Request throttling at nginx level
-- ✅ **Health Checks** - Built-in health check endpoints
+- **Nginx Optimization** - Gzip compression, caching headers
+- **Security Headers** - CSP, HSTS, XSS protection
+- **Rate Limiting** - Request throttling at nginx level
+- **Health Checks** - Built-in health check endpoints
 
-## 📈 **Performance**
+## **Performance**
 
 ### **Build Optimization**
 
-- ✅ **AOT Compilation** - Ahead-of-time compilation for performance
-- ✅ **Tree Shaking** - Unused code elimination
-- ✅ **Code Splitting** - Lazy loading for optimal bundle sizes
-- ✅ **Service Workers** - Caching and offline support
+- **AOT Compilation** - Ahead-of-time compilation for performance
+- **Tree Shaking** - Unused code elimination
+- **Code Splitting** - Lazy loading for optimal bundle sizes
+- **Service Workers** - Caching and offline support
 
 ### **Runtime Performance**
 
-- ✅ **OnPush Strategy** - Optimized change detection
-- ✅ **Virtual Scrolling** - Efficient large list rendering
-- ✅ **Image Optimization** - Lazy loading and responsive images
-- ✅ **Bundle Analysis** - Regular bundle size monitoring
+- **OnPush Strategy** - Optimized change detection
+- **Virtual Scrolling** - Efficient large list rendering
+- **Image Optimization** - Lazy loading and responsive images
+- **Bundle Analysis** - Regular bundle size monitoring
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **Component Documentation**
 
-- 🧩 **[Component Architecture](../docs/architecture/component-architecture.md)** - Detailed component patterns
-- 📋 **[Quick Reference](../docs/architecture/component-quick-reference.md)** - Fast lookup guide
-- 🔗 **[Component Library](../docs/architecture/component-library.md)** - Dynamic data components
-- 🔄 **[Migration Guide](../docs/development/migration-guide.md)** - Component migration patterns
+- **[Component Architecture](../docs/architecture/component-architecture.md)** - Detailed component patterns
+- **[Quick Reference](../docs/architecture/component-quick-reference.md)** - Fast lookup guide
+- **[Component Library](../docs/architecture/component-library.md)** - Dynamic data components
+- **[Migration Guide](../docs/development/migration-guide.md)** - Component migration patterns
 
 ### **Development Guides**
 
-- 📏 **[Development Standards](../docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY** conventions
-- 🛠️ **[Development Workflow](../docs/workflows/development-workflow.md)** - Complete development process
-- 🔧 **[Troubleshooting](../docs/development/troubleshooting.md)** - Common issues and solutions
+- **[Development Standards](../docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY** conventions
+- **[Development Workflow](../docs/workflows/development-workflow.md)** - Complete development process
+- **[Troubleshooting](../docs/development/troubleshooting.md)** - Common issues and solutions
 
-## 🤝 **Contributing**
+## **Contributing**
 
 ### **Development Standards**
 
@@ -381,11 +381,11 @@ EXPOSE 80
 
 ### **Code Quality Standards**
 
-- ✅ **File Separation** - One component/service/interface per file
-- ✅ **Naming Conventions** - Follow Angular style guide
-- ✅ **TypeScript Strict** - Strict TypeScript configuration
-- ✅ **ESLint Rules** - Comprehensive linting rules
-- ✅ **Prettier Formatting** - Consistent code formatting
+- **File Separation** - One component/service/interface per file
+- **Naming Conventions** - Follow Angular style guide
+- **TypeScript Strict** - Strict TypeScript configuration
+- **ESLint Rules** - Comprehensive linting rules
+- **Prettier Formatting** - Consistent code formatting
 
 ## 🆘 **Troubleshooting**
 
@@ -398,10 +398,10 @@ EXPOSE 80
 
 ### **Development Support**
 
-- 📚 **Documentation**: [../docs/README.md](../docs/README.md)
-- 🐛 **Troubleshooting**: [../docs/development/troubleshooting.md](../docs/development/troubleshooting.md)
-- 🧪 **Testing Guide**: [../nom-test/README.md](../nom-test/README.md)
+- **Documentation**: [../docs/README.md](../docs/README.md)
+- **Troubleshooting**: [../docs/development/troubleshooting.md](../docs/development/troubleshooting.md)
+- **Testing Guide**: [../nom-test/README.md](../nom-test/README.md)
 
 ---
 
-**The NOM UI is modern, accessible, and production-ready!** ✨
+**The NOM UI is modern, accessible, and production-ready!** 

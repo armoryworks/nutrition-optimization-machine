@@ -1,4 +1,4 @@
-# 🍽️ Nutrition Optimization Machine (NOM)
+# Nutrition Optimization Machine (NOM)
 
 A comprehensive, production-ready nutrition and meal planning application built with modern technologies and advanced AI features.
 
@@ -7,7 +7,7 @@ A comprehensive, production-ready nutrition and meal planning application built 
 [![Tests](https://img.shields.io/badge/Tests-Comprehensive-brightgreen.svg)](nom-test/README.md)
 [![Documentation](https://img.shields.io/badge/Docs-Complete-blue.svg)](docs/README.md)
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Production Deployment** (Recommended)
 
@@ -46,7 +46,7 @@ npm install
 npm run test:integration
 ```
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ### **Technology Stack**
 
@@ -63,87 +63,216 @@ npm run test:integration
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Angular UI    │───▶│   .NET API      │───▶│  PostgreSQL DB  │
+│   Angular UI    │--->│   .NET API      │--->│  PostgreSQL DB  │
 │  (nom-ui)       │    │  (nom-api)      │    │                 │
 │                 │    │                 │    │                 │
-│ • Material 3    │    │ • RESTful API   │    │ • Entity Data   │
-│ • Standalone    │    │ • JWT Auth      │    │ • Migrations    │
-│ • Base Components│   │ • Health Checks │    │ • Seeding       │
+│ - Material 3    │    │ - RESTful API   │    │ - Entity Data   │
+│ - Standalone    │    │ - JWT Auth      │    │ - Migrations    │
+│ - Base Components│   │ - Health Checks │    │ - Seeding       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │              ┌─────────────────┐             │
          │              │     Redis       │             │
          └──────────────│    (Cache)      │─────────────┘
                         │                 │
-                        │ • Sessions      │
-                        │ • Rate Limiting │
+                        │ - Sessions      │
+                        │ - Rate Limiting │
                         └─────────────────┘
 ```
 
-## 🎯 **Key Features**
+## **Key Features**
 
 ### **Core Functionality**
 
-- ✅ **Recipe Management** - Create, edit, organize recipes with AI assistance
-- ✅ **Ingredient Database** - 8,000+ high-quality ingredients with nutrition data
-- ✅ **Meal Planning** - Smart meal planning with dietary restrictions
-- ✅ **Shopping Lists** - Auto-generated lists from meal plans
-- ✅ **Nutrition Tracking** - Comprehensive nutrient analysis and goals
+- **Recipe Management** - Create, edit, organize recipes with AI assistance
+- **Ingredient Database** - 8,000+ high-quality ingredients with nutrition data
+- **Meal Planning** - Smart meal planning with dietary restrictions
+- **Shopping Lists** - Auto-generated lists from meal plans
+- **Nutrition Tracking** - Comprehensive nutrient analysis and goals
 
 ### **Advanced Features**
 
-- ✅ **AI Recipe Suggestions** - Intelligent recipe recommendations
-- ✅ **Content Curation** - Community-driven quality control
-- ✅ **Privacy Compliance** - Full GDPR compliance with data rights
-- ✅ **User Onboarding** - Multi-step personalization workflow
-- ✅ **Household Management** - Multi-user household support
-- ✅ **Web Scraping** - Import recipes from popular sites
+- **AI Recipe Suggestions** - Intelligent recipe recommendations
+- **Content Curation** - Community-driven quality control
+- **Privacy Compliance** - Full GDPR compliance with data rights
+- **User Onboarding** - Multi-step personalization workflow
+- **Household Management** - Multi-user household support
+- **Web Scraping** - Import recipes from popular sites
 
 ### **Production Features**
 
-- ✅ **Docker Deployment** - Complete containerization
-- ✅ **Health Monitoring** - Comprehensive health checks
-- ✅ **Security Hardening** - Multiple security middleware layers
-- ✅ **Rate Limiting** - Advanced request throttling
-- ✅ **Audit Logging** - Complete request/response logging
-- ✅ **CI/CD Pipeline** - Automated testing and deployment
+- **Docker Deployment** - Complete containerization
+- **Health Monitoring** - Comprehensive health checks
+- **Security Hardening** - Multiple security middleware layers
+- **Rate Limiting** - Advanced request throttling
+- **Audit Logging** - Complete request/response logging
+- **CI/CD Pipeline** - Automated testing and deployment
 
-## 📊 **Project Structure**
+## **Project Structure**
 
 ```
 nom/
-├── 📁 docs/                     # 📚 Complete documentation
+├── docs/                        # Complete documentation
 │   ├── architecture/            # System & component architecture
 │   ├── development/             # Development guidelines & patterns
 │   ├── requirements/            # Functional & non-functional requirements
 │   └── workflows/               # Development processes
-├── 📁 nom-ui/                   # 🎨 Angular frontend application
+├── nom-ui/                      # Angular frontend application
 │   ├── src/app/
 │   │   ├── common/             # Base components & shared utilities
 │   │   ├── recipe/             # Recipe management features
 │   │   ├── meal-plan/          # Meal planning functionality
 │   │   ├── shopping/           # Shopping list management
 │   │   └── person/             # User management & profiles
-├── 📁 nom-api/                  # ⚙️ .NET backend API
+├── nom-api/                     # .NET backend API
 │   ├── Nom.Api/                # API controllers & middleware
 │   ├── Nom.Data/               # Entity Framework & database
 │   ├── Nom.Orch/               # Business logic & orchestration
 │   └── Nom.Import/             # Data import & seeding utilities
-├── 📁 nom-test/                 # 🧪 Comprehensive test suite
+├── nom-test/                    # Comprehensive test suite
 │   └── cypress/e2e/            # End-to-end integration tests
-├── 🐳 docker-compose.yml        # Production deployment
-├── 🔧 .github/workflows/        # CI/CD automation
-└── 📄 README.md                 # This file
+├── docker-compose.yml           # Production deployment
+├── .github/workflows/           # CI/CD automation
+└── README.md                    # This file
 ```
 
-## 🛠️ **Development**
+## **Development**
 
 ### **Prerequisites**
 
-- **Node.js** 20+ ([Download](https://nodejs.org/))
-- **.NET 9.0 SDK** ([Download](https://dotnet.microsoft.com/download))
-- **PostgreSQL 16+** ([Download](https://www.postgresql.org/download/))
-- **Docker** (optional, for production deployment)
+- **Docker Desktop** ([Download](https://www.docker.com/products/docker-desktop/)) -- required for all development paths
+- **.NET 9.0 SDK** ([Download](https://dotnet.microsoft.com/download)) -- only for native development
+- **Node.js 20+** ([Download](https://nodejs.org/)) -- only for native development
+
+### **Option A: Docker Development (Recommended)**
+
+Everything runs in containers -- no local SDK installs required.
+
+**1. Create `.env.dev`** at the repository root:
+
+```bash
+# Database
+POSTGRES_DB=nom_dev
+POSTGRES_USER=nom
+POSTGRES_PASSWORD=dev_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+# JWT
+JWT_SECRET_KEY=dev_jwt_secret_key_minimum_32_characters_long_for_development
+JWT_ISSUER=NOMApi
+JWT_AUDIENCE=NOMAngular
+JWT_EXPIRATION_MINUTES=1440
+
+# Application
+ASPNETCORE_ENVIRONMENT=Development
+API_PORT=8080
+UI_PORT=4200
+ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4201
+
+# Redis
+REDIS_CONNECTION_STRING=localhost:6379
+
+# pgAdmin (optional, for database browsing)
+PGADMIN_EMAIL=admin@nom.local
+PGADMIN_PASSWORD=admin
+```
+
+**2. Start the stack:**
+
+```bash
+# Windows
+dev.bat start-full
+
+# Linux / macOS
+./dev.sh start-full
+```
+
+**3. Apply database migrations** (first time only):
+
+Open a shell in the API container and run:
+
+```bash
+docker exec -it nom_api_dev bash
+dotnet tool install --global dotnet-ef
+export PATH="$PATH:$HOME/.dotnet/tools"
+dotnet ef database update \
+  --project Nom.Data/Nom.Data.csproj \
+  --startup-project Nom.Api/Nom.Api.csproj \
+  -- --connection "Host=postgres-dev;Database=nom_dev;Username=nom;Password=dev_password"
+```
+
+**4. Grant admin claims** (first time, after creating your first account):
+
+```bash
+docker exec -i nom_postgres_dev psql -U nom -d nom_dev < _GrantInitialAdminClaims.sql
+```
+
+The app is available at **http://localhost:4200**.
+
+### **Option B: Native Development**
+
+Run PostgreSQL and Redis in Docker; run the API and UI natively for faster iteration.
+
+**1. Start infrastructure:**
+
+```bash
+# Windows
+dev.bat start
+
+# Linux / macOS
+./dev.sh start
+```
+
+**2. Create `nom-api/Nom.Api/appsettings.Development.json`:**
+
+```json
+{
+  "ConnectionStrings": {
+    "NomConnection": "Host=localhost;Database=nom_dev;Username=nom;Password=dev_password"
+  }
+}
+```
+
+> This file is gitignored. Never commit connection strings with real credentials.
+
+**3. Run the API:**
+
+```bash
+cd nom-api
+dotnet run --project Nom.Api/Nom.Api.csproj
+```
+
+The API starts at **http://localhost:7053**.
+
+**4. Run the UI:**
+
+```bash
+cd nom-ui
+npm install
+ng serve
+```
+
+The UI starts at **http://localhost:4200** and proxies API requests to `localhost:7053` via `proxy.config.json`.
+
+### **Local Configuration Files Reference**
+
+These files are gitignored and must be created locally. None should ever be committed.
+
+| File | When Needed | Purpose |
+|------|-------------|---------|
+| `.env.dev` | Docker dev | Environment variables for `docker-compose.dev.full.yml` |
+| `nom-api/Nom.Api/appsettings.Development.json` | Native dev | API connection string and local overrides |
+| `nom-test/cypress.env.json` | Running Cypress tests | Test runner base URLs (see below) |
+
+**`nom-test/cypress.env.json`** template:
+
+```json
+{
+  "baseUrl": "http://localhost:4200",
+  "apiUrl": "http://localhost:8080"
+}
+```
 
 ### **Development Workflow**
 
@@ -154,13 +283,13 @@ nom/
 
 ### **Code Quality Standards**
 
-- ✅ **File Separation** - One class/interface per file (strictly enforced)
-- ✅ **Naming Conventions** - Abstract classes use `_` prefix, interfaces use `I` prefix
-- ✅ **Component Architecture** - Use base components for consistency
-- ✅ **Modern Patterns** - Angular standalone components, .NET 9 features
-- ✅ **Security First** - Input validation, rate limiting, audit logging
+- **File Separation** - One class/interface per file (strictly enforced)
+- **Naming Conventions** - Abstract classes use `_` prefix, interfaces use `I` prefix
+- **Component Architecture** - Use base components for consistency
+- **Modern Patterns** - Angular standalone components, .NET 9 features
+- **Security First** - Input validation, rate limiting, audit logging
 
-## 🧪 **Testing**
+## **Testing**
 
 ### **Test Categories**
 
@@ -173,12 +302,12 @@ nom/
 
 ### **Quality Metrics**
 
-- ✅ **91% Production Ready** - Based on comprehensive assessment
-- ✅ **Comprehensive Test Coverage** - All critical paths tested
-- ✅ **Security Validated** - Multiple security layers implemented
-- ✅ **Performance Optimized** - Rate limiting, caching, health checks
+- **91% Production Ready** - Based on comprehensive assessment
+- **Comprehensive Test Coverage** - All critical paths tested
+- **Security Validated** - Multiple security layers implemented
+- **Performance Optimized** - Rate limiting, caching, health checks
 
-## 🚀 **Deployment**
+## **Deployment**
 
 ### **Production Deployment**
 
@@ -208,29 +337,29 @@ ALLOWED_ORIGINS=https://yourdomain.com
 ASPNETCORE_ENVIRONMENT=Production
 ```
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **Getting Started**
 
-- 📖 **[Documentation Index](docs/README.md)** - Complete documentation overview
-- 🏗️ **[System Architecture](docs/architecture/system-architecture.md)** - Technical architecture
-- 👩‍💻 **[Development Guide](docs/development/conventions.md)** - Coding standards
-- 🧪 **[Testing Guide](nom-test/README.md)** - Comprehensive testing
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[System Architecture](docs/architecture/system-architecture.md)** - Technical architecture
+- **[Development Guide](docs/development/conventions.md)** - Coding standards
+- **[Testing Guide](nom-test/README.md)** - Comprehensive testing
 
 ### **Architecture & Patterns**
 
-- 🧩 **[Component Architecture](docs/architecture/component-architecture.md)** - Frontend patterns
-- 🔗 **[Component Library](docs/architecture/component-library.md)** - Dynamic data components
-- 📋 **[Quick Reference](docs/architecture/component-quick-reference.md)** - Fast lookup guide
-- 🏛️ **[C# Patterns](docs/architecture/csharp-entity-framework-patterns.md)** - Backend patterns
+- **[Component Architecture](docs/architecture/component-architecture.md)** - Frontend patterns
+- **[Component Library](docs/architecture/component-library.md)** - Dynamic data components
+- **[Quick Reference](docs/architecture/component-quick-reference.md)** - Fast lookup guide
+- **[C# Patterns](docs/architecture/csharp-entity-framework-patterns.md)** - Backend patterns
 
 ### **Migration & Development**
 
-- 🔄 **[Migration Guide](docs/development/migration-guide.md)** - Component migration patterns
-- 📏 **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY** conventions
-- 🔧 **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues & solutions
+- **[Migration Guide](docs/development/migration-guide.md)** - Component migration patterns
+- **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** - **MANDATORY** conventions
+- **[Troubleshooting](docs/development/troubleshooting.md)** - Common issues & solutions
 
-## 🤝 **Contributing**
+## **Contributing**
 
 ### **Development Process**
 
@@ -248,34 +377,34 @@ ASPNETCORE_ENVIRONMENT=Production
 - [ ] Updates relevant documentation
 - [ ] Passes all CI/CD checks
 
-## 🔒 **Security**
+## **Security**
 
-- ✅ **JWT Authentication** - Secure token-based authentication
-- ✅ **Rate Limiting** - Advanced request throttling
-- ✅ **Security Headers** - CSP, HSTS, XSS protection
-- ✅ **Input Validation** - Comprehensive request validation
-- ✅ **Audit Logging** - Complete request/response logging
-- ✅ **Container Security** - Non-root containers, security scanning
+- **JWT Authentication** - Secure token-based authentication
+- **Rate Limiting** - Advanced request throttling
+- **Security Headers** - CSP, HSTS, XSS protection
+- **Input Validation** - Comprehensive request validation
+- **Audit Logging** - Complete request/response logging
+- **Container Security** - Non-root containers, security scanning
 
-## 📈 **Performance**
+## **Performance**
 
-- ✅ **Database Optimization** - Efficient queries, proper indexing
-- ✅ **Caching Strategy** - Redis caching for sessions and rate limiting
-- ✅ **Health Monitoring** - Comprehensive health checks
-- ✅ **Resource Management** - Proper disposal patterns
-- ✅ **Bundle Optimization** - Efficient frontend builds
+- **Database Optimization** - Efficient queries, proper indexing
+- **Caching Strategy** - Redis caching for sessions and rate limiting
+- **Health Monitoring** - Comprehensive health checks
+- **Resource Management** - Proper disposal patterns
+- **Bundle Optimization** - Efficient frontend builds
 
-## 📄 **License**
+## **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🆘 **Need Help?**
+## **Need Help?**
 
-- 📚 **Documentation**: [docs/README.md](docs/README.md)
-- 🐛 **Issues**: Check [troubleshooting guide](docs/development/troubleshooting.md)
-- 🧪 **Testing**: [nom-test/README.md](nom-test/README.md)
-- 🚀 **Deployment**: [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
+- **Documentation**: [docs/README.md](docs/README.md)
+- **Issues**: Check [troubleshooting guide](docs/development/troubleshooting.md)
+- **Testing**: [nom-test/README.md](nom-test/README.md)
+- **Deployment**: [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
 
-**Ready to deploy? Your application is 91% production-ready!** 🎉
+**Ready to deploy? Your application is 91% production-ready!**

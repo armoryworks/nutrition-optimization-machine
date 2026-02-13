@@ -41,7 +41,7 @@ Nom.Api (Controllers) → Nom.Orch (Services) → Nom.Data (Entities)
 **Pattern:** Orchestration Services with Dependency Injection
 
 ```csharp
-// ✅ CORRECT: Service with proper dependencies
+//  CORRECT: Service with proper dependencies
 public class PersonOrchestrationService : IPersonOrchestrationService
 {
     private readonly ApplicationDbContext _dbContext;
@@ -63,7 +63,7 @@ public class PersonOrchestrationService : IPersonOrchestrationService
 **Pattern:** Direct DbContext usage (no separate repository layer)
 
 ```csharp
-// ✅ CORRECT: Direct DbContext usage
+//  CORRECT: Direct DbContext usage
 public async Task<PersonEntity?> GetPersonAsync(long id)
 {
     return await _dbContext.Persons

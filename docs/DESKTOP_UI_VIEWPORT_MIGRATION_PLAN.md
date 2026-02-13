@@ -14,30 +14,30 @@ This document outlines the plan to ensure all desktop-targeted user interfaces f
 
 ## Migration Priority
 
-### **Phase 1: Critical Administrative Interfaces** ⚡ HIGH PRIORITY
+### **Phase 1: Critical Administrative Interfaces**  HIGH PRIORITY
 
 These interfaces are used frequently by administrators and power users:
 
-1. **✅ Curation Queue** (`/curation`) - COMPLETED
+1. ** Curation Queue** (`/curation`) - COMPLETED
 
    - Status: Optimized for 1800x850px viewport
    - Changes: Reduced padding, optimized layout, eliminated scrolling
 
-2. **✅ Recipe Management** (`/recipes/new`, `/recipes/:id/edit`) - COMPLETED
+2. ** Recipe Management** (`/recipes/new`, `/recipes/:id/edit`) - COMPLETED
 
    - Status: Optimized for 1800x850px viewport
    - Changes: Reduced section spacing (2rem → 1rem), optimized textarea rows (3 → 2), reduced additional actions margin
    - Date Completed: January 24, 2026
    - Result: Form height reduced from 752px to ~652px (fits within 728px available viewport)
 
-3. **✅ User Management** (`/admin/user-management`) - COMPLETED
+3. ** User Management** (`/admin/user-management`) - COMPLETED
 
    - Status: Optimized for 1800x850px viewport
    - Changes: Compact header pattern implemented, card-based grid layout, responsive design
    - Date Completed: January 24, 2026
    - Note: Component has search, stats, and actions in compact header; no scrolling needed
 
-4. **✅ Household Management** (`/household/create`, `/household/:id/edit`, `/household/`) - PARTIALLY COMPLETED
+4. ** Household Management** (`/household/create`, `/household/:id/edit`, `/household/`) - PARTIALLY COMPLETED
 
    - Status: Create, Edit, and Dashboard optimized for 1800x850px viewport
    - Changes Completed:
@@ -47,52 +47,52 @@ These interfaces are used frequently by administrators and power users:
    - Date Completed: January 24, 2026
    - Note: Detail view (`/household/:id`) requires architectural redesign (tab-based layout) to fit 728px viewport - deferred for future work
 
-### **Phase 2: Content Creation Interfaces** 📝 MEDIUM PRIORITY
+### **Phase 2: Content Creation Interfaces**  MEDIUM PRIORITY
 
 Interfaces used for creating and editing content:
 
-5. **🔄 Recipe Creation/Edit** (`/recipe/create`, `/recipe/edit/:id`)
+5. ** Recipe Creation/Edit** (`/recipe/create`, `/recipe/edit/:id`)
 
    - Current Issues: Long forms with many fields
    - Required Changes: Multi-step wizard or tabbed interface
 
-6. **🔄 Meal Plan Creation** (`/meal-plan/create`)
+6. ** Meal Plan Creation** (`/meal-plan/create`)
 
    - Current Issues: Calendar view may not fit
    - Required Changes: Compact calendar, optimized controls
 
-7. **🔄 Shopping List Management** (`/shopping`)
+7. ** Shopping List Management** (`/shopping`)
    - Current Issues: Long lists may require scrolling
    - Required Changes: Virtual scrolling, compact item display
 
-### **Phase 3: Dashboard and Overview Interfaces** 📊 MEDIUM PRIORITY
+### **Phase 3: Dashboard and Overview Interfaces**  MEDIUM PRIORITY
 
 Main navigation and overview screens:
 
-8. **🔄 Main Dashboard** (`/dashboard`)
+8. ** Main Dashboard** (`/dashboard`)
 
    - Current Issues: Multiple widgets may not fit
    - Required Changes: Responsive grid, collapsible widgets
 
-9. **🔄 Recipe Search** (`/recipe/search`)
+9. ** Recipe Search** (`/recipe/search`)
 
    - Current Issues: Search results and filters may be too tall
    - Required Changes: Compact result cards, sidebar filters
 
-10. **🔄 Meal Plan Overview** (`/meal-plan`)
+10. ** Meal Plan Overview** (`/meal-plan`)
     - Current Issues: Calendar + details may overflow
     - Required Changes: Optimized layout, responsive design
 
-### **Phase 4: User-Facing Interfaces** 👥 LOW PRIORITY
+### **Phase 4: User-Facing Interfaces**  LOW PRIORITY
 
 End-user interfaces (already somewhat optimized):
 
-11. **🔄 Profile Management** (`/profile`)
+11. ** Profile Management** (`/profile`)
 
     - Current Issues: Forms may be too long
     - Required Changes: Sectioned forms, better spacing
 
-12. **🔄 Communication Center** (`/messages`)
+12. ** Communication Center** (`/messages`)
     - Current Issues: Message threads may require scrolling
     - Required Changes: Fixed height with internal scrolling
 

@@ -1,6 +1,6 @@
-# 🗄️ Data Architecture & Database Design
+# Data Architecture & Database Design
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Database Schema Overview](#database-schema-overview)
 2. [Domain-Driven Schema Organization](#domain-driven-schema-organization)
@@ -11,7 +11,7 @@
 7. [Data Quality & Integrity](#data-quality--integrity)
 8. [Backup & Recovery](#backup--recovery)
 
-## 🎯 Database Schema Overview
+## Database Schema Overview
 
 The NOM application uses **PostgreSQL 16+** with a **domain-driven schema organization** that provides clear separation of concerns and optimal performance.
 
@@ -19,18 +19,18 @@ The NOM application uses **PostgreSQL 16+** with a **domain-driven schema organi
 
 ```
 nom_database/
-├── 🔐 auth/                 # ASP.NET Identity (Users, Roles, Claims)
-├── 👤 person/               # Person management & profiles
-├── 🏠 plan/                 # Households, meal plans, restrictions
-├── 🍳 recipe/               # Recipes, ingredients, nutrition
-├── 🛒 shopping/             # Shopping lists, pantry, trips
-├── 📊 reference/            # System reference data & lookups
-├── 📏 measurement/          # Measurement units & conversions
-├── 🥗 nutrient/             # Nutrients, guidelines, relationships
-├── 📱 communication/        # Messaging system
-├── ✅ curation/             # Content moderation & quality
-├── 🔒 privacy/              # GDPR compliance & data rights
-└── 📝 audit/                # Audit logging & compliance
+├──  auth/                 # ASP.NET Identity (Users, Roles, Claims)
+├──  person/               # Person management & profiles
+├──  plan/                 # Households, meal plans, restrictions
+├──  recipe/               # Recipes, ingredients, nutrition
+├──  shopping/             # Shopping lists, pantry, trips
+├──  reference/            # System reference data & lookups
+├──  measurement/          # Measurement units & conversions
+├──  nutrient/             # Nutrients, guidelines, relationships
+├──  communication/        # Messaging system
+├──  curation/             # Content moderation & quality
+├──  privacy/              # GDPR compliance & data rights
+└──  audit/                # Audit logging & compliance
 ```
 
 ### **Entity Count by Domain**
@@ -52,7 +52,7 @@ nom_database/
 
 **Total: 69 Tables, 69 Entities**
 
-## 🏗️ Domain-Driven Schema Organization
+## Domain-Driven Schema Organization
 
 ### **Core Domain: Recipe Management**
 
@@ -183,7 +183,7 @@ CREATE TABLE measurement.MeasurementConversion (
 );
 ```
 
-## 🔗 Entity Relationships
+## Entity Relationships
 
 ### **Core Entity Relationship Diagram**
 
@@ -282,7 +282,7 @@ public class ReferenceEntity : BaseEntity
 }
 ```
 
-## 🚀 Data Patterns & Strategies
+## Data Patterns & Strategies
 
 ### **Base Entity Pattern**
 
@@ -349,7 +349,7 @@ modelBuilder.Entity<RecipeEntity>()
     .HasQueryFilter(e => e.IsActive);
 ```
 
-## ⚡ Performance Optimization
+## Performance Optimization
 
 ### **Indexing Strategy**
 
@@ -478,7 +478,7 @@ ON recipe.RecipeSearchView USING gin(SearchVector);
 REFRESH MATERIALIZED VIEW CONCURRENTLY recipe.RecipeSearchView;
 ```
 
-## 🔗 Entity Relationships
+## Entity Relationships
 
 ### **Core Entity Models**
 
@@ -686,7 +686,7 @@ public class ShoppingListItemEntity : BaseEntity
 }
 ```
 
-## 📊 Data Quality & Integrity
+## Data Quality & Integrity
 
 ### **Data Validation Patterns**
 
@@ -795,7 +795,7 @@ public class IngredientFilter
 }
 ```
 
-## 🔄 Data Migration Strategy
+## Data Migration Strategy
 
 ### **Entity Framework Migrations**
 
@@ -901,7 +901,7 @@ public class ReferenceDataSeeder
 }
 ```
 
-## 🔍 Advanced Data Patterns
+## Advanced Data Patterns
 
 ### **Multi-Tenancy Pattern**
 
@@ -994,7 +994,7 @@ public class RecipeCommandService : IRecipeCommands
 }
 ```
 
-## 📈 Performance Monitoring
+## Performance Monitoring
 
 ### **Database Performance Metrics**
 
@@ -1054,7 +1054,7 @@ public class PerformanceMonitor
 }
 ```
 
-## 🛡️ Data Security
+## Data Security
 
 ### **Encryption at Rest**
 
@@ -1120,15 +1120,15 @@ public class DataAnonymizer
 
 ---
 
-## 🎯 Data Architecture Summary
+## Data Architecture Summary
 
 The NOM data architecture provides:
 
-- ✅ **Domain-Driven Organization** - Clear schema separation by business domain
-- ✅ **Advanced Patterns** - TPH, CQRS, Event Sourcing, Multi-tenancy
-- ✅ **Performance Optimization** - Indexing, materialized views, compiled queries
-- ✅ **Security & Privacy** - Encryption, RLS, GDPR compliance
-- ✅ **Data Quality** - Quality scoring, validation, integrity constraints
-- ✅ **Scalability** - Optimized for growth and high performance
+- **Domain-Driven Organization** - Clear schema separation by business domain
+- **Advanced Patterns** - TPH, CQRS, Event Sourcing, Multi-tenancy
+- **Performance Optimization** - Indexing, materialized views, compiled queries
+- **Security & Privacy** - Encryption, RLS, GDPR compliance
+- **Data Quality** - Quality scoring, validation, integrity constraints
+- **Scalability** - Optimized for growth and high performance
 
-**The data architecture supports enterprise-scale applications with 8,049 high-quality ingredients and comprehensive nutrition data!** 📊
+**The data architecture supports enterprise-scale applications with 8,049 high-quality ingredients and comprehensive nutrition data!** 

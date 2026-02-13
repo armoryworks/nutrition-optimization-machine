@@ -2,7 +2,7 @@
 
 This guide provides clear decision trees for common development scenarios that AI tools and developers encounter when working with the NOM project.
 
-## 🎯 Component Architecture Decisions
+## Component Architecture Decisions
 
 ### Which Base Component to Use?
 
@@ -30,7 +30,7 @@ Is this a reusable UI pattern that will be used across multiple features?
         └─ No → Use standalone component
 ```
 
-## 🎨 Styling Decisions
+## Styling Decisions
 
 ### Which Styling Approach to Use?
 
@@ -56,7 +56,7 @@ Is this a standard UI element (button, card, dialog)?
         └─ No → Create custom component with Material 3 theme variables
 ```
 
-## 🔧 State Management Decisions
+## State Management Decisions
 
 ### How to Handle Component State?
 
@@ -84,7 +84,7 @@ Is this data needed by multiple components?
         └─ No → Direct API call in component (not recommended)
 ```
 
-## 🚀 Performance Decisions
+## Performance Decisions
 
 ### When to Use Lazy Loading?
 
@@ -110,7 +110,7 @@ Is this data that doesn't change frequently?
         └─ No → Consider lightweight caching
 ```
 
-## 🔒 Security Decisions
+## Security Decisions
 
 ### How to Handle Authentication?
 
@@ -136,7 +136,7 @@ Is this form data that will be sent to the API?
         └─ No → No validation needed
 ```
 
-## 📱 UX/UI Decisions
+## UX/UI Decisions
 
 ### When to Show Loading States?
 
@@ -162,7 +162,7 @@ Did the operation fail with a user-actionable error?
         └─ No → Log error but don't show to user
 ```
 
-## 🔄 Data Flow Decisions
+## Data Flow Decisions
 
 ### How to Handle Parent-Child Communication?
 
@@ -190,7 +190,7 @@ Is this a cross-module communication that should be loosely coupled?
         └─ No → Use EventBusService for loose coupling
 ```
 
-## 🧪 Testing Decisions
+## Testing Decisions
 
 ### What Type of Tests to Write?
 
@@ -218,7 +218,7 @@ Is this a unit test that should be isolated?
         └─ No → Use real dependencies for end-to-end testing
 ```
 
-## 📊 Error Handling Decisions
+## Error Handling Decisions
 
 ### How to Handle Different Types of Errors?
 
@@ -246,7 +246,7 @@ Is this a critical operation (save, delete)?
         └─ No → Fail fast and show error
 ```
 
-## 🎯 Migration Decisions
+## Migration Decisions
 
 ### When to Migrate to Base Components?
 

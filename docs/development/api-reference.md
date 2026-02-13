@@ -2,7 +2,7 @@
 
 This document provides comprehensive documentation for the NOM backend API endpoints, including request/response formats, authentication, and usage examples.
 
-## 🔐 **Authentication**
+## **Authentication**
 
 ### Bearer Token Authentication
 
@@ -23,7 +23,7 @@ Authorization: Bearer <your-jwt-token>
 - `POST /api/auth/login` - User login
 - `GET /api/auth/refresh` - Token refresh
 
-## 📋 **API Endpoints**
+## **API Endpoints**
 
 ### Authentication
 
@@ -678,7 +678,7 @@ Authorization: Bearer <token>
 }
 ```
 
-## 🔧 **Error Handling**
+## **Error Handling**
 
 ### Standard Error Response
 
@@ -716,7 +716,7 @@ Authorization: Bearer <token>
 - `409` - Conflict
 - `500` - Internal Server Error
 
-## 📊 **Pagination**
+## **Pagination**
 
 ### Standard Pagination Response
 
@@ -738,7 +738,7 @@ Authorization: Bearer <token>
 - `page` - Page number (1-based)
 - `pageSize` - Items per page (default: 20, max: 100)
 
-## 🔍 **Search and Filtering**
+## **Search and Filtering**
 
 ### Search Parameters
 
@@ -755,7 +755,7 @@ GET /api/recipes?search=chicken&status=Curated&page=1&pageSize=10
 Authorization: Bearer <token>
 ```
 
-## 📝 **Usage Examples**
+## **Usage Examples**
 
 ### Angular Service Example
 

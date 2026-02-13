@@ -2,7 +2,7 @@
 
 This document provides reusable code patterns for common development scenarios in the NOM project. These patterns are optimized for AI tools and follow established conventions.
 
-## 🎯 **Service Patterns**
+## **Service Patterns**
 
 ### Standard Service Template
 
@@ -121,7 +121,7 @@ export class MyOrchestrationService {
 }
 ```
 
-## 🎨 **Component Patterns**
+## **Component Patterns**
 
 ### Standard Page Component
 
@@ -443,7 +443,7 @@ export class MyListComponent
 }
 ```
 
-## 🔧 **Utility Patterns**
+## **Utility Patterns**
 
 ### Error Handler Service
 
@@ -549,7 +549,7 @@ export class LoadingStateService {
 }
 ```
 
-## 🎨 **Styling Patterns**
+## **Styling Patterns**
 
 ### Component SCSS Template
 
@@ -642,7 +642,7 @@ export class LoadingStateService {
 }
 ```
 
-## 🔄 **RxJS Patterns**
+## **RxJS Patterns**
 
 ### Data Loading with Caching
 
@@ -720,7 +720,7 @@ export class RetryService {
 }
 ```
 
-## 🧪 **Testing Patterns**
+## **Testing Patterns**
 
 ### Service Test Template
 

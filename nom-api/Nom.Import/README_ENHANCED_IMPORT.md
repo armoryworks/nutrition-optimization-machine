@@ -6,28 +6,28 @@ The Enhanced FDC Import System is a comprehensive upgrade to the original Nom.Im
 
 ## Key Features
 
-### 🎯 Quality-First Approach
+### Quality-First Approach
 
 - **Foundation Foods Priority**: Focuses on 342 high-quality foundation foods
 - **Quality Scoring**: Automated scoring based on data points, freshness, and food type
 - **Filtering**: Removes low-quality branded foods and overly long names
 - **Configurable Thresholds**: Adjustable quality filters for different use cases
 
-### ⚡ Performance Optimization
+### Performance Optimization
 
 - **Batch Processing**: Processes large datasets in configurable batches
 - **Parallel Processing**: Uses multiple CPU cores for faster imports
 - **Automatic Indexing**: Creates quality and performance indexes
 - **Materialized Views**: Pre-computed views for common queries
 
-### 📊 Comprehensive Data Support
+### Comprehensive Data Support
 
 - **Measurement System**: 123 measurement units and 47K portions
 - **Food Categories**: 29 categories for better organization
 - **Recipe Import**: 2.2M recipes with ingredient extraction (Phase 2)
 - **Guidelines**: FDA dietary guidelines integration
 
-### 🔧 Advanced Configuration
+### Advanced Configuration
 
 - **Flexible Settings**: Extensive configuration for different import scenarios
 - **Selective Import**: Choose which data sources to import

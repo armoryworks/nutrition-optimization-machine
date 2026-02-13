@@ -1,4 +1,4 @@
-# 🧪 NOM Testing Suite
+# NOM Testing Suite
 
 Comprehensive end-to-end testing suite for the Nutrition Optimization Machine (NOM) application, built with Cypress for integration validation and user journey testing.
 
@@ -7,21 +7,21 @@ Comprehensive end-to-end testing suite for the Nutrition Optimization Machine (N
 [![Test Coverage](https://img.shields.io/badge/Coverage-Comprehensive-blue.svg)](#test-coverage)
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](#production-testing)
 
-## 🎯 **Overview**
+## **Overview**
 
 This testing suite provides comprehensive validation of the NOM application through multiple test categories, ensuring reliability and quality across all user workflows.
 
 ### **Key Features**
 
-- ✅ **Complete User Journeys** - End-to-end workflow validation
-- ✅ **Dynamic Test Data** - No hardcoded credentials or data
-- ✅ **Cross-Domain Testing** - Backend API and frontend integration
-- ✅ **Production-Ready** - Suitable for CI/CD and production validation
-- ✅ **Comprehensive Coverage** - All critical application features tested
+- **Complete User Journeys** - End-to-end workflow validation
+- **Dynamic Test Data** - No hardcoded credentials or data
+- **Cross-Domain Testing** - Backend API and frontend integration
+- **Production-Ready** - Suitable for CI/CD and production validation
+- **Comprehensive Coverage** - All critical application features tested
 
-## 🧪 **Test Categories**
+## **Test Categories**
 
-### **🔄 Integration Smoke Tests** ⭐ **Featured**
+### ** Integration Smoke Tests**  **Featured**
 
 **File**: `cypress/e2e/integration-smoke.cy.ts`  
 **Purpose**: Complete user journey validation from registration to shopping list generation  
@@ -41,7 +41,7 @@ npm run test:integration
 6. Shopping list auto-generation
 7. Complete workflow validation
 
-### **🔌 API Validation Tests**
+### ** API Validation Tests**
 
 **File**: `cypress/e2e/api.cy.ts`  
 **Purpose**: Backend API endpoint validation and error handling  
@@ -59,7 +59,7 @@ npm run test:api
 - Privacy and GDPR endpoints
 - Error handling and validation
 
-### **🔐 Authentication Tests**
+### ** Authentication Tests**
 
 **File**: `cypress/e2e/auth.cy.ts`  
 **Purpose**: User authentication and authorization workflows  
@@ -76,7 +76,7 @@ npm run test:auth
 - Password security
 - Authorization checks
 
-### **👋 Onboarding Tests**
+### ** Onboarding Tests**
 
 **File**: `cypress/e2e/onboarding.cy.ts`  
 **Purpose**: User onboarding and profile completion workflows  
@@ -93,7 +93,7 @@ npm run test:onboarding
 - Nutrition goal setting
 - Preference configuration
 
-### **🍳 Recipe Management Tests**
+### ** Recipe Management Tests**
 
 **File**: `cypress/e2e/recipes.cy.ts`  
 **Purpose**: Recipe creation, editing, and management functionality  
@@ -110,7 +110,7 @@ npm run test:recipes
 - Nutrition calculations
 - Curation workflow
 
-### **💨 Basic Smoke Tests**
+### ** Basic Smoke Tests**
 
 **File**: `cypress/e2e/smoke.cy.ts`  
 **Purpose**: Basic application health and navigation checks  
@@ -120,7 +120,7 @@ npm run test:recipes
 npm run test
 ```
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Prerequisites**
 
@@ -151,18 +151,18 @@ npm run test:smoke
 npm run test
 
 # Run specific test suites
-npm run test:integration    # 🔄 Complete integration tests
-npm run test:api           # 🔌 API validation tests
-npm run test:auth          # 🔐 Authentication tests
-npm run test:onboarding    # 👋 Onboarding workflow tests
-npm run test:recipes       # 🍳 Recipe management tests
+npm run test:integration    #  Complete integration tests
+npm run test:api           #  API validation tests
+npm run test:auth          #  Authentication tests
+npm run test:onboarding    #  Onboarding workflow tests
+npm run test:recipes       #  Recipe management tests
 
 # Development & Debugging
-npm run test:open          # 🖥️ Open Cypress test runner
-npm run test:headed        # 👁️ Run tests with browser visible
+npm run test:open          #  Open Cypress test runner
+npm run test:headed        #  Run tests with browser visible
 ```
 
-## 🔧 **Configuration**
+## **Configuration**
 
 ### **Environment Setup**
 
@@ -191,7 +191,7 @@ CYPRESS_TEST_PASSWORD="CustomPass123!" npm run test:integration
 
 ### **Test Data Strategy**
 
-**🚫 No Hardcoded Data Policy**
+** No Hardcoded Data Policy**
 
 All tests generate unique, dynamic data for each run:
 
@@ -208,34 +208,34 @@ const testUser = {
 
 **Benefits**:
 
-- ✅ **No Test Interference** - Each test run is isolated
-- ✅ **Production Safe** - No hardcoded production credentials
-- ✅ **Parallel Execution** - Tests can run concurrently
-- ✅ **Security Compliant** - No sensitive data in code
+- **No Test Interference** - Each test run is isolated
+- **Production Safe** - No hardcoded production credentials
+- **Parallel Execution** - Tests can run concurrently
+- **Security Compliant** - No sensitive data in code
 
-## 📊 **Test Coverage**
+## **Test Coverage**
 
 ### **Domain Coverage Matrix**
 
 | Domain                  | Integration | API | Auth | Onboarding | Recipes | Coverage |
 | ----------------------- | ----------- | --- | ---- | ---------- | ------- | -------- |
-| **User Authentication** | ✅          | ✅  | ✅   | ✅         | ❌      | 80%      |
-| **Recipe Management**   | ✅          | ✅  | ❌   | ❌         | ✅      | 75%      |
-| **Meal Planning**       | ✅          | ✅  | ❌   | ❌         | ❌      | 50%      |
-| **Shopping Lists**      | ✅          | ✅  | ❌   | ❌         | ❌      | 50%      |
-| **User Onboarding**     | ✅          | ❌  | ✅   | ✅         | ❌      | 75%      |
-| **Privacy/GDPR**        | ❌          | ✅  | ❌   | ❌         | ❌      | 25%      |
+| **User Authentication** |           |   |    |          |       | 80%      |
+| **Recipe Management**   |           |   |    |          |       | 75%      |
+| **Meal Planning**       |           |   |    |          |       | 50%      |
+| **Shopping Lists**      |           |   |    |          |       | 50%      |
+| **User Onboarding**     |           |   |    |          |       | 75%      |
+| **Privacy/GDPR**        |           |   |    |          |       | 25%      |
 
 ### **Validation Points**
 
-- ✅ **Data Integrity** - All CRUD operations validated
-- ✅ **Business Rules** - Meal type constraints, dietary restrictions
-- ✅ **User Experience** - Complete workflow validation
-- ✅ **API Integration** - Backend-frontend communication
-- ✅ **Error Handling** - Graceful failure scenarios
-- ✅ **Security** - Authentication and authorization
+- **Data Integrity** - All CRUD operations validated
+- **Business Rules** - Meal type constraints, dietary restrictions
+- **User Experience** - Complete workflow validation
+- **API Integration** - Backend-frontend communication
+- **Error Handling** - Graceful failure scenarios
+- **Security** - Authentication and authorization
 
-## 🎯 **Advanced Testing Features**
+## **Advanced Testing Features**
 
 ### **Smart Test Data Generation**
 
@@ -279,7 +279,7 @@ afterEach(() => {
 });
 ```
 
-## 🔍 **Custom Commands**
+## **Custom Commands**
 
 ### **Authentication Commands**
 
@@ -318,7 +318,7 @@ Cypress.Commands.add("generateMealPlan", (recipes, constraints) => {
 });
 ```
 
-## 🚀 **CI/CD Integration**
+## **CI/CD Integration**
 
 ### **GitHub Actions Support**
 
@@ -342,7 +342,7 @@ CYPRESS_BASE_URL=https://production.nom.app npm run test:smoke
 CYPRESS_BASE_URL=https://staging.nom.app npm run test:integration
 ```
 
-## 📈 **Performance Testing**
+## **Performance Testing**
 
 ### **Response Time Validation**
 
@@ -356,12 +356,12 @@ cy.wait("@getRecipes").then((interception) => {
 
 ### **Load Testing Scenarios**
 
-- ✅ **Concurrent Users** - Multiple user simulation
-- ✅ **Data Volume** - Large dataset handling
-- ✅ **API Performance** - Response time validation
-- ✅ **Memory Usage** - Browser memory monitoring
+- **Concurrent Users** - Multiple user simulation
+- **Data Volume** - Large dataset handling
+- **API Performance** - Response time validation
+- **Memory Usage** - Browser memory monitoring
 
-## 🛠️ **Development & Debugging**
+## **Development & Debugging**
 
 ### **Interactive Development**
 
@@ -384,7 +384,7 @@ DEBUG=cypress:* npm run test:integration
 4. **Validate** - Run complete test suite
 5. **Document** - Update this README with new test info
 
-## 🔧 **Troubleshooting**
+## **Troubleshooting**
 
 ### **Common Issues**
 
@@ -422,20 +422,20 @@ cy.log("Test execution step details");
 console.log("Debug information:", testData);
 ```
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **Testing Guides**
 
-- 🧪 **[Smoke Testing Guide](../docs/development/smoke-testing.md)** - Complete testing strategy
-- 🔧 **[Development Workflow](../docs/workflows/development-workflow.md)** - Testing in development process
-- 🐛 **[Troubleshooting](../docs/development/troubleshooting.md)** - Common issues and solutions
+- **[Smoke Testing Guide](../docs/development/smoke-testing.md)** - Complete testing strategy
+- **[Development Workflow](../docs/workflows/development-workflow.md)** - Testing in development process
+- **[Troubleshooting](../docs/development/troubleshooting.md)** - Common issues and solutions
 
 ### **API Documentation**
 
-- 📋 **[API Reference](../docs/API_REFERENCE.md)** - Backend endpoint documentation
-- 🏛️ **[Architecture Guide](../docs/architecture/system-architecture.md)** - System architecture overview
+- **[API Reference](../docs/API_REFERENCE.md)** - Backend endpoint documentation
+- **[Architecture Guide](../docs/architecture/system-architecture.md)** - System architecture overview
 
-## 🤝 **Contributing**
+## **Contributing**
 
 ### **Adding New Tests**
 
@@ -447,20 +447,20 @@ console.log("Debug information:", testData);
 
 ### **Test Quality Standards**
 
-- ✅ **Isolation** - Each test runs independently
-- ✅ **Deterministic** - Reproducible results every time
-- ✅ **Fast Execution** - Optimized for quick feedback
-- ✅ **Clear Assertions** - Meaningful test assertions and error messages
-- ✅ **Maintainable** - Easy to understand and modify
+- **Isolation** - Each test runs independently
+- **Deterministic** - Reproducible results every time
+- **Fast Execution** - Optimized for quick feedback
+- **Clear Assertions** - Meaningful test assertions and error messages
+- **Maintainable** - Easy to understand and modify
 
 ## 🆘 **Support**
 
 ### **Getting Help**
 
-- 📚 **Documentation**: [../docs/README.md](../docs/README.md)
-- 🐛 **Issues**: Check test output and browser console
-- 🔧 **Development**: Use `npm run test:open` for interactive debugging
-- 📞 **Support**: Refer to troubleshooting section above
+- **Documentation**: [../docs/README.md](../docs/README.md)
+- **Issues**: Check test output and browser console
+- **Development**: Use `npm run test:open` for interactive debugging
+- **Support**: Refer to troubleshooting section above
 
 ### **Test Execution Scripts**
 
@@ -473,4 +473,4 @@ console.log("Debug information:", testData);
 
 ---
 
-**The NOM test suite ensures quality and reliability across all user workflows!** 🎯
+**The NOM test suite ensures quality and reliability across all user workflows!** 

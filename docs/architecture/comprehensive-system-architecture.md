@@ -1,6 +1,6 @@
-# 🏗️ Comprehensive System Architecture
+# Comprehensive System Architecture
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [System Overview](#system-overview)
 2. [Architecture Principles](#architecture-principles)
@@ -13,7 +13,7 @@
 9. [Integration Architecture](#integration-architecture)
 10. [Scalability & Resilience](#scalability--resilience)
 
-## 🎯 System Overview
+## System Overview
 
 The Nutrition Optimization Machine (NOM) is a comprehensive, production-ready nutrition and meal planning platform built with modern microservices architecture principles. The system provides advanced AI-powered nutrition planning, comprehensive meal management, and multi-user household support.
 
@@ -31,7 +31,7 @@ The Nutrition Optimization Machine (NOM) is a comprehensive, production-ready nu
 - **Multi-Tenant** - Household-based multi-tenancy
 - **Real-Time** - Event-driven architecture with real-time updates
 
-## 🏛️ Architecture Principles
+## Architecture Principles
 
 ### **Domain-Driven Design (DDD)**
 
@@ -68,14 +68,14 @@ The system follows DDD principles with clear domain boundaries:
 
 ### **Core Design Principles**
 
-- ✅ **Separation of Concerns** - Clear boundaries between layers
-- ✅ **Single Responsibility** - Each component has one clear purpose
-- ✅ **Dependency Injection** - Loose coupling through DI containers
-- ✅ **Event-Driven** - Asynchronous communication via events
-- ✅ **Security by Design** - Security integrated at every layer
-- ✅ **Performance First** - Optimized for scale and responsiveness
+- **Separation of Concerns** - Clear boundaries between layers
+- **Single Responsibility** - Each component has one clear purpose
+- **Dependency Injection** - Loose coupling through DI containers
+- **Event-Driven** - Asynchronous communication via events
+- **Security by Design** - Security integrated at every layer
+- **Performance First** - Optimized for scale and responsiveness
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### **Frontend Stack**
 
@@ -109,25 +109,25 @@ The system follows DDD principles with clear domain boundaries:
 | **CI/CD**            | GitHub Actions | Latest   | Automated testing and deployment   |
 | **Monitoring**       | Health Checks  | Built-in | Application health monitoring      |
 
-## 🏗️ System Components
+## System Components
 
 ### **Frontend Architecture (nom-ui)**
 
 ```
 nom-ui/
-├── 🎨 Presentation Layer
+├──  Presentation Layer
 │   ├── Components/          # Angular components
 │   ├── Pages/              # Route components
 │   └── Layouts/            # Base layouts
-├── 🧠 Application Layer
+├──  Application Layer
 │   ├── Services/           # Business logic services
 │   ├── Guards/             # Route guards
 │   └── Interceptors/       # HTTP interceptors
-├── 📊 Domain Layer
+├──  Domain Layer
 │   ├── Models/             # Domain models
 │   ├── Interfaces/         # Service contracts
 │   └── Enums/              # Domain enumerations
-└── 🔧 Infrastructure Layer
+└──  Infrastructure Layer
     ├── API/                # HTTP client services
     ├── Storage/            # Local storage services
     └── Utilities/          # Helper utilities
@@ -137,26 +137,26 @@ nom-ui/
 
 ```
 nom-api/
-├── 🌐 Nom.Api/             # API Layer
+├──  Nom.Api/             # API Layer
 │   ├── Controllers/        # HTTP endpoints
 │   ├── Middleware/         # Cross-cutting concerns
 │   ├── Core/               # Base abstractions
 │   └── Authentication/     # Auth configuration
-├── 🎭 Nom.Orch/            # Orchestration Layer
+├──  Nom.Orch/            # Orchestration Layer
 │   ├── Services/           # Business logic
 │   ├── Models/             # Request/response models
 │   ├── Interfaces/         # Service contracts
 │   └── UtilityServices/    # Cross-domain utilities
-├── 🗄️ Nom.Data/            # Data Layer
+├──  Nom.Data/            # Data Layer
 │   ├── Entities/           # Database entities
 │   ├── Migrations/         # Schema migrations
 │   └── ApplicationDbContext.cs
-└── 📥 Nom.Import/          # Data Import Utilities
+└──  Nom.Import/          # Data Import Utilities
     ├── Services/           # Import services
     └── DataImportScripts/  # SQL seeding scripts
 ```
 
-## 🔄 Data Flow Architecture
+## Data Flow Architecture
 
 ### **Request Flow Pattern**
 
@@ -233,7 +233,7 @@ public class NutrientMeasurementEntity : MeasurementEntity
 }
 ```
 
-## 🔐 Security Architecture
+## Security Architecture
 
 ### **Multi-Layer Security Model**
 
@@ -295,13 +295,13 @@ app.UseAuthorization();                     // Claims-based authorization
 
 ### **Privacy & GDPR Compliance**
 
-- ✅ **Data Subject Rights** - Complete implementation of GDPR rights
-- ✅ **Consent Management** - Granular consent collection and withdrawal
-- ✅ **Data Portability** - User data export in machine-readable format
-- ✅ **Right to Erasure** - Complete data deletion with audit trail
-- ✅ **Privacy by Design** - Privacy considerations in all features
+- **Data Subject Rights** - Complete implementation of GDPR rights
+- **Consent Management** - Granular consent collection and withdrawal
+- **Data Portability** - User data export in machine-readable format
+- **Right to Erasure** - Complete data deletion with audit trail
+- **Privacy by Design** - Privacy considerations in all features
 
-## ⚡ Performance Architecture
+## Performance Architecture
 
 ### **Caching Strategy**
 
@@ -358,18 +358,18 @@ public async Task<IEnumerable<Recipe>> GetRecipesAsync(int page, int size)
 
 #### **Horizontal Scaling**
 
-- ✅ **Stateless API** - No server-side session state
-- ✅ **Database Connection Pooling** - Efficient connection management
-- ✅ **Load Balancer Ready** - Health checks and graceful shutdowns
-- ✅ **Container Orchestration** - Docker Swarm/Kubernetes ready
+- **Stateless API** - No server-side session state
+- **Database Connection Pooling** - Efficient connection management
+- **Load Balancer Ready** - Health checks and graceful shutdowns
+- **Container Orchestration** - Docker Swarm/Kubernetes ready
 
 #### **Vertical Scaling**
 
-- ✅ **Async/Await Patterns** - Non-blocking I/O operations
-- ✅ **Memory Optimization** - Efficient object lifecycle management
-- ✅ **CPU Optimization** - Compiled queries and optimized algorithms
+- **Async/Await Patterns** - Non-blocking I/O operations
+- **Memory Optimization** - Efficient object lifecycle management
+- **CPU Optimization** - Compiled queries and optimized algorithms
 
-## 🚀 Deployment Architecture
+## Deployment Architecture
 
 ### **Container Architecture**
 
@@ -450,7 +450,7 @@ app.MapHealthChecks("/health/ready");     // Readiness probe
 app.MapHealthChecks("/health/live");      // Liveness probe
 ```
 
-## 🔗 Integration Architecture
+## Integration Architecture
 
 ### **External Service Integration**
 
@@ -545,7 +545,7 @@ public class RecipeController : ControllerBase
 }
 ```
 
-## 📊 Scalability & Resilience
+## Scalability & Resilience
 
 ### **Scalability Patterns**
 
@@ -620,18 +620,18 @@ public class EmailService
 }
 ```
 
-## 📈 Performance Metrics
+## Performance Metrics
 
 ### **System Performance Targets**
 
 | Metric                  | Target  | Current       | Status         |
 | ----------------------- | ------- | ------------- | -------------- |
-| **API Response Time**   | < 200ms | ~150ms        | ✅ Met         |
-| **Database Query Time** | < 50ms  | ~30ms         | ✅ Met         |
-| **Page Load Time**      | < 2s    | ~1.5s         | ✅ Met         |
-| **Memory Usage**        | < 512MB | ~300MB        | ✅ Met         |
-| **CPU Usage**           | < 70%   | ~45%          | ✅ Met         |
-| **Concurrent Users**    | 1000+   | Tested to 500 | 🔄 In Progress |
+| **API Response Time**   | < 200ms | ~150ms        |  Met         |
+| **Database Query Time** | < 50ms  | ~30ms         |  Met         |
+| **Page Load Time**      | < 2s    | ~1.5s         |  Met         |
+| **Memory Usage**        | < 512MB | ~300MB        |  Met         |
+| **CPU Usage**           | < 70%   | ~45%          |  Met         |
+| **Concurrent Users**    | 1000+   | Tested to 500 |  In Progress |
 
 ### **Monitoring & Observability**
 
@@ -658,17 +658,17 @@ public class MetricsMiddleware
 
 ---
 
-## 🎯 Architecture Summary
+## Architecture Summary
 
 The NOM system represents a **modern, scalable, and secure** nutrition planning platform built with:
 
-- ✅ **Production-Ready Architecture** - 91% production readiness
-- ✅ **Modern Technology Stack** - Angular 17, .NET 9, PostgreSQL 16
-- ✅ **Security-First Design** - Multi-layer security with GDPR compliance
-- ✅ **Performance Optimized** - Caching, indexing, and efficient queries
-- ✅ **Scalable Design** - Stateless services and horizontal scaling ready
-- ✅ **Resilient Patterns** - Circuit breakers, retries, and health monitoring
+- **Production-Ready Architecture** - 91% production readiness
+- **Modern Technology Stack** - Angular 17, .NET 9, PostgreSQL 16
+- **Security-First Design** - Multi-layer security with GDPR compliance
+- **Performance Optimized** - Caching, indexing, and efficient queries
+- **Scalable Design** - Stateless services and horizontal scaling ready
+- **Resilient Patterns** - Circuit breakers, retries, and health monitoring
 
 The architecture supports **immediate production deployment** with comprehensive monitoring, security, and performance optimization built-in from the ground up.
 
-**Ready for enterprise-scale deployment!** 🚀
+**Ready for enterprise-scale deployment!** 

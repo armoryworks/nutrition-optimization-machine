@@ -6,12 +6,10 @@
 *.sqlite
 *.sqlite3
 
-# Environment files
+# Environment files (only .env.example should be tracked)
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env.example
 
 # IDE files
 .vscode/
@@ -19,6 +17,15 @@
 *.swp
 *.swo
 *~
+
+# Claude Code local settings
+.claude/
+
+# Cypress local environment config
+nom-test/cypress.env.json
+
+# Windows NUL artifacts
+NUL
 
 # OS files
 .DS_Store

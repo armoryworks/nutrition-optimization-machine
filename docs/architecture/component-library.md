@@ -50,14 +50,14 @@ export class MyComponent {
 
 | Input                  | Type          | Required | Description                                  |
 | ---------------------- | ------------- | -------- | -------------------------------------------- |
-| `discriminatorId`      | `number`      | ✅       | Reference group discriminator ID             |
-| `control`              | `FormControl` | ✅       | Angular form control                         |
-| `label`                | `string`      | ❌       | Label text above the selector                |
-| `placeholder`          | `string`      | ❌       | Placeholder text in the select               |
-| `requiredErrorMessage` | `string`      | ❌       | Custom error message for required validation |
-| `isMultiSelect`        | `boolean`     | ❌       | Enable multiple selection (default: false)   |
-| `showDescription`      | `boolean`     | ❌       | Show reference descriptions (default: false) |
-| `controlId`            | `string`      | ❌       | Unique ID for the form control               |
+| `discriminatorId`      | `number`      |        | Reference group discriminator ID             |
+| `control`              | `FormControl` |        | Angular form control                         |
+| `label`                | `string`      |        | Label text above the selector                |
+| `placeholder`          | `string`      |        | Placeholder text in the select               |
+| `requiredErrorMessage` | `string`      |        | Custom error message for required validation |
+| `isMultiSelect`        | `boolean`     |        | Enable multiple selection (default: false)   |
+| `showDescription`      | `boolean`     |        | Show reference descriptions (default: false) |
+| `controlId`            | `string`      |        | Unique ID for the form control               |
 
 | Output            | Type                                             | Description                    |
 | ----------------- | ------------------------------------------------ | ------------------------------ |
@@ -177,10 +177,10 @@ export class ShoppingPageComponent {}
 
 | Field        | Type     | Required | Description                |
 | ------------ | -------- | -------- | -------------------------- |
-| `name`       | `string` | ✅       | Item name                  |
-| `categoryId` | `number` | ✅       | Category from dynamic data |
-| `priorityId` | `number` | ✅       | Priority from dynamic data |
-| `quantity`   | `number` | ✅       | Item quantity (min: 1)     |
+| `name`       | `string` |        | Item name                  |
+| `categoryId` | `number` |        | Category from dynamic data |
+| `priorityId` | `number` |        | Priority from dynamic data |
+| `quantity`   | `number` |        | Item quantity (min: 1)     |
 
 #### Events
 
@@ -217,17 +217,17 @@ export class RecipePageComponent {}
 
 | Field              | Type       | Required | Description                   |
 | ------------------ | ---------- | -------- | ----------------------------- |
-| `name`             | `string`   | ✅       | Recipe name                   |
-| `description`      | `string`   | ✅       | Recipe description            |
-| `prepTime`         | `number`   | ✅       | Preparation time in minutes   |
-| `cookTime`         | `number`   | ❌       | Cooking time in minutes       |
-| `difficultyId`     | `number`   | ✅       | Difficulty level from backend |
-| `cuisineTypeId`    | `number`   | ✅       | Cuisine type from backend     |
-| `mealTypeId`       | `number`   | ✅       | Meal type from backend        |
-| `servings`         | `number`   | ✅       | Number of servings            |
-| `dietaryOptionIds` | `number[]` | ❌       | Array of dietary option IDs   |
-| `allergenIds`      | `number[]` | ❌       | Array of allergen IDs         |
-| `instructions`     | `string`   | ✅       | Cooking instructions          |
+| `name`             | `string`   |        | Recipe name                   |
+| `description`      | `string`   |        | Recipe description            |
+| `prepTime`         | `number`   |        | Preparation time in minutes   |
+| `cookTime`         | `number`   |        | Cooking time in minutes       |
+| `difficultyId`     | `number`   |        | Difficulty level from backend |
+| `cuisineTypeId`    | `number`   |        | Cuisine type from backend     |
+| `mealTypeId`       | `number`   |        | Meal type from backend        |
+| `servings`         | `number`   |        | Number of servings            |
+| `dietaryOptionIds` | `number[]` |        | Array of dietary option IDs   |
+| `allergenIds`      | `number[]` |        | Array of allergen IDs         |
+| `instructions`     | `string`   |        | Cooking instructions          |
 
 #### Dynamic Data Sources
 

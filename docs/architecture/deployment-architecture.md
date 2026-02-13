@@ -1,6 +1,6 @@
-# 🚀 Deployment Architecture & Infrastructure
+# Deployment Architecture & Infrastructure
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Deployment Overview](#deployment-overview)
 2. [Container Architecture](#container-architecture)
@@ -13,31 +13,31 @@
 9. [Disaster Recovery](#disaster-recovery)
 10. [Environment Management](#environment-management)
 
-## 🎯 Deployment Overview
+## Deployment Overview
 
 The NOM application is designed with **container-first architecture** for seamless deployment across development, staging, and production environments with **zero-downtime deployments** and **horizontal scalability**.
 
 ### **Deployment Principles**
 
-- ✅ **Container-First** - Docker containers for consistent environments
-- ✅ **Infrastructure as Code** - Declarative infrastructure management
-- ✅ **12-Factor App** - Cloud-native application design principles
-- ✅ **Zero-Downtime** - Rolling deployments with health checks
-- ✅ **Environment Parity** - Identical dev/staging/production environments
-- ✅ **Observability-Driven** - Comprehensive monitoring and logging
+- **Container-First** - Docker containers for consistent environments
+- **Infrastructure as Code** - Declarative infrastructure management
+- **12-Factor App** - Cloud-native application design principles
+- **Zero-Downtime** - Rolling deployments with health checks
+- **Environment Parity** - Identical dev/staging/production environments
+- **Observability-Driven** - Comprehensive monitoring and logging
 
 ### **Deployment Readiness**
 
 | Component                 | Containerization      | Health Checks                  | Scaling               | Status              |
 | ------------------------- | --------------------- | ------------------------------ | --------------------- | ------------------- |
-| **Frontend (nom-ui)**     | ✅ Multi-stage Docker | ✅ HTTP health endpoint        | ✅ Horizontal scaling | ✅ Production Ready |
-| **Backend (nom-api)**     | ✅ Multi-stage Docker | ✅ Comprehensive health checks | ✅ Horizontal scaling | ✅ Production Ready |
-| **Database (PostgreSQL)** | ✅ Official image     | ✅ Built-in health checks      | ✅ Read replicas      | ✅ Production Ready |
-| **Cache (Redis)**         | ✅ Official image     | ✅ Built-in health checks      | ✅ Clustering         | ✅ Production Ready |
+| **Frontend (nom-ui)**     |  Multi-stage Docker |  HTTP health endpoint        |  Horizontal scaling |  Production Ready |
+| **Backend (nom-api)**     |  Multi-stage Docker |  Comprehensive health checks |  Horizontal scaling |  Production Ready |
+| **Database (PostgreSQL)** |  Official image     |  Built-in health checks      |  Read replicas      |  Production Ready |
+| **Cache (Redis)**         |  Official image     |  Built-in health checks      |  Clustering         |  Production Ready |
 
-**Overall Deployment Score: 98% Production Ready** 🚀
+**Overall Deployment Score: 98% Production Ready** 
 
-## 🐳 Container Architecture
+## Container Architecture
 
 ### **Multi-Container Application Stack**
 
@@ -173,7 +173,7 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "Nom.Api.dll"]
 ```
 
-## 📋 Docker Compose Configuration
+## Docker Compose Configuration
 
 ### **Production Docker Compose**
 
@@ -436,7 +436,7 @@ METRICS_PORT=9090
 LOG_LEVEL=Information
 ```
 
-## 🏭 Production Deployment Strategies
+## Production Deployment Strategies
 
 ### **Blue-Green Deployment**
 
@@ -501,18 +501,18 @@ ENVIRONMENT=${1:-production}
 HEALTH_CHECK_URL="http://localhost:8080/health"
 DEPLOYMENT_TIMEOUT=300  # 5 minutes
 
-echo "🚀 Starting rolling deployment for $ENVIRONMENT environment..."
+echo " Starting rolling deployment for $ENVIRONMENT environment..."
 
 # Step 1: Build new images
-echo "📦 Building new container images..."
+echo " Building new container images..."
 docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml build
 
 # Step 2: Start new containers alongside old ones
-echo "🔄 Starting new containers..."
+echo " Starting new containers..."
 docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml up -d --no-deps nom-api-new
 
 # Step 3: Wait for new containers to be healthy
-echo "🔍 Waiting for new containers to be healthy..."
+echo " Waiting for new containers to be healthy..."
 timeout $DEPLOYMENT_TIMEOUT bash -c '
   while ! curl -f $HEALTH_CHECK_URL/ready >/dev/null 2>&1; do
     echo "Waiting for health check..."
@@ -521,19 +521,19 @@ timeout $DEPLOYMENT_TIMEOUT bash -c '
 '
 
 # Step 4: Run smoke tests
-echo "🧪 Running smoke tests..."
+echo " Running smoke tests..."
 ./scripts/smoke-test.sh $HEALTH_CHECK_URL
 
 # Step 5: Switch traffic to new containers
-echo "🔀 Switching traffic to new containers..."
+echo " Switching traffic to new containers..."
 docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml up -d --no-deps nom-api
 docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml stop nom-api-old
 
 # Step 6: Cleanup old containers
-echo "🧹 Cleaning up old containers..."
+echo " Cleaning up old containers..."
 docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml rm -f nom-api-old
 
-echo "✅ Deployment completed successfully!"
+echo " Deployment completed successfully!"
 ```
 
 ### **Kubernetes Deployment**
@@ -648,7 +648,7 @@ spec:
                   number: 80
 ```
 
-## 🏗️ Infrastructure as Code
+## Infrastructure as Code
 
 ### **Terraform Configuration**
 
@@ -862,7 +862,7 @@ resource "aws_elasticache_cluster" "nom_redis" {
       command: docker system prune -f
 ```
 
-## 🔄 CI/CD Pipeline
+## CI/CD Pipeline
 
 ### **GitHub Actions Workflow**
 
@@ -1020,7 +1020,7 @@ jobs:
         if: always()
 ```
 
-## 📊 Monitoring & Observability
+## Monitoring & Observability
 
 ### **Prometheus Configuration**
 
@@ -1140,7 +1140,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 });
 ```
 
-## 📈 Scaling Strategies
+## Scaling Strategies
 
 ### **Horizontal Scaling**
 
@@ -1226,7 +1226,7 @@ elif (( $(echo "$CPU_USAGE < 20" | bc -l) )) && (( CURRENT_REPLICAS > 1 )); then
 fi
 ```
 
-## 🔄 Disaster Recovery
+## Disaster Recovery
 
 ### **Backup Strategy**
 
@@ -1241,26 +1241,26 @@ DATE=$(date +%Y%m%d_%H%M%S)
 RETENTION_DAYS=30
 
 # Database backup
-echo "📦 Creating database backup..."
+echo " Creating database backup..."
 pg_dump -h postgres -U nom nom > "$BACKUP_DIR/db_backup_$DATE.sql"
 
 # Application data backup
-echo "📦 Creating application data backup..."
+echo " Creating application data backup..."
 tar -czf "$BACKUP_DIR/app_data_$DATE.tar.gz" /app/data
 
 # Upload to S3 (if configured)
 if [ -n "$AWS_S3_BUCKET" ]; then
-    echo "☁️ Uploading backups to S3..."
+    echo " Uploading backups to S3..."
     aws s3 cp "$BACKUP_DIR/db_backup_$DATE.sql" "s3://$AWS_S3_BUCKET/backups/"
     aws s3 cp "$BACKUP_DIR/app_data_$DATE.tar.gz" "s3://$AWS_S3_BUCKET/backups/"
 fi
 
 # Cleanup old backups
-echo "🧹 Cleaning up old backups..."
+echo " Cleaning up old backups..."
 find "$BACKUP_DIR" -name "*.sql" -mtime +$RETENTION_DAYS -delete
 find "$BACKUP_DIR" -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
 
-echo "✅ Backup completed successfully!"
+echo " Backup completed successfully!"
 ```
 
 ### **Restore Script**
@@ -1281,11 +1281,11 @@ fi
 
 case $RESTORE_TYPE in
     "database")
-        echo "🔄 Restoring database from $BACKUP_FILE..."
+        echo " Restoring database from $BACKUP_FILE..."
         docker-compose exec postgres psql -U nom -d nom < "$BACKUP_FILE"
         ;;
     "application")
-        echo "🔄 Restoring application data from $BACKUP_FILE..."
+        echo " Restoring application data from $BACKUP_FILE..."
         tar -xzf "$BACKUP_FILE" -C /
         docker-compose restart nom-api
         ;;
@@ -1295,7 +1295,7 @@ case $RESTORE_TYPE in
         ;;
 esac
 
-echo "✅ Restore completed successfully!"
+echo " Restore completed successfully!"
 ```
 
 ### **High Availability Setup**
@@ -1357,7 +1357,7 @@ volumes:
     driver: local
 ```
 
-## 🌍 Environment Management
+## Environment Management
 
 ### **Environment-Specific Configurations**
 
@@ -1423,16 +1423,16 @@ ACTION=$2
 
 case $ACTION in
     "deploy")
-        echo "🚀 Deploying $ENVIRONMENT configuration..."
+        echo " Deploying $ENVIRONMENT configuration..."
         cp .env.$ENVIRONMENT .env
         docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml up -d
         ;;
     "validate")
-        echo "✅ Validating $ENVIRONMENT configuration..."
+        echo " Validating $ENVIRONMENT configuration..."
         docker-compose -f docker-compose.yml -f docker-compose.$ENVIRONMENT.yml config
         ;;
     "backup")
-        echo "💾 Backing up $ENVIRONMENT configuration..."
+        echo " Backing up $ENVIRONMENT configuration..."
         cp .env.$ENVIRONMENT backups/.env.$ENVIRONMENT.$(date +%Y%m%d_%H%M%S)
         ;;
     *)
@@ -1444,19 +1444,19 @@ esac
 
 ---
 
-## 🎯 Deployment Architecture Summary
+## Deployment Architecture Summary
 
 The NOM deployment architecture provides:
 
-- ✅ **Container-First Design** - Docker containers for all components
-- ✅ **Production-Ready** - 98% deployment readiness score
-- ✅ **Zero-Downtime Deployments** - Rolling updates with health checks
-- ✅ **Multi-Environment Support** - Dev, staging, and production configurations
-- ✅ **Infrastructure as Code** - Terraform and Ansible automation
-- ✅ **CI/CD Pipeline** - Automated testing and deployment
-- ✅ **Monitoring & Observability** - Comprehensive metrics and alerting
-- ✅ **High Availability** - Load balancing and failover capabilities
-- ✅ **Disaster Recovery** - Automated backups and restore procedures
-- ✅ **Scalability** - Horizontal and vertical scaling strategies
+- **Container-First Design** - Docker containers for all components
+- **Production-Ready** - 98% deployment readiness score
+- **Zero-Downtime Deployments** - Rolling updates with health checks
+- **Multi-Environment Support** - Dev, staging, and production configurations
+- **Infrastructure as Code** - Terraform and Ansible automation
+- **CI/CD Pipeline** - Automated testing and deployment
+- **Monitoring & Observability** - Comprehensive metrics and alerting
+- **High Availability** - Load balancing and failover capabilities
+- **Disaster Recovery** - Automated backups and restore procedures
+- **Scalability** - Horizontal and vertical scaling strategies
 
-**The deployment architecture supports immediate production deployment with enterprise-grade reliability!** 🚀
+**The deployment architecture supports immediate production deployment with enterprise-grade reliability!** 

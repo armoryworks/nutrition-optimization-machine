@@ -2,7 +2,7 @@
 
 This guide provides quick lookup information for AI tools and developers working with the NOM base component architecture.
 
-## 🎯 Base Component Selection Guide
+## Base Component Selection Guide
 
 ### When to Use Each Base Component
 
@@ -25,7 +25,7 @@ Is this a full page with navigation?
         └─ No → nom-base-detail
 ```
 
-## 🚀 Quick Start Templates
+## Quick Start Templates
 
 ### Base Page Template
 
@@ -153,7 +153,7 @@ export class MyDetailComponent extends BaseDetailComponent {
 }
 ```
 
-## 🔧 Common Configuration Patterns
+## Common Configuration Patterns
 
 ### Loading States
 
@@ -189,7 +189,7 @@ this.form = this.fb.group({
 });
 ```
 
-## 📋 Migration Checklist
+## Migration Checklist
 
 When migrating existing components to base components:
 
@@ -201,7 +201,7 @@ When migrating existing components to base components:
 - [ ] Test loading states and error handling
 - [ ] Verify navigation and actions work correctly
 
-## 🎨 Styling Guidelines
+## Styling Guidelines
 
 ### BEM Methodology
 
@@ -231,7 +231,7 @@ When migrating existing components to base components:
 }
 ```
 
-## 🔍 Common Patterns
+## Common Patterns
 
 ### Search and Filter
 
@@ -269,7 +269,7 @@ onItemSelect(item: any) {
 }
 ```
 
-## 🚨 Common Pitfalls
+## Common Pitfalls
 
 1. **Forgetting Loading States**: Always implement `isLoading` and `error` properties
 2. **Missing Error Handling**: Implement `onRetry()` method for error recovery
@@ -277,7 +277,7 @@ onItemSelect(item: any) {
 4. **Ignoring Accessibility**: Include proper ARIA labels and keyboard navigation
 5. **Not Using takeUntil**: Always implement `OnDestroy` with `takeUntil` for subscriptions
 
-## 📚 Related Documentation
+## Related Documentation
 
 - [Component Architecture](./component-architecture.md) - Detailed architecture guide
 - [Development Conventions](../development/conventions.md) - Development conventions

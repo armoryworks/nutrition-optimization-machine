@@ -278,18 +278,18 @@ System
 
 | Feature              | New User | Auth User | Plan Member | Recipe Author | Plan Admin | Site Admin | Role Manager | Privacy Officer |
 | -------------------- | -------- | --------- | ----------- | ------------- | ---------- | ---------- | ------------ | --------------- |
-| Registration         | ✅       | ✅        | ✅          | ✅            | ✅         | ✅         | ✅           | ✅              |
-| Profile Management   | ❌       | ✅        | ✅          | ✅            | ✅         | ✅         | ✅           | ✅              |
-| Recipe Creation      | ❌       | ❌        | ❌          | ✅            | ✅         | ✅         | ✅           | ❌              |
-| Recipe Curation      | ❌       | ❌        | ❌          | ❌            | ❌         | ✅         | ❌           | ❌              |
-| Plan Creation        | ❌       | ❌        | ❌          | ❌            | ✅         | ✅         | ✅           | ❌              |
-| Plan Participation   | ❌       | ❌        | ✅          | ✅            | ✅         | ✅         | ✅           | ❌              |
-| Household Management | ❌       | ❌        | ❌          | ❌            | ✅         | ✅         | ✅           | ❌              |
-| Shopping Lists       | ❌       | ✅        | ✅          | ✅            | ✅         | ✅         | ✅           | ❌              |
-| Meal Planning        | ❌       | ✅        | ✅          | ✅            | ✅         | ✅         | ✅           | ❌              |
-| Privacy Management   | ❌       | ✅        | ✅          | ✅            | ✅         | ✅         | ✅           | ✅              |
-| User Role Management | ❌       | ❌        | ❌          | ❌            | ❌         | ❌         | ✅           | ❌              |
-| System Monitoring    | ❌       | ❌        | ❌          | ❌            | ❌         | ❌         | ❌           | ✅              |
+| Registration         |        |         |           |             |          |          |            |               |
+| Profile Management   |        |         |           |             |          |          |            |               |
+| Recipe Creation      |        |         |           |             |          |          |            |               |
+| Recipe Curation      |        |         |           |             |          |          |            |               |
+| Plan Creation        |        |         |           |             |          |          |            |               |
+| Plan Participation   |        |         |           |             |          |          |            |               |
+| Household Management |        |         |           |             |          |          |            |               |
+| Shopping Lists       |        |         |           |             |          |          |            |               |
+| Meal Planning        |        |         |           |             |          |          |            |               |
+| Privacy Management   |        |         |           |             |          |          |            |               |
+| User Role Management |        |         |           |             |          |          |            |               |
+| System Monitoring    |        |         |           |             |          |          |            |               |
 
 ## User Journey Examples
 
