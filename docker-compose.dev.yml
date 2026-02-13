@@ -1,0 +1,79 @@
+version: "3.8"
+
+# Development-only setup
+# Runs PostgreSQL and Redis in containers, while API and UI run natively
+# This allows for faster development with hot reload
+
+services:
+  # PostgreSQL Database for Development
+  postgres-dev:
+    container_name: nom_postgres_dev
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nom_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-nom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    ports:
+      - "5432:5432"  # Expose to host for local development
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      # Optional: mount initialization scripts
+      - ./_GrantInitialAdminClaims.sql:/docker-entrypoint-initdb.d/_GrantInitialAdminClaims.sql
+    networks:
+      - nom-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nom} -d ${POSTGRES_DB:-nom_dev}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Redis Cache for Development
+  redis-dev:
+    container_name: nom_redis_dev
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"  # Expose to host for local development
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - nom-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    container_name: nom_pgadmin
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@nom.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - nom-dev-network
+    depends_on:
+      - postgres-dev
+    profiles:
+      - tools  # Only starts when explicitly requested
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  nom-dev-network:
+    driver: bridge

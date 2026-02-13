@@ -1,0 +1,27 @@
+# =================================================================
+# Development Dockerfile for NOM Angular Frontend
+# Includes hot reload support via ng serve
+# =================================================================
+
+FROM node:20-alpine
+WORKDIR /app
+
+# Install Angular CLI globally
+RUN npm install -g @angular/cli
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code (will be overridden by volume mount)
+COPY . .
+
+# Expose Angular dev server port
+EXPOSE 4200
+
+# Start dev server with hot reload
+# --host 0.0.0.0 allows access from outside container
+# --poll enables file watching in Docker
+CMD ["ng", "serve", "--host", "0.0.0.0", "--poll", "2000"]

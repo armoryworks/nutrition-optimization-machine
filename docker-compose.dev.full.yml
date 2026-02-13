@@ -1,0 +1,168 @@
+version: "3.8"
+
+# Fully Containerized Development Setup
+# Everything runs in Docker with live code reloading
+# No need for .NET SDK or Node.js installed locally
+
+services:
+  # PostgreSQL Database
+  postgres-dev:
+    container_name: nom_postgres_dev
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nom_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-nom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./_GrantInitialAdminClaims.sql:/docker-entrypoint-initdb.d/_GrantInitialAdminClaims.sql
+    networks:
+      - nom-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nom} -d ${POSTGRES_DB:-nom_dev}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Redis Cache
+  redis-dev:
+    container_name: nom_redis_dev
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - nom-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # .NET API with hot reload
+  api-dev:
+    container_name: nom_api_dev
+    build:
+      context: ./nom-api
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      - ConnectionStrings__NomConnection=Host=postgres-dev;Database=${POSTGRES_DB:-nom_dev};Username=${POSTGRES_USER:-nom};Password=${POSTGRES_PASSWORD:-dev_password}
+      - JWT__SecretKey=${JWT_SECRET_KEY:-dev_jwt_secret_key_minimum_32_characters_long_for_development}
+      - JWT__Issuer=NOMApi
+      - JWT__Audience=NOMAngular
+      - JWT__ExpirationMinutes=1440
+      - AllowedOrigins=http://localhost:4200,http://localhost:4201
+    ports:
+      - "8080:8080"
+      - "8081:8081"  # For debugging
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    networks:
+      - nom-dev-network
+    volumes:
+      # Mount source code for live reload
+      - ./nom-api:/src
+      # Preserve build artifacts in named volumes (faster rebuilds)
+      - api_obj:/src/Nom.Api/obj
+      - api_bin:/src/Nom.Api/bin
+      - data_obj:/src/Nom.Data/obj
+      - data_bin:/src/Nom.Data/bin
+      - orch_obj:/src/Nom.Orch/obj
+      - orch_bin:/src/Nom.Orch/bin
+      - import_obj:/src/Nom.Import/obj
+      - import_bin:/src/Nom.Import/bin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Angular UI with hot reload
+  ui-dev:
+    container_name: nom_ui_dev
+    build:
+      context: ./nom-ui
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api-dev
+    networks:
+      - nom-dev-network
+    volumes:
+      # Mount source code for live reload
+      - ./nom-ui:/app
+      # Use named volume for node_modules (much faster on Windows)
+      - ui_node_modules:/app/node_modules
+      # Exclude build output
+      - /app/dist
+      - /app/.angular
+    # Use Dockerfile CMD (ng serve --host 0.0.0.0 --poll 2000)
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    container_name: nom_pgadmin
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@nom.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - nom-dev-network
+    depends_on:
+      - postgres-dev
+    profiles:
+      - tools
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  # API build artifacts
+  api_obj:
+    driver: local
+  api_bin:
+    driver: local
+  data_obj:
+    driver: local
+  data_bin:
+    driver: local
+  orch_obj:
+    driver: local
+  orch_bin:
+    driver: local
+  import_obj:
+    driver: local
+  import_bin:
+    driver: local
+  # UI node_modules
+  ui_node_modules:
+    driver: local
+
+networks:
+  nom-dev-network:
+    driver: bridge

@@ -1,0 +1,34 @@
+# =================================================================
+# Development Dockerfile for NOM .NET Backend
+# Includes hot reload support via dotnet watch
+# =================================================================
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0
+WORKDIR /src
+
+# Install health check tools
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy solution and project files
+COPY ["Nom.Api/Nom.Api.csproj", "Nom.Api/"]
+COPY ["Nom.Data/Nom.Data.csproj", "Nom.Data/"]
+COPY ["Nom.Orch/Nom.Orch.csproj", "Nom.Orch/"]
+COPY ["Nom.Import/Nom.Import.csproj", "Nom.Import/"]
+COPY ["nom-api.sln", "./"]
+
+# Restore dependencies
+RUN dotnet restore "nom-api.sln"
+
+# Copy source code
+COPY . .
+
+# Expose ports
+EXPOSE 8080
+EXPOSE 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Use dotnet watch for hot reload
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "Nom.Api/Nom.Api.csproj", "--no-restore", "--no-launch-profile"]

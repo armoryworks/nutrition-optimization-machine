@@ -18,6 +18,8 @@
     "test:simple": "cypress run --spec \"cypress/e2e/simple-test.cy.ts\"",
     "test:headed": "cypress run --headed",
     "test:record": "cypress run --record",
+    "test:docker": "cypress run --e2e --config-file cypress.config.js --env-file .env.test",
+    "test:docker:open": "cypress open --config-file cypress.config.js --env-file .env.test",
     "build:types": "tsc --noEmit",
     "lint:ts": "eslint cypress/**/*.ts"
   },

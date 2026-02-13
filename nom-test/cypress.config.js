@@ -2,7 +2,8 @@ const { defineConfig } = require('cypress')
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:4200', // Angular dev server
+    // Support both local dev and containerized test environments
+    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4200', // Angular dev server
     supportFile: 'cypress/support/e2e.ts',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     viewportWidth: 1280,
@@ -13,7 +14,8 @@ module.exports = defineConfig({
     requestTimeout: 10000,
     responseTimeout: 10000,
     env: {
-      apiUrl: 'http://localhost:7053', // .NET API server
+      // Support environment variable override for CI/CD
+      apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8080', // .NET API server
     },
     setupNodeEvents(on, config) {
       // implement node event listeners here

@@ -1,0 +1,83 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Create environment file
+      run: |
+        cat > .env << EOF
+        POSTGRES_TEST_DB=nom_test
+        POSTGRES_USER=nom
+        POSTGRES_PASSWORD=test_password_${{ github.run_id }}
+        JWT_SECRET_KEY=test_jwt_secret_key_minimum_32_characters_long_${{ github.run_id }}
+        API_TEST_PORT=8081
+        UI_TEST_PORT=4201
+        EOF
+
+    - name: Start test environment
+      run: docker-compose -f docker-compose.test.yml up -d
+
+    - name: Wait for services to be healthy
+      run: |
+        echo "Waiting for PostgreSQL..."
+        timeout 60 bash -c 'until docker exec nom_postgres_test pg_isready -U nom -d nom_test; do sleep 2; done'
+        echo "Waiting for API..."
+        timeout 60 bash -c 'until curl -f http://localhost:8081/health; do sleep 2; done'
+        echo "Waiting for UI..."
+        timeout 60 bash -c 'until curl -f http://localhost:4201; do sleep 2; done'
+
+    - name: Install test dependencies
+      working-directory: ./nom-test
+      run: npm ci
+
+    - name: Run Cypress tests
+      working-directory: ./nom-test
+      env:
+        CYPRESS_BASE_URL: http://localhost:4201
+        CYPRESS_API_URL: http://localhost:8081
+      run: npm run test:e2e
+
+    - name: Upload screenshots on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress-screenshots
+        path: nom-test/cypress/screenshots
+        retention-days: 7
+
+    - name: Upload videos
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress-videos
+        path: nom-test/cypress/videos
+        retention-days: 7
+
+    - name: Stop test environment
+      if: always()
+      run: docker-compose -f docker-compose.test.yml down -v
+
+    - name: Display logs on failure
+      if: failure()
+      run: docker-compose -f docker-compose.test.yml logs

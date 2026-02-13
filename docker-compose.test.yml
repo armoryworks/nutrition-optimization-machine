@@ -1,0 +1,105 @@
+version: "3.8"
+
+# E2E Testing Setup
+# Isolated environment for running Cypress tests
+# Uses separate database to avoid interfering with development
+
+services:
+  # PostgreSQL Database for Testing
+  postgres-test:
+    container_name: nom_postgres_test
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-nom_test}
+      POSTGRES_USER: ${POSTGRES_USER:-nom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+    ports:
+      - "${POSTGRES_TEST_PORT:-5433}:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./_GrantInitialAdminClaims.sql:/docker-entrypoint-initdb.d/_GrantInitialAdminClaims.sql
+    networks:
+      - nom-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nom} -d ${POSTGRES_TEST_DB:-nom_test}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster tests (optional)
+
+  # Redis Cache for Testing
+  redis-test:
+    container_name: nom_redis_test
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly no  # Disable persistence for tests
+    ports:
+      - "${REDIS_TEST_PORT:-6380}:6379"
+    networks:
+      - nom-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    tmpfs:
+      - /data  # Use tmpfs for faster tests
+
+  # NOM API for Testing
+  nom-api-test:
+    container_name: nom_api_test
+    build:
+      context: ./nom-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      - ConnectionStrings__NomConnection=Host=postgres-test;Database=${POSTGRES_TEST_DB:-nom_test};Username=${POSTGRES_USER:-nom};Password=${POSTGRES_PASSWORD:-test_password}
+      - JWT__SecretKey=${JWT_SECRET_KEY:-test_jwt_secret_key_minimum_32_characters_long}
+      - JWT__Issuer=NOMApi
+      - JWT__Audience=NOMAngular
+      - JWT__ExpirationMinutes=1440
+      - AllowedOrigins=http://localhost:4200,http://localhost:4201
+    ports:
+      - "${API_TEST_PORT:-8081}:8080"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - nom-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # NOM UI for Testing
+  nom-ui-test:
+    container_name: nom_ui_test
+    build:
+      context: ./nom-ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${UI_TEST_PORT:-4201}:80"
+    depends_on:
+      nom-api-test:
+        condition: service_healthy
+    networks:
+      - nom-test-network
+    environment:
+      - API_URL=http://nom-api-test:8080
+
+volumes:
+  postgres_test_data:
+    driver: local
+
+networks:
+  nom-test-network:
+    driver: bridge
