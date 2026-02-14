@@ -18,6 +18,7 @@ import { IngredientModel } from '../models/ingredient.model';
 import { CreateIngredientRequestModel } from '../models/create-ingredient-request.model';
 import { UpdateIngredientRequestModel } from '../models/update-ingredient-request.model';
 import { ReferenceItemModel } from '../../common/models/reference-item.model';
+import { RecipeDashboardAnalyticsModel } from '../models/recipe-dashboard-analytics.model';
 
 @Injectable({
   providedIn: 'root'
@@ -103,6 +104,11 @@ export class RecipeService {
   }
 
 
+
+  // Dashboard Analytics
+  getDashboardAnalytics(): Observable<RecipeDashboardAnalyticsModel> {
+    return this.http.get<RecipeDashboardAnalyticsModel>(`${this.apiUrl}/dashboard/analytics`);
+  }
 
   // Recipe search
   searchRecipes(query: string): Observable<RecipeModel[]> {

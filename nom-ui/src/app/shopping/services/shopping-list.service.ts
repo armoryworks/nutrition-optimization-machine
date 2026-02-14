@@ -13,7 +13,7 @@ import { ShoppingListItemCreateRequestModel } from '../models/shopping-list-item
 export class ShoppingListService {
     private http = inject(HttpClient);
 
-    private apiUrl = `${environment.apiUrl}/api/shopping-lists`;
+    private apiUrl = `${environment.apiUrl}/ShoppingList`;
 
 
 

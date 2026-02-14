@@ -107,6 +107,30 @@ export const ERROR_MESSAGES = {
     EXPORT_FAILED: 'Failed to export analytics. Please try again.',
   },
 
+  COOKBOOK: {
+    LOAD_FAILED: 'Failed to load cookbooks. Please try again.',
+    SAVE_FAILED: 'Failed to save cookbook. Please try again.',
+    DELETE_FAILED: 'Failed to delete cookbook. Please try again.',
+  },
+
+  WEBHOOK: {
+    LOAD_FAILED: 'Failed to load webhooks. Please try again.',
+    SAVE_FAILED: 'Failed to save webhook. Please try again.',
+    DELETE_FAILED: 'Failed to delete webhook. Please try again.',
+    TEST_FAILED: 'Failed to test webhook. Please try again.',
+  },
+
+  LABEL: {
+    LOAD_FAILED: 'Failed to load labels. Please try again.',
+    SAVE_FAILED: 'Failed to save label. Please try again.',
+    DELETE_FAILED: 'Failed to delete label. Please try again.',
+  },
+
+  SMART_SHOPPING: {
+    GENERATE_FAILED: 'Failed to generate smart shopping list. Please try again.',
+    OPTIMIZE_FAILED: 'Failed to optimize shopping list. Please try again.',
+  },
+
   CLIPBOARD: {
     COPY_FAILED: 'Failed to copy to clipboard. Please try again.',
   },

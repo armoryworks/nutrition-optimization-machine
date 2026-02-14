@@ -1,0 +1,84 @@
+<div class="nom-dashboard">
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">{{ pageTitle }}</h1>
+      <span class="nom-dashboard__subtitle">{{ pageSubtitle }}</span>
+    </div>
+    <div class="nom-dashboard__header-center">
+      @if (households().length > 1) {
+        <select class="nom-dashboard__select" [ngModel]="selectedHouseholdId()" (ngModelChange)="onHouseholdChange($event)">
+          @for (h of households(); track h.id) { <option [value]="h.id">{{ h.name }}</option> }
+        </select>
+      }
+    </div>
+    <div class="nom-dashboard__header-right">
+      <amw-button variant="filled" color="primary" icon="add" (click)="toggleCreateForm()">
+        Add Webhook
+      </amw-button>
+    </div>
+  </header>
+
+  @if (showCreateForm()) {
+    <div class="nom-form">
+      <div class="nom-form__field">
+        <label class="nom-form__label" for="wh-name">Name</label>
+        <input class="nom-form__input" id="wh-name" type="text" [(ngModel)]="newWebhook.name" placeholder="My Webhook" />
+      </div>
+      <div class="nom-form__field">
+        <label class="nom-form__label" for="wh-url">URL</label>
+        <input class="nom-form__input" id="wh-url" type="url" [(ngModel)]="newWebhook.url" placeholder="https://example.com/webhook" />
+      </div>
+      <div class="nom-form__field">
+        <label class="nom-form__label" for="wh-event">Event Type</label>
+        <input class="nom-form__input" id="wh-event" type="text" [(ngModel)]="newWebhook.eventType" placeholder="recipe.created" />
+      </div>
+      <div class="nom-form__actions">
+        <amw-button variant="text" (click)="toggleCreateForm()">Cancel</amw-button>
+        <amw-button variant="filled" color="primary" icon="save" (click)="createWebhook()">Create</amw-button>
+      </div>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="nom-dashboard__error" role="alert">
+      <amw-icon name="error_outline"></amw-icon>
+      <p>{{ error() }}</p>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="nom-dashboard__loading"><amw-inline-loading message="Loading webhooks..." /></div>
+  }
+
+  @if (!loading() && !error()) {
+    @if (webhooks().length === 0) {
+      <div class="nom-dashboard__empty">
+        <amw-icon name="webhook" class="nom-dashboard__empty-icon"></amw-icon>
+        <h3 class="nom-dashboard__empty-title">No Webhooks</h3>
+        <p class="nom-dashboard__empty-message">Add webhooks to receive notifications when events occur.</p>
+      </div>
+    } @else {
+      <div class="nom-dashboard__grid">
+        @for (webhook of webhooks(); track webhook.id) {
+          <article class="nom-dashboard__card">
+            <div class="nom-dashboard__card-content">
+              <h2 class="nom-dashboard__card-title">{{ webhook.name }}</h2>
+              <p class="nom-dashboard__card-subtitle">{{ webhook.url }}</p>
+              <div class="nom-dashboard__card-meta">
+                @if (webhook.eventType) { <span>{{ webhook.eventType }}</span> }
+                <span>{{ webhook.isActive ? 'Active' : 'Inactive' }}</span>
+              </div>
+            </div>
+            <div class="nom-dashboard__card-actions">
+              <amw-button variant="text" [icon]="webhook.isActive ? 'pause' : 'play_arrow'" (click)="toggleActive(webhook)">
+                {{ webhook.isActive ? 'Disable' : 'Enable' }}
+              </amw-button>
+              <amw-button variant="text" color="primary" icon="send" (click)="testWebhook(webhook)">Test</amw-button>
+              <amw-button variant="text" color="warn" icon="delete" (click)="deleteWebhook(webhook)">Delete</amw-button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  }
+</div>

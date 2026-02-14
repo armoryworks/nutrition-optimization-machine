@@ -89,6 +89,21 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'cookbook',
+    loadChildren: () => import('./cookbook/cookbook.routes').then(m => m.COOKBOOK_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'webhook',
+    loadChildren: () => import('./webhook/webhook.routes').then(m => m.WEBHOOK_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'labels',
+    loadChildren: () => import('./label/label.routes').then(m => m.LABEL_ROUTES),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'shopping',
     loadChildren: () => import('./shopping/shopping.routes').then(m => m.SHOPPING_ROUTES),
     canActivate: [AuthGuard]

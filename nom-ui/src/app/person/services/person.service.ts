@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap, map } from 'rxjs';
 import { OnboardingCompleteRequestModel } from '../../onboarding/models/onboarding-complete-request.model';
 import { ApiResponseCommonModel } from '../../common/models/api-response-common.model';
@@ -81,6 +81,16 @@ export class PersonService {
    */
   deletePerson(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Searches persons by name query
+   */
+  searchPersons(query: string, limit = 20): Observable<PersonModel[]> {
+    const params = new HttpParams()
+        .set('query', query)
+        .set('limit', limit.toString());
+    return this.http.get<PersonModel[]>(`${this.apiUrl}/search`, { params });
   }
 
   /**

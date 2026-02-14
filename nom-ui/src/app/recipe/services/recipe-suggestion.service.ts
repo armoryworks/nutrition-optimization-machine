@@ -163,7 +163,7 @@ export interface RecipeSuggestionAnalytics {
 export class RecipeSuggestionService {
     private http = inject(HttpClient);
 
-    private readonly baseUrl = `${environment.apiUrl}/api/recipesuggestion`;
+    private readonly baseUrl = `${environment.apiUrl}/RecipeSuggestion`;
 
 
 

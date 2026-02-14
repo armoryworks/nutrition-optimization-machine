@@ -20,7 +20,7 @@ import {
     providedIn: 'root'
 })
 export class MeasurementService {
-    private readonly apiUrl = `${environment.apiUrl}/api/measurements`;
+    private readonly apiUrl = `${environment.apiUrl}/Measurement`;
 
     constructor(private http: HttpClient) { }
 

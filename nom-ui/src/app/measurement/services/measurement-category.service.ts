@@ -14,7 +14,7 @@ import {
     providedIn: 'root'
 })
 export class MeasurementCategoryService {
-    private readonly apiUrl = `${environment.apiUrl}/api/measurement-categories`;
+    private readonly apiUrl = `${environment.apiUrl}/MeasurementCategory`;
 
     constructor(private http: HttpClient) { }
 
