@@ -307,6 +307,7 @@ namespace Nom.Orch.Services
             recipe.Name = model.Name;
             recipe.Description = model.Description;
             recipe.LastModifiedDate = DateTime.UtcNow;
+            recipe.Version++;
 
             // Remove existing ingredients and steps
             var existingIngredients = await _context.RecipeIngredients
@@ -604,6 +605,68 @@ namespace Nom.Orch.Services
                 AuthorId = ingredient.CreatedByPersonId ?? 0L,
                 CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                 Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
+            };
+        }
+
+        public async Task<RecipeDashboardAnalyticsModel> GetDashboardAnalyticsAsync(long personId)
+        {
+            var recipes = await _context.Recipes
+                .Include(r => r.CurationStatus)
+                .Where(r => r.AuthorId == personId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var recipesByStatus = recipes
+                .GroupBy(r => r.CurationStatus?.Name ?? "Unknown")
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var topRated = recipes
+                .Where(r => r.Rating.HasValue && r.Rating > 0)
+                .OrderByDescending(r => r.Rating)
+                .Take(5)
+                .Select(r => new RecipeSummaryModel
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Rating = r.Rating ?? 0,
+                    CreatedDate = r.CreatedDate,
+                    ImageUrl = r.Image
+                }).ToList();
+
+            var recentlyCreated = recipes
+                .OrderByDescending(r => r.CreatedDate)
+                .Take(5)
+                .Select(r => new RecipeSummaryModel
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Rating = r.Rating ?? 0,
+                    CreatedDate = r.CreatedDate,
+                    ImageUrl = r.Image
+                }).ToList();
+
+            var recipeIds = recipes.Select(r => r.Id).ToList();
+            var mostUsedIngredients = await _context.RecipeIngredients
+                .Where(ri => recipeIds.Contains(ri.RecipeId))
+                .Include(ri => ri.Ingredient)
+                .GroupBy(ri => new { ri.IngredientId, Name = ri.Ingredient!.Name })
+                .Select(g => new IngredientUsageModel
+                {
+                    IngredientId = g.Key.IngredientId,
+                    Name = g.Key.Name,
+                    UsageCount = g.Count()
+                })
+                .OrderByDescending(i => i.UsageCount)
+                .Take(10)
+                .ToListAsync();
+
+            return new RecipeDashboardAnalyticsModel
+            {
+                TotalRecipes = recipes.Count,
+                RecipesByStatus = recipesByStatus,
+                TopRatedRecipes = topRated,
+                RecentlyCreated = recentlyCreated,
+                MostUsedIngredients = mostUsedIngredients
             };
         }
 

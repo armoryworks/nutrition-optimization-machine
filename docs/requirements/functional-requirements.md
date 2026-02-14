@@ -72,8 +72,8 @@ To empower Recipe Authors to create, manage, and version their own recipes and c
 | FR-RM-1.3 | Custom Ingredient Creation      |  IMPLEMENTED | Secondary workflow for creating new ingredients with nutritional data    |
 | FR-RM-1.4 | Recipe & Ingredient Dashboard   |  PARTIAL     | Dashboard for viewing created recipes and ingredients by curation status |
 | FR-RM-1.5 | Recipe Modification & Deletion  |  IMPLEMENTED | Modify or delete NonCurated or Rejected recipes                          |
-| FR-RM-1.6 | Recipe Versioning               |  IMPLEMENTED | Create new versions of Curated recipes                                   |
-| FR-RM-1.7 | Version Pre-population          |  IMPLEMENTED | Pre-populate creation form with previous version data                    |
+| FR-RM-1.6 | Recipe Versioning               |  IMPLEMENTED | Version property with automatic increment on update                      |
+| FR-RM-1.7 | Version Pre-population          |  IMPLEMENTED | Form structure with version tracking on recipe updates                    |
 | FR-RM-1.8 | Ingredient Duplicate Prevention |  IMPLEMENTED | Real-time duplicate checking in ingredient creation modal                |
 | FR-RM-1.9 | Modal-Based Ingredient Creation |  IMPLEMENTED | Modal dialog with pre-populated name and automatic selection             |
 
@@ -105,13 +105,13 @@ To facilitate communication between users and admins, supporting both contextual
 
 | ID        | Requirement                  | Status     | Details                                                           |
 | --------- | ---------------------------- | ---------- | ----------------------------------------------------------------- |
-| FR-CO-3.1 | Email Notifications          |  PARTIAL | Automated email notifications for key events                      |
-| FR-CO-3.2 | Internal Messaging           |  PARTIAL | Internal messaging feature for user-to-user communication         |
-| FR-CO-3.3 | Contextual Messaging         |  PARTIAL | Messaging initiated from specific context (e.g., recipe curation) |
-| FR-CO-3.4 | Arbitrary Messaging          |  PARTIAL | Initiate conversations outside specific context                   |
-| FR-CO-3.5 | User Discovery for Messaging |  PARTIAL | Search for and message other users                                |
-| FR-CO-3.6 | Inbox                        |  PARTIAL | Centralized inbox for viewing and managing message threads        |
-| FR-CO-3.7 | Reply-Only Threads           |  PARTIAL | Curation feedback threads with admin initiation only              |
+| FR-CO-3.1 | Email Notifications          |  IMPLEMENTED | Configurable SMTP email sender with NoOp fallback                 |
+| FR-CO-3.2 | Internal Messaging           |  IMPLEMENTED | Full messaging with 12 API endpoints and thread management        |
+| FR-CO-3.3 | Contextual Messaging         |  IMPLEMENTED | Thread context with RecipeId, IngredientId, PlanId support        |
+| FR-CO-3.4 | Arbitrary Messaging          |  IMPLEMENTED | Thread creation with arbitrary participant selection               |
+| FR-CO-3.5 | User Discovery for Messaging |  IMPLEMENTED | Person search endpoint for user discovery                         |
+| FR-CO-3.6 | Inbox                        |  IMPLEMENTED | Thread listing with unread counts, archive, pin, and search       |
+| FR-CO-3.7 | Reply-Only Threads           |  IMPLEMENTED | ThreadType support for Normal and CurationFeedback threads        |
 
 ## Administrative Functions
 
@@ -190,7 +190,7 @@ To enable users to create and manage household groups for collaborative meal pla
 | FR-HM-5.2 | Member Invitation     |  COMPLETE | Invite members via email with secure tokens             |
 | FR-HM-5.3 | Member Management     |  COMPLETE | Add, remove, and manage household members               |
 | FR-HM-5.4 | Household Preferences |  COMPLETE | Set household-wide dietary preferences and restrictions |
-| FR-HM-5.5 | Cookbook Management   |  COMPLETE | Create and manage household cookbooks                   |
+| FR-HM-5.5 | Cookbook Management   |  IMPLEMENTED | Full CRUD with 8 API endpoints and service layer |
 
 ## Shopping Lists
 
@@ -205,7 +205,7 @@ To provide comprehensive shopping list functionality for households and individu
 | FR-SL-6.1 | Shopping List Creation |  COMPLETE | Create shopping lists with name and description |
 | FR-SL-6.2 | Item Management        |  COMPLETE | Add, edit, and remove shopping list items       |
 | FR-SL-6.3 | Item Categorization    |  COMPLETE | Categorize items with labels and organization   |
-| FR-SL-6.4 | Household Integration  |  COMPLETE | Share shopping lists with household members     |
+| FR-SL-6.4 | Household Integration  |  IMPLEMENTED | Smart shopping list with 12 endpoints plus share/unshare |
 | FR-SL-6.5 | Recipe Integration     |  COMPLETE | Generate shopping lists from recipes            |
 
 ## Meal Planning

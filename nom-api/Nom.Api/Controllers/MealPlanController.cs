@@ -23,11 +23,13 @@ namespace Nom.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<MealPlanResponseModel>>> GetMealPlans()
+        public async Task<ActionResult<List<MealPlanResponseModel>>> GetMealPlans(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
         {
             try
             {
-                var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync();
+                var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync(startDate, endDate);
                 return Ok(mealPlans);
             }
             catch (Exception ex)

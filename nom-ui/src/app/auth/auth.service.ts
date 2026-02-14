@@ -62,9 +62,7 @@ export class AuthService {
       username: userData.email, // Use email as username
       password: userData.password,
       confirmPassword: userData.confirmPassword,
-      fullName: userData.fullName || null,
-      groupToken: null,
-      householdToken: null
+      fullName: userData.fullName || null
     };
 
     return this.httpClient

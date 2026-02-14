@@ -247,9 +247,9 @@ This document provides a comprehensive overview of the current implementation st
 - **Zero Material References**: Complete elimination of Material component usage in documentation
 - **Modern Control Flow**: 91% of templates migrated to `@if/@for` syntax (62/68 files)
 
-### Household Management: COMPLETE 
+### Household Management: COMPLETE
 
-**Status**: Full household management system with frontend and backend integration
+**Status**: Full household management system with frontend and backend integration, cookbook, webhook, and label management
 
 **Backend Status**:  COMPLETE
 
@@ -257,6 +257,9 @@ This document provides a comprehensive overview of the current implementation st
 - **Orchestration Services**: Full household business logic including RemoveMember and JoinHousehold
 - **API Controllers**: Complete household API endpoints with member management
 - **Database Schema**: All household-related database entities
+- **Cookbook Management**: Full CRUD with 8 API endpoints and service layer
+- **Webhook Management**: CRUD operations with 6 endpoints including test functionality
+- **Label Management**: Full label system with 4 endpoints
 
 **Frontend Status**:  COMPLETE
 
@@ -270,15 +273,16 @@ This document provides a comprehensive overview of the current implementation st
 - **HouseholdSettingsComponent**: Preferences, notification settings, and privacy controls
 - **Member Management**: Complete member management interface with email display and role management
 
-### Shopping Lists: COMPLETE 
+### Shopping Lists: COMPLETE
 
-**Status**: Full shopping list system with recipe integration and advanced features
+**Status**: Full shopping list system with recipe integration, smart shopping list features, and advanced features
 
 **Backend Status**:  COMPLETE
 
 - **Shopping Entities**: Complete shopping list entity implementation
 - **Orchestration Services**: Full shopping list business logic with recipe integration
 - **API Controllers**: Complete shopping list API endpoints with category management
+- **SmartShoppingList Controller**: 12 endpoints for intelligent list generation, optimization, and analytics
 - **Database Schema**: All shopping-related database entities
 
 **Frontend Status**:  COMPLETE
@@ -319,16 +323,20 @@ This document provides a comprehensive overview of the current implementation st
 - **MealPlanNutrition**: Display nutrition information and macro/micro tracking
 - **MealPlanPrint**: Print-friendly single and weekly views with PDF generation
 
-### Messaging System: COMPLETE 
+### Messaging System: COMPLETE
 
-**Status**: Full messaging system with thread management and composition
+**Status**: Full messaging system with thread management, contextual messaging, person search, and thread types
 
 **Backend Status**:  COMPLETE
 
-- **Message Entities**: Complete messaging entity implementation
-- **Orchestration Services**: Full messaging business logic
-- **API Controllers**: Complete messaging API endpoints
+- **Message Entities**: Complete messaging entity implementation with thread context support
+- **Orchestration Services**: Full messaging business logic with person discovery
+- **API Controllers**: 12 messaging API endpoints with search capabilities
 - **Database Schema**: All messaging-related database entities
+- **Thread Types**: Normal and CurationFeedback thread types
+- **Contextual Messaging**: Thread context properties (RecipeId, IngredientId, PlanId)
+- **User Discovery**: Person search endpoint for messaging discovery
+- **Message Model Alignment**: avatarUrl, isOnline, lastSeen, senderDisplayName properties
 
 **Frontend Status**:  COMPLETE
 

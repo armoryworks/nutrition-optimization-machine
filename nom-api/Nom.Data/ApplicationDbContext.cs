@@ -160,6 +160,7 @@ namespace Nom.Data
         public DbSet<ShoppingListLabelEntity> ShoppingListLabels { get; set; } = default!;
         public DbSet<ShoppingListCategoryEntity> ShoppingListCategories { get; set; } = default!;
         public DbSet<ShoppingListGenerationHistoryEntity> ShoppingListGenerationHistory { get; set; } = default!;
+        public DbSet<ShoppingListShareEntity> ShoppingListShares { get; set; } = default!;
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

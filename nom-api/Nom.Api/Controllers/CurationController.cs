@@ -11,8 +11,7 @@ using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
 {
-    // [Authorize(Policy = "CanManageCuration")] // Temporarily commented out for testing
-    [Authorize] // Allow any authenticated user for testing
+    [Authorize(Policy = "CanManageCuration")]
     public class CurationController : BaseApiController
     {
         private readonly ILogger<CurationController> _logger;

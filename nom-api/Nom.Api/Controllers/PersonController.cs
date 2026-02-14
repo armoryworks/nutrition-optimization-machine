@@ -172,6 +172,22 @@ namespace Nom.Api.Controllers
             }
         }
 
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> SearchPersons([FromQuery] string query, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                var results = await _personOrchestrationService.SearchPersonsAsync(query, limit);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching persons");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
         [HttpGet("onboarding-state")]
         [AllowAnonymous] // Allow fetching onboarding state without authentication
         public async Task<IActionResult> GetOnboardingState([FromQuery] string? userId = null)

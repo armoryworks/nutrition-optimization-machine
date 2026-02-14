@@ -158,7 +158,14 @@ builder.Services.AddAuthorization(options =>
               .RequireClaim("CanManage", "true"));
 });
 
-builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
+if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
+{
+    builder.Services.AddTransient<IEmailSender<IdentityUser>, SmtpEmailSender>();
+}
+else
+{
+    builder.Services.AddTransient<IEmailSender<IdentityUser>, NoOpEmailSender>();
+}
 // --- END OF CORRECTED CONFIGURATION ---
 
 // Add HttpClient for web scraping

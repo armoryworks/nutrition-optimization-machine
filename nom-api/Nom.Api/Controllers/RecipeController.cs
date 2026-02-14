@@ -161,6 +161,26 @@ namespace Nom.Api.Controllers
             }
         }
 
+        [HttpGet("dashboard/analytics")]
+        [ProducesResponseType(typeof(RecipeDashboardAnalyticsModel), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetDashboardAnalytics()
+        {
+            try
+            {
+                var personId = GetCurrentPersonId();
+                if (!personId.HasValue)
+                {
+                    return Unauthorized("User not authenticated");
+                }
+                var analytics = await _recipeService.GetDashboardAnalyticsAsync(personId.Value);
+                return Ok(analytics);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve dashboard analytics", error = ex.Message });
+            }
+        }
+
         // Recipe Comments Endpoints
         [HttpPost("{id}/comments")]
         public async Task<ActionResult<RecipeCommentResponseModel>> AddComment(long id, [FromBody] RecipeCommentCreateModel request)

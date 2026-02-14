@@ -1461,6 +1461,40 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ShoppingListShares",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ShoppingListId = table.Column<long>(type: "bigint", nullable: false),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    SharedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingListShares", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShoppingListShares_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ShoppingListShares_ShoppingList_ShoppingListId",
+                        column: x => x.ShoppingListId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingList",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "shopping_trip_meal_index",
                 schema: "shopping",
                 columns: table => new
@@ -2159,6 +2193,7 @@ namespace Nom.Data.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ThreadType = table.Column<int>(type: "integer", nullable: false),
                     RecipeId = table.Column<long>(type: "bigint", nullable: true),
                     IngredientId = table.Column<long>(type: "bigint", nullable: true),
                     PlanId = table.Column<long>(type: "bigint", nullable: true),
@@ -2797,6 +2832,8 @@ namespace Nom.Data.Migrations
                     MessageThreadId = table.Column<long>(type: "bigint", nullable: false),
                     PersonId = table.Column<long>(type: "bigint", nullable: false),
                     DateJoined = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsArchived = table.Column<bool>(type: "boolean", nullable: false),
+                    IsPinned = table.Column<bool>(type: "boolean", nullable: false),
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -3781,6 +3818,18 @@ namespace Nom.Data.Migrations
                 column: "ShoppingListId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ShoppingListShares_PersonId",
+                schema: "shopping",
+                table: "ShoppingListShares",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShoppingListShares_ShoppingListId",
+                schema: "shopping",
+                table: "ShoppingListShares",
+                column: "ShoppingListId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ShoppingPreference_PersonId",
                 schema: "shopping",
                 table: "ShoppingPreference",
@@ -4169,6 +4218,10 @@ namespace Nom.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "ShoppingListLabel",
+                schema: "shopping");
+
+            migrationBuilder.DropTable(
+                name: "ShoppingListShares",
                 schema: "shopping");
 
             migrationBuilder.DropTable(

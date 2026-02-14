@@ -51,13 +51,13 @@ namespace Nom.Orch.UtilityInterfaces
         /// Generates a new encryption key
         /// </summary>
         /// <returns>The generated key</returns>
-        static string GenerateEncryptionKey() => throw new NotImplementedException();
+        static abstract string GenerateEncryptionKey();
 
         /// <summary>
         /// Generates a new initialization vector
         /// </summary>
         /// <returns>The generated IV</returns>
-        static string GenerateInitializationVector() => throw new NotImplementedException();
+        static abstract string GenerateInitializationVector();
 
         /// <summary>
         /// Checks if a value is encrypted

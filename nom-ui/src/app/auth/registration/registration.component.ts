@@ -15,6 +15,8 @@ import { RegisterUser } from '../models/register-user';
 import { NotificationService } from '../../utilities/services/notification.service';
 import { AuthManagerService } from '../../utilities/services/auth-manager.service';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
+import { passwordValidators, PASSWORD_REQUIREMENTS } from '../../shared/validators/password-validators';
+import { PasswordRequirementsComponent } from '../../shared/components/password-requirements/password-requirements.component';
 
 @Component({
   selector: 'nom-registration',
@@ -23,7 +25,8 @@ import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
     ReactiveFormsModule,
     AmwInputComponent,
     AmwButtonComponent,
-    AmwValidationTooltipDirective
+    AmwValidationTooltipDirective,
+    PasswordRequirementsComponent
   ],
   templateUrl: './registration.component.html',
   styleUrls: ['./registration.component.scss'],
@@ -45,7 +48,7 @@ export class RegistrationComponent implements OnInit, OnDestroy {
       {
         email: ['', [Validators.required, Validators.email]],
         fullName: ['', Validators.maxLength(100)],
-        password: ['', [Validators.required, Validators.minLength(8)]],
+        password: ['', [Validators.required, ...passwordValidators()]],
         confirmPassword: ['', Validators.required],
       },
       { validators: AmwValidators.passwordsMatch('password', 'confirmPassword') }
@@ -86,14 +89,16 @@ export class RegistrationComponent implements OnInit, OnDestroy {
       validator: () => !this.registrationForm.get('password')?.hasError('required')
     });
 
-    this.validationService.addViolation(this.validationContext.id, {
-      id: 'password-minlength',
-      message: 'Password must be at least 8 characters',
-      severity: 'error',
-      field: 'password',
-      control: this.registrationForm.get('password') ?? undefined,
-      validator: () => !this.registrationForm.get('password')?.hasError('minlength')
-    });
+    for (const req of PASSWORD_REQUIREMENTS) {
+      this.validationService.addViolation(this.validationContext.id, {
+        id: `password-${req.key}`,
+        message: req.label,
+        severity: 'error',
+        field: 'password',
+        control: this.registrationForm.get('password') ?? undefined,
+        validator: () => !this.registrationForm.get('password')?.hasError(req.key)
+      });
+    }
 
     // Confirm password validations
     this.validationService.addViolation(this.validationContext.id, {

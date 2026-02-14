@@ -17,8 +17,8 @@
       class="nav-tab"
       [class.active]="activeTab() === 'ai'"
       (click)="setActiveTab('ai')">
-      <i class="fas fa-robot"></i>
-      AI Suggestions
+      <i class="fas fa-magic"></i>
+      Smart Suggestions
     </button>
     <button
       class="nav-tab"
@@ -312,12 +312,12 @@
   </div>
   }
 
-  <!-- AI Suggestions Tab -->
+  <!-- Smart Suggestions Tab -->
   @if (activeTab() === 'ai') {
   <div class="tab-content">
     <div class="ai-section">
-      <h3>AI-Powered Recipe Suggestions</h3>
-      <p>Describe what you want to cook and let AI find the perfect recipes for you!</p>
+      <h3>Smart Recipe Suggestions</h3>
+      <p>Describe what you want to cook and we'll find the perfect recipes for you!</p>
 
       <form [formGroup]="aiSuggestionForm" class="ai-form">
         <div class="form-group">
@@ -410,21 +410,21 @@
           [disabled]="aiSuggestionForm.invalid || aiLoading()"
           (click)="generateAISuggestions()">
           @if (!aiLoading()) {
-          <i class="fas fa-robot"></i>
+          <i class="fas fa-magic"></i>
           }
           @if (aiLoading()) {
           <i class="fas fa-spinner fa-spin"></i>
           }
-          {{aiLoading() ? 'Generating Suggestions...' : 'Generate AI Suggestions'}}
+          {{aiLoading() ? 'Generating Suggestions...' : 'Generate Smart Suggestions'}}
         </button>
       </form>
     </div>
 
-    <!-- AI Results -->
+    <!-- Smart Suggestion Results -->
     @if (aiSuggestions) {
     <div class="ai-results">
       <div class="results-header">
-        <h3>AI-Generated Suggestions</h3>
+        <h3>Suggested Recipes</h3>
         @if (aiSuggestions.aiReasoning) {
         <div class="ai-reasoning">
           <h4>AI Reasoning:</h4>
@@ -490,7 +490,7 @@
 
             @if (item.substitutions.length > 0) {
             <div class="substitutions">
-              <h5>AI Suggested Substitutions:</h5>
+              <h5>Suggested Substitutions:</h5>
               <ul>
                 @for (sub of item.substitutions; track sub) {
                 <li>{{sub}}</li>

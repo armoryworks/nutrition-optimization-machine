@@ -2,8 +2,12 @@ import { chromium, type Browser, type Page } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const BASE_URL = 'http://localhost:4200';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:4200';
+const API_URL = process.env.API_URL || 'http://localhost:8080';
 const SCREENSHOT_DIR = path.join(__dirname, '../screenshots');
+
+const SCREENSHOT_USER = process.env.SCREENSHOT_USER || 'admin@nom.local';
+const SCREENSHOT_PASS = process.env.SCREENSHOT_PASS || 'Admin123!';
 
 // Public routes (no auth required)
 const publicRoutes = [
@@ -13,10 +17,10 @@ const publicRoutes = [
   { path: '/reset-password', name: '04-auth-reset-password' },
   { path: '/confirm-email', name: '05-auth-confirm-email' },
   { path: '/send-confirmation', name: '06-auth-send-confirmation' },
-  { path: '/login', name: '07-auth-login' },
+  { path: '/search', name: '51-recipe-search' },
 ];
 
-// Routes that require authentication (will show login redirect)
+// Routes that require authentication
 const authRoutes = [
   // User
   { path: '/user/dashboard', name: '10-user-dashboard' },
@@ -43,7 +47,6 @@ const authRoutes = [
 
   // Recipe
   { path: '/recipes', name: '50-recipe-dashboard' },
-  { path: '/recipes/search', name: '51-recipe-search' },
   { path: '/recipes/new', name: '52-recipe-new' },
 
   // Communication
@@ -104,6 +107,48 @@ async function captureRoute(page: Page, route: { path: string; name: string }): 
   }
 }
 
+async function loginAndSetToken(page: Page): Promise<boolean> {
+  try {
+    console.log(`\nAuthenticating as ${SCREENSHOT_USER}...`);
+
+    const response = await page.request.post(`${API_URL}/api/auth/login`, {
+      data: {
+        email: SCREENSHOT_USER,
+        password: SCREENSHOT_PASS,
+        twoFactorCode: '',
+        twoFactorRecoveryCode: '',
+      },
+    });
+
+    if (!response.ok()) {
+      console.log(`  ✗ Login failed: ${response.status()} ${response.statusText()}`);
+      return false;
+    }
+
+    const body = await response.json();
+    const token = body.accessToken;
+
+    if (!token) {
+      console.log('  ✗ Login succeeded but no accessToken in response');
+      return false;
+    }
+
+    // Navigate to app first so localStorage is on the right origin
+    await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 15000 });
+
+    // Set the auth token in localStorage (matches AuthService.login behavior)
+    await page.evaluate((t: string) => {
+      localStorage.setItem('authToken', t);
+    }, token);
+
+    console.log('  ✓ Authenticated successfully\n');
+    return true;
+  } catch (error) {
+    console.log(`  ✗ Login error: ${(error as Error).message}`);
+    return false;
+  }
+}
+
 async function main(): Promise<void> {
   console.log('Screenshot All Pages - Playwright\n');
 
@@ -111,23 +156,33 @@ async function main(): Promise<void> {
 
   const browser: Browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 }
+    viewport: { width: 1280, height: 720 },
   });
   const page: Page = await context.newPage();
 
+  // Capture public pages (no auth needed)
   console.log('Public Pages:');
   for (const route of publicRoutes) {
     await captureRoute(page, route);
   }
 
-  console.log('\nAuthenticated Pages (may show login redirect):');
-  for (const route of authRoutes) {
-    await captureRoute(page, route);
+  // Authenticate before capturing protected pages
+  const loggedIn = await loginAndSetToken(page);
+
+  if (loggedIn) {
+    console.log('Authenticated Pages:');
+    for (const route of authRoutes) {
+      await captureRoute(page, route);
+    }
+  } else {
+    console.log('Authenticated Pages (SKIPPED - login failed):');
+    console.log('  Set SCREENSHOT_USER and SCREENSHOT_PASS environment variables');
+    console.log('  or ensure the default test account exists.');
   }
 
   await browser.close();
 
-  console.log(`\n✓ Screenshots saved to: ${SCREENSHOT_DIR}`);
+  console.log(`\nScreenshots saved to: ${SCREENSHOT_DIR}`);
 }
 
 main().catch(console.error);

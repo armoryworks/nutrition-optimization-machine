@@ -26,6 +26,8 @@
       data-cy="password-input">
     </amw-input>
 
+    <nom-password-requirements [passwordControl]="registrationForm.controls['password']"></nom-password-requirements>
+
     <amw-input
       type="password"
       formControlName="confirmPassword"

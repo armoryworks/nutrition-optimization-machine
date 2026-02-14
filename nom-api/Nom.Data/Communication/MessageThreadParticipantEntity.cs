@@ -15,5 +15,7 @@ namespace Nom.Data.Communication
         public virtual PersonEntity? Person { get; set; }
 
         public DateTime DateJoined { get; set; } = DateTime.UtcNow;
+        public bool IsArchived { get; set; } = false;
+        public bool IsPinned { get; set; } = false;
     }
 }

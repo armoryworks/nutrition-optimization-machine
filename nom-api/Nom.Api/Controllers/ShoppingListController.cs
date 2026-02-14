@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Nom.Data;
+using Nom.Data.Shopping;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Shopping;
 using System.ComponentModel.DataAnnotations;
@@ -13,13 +16,16 @@ namespace Nom.Api.Controllers
     {
         private readonly IShoppingListOrchestrationService _shoppingListOrchestrationService;
         private readonly ILogger<ShoppingListController> _logger;
+        private readonly ApplicationDbContext _db;
 
         public ShoppingListController(
             IShoppingListOrchestrationService shoppingListOrchestrationService,
-            ILogger<ShoppingListController> logger)
+            ILogger<ShoppingListController> logger,
+            ApplicationDbContext db)
         {
             _shoppingListOrchestrationService = shoppingListOrchestrationService;
             _logger = logger;
+            _db = db;
         }
 
         [HttpGet]
@@ -224,6 +230,54 @@ namespace Nom.Api.Controllers
             {
                 _logger.LogError(ex, "An error occurred in RemoveRecipeIngredients.");
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to remove recipe ingredients", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/share")]
+        public async Task<IActionResult> ShareShoppingList(long id, [FromBody] ShoppingListShareRequest request)
+        {
+            try
+            {
+                var exists = await _db.ShoppingListShares
+                    .AnyAsync(s => s.ShoppingListId == id && s.PersonId == request.PersonId);
+
+                if (exists)
+                    return Conflict(new { message = "Shopping list is already shared with this person." });
+
+                _db.ShoppingListShares.Add(new ShoppingListShareEntity
+                {
+                    ShoppingListId = id,
+                    PersonId = request.PersonId
+                });
+                await _db.SaveChangesAsync();
+                return Ok(new { message = "Shopping list shared successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in ShareShoppingList.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpDelete("{id}/share/{personId}")]
+        public async Task<IActionResult> UnshareShoppingList(long id, long personId)
+        {
+            try
+            {
+                var share = await _db.ShoppingListShares
+                    .FirstOrDefaultAsync(s => s.ShoppingListId == id && s.PersonId == personId);
+
+                if (share == null)
+                    return NotFound(new { message = "Share not found." });
+
+                _db.ShoppingListShares.Remove(share);
+                await _db.SaveChangesAsync();
+                return Ok(new { message = "Shopping list unshared successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in UnshareShoppingList.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
             }
         }
     }

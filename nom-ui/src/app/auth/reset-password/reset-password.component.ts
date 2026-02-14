@@ -13,6 +13,8 @@ import { AuthService } from '../auth.service';
 import { ResetPassword } from '../models/reset-password';
 import { NotificationService } from '../../utilities/services/notification.service';
 import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
+import { passwordValidators, PASSWORD_REQUIREMENTS } from '../../shared/validators/password-validators';
+import { PasswordRequirementsComponent } from '../../shared/components/password-requirements/password-requirements.component';
 
 @Component({
   selector: 'nom-reset-password',
@@ -22,7 +24,8 @@ import { ERROR_MESSAGES } from '../../shared/constants/error-messages';
     AmwInputComponent,
     AmwButtonComponent,
     AmwCardComponent,
-    AmwValidationTooltipDirective
+    AmwValidationTooltipDirective,
+    PasswordRequirementsComponent
   ],
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
@@ -47,7 +50,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       {
         email: ['', [Validators.required, Validators.email]],
         resetCode: ['', Validators.required],
-        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        newPassword: ['', [Validators.required, ...passwordValidators()]],
         confirmNewPassword: ['', Validators.required],
       },
       { validators: AmwValidators.passwordsMatch('newPassword', 'confirmNewPassword') }
@@ -117,14 +120,16 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       validator: () => !this.resetPasswordForm.get('newPassword')?.hasError('required')
     });
 
-    this.validationService.addViolation(this.validationContext.id, {
-      id: 'newPassword-minlength',
-      message: 'Password must be at least 8 characters',
-      severity: 'error',
-      field: 'newPassword',
-      control: this.resetPasswordForm.get('newPassword') ?? undefined,
-      validator: () => !this.resetPasswordForm.get('newPassword')?.hasError('minlength')
-    });
+    for (const req of PASSWORD_REQUIREMENTS) {
+      this.validationService.addViolation(this.validationContext.id, {
+        id: `newPassword-${req.key}`,
+        message: req.label,
+        severity: 'error',
+        field: 'newPassword',
+        control: this.resetPasswordForm.get('newPassword') ?? undefined,
+        validator: () => !this.resetPasswordForm.get('newPassword')?.hasError(req.key)
+      });
+    }
 
     // Confirm new password validation
     this.validationService.addViolation(this.validationContext.id, {

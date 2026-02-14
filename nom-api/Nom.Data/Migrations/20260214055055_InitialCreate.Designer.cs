@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250902050628_InitialCreate")]
+    [Migration("20260214055055_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -357,6 +357,9 @@ namespace Nom.Data.Migrations
                     b.Property<long?>("RecipeId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("ThreadType")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IngredientId");
@@ -390,6 +393,12 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3210,9 +3219,6 @@ namespace Nom.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ReferenceDescription")
                         .HasColumnType("text");
 
@@ -3590,6 +3596,44 @@ namespace Nom.Data.Migrations
                     b.HasIndex("ShoppingListId");
 
                     b.ToTable("ShoppingListLabel", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListShareEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("SharedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ShoppingListId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.ToTable("ShoppingListShares", "shopping");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingPreferenceEntity", b =>
@@ -5198,6 +5242,25 @@ namespace Nom.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Label");
+
+                    b.Navigation("ShoppingList");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListShareEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Shopping.ShoppingListEntity", "ShoppingList")
+                        .WithMany()
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
 
                     b.Navigation("ShoppingList");
                 });

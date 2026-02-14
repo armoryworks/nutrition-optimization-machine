@@ -49,23 +49,25 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Generate AI-powered recipe suggestions
+        /// Generate keyword-based recipe suggestions (matches recipes by description keywords).
+        /// Note: This is not AI/ML-powered; it uses keyword extraction and database matching.
         /// </summary>
-        [HttpPost("ai-suggestions")]
-        public async Task<ActionResult<AIRecipeSuggestionResponseModel>> GenerateAIRecipeSuggestions(
+        [HttpPost("keyword-suggestions")]
+        [HttpPost("ai-suggestions")] // Backwards-compatible alias
+        public async Task<ActionResult<AIRecipeSuggestionResponseModel>> GenerateKeywordSuggestions(
             [FromBody] AIRecipeSuggestionRequestModel request)
         {
             try
             {
-                _logger.LogInformation("Generating AI recipe suggestions for: {Description}", request.Description);
+                _logger.LogInformation("Generating keyword-based recipe suggestions for: {Description}", request.Description);
 
                 var result = await _recipeSuggestionService.GenerateAIRecipeSuggestionsAsync(request);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating AI recipe suggestions");
-                return StatusCode(500, new { error = "Failed to generate AI recipe suggestions" });
+                _logger.LogError(ex, "Error generating keyword-based recipe suggestions");
+                return StatusCode(500, new { error = "Failed to generate recipe suggestions" });
             }
         }
 

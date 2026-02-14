@@ -15,4 +15,8 @@ export const VALIDATION_MESSAGE_TEMPLATES: Record<string, string> = {
   invalidUrl: 'Please enter a valid URL',
   positiveNumber: '{field} must be a positive number',
   arrayMinLength: '{field} must have at least {min} items',
+  requireUppercase: 'Must include at least one uppercase letter (A-Z)',
+  requireLowercase: 'Must include at least one lowercase letter (a-z)',
+  requireDigit: 'Must include at least one number (0-9)',
+  requireNonAlphanumeric: 'Must include at least one special character (!@#$...)',
 };

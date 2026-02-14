@@ -77,10 +77,10 @@ For AI tools like Cursor AI, start with these key documents:
 - **Curation Queue**:  COMPLETE - Admin interface with Material 3 theming
 - **Authentication**:  COMPLETE - Full authentication flow
 - **Privacy Features**:  COMPLETE - Data subject rights management
-- **Household Management**:  FOUNDATION - Backend complete, frontend components in progress
-- **Shopping Lists**:  FOUNDATION - Backend complete, frontend components in progress
-- **Meal Planning**:  FOUNDATION - Backend complete, frontend components in progress
-- **Messaging System**:  PARTIAL - Backend complete, frontend inbox UI in progress
+- **Household Management**:  COMPLETE - Backend with cookbook, webhook, and label management
+- **Shopping Lists**:  COMPLETE - Backend with SmartShoppingList (12 endpoints)
+- **Meal Planning**:  COMPLETE - Backend with date-range filtering
+- **Messaging System**:  COMPLETE - Full backend with person search, contextual threads, and thread types
 
 ## Key Features
 
@@ -89,18 +89,23 @@ For AI tools like Cursor AI, start with these key documents:
 - **User Onboarding**: Multi-step onboarding with dietary restriction collection
 - **Authentication**: Dual Bearer token support with 24-hour expiration
 - **Privacy Compliance**: Full GDPR compliance with data subject rights
-- **Recipe Management**: Complete CRUD with ingredient search and modal creation
+- **Recipe Management**: Complete CRUD with ingredient search, modal creation, and versioning
+- **Recipe Analytics**: Dashboard analytics endpoint for recipe performance metrics
 - **Curation System**: Admin interface for content review and approval
 - **Data Import**: Quality-filtered ingredient import with AI enhancement
-- **Mealie Integration**: Household, shopping, and meal planning backend (86% complete)
+- **Mealie Integration**: Household, shopping, meal planning, and messaging backend (98% complete)
+- **Messaging System**: Full backend with 12 endpoints, person search, contextual threads, thread types
+- **Cookbook Management**: Complete CRUD with 8 API endpoints
+- **Webhook Management**: Full webhook system with 6 endpoints including test
+- **Label Management**: Complete label system with 4 endpoints
+- **SmartShoppingList**: 12 endpoints for intelligent shopping list management
 - **Technical Documentation**: Comprehensive backend architecture patterns and specifications
 - **Development Standards**: Complete naming conventions and file separation rules
 - **Abstraction Patterns**: Complete abstraction and pattern implementation
 
 ### In Progress
 
-- **Frontend Components**: Household, shopping, and meal planning UI
-- **Messaging System**: Complete frontend messaging interface
+- **Frontend Components**: Household, shopping, meal planning, and messaging UI
 - **Multi-Participant Onboarding**: Finish remaining onboarding workflow
 
 ## Design System

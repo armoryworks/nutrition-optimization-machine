@@ -202,10 +202,10 @@ export class RecipeSuggestionService {
     }
 
     /**
-     * Generate AI-powered recipe suggestions
+     * Generate keyword-based recipe suggestions (not AI/ML-powered)
      */
-    generateAIRecipeSuggestions(request: AIRecipeSuggestionRequest): Observable<AIRecipeSuggestionResponse> {
-        return this.http.post<AIRecipeSuggestionResponse>(`${this.baseUrl}/ai-suggestions`, request);
+    generateAISuggestions(request: AIRecipeSuggestionRequest): Observable<AIRecipeSuggestionResponse> {
+        return this.http.post<AIRecipeSuggestionResponse>(`${this.baseUrl}/keyword-suggestions`, request);
     }
 
     /**

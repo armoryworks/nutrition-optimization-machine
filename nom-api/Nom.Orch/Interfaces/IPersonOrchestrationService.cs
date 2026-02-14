@@ -45,5 +45,7 @@ namespace Nom.Orch.Interfaces
         /// Use this method only for endpoints that require a complete user profile.
         /// </summary>
         long GetCurrentPersonIdRequired();
+
+        Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20);
     }
 }

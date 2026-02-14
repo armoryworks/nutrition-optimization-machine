@@ -25,11 +25,18 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
-        public async Task<List<MealPlanResponseModel>> GetAllMealPlansAsync()
+        public async Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null)
         {
-            var mealPlans = await _context.MealPlans
+            var query = _context.MealPlans
                 .Include(mp => mp.Recipe)
-                .ToListAsync();
+                .AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(mp => mp.Date >= DateOnly.FromDateTime(startDate.Value));
+            if (endDate.HasValue)
+                query = query.Where(mp => mp.Date <= DateOnly.FromDateTime(endDate.Value));
+
+            var mealPlans = await query.ToListAsync();
 
             return mealPlans.Select(mp => new MealPlanResponseModel
             {

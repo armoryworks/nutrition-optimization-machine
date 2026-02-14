@@ -536,6 +536,22 @@ namespace Nom.Orch.Services
             return await GetPersonModelAsync(person.Id);
         }
 
+        public async Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20)
+        {
+            var persons = await _dbContext.Persons
+                .Where(p => EF.Functions.ILike(p.Name, $"%{query}%"))
+                .OrderBy(p => p.Name)
+                .Take(limit)
+                .ToListAsync();
+
+            var results = new List<PersonModel>();
+            foreach (var person in persons)
+            {
+                results.Add(await GetPersonModelAsync(person.Id));
+            }
+            return results;
+        }
+
         public async Task<bool> DeletePersonAsync(long personId)
         {
             var person = await _dbContext.Persons.FindAsync(personId);
