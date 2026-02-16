@@ -206,14 +206,14 @@
 }
 
 .nom-dashboard__title {
-  font-size: vars.$font-size-xl;
+  font-size: vars.$font-size-2xl;
   font-weight: vars.$font-weight-semibold;
   margin: 0;
   color: var(--mat-sys-on-surface);
   line-height: vars.$line-height-tight;
 
   @include mixins.breakpoint(mobile) {
-    font-size: vars.$font-size-lg;
+    font-size: vars.$font-size-xl;
   }
 }
 
@@ -241,7 +241,7 @@
   padding: vars.$spacing-1 vars.$spacing-3;
   background: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 20px;
+  border-radius: vars.$nom-border-radius-pill;
   font-size: vars.$font-size-sm;
   font-weight: vars.$font-weight-medium;
   @include mixins.nom-transition(all);
@@ -358,12 +358,13 @@
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$card-border-radius;
   overflow: hidden;
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(transform);
   @include mixins.nom-transition(box-shadow);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: vars.$elevation-3;
   }
 
   &--clickable {
@@ -373,7 +374,7 @@
   &--flat {
     &:hover {
       transform: none;
-      box-shadow: none;
+      box-shadow: vars.$elevation-1;
     }
   }
 }
@@ -634,18 +635,31 @@
 
 .nom-dashboard__error {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: vars.$spacing-8;
-  text-align: center;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: vars.$nom-border-radius;
-  color: var(--mat-sys-error);
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4 vars.$spacing-5;
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-lg;
+  color: var(--mat-sys-on-error-container);
+  box-shadow: vars.$elevation-1;
+
+  mat-icon,
+  amw-icon {
+    color: var(--mat-sys-error);
+    flex-shrink: 0;
+  }
 
   p {
-    margin: vars.$spacing-2 0 vars.$spacing-4;
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .nom-form__actions {
+    flex-shrink: 0;
   }
 }
 
@@ -668,11 +682,13 @@
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius;
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(all);
 
   &:hover {
     background: var(--mat-sys-surface-container);
     transform: translateY(-1px);
+    box-shadow: vars.$elevation-2;
   }
 
   &--clickable {

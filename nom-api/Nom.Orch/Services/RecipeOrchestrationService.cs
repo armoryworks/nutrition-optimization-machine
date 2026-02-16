@@ -673,7 +673,7 @@ namespace Nom.Orch.Services
         public async Task<List<IngredientEditModel>> GetMyIngredientsAsync(long personId)
         {
             var ingredients = await _context.Ingredients
-                .Where(i => i.CreatedByPersonId == personId)
+                .Where(i => i.AuthorId == personId)
                 .Include(i => i.CurationStatus)
                 .OrderBy(i => i.Name)
                 .ToListAsync();
@@ -686,7 +686,7 @@ namespace Nom.Orch.Services
                     Id = ingredient.Id,
                     Name = ingredient.Name,
                     Description = ingredient.Description,
-                    AuthorId = ingredient.CreatedByPersonId ?? 0L,
+                    AuthorId = ingredient.AuthorId ?? 0L,
                     CurationStatus = ingredient.CurationStatus?.Name ?? "Draft",
                     Nutrients = await GetIngredientNutrientsAsync(ingredient.Id)
                 });

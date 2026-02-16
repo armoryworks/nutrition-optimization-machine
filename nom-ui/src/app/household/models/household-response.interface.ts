@@ -9,5 +9,5 @@ export interface IHouseholdResponseModel {
     memberCount: number;
     planCount: number;
     isOwner: boolean;
-    groupId?: number;
+    householdGroupId?: number;
 } 

@@ -1,40 +1,51 @@
-<div class="nom-dashboard">
-  <header class="nom-dashboard__header">
-    <div class="nom-dashboard__header-left">
-      <amw-button variant="text" icon="arrow_back" (click)="cancel()">Back</amw-button>
-      <h1 class="nom-dashboard__title">Create Cookbook</h1>
+<div class="nom-form--card">
+  <div class="nom-form__card">
+    <div class="nom-form__card-icon">
+      <amw-icon name="menu_book"></amw-icon>
     </div>
-  </header>
-
-  <div class="nom-form">
-    @if (error()) {
-      <div class="nom-dashboard__error" role="alert">
-        <amw-icon name="error_outline"></amw-icon>
-        <p>{{ error() }}</p>
-      </div>
-    }
-
-    <div class="nom-form__field">
-      <label class="nom-form__label" for="name">Name</label>
-      <input class="nom-form__input" id="name" type="text" [(ngModel)]="model.name" maxlength="255" placeholder="My Cookbook" />
+    <div class="nom-form__card-header">
+      <h1 class="nom-form__card-title">Create Cookbook</h1>
+      <p class="nom-form__card-subtitle">Organize your recipes into a themed collection</p>
     </div>
+    <div class="nom-form__card-content">
+      <form [formGroup]="cookbookForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
+        <amw-input
+          type="text"
+          formControlName="name"
+          placeholder="My Cookbook"
+          label="Cookbook Name"
+          [required]="true">
+        </amw-input>
 
-    <div class="nom-form__field">
-      <label class="nom-form__label" for="description">Description</label>
-      <textarea class="nom-form__input nom-form__textarea" id="description" [(ngModel)]="model.description" maxlength="2047" placeholder="A collection of..."></textarea>
+        <amw-textarea
+          formControlName="description"
+          placeholder="A collection of..."
+          label="Description (Optional)">
+        </amw-textarea>
+
+        <amw-checkbox
+          formControlName="isPublic"
+          label="Make this cookbook public">
+        </amw-checkbox>
+      </form>
     </div>
-
-    <div class="nom-form__field nom-form__field--checkbox">
-      <label class="nom-form__label">
-        <input type="checkbox" [(ngModel)]="model.isPublic" />
-        Make this cookbook public
-      </label>
-    </div>
-
-    <div class="nom-form__actions">
-      <amw-button variant="text" (click)="cancel()" [disabled]="saving()">Cancel</amw-button>
-      <amw-button variant="filled" color="primary" icon="save" (click)="save()" [disabled]="saving()">
-        {{ saving() ? 'Creating...' : 'Create Cookbook' }}
+    <div class="nom-form__card-actions">
+      <amw-button
+        type="button"
+        variant="text"
+        [disabled]="isLoading()"
+        (click)="onCancel()">
+        Cancel
+      </amw-button>
+      <amw-button
+        type="submit"
+        variant="filled"
+        color="primary"
+        [loading]="isLoading()"
+        [amwValidationTooltip]="validationContext"
+        [disabled]="cookbookForm.invalid"
+        (click)="onSubmit()">
+        Create Cookbook
       </amw-button>
     </div>
   </div>

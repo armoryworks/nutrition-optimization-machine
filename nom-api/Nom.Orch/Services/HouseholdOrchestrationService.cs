@@ -28,28 +28,41 @@ namespace Nom.Orch.Services
 
         public async Task<List<HouseholdResponseModel>> GetAllHouseholdsAsync()
         {
-            var households = await _context.Households
-                .Include(h => h.Members)
-                .ToListAsync();
+            var households = await _context.Households.ToListAsync();
+
+            // Get member counts per household from HouseholdMembers table
+            var memberCounts = await _context.HouseholdMembers
+                .Where(hm => hm.IsActive)
+                .GroupBy(hm => hm.HouseholdId)
+                .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);
+
+            // Get meal plan counts per household
+            var planCounts = await _context.MealPlans
+                .GroupBy(mp => mp.HouseholdId)
+                .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);
 
             return households.Select(h => new HouseholdResponseModel
             {
                 Id = h.Id,
                 Name = h.Name,
                 Description = h.Description,
-                GroupId = h.GroupId,
+                HouseholdGroupId = h.HouseholdGroupId,
                 CreatedDate = h.CreatedDate,
-                ModifiedDate = h.LastModifiedDate
+                ModifiedDate = h.LastModifiedDate,
+                MemberCount = memberCounts.GetValueOrDefault(h.Id, 0),
+                PlanCount = planCounts.GetValueOrDefault(h.Id, 0)
             }).ToList();
         }
 
-        public async Task<HouseholdCreateResponseModel> CreateHouseholdAsync(HouseholdCreateModel model)
+        public async Task<HouseholdCreateResponseModel> CreateHouseholdAsync(HouseholdCreateModel model, long? createdByPersonId = null)
         {
             var household = new HouseholdEntity
             {
                 Name = model.Name,
                 Description = model.Description,
-                GroupId = model.GroupId,
+                HouseholdGroupId = model.HouseholdGroupId,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
             };
@@ -57,12 +70,32 @@ namespace Nom.Orch.Services
             _context.Households.Add(household);
             await _context.SaveChangesAsync();
 
+            // Add the creator as an admin member of the household
+            if (createdByPersonId.HasValue)
+            {
+                var adminMember = new HouseholdMemberEntity
+                {
+                    HouseholdId = household.Id,
+                    PersonId = createdByPersonId.Value,
+                    Role = "Admin",
+                    JoinedDate = DateTime.UtcNow,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = createdByPersonId.Value,
+                    IsActive = true,
+                    IsAdmin = true,
+                    CanManage = true,
+                    CanInvite = true
+                };
+                _context.HouseholdMembers.Add(adminMember);
+                await _context.SaveChangesAsync();
+            }
+
             return new HouseholdCreateResponseModel
             {
                 Id = household.Id,
                 Name = household.Name,
                 Description = household.Description,
-                GroupId = household.GroupId,
+                HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate
             };
         }
@@ -113,13 +146,13 @@ namespace Nom.Orch.Services
                 Id = household.Id,
                 Name = household.Name,
                 Description = household.Description,
-                GroupId = household.GroupId,
+                HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate,
                 ModifiedDate = household.LastModifiedDate,
                 Members = members,
                 MemberCount = members.Count,
                 RecipeCount = recipeCount,
-                MealPlanCount = mealPlanCount,
+                PlanCount = mealPlanCount,
                 ShoppingListCount = shoppingListCount
             };
         }
@@ -132,7 +165,7 @@ namespace Nom.Orch.Services
 
             household.Name = model.Name;
             household.Description = model.Description;
-            household.GroupId = model.GroupId ?? household.GroupId; // Keep existing value if null
+            household.HouseholdGroupId = model.HouseholdGroupId ?? household.HouseholdGroupId; // Keep existing value if null
             household.LastModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -142,7 +175,7 @@ namespace Nom.Orch.Services
                 Id = household.Id,
                 Name = household.Name,
                 Description = household.Description,
-                GroupId = household.GroupId,
+                HouseholdGroupId = household.HouseholdGroupId,
                 CreatedDate = household.CreatedDate,
                 ModifiedDate = household.LastModifiedDate
             };

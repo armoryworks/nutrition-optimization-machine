@@ -12,7 +12,7 @@ export class HouseholdResponseModel implements IHouseholdResponseModel {
     memberCount = 0;
     planCount = 0;
     isOwner = false;
-    groupId?: number;
+    householdGroupId?: number;
     inviteToken?: string;
     members?: HouseholdMemberResponseModel[];
     recipeCount?: number;

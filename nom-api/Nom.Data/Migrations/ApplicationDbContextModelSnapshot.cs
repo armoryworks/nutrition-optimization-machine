@@ -888,9 +888,6 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long?>("GroupEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("HouseholdEntityId")
                         .HasColumnType("bigint");
 
@@ -909,8 +906,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GroupEntityId");
 
                     b.HasIndex("HouseholdEntityId");
 
@@ -1140,10 +1135,7 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
-                    b.Property<long?>("GroupEntityId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("GroupId")
+                    b.Property<long>("HouseholdGroupId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("LastModifiedByPersonId")
@@ -1163,9 +1155,7 @@ namespace Nom.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupEntityId");
-
-                    b.HasIndex("GroupId");
+                    b.HasIndex("HouseholdGroupId");
 
                     b.ToTable("Household", "plan");
                 });
@@ -1217,6 +1207,44 @@ namespace Nom.Data.Migrations
                     b.HasIndex("HouseholdId");
 
                     b.ToTable("HouseholdEventNotifier", "plan");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.HouseholdGroupEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HouseholdGroup", "plan");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.HouseholdIngredientEntity", b =>
@@ -1585,9 +1613,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("date")
                         .HasColumnName("date");
 
-                    b.Property<long?>("GroupEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -1601,8 +1626,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GroupEntityId");
 
                     b.HasIndex("MealTypeId");
 
@@ -2512,9 +2535,6 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
-                    b.Property<long?>("GroupEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("HouseholdEntityId")
                         .HasColumnType("bigint");
 
@@ -2607,8 +2627,6 @@ namespace Nom.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("CurationStatusId");
-
-                    b.HasIndex("GroupEntityId");
 
                     b.HasIndex("HouseholdEntityId");
 
@@ -3168,42 +3186,6 @@ namespace Nom.Data.Migrations
                     b.ToTable("Tag", "recipe");
                 });
 
-            modelBuilder.Entity("Nom.Data.Reference.GroupEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("CreatedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<long?>("LastModifiedByPersonId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("LastModifiedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Slug")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Group", "reference");
-                });
-
             modelBuilder.Entity("Nom.Data.Reference.GroupedReferenceViewEntity", b =>
                 {
                     b.Property<string>("GroupDescription")
@@ -3265,6 +3247,42 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Reference", "reference");
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.ReferenceGroupEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Group", "reference");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.PantryItemEntity", b =>
@@ -3400,12 +3418,6 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
-                    b.Property<long?>("GroupEntityId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("GroupId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("HouseholdId")
                         .HasColumnType("bigint");
 
@@ -3420,15 +3432,16 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<long?>("ShoppingListGroupId")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
 
-                    b.HasIndex("GroupEntityId");
-
-                    b.HasIndex("GroupId");
-
                     b.HasIndex("HouseholdId");
+
+                    b.HasIndex("ShoppingListGroupId");
 
                     b.ToTable("ShoppingList", "shopping");
                 });
@@ -3491,6 +3504,44 @@ namespace Nom.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ShoppingListGenerationHistory", "shopping");
+                });
+
+            modelBuilder.Entity("Nom.Data.Shopping.ShoppingListGroupEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2047)
+                        .HasColumnType("character varying(2047)");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShoppingListGroup", "shopping");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingListItemEntity", b =>
@@ -4306,10 +4357,6 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
-                        .WithMany("Members")
-                        .HasForeignKey("GroupEntityId");
-
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
                         .WithMany("Members")
                         .HasForeignKey("HouseholdEntityId");
@@ -4399,17 +4446,13 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Plan.HouseholdEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
-                        .WithMany("Households")
-                        .HasForeignKey("GroupEntityId");
-
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Group")
+                    b.HasOne("Nom.Data.Plan.HouseholdGroupEntity", "HouseholdGroup")
                         .WithMany()
-                        .HasForeignKey("GroupId")
+                        .HasForeignKey("HouseholdGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Group");
+                    b.Navigation("HouseholdGroup");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.HouseholdEventNotifierEntity", b =>
@@ -4561,10 +4604,6 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Plan.MealEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
-                        .WithMany("MealPlans")
-                        .HasForeignKey("GroupEntityId");
-
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
                         .WithMany()
                         .HasForeignKey("MealTypeId")
@@ -4887,10 +4926,6 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
-                        .WithMany("Recipes")
-                        .HasForeignKey("GroupEntityId");
-
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
                         .WithMany("MadeRecipes")
                         .HasForeignKey("HouseholdEntityId");
@@ -5170,23 +5205,19 @@ namespace Nom.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
-                        .WithMany("ShoppingLists")
-                        .HasForeignKey("GroupEntityId");
-
-                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupId");
-
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
                         .WithMany()
                         .HasForeignKey("HouseholdId");
 
+                    b.HasOne("Nom.Data.Shopping.ShoppingListGroupEntity", "ShoppingListGroup")
+                        .WithMany()
+                        .HasForeignKey("ShoppingListGroupId");
+
                     b.Navigation("Author");
 
-                    b.Navigation("Group");
-
                     b.Navigation("Household");
+
+                    b.Navigation("ShoppingListGroup");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingListItemEntity", b =>
@@ -5309,12 +5340,12 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("ReferenceIndex", b =>
                 {
-                    b.HasOne("Nom.Data.Reference.GroupEntity", null)
+                    b.HasOne("Nom.Data.Reference.ReferenceGroupEntity", null)
                         .WithMany()
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_ReferenceIndex_GroupEntity_GroupId");
+                        .HasConstraintName("FK_ReferenceIndex_ReferenceGroupEntity_GroupId");
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", null)
                         .WithMany()
@@ -5511,19 +5542,6 @@ namespace Nom.Data.Migrations
             modelBuilder.Entity("Nom.Data.Recipe.TagEntity", b =>
                 {
                     b.Navigation("RecipeTags");
-                });
-
-            modelBuilder.Entity("Nom.Data.Reference.GroupEntity", b =>
-                {
-                    b.Navigation("Households");
-
-                    b.Navigation("MealPlans");
-
-                    b.Navigation("Members");
-
-                    b.Navigation("Recipes");
-
-                    b.Navigation("ShoppingLists");
                 });
 
             modelBuilder.Entity("Nom.Data.Shopping.ShoppingListCategoryEntity", b =>

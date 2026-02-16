@@ -332,14 +332,19 @@
 
 .nom-form__card {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   background: var(--mat-sys-surface-container-low);
   border-radius: vars.$nom-border-radius-lg;
   border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: vars.$elevation-2;
   overflow: hidden;
 
   @media (max-width: vars.$breakpoint-mobile) {
     max-width: none;
+  }
+
+  &--narrow {
+    max-width: 460px;
   }
 }
 
@@ -352,7 +357,8 @@
     font-size: 2rem;
     width: 2rem;
     height: 2rem;
-    color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.6;
   }
 }
 
@@ -501,15 +507,17 @@
 // -----------------------------------------------------------------------------
 
 .nom-form__error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-lg;
   padding: vars.$spacing-3 vars.$spacing-4;
   margin-bottom: vars.$spacing-4;
   display: flex;
   align-items: flex-start;
   gap: vars.$spacing-3;
-  color: #f87171;
+  color: var(--mat-sys-on-error-container);
   font-size: vars.$font-size-sm;
+  box-shadow: vars.$elevation-1;
 }
 

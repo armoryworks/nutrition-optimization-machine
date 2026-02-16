@@ -5,7 +5,7 @@ import { IHouseholdCreateRequestModel } from './household-create-request.model.i
 export class HouseholdCreateRequestModel implements IHouseholdCreateRequestModel {
     name = '';
     description?: string;
-    groupId = 3; // Temporary: Using Recipe Type group ID (3) to fix foreign key constraint
+    householdGroupId = 1; // Default household group
 
     constructor(data?: Partial<IHouseholdCreateRequestModel>) {
         if (data) {

@@ -2,12 +2,12 @@ import { chromium, type Browser, type Page } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4200';
-const API_URL = process.env.API_URL || 'http://localhost:8080';
+const BASE_URL = process.env['BASE_URL'] || 'http://localhost:4200';
+const API_URL = process.env['API_URL'] || 'http://localhost:8080';
 const SCREENSHOT_DIR = path.join(__dirname, '../screenshots');
 
-const SCREENSHOT_USER = process.env.SCREENSHOT_USER || 'admin@nom.local';
-const SCREENSHOT_PASS = process.env.SCREENSHOT_PASS || 'Admin123!';
+const SCREENSHOT_USER = process.env['SCREENSHOT_USER'] || 'admin@nom.local';
+const SCREENSHOT_PASS = process.env['SCREENSHOT_PASS'] || 'Admin123!';
 
 // Public routes (no auth required)
 const publicRoutes = [
@@ -44,6 +44,7 @@ const authRoutes = [
   { path: '/meal-plan/calendar', name: '42-mealplan-calendar' },
   { path: '/meal-plan/rules', name: '43-mealplan-rules' },
   { path: '/meal-plan/recipe-selection', name: '44-mealplan-recipe-selection' },
+  { path: '/meal-plan/nutrition', name: '45-mealplan-nutrition' },
 
   // Recipe
   { path: '/recipes', name: '50-recipe-dashboard' },
@@ -67,6 +68,16 @@ const authRoutes = [
 
   // Ingredient Search
   { path: '/ingredient-search', name: '92-ingredient-search' },
+
+  // Cookbook
+  { path: '/cookbook', name: '93-cookbook-dashboard' },
+  { path: '/cookbook/create', name: '94-cookbook-create' },
+
+  // Webhook
+  { path: '/webhook', name: '95-webhook-dashboard' },
+
+  // Labels
+  { path: '/labels', name: '96-label-dashboard' },
 ];
 
 async function ensureDir(dir: string): Promise<void> {
@@ -107,9 +118,46 @@ async function captureRoute(page: Page, route: { path: string; name: string }): 
   }
 }
 
+async function registerUser(page: Page): Promise<boolean> {
+  try {
+    console.log(`\nRegistering user ${SCREENSHOT_USER}...`);
+
+    const response = await page.request.post(`${API_URL}/api/auth/register-custom`, {
+      data: {
+        email: SCREENSHOT_USER,
+        username: SCREENSHOT_USER,
+        password: SCREENSHOT_PASS,
+        confirmPassword: SCREENSHOT_PASS,
+        fullName: 'Screenshot Admin',
+      },
+    });
+
+    if (response.ok()) {
+      console.log('  ✓ User registered successfully');
+      return true;
+    }
+
+    const status = response.status();
+    if (status === 400) {
+      // User likely already exists
+      console.log('  ⊘ User already exists (continuing to login)');
+      return true;
+    }
+
+    console.log(`  ✗ Registration failed: ${status} ${response.statusText()}`);
+    return false;
+  } catch (error) {
+    console.log(`  ✗ Registration error: ${(error as Error).message}`);
+    return false;
+  }
+}
+
 async function loginAndSetToken(page: Page): Promise<boolean> {
   try {
-    console.log(`\nAuthenticating as ${SCREENSHOT_USER}...`);
+    // Ensure user exists before attempting login
+    await registerUser(page);
+
+    console.log(`Authenticating as ${SCREENSHOT_USER}...`);
 
     const response = await page.request.post(`${API_URL}/api/auth/login`, {
       data: {
@@ -156,17 +204,17 @@ async function main(): Promise<void> {
 
   const browser: Browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
+    viewport: { width: 1920, height: 1080 },
   });
   const page: Page = await context.newPage();
 
-  // Capture public pages (no auth needed)
+  // Capture public pages first (anonymous view)
   console.log('Public Pages:');
   for (const route of publicRoutes) {
     await captureRoute(page, route);
   }
 
-  // Authenticate before capturing protected pages
+  // Authenticate for protected pages
   const loggedIn = await loginAndSetToken(page);
 
   if (loggedIn) {

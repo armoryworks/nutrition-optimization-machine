@@ -46,14 +46,13 @@
     </a>
   </nav>
 
-  <div class="nom-header__actions">
-    <!-- Theme Toggle -->
+  <!-- Actions: visible only below sidebar breakpoint (mobile/tablet) -->
+  <div class="nom-header__actions nom-header__actions--mobile">
     <button class="nom-header__icon-btn" (click)="toggleTheme()"
       [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
       <amw-icon [name]="isDarkTheme() ? 'light_mode' : 'dark_mode'"></amw-icon>
     </button>
 
-    <!-- User Menu - Only visible when logged in -->
     @if (isLoggedIn$ | async) {
     <div class="nom-user-menu" data-cy="user-menu">
       <amw-menu #userMenu triggerIcon="account_circle" menuClass="nom-user-menu__dropdown">
@@ -77,7 +76,6 @@
     </div>
     }
 
-    <!-- Login - Only visible when NOT logged in -->
     @if (!(isLoggedIn$ | async)) {
     <button class="nom-header__icon-btn" (click)="openLoginPopover()" aria-label="Login">
       <amw-icon name="person"></amw-icon>
@@ -95,7 +93,14 @@
 }
 
 <main id="main-content" class="nom-main" role="main">
-  <router-outlet></router-outlet>
+  <div class="nom-app-layout">
+    <div class="nom-app-layout__main">
+      <router-outlet></router-outlet>
+    </div>
+    <aside class="nom-app-layout__sidebar">
+      <nom-context-sidebar></nom-context-sidebar>
+    </aside>
+  </div>
 </main>
 
 <!-- Global full-screen loading overlay -->

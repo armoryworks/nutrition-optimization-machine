@@ -207,7 +207,10 @@ namespace Nom.Orch.Services
                 PlanId = defaultPlan.Id,
                 PersonId = primaryPerson.Id,
                 RoleRefId = 4100L, // Admin role
-                JoinedDate = DateTime.UtcNow
+                JoinedDate = DateTime.UtcNow,
+                IsAdmin = true,
+                CanManage = true,
+                CanInvite = true
             };
             _dbContext.PlanParticipants.Add(primaryParticipant);
 

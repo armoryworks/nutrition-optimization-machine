@@ -34,7 +34,7 @@
 
     <!-- Error State -->
     @if (error() && !isLoading()) {
-    <div class="user-management__error">
+    <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">

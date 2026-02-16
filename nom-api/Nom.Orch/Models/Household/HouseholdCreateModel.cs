@@ -13,8 +13,8 @@ namespace Nom.Orch.Models.Household
         [StringLength(2047, ErrorMessage = "Description cannot exceed 2047 characters.")]
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Group ID is required.")]
-        public long GroupId { get; set; }
+        [Required(ErrorMessage = "Household group ID is required.")]
+        public long HouseholdGroupId { get; set; }
 
         // public long AuthorId { get; set; } // REMOVED - Will be set from claims
     }

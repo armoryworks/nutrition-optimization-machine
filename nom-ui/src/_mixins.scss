@@ -51,10 +51,19 @@
 // BACKGROUND & SURFACE MIXINS
 // ============================================
 
+@mixin nom-elevation($level: 1) {
+  @if $level == 0 { box-shadow: vars.$elevation-0; }
+  @else if $level == 1 { box-shadow: vars.$elevation-1; }
+  @else if $level == 2 { box-shadow: vars.$elevation-2; }
+  @else if $level == 3 { box-shadow: vars.$elevation-3; }
+  @else if $level == 4 { box-shadow: vars.$elevation-4; }
+  @else if $level == 5 { box-shadow: vars.$elevation-5; }
+}
+
 @mixin nom-card-bg {
   background-color: var(--nom-card-bg);
   border-radius: vars.$nom-border-radius;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  @include nom-elevation(1);
   border: 1px solid var(--nom-border-subtle);
 }
 
@@ -67,7 +76,7 @@
 @mixin nom-surface-elevated {
   background-color: var(--mat-sys-surface-container);
   border-radius: vars.$nom-border-radius;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include nom-elevation(2);
 }
 
 @mixin nom-surface-container {

@@ -67,6 +67,7 @@
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$card-border-radius;
+  box-shadow: vars.$elevation-1;
   padding: vars.$spacing-6;
   margin-bottom: vars.$spacing-6;
 }
@@ -132,6 +133,7 @@
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$card-border-radius;
+  box-shadow: vars.$elevation-1;
   overflow: hidden;
 }
 

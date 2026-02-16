@@ -17,6 +17,6 @@ namespace Nom.Orch.Models.Shopping
 
         public long? HouseholdId { get; set; }
 
-        public long? GroupId { get; set; }
+        public long? ShoppingListGroupId { get; set; }
     }
 } 

@@ -1,8 +1,8 @@
-import { Component, inject } from '@angular/core';
-
-import { RouterLink, Router } from '@angular/router';
-
-import { AmwIconComponent } from 'angular-material-wrap';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { AmwIconComponent, AmwButtonComponent, AmwInlineLoadingComponent } from 'angular-material-wrap';
+import { RecipeSearchService } from '../recipe/services/recipe-search.service';
+import { RecipeSearchResult } from '../recipe/models/recipe-search.model';
 
 @Component({
   selector: 'nom-home',
@@ -10,40 +10,77 @@ import { AmwIconComponent } from 'angular-material-wrap';
   imports: [
     RouterLink,
     AmwIconComponent,
+    AmwButtonComponent,
+    AmwInlineLoadingComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
+  private recipeSearchService = inject(RecipeSearchService);
   private router = inject(Router);
 
-  // Hero card click handlers
-  onRecipeCardClick(): void {
-    // For now, redirect to home since recipe browsing isn't implemented
-    // When recipe browsing is implemented, this should go to /recipes
-    this.router.navigate(['/home']);
+  recipes = signal<RecipeSearchResult[]>([]);
+  isLoading = signal(false);
+  error = signal('');
+
+  mealGroups = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+
+  ngOnInit(): void {
+    this.loadRecipes();
   }
 
-  onIngredientCardClick(): void {
-    // For now, redirect to home since ingredient browsing isn't implemented
-    // When ingredient browsing is implemented, this should go to /ingredients
-    this.router.navigate(['/home']);
+  loadRecipes(): void {
+    this.isLoading.set(true);
+    this.error.set('');
+
+    this.recipeSearchService.getPopularRecipes(24).subscribe({
+      next: (response) => {
+        this.recipes.set(response.recipes || response.results || []);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        this.error.set(err.message || 'Failed to load recipes.');
+        this.isLoading.set(false);
+      },
+    });
   }
 
-  onNutritionCardClick(): void {
-    // For now, redirect to home since nutrition info isn't implemented
-    // When nutrition info is implemented, this should go to /nutrition
-    this.router.navigate(['/home']);
+  getRecipesForGroup(group: string): RecipeSearchResult[] {
+    return this.recipes().filter(r =>
+      r.categories?.some(c => c.toLowerCase() === group.toLowerCase())
+    );
   }
 
-  // Quick action handlers
-  onBrowseRecipesClick(): void {
-    // For now, redirect to home since recipe browsing isn't implemented
-    this.router.navigate(['/home']);
+  getUncategorizedRecipes(): RecipeSearchResult[] {
+    const categorized = new Set<number>();
+    for (const group of this.mealGroups) {
+      for (const r of this.getRecipesForGroup(group)) {
+        categorized.add(r.id);
+      }
+    }
+    return this.recipes().filter(r => !categorized.has(r.id));
   }
 
-  onFindIngredientsClick(): void {
-    // For now, redirect to home since ingredient browsing isn't implemented
-    this.router.navigate(['/home']);
+  hasAnyCategorizedRecipes(): boolean {
+    return this.mealGroups.some(g => this.getRecipesForGroup(g).length > 0);
+  }
+
+  getGroupIcon(group: string): string {
+    switch (group) {
+      case 'Breakfast': return 'wb_sunny';
+      case 'Lunch': return 'restaurant';
+      case 'Dinner': return 'dinner_dining';
+      case 'Snacks': return 'cookie';
+      default: return 'restaurant';
+    }
+  }
+
+  navigateToRecipe(id: number): void {
+    this.router.navigate(['/recipe', id]);
+  }
+
+  navigateToSearch(): void {
+    this.router.navigate(['/search']);
   }
 }

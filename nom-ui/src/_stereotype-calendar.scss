@@ -104,10 +104,11 @@
   border-radius: vars.$nom-border-radius;
   overflow: hidden;
   min-height: 200px;
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(all);
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: vars.$elevation-2;
   }
 }
 

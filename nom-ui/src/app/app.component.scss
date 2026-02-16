@@ -168,12 +168,18 @@ body {
     }
   }
 
-  // Actions Section (Theme, User, Register)
+  // Actions Section (Theme, User, Register) — hidden at desktop when sidebar visible
   &__actions {
     display: flex;
     align-items: center;
     gap: vars.$spacing-3;
     flex-shrink: 0;
+
+    &--mobile {
+      @media (min-width: vars.$layout-sidebar-breakpoint) {
+        display: none;
+      }
+    }
   }
 
   &__icon-btn {

@@ -2,7 +2,7 @@ export interface ShoppingListCreateRequestModel {
     name: string;
     description?: string;
     householdId?: number;
-    groupId?: number;
+    shoppingListGroupId?: number;
 }
 
 export interface ShoppingListCreateResponseModel {
@@ -10,7 +10,7 @@ export interface ShoppingListCreateResponseModel {
     name: string;
     description?: string;
     householdId?: number;
-    groupId?: number;
+    shoppingListGroupId?: number;
     createdDate: Date;
     modifiedDate?: Date;
 }

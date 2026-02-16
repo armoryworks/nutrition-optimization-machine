@@ -51,6 +51,13 @@ export class MealPlanCreateComponent implements OnInit, OnDestroy {
     { value: 'snack', label: 'Snack' }
   ];
 
+  private mealTypeIdMap: Record<string, number> = {
+    breakfast: 1100,
+    lunch: 1101,
+    dinner: 1102,
+    snack: 1103
+  };
+
   ngOnInit(): void {
     // No need to set AuthorId - it will be handled by the backend
 
@@ -127,11 +134,13 @@ export class MealPlanCreateComponent implements OnInit, OnDestroy {
     if (this.mealPlanForm.valid) {
       this.isLoading.set(true);
 
+      const formValue = this.mealPlanForm.value;
       const createRequest = new MealPlanCreateRequestModel({
-        recipeName: this.mealPlanForm.value.recipeName,
-        mealType: this.mealPlanForm.value.mealType,
-        date: this.mealPlanForm.value.date,
-        description: this.mealPlanForm.value.description
+        title: formValue.recipeName,
+        mealTypeId: this.mealTypeIdMap[formValue.mealType] || 3,
+        date: formValue.date,
+        notes: formValue.description,
+        householdId: formValue.householdId || 1
       });
 
       this.mealPlanService.createMealPlan(createRequest)

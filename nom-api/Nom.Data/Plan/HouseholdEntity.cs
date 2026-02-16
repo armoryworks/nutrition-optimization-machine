@@ -7,8 +7,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Audit;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
-using Nom.Data.Reference;
-
 namespace Nom.Data.Plan
 {
     [Table("Household", Schema = "plan")]
@@ -24,11 +22,11 @@ namespace Nom.Data.Plan
         [MaxLength(2047)]
         public string? Description { get; set; }
 
-        // Group association (from Mealie)
+        // Household group association
         [Required]
-        public long GroupId { get; set; }
-        [ForeignKey(nameof(GroupId))]
-        public virtual ReferenceEntity? Group { get; set; }
+        public long HouseholdGroupId { get; set; }
+        [ForeignKey(nameof(HouseholdGroupId))]
+        public virtual HouseholdGroupEntity? HouseholdGroup { get; set; }
 
         // Navigation properties
         public virtual ICollection<PersonEntity> Members { get; set; } = new List<PersonEntity>();

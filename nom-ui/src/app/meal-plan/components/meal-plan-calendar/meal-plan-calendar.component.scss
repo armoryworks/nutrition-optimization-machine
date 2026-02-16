@@ -13,8 +13,7 @@
   }
 }
 
-.nom-loading-state,
-.nom-error-state {
+.nom-loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -26,8 +25,13 @@
 }
 
 .nom-error-state {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4 vars.$spacing-5;
+
   p {
-    color: var(--mat-sys-error);
     margin: 0;
+    flex: 1;
   }
 }

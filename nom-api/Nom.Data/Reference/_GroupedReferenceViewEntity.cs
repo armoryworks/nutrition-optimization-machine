@@ -20,7 +20,7 @@ namespace Nom.Data.Reference
         public string ReferenceName { get; set; } = string.Empty;
         public string? ReferenceDescription { get; set; }
 
-        // From GroupEntity (this property is now also the TPH discriminator for this hierarchy)
+        // From ReferenceGroupEntity (this property is now also the TPH discriminator for this hierarchy)
         public long GroupId { get; set; }
         public string GroupName { get; set; } = string.Empty;
         public string? GroupDescription { get; set; }

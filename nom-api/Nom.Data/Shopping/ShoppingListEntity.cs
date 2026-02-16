@@ -1,14 +1,10 @@
 // File: Nom.Data/Shopping/ShoppingListEntity.cs
 
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Audit;
 using Nom.Data.Person;
 using Nom.Data.Plan;
-using Nom.Data.Reference;
-
 namespace Nom.Data.Shopping
 {
     [Table("ShoppingList", Schema = "shopping")]
@@ -30,9 +26,9 @@ namespace Nom.Data.Shopping
         [ForeignKey(nameof(HouseholdId))]
         public virtual HouseholdEntity? Household { get; set; }
 
-        public long? GroupId { get; set; }
-        [ForeignKey(nameof(GroupId))]
-        public virtual ReferenceEntity? Group { get; set; }
+        public long? ShoppingListGroupId { get; set; }
+        [ForeignKey(nameof(ShoppingListGroupId))]
+        public virtual ShoppingListGroupEntity? ShoppingListGroup { get; set; }
 
         // Navigation properties
         public virtual ICollection<ShoppingListItemEntity> Items { get; set; } = new List<ShoppingListItemEntity>();

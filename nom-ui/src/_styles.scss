@@ -41,19 +41,53 @@ input:not([type="password"]) {
 // Do NOT add mat-mdc-form-field-infix padding rules here.
 
 // Page container — fixed viewport with scroll
+// =============================================================================
+// APP LAYOUT: Two-column (main + contextual sidebar)
+// =============================================================================
+.nom-app-layout {
+  display: grid;
+  grid-template-columns: 1fr vars.$layout-sidebar-width;
+  max-width: vars.$layout-max-width;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+  gap: vars.$spacing-md;
+
+  @media (max-width: vars.$layout-sidebar-breakpoint) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nom-app-layout__main {
+  max-width: vars.$layout-main-max-width;
+  width: 100%;
+  min-width: 0;
+}
+
+.nom-app-layout__sidebar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-md;
+
+  @media (max-width: vars.$layout-sidebar-breakpoint) {
+    display: none;
+  }
+}
+
+// =============================================================================
+// PAGE CONTAINER (flows within grid layout)
+// =============================================================================
 .nom-page-container {
-  position: fixed;
-  top: 60px;
-  bottom: 40px;
-  left: 0;
-  right: 0;
-  flex-grow: 1;
+  width: 100%;
   overflow-y: auto;
   padding: 0;
-  transition: margin-right 0.3s ease-in-out;
   background-color: var(--mat-sys-background);
   color: var(--mat-sys-on-background);
   box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: vars.$spacing-5;
+  }
 
   .nom-card {
     margin: 16px;
@@ -155,7 +189,7 @@ body.dark-theme, [data-theme='dark'] {
 .nom-card {
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 4px 8px rgba(var(--mat-sys-shadow), 0.1);
+  box-shadow: vars.$elevation-2;
   background-color: var(--mat-sys-surface-container);
   color: var(--mat-sys-on-surface);
 
@@ -395,7 +429,7 @@ body.dark-theme, [data-theme='dark'] {
   .nom-card {
     max-width: 500px;
     padding: vars.$spacing-8;
-    box-shadow: 0 8px 16px rgba(var(--mat-sys-shadow), 0.2);
+    box-shadow: vars.$elevation-3;
     border-radius: vars.$nom-border-radius-lg;
   }
 
@@ -628,7 +662,7 @@ body.dark-theme,
   padding: vars.$spacing-1 vars.$spacing-2;
   background: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 20px;
+  border-radius: vars.$nom-border-radius-pill;
   font-size: vars.$font-size-sm;
   font-weight: vars.$font-weight-medium;
   @include nom-transition(all, vars.$transition-duration-fast);
@@ -636,7 +670,7 @@ body.dark-theme,
   &:hover {
     background: var(--mat-sys-surface-container-high);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: vars.$elevation-2;
   }
 
   mat-icon {
@@ -1171,7 +1205,7 @@ button,
   padding: vars.$spacing-4;
 
   &--elevated {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: vars.$elevation-2;
   }
 
   &--compact {
@@ -1211,6 +1245,7 @@ button,
     font-size: 4rem;
     color: var(--mat-sys-on-surface-variant);
     margin-bottom: vars.$spacing-4;
+    opacity: 0.7;
   }
 
   &__title {
@@ -1222,6 +1257,25 @@ button,
   &__message {
     color: var(--mat-sys-on-surface-variant);
     max-width: 400px;
+    line-height: vars.$line-height-normal;
+  }
+
+  &__action {
+    margin-top: vars.$spacing-6;
+
+    amw-button[variant="filled"] button,
+    amw-button[variant="filled"] .mdc-button {
+      font-weight: vars.$font-weight-semibold;
+      min-width: 160px;
+      min-height: vars.$button-height-lg;
+    }
+  }
+
+  &__hint {
+    margin-top: vars.$spacing-3;
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.8;
   }
 }
 
@@ -1500,9 +1554,9 @@ button,
   // Rejected / Error
   &--rejected,
   &--error {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border-color: rgba(239, 68, 68, 0.3);
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+    border-color: var(--mat-sys-error);
   }
 
   // Inactive / Archived

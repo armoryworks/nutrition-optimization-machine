@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
 {
-    [Authorize(Policy = "CanManageCuration")]
+    [Authorize]
     public class CurationController : BaseApiController
     {
         private readonly ILogger<CurationController> _logger;
@@ -24,6 +24,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpGet("queue")]
+        [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> GetCurationQueue()
         {
             try
@@ -39,7 +40,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("submit")]
-        [Authorize] // Override: Allow any authenticated user to submit their own content.
+        // Any authenticated user can submit their own content for curation
         public async Task<IActionResult> SubmitForCuration([FromBody] SubmitForCurationRequest request)
         {
             try
@@ -60,6 +61,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("approve")]
+        [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> Approve([FromBody] CurationDecisionRequest request)
         {
             try
@@ -80,6 +82,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("request-revision")]
+        [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> RequestRevision([FromBody] CurationDecisionRequest request)
         {
             try
@@ -100,6 +103,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("reject")]
+        [Authorize(Policy = "CanManageCuration")]
         public async Task<IActionResult> Reject([FromBody] CurationDecisionRequest request)
         {
             try

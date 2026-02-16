@@ -9,7 +9,7 @@ namespace Nom.Orch.Interfaces
     public interface IHouseholdOrchestrationService
     {
         Task<List<HouseholdResponseModel>> GetAllHouseholdsAsync();
-        Task<HouseholdCreateResponseModel> CreateHouseholdAsync(HouseholdCreateModel model);
+        Task<HouseholdCreateResponseModel> CreateHouseholdAsync(HouseholdCreateModel model, long? createdByPersonId = null);
         Task<HouseholdResponseModel?> GetHouseholdAsync(long id);
         Task<HouseholdResponseModel?> UpdateHouseholdAsync(long id, HouseholdUpdateModel model);
         Task<bool> DeleteHouseholdAsync(long id);

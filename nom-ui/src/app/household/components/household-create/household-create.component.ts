@@ -113,7 +113,7 @@ export class HouseholdCreateComponent implements OnInit, OnDestroy {
             const createRequest = new HouseholdCreateRequestModel({
                 name: this.householdForm.value.name,
                 description: this.householdForm.value.description,
-                groupId: 3 // Temporary: Using Recipe Type group ID (3) to fix foreign key constraint
+                householdGroupId: 1 // Default household group
             });
 
             this.householdService.createHousehold(createRequest)

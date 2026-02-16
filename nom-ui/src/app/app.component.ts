@@ -10,6 +10,7 @@ import { AuthManagerService } from './utilities/services/auth-manager.service';
 import { Router } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 import { ValidationTooltipOverlayComponent } from './shared/components/validation-tooltip-overlay/validation-tooltip-overlay.component';
+import { ContextSidebarComponent } from './shared/components/context-sidebar/context-sidebar.component';
 
 @Component({
   selector: 'nom-root',
@@ -23,7 +24,8 @@ import { ValidationTooltipOverlayComponent } from './shared/components/validatio
     AmwFullScreenLoadingComponent,
     AmwValidationTooltipOverlayComponent,
     ValidationTooltipOverlayComponent,
-    LoginComponent
+    LoginComponent,
+    ContextSidebarComponent,
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']

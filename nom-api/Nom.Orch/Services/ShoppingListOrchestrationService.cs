@@ -39,7 +39,7 @@ namespace Nom.Orch.Services
                 Description = sl.Description,
                 AuthorId = sl.AuthorId,
                 HouseholdId = sl.HouseholdId,
-                GroupId = sl.GroupId,
+                ShoppingListGroupId = sl.ShoppingListGroupId,
                 ItemCount = sl.Items?.Count ?? 0,
                 CompletedItemCount = sl.Items?.Count(i => i.IsChecked) ?? 0,
                 CreatedDate = sl.CreatedDate,
@@ -55,7 +55,7 @@ namespace Nom.Orch.Services
                 Description = model.Description,
                 AuthorId = authorId,
                 HouseholdId = model.HouseholdId,
-                GroupId = model.GroupId,
+                ShoppingListGroupId = model.ShoppingListGroupId,
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
             };
@@ -70,7 +70,7 @@ namespace Nom.Orch.Services
                 Description = shoppingList.Description,
                 AuthorId = shoppingList.AuthorId,
                 HouseholdId = shoppingList.HouseholdId,
-                GroupId = shoppingList.GroupId,
+                ShoppingListGroupId = shoppingList.ShoppingListGroupId,
                 CreatedDate = shoppingList.CreatedDate
             };
         }
@@ -91,7 +91,7 @@ namespace Nom.Orch.Services
                 Description = shoppingList.Description,
                 AuthorId = shoppingList.AuthorId,
                 HouseholdId = shoppingList.HouseholdId,
-                GroupId = shoppingList.GroupId,
+                ShoppingListGroupId = shoppingList.ShoppingListGroupId,
                 ItemCount = shoppingList.Items?.Count ?? 0,
                 CompletedItemCount = shoppingList.Items?.Count(i => i.IsChecked) ?? 0,
                 CreatedDate = shoppingList.CreatedDate,
@@ -108,7 +108,7 @@ namespace Nom.Orch.Services
             shoppingList.Name = model.Name;
             shoppingList.Description = model.Description;
             shoppingList.HouseholdId = model.HouseholdId;
-            shoppingList.GroupId = model.GroupId;
+            shoppingList.ShoppingListGroupId = model.ShoppingListGroupId;
             shoppingList.LastModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -120,7 +120,7 @@ namespace Nom.Orch.Services
                 Description = shoppingList.Description,
                 AuthorId = shoppingList.AuthorId,
                 HouseholdId = shoppingList.HouseholdId,
-                GroupId = shoppingList.GroupId,
+                ShoppingListGroupId = shoppingList.ShoppingListGroupId,
                 ItemCount = 0, // Would need to load items to get count
                 CompletedItemCount = 0, // Would need to load items to get count
                 CreatedDate = shoppingList.CreatedDate,

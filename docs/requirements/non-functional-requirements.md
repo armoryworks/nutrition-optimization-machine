@@ -162,21 +162,33 @@ To provide an intuitive and accessible user experience across all devices and us
 
 ### Usability Implementations
 
+#### Foundational Design Principles
+
+All UI design and development is governed by five immutable principles (see `nom-ui/docs/DESIGN-SPECIFICATION.md`, Section 1):
+
+- **8pt Grid System**: All spatial decisions use 8px atomic unit. Consistent spacing across all components.
+- **Major Third (1.25) Type Scale**: Mathematical typographic hierarchy (H1: ~39px, H2: ~25px, H3: 20px, Body: 16px). Headers enable 3-second page skim.
+- **60-30-10 Color Rule**: 60% neutral surfaces, 30% secondary content, 10% action accent. Color is semantic (state), not decorative.
+- **Information Architecture**: Z-pattern (desktop), prioritized vertical stack (mobile). Assistant-first flow with proactive content.
+- **Micro-interactions**: Standard 300ms cubic-bezier transitions, 44px minimum touch targets, explicit hover/focus/active/disabled states on all interactive elements.
+
 #### User Experience
 
 - **Multi-Step Onboarding**: Guided workflow with clear progress indicators
 - **Form Validation**: Real-time validation with clear error messages
 - **Loading States**: Visual feedback during asynchronous operations
 - **Error Handling**: User-friendly error messages and recovery options
-- **Accessibility**: WCAG compliance with proper ARIA labels and keyboard navigation
+- **Accessibility**: WCAG 2.1 AA compliance with proper ARIA labels, keyboard navigation, and 4.5:1 minimum contrast
+- **Elevation System**: Soft shadows communicate interactivity and depth (cards at rest, elevated on hover, modals above content)
 
 #### Responsive Design
 
 - **Mobile-First**: Responsive design starting from mobile devices
 - **Material 3**: Modern design system with consistent theming
-- **Touch-Friendly**: Optimized for touch interactions on mobile devices
+- **Touch-Friendly**: All interactive elements have 44x44px minimum touch targets (Fitts's Law)
 - **Cross-Browser**: Compatibility across major browsers
 - **Progressive Enhancement**: Core functionality works without JavaScript
+- **Reflow Logic**: Desktop caps text at 45-75 characters; mobile transitions to single-column vertical stack
 
 #### Privacy Transparency
 

@@ -11,7 +11,7 @@ export class HouseholdResponseModel implements IHouseholdResponseModel {
     memberCount = 0;
     planCount = 0;
     isOwner = false;
-    groupId?: number;
+    householdGroupId?: number;
 
     constructor(data?: Partial<IHouseholdResponseModel>) {
         if (data) {

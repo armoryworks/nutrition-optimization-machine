@@ -44,11 +44,10 @@
 
   <!-- Error State -->
   @if (error() && !isLoading()) {
-    <div class="nom-master-detail__empty">
-      <amw-icon name="error" class="nom-master-detail__empty-icon" color="warn"></amw-icon>
-      <h3 class="nom-master-detail__empty-title">Error</h3>
-      <p class="nom-master-detail__empty-message">{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+    <div class="nom-dashboard__error" role="alert">
+      <amw-icon name="error_outline"></amw-icon>
+      <p>{{ error() }}</p>
+      <amw-button variant="outlined" color="primary" (click)="onRetry()" icon="refresh">
         Try Again
       </amw-button>
     </div>

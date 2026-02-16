@@ -60,6 +60,16 @@ describe('Screenshot All Pages', () => {
 
     // Ingredient Search
     { path: '/ingredient-search', name: '92-ingredient-search' },
+
+    // Cookbook
+    { path: '/cookbook', name: '93-cookbook-dashboard' },
+    { path: '/cookbook/create', name: '94-cookbook-create' },
+
+    // Webhook
+    { path: '/webhook', name: '95-webhook-dashboard' },
+
+    // Labels
+    { path: '/labels', name: '96-label-dashboard' },
   ];
 
   describe('Public Pages', () => {

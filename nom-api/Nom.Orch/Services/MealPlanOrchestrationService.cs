@@ -29,6 +29,7 @@ namespace Nom.Orch.Services
         {
             var query = _context.MealPlans
                 .Include(mp => mp.Recipe)
+                .Include(mp => mp.MealType)
                 .AsQueryable();
 
             if (startDate.HasValue)
@@ -45,7 +46,7 @@ namespace Nom.Orch.Services
                 AuthorId = mp.AuthorId,
                 Date = mp.Date,
                 MealTypeId = mp.MealTypeId,
-                MealType = "Meal", // Placeholder - would get from reference
+                MealType = mp.MealType?.Name ?? "Meal",
                 Title = mp.Title,
                 Notes = mp.Note,
                 RecipeId = mp.RecipeId,
@@ -91,6 +92,7 @@ namespace Nom.Orch.Services
         {
             var mealPlan = await _context.MealPlans
                 .Include(mp => mp.Recipe)
+                .Include(mp => mp.MealType)
                 .FirstOrDefaultAsync(mp => mp.Id == id);
 
             if (mealPlan == null)
@@ -103,7 +105,7 @@ namespace Nom.Orch.Services
                 AuthorId = mealPlan.AuthorId,
                 Date = mealPlan.Date,
                 MealTypeId = mealPlan.MealTypeId,
-                MealType = "Meal", // Placeholder - would get from reference
+                MealType = mealPlan.MealType?.Name ?? "Meal",
                 Title = mealPlan.Title,
                 Notes = mealPlan.Note,
                 RecipeId = mealPlan.RecipeId,
@@ -115,7 +117,10 @@ namespace Nom.Orch.Services
 
         public async Task<MealPlanResponseModel?> UpdateMealPlanAsync(long id, MealPlanUpdateModel model)
         {
-            var mealPlan = await _context.MealPlans.FindAsync(id);
+            var mealPlan = await _context.MealPlans
+                .Include(mp => mp.Recipe)
+                .Include(mp => mp.MealType)
+                .FirstOrDefaultAsync(mp => mp.Id == id);
             if (mealPlan == null)
                 return null;
 
@@ -128,6 +133,12 @@ namespace Nom.Orch.Services
 
             await _context.SaveChangesAsync();
 
+            // Reload MealType reference if it changed
+            if (mealPlan.MealType == null || mealPlan.MealType.Id != model.MealTypeId)
+            {
+                await _context.Entry(mealPlan).Reference(mp => mp.MealType).LoadAsync();
+            }
+
             return new MealPlanResponseModel
             {
                 Id = mealPlan.Id,
@@ -135,11 +146,11 @@ namespace Nom.Orch.Services
                 AuthorId = mealPlan.AuthorId,
                 Date = mealPlan.Date,
                 MealTypeId = mealPlan.MealTypeId,
-                MealType = "Meal", // Placeholder - would get from reference
+                MealType = mealPlan.MealType?.Name ?? "Meal",
                 Title = mealPlan.Title,
                 Notes = mealPlan.Note,
                 RecipeId = mealPlan.RecipeId,
-                RecipeName = null, // Would need to load recipe to get name
+                RecipeName = mealPlan.Recipe?.Name,
                 CreatedDate = mealPlan.CreatedDate,
                 ModifiedDate = mealPlan.LastModifiedDate
             };

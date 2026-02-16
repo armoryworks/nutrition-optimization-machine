@@ -14,6 +14,12 @@ namespace Nom.Data
         // --- System Person ID ---
         private const long SystemPersonId = 1L;
 
+        // --- Meal Type IDs (1100L series to align with GroupId 1 = MealType) ---
+        private const long MealTypeBreakfastId = 1100L;
+        private const long MealTypeLunchId = 1101L;
+        private const long MealTypeDinnerId = 1102L;
+        private const long MealTypeSnacksId = 1103L;
+
         // --- CORRECTED: Plan Invitation Role IDs (41xxL series to align with GroupId 4000) ---
         private const long PlanInvitationRoleAdminId = 4100L;
         private const long PlanInvitationRoleMemberId = 4101L;
@@ -64,6 +70,10 @@ namespace Nom.Data
         private const long GoalTypeChildren1Through3YearsId = 6002L;
         private const long GoalTypePregnantAndLactatingWomenId = 6003L;
         private const long GoalTypeGeneralAdultId = 6004L;
+
+        // --- Domain Group IDs ---
+        private const long DefaultHouseholdGroupId = 1L;
+        private const long DefaultShoppingListGroupId = 1L;
 
         // --- Privacy Consent Type IDs (8xxxL series) ---
         private const long PrivacyConsentTypeAnalyticsId = 8000L;
@@ -196,7 +206,10 @@ namespace Nom.Data
             SeedInitialSystemPerson(migrationBuilder);
 
             AddReferenceGroups(migrationBuilder);
+            AddHouseholdGroups(migrationBuilder);
+            AddShoppingListGroups(migrationBuilder);
 
+            AddMealTypes(migrationBuilder);
             AddRestrictionTypes(migrationBuilder);
             AddPlanInvitationRoles(migrationBuilder);
             AddMeasurementTypes(migrationBuilder);
@@ -254,7 +267,10 @@ namespace Nom.Data
             RemoveGoalTypes(migrationBuilder);
             RemoveMeasurementTypes(migrationBuilder);
             RemovePlanInvitationRoles(migrationBuilder);
+            RemoveMealTypes(migrationBuilder);
             RemoveRestrictionTypes(migrationBuilder);
+            RemoveShoppingListGroups(migrationBuilder);
+            RemoveHouseholdGroups(migrationBuilder);
             RemoveReferenceGroups(migrationBuilder);
             RemoveInitialSystemPerson(migrationBuilder);
 
@@ -381,6 +397,97 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.DayOfWeekType,
                     (long)ReferenceDiscriminatorEnum.RecipeDietaryOptionType
                 });
+        }
+
+        public static void AddMealTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.MealType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { MealTypeBreakfastId, "Breakfast", "Morning meal", DateTime.UtcNow, SystemPersonId },
+                    { MealTypeLunchId, "Lunch", "Midday meal", DateTime.UtcNow, SystemPersonId },
+                    { MealTypeDinnerId, "Dinner", "Evening meal", DateTime.UtcNow, SystemPersonId },
+                    { MealTypeSnacksId, "Snacks", "Between-meal snacks", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] mealTypeIds = new long[] {
+                MealTypeBreakfastId, MealTypeLunchId, MealTypeDinnerId, MealTypeSnacksId
+            };
+            foreach (long id in mealTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveMealTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.MealType;
+            long[] mealTypeIds = new long[] {
+                MealTypeBreakfastId, MealTypeLunchId, MealTypeDinnerId, MealTypeSnacksId
+            };
+            foreach (long id in mealTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[] { MealTypeBreakfastId, MealTypeLunchId, MealTypeDinnerId, MealTypeSnacksId });
+        }
+
+        public static void AddHouseholdGroups(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.InsertData(
+                schema: "plan",
+                table: "HouseholdGroup",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { DefaultHouseholdGroupId, "Default", "Default household group.", DateTime.UtcNow, SystemPersonId }
+                });
+        }
+
+        public static void RemoveHouseholdGroups(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "plan",
+                table: "HouseholdGroup",
+                keyColumn: "Id",
+                keyValues: new object[] { DefaultHouseholdGroupId });
+        }
+
+        public static void AddShoppingListGroups(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.InsertData(
+                schema: "shopping",
+                table: "ShoppingListGroup",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { DefaultShoppingListGroupId, "Default", "Default shopping list group.", DateTime.UtcNow, SystemPersonId }
+                });
+        }
+
+        public static void RemoveShoppingListGroups(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DeleteData(
+                schema: "shopping",
+                table: "ShoppingListGroup",
+                keyColumn: "Id",
+                keyValues: new object[] { DefaultShoppingListGroupId });
         }
 
         public static void AddRestrictionTypes(MigrationBuilder migrationBuilder)
@@ -735,7 +842,7 @@ namespace Nom.Data
                     { CurationStatusTypeNonCuratedId, "Non-Curated", "Content has not been submitted for review.", DateTime.UtcNow, SystemPersonId },
                     { CurationStatusTypePendingCurationId, "Pending Curation", "Content is awaiting admin review.", DateTime.UtcNow, SystemPersonId },
                     { CurationStatusTypeRequiresRevisionId, "Requires Revision", "Admin has requested changes from the author.", DateTime.UtcNow, SystemPersonId },
-                    { CurationStatusTypeCuratedId, "Curated", "Content has been approved and is publicly visible.", DateTime.UtcNow, SystemPersonId },
+                    { CurationStatusTypeCuratedId, "Approved", "Content has been approved and is publicly visible.", DateTime.UtcNow, SystemPersonId },
                     { CurationStatusTypeRejectedId, "Rejected", "Content was reviewed and not approved.", DateTime.UtcNow, SystemPersonId }
                 });
             foreach (long id in new[] { CurationStatusTypeNonCuratedId, CurationStatusTypePendingCurationId, CurationStatusTypeRequiresRevisionId, CurationStatusTypeCuratedId, CurationStatusTypeRejectedId })

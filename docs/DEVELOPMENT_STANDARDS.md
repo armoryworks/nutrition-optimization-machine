@@ -323,9 +323,47 @@ export class ButtonComponent extends _BaseButtonComponent {
 - **ALL exceptions MUST be justified and documented**
 - **ALL changes to standards MUST be versioned**
 
+## Design System Principles
+
+### **MANDATORY: Five Foundational Design Principles**
+
+All UI development must comply with the five immutable design principles defined in `nom-ui/docs/DESIGN-SPECIFICATION.md`, Section 1. These principles are non-negotiable and propagate universally.
+
+#### 1. 8pt Grid System
+- **Atomic Unit:** 8px. All padding, margins, and gutters must be `n x 8px`.
+- **Sub-grid exception:** 4px is allowed for optical adjustments only (badge padding, icon alignment).
+- **Border-radius:** 4px for buttons/inputs, 8px for cards. No pill shapes (>10px).
+
+#### 2. Major Third (1.25) Type Scale
+- H1: ~39px (page intent), H2: ~25px (sections), H3: 20px (card headers), Body: 16px, Small: ~13px
+- Headers must enable 3-second page skim comprehension.
+
+#### 3. 60-30-10 Color Rule
+- 60% Neutral surfaces, 30% Secondary content, 10% Action accent.
+- **Blue/primary color is ONLY for interactive elements.** Never decorative.
+- Semantic colors (amber, red, green) are strictly for system state feedback.
+
+#### 4. Information Architecture
+- Desktop: Z-pattern (hero top-left, secondary top-right, action center).
+- Mobile: Prioritized vertical stack.
+- Every text/background pairing must pass WCAG 2.1 AA (4.5:1 contrast).
+
+#### 5. Micro-interactions
+- All transitions: `300ms cubic-bezier(0.4, 0, 0.2, 1)`.
+- Respect `prefers-reduced-motion: reduce`.
+- All interactive elements must have 44x44px minimum touch target.
+- All interactive elements must define: Default, Hover, Focus, Active, Disabled states.
+
+#### Reference Files
+- **Full specification:** `nom-ui/docs/DESIGN-SPECIFICATION.md`
+- **Variables:** `nom-ui/src/_variables.scss`
+- **Overrides:** `nom-ui/src/_amw-overrides.scss`
+- **Stereotypes:** `nom-ui/src/_stereotype-*.scss`
+
 ## Version History
 
 - **v1.0**: Initial standards definition
 - **v1.1**: Added comprehensive file separation rules
 - **v1.2**: Clarified abstract vs interface naming conventions
 - **v1.3**: Added Angular selector prefix requirements
+- **v1.4**: Added design system principles (8pt grid, Major Third type, 60-30-10 color, IA, micro-interactions)

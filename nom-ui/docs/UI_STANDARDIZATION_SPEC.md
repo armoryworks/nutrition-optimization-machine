@@ -7,6 +7,14 @@ This document outlines the approach for standardizing the NOM UI with:
 2. **Theme-based aesthetics** - All styling through AMW theme system
 3. **AMW bug reports** - Issues requiring upstream fixes in angular-material-wrap
 
+> **Governing Principles:** All standardization work must comply with the five foundational design principles in [DESIGN-SPECIFICATION.md](./DESIGN-SPECIFICATION.md), Section 1:
+> - **8pt Grid**: All spacing tokens must be multiples of 8px (4px sub-grid for optical adjustments only)
+> - **Major Third Type Scale**: H1 ~39px, H2 ~25px, H3 20px, Body 16px, Small ~13px
+> - **60-30-10 Color**: Action blue exclusively for interactive elements; semantic colors for state only
+> - **Border-Radius**: 4px for buttons/inputs, 8px for cards/containers. No pill shapes (>10px)
+> - **Elevation**: Cards must have `$elevation-1` at rest, `$elevation-2` on hover. No flat cards.
+> - **Transitions**: All state changes use `300ms cubic-bezier(0.4, 0, 0.2, 1)`
+
 ---
 
 ## Part 1: Functional Component Categories

@@ -1,0 +1,122 @@
+<div class="context-sidebar">
+  <!-- User Controls -->
+  <div class="context-sidebar__controls">
+    <button class="context-sidebar__icon-btn"
+      (click)="toggleTheme()"
+      [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
+      <amw-icon [name]="isDarkTheme() ? 'light_mode' : 'dark_mode'"></amw-icon>
+    </button>
+
+    @if (isLoggedIn$ | async) {
+      <amw-menu #sidebarUserMenu triggerIcon="account_circle" menuClass="context-sidebar__menu">
+        <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
+        <amw-menu-item [isDivider]="true"></amw-menu-item>
+        <amw-menu-item label="Households" icon="home" routerLink="/household"></amw-menu-item>
+        <amw-menu-item label="Shopping" icon="shopping_cart" routerLink="/shopping"></amw-menu-item>
+        <amw-menu-item label="Meal Plans" icon="restaurant_menu" routerLink="/meal-plan"></amw-menu-item>
+        <amw-menu-item label="Messages" icon="message" routerLink="/messaging"></amw-menu-item>
+        <amw-menu-item label="Recipes" icon="menu_book" routerLink="/recipes"></amw-menu-item>
+        <amw-menu-item label="Ingredient Search" icon="search" routerLink="/ingredient-search"></amw-menu-item>
+        <amw-menu-item label="Curated Plans" icon="schedule" routerLink="/curated-plans"></amw-menu-item>
+        @if (authManagerService.canManageCuration()) {
+          <amw-menu-item label="Curation Queue" icon="rate_review" routerLink="/curation"></amw-menu-item>
+        }
+        <amw-menu-item [isDivider]="true"></amw-menu-item>
+        <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
+        <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
+        <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()"></amw-menu-item>
+      </amw-menu>
+    } @else {
+      <amw-button variant="outlined" color="primary" routerLink="/register">
+        Get Started
+      </amw-button>
+    }
+  </div>
+
+  <!-- Contextual Content -->
+  @if (!(isLoggedIn$ | async)) {
+    <!-- Anonymous: What NOM Offers -->
+    <div class="context-sidebar__section">
+      <h3 class="context-sidebar__section-title">What You Can Do</h3>
+      <div class="context-sidebar__feature-list">
+        <div class="context-sidebar__feature">
+          <amw-icon name="restaurant_menu" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Plan Meals</h4>
+            <p class="context-sidebar__feature-desc">Create weekly meal plans with nutritional goals and dietary preferences.</p>
+          </div>
+        </div>
+        <div class="context-sidebar__feature">
+          <amw-icon name="insights" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Track Nutrition</h4>
+            <p class="context-sidebar__feature-desc">View detailed macro and micronutrient breakdowns for every meal.</p>
+          </div>
+        </div>
+        <div class="context-sidebar__feature">
+          <amw-icon name="menu_book" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Create Recipes</h4>
+            <p class="context-sidebar__feature-desc">Build and share your own recipes with the community.</p>
+          </div>
+        </div>
+        <div class="context-sidebar__feature">
+          <amw-icon name="shopping_cart" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Shopping Lists</h4>
+            <p class="context-sidebar__feature-desc">Auto-generate shopping lists from your meal plans.</p>
+          </div>
+        </div>
+        <div class="context-sidebar__feature">
+          <amw-icon name="collections_bookmark" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Organize Cookbooks</h4>
+            <p class="context-sidebar__feature-desc">Group your favorite recipes into themed collections.</p>
+          </div>
+        </div>
+        <div class="context-sidebar__feature">
+          <amw-icon name="search" class="context-sidebar__feature-icon"></amw-icon>
+          <div>
+            <h4 class="context-sidebar__feature-title">Search Ingredients</h4>
+            <p class="context-sidebar__feature-desc">Explore our database of ingredients with full nutritional data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Authenticated: Quick Links -->
+    <div class="context-sidebar__section">
+      <h3 class="context-sidebar__section-title">Quick Links</h3>
+      <nav class="context-sidebar__nav">
+        <a routerLink="/meal-plan" class="context-sidebar__nav-item">
+          <amw-icon name="restaurant_menu"></amw-icon>
+          <span>Meal Plans</span>
+        </a>
+        <a routerLink="/recipes" class="context-sidebar__nav-item">
+          <amw-icon name="menu_book"></amw-icon>
+          <span>Recipes</span>
+        </a>
+        <a routerLink="/shopping" class="context-sidebar__nav-item">
+          <amw-icon name="shopping_cart"></amw-icon>
+          <span>Shopping Lists</span>
+        </a>
+        <a routerLink="/cookbook" class="context-sidebar__nav-item">
+          <amw-icon name="collections_bookmark"></amw-icon>
+          <span>Cookbooks</span>
+        </a>
+        <a routerLink="/ingredient-search" class="context-sidebar__nav-item">
+          <amw-icon name="search"></amw-icon>
+          <span>Ingredient Search</span>
+        </a>
+        <a routerLink="/household" class="context-sidebar__nav-item">
+          <amw-icon name="home"></amw-icon>
+          <span>Households</span>
+        </a>
+        <a routerLink="/meal-plan/nutrition" class="context-sidebar__nav-item">
+          <amw-icon name="insights"></amw-icon>
+          <span>Nutrition Summary</span>
+        </a>
+      </nav>
+    </div>
+  }
+</div>

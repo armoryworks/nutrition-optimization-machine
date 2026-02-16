@@ -1,10 +1,17 @@
 # NOM UI Style Guide
 
-> **Version**: 1.0.0
-> **Last Updated**: January 2026
+> **Version**: 2.0.0
+> **Last Updated**: February 2026
 > **Status**:  Complete
 
 This style guide documents the standardized UI patterns, SCSS architecture, and accessibility guidelines for the NOM application.
+
+> **Foundational Principles:** All patterns in this guide are governed by the five immutable design principles defined in [DESIGN-SPECIFICATION.md](./DESIGN-SPECIFICATION.md), Section 1:
+> 1. **8pt Grid System** - All spacing in multiples of 8px (4px sub-grid for optical adjustments only)
+> 2. **Major Third (1.25) Type Scale** - H1: ~39px, H2: ~25px, H3: 20px, Body: 16px, Small: ~13px
+> 3. **60-30-10 Color Rule** - 60% neutral surfaces, 30% secondary content, 10% action accent
+> 4. **Assistant-First Information Architecture** - Z-pattern desktop, vertical stack mobile
+> 5. **Micro-interactions** - All state changes at 300ms cubic-bezier(0.4, 0, 0.2, 1), 44px touch targets
 
 ---
 
@@ -39,31 +46,44 @@ nom-ui/src/
 #### `_variables.scss`
 Defines all global design tokens:
 
-- **Spacing Scale** (8px base)
+- **Spacing Scale** (8pt Grid - all values are multiples of 8px)
   ```scss
-  $spacing-xs: 0.5rem;   // 8px
-  $spacing-sm: 1rem;     // 16px
-  $spacing-md: 1.5rem;   // 24px
-  $spacing-lg: 2rem;     // 32px
-  $spacing-xl: 3rem;     // 48px
-  $spacing-2xl: 4rem;    // 64px
+  // Sub-grid (optical adjustments only)
+  $spacing-1: 0.25rem;    // 4px - ONLY badge padding, icon alignment
+  // Primary grid
+  $spacing-xs: 0.5rem;    // 8px (1U)
+  $spacing-sm: 1rem;      // 16px (2U)
+  $spacing-md: 1.5rem;    // 24px (3U)
+  $spacing-lg: 2rem;      // 32px (4U)
+  $spacing-xl: 3rem;      // 48px (6U)
+  $spacing-2xl: 4rem;     // 64px (8U)
   ```
 
-- **Typography Scale**
+- **Typography Scale** (Major Third 1.25 Progression)
   ```scss
-  $font-size-xs: 0.75rem;   // 12px
+  $font-size-xs: 0.8rem;    // ~13px (Small/Meta)
   $font-size-sm: 0.875rem;  // 14px
-  $font-size-md: 1rem;      // 16px (base)
-  $font-size-lg: 1.25rem;   // 20px
-  $font-size-xl: 1.5rem;    // 24px
-  $font-size-2xl: 2rem;     // 32px
+  $font-size-md: 1rem;      // 16px (Body - base)
+  $font-size-lg: 1.25rem;   // 20px (H3 - Card Headers)
+  $font-size-xl: 1.56rem;   // ~25px (H2 - Section Titles)
+  $font-size-2xl: 2.44rem;  // ~39px (H1 - Page Intent)
   ```
 
 - **Component Sizing**
   ```scss
-  $button-height: 40px;     // Touch-friendly button height
-  $input-height: 48px;      // Touch-friendly form field height
-  $card-padding: 1.5rem;    // Standard card padding
+  $button-height: 40px;              // Touch-friendly button height
+  $input-height: 48px;               // Touch-friendly form field height
+  $card-padding: 1.5rem;             // Standard card padding (3U)
+  $nom-border-radius: 4px;           // Buttons, inputs
+  $nom-border-radius-card: 8px;      // Cards, containers (no pills > 10px)
+  ```
+
+- **Elevation Scale**
+  ```scss
+  $elevation-1: 0 1px 2px rgba(0, 0, 0, 0.08);    // Cards at rest
+  $elevation-2: 0 2px 4px rgba(0, 0, 0, 0.1);     // Hovered cards
+  $elevation-3: 0 4px 12px rgba(0, 0, 0, 0.15);   // Dropdowns, popovers
+  $elevation-4: 0 8px 24px rgba(0, 0, 0, 0.2);    // Modals, HUD overlays
   ```
 
 #### `_utilities.scss`
@@ -243,21 +263,45 @@ Provides accessibility-specific styles:
 
 ### 5. Transitions with Reduced Motion Support
 
-**Always use the transition mixin** to respect user preferences:
+**Always use the transition mixin** to respect user preferences. All transitions use the standard timing: `300ms cubic-bezier(0.4, 0, 0.2, 1)`.
 
 ```scss
 .component {
   &__card {
     @include nom-transition(box-shadow, vars.$transition-duration-normal);
+    box-shadow: vars.$elevation-1; // Cards have elevation at rest
 
     &:hover {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: vars.$elevation-2; // Elevated on hover
+      transform: translateY(-2px);
     }
   }
 }
 ```
 
 This automatically disables animations for users with `prefers-reduced-motion: reduce`.
+
+### 6. Interactive Element States
+
+**All interactive elements MUST define all five states** (see DESIGN-SPECIFICATION.md Section 1.5):
+
+```scss
+.component {
+  &__button {
+    @include nom-transition(all);
+
+    // Default: resting appearance
+    // Hover: subtle elevation or color shift
+    &:hover:not(:disabled) { /* ... */ }
+    // Focus: visible ring for keyboard nav
+    &:focus-visible { outline: 2px solid var(--mat-sys-primary); outline-offset: 2px; }
+    // Active: pressed feedback
+    &:active:not(:disabled) { transform: scale(0.98); }
+    // Disabled: reduced opacity
+    &:disabled { opacity: 0.38; pointer-events: none; }
+  }
+}
+```
 
 ---
 
@@ -270,7 +314,8 @@ All components must meet WCAG 2.1 AA standards:
 - Color contrast ratio of 3:1 for large text
 - Keyboard navigation support
 - Screen reader compatibility
-- Touch target size of 44x44px minimum
+- Touch target size of **44x44px minimum** (Fitts's Law - see DESIGN-SPECIFICATION.md Section 1.5)
+- **60-30-10 color rule:** Action colors (blue) only for interactive elements; never decorative
 
 ### ARIA Patterns
 
@@ -675,6 +720,7 @@ npm run test:a11y
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | January 2026 | Initial release - Phase 2-6 complete |
+| 2.0.0 | February 2026 | Aligned with foundational design principles (8pt grid, Major Third type, 60-30-10 color, elevation, micro-interactions) |
 
 ---
 

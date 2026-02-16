@@ -113,11 +113,18 @@ namespace Nom.Api.Authentication
                     identity.AddClaim(new Claim("admin", "true"));
                 }
 
-                // Add curation permissions if user has any curation roles
-                if (householdMemberships.Any(hm => hm.CanManage) || 
+                // Add curation permissions if user has any management roles
+                if (householdMemberships.Any(hm => hm.CanManage) ||
                     planParticipations.Any(pp => pp.CanManage))
                 {
-                    identity.AddClaim(new Claim("can_manage_curation", "true"));
+                    identity.AddClaim(new Claim("CanManageCuration", "true"));
+                }
+
+                // Add user management permissions if user is admin anywhere
+                if (householdMemberships.Any(hm => hm.IsAdmin) ||
+                    planParticipations.Any(pp => pp.IsAdmin))
+                {
+                    identity.AddClaim(new Claim("CanManageUserRoles", "true"));
                 }
             }
             else

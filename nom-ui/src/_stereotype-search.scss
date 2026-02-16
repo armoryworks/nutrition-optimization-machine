@@ -160,11 +160,12 @@
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$card-border-radius;
   overflow: hidden;
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(all);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: vars.$elevation-3;
   }
 }
 

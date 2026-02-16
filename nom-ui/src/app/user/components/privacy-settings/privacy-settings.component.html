@@ -1,17 +1,12 @@
 <!-- File: nom-ui/src/app/user/privacy-settings/privacy-settings.component.html -->
 <div class="nom-page-container privacy-settings">
   <!-- Header -->
-  <div class="privacy-settings__header">
-      <div class="privacy-settings__header-content">
-        <div class="privacy-settings__title-section">
-          <amw-icon name="privacy_tip" class="privacy-settings__title-icon"></amw-icon>
-          <div class="privacy-settings__title-info">
-            <h1 class="privacy-settings__title">Privacy Settings</h1>
-            <p class="privacy-settings__subtitle">Manage your data privacy and consent preferences</p>
-          </div>
-        </div>
-      </div>
+  <header class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">Privacy Settings</h1>
+      <span class="nom-dashboard__subtitle">Manage your data privacy and consent preferences</span>
     </div>
+  </header>
 
     <!-- Loading State -->
     @if (isLoading()) {

@@ -40,7 +40,7 @@
 
     <!-- Error State -->
     @if (error() && !loading()) {
-    <div class="nom-error-state" role="alert">
+    <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">

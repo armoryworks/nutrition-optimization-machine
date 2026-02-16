@@ -4,6 +4,8 @@
 
 Based on automated screenshot capture of 26 authenticated pages across 9 feature areas, this document categorizes screens by type, identifies inconsistencies, and proposes sweeping changes for cleanup, standardization, and UI flow improvements.
 
+> **Note:** For a detailed, per-screenshot A/B analysis comparing the current implementation against the foundational design principles (8pt Grid, Major Third Type Scale, 60-30-10 Color, Z-Pattern IA, Micro-interactions), see [DESIGN-SPECIFICATION.md](./DESIGN-SPECIFICATION.md), Appendix F.
+
 ---
 
 ## Part 1: Screen Categorization
@@ -138,6 +140,14 @@ Messaging features.
 ---
 
 ## Part 3: Standardization Proposals
+
+> **Cross-reference:** These proposals must align with the foundational design principles (DESIGN-SPECIFICATION.md Section 1). Specifically:
+> - All spacing must follow the 8pt Grid (Section 1.1)
+> - Typography must use the Major Third (1.25) scale (Section 1.2)
+> - Colors must follow the 60-30-10 rule (Section 1.3) - blue ONLY for interactive elements
+> - All cards must have elevation shadows (Section 14.4)
+> - All interactive elements must have 44px minimum touch targets and explicit hover/focus/active/disabled states (Section 1.5)
+> - Border-radius: 4px for buttons/inputs, 8px for cards. No pills >10px.
 
 ### 3.1 Unified Page Header Component
 
@@ -346,3 +356,121 @@ All screenshots are stored in `/nom-ui/screenshots/` organized by category:
 - `/user/` - User settings
 
 Run `node playwright/screenshot-all-pages.mjs` to regenerate screenshots.
+
+---
+
+## Part 6: Screenshot Analysis vs Design Principles
+
+Each screenshot graded against the five foundational design principles (DESIGN-SPECIFICATION.md Section 1).
+
+### 6.1 Home / Landing Page (`01-home.png`)
+
+**What's on screen:** "Welcome to NOM" hero text, subtitle, 2x2 feature card grid (Curated Quality, Nutrition Insights, Community Driven, Smart Search). Header with NOM text, search bar, Home/Get Started/About nav.
+
+| Principle | Guideline | Current State | Violation | Fix |
+|-----------|-----------|---------------|-----------|-----|
+| **8pt Grid** | All spacing n x 8px | ~80px gap between hero and feature cards is excessive (10U); grid gap ~24px (3U) | PARTIAL | Reduce hero-to-cards gap to 4U (32px) |
+| **Major Third Type** | H1 ~39px, H2 ~25px | "Welcome to NOM" ~40px bold (close); feature card headers ~20px (H3 level, should be H2) | PASS | Bump feature card headers to ~25px |
+| **60-30-10 Color** | Blue for interactive only | Home button blue (correct); search bar blue outline (interactive, OK) | PASS | |
+| **Z-Pattern IA** | Anonymous hero = recipe-on-demand | Hero is marketing text, not recipes. Feature cards are descriptive, not actionable. | FAIL | Replace hero with recipe search/spotlight/trending |
+| **Micro-interactions** | Elevation on cards | Feature cards have 1px border, no shadow | FAIL | Add `$elevation-1` default, `$elevation-2` hover |
+| **Border-Radius** | 8px for cards | Feature cards ~5px radius | FAIL | Update to 8px |
+| **Anonymous Hero** | Recipe-on-demand, info-dense | No recipe content visible. Pure marketing. | FAIL | Implement recipe spotlight / trending recipes |
+
+**Fixes:** (1) Replace marketing hero with recipe-on-demand; (2) Add card shadows; (3) Card border-radius 8px; (4) Tighten spacing.
+
+### 6.2 User/Recipe Dashboard (`10-user-dashboard.png`, `50-recipe-dashboard.png`)
+
+**What's on screen:** "My Dashboard" title, stats pills (0 Recipes, 0 Ingredients, 0 Pending), dual search sections (Recipes + Ingredients) each with search input, status dropdown, + button. Empty state: "No recipes yet" centered.
+
+| Principle | Guideline | Current State | Violation | Fix |
+|-----------|-----------|---------------|-----------|-----|
+| **8pt Grid** | Consistent multiples | ~200px empty space between search and empty state; ingredient section pushed to bottom | PARTIAL | Redistribute space |
+| **Major Third Type** | H1 ~39px for pages | "My Dashboard" ~24-28px (H2-H3 range) | FAIL | Promote to H1 (~39px) |
+| **60-30-10 Color** | Blue for interactive only | Stats pill icons use decorative blue; + button is faint gray | FAIL | Neutral stats icons; primary color on + button |
+| **Z-Pattern IA** | Content-forward, not action-forward | Search boxes first; no visual content | FAIL | Replace with content-forward or meal timeline |
+| **Micro-interactions** | 44px targets, visible | + buttons icon-only, ~30% opacity, barely visible. No elevation. | FAIL | Primary fill + text labels on + buttons |
+| **Elevation** | Shadows on cards | Completely flat. No shadows anywhere. | FAIL | Add elevation to all cards |
+
+**Fixes:** (1) CRITICAL - boost + button contrast (primary fill, text label); (2) H1 page title; (3) Add elevation; (4) Content-forward layout.
+
+### 6.3 Household Dashboard (`20-household-dashboard.png`)
+
+**What's on screen:** "Households" title with subtitle, error card (red-tinted, "Failed to load household"), refresh and add icon buttons.
+
+| Principle | Guideline | Current State | Violation | Fix |
+|-----------|-----------|---------------|-----------|-----|
+| **8pt Grid** | Consistent spacing | Error card ~48px padding for one line of text (excessive) | PARTIAL | Reduce to 2U-3U (16-24px) |
+| **60-30-10 Color** | Red for errors only | Translucent red background + red text. Correct. | PASS | |
+| **Micro-interactions** | Visible targets | Refresh and + icons nearly invisible (gray on dark) | FAIL | on-surface at 0.87 opacity minimum |
+| **Elevation** | Shadows on cards | Error card has no shadow | PARTIAL | Add `$elevation-1` |
+
+**Fixes:** (1) Make icon buttons visible; (2) Reduce error card padding.
+
+### 6.4 Create Forms (`21-household-create.png`, `31-shopping-create.png`, `41-mealplan-create.png`)
+
+**What's on screen:** Centered form cards. Household/Shopping use icon-only buttons (X/checkmark). Meal Plan uses text labels ("Cancel", "Create Meal Plan").
+
+| Principle | Guideline | Current State | Violation | Fix |
+|-----------|-----------|---------------|-----------|-----|
+| **8pt Grid** | Card padding 2U-3U | ~24px padding (3U). Correct. | PASS | |
+| **Major Third Type** | H2 ~25px | "Create Household" ~24-28px bold. Close. | PASS | |
+| **60-30-10 Color** | Blue for interactive | Top icon is decorative blue. | PARTIAL | Make top icon neutral |
+| **Micro-interactions** | Visible targets | **CRITICAL:** Household/Shopping use icon-only action buttons (X/checkmark) at extremely low contrast. Barely visible. Meal Plan correctly uses text buttons. | FAIL | Standardize ALL forms to text buttons |
+| **Border-Radius** | 4px inputs, 8px cards | Inputs ~4-6px, cards ~8-12px | PARTIAL | Standardize to spec |
+| **Elevation** | Cards have shadow | Flat or very subtle | PARTIAL | Add `$elevation-1` |
+
+**Fixes:** (1) CRITICAL - text button labels on ALL create forms; (2) Card border-radius 8px; (3) Add elevation.
+
+### 6.5 Meal Plan Dashboard (`40-mealplan-dashboard.png`)
+
+**What's on screen:** "Meal Plans" title, stats pills, search, Week/Month toggle, empty state, error card.
+
+| Principle | Guideline | Current State | Violation | Fix |
+|-----------|-----------|---------------|-----------|-----|
+| **8pt Grid** | Efficient spacing | Toggle separate from search; wasted vertical space | PARTIAL | Combine into header row |
+| **Z-Pattern IA** | Meal Timeline with photos | Search + toggle first, no visual content | FAIL | Future: meal timeline hero |
+| **Micro-interactions** | Visible states | Toggle has pill shape with active state (works) | PASS | |
+| **Border-Radius** | Max 8px, no pills | Toggle uses pill shape >10px | FAIL | Reduce to 8px |
+
+**Fixes:** (1) Toggle border-radius 8px; (2) Combine search/toggle; (3) Plan meal timeline.
+
+### 6.6 Shopping Dashboard (`30-shopping-dashboard.png`)
+
+Same pattern as Household (6.3). Same systemic issues: invisible icon buttons, error state card. Confirms the fixes need to be central/universal, not per-component.
+
+### 6.7 Cross-Cutting Systemic Issues
+
+| Issue | Screens | Central Fix (one change, everywhere) |
+|-------|---------|--------------------------------------|
+| **Invisible icon buttons** | 10, 20, 21, 30, 31, 50 | `_amw-overrides.scss`: `opacity: 0.87; color: var(--mat-sys-on-surface)` |
+| **Icon-only form actions** | 21, 31 | Component templates: replace icons with text buttons |
+| **No card elevation** | ALL | `_styles.scss`: add `box-shadow: $elevation-1` to card classes |
+| **Flat feature cards** | 01 | `_styles.scss`: `$elevation-1` default, `$elevation-2` hover |
+| **Stats pills low contrast** | 10, 40, 50 | `_styles.scss`: 14px font, 0.87 opacity text |
+| **Excessive whitespace** | 10, 20, 30, 40, 50 | Reduce padding, `min-height` on content |
+| **Page titles undersized** | 10, 20, 30, 40, 50 | `_variables.scss`: apply H1 scale (~39px) to page titles |
+| **No branded mascot** | ALL | Header component: add NOM monster SVG |
+| **Pill shapes >10px** | 40, stats pills | `_variables.scss`: cap `$nom-border-radius-pill: 8px` |
+| **No Z-pattern layout** | 10, 50 | Future: implement Z-pattern with meal timeline |
+
+### 6.8 Phased Fix Plan
+
+**Phase 1 - Central SCSS (one change = universal fix):**
+1. `_amw-overrides.scss`: icon button contrast (0.87 opacity)
+2. `_variables.scss`: elevation scale, border-radius 8px cards, pill cap 8px
+3. `_variables.scss`: Major Third type scale (H2: 25px, H3: 20px, Small: 13px)
+4. `_styles.scss`: elevation on card classes
+5. `_amw-overrides.scss`: transition timing `cubic-bezier(0.4, 0, 0.2, 1)`
+
+**Phase 2 - Form templates:**
+6. Text button labels on ALL create forms (household, shopping already need this)
+
+**Phase 3 - Dashboard polish:**
+7. H1 page titles, stats pill contrast, compact header rows
+
+**Phase 4 - New components:**
+8. Meal Timeline, Grocery Forecast, HUD Popover, anonymous recipe hero
+
+**Phase 5 - Layout architecture:**
+9. Z-pattern dashboard, right sidebar widgets, three-column recipe view

@@ -9,7 +9,7 @@ namespace Nom.Orch.Models.Shopping
         public string? Description { get; set; }
         public long AuthorId { get; set; }
         public long? HouseholdId { get; set; }
-        public long? GroupId { get; set; }
+        public long? ShoppingListGroupId { get; set; }
         public int ItemCount { get; set; }
         public int CompletedItemCount { get; set; }
         public DateTime CreatedDate { get; set; }

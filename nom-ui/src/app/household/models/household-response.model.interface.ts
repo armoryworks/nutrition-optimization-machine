@@ -11,7 +11,7 @@ export interface IHouseholdResponseModel {
     memberCount: number;
     planCount: number;
     isOwner: boolean;
-    groupId?: number;
+    householdGroupId?: number;
     inviteToken?: string;
     members?: IHouseholdMemberResponseModel[];
     recipeCount?: number;

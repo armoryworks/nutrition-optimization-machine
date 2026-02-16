@@ -6,7 +6,155 @@ This document defines the styling guidelines derived from the reference design (
 
 ---
 
-## 1. Design Philosophy Differences
+## 1. Foundational Design Principles
+
+These five principles govern all visual and interaction decisions in NOM. They are immutable constraints; every component, page, and layout must satisfy them. A single change to any principle propagates universally through the design system.
+
+### 1.1 Spatial Architecture: The 8pt Grid System
+
+All spatial decisions are governed by a strict linear scale. There are no "custom" values.
+
+**The Atomic Unit (U):** 8px. All dimensions, padding, margins, and gutters must be `n x 8px`.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `$spacing-xs` | 1U (8px) | Icon gaps, tight element gaps |
+| `$spacing-sm` | 2U (16px) | Standard gap, form field spacing, card content |
+| `$spacing-md` | 3U (24px) | Section padding, card padding, high-density areas |
+| `$spacing-lg` | 4U (32px) | Section margins, large gaps |
+| `$spacing-xl` | 6U (48px) | Empty state padding, page-level spacing |
+| `$spacing-2xl` | 8U (64px) | Hero sections |
+
+> The 4px sub-grid (`$spacing-1: 4px`) is retained for optical adjustments only (badge padding, icon alignment). It is the exception, not the rule.
+
+**Containers & Cards:**
+- **Border-Radius:** Fixed at **4px** for buttons/inputs and **8px** for primary cards. Do not use pill shapes; stay below 10px to maintain a structured, professional aesthetic.
+- **Internal Padding:** Standardized at 2U (16px) or 3U (24px) for high-density areas.
+
+**The Law of Common Region:** Group related controls (e.g., search filters, meal attributes) within a card or subtle border to reduce cognitive scan time.
+
+**Reflow Logic:**
+- **Desktop:** Cap text line length at 45-75 characters (450px-700px) to prevent eye strain.
+- **Mobile:** Transition from multi-column grids to a single-column vertical stack.
+
+### 1.2 Typography: Mathematical Progression (Major Third 1.25 Scale)
+
+Hierarchy is determined by a **Major Third (1.25) Type Scale** rooted at 16px.
+
+| Level | Formula | Size | Leading | Usage |
+|-------|---------|------|---------|-------|
+| H1 | 16 x 1.25^4 | ~39px | 1.2x | Page Intent (e.g., "Meal Plan") |
+| H2 | 16 x 1.25^2 | ~25px | 1.2x | Section Titles (e.g., "Shopping") |
+| H3 | 16 x 1.25^1 | 20px | 1.2x | Card Headers (e.g., Recipe Name) |
+| Body | Base | 16px | 1.5x (24px) | All Standard User Information |
+| Small | 16 / 1.25 | ~13px | 1.4x | Metadata and Supplements |
+
+**Information Scent:** Headers must be distinct enough that a user can skim the value proposition in 3 seconds.
+
+**Optical Alignment:** Centered icons must be visually balanced within buttons, not just mathematically centered, to account for weighted shapes.
+
+### 1.3 Color Science & Affordance
+
+Colors are **semantic tokens representing state**, not decorative "flavor."
+
+**The 60-30-10 Rule:**
+- **60% Neutral** (Surfaces) - backgrounds, containers, structural elements
+- **30% Secondary** (Cards/Text) - content surfaces, body text, borders
+- **10% Action** (Accent) - interactive elements, status indicators, CTAs
+
+**Functional Palette:**
+| Role | Usage | NEVER use for |
+|------|-------|---------------|
+| **Action (Blue/Brand)** | Exclusively for interactable elements (buttons, links, active tabs) | Decorative backgrounds |
+| **Neutral (Gray)** | Disabled states, decorative borders, surface layers | Interactive affordance |
+| **Semantic Amber** | System feedback: warnings, pending states ("You need groceries") | General decoration |
+| **Semantic Red** | Error states, destructive actions, critical alerts | Non-error emphasis |
+| **Semantic Green** | Success states, verified badges, completion indicators | General decoration |
+
+**Accessibility:** Every text/background pairing must pass WCAG 2.1 AA (minimum 4.5:1 contrast for normal text, 3:1 for large text).
+
+**Elevation:** Avoid flat design. Use soft, natural shadows from a consistent top-left light source to indicate "pressable" depth. Elevated elements must feel interactive.
+
+### 1.4 Information Architecture: Assistant-First Flow
+
+The UI follows the **Z-Pattern** (Desktop) and a **prioritized Vertical Stack** (Mobile).
+
+**The Hero Focus:** The top-left visual entry point is the **Daily Meal Timeline**.
+- **Active State:** Use high-quality imagery for the current upcoming meal; past/future meals are dimmed or collapsed.
+- **Z-Pattern Entry:** Positioned top-left to align with natural Western reading patterns, establishing it as the most important data point.
+
+**Proactive Popovers:** The "Shopping List & Cost" acts as a **Heads-Up Display (HUD)**. On mobile, this is a Bottom Sheet that slides up.
+
+**Condition-Based Alerts:** If the pantry is stocked, the shopping section shrinks to a checkmark. If items are missing, it expands and uses Semantic Amber.
+
+**Zero-Gap Header:** Integrate icons (Profile, Notifications, Settings) into the global header to reclaim vertical space and create a direct connection to user data.
+
+### 1.5 Interaction & Micro-interactions
+
+The application must feel "alive" through responsive feedback.
+
+**Touch Targets:** Every interactive element must have a minimum hit-box of **44x44px** to satisfy Fitts's Law.
+
+**Explicit States:** All interactive elements must define:
+| State | Behavior |
+|-------|----------|
+| **Default** | Resting appearance |
+| **Hover** | Subtle elevation or color shift |
+| **Focus** | Visible focus ring for keyboard navigation |
+| **Active** | Pressed/depressed feedback |
+| **Disabled** | Reduced opacity (0.38-0.65), no pointer events |
+
+**Transitions:** All state changes use a standard timing: `300ms cubic-bezier(0.4, 0, 0.2, 1)`. Respect `prefers-reduced-motion: reduce`.
+
+**Behavioral Controls:**
+- "Swap" buttons must be pinned near the meal photo for immediate access.
+- "Nutrition Snapshots" appear only on hover or intent to keep the main UI clean.
+
+### 1.6 Hero Components: NOM-Specific Patterns
+
+These four components define the primary user experience and embody the foundational principles.
+
+#### 1.6.1 The Meal Timeline (Dynamic Agenda)
+
+The primary "Hero" real estate. Replaces a static dashboard with a chronological flow of the user's day.
+
+- **Z-Pattern Entry:** Top-left position; the most important data point.
+- **Focus State:** The "Current Meal" (closest to present time) is the visual anchor with high-quality photography to create emotional connection.
+- **Dimmed Context:** Past and future meals are visually de-emphasized or collapsed to reduce cognitive load.
+- **Integrated Controls:** Each meal card includes a localized "Swap" button (4px border-radius) for immediate plan adjustments without leaving the timeline.
+
+#### 1.6.2 The Smart Grocery Forecast
+
+Replaces static inventory lists with a proactive, condition-based alert system.
+
+- **Predictive Intent:** Semantic headers (e.g., "You need groceries by Thursday") forecast chores before they become urgent.
+- **Semantic Feedback:** Uses Status Warning (Amber) background tokens at low opacity to signal a pending task without creating "error fatigue."
+- **Visual Momentum:** Desktop: secondary visual zone. Mobile: primary "index 0" card, ensuring visibility on app open.
+
+#### 1.6.3 The Proactive HUD Popover
+
+The Shopping List & Cost interface layers actionable data over the primary agenda.
+
+- **Principle of Elevation:** Soft, natural shadows signal an urgent, interactive layer above the routine.
+- **Categorized Density:** Items grouped by the Law of Proximity (Produce, Dairy, Pantry) to match the real-world mental model of a grocery store.
+- **Primary Action Anchor:** "Estimated Total" and "Order via Delivery" buttons placed at the bottom as the final destination of the eye's path.
+
+#### 1.6.4 Branded Anchor (The "NOM" Monster)
+
+The logo serves as the "personality" of the machine, balancing high-density technical data with a playful identity.
+
+#### 1.6.5 Anonymous User Hero: Recipe-on-Demand
+
+For anonymous/non-logged-in users, the hero concept is a **quick workflow to find and use a recipe on demand**. This replaces the meal timeline (which requires authentication and plan data).
+
+- **Information-Dense Layout:** Recipes are displayed with maximum information density: ingredients, nutrition, and recipe steps visible simultaneously in independently scrollable columns.
+- **Three-Column Recipe View:** Ingredients | Nutrition Summary | Steps, each column scrollable independently so the user can reference any section while working.
+- **Zero-Friction Access:** No account required. The recipe is the product. Search-to-recipe should be 2 clicks maximum.
+- **Conversion Gateway:** The quality of the anonymous recipe experience is what drives users to register (to save recipes, build plans, track nutrition).
+
+---
+
+## 2. Design Philosophy Differences
 
 ### Reference Design Principles
 | Principle | Reference Design | Current Implementation |
@@ -20,9 +168,11 @@ This document defines the styling guidelines derived from the reference design (
 
 ---
 
-## 2. Color System & Contrast
+## 3. Color System & Contrast
 
-### 2.1 Background Hierarchy (Dark Theme)
+> **Governing Principle:** The 60-30-10 Rule (see Section 1.3). Action colors are reserved exclusively for interactable elements. Neutral tones dominate surfaces. Semantic colors communicate state, not decoration.
+
+### 3.1 Background Hierarchy (Dark Theme)
 
 The reference design uses a **layered background system** for depth. This is CRITICAL for visual hierarchy.
 
@@ -58,7 +208,7 @@ $surface-accent: #1a2f4a;         // HSL: 212, 48%, 20%
 // This has a BLUE TINT that distinguishes it from neutral surfaces
 ```
 
-### 2.2 Surface Usage Guidelines
+### 3.2 Surface Usage Guidelines
 
 **The key principle: Each layer should be visibly distinct from its parent.**
 
@@ -76,7 +226,7 @@ $surface-accent: #1a2f4a;         // HSL: 212, 48%, 20%
 | Modal content | Level 1 | Same as cards |
 | Dropdown menus | Level 3 | Elevated above content |
 
-### 2.3 CSS Custom Properties (Add to :root)
+### 3.3 CSS Custom Properties (Add to :root)
 
 ```scss
 :root {
@@ -122,7 +272,7 @@ $surface-accent: #1a2f4a;         // HSL: 212, 48%, 20%
 }
 ```
 
-### 2.2 Accent Color Usage
+### 3.4 Accent Color Usage
 
 | Element | Color Token | Usage |
 |---------|-------------|-------|
@@ -132,7 +282,7 @@ $surface-accent: #1a2f4a;         // HSL: 212, 48%, 20%
 | Text primary | `--mat-sys-on-surface` (#f8fafc) | Headings, primary content |
 | Text secondary | `--mat-sys-on-surface-variant` (#94a3b8) | Descriptions, metadata |
 
-### 2.3 Status Badge Colors
+### 3.5 Status Badge Colors
 
 ```scss
 // Status system
@@ -163,47 +313,72 @@ $status-user-created: (
 
 ---
 
-## 3. Typography Hierarchy
+## 4. Typography Hierarchy
 
-### 3.1 Type Scale
+> **Governing Principle:** Major Third (1.25) Type Scale rooted at 16px (see Section 1.2). Headers must be distinct enough for 3-second skim comprehension.
 
-| Role | Size | Weight | Line Height | Usage |
-|------|------|--------|-------------|-------|
-| Page Title | 1.75rem (28px) | 500 | 1.2 | Main page headings |
-| Section Title | 1.25rem (20px) | 600 | 1.3 | Card headers, section titles |
-| Card Title | 1.125rem (18px) | 600 | 1.3 | Recipe names, item titles |
-| Body | 0.9375rem (15px) | 400 | 1.5 | Primary content |
-| Small/Meta | 0.8125rem (13px) | 400 | 1.4 | Timestamps, metadata |
-| Badge | 0.75rem (12px) | 500 | 1 | Status badges, chips |
+### 4.1 Type Scale (Major Third Progression)
 
-### 3.2 Font Pairing
+| Level | Formula | Size | Weight | Leading | Usage |
+|-------|---------|------|--------|---------|-------|
+| H1 (Page Intent) | 16 x 1.25^4 | 2.44rem (~39px) | 700 | 1.2x | Page-level headings ("Meal Plan", "Dashboard") |
+| H2 (Section Title) | 16 x 1.25^2 | 1.56rem (~25px) | 600 | 1.2x | Section titles ("Shopping", "Nutrition Summary") |
+| H3 (Card Header) | 16 x 1.25^1 | 1.25rem (20px) | 600 | 1.2x | Card headers, recipe names, item titles |
+| Body | Base | 1rem (16px) | 400 | 1.5x (24px) | All standard user information |
+| Small/Meta | 16 / 1.25 | 0.8rem (~13px) | 400 | 1.4x | Timestamps, metadata, supplements |
+| Badge | - | 0.75rem (12px) | 500 | 1.0x | Status badges, chips |
+
+**Information Scent:** A user scanning the page must be able to identify the page purpose and available actions within 3 seconds using headers alone.
+
+**Optical Alignment:** Centered icons within buttons must be visually balanced, not just mathematically centered, to account for weighted shapes (e.g., play triangles, asymmetric glyphs).
+
+### 4.2 Font Pairing
 - **Headings**: System font stack (Roboto on Material)
 - **Body**: Same system font, lighter weight
 - **Monospace**: 'Courier New' for codes/technical data
 
 ---
 
-## 4. Spacing System
+## 5. Spacing System
 
-### 4.1 Base Unit
-All spacing derives from a **4px base unit**. This MUST be consistent across all components.
+> **Governing Principle:** The 8pt Grid (see Section 1.1). The atomic unit is 8px. All primary dimensions must be `n x 8px`. The 4px sub-grid is retained for optical adjustments only.
 
-### 4.2 Spacing Scale
+### 5.1 Base Unit
+The primary atomic unit is **8px (1U)**. All spacing, padding, margins, and gutters must be multiples of 8px. The 4px sub-grid (`$spacing-1`) exists only for fine-grained optical adjustments (badge padding, icon alignment) and must not be used as a primary spacing value.
+
+### 5.2 Spacing Scale
 
 ```scss
 // =============================================================================
-// SPACING TOKENS - USE THESE EVERYWHERE
+// SPACING TOKENS - 8pt GRID SYSTEM
 // =============================================================================
-$space-1: 0.25rem;   // 4px  - Icon gaps, badge padding
-$space-2: 0.5rem;    // 8px  - Tight element gaps, chip padding
-$space-3: 0.75rem;   // 12px - List item padding, input padding
-$space-4: 1rem;      // 16px - Standard gap, form field spacing
-$space-5: 1.25rem;   // 20px - Card content padding
-$space-6: 1.5rem;    // 24px - Section padding, card padding
-$space-8: 2rem;      // 32px - Section margins, large gaps
-$space-10: 2.5rem;   // 40px - Page horizontal padding
-$space-12: 3rem;     // 48px - Empty state padding
-$space-16: 4rem;     // 64px - Hero sections
+// Sub-grid (optical adjustments only)
+$space-1: 0.25rem;   // 4px  - ONLY for badge padding, icon alignment
+$space-2: 0.5rem;    // 8px  - 1U: Tight element gaps, chip padding
+
+// Primary grid (USE THESE EVERYWHERE)
+$space-3: 0.75rem;   // 12px - List item padding, input padding (1.5U)
+$space-4: 1rem;      // 16px - 2U: Standard gap, form field spacing
+$space-5: 1.25rem;   // 20px - Card content padding (2.5U)
+$space-6: 1.5rem;    // 24px - 3U: Section padding, card padding
+$space-8: 2rem;      // 32px - 4U: Section margins, large gaps
+$space-10: 2.5rem;   // 40px - 5U: Page horizontal padding
+$space-12: 3rem;     // 48px - 6U: Empty state padding
+$space-16: 4rem;     // 64px - 8U: Hero sections
+```
+
+### 5.3 Border-Radius Standards
+
+Border-radius values are fixed and non-negotiable. Do not use pill shapes; stay below 10px to maintain a structured, professional aesthetic.
+
+```scss
+// =============================================================================
+// BORDER-RADIUS - FIXED VALUES
+// =============================================================================
+$nom-border-radius: 4px;      // Buttons, inputs, badges, small controls
+$nom-border-radius-card: 8px; // Primary cards, containers, modals
+// Pill shapes (border-radius > 10px) are FORBIDDEN for structural elements.
+// Exception: chips may use up to 8px but not full pill.
 ```
 
 ### 4.3 Control Spacing Standards (CRITICAL)
@@ -366,7 +541,7 @@ $modal-section-gap: 20px;
 
 ---
 
-## 5. Layout Patterns
+## 6. Layout Patterns
 
 ### 5.0 Layout Positioning Principles (CRITICAL)
 
@@ -542,7 +717,7 @@ $content-max-full: 100%;      // Master-detail layouts
 
 ---
 
-## 6. Component Stereotypes
+## 7. Component Stereotypes
 
 ### 6.1 Dashboard Stereotype
 
@@ -670,7 +845,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 7. Card Patterns
+## 8. Card Patterns
 
 ### 7.1 Recipe Card (Visual Card)
 
@@ -763,7 +938,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 8. Table Patterns
+## 9. Table Patterns
 
 ### 8.1 Data Table
 
@@ -855,7 +1030,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 9. Form Controls
+## 10. Form Controls
 
 ### 9.1 Input Fields
 
@@ -972,7 +1147,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 10. Status Badges
+## 11. Status Badges
 
 ```scss
 .nom-status-badge {
@@ -1013,7 +1188,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 11. Navigation Components
+## 12. Navigation Components
 
 ### 11.1 Tabs
 
@@ -1079,7 +1254,7 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 12. Data Visualization
+## 13. Data Visualization
 
 ### 12.1 Nutrition Pie Chart
 
@@ -1181,7 +1356,117 @@ Already implemented but needs refinement for visual consistency.
 
 ---
 
-## 13. Responsive Breakpoints
+## 14. Interaction & Micro-interactions
+
+> **Governing Principle:** See Section 1.5. The application must feel "alive" through responsive feedback.
+
+### 14.1 Transition Standard
+
+All state changes use a single, consistent timing function:
+
+```scss
+// =============================================================================
+// TRANSITION STANDARD
+// =============================================================================
+$transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+$transition-duration-fast: 150ms;
+$transition-duration-normal: 300ms;
+$transition-duration-slow: 500ms;
+
+// Standard mixin (respects prefers-reduced-motion)
+@mixin nom-transition($property: all, $duration: $transition-duration-normal) {
+  transition: $property $duration $transition-timing;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+```
+
+### 14.2 Interactive State Definitions
+
+Every interactive element MUST define all five states:
+
+```scss
+// =============================================================================
+// INTERACTIVE ELEMENT STATES
+// =============================================================================
+.interactive-element {
+  // Default: resting appearance
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  @include nom-transition(all);
+
+  // Hover: subtle elevation or color shift
+  &:hover:not(:disabled) {
+    background: var(--mat-sys-surface-container-high);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  // Focus: visible focus ring for keyboard navigation (WCAG required)
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+
+  // Active: pressed/depressed feedback
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: none;
+  }
+
+  // Disabled: reduced opacity, no pointer events
+  &:disabled {
+    opacity: 0.38;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+}
+```
+
+### 14.3 Touch Targets
+
+Every interactive element must have a minimum hit-box of **44x44px** (Fitts's Law compliance).
+
+```scss
+// Minimum touch target
+$touch-target-min: 44px;
+
+// For small visual elements, use padding to meet the minimum
+.small-button {
+  min-width: $touch-target-min;
+  min-height: $touch-target-min;
+  // Visual size can be smaller; hit area must not be
+}
+```
+
+### 14.4 Elevation System
+
+Elevation uses soft, natural shadows from a consistent top-left light source. Elevated elements signal interactivity.
+
+```scss
+// =============================================================================
+// ELEVATION SCALE
+// =============================================================================
+$elevation-0: none;                                          // Flat surfaces
+$elevation-1: 0 1px 2px rgba(0, 0, 0, 0.08);              // Cards at rest
+$elevation-2: 0 2px 4px rgba(0, 0, 0, 0.1);               // Hovered cards
+$elevation-3: 0 4px 12px rgba(0, 0, 0, 0.15);             // Dropdowns, popovers
+$elevation-4: 0 8px 24px rgba(0, 0, 0, 0.2);              // Modals, HUD overlays
+$elevation-5: 0 12px 32px rgba(0, 0, 0, 0.25);            // Floating action elements
+```
+
+### 14.5 Behavioral Controls
+
+| Control | Placement | Behavior |
+|---------|-----------|----------|
+| "Swap Meal" button | Pinned near meal photo | Immediate plan adjustment without navigation |
+| "Nutrition Snapshot" | Appears on hover/intent | Keeps main UI clean; progressive disclosure |
+| "Send to Phone" / "Order via Delivery" | Bottom of HUD popover | Final eye-path destination (action anchor) |
+
+---
+
+## 15. Responsive Breakpoints
 
 ```scss
 $breakpoint-mobile: 768px;
@@ -1227,7 +1512,7 @@ $breakpoint-wide: 1536px;
 
 ---
 
-## 14. Implementation Checklist
+## 16. Implementation Checklist
 
 ### Phase 1: Foundation (Global Styles)
 - [ ] Update `_variables.scss` with new color tokens
@@ -1264,7 +1549,7 @@ $breakpoint-wide: 1536px;
 
 ---
 
-## 15. File Structure
+## 17. File Structure
 
 ```
 nom-ui/src/
@@ -1294,7 +1579,7 @@ nom-ui/src/
 
 ---
 
-## 16. Global Stereotype Architecture
+## 18. Global Stereotype Architecture
 
 ### 16.1 Current Problem
 
@@ -3004,5 +3289,9 @@ $z-tooltip: 1200;
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2026-01-28*
+> **Screenshot Analysis:** For a per-screen A/B analysis of the current implementation against these design principles, see [UI_ANALYSIS_AND_IMPROVEMENT_SPEC.md](./UI_ANALYSIS_AND_IMPROVEMENT_SPEC.md), Part 6.
+
+---
+
+*Document Version: 2.0*
+*Last Updated: 2026-02-15*

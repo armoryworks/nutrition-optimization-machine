@@ -1,11 +1,9 @@
 <div class="nom-search">
   <!-- Header -->
   <header class="nom-dashboard__header">
-    <div class="nom-dashboard__header-text">
+    <div class="nom-dashboard__header-left">
       <h1 class="nom-dashboard__title">Curated Meal Plans</h1>
-      <p class="nom-dashboard__subtitle">
-        Discover professionally curated meal plans. Clone any plan to customize it for your needs.
-      </p>
+      <span class="nom-dashboard__subtitle">Discover professionally curated meal plans. Clone any plan to customize it for your needs.</span>
     </div>
   </header>
 
@@ -14,11 +12,10 @@
       <amw-inline-loading message="Loading curated plans..." />
     </div>
   } @else if (error()) {
-    <div class="nom-search__empty">
-      <amw-icon name="error" class="nom-search__empty-icon curated-plans__error-icon"></amw-icon>
-      <h3 class="nom-search__empty-title">Error</h3>
-      <p class="nom-search__empty-message">{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="loadCuratedPlans()" icon="refresh">
+    <div class="nom-dashboard__error" role="alert">
+      <amw-icon name="error_outline"></amw-icon>
+      <p>{{ error() }}</p>
+      <amw-button variant="outlined" color="primary" (click)="loadCuratedPlans()" icon="refresh">
         Try Again
       </amw-button>
     </div>

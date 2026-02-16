@@ -1,8 +1,63 @@
-// Home Component
-// Uses global Landing stereotype classes
+@use '../../variables' as vars;
 
-// Component-specific: accent text styling
 .home__accent {
   color: var(--mat-sys-primary);
   font-weight: 700;
+}
+
+.home__meal-group {
+  margin-bottom: vars.$spacing-lg;
+}
+
+.home__group-title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-xs;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-sm;
+  color: var(--mat-sys-on-surface);
+}
+
+.home__recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: vars.$spacing-sm;
+}
+
+.home__recipe-card {
+  padding: vars.$spacing-md;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  box-shadow: vars.$elevation-1;
+  cursor: pointer;
+  transition: box-shadow vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    box-shadow: vars.$elevation-3;
+  }
+}
+
+.home__recipe-name {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0 0 vars.$spacing-1;
+  color: var(--mat-sys-on-surface);
+}
+
+.home__recipe-author {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 vars.$spacing-xs;
+}
+
+.home__recipe-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

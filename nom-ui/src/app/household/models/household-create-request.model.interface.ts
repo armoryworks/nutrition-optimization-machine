@@ -3,5 +3,5 @@
 export interface IHouseholdCreateRequestModel {
     name: string;
     description?: string;
-    groupId: number;
+    householdGroupId: number;
 } 

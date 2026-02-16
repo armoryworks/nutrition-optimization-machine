@@ -721,6 +721,113 @@ body.dark-theme,
 }
 
 // -------------------------------------------
+// AUDIT FIX: Placeholder Text WCAG AA Contrast
+// -------------------------------------------
+// Placeholder text in form fields (~3:1 contrast) fails
+// WCAG 2.1 AA (4.5:1 required). Boost placeholder opacity
+// and color globally for all AMW and Material inputs.
+
+::placeholder,
+input::placeholder,
+textarea::placeholder,
+.mat-mdc-input-element::placeholder,
+.mdc-text-field__input::placeholder {
+  color: var(--mat-sys-on-surface-variant) !important;
+  opacity: 0.78 !important;
+}
+
+body.dark-theme,
+[data-theme='dark'] {
+  ::placeholder,
+  input::placeholder,
+  textarea::placeholder,
+  .mat-mdc-input-element::placeholder,
+  .mdc-text-field__input::placeholder {
+    color: var(--mat-sys-on-surface-variant) !important;
+    opacity: 0.85 !important;
+  }
+}
+
+// -------------------------------------------
+// AUDIT FIX: Primary CTA Button Differentiation
+// -------------------------------------------
+// Primary filled buttons need stronger visual weight
+// vs secondary/text buttons so the dominant action
+// is unmistakable on any form or page.
+
+amw-button[variant="filled"][color="primary"] button,
+amw-button[variant="filled"][color="primary"] .mdc-button {
+  font-weight: vars.$font-weight-semibold !important;
+  letter-spacing: 0.02em;
+  min-width: 140px;
+}
+
+amw-button[variant="text"] button,
+amw-button[variant="outlined"] button {
+  font-weight: vars.$font-weight-normal !important;
+}
+
+// In form action groups, make the primary CTA taller for emphasis
+.nom-form__actions,
+.nom-form-actions {
+  amw-button[variant="filled"][color="primary"] button {
+    min-height: vars.$button-height-lg;
+  }
+}
+
+// -------------------------------------------
+// AUDIT FIX: Destructive Action Button Color
+// -------------------------------------------
+// Delete/trash icon buttons use default blue, making them
+// indistinguishable from constructive actions. Apply
+// error/warn color to all delete-intent buttons globally.
+
+amw-button[variant="icon"]:has(amw-icon[name="delete"]) button,
+amw-button[variant="icon"]:has(amw-icon[name="delete_outline"]) button,
+amw-button[variant="icon"]:has(amw-icon[name="remove_circle"]) button,
+amw-button[variant="filled"]:has(amw-icon[name="delete"]) button,
+amw-button[variant="filled"]:has(amw-icon[name="delete_outline"]) button {
+  background-color: var(--mat-sys-error-container) !important;
+  color: var(--mat-sys-on-error-container) !important;
+
+  &:hover {
+    background-color: var(--mat-sys-error) !important;
+    color: var(--mat-sys-on-error) !important;
+  }
+}
+
+amw-button[variant="text"][color="warn"] button {
+  color: var(--mat-sys-error) !important;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--mat-sys-error) 12%, transparent) !important;
+  }
+}
+
+// -------------------------------------------
+// AUDIT FIX: Dashboard Action Button (+) Visibility
+// -------------------------------------------
+// The "Create new" (+) icon on dashboard pages is too
+// subtle. Give it accent coloring as a page-level action.
+
+.nom-compact-header__right {
+  amw-button[variant="icon"] button,
+  button.mat-mdc-icon-button {
+    color: var(--mat-sys-primary) !important;
+    opacity: 1 !important;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 50%;
+    background-color: var(--mat-sys-surface-container) !important;
+
+    &:hover {
+      background-color: var(--mat-sys-primary-container) !important;
+      color: var(--mat-sys-on-primary-container) !important;
+      border-color: var(--mat-sys-primary) !important;
+    }
+  }
+}
+
+// -------------------------------------------
 // User Menu Dropdown Width
 // -------------------------------------------
 // The CDK overlay panel renders outside the component tree,

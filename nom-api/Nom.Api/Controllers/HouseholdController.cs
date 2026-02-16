@@ -37,7 +37,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var response = await _householdService.CreateHouseholdAsync(request);
+                var personId = GetCurrentPersonId();
+                var response = await _householdService.CreateHouseholdAsync(request, personId);
                 return CreatedAtAction(nameof(GetHousehold), new { id = response.Id }, response);
             }
             catch (Exception ex)

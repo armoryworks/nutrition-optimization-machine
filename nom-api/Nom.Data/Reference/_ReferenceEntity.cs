@@ -19,6 +19,6 @@ namespace Nom.Data.Reference
         /// Navigation property to a collection of Group entities that this reference belongs to.
         /// This represents the many-to-many relationship between References and Groups.
         /// </summary>
-        public virtual ICollection<GroupEntity>? Groups { get; set; } // Implicit many-to-many handled by Fluent API
+        public virtual ICollection<ReferenceGroupEntity>? Groups { get; set; } // Implicit many-to-many handled by Fluent API
     }
 }

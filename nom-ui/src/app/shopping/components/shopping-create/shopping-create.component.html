@@ -30,7 +30,6 @@
       <amw-button
         type="button"
         variant="text"
-        icon="close"
         [disabled]="isLoading()"
         (click)="onCancel()">
         {{ formConfig.cancelText || 'Cancel' }}
@@ -39,7 +38,6 @@
         type="submit"
         variant="filled"
         color="primary"
-        icon="check"
         [loading]="isLoading()"
         [amwValidationTooltip]="validationContext"
         [disabled]="shoppingForm.invalid"

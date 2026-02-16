@@ -142,12 +142,21 @@ $card-min-height: 200px;        // Minimum card height
 $transition-duration-fast: 0.15s;
 $transition-duration-normal: 0.2s;
 $transition-duration-slow: 0.3s;
-$transition-timing: ease;
+$transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+
+// Elevation Scale
+$elevation-0: none;
+$elevation-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+$elevation-2: 0 2px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+$elevation-3: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+$elevation-4: 0 8px 24px rgba(0, 0, 0, 0.14), 0 4px 8px rgba(0, 0, 0, 0.08);
+$elevation-5: 0 16px 48px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.1);
 
 // Borders
-$nom-border-radius: 8px;
-$nom-border-radius-sm: 4px;
-$nom-border-radius-lg: 12px;
+$nom-border-radius: 4px;
+$nom-border-radius-sm: 2px;
+$nom-border-radius-lg: 8px;
+$nom-border-radius-pill: 12px;     // Pills, chips, stats badges
 
 // Card/Panel backgrounds
 $nom-card-bg-light: $nom-neutral-100;
@@ -175,6 +184,12 @@ $content-max-narrow: 800px;
 $content-max-medium: 1200px;
 $content-max-wide: 1600px;
 
+// Two-column app layout
+$layout-max-width: 1920px;
+$layout-main-max-width: 1400px;
+$layout-sidebar-width: 520px;
+$layout-sidebar-breakpoint: 1280px;
+
 // =============================================================================
 // CONTROL DIMENSIONS
 // =============================================================================
@@ -191,7 +206,7 @@ $icon-button-size-lg: 48px;
 // =============================================================================
 $card-min-width: 320px;
 $card-gap: 16px;
-$card-border-radius: 12px;
+$card-border-radius: 8px;
 
 // =============================================================================
 // MODAL DIMENSIONS

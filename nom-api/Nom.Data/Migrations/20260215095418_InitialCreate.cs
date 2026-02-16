@@ -133,6 +133,26 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "HouseholdGroup",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdGroup", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RecipeBulkOperationProgress",
                 schema: "recipe",
                 columns: table => new
@@ -233,6 +253,26 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ShoppingListGenerationHistory", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShoppingListGroup",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingListGroup", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -384,8 +424,7 @@ namespace Nom.Data.Migrations
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    GroupId = table.Column<long>(type: "bigint", nullable: false),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    HouseholdGroupId = table.Column<long>(type: "bigint", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -395,16 +434,10 @@ namespace Nom.Data.Migrations
                 {
                     table.PrimaryKey("PK_Household", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Household_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Household_Reference_GroupId",
-                        column: x => x.GroupId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
+                        name: "FK_Household_HouseholdGroup_HouseholdGroupId",
+                        column: x => x.HouseholdGroupId,
+                        principalSchema: "plan",
+                        principalTable: "HouseholdGroup",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -421,17 +454,17 @@ namespace Nom.Data.Migrations
                 {
                     table.PrimaryKey("PK_ReferenceIndex", x => new { x.ReferenceId, x.GroupId });
                     table.ForeignKey(
-                        name: "FK_ReferenceIndex_GroupEntity_GroupId",
-                        column: x => x.GroupId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_ReferenceIndex_ReferenceEntity_ReferenceId",
                         column: x => x.ReferenceId,
                         principalSchema: "reference",
                         principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ReferenceIndex_ReferenceGroupEntity_GroupId",
+                        column: x => x.GroupId,
+                        principalSchema: "reference",
+                        principalTable: "Group",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -666,7 +699,6 @@ namespace Nom.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: true),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
                     HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
@@ -676,12 +708,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Person", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Person_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Person_Household_HouseholdEntityId",
                         column: x => x.HouseholdEntityId,
@@ -1041,8 +1067,7 @@ namespace Nom.Data.Migrations
                     Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
                     AuthorId = table.Column<long>(type: "bigint", nullable: false),
                     HouseholdId = table.Column<long>(type: "bigint", nullable: true),
-                    GroupId = table.Column<long>(type: "bigint", nullable: true),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
+                    ShoppingListGroupId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -1051,12 +1076,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ShoppingList", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShoppingList_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ShoppingList_Household_HouseholdId",
                         column: x => x.HouseholdId,
@@ -1071,10 +1090,10 @@ namespace Nom.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ShoppingList_Reference_GroupId",
-                        column: x => x.GroupId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
+                        name: "FK_ShoppingList_ShoppingListGroup_ShoppingListGroupId",
+                        column: x => x.ShoppingListGroupId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingListGroup",
                         principalColumn: "Id");
                 });
 
@@ -1351,7 +1370,6 @@ namespace Nom.Data.Migrations
                     PlanId = table.Column<long>(type: "bigint", nullable: false),
                     MealTypeId = table.Column<long>(type: "bigint", nullable: false),
                     date = table.Column<DateOnly>(type: "date", nullable: false),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -1360,12 +1378,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Meal", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Meal_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Meal_Plan_PlanId",
                         column: x => x.PlanId,
@@ -2021,7 +2033,6 @@ namespace Nom.Data.Migrations
                     IsOcrRecipe = table.Column<bool>(type: "boolean", nullable: true),
                     NameNormalized = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: true),
                     DescriptionNormalized = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    GroupEntityId = table.Column<long>(type: "bigint", nullable: true),
                     HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
@@ -2031,12 +2042,6 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Recipe", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Recipe_Group_GroupEntityId",
-                        column: x => x.GroupEntityId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Recipe_Household_HouseholdEntityId",
                         column: x => x.HouseholdEntityId,
@@ -2977,16 +2982,10 @@ namespace Nom.Data.Migrations
                 column: "TimeframeTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Household_GroupEntityId",
+                name: "IX_Household_HouseholdGroupId",
                 schema: "plan",
                 table: "Household",
-                column: "GroupEntityId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Household_GroupId",
-                schema: "plan",
-                table: "Household",
-                column: "GroupId");
+                column: "HouseholdGroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HouseholdCookbook_HouseholdId",
@@ -3178,12 +3177,6 @@ namespace Nom.Data.Migrations
                 schema: "person",
                 table: "Invitation",
                 column: "PlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Meal_GroupEntityId",
-                schema: "plan",
-                table: "Meal",
-                column: "GroupEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Meal_MealTypeId",
@@ -3418,12 +3411,6 @@ namespace Nom.Data.Migrations
                 column: "ShoppingTripId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Person_GroupEntityId",
-                schema: "person",
-                table: "Person",
-                column: "GroupEntityId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Person_HouseholdEntityId",
                 schema: "person",
                 table: "Person",
@@ -3510,12 +3497,6 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "Recipe",
                 column: "CurationStatusId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Recipe_GroupEntityId",
-                schema: "recipe",
-                table: "Recipe",
-                column: "GroupEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipe_HouseholdEntityId",
@@ -3752,22 +3733,16 @@ namespace Nom.Data.Migrations
                 column: "AuthorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ShoppingList_GroupEntityId",
-                schema: "shopping",
-                table: "ShoppingList",
-                column: "GroupEntityId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ShoppingList_GroupId",
-                schema: "shopping",
-                table: "ShoppingList",
-                column: "GroupId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ShoppingList_HouseholdId",
                 schema: "shopping",
                 table: "ShoppingList",
                 column: "HouseholdId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShoppingList_ShoppingListGroupId",
+                schema: "shopping",
+                table: "ShoppingList",
+                column: "ShoppingListGroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShoppingListCategory_HouseholdId",
@@ -4261,6 +4236,10 @@ namespace Nom.Data.Migrations
                 schema: "recipe");
 
             migrationBuilder.DropTable(
+                name: "Group",
+                schema: "reference");
+
+            migrationBuilder.DropTable(
                 name: "Meal",
                 schema: "plan");
 
@@ -4285,6 +4264,10 @@ namespace Nom.Data.Migrations
                 schema: "plan");
 
             migrationBuilder.DropTable(
+                name: "ShoppingListGroup",
+                schema: "shopping");
+
+            migrationBuilder.DropTable(
                 name: "Person",
                 schema: "person");
 
@@ -4293,8 +4276,8 @@ namespace Nom.Data.Migrations
                 schema: "plan");
 
             migrationBuilder.DropTable(
-                name: "Group",
-                schema: "reference");
+                name: "HouseholdGroup",
+                schema: "plan");
 
             migrationBuilder.DropTable(
                 name: "Reference",

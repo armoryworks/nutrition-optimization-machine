@@ -6,6 +6,6 @@ namespace Nom.Orch.Models.Household
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public long? GroupId { get; set; }
+        public long? HouseholdGroupId { get; set; }
     }
 } 

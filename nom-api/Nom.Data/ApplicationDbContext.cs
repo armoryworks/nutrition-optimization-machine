@@ -86,6 +86,7 @@ namespace Nom.Data
         public DbSet<HouseholdToolEntity> HouseholdTools { get; set; } = default!;
         public DbSet<HouseholdRecipeEntity> HouseholdRecipes { get; set; } = default!;
         public DbSet<HouseholdMemberEntity> HouseholdMembers { get; set; } = default!;
+        public DbSet<HouseholdGroupEntity> HouseholdGroups { get; set; } = default!;
         public DbSet<MealPlanEntity> MealPlans { get; set; } = default!;
         public DbSet<MealPlanRuleEntity> MealPlanRules { get; set; } = default!;
         #endregion
@@ -123,7 +124,7 @@ namespace Nom.Data
         #endregion
 
         #region Reference
-        public DbSet<GroupEntity> Groups { get; set; } = default!;
+        public DbSet<ReferenceGroupEntity> ReferenceGroups { get; set; } = default!;
         public DbSet<ReferenceEntity> References { get; set; } = default!;
 
         public DbSet<MealTypeViewEntity> MealTypes { get; set; } = default!;
@@ -155,6 +156,7 @@ namespace Nom.Data
         public DbSet<ShoppingTripEntity> ShoppingTrips { get; set; } = default!;
 
         // New Shopping entities (from Mealie)
+        public DbSet<ShoppingListGroupEntity> ShoppingListGroups { get; set; } = default!;
         public DbSet<ShoppingListEntity> ShoppingLists { get; set; } = default!;
         public DbSet<ShoppingListItemEntity> ShoppingListItems { get; set; } = default!;
         public DbSet<ShoppingListLabelEntity> ShoppingListLabels { get; set; } = default!;
@@ -226,7 +228,7 @@ namespace Nom.Data
             #endregion
 
             #region Reference Namespace Fluent API Configurations
-            modelBuilder.Entity<GroupEntity>().ToTable("Group", schema: "reference");
+            modelBuilder.Entity<ReferenceGroupEntity>().ToTable("Group", schema: "reference");
             modelBuilder.Entity<ReferenceEntity>().ToTable("Reference", schema: "reference");
 
             modelBuilder.Entity<ReferenceEntity>()
@@ -234,7 +236,7 @@ namespace Nom.Data
                 .WithMany(g => g.References)
                 .UsingEntity<Dictionary<string, object>>(
                     "ReferenceIndex",
-                    j => j.HasOne<GroupEntity>().WithMany().HasForeignKey("GroupId").HasConstraintName("FK_ReferenceIndex_GroupEntity_GroupId"),
+                    j => j.HasOne<ReferenceGroupEntity>().WithMany().HasForeignKey("GroupId").HasConstraintName("FK_ReferenceIndex_ReferenceGroupEntity_GroupId"),
                     j => j.HasOne<ReferenceEntity>().WithMany().HasForeignKey("ReferenceId").HasConstraintName("FK_ReferenceIndex_ReferenceEntity_ReferenceId"),
                     j => { j.ToTable("ReferenceIndex", "reference"); j.HasKey("ReferenceId", "GroupId"); });
 

@@ -124,10 +124,13 @@
   background: var(--mat-sys-surface-container-low);
   border-radius: vars.$nom-border-radius-lg;
   border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(transform);
+  @include mixins.nom-transition(box-shadow);
 
   &:hover {
     transform: translateY(-4px);
+    box-shadow: vars.$elevation-3;
   }
 }
 
@@ -251,11 +254,12 @@
   background: var(--mat-sys-surface);
   border-radius: vars.$nom-border-radius-lg;
   border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(all);
 
   &:hover {
     border-color: var(--mat-sys-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: vars.$elevation-3;
   }
 
   @include mixins.breakpoint(mobile) {
@@ -331,7 +335,7 @@
   padding: vars.$spacing-2 vars.$spacing-4;
   background: var(--mat-sys-surface);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 20px;
+  border-radius: vars.$nom-border-radius-pill;
   font-size: vars.$font-size-sm;
 
   @include mixins.breakpoint(mobile) {
