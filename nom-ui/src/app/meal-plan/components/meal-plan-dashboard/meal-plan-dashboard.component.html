@@ -21,7 +21,8 @@
             </div>
         </div>
         <div class="nom-dashboard__header-right">
-            <amw-button variant="outlined" icon="add" (click)="createMealPlan()">
+            <amw-button variant="outlined" icon="add" (click)="createMealPlan()"
+                data-testid="meal-plan-dashboard-create-btn">
                 Create Plan
             </amw-button>
         </div>
@@ -30,7 +31,8 @@
     <!-- Filters Section -->
     <div class="nom-dashboard__section">
         <div class="nom-dashboard__filters">
-            <amw-button-toggle-group [(ngModel)]="viewMode" (valueChange)="onViewModeChange($event)">
+            <amw-button-toggle-group [(ngModel)]="viewMode" (valueChange)="onViewModeChange($event)"
+                data-testid="meal-plan-dashboard-view-toggle">
                 <amw-button-toggle value="week" icon="view_week">Week View</amw-button-toggle>
                 <amw-button-toggle value="month" icon="view_module">Month View</amw-button-toggle>
             </amw-button-toggle-group>
@@ -39,7 +41,8 @@
                 label="Search Meal Plans..."
                 placeholder="Search Meal Plans..."
                 icon="search"
-                class="nom-dashboard__filter-field">
+                class="nom-dashboard__filter-field"
+                data-testid="meal-plan-dashboard-search-input">
             </amw-input>
         </div>
 
@@ -73,10 +76,12 @@
                                                 </div>
                                             </div>
                                             <div class="nom-calendar__item-actions">
-                                                <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
+                                                <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit"
+                                                    [attr.data-testid]="'meal-plan-dashboard-edit-btn-' + plan.id">
                                                     <amw-icon name="edit"></amw-icon>
                                                 </amw-button>
-                                                <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
+                                                <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete"
+                                                    [attr.data-testid]="'meal-plan-dashboard-delete-btn-' + plan.id">
                                                     <amw-icon name="delete"></amw-icon>
                                                 </amw-button>
                                             </div>
@@ -104,10 +109,12 @@
                                     </div>
                                 </div>
                                 <div class="nom-dashboard__card-actions">
-                                    <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit">
+                                    <amw-button variant="icon" (click)="editMealPlan(plan)" title="Edit"
+                                        [attr.data-testid]="'meal-plan-dashboard-edit-btn-' + plan.id">
                                         <amw-icon name="edit"></amw-icon>
                                     </amw-button>
-                                    <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete">
+                                    <amw-button variant="icon" (click)="deleteMealPlan(plan)" title="Delete"
+                                        [attr.data-testid]="'meal-plan-dashboard-delete-btn-' + plan.id">
                                         <amw-icon name="delete"></amw-icon>
                                     </amw-button>
                                 </div>
@@ -122,7 +129,8 @@
                 <h3 class="nom-dashboard__empty-title">No meal plans yet</h3>
                 <p class="nom-dashboard__empty-message">Plan and organize your meals for the week or month. Create your first meal plan to get started.</p>
                 @if (searchTerm()) {
-                    <amw-button variant="outlined" icon="clear" (click)="clearSearch()">
+                    <amw-button variant="outlined" icon="clear" (click)="clearSearch()"
+                        data-testid="meal-plan-dashboard-clear-search-btn">
                         Clear Search
                     </amw-button>
                 }

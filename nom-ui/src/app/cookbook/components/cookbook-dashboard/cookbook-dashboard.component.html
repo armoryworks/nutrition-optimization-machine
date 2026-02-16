@@ -6,9 +6,9 @@
     </div>
     <div class="nom-dashboard__header-center">
       @if (households().length > 1) {
-        <select class="nom-dashboard__select" [ngModel]="selectedHouseholdId()" (ngModelChange)="onHouseholdChange($event)">
+        <select class="nom-dashboard__select" [ngModel]="selectedHouseholdId()" (ngModelChange)="onHouseholdChange($event)" data-testid="cookbook-dashboard-household-select">
           @for (h of households(); track h.id) {
-            <option [value]="h.id">{{ h.name }}</option>
+            <option [value]="h.id" [attr.data-testid]="'cookbook-dashboard-household-option-' + h.id">{{ h.name }}</option>
           }
         </select>
       }
@@ -20,10 +20,10 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()">
+      <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="loading()" data-testid="cookbook-dashboard-refresh-btn">
         Refresh
       </amw-button>
-      <amw-button variant="filled" color="primary" icon="add" (click)="createCookbook()">
+      <amw-button variant="filled" color="primary" icon="add" (click)="createCookbook()" data-testid="cookbook-dashboard-create-btn">
         Create Cookbook
       </amw-button>
     </div>
@@ -39,7 +39,7 @@
     <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
+      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()" data-testid="cookbook-dashboard-retry-btn">
         Try Again
       </amw-button>
     </div>
@@ -51,14 +51,14 @@
         <amw-icon name="menu_book" class="nom-dashboard__empty-icon"></amw-icon>
         <h3 class="nom-dashboard__empty-title">No Cookbooks Yet</h3>
         <p class="nom-dashboard__empty-message">Create your first cookbook to organize recipes into themed collections.</p>
-        <amw-button variant="filled" color="primary" icon="add" (click)="createCookbook()">
+        <amw-button variant="filled" color="primary" icon="add" (click)="createCookbook()" data-testid="cookbook-dashboard-empty-create-btn">
           Create Cookbook
         </amw-button>
       </div>
     } @else {
       <div class="nom-dashboard__grid">
         @for (cookbook of cookbooks(); track cookbook.id) {
-          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="viewCookbook(cookbook)">
+          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="viewCookbook(cookbook)" [attr.data-testid]="'cookbook-dashboard-card-' + cookbook.id">
             <div class="nom-dashboard__card-content">
               <h2 class="nom-dashboard__card-title">{{ cookbook.name }}</h2>
               @if (cookbook.description) {
@@ -74,10 +74,10 @@
               </div>
             </div>
             <div class="nom-dashboard__card-actions">
-              <amw-button variant="text" color="primary" icon="edit" (click)="editCookbook(cookbook); $event.stopPropagation()">
+              <amw-button variant="text" color="primary" icon="edit" (click)="editCookbook(cookbook); $event.stopPropagation()" [attr.data-testid]="'cookbook-dashboard-edit-btn-' + cookbook.id">
                 Edit
               </amw-button>
-              <amw-button variant="text" color="warn" icon="delete" (click)="deleteCookbook(cookbook); $event.stopPropagation()">
+              <amw-button variant="text" color="warn" icon="delete" (click)="deleteCookbook(cookbook); $event.stopPropagation()" [attr.data-testid]="'cookbook-dashboard-delete-btn-' + cookbook.id">
                 Delete
               </amw-button>
             </div>

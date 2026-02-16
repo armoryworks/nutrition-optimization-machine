@@ -17,13 +17,13 @@
       <ng-template #cardContent>
         <form [formGroup]="inviteForm" (ngSubmit)="onSubmit()" class="household-invite__form">
           <amw-input type="number" formControlName="expiresInDays" label="Expiration Days"
-            placeholder="Enter number of days..." [required]="true" class="household-invite__field">
+            placeholder="Enter number of days..." [required]="true" class="household-invite__field" data-testid="household-invite-days-input">
           </amw-input>
 
           <div class="household-invite__form-actions">
             <amw-button type="submit" variant="filled" color="primary" [icon]="isLoading() ? 'hourglass_empty' : 'send'"
               [amwValidationTooltip]="validationContext"
-              [disabled]="inviteForm.invalid || isLoading()" [loading]="isLoading()">
+              [disabled]="inviteForm.invalid || isLoading()" [loading]="isLoading()" data-testid="household-invite-submit-btn">
               {{ isLoading() ? 'Creating...' : 'Create Invitation' }}
             </amw-button>
           </div>
@@ -52,15 +52,15 @@
           <p class="household-invite__invite-subtitle">Share this link with the person you want to invite</p>
           <div class="household-invite__link-container">
             <amw-input [value]="inviteLink()" label="Invitation Link" [readonly]="true"
-              class="household-invite__link-field">
+              class="household-invite__link-field" data-testid="household-invite-link-input">
             </amw-input>
-            <amw-button variant="icon" (click)="copyLink()">
+            <amw-button variant="icon" (click)="copyLink()" data-testid="household-invite-copy-btn">
               <amw-icon name="content_copy"></amw-icon>
             </amw-button>
           </div>
 
           <div class="household-invite__link-actions">
-            <amw-button variant="filled" color="primary" icon="share" (click)="shareLink()">
+            <amw-button variant="filled" color="primary" icon="share" (click)="shareLink()" data-testid="household-invite-share-btn">
               Share Link
             </amw-button>
           </div>

@@ -1,7 +1,7 @@
 <div class="nom-detail">
   <!-- Page Header -->
   <div class="nom-detail__actions" style="justify-content: flex-start;">
-    <amw-button variant="text" icon="arrow_back" (click)="onBack()">Back</amw-button>
+    <amw-button data-testid="shopping-detail-back-btn" variant="text" icon="arrow_back" (click)="onBack()">Back</amw-button>
   </div>
 
   <!-- Loading State -->
@@ -14,7 +14,7 @@
     <div class="nom-dashboard__error">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">Try Again</amw-button>
+      <amw-button data-testid="shopping-detail-retry-btn" variant="outlined" color="primary" icon="refresh" (click)="onRetry()">Try Again</amw-button>
     </div>
   }
 
@@ -22,13 +22,13 @@
   @if (shoppingList() && !isLoading() && !error()) {
     <!-- Header Actions -->
     <div class="nom-detail__actions">
-      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditShoppingList()">Edit List</amw-button>
-      <amw-button variant="outlined" color="accent" icon="add" (click)="onAddItem()">Add Item</amw-button>
-      <amw-button variant="icon" [amwMenuTriggerFor]="menu">
+      <amw-button data-testid="shopping-detail-edit-btn" variant="filled" color="primary" icon="edit" (click)="onEditShoppingList()">Edit List</amw-button>
+      <amw-button data-testid="shopping-detail-add-btn" variant="outlined" color="accent" icon="add" (click)="onAddItem()">Add Item</amw-button>
+      <amw-button data-testid="shopping-detail-menu-btn" variant="icon" [amwMenuTriggerFor]="menu">
         <amw-icon name="more_vert"></amw-icon>
       </amw-button>
       <amw-menu #menu>
-        <amw-menu-item label="Delete List" icon="delete" (itemClick)="onDeleteShoppingList()"></amw-menu-item>
+        <amw-menu-item data-testid="shopping-detail-delete-list-menu-item" label="Delete List" icon="delete" (itemClick)="onDeleteShoppingList()"></amw-menu-item>
       </amw-menu>
     </div>
 
@@ -73,7 +73,7 @@
           @for (item of shoppingList()!.items; track item.id) {
             <div class="nom-detail__list-item">
               <div class="nom-detail__list-item-info">
-                <amw-checkbox [checked]="item.isCompleted" (change)="onToggleItemComplete(item.id)"></amw-checkbox>
+                <amw-checkbox [attr.data-testid]="'shopping-detail-item-checkbox-' + item.id" [checked]="item.isCompleted" (change)="onToggleItemComplete(item.id)"></amw-checkbox>
                 <div class="nom-detail__list-item-content">
                   <h4 class="nom-detail__list-item-title" [class.completed]="item.isCompleted">{{ item.name }}</h4>
                   @if (item.quantity || item.notes) {
@@ -89,7 +89,7 @@
                 </div>
               </div>
               <div class="nom-detail__list-item-actions">
-                <amw-button variant="icon" icon="delete" (click)="onDeleteItem(item.id)"></amw-button>
+                <amw-button [attr.data-testid]="'shopping-detail-delete-item-btn-' + item.id" variant="icon" icon="delete" (click)="onDeleteItem(item.id)"></amw-button>
               </div>
             </div>
           }
@@ -99,7 +99,7 @@
           <amw-icon name="shopping_cart" class="nom-detail__empty-icon"></amw-icon>
           <h3 class="nom-detail__empty-title">No Items Yet</h3>
           <p class="nom-detail__empty-message">Add items to your shopping list to get started.</p>
-          <amw-button variant="filled" color="primary" icon="add" (click)="onAddItem()">Add First Item</amw-button>
+          <amw-button data-testid="shopping-detail-add-first-item-btn" variant="filled" color="primary" icon="add" (click)="onAddItem()">Add First Item</amw-button>
         </div>
       }
     </div>

@@ -84,7 +84,7 @@
 
       @if (detailConfig().showBackButton) {
       <div class="ingredient-card__actions">
-        <amw-button variant="text" icon="arrow_back" (click)="onBack()" class="back-button">
+        <amw-button data-testid="ingredient-details-back-btn" variant="text" icon="arrow_back" (click)="onBack()" class="back-button">
           {{ detailConfig().backButtonText }}
         </amw-button>
       </div>

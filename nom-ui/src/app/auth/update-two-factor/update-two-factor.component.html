@@ -8,7 +8,7 @@
           an authenticator app (like Google Authenticator) to log in.
         </p>
 
-        <amw-toggle formControlName="enable2fa" color="primary" class="two-factor-toggle">
+        <amw-toggle formControlName="enable2fa" color="primary" class="two-factor-toggle" data-testid="two-factor-toggle">
           @if (current2faStatus.isTwoFactorEnabled) {
           2FA is <span class="text-success">Enabled</span>
           } @else {
@@ -17,11 +17,11 @@
         </amw-toggle>
 
         <amw-checkbox formControlName="rememberMachine" label="Remember this browser for 30 days"
-          class="two-factor-remember-checkbox">
+          class="two-factor-remember-checkbox" data-testid="two-factor-remember-checkbox">
         </amw-checkbox>
 
         <amw-input type="password" formControlName="password" label="Current Password" icon="vpn_key" [required]="true"
-          class="nom-form__field"
+          class="nom-form__field" data-testid="two-factor-password-input"
           [attr.aria-invalid]="twoFactorForm.get('password')?.invalid && twoFactorForm.get('password')?.touched"
           [attr.aria-describedby]="twoFactorForm.get('password')?.invalid && twoFactorForm.get('password')?.touched ? '2fa-password-error' : null">
         </amw-input>
@@ -34,7 +34,7 @@
         @if (!twoFactorForm.get('enable2fa')?.value) {
         <!-- Show 2FA code field only when disabling 2FA -->
         <amw-input type="text" formControlName="twoFactorCode" label="Authenticator Code (to disable)"
-          placeholder="Enter 6-digit code" icon="numbers" class="nom-form__field"
+          placeholder="Enter 6-digit code" icon="numbers" class="nom-form__field" data-testid="two-factor-code-input"
           [attr.aria-invalid]="twoFactorForm.get('twoFactorCode')?.invalid && twoFactorForm.get('twoFactorCode')?.touched"
           [attr.aria-describedby]="twoFactorForm.get('twoFactorCode')?.invalid && twoFactorForm.get('twoFactorCode')?.touched ? '2fa-code-error' : null">
         </amw-input>
@@ -46,7 +46,7 @@
         }
 
         <amw-button type="submit" variant="filled" color="primary" [disabled]="twoFactorForm.invalid"
-          [amwValidationTooltip]="validationContext" class="nom-button">
+          [amwValidationTooltip]="validationContext" class="nom-button" data-testid="two-factor-submit-btn">
           Save 2FA Settings
         </amw-button>
       </form>
@@ -71,7 +71,7 @@
       <p class="text-center">
         Manual Setup Key:
         <code class="font-mono bg-gray-100 p-1 rounded">{{ sharedKeyToDisplay }}</code>
-        <amw-button variant="icon" (click)="copySharedKey()">
+        <amw-button variant="icon" (click)="copySharedKey()" data-testid="two-factor-copy-key-btn">
           <amw-icon name="content_copy"></amw-icon>
         </amw-button>
       </p>
@@ -90,7 +90,7 @@
         }
       </amw-list>
       <amw-button variant="filled" color="accent" (click)="copyRecoveryCodes()" icon="content_copy"
-        class="nom-button nom-button--small mt-3">
+        class="nom-button nom-button--small mt-3" data-testid="two-factor-copy-codes-btn">
         Copy All Codes
       </amw-button>
       } @else if (current2faStatus.isTwoFactorEnabled && !sharedKeyToDisplay) {

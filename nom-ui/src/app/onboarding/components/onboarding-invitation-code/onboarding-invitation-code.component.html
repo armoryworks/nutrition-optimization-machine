@@ -4,6 +4,7 @@
     Do you have an invitation code to join an existing plan?
   </p>
   <amw-input
+    data-testid="onboarding-code-input"
     [formControl]="invitationCodeFormControl"
     label="Invitation Code"
     placeholder="Enter code"
@@ -16,6 +17,7 @@
   }
   <div class="flex justify-center mt-4">
     <amw-button
+      data-testid="onboarding-code-join-btn"
       variant="filled"
       color="primary"
       (click)="onSubmit()"
@@ -25,6 +27,7 @@
       Join Plan
     </amw-button>
     <amw-button
+      data-testid="onboarding-code-skip-btn"
       variant="filled"
       color="accent"
       (click)="onSkip()"

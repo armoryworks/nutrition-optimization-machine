@@ -283,14 +283,14 @@ async function sectionRegistration(page: Page): Promise<void> {
   await screenshot(page, 'register-empty');
 
   // Fill registration form via GUI
-  await fillInput(page, '[data-cy="email-input"]', TEST_USER.email);
-  await fillInput(page, '[data-cy="full-name-input"]', TEST_USER.fullName);
-  await fillInput(page, '[data-cy="password-input"]', TEST_USER.password);
+  await fillInput(page, '[data-testid="register-email-input"]', TEST_USER.email);
+  await fillInput(page, '[data-testid="register-name-input"]', TEST_USER.fullName);
+  await fillInput(page, '[data-testid="register-password-input"]', TEST_USER.password);
   await page.waitForTimeout(300);
-  await fillInput(page, '[data-cy="confirm-password-input"]', TEST_USER.password);
+  await fillInput(page, '[data-testid="register-confirm-password-input"]', TEST_USER.password);
 
   // Re-trigger validation on confirm password
-  const confirmInput = page.locator('[data-cy="confirm-password-input"] input').first();
+  const confirmInput = page.locator('[data-testid="register-confirm-password-input"] input').first();
   await confirmInput.click();
   await confirmInput.dispatchEvent('input');
   await confirmInput.blur();
@@ -300,7 +300,7 @@ async function sectionRegistration(page: Page): Promise<void> {
 
   // Submit registration
   try {
-    const registerBtn = page.locator('[data-cy="register-button"]');
+    const registerBtn = page.locator('[data-testid="register-submit-btn"]');
     await registerBtn.scrollIntoViewIfNeeded();
     await registerBtn.click({ timeout: 5000 });
 
@@ -400,7 +400,7 @@ async function sectionOnboarding(page: Page): Promise<void> {
     await waitForAngular(page);
     await screenshot(page, 'onboarding-complete');
 
-    const goBtn = page.locator('amw-button:has-text("Go to Dashboard")');
+    const goBtn = page.locator('[data-testid="onboarding-dashboard-btn"]');
     if (await goBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await goBtn.click();
       await page.waitForTimeout(2000);
@@ -454,13 +454,13 @@ async function sectionHousehold(page: Page): Promise<void> {
   await screenshot(page, 'household-create-empty');
 
   // Fill household form
-  await fillInput(page, 'amw-input[formControlName="name"]', 'Test Household');
-  await fillTextarea(page, 'amw-textarea[formControlName="description"]', 'A household for e2e testing');
+  await fillInput(page, '[data-testid="household-name-input"]', 'Test Household');
+  await fillTextarea(page, '[data-testid="household-description-input"]', 'A household for e2e testing');
   await page.waitForTimeout(300);
   await screenshot(page, 'household-create-filled');
 
-  // Submit (icon button in card actions)
-  const submitBtn = page.locator('.nom-form__card-actions amw-button').nth(1);
+  // Submit
+  const submitBtn = page.locator('[data-testid="household-submit-btn"]');
   await submitBtn.scrollIntoViewIfNeeded();
   await submitBtn.click({ timeout: 5000 });
   await page.waitForTimeout(3000);
@@ -530,9 +530,9 @@ async function createOneIngredient(page: Page, ingredient: typeof INGREDIENTS[0]
   }
 
   // Fill name
-  await fillInput(page, 'amw-input[formControlName="name"]', ingredient.name);
+  await fillInput(page, '[data-testid="ingredient-name-input"]', ingredient.name);
   // Fill description
-  await fillTextarea(page, 'amw-textarea[formControlName="description"]', ingredient.description);
+  await fillTextarea(page, '[data-testid="ingredient-description-input"]', ingredient.description);
 
   await page.waitForTimeout(500);
 
@@ -540,14 +540,14 @@ async function createOneIngredient(page: Page, ingredient: typeof INGREDIENTS[0]
   for (let n = 0; n < ingredient.nutrients.length; n++) {
     if (n > 0) {
       // Click "Add Nutrient" - AMW button with icon="add" doesn't render text, find by icon attr
-      const addNutrientBtn = page.locator('.nom-dashboard__section-header amw-button[icon="add"]').first();
+      const addNutrientBtn = page.locator('[data-testid="ingredient-add-nutrient-btn"]').first();
       await addNutrientBtn.scrollIntoViewIfNeeded();
       await addNutrientBtn.click();
       await page.waitForTimeout(500);
     }
 
     // Target the nutrient row by class (Angular property bindings don't produce DOM attributes)
-    const nutrientRow = page.locator('.ingredient-form__nutrient-row').nth(n);
+    const nutrientRow = page.locator(`[data-testid="ingredient-nutrient-row-${n}"]`);
     await nutrientRow.scrollIntoViewIfNeeded();
 
     // Select nutrient type - find the first mat-select in this row (nutrientId is first)
@@ -600,7 +600,7 @@ async function createOneIngredient(page: Page, ingredient: typeof INGREDIENTS[0]
   }
 
   // Submit the form
-  const submitBtn = page.locator('amw-button[variant="filled"][color="primary"]:has-text("Save"), amw-button[variant="filled"][color="primary"]:has-text("Create")').first();
+  const submitBtn = page.locator('[data-testid="ingredient-submit-btn"]').first();
   await submitBtn.scrollIntoViewIfNeeded();
   await submitBtn.click();
   await page.waitForTimeout(2000);
@@ -662,8 +662,8 @@ async function createOneRecipe(page: Page, recipe: typeof RECIPES[0], index: num
   }
 
   // Fill name and description
-  await fillInput(page, 'amw-input[formControlName="name"]', recipe.name);
-  await fillTextarea(page, 'amw-textarea[formControlName="description"]', recipe.description);
+  await fillInput(page, '[data-testid="recipe-name-input"]', recipe.name);
+  await fillTextarea(page, '[data-testid="recipe-description-input"]', recipe.description);
 
   if (index === 0) {
     await screenshot(page, 'recipe-name-filled');
@@ -672,7 +672,7 @@ async function createOneRecipe(page: Page, recipe: typeof RECIPES[0], index: num
   // Add ingredients via autocomplete
   for (const ingredientName of recipe.ingredients) {
     try {
-      const autocomplete = page.locator('amw-autocomplete input').first();
+      const autocomplete = page.locator('[data-testid="recipe-ingredient-autocomplete"] input').first();
       await autocomplete.click();
       await autocomplete.fill('');
       await page.waitForTimeout(200);
@@ -715,15 +715,14 @@ async function createOneRecipe(page: Page, recipe: typeof RECIPES[0], index: num
   }
 
   // Add steps
-  const addStepBtn = page.locator('.nom-dashboard__section-header:has(h3:has-text("Instructions")) amw-button').first();
+  const addStepBtn = page.locator('[data-testid="recipe-add-step-btn"]').first();
 
   for (let s = 0; s < recipe.steps.length; s++) {
     await addStepBtn.scrollIntoViewIfNeeded();
     await addStepBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
 
-    const stepTextareas = page.locator('.recipe-edit__step-field textarea');
-    const lastTextarea = stepTextareas.nth(s);
+    const lastTextarea = page.locator(`[data-testid="recipe-step-${s}"] textarea`);
     await lastTextarea.scrollIntoViewIfNeeded();
     await lastTextarea.click();
     await lastTextarea.fill(recipe.steps[s]);
@@ -739,7 +738,7 @@ async function createOneRecipe(page: Page, recipe: typeof RECIPES[0], index: num
 
   // Submit recipe
   try {
-    const createBtn = page.locator('amw-button:has-text("Create Recipe")').first();
+    const createBtn = page.locator('[data-testid="recipe-submit-btn"]').first();
     await createBtn.scrollIntoViewIfNeeded();
     await createBtn.click();
     await page.waitForTimeout(3000);
@@ -795,7 +794,7 @@ async function sectionSubmitForCuration(page: Page): Promise<void> {
       }
 
       // Find "Submit for Curation" button by icon attribute (AMW buttons with icon don't render text)
-      const curationBtn = page.locator('amw-button[icon="send"]').first();
+      const curationBtn = page.locator('[data-testid="recipe-curation-btn"]').first();
       try {
         await curationBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
         await page.waitForTimeout(300);
@@ -826,7 +825,7 @@ async function sectionCurationApproval(page: Page): Promise<void> {
   await screenshot(page, 'curation-queue');
 
   // Check if queue has items
-  const items = page.locator('.nom-master-detail__item');
+  const items = page.locator('[data-testid="curation-item"]');
   let itemCount = await items.count().catch(() => 0);
 
   if (itemCount === 0) {
@@ -843,7 +842,7 @@ async function sectionCurationApproval(page: Page): Promise<void> {
   await screenshot(page, 'curation-item-selected');
 
   // Try GUI-based approval first: check if card content rendered
-  const notesTextarea = page.locator('amw-textarea[formControlName="decisionNotes"] textarea').first();
+  const notesTextarea = page.locator('[data-testid="curation-notes-input"] textarea').first();
   let guiApprovalWorked = false;
 
   try {
@@ -859,7 +858,7 @@ async function sectionCurationApproval(page: Page): Promise<void> {
     await screenshot(page, 'curation-decision-filled');
 
     // Click Approve button
-    const approveBtn = page.locator('.nom-master-detail__form-actions amw-button[icon="check"]').first();
+    const approveBtn = page.locator('[data-testid="curation-approve-btn"]').first();
     await approveBtn.scrollIntoViewIfNeeded({ timeout: 3000 });
     await approveBtn.click();
     await page.waitForTimeout(2000);
@@ -946,19 +945,19 @@ async function sectionMealPlans(page: Page): Promise<void> {
     }
 
     // Fill recipe name
-    await fillInput(page, 'amw-input[formControlName="recipeName"]', plan.recipeName);
+    await fillInput(page, '[data-testid="meal-plan-recipe-input"]', plan.recipeName);
 
     // Meal type: Try multiple approaches to open the AMW select dropdown
     let mealTypeSelected = false;
     try {
       // Approach 1: Click the .mat-mdc-select-trigger inside the AMW select
-      const trigger = page.locator('amw-select[formControlName="mealType"] .mat-mdc-select-trigger').first();
+      const trigger = page.locator('[data-testid="meal-plan-type-select"] .mat-mdc-select-trigger').first();
       const triggerExists = await trigger.count();
       if (triggerExists > 0) {
         await trigger.click();
       } else {
         // Approach 2: Click mat-select directly
-        const matSelect = page.locator('amw-select[formControlName="mealType"] mat-select').first();
+        const matSelect = page.locator('[data-testid="meal-plan-type-select"] mat-select').first();
         await matSelect.click();
       }
       await page.waitForTimeout(800);
@@ -986,7 +985,7 @@ async function sectionMealPlans(page: Page): Promise<void> {
         console.log('    No mat-options in overlay, trying keyboard approach');
 
         // Approach 3: Focus the select and use keyboard
-        const amwSelect = page.locator('amw-select[formControlName="mealType"]').first();
+        const amwSelect = page.locator('[data-testid="meal-plan-type-select"]').first();
         await amwSelect.click();
         await page.waitForTimeout(300);
         // Press Space/Enter to open, then arrow keys to select
@@ -1017,7 +1016,7 @@ async function sectionMealPlans(page: Page): Promise<void> {
     // Date: Don't clear the date field. Just click and blur to mark as touched.
     // Clearing and refilling breaks the AMW datepicker binding.
     try {
-      const dateInput = page.locator('amw-datepicker input').first();
+      const dateInput = page.locator('[data-testid="meal-plan-date-input"] input').first();
       const currentVal = await dateInput.inputValue();
       if (currentVal) {
         // Value is already set — just click and blur to mark as touched
@@ -1043,7 +1042,7 @@ async function sectionMealPlans(page: Page): Promise<void> {
     }
 
     // Fill description
-    await fillTextarea(page, 'amw-textarea[formControlName="description"]', plan.description);
+    await fillTextarea(page, '[data-testid="meal-plan-description-input"]', plan.description);
 
     if (i === 0) {
       await screenshot(page, 'mealplan-create-filled');
@@ -1052,7 +1051,7 @@ async function sectionMealPlans(page: Page): Promise<void> {
     // Submit via GUI
     let guiCreated = false;
     try {
-      const submitBtn = page.locator('amw-button:has-text("Create Meal Plan")').first();
+      const submitBtn = page.locator('[data-testid="meal-plan-submit-btn"]').first();
       await submitBtn.scrollIntoViewIfNeeded();
       await submitBtn.click();
       await page.waitForTimeout(3000);
@@ -1126,14 +1125,14 @@ async function sectionShopping(page: Page): Promise<void> {
   await screenshot(page, 'shopping-create-empty');
 
   // Fill shopping list form
-  await fillInput(page, 'amw-input[formControlName="name"]', 'Weekly Groceries');
-  await fillTextarea(page, 'amw-textarea[formControlName="description"]', 'Shopping list for the week');
+  await fillInput(page, '[data-testid="shopping-name-input"]', 'Weekly Groceries');
+  await fillTextarea(page, '[data-testid="shopping-description-input"]', 'Shopping list for the week');
   await page.waitForTimeout(300);
   await screenshot(page, 'shopping-create-filled');
 
   // Submit
   try {
-    const submitBtn = page.locator('.nom-form__card-actions amw-button[variant="filled"]').first();
+    const submitBtn = page.locator('[data-testid="shopping-submit-btn"]').first();
     await submitBtn.scrollIntoViewIfNeeded();
     await submitBtn.click();
     await page.waitForTimeout(3000);

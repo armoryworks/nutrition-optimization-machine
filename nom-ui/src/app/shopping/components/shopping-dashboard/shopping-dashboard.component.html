@@ -8,6 +8,7 @@
     <div class="nom-dashboard__header-center">
       @if (!isLoading() && !error()) {
         <amw-input
+          data-testid="shopping-dashboard-search-input"
           type="text"
           [formControl]="searchControl"
           placeholder="Search lists..."
@@ -20,10 +21,10 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
+      <amw-button data-testid="shopping-dashboard-refresh-btn" variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
         Refresh
       </amw-button>
-      <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+      <amw-button data-testid="shopping-dashboard-create-btn" variant="filled" color="primary" icon="add" (click)="onCreateList()">
         Create List
       </amw-button>
     </div>
@@ -41,7 +42,7 @@
     <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRefresh()">
+      <amw-button data-testid="shopping-dashboard-retry-btn" variant="outlined" color="primary" icon="refresh" (click)="onRefresh()">
         Try Again
       </amw-button>
     </div>
@@ -59,7 +60,7 @@
         } @else {
           <p class="nom-dashboard__empty-message">Create your first shopping list to get started.</p>
         }
-        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateList()">
+        <amw-button data-testid="shopping-dashboard-create-empty-btn" variant="filled" color="primary" icon="add" (click)="onCreateList()">
           Create Shopping List
         </amw-button>
       </div>
@@ -69,7 +70,7 @@
     @if (filteredLists().length > 0) {
       <div class="nom-dashboard__grid">
         @for (list of filteredLists(); track list.id) {
-          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewList(list.id)">
+          <article class="nom-dashboard__card nom-dashboard__card--clickable" [attr.data-testid]="'shopping-dashboard-card-' + list.id" (click)="onViewList(list.id)">
             <div class="nom-dashboard__card-content">
               <h2 class="nom-dashboard__card-title">{{ list.name }}</h2>
               @if (list.description) {
@@ -95,13 +96,13 @@
               }
             </div>
             <div class="nom-dashboard__card-actions">
-              <amw-button variant="text" color="primary" icon="visibility" (click)="onViewList(list.id); $event.stopPropagation()">
+              <amw-button [attr.data-testid]="'shopping-dashboard-view-btn-' + list.id" variant="text" color="primary" icon="visibility" (click)="onViewList(list.id); $event.stopPropagation()">
                 View
               </amw-button>
-              <amw-button variant="text" color="accent" icon="edit" (click)="onEditList(list.id); $event.stopPropagation()">
+              <amw-button [attr.data-testid]="'shopping-dashboard-edit-btn-' + list.id" variant="text" color="accent" icon="edit" (click)="onEditList(list.id); $event.stopPropagation()">
                 Edit
               </amw-button>
-              <amw-button variant="text" color="warn" icon="delete" (click)="onDeleteList(list.id); $event.stopPropagation()">
+              <amw-button [attr.data-testid]="'shopping-dashboard-delete-btn-' + list.id" variant="text" color="warn" icon="delete" (click)="onDeleteList(list.id); $event.stopPropagation()">
                 Delete
               </amw-button>
             </div>

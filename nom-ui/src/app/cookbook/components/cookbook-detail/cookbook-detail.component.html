@@ -1,7 +1,7 @@
 <div class="nom-dashboard">
   <header class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
-      <amw-button variant="text" icon="arrow_back" (click)="goBack()">Back</amw-button>
+      <amw-button variant="text" icon="arrow_back" (click)="goBack()" data-testid="cookbook-detail-back-btn">Back</amw-button>
       @if (cookbook()) {
         <h1 class="nom-dashboard__title">{{ cookbook()!.name }}</h1>
         @if (cookbook()!.description) {
@@ -21,7 +21,7 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <amw-button variant="outlined" color="primary" icon="edit" (click)="editCookbook()">
+      <amw-button variant="outlined" color="primary" icon="edit" (click)="editCookbook()" data-testid="cookbook-detail-edit-btn">
         Edit
       </amw-button>
     </div>
@@ -50,7 +50,7 @@
     } @else {
       <div class="nom-dashboard__grid">
         @for (recipe of recipes(); track recipe.id) {
-          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="viewRecipe(recipe)">
+          <article class="nom-dashboard__card nom-dashboard__card--clickable" (click)="viewRecipe(recipe)" [attr.data-testid]="'cookbook-detail-recipe-card-' + recipe.id">
             <div class="nom-dashboard__card-content">
               <h2 class="nom-dashboard__card-title">{{ recipe.name }}</h2>
               <div class="nom-dashboard__card-meta">
@@ -58,7 +58,7 @@
               </div>
             </div>
             <div class="nom-dashboard__card-actions">
-              <amw-button variant="text" color="warn" icon="remove_circle" (click)="removeRecipe(recipe); $event.stopPropagation()">
+              <amw-button variant="text" color="warn" icon="remove_circle" (click)="removeRecipe(recipe); $event.stopPropagation()" [attr.data-testid]="'cookbook-detail-remove-recipe-btn-' + recipe.id">
                 Remove
               </amw-button>
             </div>

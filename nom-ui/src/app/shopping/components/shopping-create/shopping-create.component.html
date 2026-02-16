@@ -16,13 +16,15 @@
           formControlName="name"
           placeholder="Enter a name for your shopping list..."
           label="Shopping List Name"
-          [required]="true">
+          [required]="true"
+          data-testid="shopping-name-input">
         </amw-input>
 
         <amw-textarea
           formControlName="description"
           placeholder="Add a description for your shopping list..."
-          label="Description (Optional)">
+          label="Description (Optional)"
+          data-testid="shopping-description-input">
         </amw-textarea>
       </form>
     </div>
@@ -41,7 +43,8 @@
         [loading]="isLoading()"
         [amwValidationTooltip]="validationContext"
         [disabled]="shoppingForm.invalid"
-        (click)="onSubmit()">
+        (click)="onSubmit()"
+        data-testid="shopping-submit-btn">
         {{ formConfig.submitText || 'Create Shopping List' }}
       </amw-button>
     </div>

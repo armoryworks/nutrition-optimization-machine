@@ -9,7 +9,7 @@
     <h2>Invalid Invite</h2>
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onBack()">
+      <amw-button variant="filled" color="primary" (click)="onBack()" data-testid="household-join-back-btn">
         Back to Households
       </amw-button>
     </div>
@@ -32,7 +32,7 @@
         </div>
 
         <div class="nom-actions">
-          <amw-button variant="filled" color="primary" [disabled]="isJoining()" (click)="onJoinHousehold()">
+          <amw-button variant="filled" color="primary" [disabled]="isJoining()" (click)="onJoinHousehold()" data-testid="household-join-submit-btn">
             @if (isJoining()) {
             <span>Joining...</span>
             } @else {
@@ -40,7 +40,7 @@
             }
           </amw-button>
 
-          <amw-button variant="text" color="primary" [disabled]="isJoining()" (click)="onBack()">
+          <amw-button variant="text" color="primary" [disabled]="isJoining()" (click)="onBack()" data-testid="household-join-cancel-btn">
             Cancel
           </amw-button>
         </div>

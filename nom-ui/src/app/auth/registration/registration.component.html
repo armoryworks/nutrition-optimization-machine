@@ -7,14 +7,14 @@
       formControlName="email"
       label="Email Address"
       [required]="true"
-      data-cy="email-input">
+      data-testid="register-email-input">
     </amw-input>
 
     <amw-input
       type="text"
       formControlName="fullName"
       label="Full Name (Optional)"
-      data-cy="full-name-input">
+      data-testid="register-name-input">
     </amw-input>
 
     <amw-input
@@ -23,7 +23,7 @@
       label="Password"
       [required]="true"
       [showPasswordToggle]="true"
-      data-cy="password-input">
+      data-testid="register-password-input">
     </amw-input>
 
     <nom-password-requirements [passwordControl]="registrationForm.controls['password']"></nom-password-requirements>
@@ -34,7 +34,7 @@
       label="Confirm Password"
       [required]="true"
       [showPasswordToggle]="true"
-      data-cy="confirm-password-input">
+      data-testid="register-confirm-password-input">
     </amw-input>
 
     <div class="registration__actions">
@@ -48,7 +48,7 @@
         color="primary"
         [amwValidationTooltip]="validationContext"
         [disabled]="registrationForm.invalid"
-        data-cy="register-button">
+        data-testid="register-submit-btn">
         Register Account
       </amw-button>
     </div>

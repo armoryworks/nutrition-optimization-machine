@@ -6,7 +6,7 @@
       <p class="recipe-assets__subtitle">Manage files, images, and documents for this recipe</p>
     </div>
     <div class="recipe-assets__header-actions">
-      <amw-button variant="text" (click)="onRefresh()" icon="refresh">
+      <amw-button data-testid="recipe-assets-refresh-btn" variant="text" (click)="onRefresh()" icon="refresh">
         Refresh
       </amw-button>
     </div>
@@ -18,7 +18,7 @@
       <amw-icon name="error" color="warn"></amw-icon>
       <h3>Error</h3>
       <p>{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+      <amw-button data-testid="recipe-assets-retry-btn" variant="filled" color="primary" (click)="onRetry()" icon="refresh">
         Try Again
       </amw-button>
     </div>
@@ -33,22 +33,22 @@
         <ng-template #cardContent>
           <form [formGroup]="assetForm" (ngSubmit)="onSubmit()" class="recipe-assets__form">
             <div class="recipe-assets__form-row">
-              <amw-input formControlName="name" label="Asset Name" placeholder="Enter asset name" [required]="true"
+              <amw-input data-testid="recipe-assets-name-input" formControlName="name" label="Asset Name" placeholder="Enter asset name" [required]="true"
                 class="recipe-assets__name-field">
               </amw-input>
 
-              <amw-select formControlName="icon" label="Icon Type" [required]="true"
+              <amw-select data-testid="recipe-assets-icon-select" formControlName="icon" label="Icon Type" [required]="true"
                 [options]="iconOptions.map(o => ({ value: o.value, label: o.label }))" class="recipe-assets__icon-field">
               </amw-select>
             </div>
 
-            <amw-textarea formControlName="description" label="Description (Optional)"
+            <amw-textarea data-testid="recipe-assets-description-textarea" formControlName="description" label="Description (Optional)"
               placeholder="Describe this asset..." [rows]="2" class="recipe-assets__description-field">
             </amw-textarea>
 
             <div class="recipe-assets__file-upload">
               <label class="recipe-assets__file-label">
-                <input type="file" id="fileInput" (change)="onFileSelected($event)" class="recipe-assets__file-input"
+                <input type="file" id="fileInput" data-testid="recipe-assets-file-input" (change)="onFileSelected($event)" class="recipe-assets__file-input"
                   accept="*/*">
                 <div class="recipe-assets__file-button">
                   <amw-icon name="cloud_upload"></amw-icon>
@@ -65,7 +65,7 @@
             </div>
 
             <div class="recipe-assets__form-actions">
-              <amw-button variant="filled" color="primary" type="submit"
+              <amw-button data-testid="recipe-assets-submit-btn" variant="filled" color="primary" type="submit"
                 [disabled]="assetForm.invalid || !selectedFile || isSubmitting()" [loading]="isSubmitting()"
                 [amwValidationTooltip]="validationContext" icon="upload" class="recipe-assets__submit-btn">
                 {{ isSubmitting() ? 'Uploading...' : 'Upload Asset' }}
@@ -115,12 +115,12 @@
               </div>
 
               <div amwListItemMeta class="recipe-assets__item-actions">
-                <amw-icon-button icon="download" color="primary" (click)="onDownloadAsset(asset)"
+                <amw-icon-button [attr.data-testid]="'recipe-assets-download-btn-' + $index" icon="download" color="primary" (click)="onDownloadAsset(asset)"
                   class="recipe-assets__download-btn" ariaLabel="Download asset">
                 </amw-icon-button>
 
                 @if (isEditMode()) {
-                  <amw-icon-button icon="delete" color="warn" (click)="onDeleteAsset(asset.id)"
+                  <amw-icon-button [attr.data-testid]="'recipe-assets-delete-btn-' + $index" icon="delete" color="warn" (click)="onDeleteAsset(asset.id)"
                     class="recipe-assets__delete-btn" ariaLabel="Delete asset">
                   </amw-icon-button>
                 }

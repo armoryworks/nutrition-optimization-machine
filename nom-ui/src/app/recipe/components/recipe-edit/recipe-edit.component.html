@@ -29,13 +29,15 @@
                 formControlName="name"
                 label="Recipe Name"
                 placeholder="e.g., Classic Lasagna"
-                [required]="true">
+                [required]="true"
+                data-testid="recipe-name-input">
               </amw-input>
               <amw-textarea
                 formControlName="description"
                 label="Description"
                 placeholder="A short summary of the recipe..."
-                [rows]="4">
+                [rows]="4"
+                data-testid="recipe-description-input">
               </amw-textarea>
             </div>
           </div>
@@ -53,7 +55,8 @@
                 [options]="ingredientAutocompleteOptions()"
                 [displayWith]="displayIngredient"
                 (inputChanged)="onIngredientInputChanged($event)"
-                (optionSelected)="onIngredientAutocompleteSelected($event)">
+                (optionSelected)="onIngredientAutocompleteSelected($event)"
+                data-testid="recipe-ingredient-autocomplete">
               </amw-autocomplete>
               <amw-button variant="outlined" type="button" (click)="openCreateIngredientModal()">
                 Create New Ingredient
@@ -87,7 +90,7 @@
           <div class="nom-form__section">
             <div class="nom-dashboard__section-header">
               <h3 class="nom-form__section-title">Instructions</h3>
-              <amw-button variant="outlined" type="button" icon="add" (click)="addStep()">
+              <amw-button variant="outlined" type="button" icon="add" (click)="addStep()" data-testid="recipe-add-step-btn">
                 Add Step
               </amw-button>
             </div>
@@ -98,7 +101,7 @@
                     <amw-icon name="drag_indicator"></amw-icon>
                   </div>
                   <span class="recipe-edit__step-number">{{ i + 1 }}.</span>
-                  <amw-textarea formControlName="description" label="Step" [autoResize]="true" [minRows]="2" class="recipe-edit__step-field"></amw-textarea>
+                  <amw-textarea formControlName="description" label="Step" [autoResize]="true" [minRows]="2" class="recipe-edit__step-field" [attr.data-testid]="'recipe-step-' + i"></amw-textarea>
                   <div class="nom-dashboard__list-item-actions">
                     <amw-button variant="icon" type="button" (click)="removeStep(i)" title="Remove Step">
                       <amw-icon name="delete_outline"></amw-icon>
@@ -114,7 +117,7 @@
 
           @if (isEditMode()) {
             <div class="nom-form__actions" style="justify-content: flex-start;">
-              <amw-button variant="outlined" type="button" icon="send" (click)="submitForCuration()" [disabled]="isSubmitting()">
+              <amw-button variant="outlined" type="button" icon="send" (click)="submitForCuration()" [disabled]="isSubmitting()" data-testid="recipe-curation-btn">
                 Submit for Curation
               </amw-button>
             </div>
@@ -129,7 +132,8 @@
               color="primary"
               [disabled]="recipeForm.invalid || isSubmitting()"
               [amwValidationTooltip]="validationContext"
-              [loading]="isSubmitting()">
+              [loading]="isSubmitting()"
+              data-testid="recipe-submit-btn">
               {{ isEditMode() ? 'Update Recipe' : 'Create Recipe' }}
             </amw-button>
           </div>

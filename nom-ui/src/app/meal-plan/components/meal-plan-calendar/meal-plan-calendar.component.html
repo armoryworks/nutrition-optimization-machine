@@ -10,7 +10,7 @@
   @if (error() && !isLoading()) {
     <div class="nom-error-state" role="alert">
       <p>{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="onRetry()">
+      <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="meal-plan-calendar-retry-btn">
         Retry
       </amw-button>
     </div>

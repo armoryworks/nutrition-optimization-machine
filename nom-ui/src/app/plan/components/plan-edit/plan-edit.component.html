@@ -6,17 +6,20 @@
           formControlName="name"
           label="Plan Name"
           placeholder="Enter plan name"
-          [required]="true">
+          [required]="true"
+          data-testid="plan-name-input">
         </amw-input>
         <amw-textarea
           formControlName="description"
           label="Description"
-          placeholder="Describe your plan">
+          placeholder="Describe your plan"
+          data-testid="plan-description-input">
         </amw-textarea>
         <amw-input
           formControlName="invitationCode"
           label="Invitation Code"
-          placeholder="Auto-generated or custom code">
+          placeholder="Auto-generated or custom code"
+          data-testid="plan-invitation-code-input">
         </amw-input>
 
         <!-- Restriction Editing Section -->
@@ -28,13 +31,13 @@
 
           @if (currentRestrictionType === undefined) {
             <div class="nom-dashboard__grid--3col">
-              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.SocietalReligiousEthical)">
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.SocietalReligiousEthical)" data-testid="plan-add-dietary-practices-btn">
                 Add Dietary Practices
               </amw-button>
-              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.AllergyMedical)">
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.AllergyMedical)" data-testid="plan-add-medical-restrictions-btn">
                 Add Medical Restrictions
               </amw-button>
-              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.PersonalPreference)">
+              <amw-button variant="filled" color="primary" (click)="selectRestrictionType(RestrictionTypeEnum.PersonalPreference)" data-testid="plan-add-personal-preferences-btn">
                 Add Personal Preferences
               </amw-button>
             </div>
@@ -73,8 +76,8 @@
         }
       </form>
       <div class="nom-form__actions">
-        <amw-button variant="text" (click)="goBack()">Back</amw-button>
-        <amw-button variant="filled" color="primary" (click)="submitForm()">Save Plan</amw-button>
+        <amw-button variant="text" (click)="goBack()" data-testid="plan-back-btn">Back</amw-button>
+        <amw-button variant="filled" color="primary" (click)="submitForm()" data-testid="plan-save-btn">Save Plan</amw-button>
       </div>
     </ng-template>
   </amw-card>

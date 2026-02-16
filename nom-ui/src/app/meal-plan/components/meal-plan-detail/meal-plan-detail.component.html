@@ -10,8 +10,8 @@
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
       <div class="nom-form__actions">
-        <amw-button variant="text" (click)="onBack()">Go Back</amw-button>
-        <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
+        <amw-button variant="text" (click)="onBack()" data-testid="meal-plan-detail-back-error-btn">Go Back</amw-button>
+        <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="meal-plan-detail-retry-btn">Retry</amw-button>
       </div>
     </div>
   }
@@ -19,13 +19,13 @@
   @if (mealPlan() && !isLoading() && !error()) {
     <!-- Header Actions -->
     <div class="nom-detail__actions">
-      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditMealPlan()">Edit Plan</amw-button>
-      <amw-button variant="text" color="accent" icon="content_copy" (click)="onDuplicateMealPlan()">Duplicate</amw-button>
-      <amw-button variant="icon" [amwMenuTriggerFor]="menu">
+      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditMealPlan()" data-testid="meal-plan-detail-edit-btn">Edit Plan</amw-button>
+      <amw-button variant="text" color="accent" icon="content_copy" (click)="onDuplicateMealPlan()" data-testid="meal-plan-detail-duplicate-btn">Duplicate</amw-button>
+      <amw-button variant="icon" [amwMenuTriggerFor]="menu" data-testid="meal-plan-detail-menu-btn">
         <amw-icon name="more_vert"></amw-icon>
       </amw-button>
       <amw-menu #menu>
-        <amw-menu-item label="Delete Plan" icon="delete" (itemClick)="onDeleteMealPlan()"></amw-menu-item>
+        <amw-menu-item label="Delete Plan" icon="delete" (itemClick)="onDeleteMealPlan()" data-testid="meal-plan-detail-delete-item"></amw-menu-item>
       </amw-menu>
     </div>
 
@@ -86,15 +86,15 @@
     <div class="nom-detail__section">
       <h3 class="nom-detail__section-title">Quick Actions</h3>
       <div class="nom-detail__actions-grid">
-        <amw-button variant="filled" color="primary" icon="shopping_cart">Add to Shopping List</amw-button>
-        <amw-button variant="filled" color="accent" icon="share">Share Recipe</amw-button>
-        <amw-button variant="outlined" icon="print">Print Recipe</amw-button>
-        <amw-button variant="outlined" icon="favorite">Add to Favorites</amw-button>
+        <amw-button variant="filled" color="primary" icon="shopping_cart" data-testid="meal-plan-detail-add-shopping-btn">Add to Shopping List</amw-button>
+        <amw-button variant="filled" color="accent" icon="share" data-testid="meal-plan-detail-share-btn">Share Recipe</amw-button>
+        <amw-button variant="outlined" icon="print" data-testid="meal-plan-detail-print-btn">Print Recipe</amw-button>
+        <amw-button variant="outlined" icon="favorite" data-testid="meal-plan-detail-favorite-btn">Add to Favorites</amw-button>
       </div>
     </div>
 
     <div class="nom-form__actions" style="justify-content: flex-start;">
-      <amw-button type="button" variant="text" icon="arrow_back" (click)="onBack()">Back to Meal Plans</amw-button>
+      <amw-button type="button" variant="text" icon="arrow_back" (click)="onBack()" data-testid="meal-plan-detail-back-btn">Back to Meal Plans</amw-button>
     </div>
   }
 </div>

@@ -12,28 +12,32 @@
           label="Recipe Name"
           placeholder="Enter recipe name"
           icon="restaurant_menu"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-edit-recipe-input">
         </amw-input>
         <amw-select
           formControlName="mealType"
           label="Meal Type"
           [options]="mealTypes"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-edit-type-select">
         </amw-select>
         <amw-datepicker
           formControlName="date"
           label="Date"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-edit-date-picker">
         </amw-datepicker>
         <amw-textarea
           formControlName="description"
           label="Description (Optional)"
           placeholder="Enter meal plan description"
-          [rows]="4">
+          [rows]="4"
+          data-testid="meal-plan-edit-description-input">
         </amw-textarea>
       </form>
       <div class="nom-form__actions">
-        <amw-button type="button" variant="text" (click)="onCancel()">Cancel</amw-button>
+        <amw-button type="button" variant="text" (click)="onCancel()" data-testid="meal-plan-edit-cancel-btn">Cancel</amw-button>
         <amw-button
           type="submit"
           variant="filled"
@@ -41,7 +45,8 @@
           [disabled]="mealPlanForm.invalid || isLoading()"
           [amwValidationTooltip]="validationContext"
           [loading]="isLoading()"
-          (click)="onSubmit()">
+          (click)="onSubmit()"
+          data-testid="meal-plan-edit-submit-btn">
           Update Meal Plan
         </amw-button>
       </div>

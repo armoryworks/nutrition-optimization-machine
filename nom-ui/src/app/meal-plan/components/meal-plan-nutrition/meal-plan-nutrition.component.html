@@ -7,8 +7,8 @@
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
-      <amw-button variant="outlined" color="primary" (click)="onBack()">Back</amw-button>
+      <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="meal-plan-nutrition-retry-btn">Retry</amw-button>
+      <amw-button variant="outlined" color="primary" (click)="onBack()" data-testid="meal-plan-nutrition-back-btn">Back</amw-button>
     </div>
   </div>
   }
@@ -22,7 +22,7 @@
           <amw-icon name="monitoring"></amw-icon>
           <h2>Nutrition Summary</h2>
         </div>
-        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">Back</amw-button>
+        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()" data-testid="meal-plan-nutrition-back-btn">Back</amw-button>
       </div>
     </ng-template>
   </amw-card>

@@ -6,7 +6,7 @@
   @if (!isLoading() && error()) {
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
-    <amw-button variant="filled" color="primary" (click)="onBack()">
+    <amw-button variant="filled" color="primary" (click)="onBack()" data-testid="meal-plan-print-back-error-btn">
       Back to Meal Plan
     </amw-button>
   </div>
@@ -46,14 +46,15 @@
             <h4>Print / Save as PDF</h4>
             <p>Open a print dialog to print or save as PDF</p>
           </div>
-          <amw-button variant="filled" color="primary" [disabled]="isPrinting()" (click)="onPrintMealPlan()">
+          <amw-button variant="filled" color="primary" [disabled]="isPrinting()" (click)="onPrintMealPlan()"
+            data-testid="meal-plan-print-submit-btn">
             Print Meal Plan
           </amw-button>
         </div>
       </div>
 
       <div class="nom-actions">
-        <amw-button variant="text" color="primary" (click)="onBack()">
+        <amw-button variant="text" color="primary" (click)="onBack()" data-testid="meal-plan-print-back-btn">
           Back
         </amw-button>
       </div>

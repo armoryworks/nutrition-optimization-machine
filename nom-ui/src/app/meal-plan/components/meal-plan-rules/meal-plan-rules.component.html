@@ -11,21 +11,25 @@
         <h3 class="meal-plan-rules__section-title">Add New Rule</h3>
         <form [formGroup]="ruleForm" (ngSubmit)="onSubmit()" class="nom-form">
           <amw-select formControlName="dayOfWeekId" label="Day of Week" [options]="getDayOfWeekOptions()"
-            [required]="true" class="nom-form__field">
+            [required]="true" class="nom-form__field"
+            data-testid="meal-plan-rules-day-select">
           </amw-select>
 
           <amw-select formControlName="mealTypeId" label="Meal Type" [options]="getMealTypeOptions()" [required]="true"
-            class="nom-form__field">
+            class="nom-form__field"
+            data-testid="meal-plan-rules-type-select">
           </amw-select>
 
           <amw-input formControlName="queryFilterString" label="Query Filter (Optional)"
-            placeholder="Enter search terms to filter recipes..." class="nom-form__field">
+            placeholder="Enter search terms to filter recipes..." class="nom-form__field"
+            data-testid="meal-plan-rules-query-input">
           </amw-input>
 
           <div class="nom-form__actions">
             <amw-button type="submit" variant="filled" color="primary" icon="add"
               [disabled]="ruleForm.invalid || isAddingRule()" [loading]="isAddingRule()"
-              [amwValidationTooltip]="validationContext">
+              [amwValidationTooltip]="validationContext"
+              data-testid="meal-plan-rules-add-btn">
               {{ isAddingRule() ? 'Adding...' : 'Add Rule' }}
             </amw-button>
           </div>
@@ -50,10 +54,12 @@
           <amw-card class="meal-plan-rules__rule-card" [headerTitle]="rule.dayOfWeekName + ' - ' + rule.mealTypeName"
             [headerSubtitle]="rule.queryFilterString || 'No filter applied'">
             <ng-template #actionsTemplate>
-              <amw-button variant="text" color="primary" icon="edit" (click)="editRule(rule)">
+              <amw-button variant="text" color="primary" icon="edit" (click)="editRule(rule)"
+                [attr.data-testid]="'meal-plan-rules-edit-btn-' + rule.id">
                 Edit
               </amw-button>
-              <amw-button variant="text" color="warn" icon="delete" (click)="deleteRule(rule)">
+              <amw-button variant="text" color="warn" icon="delete" (click)="deleteRule(rule)"
+                [attr.data-testid]="'meal-plan-rules-delete-btn-' + rule.id">
                 Delete
               </amw-button>
             </ng-template>
@@ -64,7 +70,8 @@
       </div>
 
       <div class="nom-form__actions">
-        <amw-button type="button" variant="text" icon="arrow_back" (click)="onBack()">
+        <amw-button type="button" variant="text" icon="arrow_back" (click)="onBack()"
+          data-testid="meal-plan-rules-back-btn">
           Back to Meal Plans
         </amw-button>
       </div>

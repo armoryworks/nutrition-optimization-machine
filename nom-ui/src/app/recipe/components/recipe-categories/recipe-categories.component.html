@@ -7,6 +7,7 @@
     </div>
     <div class="recipe-categories__page-header-actions">
       <amw-icon-button
+        data-testid="recipe-categories-refresh-btn"
         icon="refresh"
         ariaLabel="Refresh categories"
         [amwTooltip]="'Refresh'"
@@ -18,13 +19,13 @@
   <!-- Search and Create Section -->
   <div class="recipe-categories__header">
     <div class="recipe-categories__search">
-      <amw-input [(ngModel)]="searchTerm" (ngModelChange)="filterCategories()" label="Search categories"
+      <amw-input data-testid="recipe-categories-search-input" [(ngModel)]="searchTerm" (ngModelChange)="filterCategories()" label="Search categories"
         placeholder="Search by name or description" suffixIcon="search" class="recipe-categories__search-field">
       </amw-input>
     </div>
 
     <div class="recipe-categories__actions">
-      <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid"
+      <amw-button data-testid="recipe-categories-create-btn" variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid"
         icon="add">
         Create Category
       </amw-button>
@@ -37,7 +38,7 @@
       <ng-template #cardContent>
         <form [formGroup]="categoryForm" class="recipe-categories__form">
           <div class="recipe-categories__form-row">
-            <amw-input formControlName="name" label="Category Name" placeholder="Enter category name" [required]="true"
+            <amw-input data-testid="recipe-categories-name-input" formControlName="name" label="Category Name" placeholder="Enter category name" [required]="true"
               class="recipe-categories__form-field"
               [attr.aria-invalid]="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched"
               [attr.aria-describedby]="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched ? 'category-name-error' : null">
@@ -48,7 +49,7 @@
             </span>
             }
 
-            <amw-select formControlName="icon" label="Icon" [required]="true"
+            <amw-select data-testid="recipe-categories-icon-select" formControlName="icon" label="Icon" [required]="true"
               [options]="getIconOptions().map(icon => ({ value: icon, label: icon }))"
               class="recipe-categories__form-field"
               [attr.aria-invalid]="categoryForm.get('icon')?.invalid && categoryForm.get('icon')?.touched"
@@ -60,26 +61,26 @@
             </span>
             }
 
-            <amw-input formControlName="color" label="Color" type="color" class="recipe-categories__form-field">
+            <amw-input data-testid="recipe-categories-color-input" formControlName="color" label="Color" type="color" class="recipe-categories__form-field">
             </amw-input>
           </div>
 
           <div class="recipe-categories__form-row">
-            <amw-select formControlName="parentCategoryId" label="Parent Category (Optional)"
+            <amw-select data-testid="recipe-categories-parent-select" formControlName="parentCategoryId" label="Parent Category (Optional)"
               [options]="[{ value: null, label: 'None' }].concat(allCategories().map(c => ({ value: c.id, label: c.name })))"
               class="recipe-categories__form-field">
             </amw-select>
           </div>
 
-          <amw-textarea formControlName="description" label="Description (Optional)"
+          <amw-textarea data-testid="recipe-categories-description-textarea" formControlName="description" label="Description (Optional)"
             placeholder="Enter category description" [rows]="2" class="recipe-categories__form-field">
           </amw-textarea>
 
           <div class="recipe-categories__form-actions">
-            <amw-button variant="text" (click)="categoryForm.reset()">
+            <amw-button data-testid="recipe-categories-form-cancel-btn" variant="text" (click)="categoryForm.reset()">
               Cancel
             </amw-button>
-            <amw-button variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid">
+            <amw-button data-testid="recipe-categories-form-submit-btn" variant="filled" color="primary" (click)="createNewCategory()" [disabled]="!categoryForm.valid">
               Create Category
             </amw-button>
           </div>
@@ -101,7 +102,7 @@
           <div class="recipe-categories__error-content">
             <amw-icon name="error" color="warn"></amw-icon>
             <p>{{ error() }}</p>
-            <amw-button variant="text" color="primary" (click)="onRetry()">
+            <amw-button data-testid="recipe-categories-retry-btn" variant="text" color="primary" (click)="onRetry()">
               Try Again
             </amw-button>
           </div>
@@ -121,6 +122,7 @@
             <button type="button" class="recipe-categories__available-item"
               [class.recipe-categories__available-item--selected]="isCategorySelected(category)"
               (click)="addCategory(category)"
+              [attr.data-testid]="'recipe-categories-item-' + $index"
               [attr.aria-label]="'Add category: ' + category.name"
               [attr.aria-pressed]="isCategorySelected(category)">
               <div class="recipe-categories__category-info">
@@ -140,7 +142,7 @@
                   </span>
                 </div>
               </div>
-              <amw-icon-button icon="delete" (click)="deleteCategory(category); $event.stopPropagation()"
+              <amw-icon-button [attr.data-testid]="'recipe-categories-delete-btn-' + $index" icon="delete" (click)="deleteCategory(category); $event.stopPropagation()"
                 class="recipe-categories__delete-btn" ariaLabel="Delete category">
               </amw-icon-button>
             </button>
@@ -156,7 +158,7 @@
         <ng-template #cardContent>
           <div class="recipe-categories__selected-list">
             @for (category of categories(); track category.id) {
-            <amw-chip [label]="category.name" [icon]="category.icon" [removable]="true"
+            <amw-chip [attr.data-testid]="'recipe-categories-selected-chip-' + $index" [label]="category.name" [icon]="category.icon" [removable]="true"
               (removed)="removeCategory(category)" [style]="getCategoryStyle(category)"
               [amwTooltip]="category.description || category.name"
               chipClass="recipe-categories__chip recipe-categories__chip--selected">

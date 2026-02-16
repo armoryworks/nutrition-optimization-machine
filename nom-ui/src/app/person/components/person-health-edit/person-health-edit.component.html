@@ -14,7 +14,7 @@
           <span>{{ error() }}</span>
         </div>
         <div class="nom-form__actions">
-          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="person-health-retry-btn">Try Again</amw-button>
         </div>
       } @else {
         <form [formGroup]="healthAttributesForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
@@ -29,14 +29,16 @@
                   <amw-select
                     [formControlName]="getFormControlName(attrType.name)"
                     [label]="attrType.label || ''"
-                    [options]="attrType.options">
+                    [options]="attrType.options"
+                    [attr.data-testid]="'person-health-attribute-select-' + $index">
                   </amw-select>
                 } @else {
                   <amw-input
                     [formControlName]="getFormControlName(attrType.name)"
                     [label]="(attrType.label || '') + (attrType.unit ? ' (' + attrType.unit + ')' : '')"
                     [placeholder]="'Enter ' + (attrType.label?.toLowerCase() || '')"
-                    [ngClass]="attrType.class">
+                    [ngClass]="attrType.class"
+                    [attr.data-testid]="'person-health-attribute-input-' + $index">
                   </amw-input>
                 }
               }
@@ -44,7 +46,7 @@
           </div>
         </form>
         <div class="nom-form__actions">
-          <amw-button type="button" variant="text" (click)="onCancel()">
+          <amw-button type="button" variant="text" (click)="onCancel()" data-testid="person-health-cancel-btn">
             {{ cancelText }}
           </amw-button>
           <amw-button
@@ -54,7 +56,8 @@
             [disabled]="isSubmitting()"
             [loading]="isSubmitting()"
             [amwValidationTooltip]="validationContext"
-            (click)="onSubmit()">
+            (click)="onSubmit()"
+            data-testid="person-health-submit-btn">
             {{ submitText }}
           </amw-button>
         </div>

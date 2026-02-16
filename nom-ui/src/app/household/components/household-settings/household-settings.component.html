@@ -7,10 +7,10 @@
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onRetry()">
+      <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="household-settings-retry-btn">
         Retry
       </amw-button>
-      <amw-button variant="text" color="primary" (click)="onBack()">
+      <amw-button variant="text" color="primary" (click)="onBack()" data-testid="household-settings-back-error-btn">
         Back
       </amw-button>
     </div>
@@ -20,7 +20,7 @@
   @if (!isLoading() && !error() && household()) {
   <div class="nom-compact-header">
     <div class="nom-compact-header__left">
-      <amw-button variant="text" icon="arrow_back" (click)="onBack()">
+      <amw-button variant="text" icon="arrow_back" (click)="onBack()" data-testid="household-settings-back-btn">
         Back
       </amw-button>
       <h1 class="nom-compact-header__title">Household Settings</h1>
@@ -36,16 +36,16 @@
     <ng-template #cardContent>
       <form [formGroup]="preferencesForm" class="nom-form">
         <amw-input label="Household Name" formControlName="name" placeholder="Enter household name" [required]="true"
-          class="nom-form__field">
+          class="nom-form__field" data-testid="household-settings-name-input">
         </amw-input>
 
         <amw-textarea label="Description" formControlName="description" placeholder="Enter a description (optional)"
-          [rows]="4" class="nom-form__field">
+          [rows]="4" class="nom-form__field" data-testid="household-settings-description-input">
         </amw-textarea>
 
         <div class="nom-actions --end">
           <amw-button variant="filled" color="primary" [disabled]="preferencesForm.invalid || isSaving()"
-            (click)="onSavePreferences()">
+            (click)="onSavePreferences()" data-testid="household-settings-save-btn">
             @if (isSaving()) {
             <span>Saving...</span>
             } @else {
@@ -69,20 +69,20 @@
             synced to the server.</p>
         </div>
 
-        <amw-checkbox formControlName="emailNotifications" label="Email Notifications">
+        <amw-checkbox formControlName="emailNotifications" label="Email Notifications" data-testid="household-settings-email-checkbox">
         </amw-checkbox>
 
-        <amw-checkbox formControlName="newMemberNotifications" label="New Member Notifications">
+        <amw-checkbox formControlName="newMemberNotifications" label="New Member Notifications" data-testid="household-settings-member-checkbox">
         </amw-checkbox>
 
-        <amw-checkbox formControlName="mealPlanReminders" label="Meal Plan Reminders">
+        <amw-checkbox formControlName="mealPlanReminders" label="Meal Plan Reminders" data-testid="household-settings-reminders-checkbox">
         </amw-checkbox>
 
-        <amw-checkbox formControlName="shoppingListUpdates" label="Shopping List Updates">
+        <amw-checkbox formControlName="shoppingListUpdates" label="Shopping List Updates" data-testid="household-settings-shopping-checkbox">
         </amw-checkbox>
 
         <div class="nom-actions --end">
-          <amw-button variant="filled" color="primary" (click)="onSaveNotifications()">
+          <amw-button variant="filled" color="primary" (click)="onSaveNotifications()" data-testid="household-settings-notifications-save-btn">
             Save Notifications
           </amw-button>
         </div>
@@ -102,17 +102,17 @@
             the server.</p>
         </div>
 
-        <amw-checkbox formControlName="allowMemberInvites" label="Allow members to send invites">
+        <amw-checkbox formControlName="allowMemberInvites" label="Allow members to send invites" data-testid="household-settings-invites-checkbox">
         </amw-checkbox>
 
-        <amw-checkbox formControlName="shareRecipes" label="Share recipes with household members">
+        <amw-checkbox formControlName="shareRecipes" label="Share recipes with household members" data-testid="household-settings-share-checkbox">
         </amw-checkbox>
 
-        <amw-checkbox formControlName="publicProfile" label="Make household profile public">
+        <amw-checkbox formControlName="publicProfile" label="Make household profile public" data-testid="household-settings-public-checkbox">
         </amw-checkbox>
 
         <div class="nom-actions --end">
-          <amw-button variant="filled" color="primary" (click)="onSavePrivacy()">
+          <amw-button variant="filled" color="primary" (click)="onSavePrivacy()" data-testid="household-settings-privacy-save-btn">
             Save Privacy Settings
           </amw-button>
         </div>

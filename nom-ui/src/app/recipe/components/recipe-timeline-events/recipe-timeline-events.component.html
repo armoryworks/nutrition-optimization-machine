@@ -11,7 +11,7 @@
         <amw-icon name="error" color="warn"></amw-icon>
         <h3>Error</h3>
         <p>{{ error() }}</p>
-        <amw-button variant="filled" color="primary" (click)="onRetry()" icon="refresh">
+        <amw-button data-testid="recipe-timeline-retry-btn" variant="filled" color="primary" (click)="onRetry()" icon="refresh">
           Try Again
         </amw-button>
       </div>
@@ -24,6 +24,7 @@
         <form [formGroup]="timelineEventForm" (ngSubmit)="createTimelineEvent()" class="recipe-timeline-events__form">
           <div class="recipe-timeline-events__form-row">
             <amw-select
+              data-testid="recipe-timeline-event-type-select"
               formControlName="eventTypeId"
               label="Event Type"
               [required]="true"
@@ -34,6 +35,7 @@
 
           <div class="recipe-timeline-events__form-row">
             <amw-input
+              data-testid="recipe-timeline-event-title-input"
               formControlName="eventTitle"
               label="Event Title"
               placeholder="Enter event title"
@@ -44,6 +46,7 @@
 
           <div class="recipe-timeline-events__form-row">
             <amw-textarea
+              data-testid="recipe-timeline-event-description-textarea"
               formControlName="eventDescription"
               label="Event Description (Optional)"
               placeholder="Enter event description"
@@ -54,6 +57,7 @@
 
           <div class="recipe-timeline-events__form-row">
             <amw-datepicker
+              data-testid="recipe-timeline-event-date-picker"
               formControlName="eventDate"
               label="Event Date (Optional)"
               placeholder="Choose event date"
@@ -63,6 +67,7 @@
 
           <div class="recipe-timeline-events__form-actions">
             <amw-button
+              data-testid="recipe-timeline-submit-btn"
               variant="filled"
               color="primary"
               type="submit"
@@ -121,6 +126,7 @@
 
                     <div class="recipe-timeline-events__event-actions">
                       <amw-icon-button
+                        [attr.data-testid]="'recipe-timeline-delete-btn-' + i"
                         icon="delete"
                         color="warn"
                         ariaLabel="Delete timeline event"

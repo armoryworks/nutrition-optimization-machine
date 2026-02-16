@@ -8,6 +8,7 @@
     <form [formGroup]="shareTokenForm" (ngSubmit)="createShareToken()" class="recipe-share-token__form">
       <div class="recipe-share-token__form-row">
         <amw-input
+          data-testid="recipe-share-token-name-input"
           formControlName="shareName"
           label="Share Name (Optional)"
           placeholder="Enter a name for this share"
@@ -17,6 +18,7 @@
 
       <div class="recipe-share-token__form-row">
         <amw-select
+          data-testid="recipe-share-token-access-select"
           formControlName="isPublic"
           label="Access Level"
           [options]="[
@@ -29,6 +31,7 @@
 
       <div class="recipe-share-token__form-actions">
         <amw-button
+          data-testid="recipe-share-token-submit-btn"
           variant="filled"
           color="primary"
           type="submit"
@@ -83,6 +86,7 @@
 
            <div class="recipe-share-token__token-actions">
              <amw-icon-button
+               [attr.data-testid]="'recipe-share-token-copy-btn-' + $index"
                icon="content_copy"
                ariaLabel="Copy share URL"
                [amwTooltip]="'Copy share URL'"
@@ -90,6 +94,7 @@
                class="recipe-share-token__copy-btn">
              </amw-icon-button>
              <amw-icon-button
+               [attr.data-testid]="'recipe-share-token-delete-btn-' + $index"
                icon="delete"
                color="warn"
                ariaLabel="Delete share token"

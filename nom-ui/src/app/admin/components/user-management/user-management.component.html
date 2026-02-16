@@ -8,7 +8,7 @@
       <div class="user-management__header-center">
         @if (!isLoading() && !error()) {
         <amw-input type="text" [formControl]="searchControl" placeholder="Search users..." icon="search"
-          class="user-management__search-field">
+          class="user-management__search-field" data-testid="user-management-search-input">
         </amw-input>
         <div class="user-management__stats-pill">
           <amw-icon name="people" class="user-management__stats-icon"></amw-icon>
@@ -18,10 +18,10 @@
         }
       </div>
       <div class="user-management__header-right">
-        <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()">
+        <amw-button variant="text" icon="refresh" (click)="onRefresh()" [disabled]="isLoading()" data-testid="user-management-refresh-btn">
           Refresh
         </amw-button>
-        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateUser()">
+        <amw-button variant="filled" color="primary" icon="add" (click)="onCreateUser()" data-testid="user-management-create-btn">
           Create User
         </amw-button>
       </div>
@@ -37,7 +37,7 @@
     <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">
+      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()" data-testid="user-management-retry-btn">
         Try Again
       </amw-button>
     </div>
@@ -58,7 +58,7 @@
           } @else {
           <p>Create your first user to get started.</p>
           }
-          <amw-button variant="filled" color="primary" icon="add" (click)="onCreateUser()">
+          <amw-button variant="filled" color="primary" icon="add" (click)="onCreateUser()" data-testid="user-management-empty-create-btn">
             Create User
           </amw-button>
         </ng-template>
@@ -71,7 +71,7 @@
     <div class="user-management__users-grid">
       @for (person of filteredPersons(); track person.id) {
       <amw-card class="user-management__user-card" [headerTitle]="person.name"
-        [headerSubtitle]="getUserIdDisplay(person)" headerIcon="person">
+        [headerSubtitle]="getUserIdDisplay(person)" headerIcon="person" [attr.data-testid]="'user-management-card-' + person.id">
         <ng-template #cardContent>
           <div class="user-management__user-stats">
             <div class="user-management__user-stat">
@@ -103,15 +103,15 @@
         </ng-template>
         <ng-template #actionsTemplate>
           <amw-button variant="text" color="primary" icon="visibility"
-            (click)="onViewUser(person.id); $event.stopPropagation()">
+            (click)="onViewUser(person.id); $event.stopPropagation()" [attr.data-testid]="'user-management-view-btn-' + person.id">
             View
           </amw-button>
           <amw-button variant="text" color="accent" icon="edit"
-            (click)="onEditUser(person.id); $event.stopPropagation()">
+            (click)="onEditUser(person.id); $event.stopPropagation()" [attr.data-testid]="'user-management-edit-btn-' + person.id">
             Edit
           </amw-button>
           <amw-button variant="text" color="warn" icon="delete"
-            (click)="onDeleteUser(person); $event.stopPropagation()">
+            (click)="onDeleteUser(person); $event.stopPropagation()" [attr.data-testid]="'user-management-delete-btn-' + person.id">
             Delete
           </amw-button>
         </ng-template>

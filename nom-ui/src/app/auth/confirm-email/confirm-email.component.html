@@ -8,7 +8,7 @@
         <div class="status-message success">
           <amw-icon name="check_circle" color="primary" class="status-icon"></amw-icon>
           <p>{{ confirmationMessage }}</p>
-          <amw-button variant="filled" color="primary" routerLink="/login" class="mt-4">
+          <amw-button variant="filled" color="primary" routerLink="/login" class="mt-4" data-testid="confirm-email-login-btn">
             Go to Login
           </amw-button>
         </div>
@@ -16,10 +16,10 @@
         <div class="status-message failure">
           <amw-icon name="error" color="warn" class="status-icon"></amw-icon>
           <p>{{ confirmationMessage }}</p>
-          <amw-button variant="filled" color="accent" routerLink="/resend-confirmation-email" class="mt-4">
+          <amw-button variant="filled" color="accent" routerLink="/resend-confirmation-email" class="mt-4" data-testid="confirm-email-resend-btn">
             Resend Confirmation Email
           </amw-button>
-          <amw-button variant="text" routerLink="/login" class="mt-2">
+          <amw-button variant="text" routerLink="/login" class="mt-2" data-testid="confirm-email-back-btn">
             Back to Login
           </amw-button>
         </div>

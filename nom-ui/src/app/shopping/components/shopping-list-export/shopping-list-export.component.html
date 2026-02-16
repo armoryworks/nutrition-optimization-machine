@@ -6,7 +6,7 @@
   @if (!isLoading() && error()) {
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
-    <amw-button variant="filled" color="primary" (click)="onBack()">
+    <amw-button data-testid="shopping-list-export-back-error-btn" variant="filled" color="primary" (click)="onBack()">
       Back to List
     </amw-button>
   </div>
@@ -30,7 +30,7 @@
             <h4>Print / Save as PDF</h4>
             <p>Open a print dialog to print or save as PDF</p>
           </div>
-          <amw-button variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportPDF()">
+          <amw-button data-testid="shopping-list-export-pdf-btn" variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportPDF()">
             Export PDF
           </amw-button>
         </div>
@@ -40,7 +40,7 @@
             <h4>Export to CSV</h4>
             <p>Download as CSV file for use in spreadsheets</p>
           </div>
-          <amw-button variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportCSV()">
+          <amw-button data-testid="shopping-list-export-csv-btn" variant="filled" color="primary" [disabled]="isExporting()" (click)="onExportCSV()">
             Export CSV
           </amw-button>
         </div>
@@ -50,14 +50,14 @@
             <h4>Email List</h4>
             <p>Send shopping list via email</p>
           </div>
-          <amw-button variant="outlined" color="primary" [disabled]="isExporting()" (click)="onEmailList()">
+          <amw-button data-testid="shopping-list-export-email-btn" variant="outlined" color="primary" [disabled]="isExporting()" (click)="onEmailList()">
             Email
           </amw-button>
         </div>
       </div>
 
       <div class="nom-actions">
-        <amw-button variant="text" color="primary" (click)="onBack()">
+        <amw-button data-testid="shopping-list-export-back-btn" variant="text" color="primary" (click)="onBack()">
           Back
         </amw-button>
       </div>

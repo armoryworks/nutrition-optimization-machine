@@ -12,10 +12,10 @@
     [headerTitle]="isEditing() ? 'Edit Category' : 'Add New Category'">
     <ng-template #cardContent>
       <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
-        <amw-input formControlName="name" label="Category Name" placeholder="Enter category name..." [required]="true">
+        <amw-input data-testid="shopping-category-management-name-input" formControlName="name" label="Category Name" placeholder="Enter category name..." [required]="true">
         </amw-input>
 
-        <amw-textarea formControlName="description" label="Description (Optional)"
+        <amw-textarea data-testid="shopping-category-management-description-input" formControlName="description" label="Description (Optional)"
           placeholder="Add a description for this category...">
         </amw-textarea>
 
@@ -25,6 +25,7 @@
             <div class="shopping-category-management__color-options">
               @for (color of availableColors; track color) {
                 <button type="button" class="shopping-category-management__color-swatch"
+                  [attr.data-testid]="'shopping-category-management-color-swatch-' + $index"
                   [class.shopping-category-management__color-swatch--selected]="categoryForm.value.color === color"
                   [style.background-color]="color" (click)="categoryForm.patchValue({ color: color })">
                 </button>
@@ -32,7 +33,7 @@
             </div>
           </div>
 
-          <amw-select formControlName="icon" label="Icon" placeholder="Select an icon">
+          <amw-select data-testid="shopping-category-management-icon-select" formControlName="icon" label="Icon" placeholder="Select an icon">
             @for (icon of availableIcons; track icon.value) {
               <option [value]="icon.value">{{ icon.label }}</option>
             }
@@ -41,11 +42,11 @@
 
         <div class="nom-form__actions">
           @if (isEditing()) {
-            <amw-button type="button" variant="text" (click)="cancelEdit()">
+            <amw-button data-testid="shopping-category-management-cancel-btn" type="button" variant="text" (click)="cancelEdit()">
               Cancel
             </amw-button>
           }
-          <amw-button type="submit" variant="filled" color="primary" [icon]="isEditing() ? 'save' : 'add'"
+          <amw-button data-testid="shopping-category-management-submit-btn" type="submit" variant="filled" color="primary" [icon]="isEditing() ? 'save' : 'add'"
             [disabled]="categoryForm.invalid || isSubmitting()" [loading]="isSubmitting()"
             [amwValidationTooltip]="validationContext">
             {{ isSubmitting() ? 'Saving...' : (isEditing() ? 'Update Category' : 'Add Category') }}
@@ -105,10 +106,10 @@
                 </div>
               </ng-template>
               <ng-template #actionsTemplate>
-                <amw-button variant="text" color="primary" icon="edit" (click)="editCategory(category)">
+                <amw-button [attr.data-testid]="'shopping-category-management-edit-btn-' + category.id" variant="text" color="primary" icon="edit" (click)="editCategory(category)">
                   Edit
                 </amw-button>
-                <amw-button variant="text" color="warn" icon="delete" (click)="deleteCategory(category)">
+                <amw-button [attr.data-testid]="'shopping-category-management-delete-btn-' + category.id" variant="text" color="warn" icon="delete" (click)="deleteCategory(category)">
                   Delete
                 </amw-button>
               </ng-template>

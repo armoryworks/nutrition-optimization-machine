@@ -3,11 +3,11 @@
     <ng-template #cardContent>
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-popover__form">
         <amw-input type="email" formControlName="email" label="Email" icon="email" [required]="true"
-          class="login-popover__field">
+          class="login-popover__field" data-testid="login-popover-email-input">
         </amw-input>
 
         <amw-input type="password" formControlName="password" label="Password" icon="lock" [required]="true"
-          class="login-popover__field">
+          class="login-popover__field" data-testid="login-popover-password-input">
         </amw-input>
 
         @if (errorMessage()) {
@@ -15,14 +15,14 @@
         }
 
         <amw-button type="submit" variant="filled" color="primary" [disabled]="loginForm.invalid || isLoading()"
-          [loading]="isLoading()" [amwValidationTooltip]="validationContext" class="login-popover__submit">
+          [loading]="isLoading()" [amwValidationTooltip]="validationContext" class="login-popover__submit" data-testid="login-popover-submit-btn">
           Sign In
         </amw-button>
       </form>
 
       <amw-divider dividerClass="login-popover__divider"></amw-divider>
 
-      <amw-button variant="text" color="accent" (click)="onRegister()" class="login-popover__register">
+      <amw-button variant="text" color="accent" (click)="onRegister()" class="login-popover__register" data-testid="login-popover-register-btn">
         Create Account
       </amw-button>
     </ng-template>

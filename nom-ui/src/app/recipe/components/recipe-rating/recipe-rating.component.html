@@ -21,7 +21,7 @@
             <div class="recipe-rating__stars-label">Your Rating:</div>
             <div class="recipe-rating__stars" role="radiogroup" aria-label="Recipe rating from 1 to 5 stars">
               @for (star of [1,2,3,4,5]; track star) {
-              <amw-icon name="star" [class]="getStarClass(star) + ' recipe-rating__star recipe-rating__star--clickable'"
+              <amw-icon [attr.data-testid]="'recipe-rating-star-' + star" name="star" [class]="getStarClass(star) + ' recipe-rating__star recipe-rating__star--clickable'"
                 (click)="setRating(star)" role="radio" [attr.aria-checked]="ratingForm.get('rating')?.value === star"
                 tabindex="0" (keyup.enter)="setRating(star)" (keyup.space)="setRating(star)">
               </amw-icon>
@@ -33,12 +33,12 @@
           </div>
 
           <!-- Review Text -->
-          <amw-textarea formControlName="reviewText" label="Review (Optional)"
+          <amw-textarea data-testid="recipe-rating-review-textarea" formControlName="reviewText" label="Review (Optional)"
             placeholder="Share your thoughts about this recipe..." [rows]="4" class="recipe-rating__field">
           </amw-textarea>
 
           <div class="recipe-rating__form-actions">
-            <amw-button variant="filled" color="primary" type="submit" [disabled]="ratingForm.invalid || isSubmitting()"
+            <amw-button data-testid="recipe-rating-submit-btn" variant="filled" color="primary" type="submit" [disabled]="ratingForm.invalid || isSubmitting()"
               [loading]="isSubmitting()" [amwValidationTooltip]="validationContext" icon="star" class="recipe-rating__submit-btn">
               Submit Rating
             </amw-button>

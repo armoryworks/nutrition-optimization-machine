@@ -6,6 +6,7 @@
     to the **entire plan** (all participants), or to **specific people**?
   </p>
   <amw-radio-group
+    data-testid="onboarding-scope-radio-group"
     [formControl]="internalRestrictionScopeControl"
     [options]="getScopeOptions()"
     orientation="vertical"
@@ -19,6 +20,7 @@
   <div class="flex justify-center mt-4">
     <!-- No "Previous" button for the first sub-step, parent handles global back -->
     <amw-button
+      data-testid="onboarding-scope-next-btn"
       variant="filled"
       color="primary"
       (click)="onScopeSelection()"
@@ -32,6 +34,7 @@
     Select the people this restriction will apply to.
   </p>
   <amw-select
+    data-testid="onboarding-people-select"
     [formControl]="internalAffectedPersonIdsControl"
     label="Affected People"
     [options]="getPersonOptions()"
@@ -45,6 +48,7 @@
   }
   <div class="flex justify-center mt-4">
     <amw-button
+      data-testid="onboarding-people-prev-btn"
       variant="filled"
       color="accent"
       (click)="goToPreviousSubStep()"
@@ -53,6 +57,7 @@
       Previous
     </amw-button>
     <amw-button
+      data-testid="onboarding-people-next-btn"
       variant="filled"
       color="primary"
       (click)="onPeopleSelectionSubmit()"

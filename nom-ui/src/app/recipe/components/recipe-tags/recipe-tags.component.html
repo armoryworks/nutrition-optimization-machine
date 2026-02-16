@@ -13,20 +13,20 @@
         <amw-icon name="error_outline" class="nom-error-state__icon" aria-hidden="true"></amw-icon>
         <p class="nom-error-state__message">{{ error() }}</p>
         <div class="nom-error-state__actions">
-          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          <amw-button data-testid="recipe-tags-retry-btn" variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
         </div>
       </div>
       } @else {
       <!-- Search and Create Section -->
       <div class="recipe-tags__header">
         <div class="recipe-tags__search">
-          <amw-input [(ngModel)]="searchTerm" (valueChange)="filterTags()" label="Search tags"
+          <amw-input data-testid="recipe-tags-search-input" [(ngModel)]="searchTerm" (valueChange)="filterTags()" label="Search tags"
             placeholder="Search by name or description" suffixIcon="search" class="recipe-tags__search-field">
           </amw-input>
         </div>
 
         <div class="recipe-tags__actions">
-          <amw-button variant="filled" color="primary" icon="add" (click)="createNewTag()" [disabled]="!tagForm.valid">
+          <amw-button data-testid="recipe-tags-create-btn" variant="filled" color="primary" icon="add" (click)="createNewTag()" [disabled]="!tagForm.valid">
             Create Tag
           </amw-button>
         </div>
@@ -38,7 +38,7 @@
         <ng-template #cardContent>
           <form [formGroup]="tagForm" class="recipe-tags__form">
             <div class="recipe-tags__form-row">
-              <amw-input formControlName="name" label="Tag Name" placeholder="Enter tag name" [required]="true"
+              <amw-input data-testid="recipe-tags-name-input" formControlName="name" label="Tag Name" placeholder="Enter tag name" [required]="true"
                 class="recipe-tags__form-field"
                 [attr.aria-invalid]="tagForm.get('name')?.invalid && tagForm.get('name')?.touched"
                 [attr.aria-describedby]="tagForm.get('name')?.invalid && tagForm.get('name')?.touched ? 'tag-name-error' : null">
@@ -49,17 +49,17 @@
               </span>
               }
 
-              <amw-input formControlName="color" label="Color" type="color" class="recipe-tags__form-field">
+              <amw-input data-testid="recipe-tags-color-input" formControlName="color" label="Color" type="color" class="recipe-tags__form-field">
               </amw-input>
             </div>
 
-            <amw-textarea formControlName="description" label="Description (Optional)"
+            <amw-textarea data-testid="recipe-tags-description-textarea" formControlName="description" label="Description (Optional)"
               placeholder="Enter tag description" [rows]="2" class="recipe-tags__form-field">
             </amw-textarea>
 
             <div class="recipe-tags__form-actions">
-              <amw-button variant="text" (click)="tagForm.reset()">Cancel</amw-button>
-              <amw-button variant="filled" color="primary" (click)="createNewTag()" [disabled]="!tagForm.valid">
+              <amw-button data-testid="recipe-tags-form-cancel-btn" variant="text" (click)="tagForm.reset()">Cancel</amw-button>
+              <amw-button data-testid="recipe-tags-form-submit-btn" variant="filled" color="primary" (click)="createNewTag()" [disabled]="!tagForm.valid">
                 Create Tag
               </amw-button>
             </div>
@@ -80,7 +80,7 @@
                 (selectionChange)="addTag(tag)" [amwTooltip]="tag.description || tag.name" [style]="getTagStyle(tag)"
                 chipClass="recipe-tags__chip">
               </amw-chip>
-              <amw-icon-button icon="delete" ariaLabel="Delete tag" [amwTooltip]="'Delete tag'"
+              <amw-icon-button [attr.data-testid]="'recipe-tags-delete-btn-' + $index" icon="delete" ariaLabel="Delete tag" [amwTooltip]="'Delete tag'"
                 (buttonClick)="deleteTag(tag); $event.stopPropagation()" class="recipe-tags__delete-btn">
               </amw-icon-button>
             </div>
@@ -96,7 +96,7 @@
         <ng-template #cardContent>
           <div class="recipe-tags__selected-list">
             @for (tag of tags(); track tag.id) {
-            <amw-chip [label]="tag.name" [removable]="true" (removed)="removeTag(tag)"
+            <amw-chip [attr.data-testid]="'recipe-tags-selected-chip-' + $index" [label]="tag.name" [removable]="true" (removed)="removeTag(tag)"
               [amwTooltip]="tag.description || tag.name" [style]="getTagStyle(tag)"
               chipClass="recipe-tags__chip recipe-tags__chip--selected">
             </amw-chip>

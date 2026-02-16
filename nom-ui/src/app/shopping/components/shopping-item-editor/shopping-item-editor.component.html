@@ -3,6 +3,7 @@
     <div class="editor-content">
       <div class="form-row">
         <amw-input
+          data-testid="shopping-item-editor-name-input"
           type="text"
           formControlName="name"
           label="Item Name"
@@ -21,6 +22,7 @@
 
       <div class="form-row">
         <amw-input
+          data-testid="shopping-item-editor-description-input"
           type="text"
           formControlName="description"
           label="Description"
@@ -31,6 +33,7 @@
 
       <div class="form-row two-columns">
         <amw-input
+          data-testid="shopping-item-editor-quantity-input"
           type="number"
           formControlName="quantity"
           label="Quantity"
@@ -46,6 +49,7 @@
         }
 
         <amw-select
+          data-testid="shopping-item-editor-unit-select"
           formControlName="unit"
           label="Unit"
           [options]="getUnitOptions()"
@@ -55,6 +59,7 @@
 
       <div class="form-row two-columns">
         <app-reference-selector
+          data-testid="shopping-item-editor-category-selector"
           [discriminatorId]="REFERENCE_IDS.SHOPPING_CATEGORY_TYPE"
           [control]="itemForm.get('categoryId')!"
           label="Category"
@@ -63,6 +68,7 @@
         </app-reference-selector>
 
         <app-reference-selector
+          data-testid="shopping-item-editor-priority-selector"
           [discriminatorId]="REFERENCE_IDS.SHOPPING_PRIORITY_TYPE"
           [control]="itemForm.get('priorityId')!"
           label="Priority"
@@ -73,6 +79,7 @@
 
       <div class="form-row">
         <amw-checkbox
+          data-testid="shopping-item-editor-completed-checkbox"
           formControlName="isCompleted"
           label="Mark as completed">
         </amw-checkbox>
@@ -81,6 +88,7 @@
 
     <div class="editor-actions">
       <amw-button
+        data-testid="shopping-item-editor-cancel-btn"
         type="button"
         variant="text"
         (click)="onCancel()"
@@ -88,6 +96,7 @@
         Cancel
       </amw-button>
       <amw-button
+        data-testid="shopping-item-editor-submit-btn"
         type="submit"
         variant="filled"
         color="primary"

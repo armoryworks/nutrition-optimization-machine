@@ -13,8 +13,8 @@
     <amw-icon name="error_outline" class="nom-recipe-view__error-icon"></amw-icon>
     <h2>{{ errorMessage() }}</h2>
     <div class="nom-recipe-view__error-actions">
-      <amw-button variant="outlined" (click)="goBack()" icon="arrow_back">Back to Search</amw-button>
-      <amw-button variant="filled" color="primary" (click)="retry()" icon="refresh">Try Again</amw-button>
+      <amw-button data-testid="recipe-detail-back-btn" variant="outlined" (click)="goBack()" icon="arrow_back">Back to Search</amw-button>
+      <amw-button data-testid="recipe-detail-retry-btn" variant="filled" color="primary" (click)="retry()" icon="refresh">Try Again</amw-button>
     </div>
   </div>
   }
@@ -24,7 +24,7 @@
   <!-- Main Content: Three Column Layout -->
   <div class="nom-recipe-view__content">
     <!-- Back Navigation -->
-    <amw-button class="nom-recipe-view__back" variant="icon" icon="arrow_back" (click)="goBack()"
+    <amw-button data-testid="recipe-detail-nav-back-btn" class="nom-recipe-view__back" variant="icon" icon="arrow_back" (click)="goBack()"
       aria-label="Back to search"></amw-button>
 
     <!-- Column 1: Recipe Summary Card -->
@@ -69,7 +69,7 @@
               [(opened)]="nutritionPopoverOpen" position="auto" [showArrow]="true" [showClose]="true"
               [showHeader]="false" size="auto" [showFooter]="false" closeButtonIcon="close">
               <ng-template #trigger>
-                <amw-button class="nom-recipe-view__nutrition-link" variant="text">
+                <amw-button data-testid="recipe-detail-nutrition-btn" class="nom-recipe-view__nutrition-link" variant="text">
                   Detailed nutrition information
                 </amw-button>
               </ng-template>
