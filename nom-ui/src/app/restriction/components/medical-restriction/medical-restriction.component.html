@@ -10,7 +10,8 @@
     [options]="getAllergyOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('allergyMedicalIngredientIds', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-medical-allergy-ingredients-select">
   </amw-select>
 
   <h5 class="nom-section__heading mt-4">Medical Conditions</h5>
@@ -21,7 +22,8 @@
       [checked]="isMultiSelectOptionSelected('allergyMedicalConditionIds', condition.id.toString())"
       [label]="condition.name"
       (checkedChange)="onCheckboxChange('allergyMedicalConditionIds', condition.id.toString(), $event)"
-      class="nom-checkbox">
+      class="nom-checkbox"
+      [attr.data-testid]="'restriction-medical-condition-checkbox-' + condition.id">
     </amw-checkbox>
     }
   </div>
@@ -33,7 +35,8 @@
     [options]="getGIConditionOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('gastrointestinalConditions', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-medical-gi-conditions-select">
   </amw-select>
 
   <h5 class="nom-section__heading mt-4">Kidney Disease Restrictions</h5>
@@ -46,7 +49,8 @@
     [options]="getKidneyRestrictionOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('kidneyDiseaseNutrientRestrictions', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-medical-kidney-nutrients-select">
   </amw-select>
 
   <amw-chip-input
@@ -56,13 +60,15 @@
     [suggestions]="allMicronutrientOptions"
     [removable]="true"
     [allowCustomValues]="true"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-medical-vitamin-deficiencies-chip-input">
   </amw-chip-input>
 
   <amw-textarea
     formControlName="prescriptionInteractions"
     label="Prescription Interactions"
     placeholder="List any medications that may interact with diet"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-medical-prescription-interactions-input">
   </amw-textarea>
 </div>

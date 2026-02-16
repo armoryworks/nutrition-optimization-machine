@@ -15,7 +15,7 @@
     <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" (click)="loadCuratedPlans()" icon="refresh">
+      <amw-button variant="outlined" color="primary" (click)="loadCuratedPlans()" icon="refresh" data-testid="curated-plans-retry-btn">
         Try Again
       </amw-button>
     </div>
@@ -94,7 +94,7 @@
                 <div class="curated-plans__actions">
                   <amw-button variant="filled" color="primary" [disabled]="cloningPlanId() === plan.id"
                     [loading]="cloningPlanId() === plan.id" (click)="clonePlan(plan.id)"
-                    icon="content_copy">
+                    icon="content_copy" [attr.data-testid]="'curated-plans-clone-btn-' + plan.id">
                     {{ cloningPlanId() === plan.id ? 'Cloning...' : 'Clone Plan' }}
                   </amw-button>
                 </div>

@@ -13,13 +13,14 @@
         <amw-icon name="error_outline" class="nom-error-state__icon" aria-hidden="true"></amw-icon>
         <p class="nom-error-state__message">{{ error() }}</p>
         <div class="nom-error-state__actions">
-          <amw-button variant="filled" color="primary" (click)="onRetry()" aria-label="Retry action">Try Again</amw-button>
+          <amw-button variant="filled" color="primary" (click)="onRetry()" aria-label="Retry action" data-testid="person-creation-retry-btn">Try Again</amw-button>
         </div>
       </div>
       } @else {
       <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form">
         <amw-input formControlName="name" label="Your Name" placeholder="Enter your name" [required]="true"
           class="nom-form__field"
+          data-testid="person-creation-name-input"
           [attr.aria-invalid]="personForm.get('name')?.invalid && personForm.get('name')?.touched"
           [attr.aria-describedby]="personForm.get('name')?.invalid && personForm.get('name')?.touched ? 'person-name-error' : null">
         </amw-input>
@@ -32,7 +33,8 @@
         <div class="nom-form__actions">
           <amw-button type="submit" variant="filled" color="primary" [disabled]="personForm.invalid || isSubmitting()"
             [amwValidationTooltip]="validationContext"
-            [loading]="isSubmitting()">
+            [loading]="isSubmitting()"
+            data-testid="person-creation-submit-btn">
             {{ submitText }}
           </amw-button>
         </div>

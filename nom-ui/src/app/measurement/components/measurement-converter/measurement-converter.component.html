@@ -10,14 +10,16 @@
         formControlName="fromCategoryId"
         label="From Category"
         [options]="getCategoryOptions()"
-        class="form-group">
+        class="form-group"
+        data-testid="measurement-from-category-select">
       </amw-select>
 
       <amw-select
         formControlName="fromMeasurementId"
         label="From Unit"
         [options]="getFromMeasurementOptions()"
-        class="form-group">
+        class="form-group"
+        data-testid="measurement-from-unit-select">
       </amw-select>
     </div>
 
@@ -26,14 +28,16 @@
         formControlName="toCategoryId"
         label="To Category"
         [options]="getCategoryOptions()"
-        class="form-group">
+        class="form-group"
+        data-testid="measurement-to-category-select">
       </amw-select>
 
       <amw-select
         formControlName="toMeasurementId"
         label="To Unit"
         [options]="getToMeasurementOptions()"
-        class="form-group">
+        class="form-group"
+        data-testid="measurement-to-unit-select">
       </amw-select>
     </div>
 
@@ -43,7 +47,8 @@
         label="Value"
         type="number"
         placeholder="Enter value to convert"
-        class="form-group">
+        class="form-group"
+        data-testid="measurement-value-input">
       </amw-input>
     </div>
 
@@ -53,7 +58,8 @@
         variant="filled"
         color="primary"
         [disabled]="!converterForm.valid || isLoading()"
-        [loading]="isLoading()">
+        [loading]="isLoading()"
+        data-testid="measurement-convert-btn">
         Convert
       </amw-button>
 
@@ -61,14 +67,16 @@
         type="button"
         variant="outlined"
         (click)="onSwapMeasurements()"
-        [disabled]="!converterForm.get('fromMeasurementId')?.value || !converterForm.get('toMeasurementId')?.value">
+        [disabled]="!converterForm.get('fromMeasurementId')?.value || !converterForm.get('toMeasurementId')?.value"
+        data-testid="measurement-swap-btn">
         Swap Units
       </amw-button>
 
       <amw-button
         type="button"
         variant="text"
-        (click)="resetForm()">
+        (click)="resetForm()"
+        data-testid="measurement-reset-btn">
         Reset
       </amw-button>
     </div>

@@ -30,6 +30,7 @@
         <div class="recipe-ratings__stars" role="radiogroup" aria-label="Recipe rating from 1 to 5 stars">
           @for (star of [1,2,3,4,5]; track star) {
             <amw-icon
+              [attr.data-testid]="'recipe-ratings-star-' + star"
               name="star"
               [class]="getStarClass(star)"
               class="recipe-ratings__star recipe-ratings__star--clickable"
@@ -48,6 +49,7 @@
       </div>
 
       <amw-textarea
+        data-testid="recipe-ratings-comment-textarea"
         formControlName="comment"
         label="Comment (Optional)"
         placeholder="Share your thoughts about this recipe..."
@@ -57,6 +59,7 @@
 
       <div class="recipe-ratings__form-actions">
         <amw-button
+          data-testid="recipe-ratings-submit-btn"
           variant="filled"
           color="primary"
           type="submit"
@@ -69,6 +72,7 @@
 
         @if (userRating) {
           <amw-button
+            data-testid="recipe-ratings-delete-own-btn"
             variant="outlined"
             color="warn"
             type="button"
@@ -122,6 +126,7 @@
               <div class="recipe-ratings__rating-actions">
                 @if (canDeleteRating(rating)) {
                   <amw-icon-button
+                    [attr.data-testid]="'recipe-ratings-delete-btn-' + $index"
                     icon="delete"
                     color="warn"
                     (buttonClick)="onDeleteRating()"

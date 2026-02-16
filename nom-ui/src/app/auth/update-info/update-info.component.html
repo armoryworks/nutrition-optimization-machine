@@ -31,7 +31,7 @@
         </p>
 
         <amw-input type="email" formControlName="newEmail" label="New Email (Optional)" icon="email"
-          class="nom-form__field"
+          class="nom-form__field" data-testid="update-info-email-input"
           [attr.aria-invalid]="updateInfoForm.get('newEmail')?.invalid && updateInfoForm.get('newEmail')?.touched"
           [attr.aria-describedby]="updateInfoForm.get('newEmail')?.invalid && updateInfoForm.get('newEmail')?.touched ? 'new-email-error' : null">
         </amw-input>
@@ -42,7 +42,7 @@
         }
 
         <amw-input type="password" formControlName="newPassword" label="New Password (Optional)" icon="lock"
-          class="nom-form__field"
+          class="nom-form__field" data-testid="update-info-password-input"
           [attr.aria-invalid]="updateInfoForm.get('newPassword')?.invalid && updateInfoForm.get('newPassword')?.touched"
           [attr.aria-describedby]="updateInfoForm.get('newPassword')?.invalid && updateInfoForm.get('newPassword')?.touched ? 'new-password-error' : null">
         </amw-input>
@@ -53,7 +53,7 @@
         }
 
         <amw-input type="password" formControlName="oldPassword" label="Current Password (Required)" icon="vpn_key"
-          [required]="true" class="nom-form__field"
+          [required]="true" class="nom-form__field" data-testid="update-info-current-password-input"
           [attr.aria-invalid]="updateInfoForm.get('oldPassword')?.invalid && updateInfoForm.get('oldPassword')?.touched"
           [attr.aria-describedby]="updateInfoForm.get('oldPassword')?.invalid && updateInfoForm.get('oldPassword')?.touched ? 'old-password-error' : null">
         </amw-input>
@@ -71,7 +71,7 @@
 
         <amw-button type="submit" variant="filled" color="primary" [disabled]="updateInfoForm.invalid || isLoading()"
           [amwValidationTooltip]="validationContext"
-          [loading]="isLoading()" class="nom-button">
+          [loading]="isLoading()" class="nom-button" data-testid="update-info-submit-btn">
           Save Changes
         </amw-button>
       </form>

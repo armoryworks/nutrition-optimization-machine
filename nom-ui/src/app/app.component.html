@@ -54,7 +54,7 @@
     </button>
 
     @if (isLoggedIn$ | async) {
-    <div class="nom-user-menu" data-cy="user-menu">
+    <div class="nom-user-menu" data-testid="app-user-menu">
       <amw-menu #userMenu triggerIcon="account_circle" menuClass="nom-user-menu__dropdown">
         <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
         <amw-menu-item [isDivider]="true"></amw-menu-item>
@@ -71,7 +71,7 @@
         <amw-menu-item [isDivider]="true"></amw-menu-item>
         <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
         <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
-        <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()"></amw-menu-item>
+        <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()" data-testid="app-logout-btn"></amw-menu-item>
       </amw-menu>
     </div>
     }
@@ -87,7 +87,7 @@
 <!-- Login Popover - Only visible when not logged in and login button is clicked -->
 @if (!(isLoggedIn$ | async) && showLoginPopover()) {
 <div class="nom-popover-backdrop" (click)="closeLoginPopover()"></div>
-<div class="nom-popover" data-cy="login-popover">
+<div class="nom-popover" data-testid="app-login-popover">
   <nom-login (closeRequested)="closeLoginPopover()"></nom-login>
 </div>
 }

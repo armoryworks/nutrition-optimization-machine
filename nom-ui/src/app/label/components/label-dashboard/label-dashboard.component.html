@@ -13,7 +13,7 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <amw-button variant="filled" color="primary" icon="add" (click)="toggleCreateForm()">
+      <amw-button variant="filled" color="primary" icon="add" (click)="toggleCreateForm()" data-testid="label-dashboard-add-btn">
         Add Label
       </amw-button>
     </div>
@@ -23,19 +23,19 @@
     <div class="nom-form">
       <div class="nom-form__field">
         <label class="nom-form__label" for="lbl-name">Name</label>
-        <input class="nom-form__input" id="lbl-name" type="text" [(ngModel)]="newLabel.name" placeholder="Label name" maxlength="255" />
+        <input class="nom-form__input" id="lbl-name" type="text" [(ngModel)]="newLabel.name" placeholder="Label name" maxlength="255" data-testid="label-dashboard-name-input" />
       </div>
       <div class="nom-form__field">
         <label class="nom-form__label" for="lbl-color">Color</label>
-        <input class="nom-form__input" id="lbl-color" type="text" [(ngModel)]="newLabel.color" placeholder="#ff5722" maxlength="50" />
+        <input class="nom-form__input" id="lbl-color" type="text" [(ngModel)]="newLabel.color" placeholder="#ff5722" maxlength="50" data-testid="label-dashboard-color-input" />
       </div>
       <div class="nom-form__field">
         <label class="nom-form__label" for="lbl-group">Group</label>
-        <input class="nom-form__input" id="lbl-group" type="text" [(ngModel)]="newLabel.groupName" placeholder="Category" maxlength="255" />
+        <input class="nom-form__input" id="lbl-group" type="text" [(ngModel)]="newLabel.groupName" placeholder="Category" maxlength="255" data-testid="label-dashboard-group-input" />
       </div>
       <div class="nom-form__actions">
-        <amw-button variant="text" (click)="toggleCreateForm()">Cancel</amw-button>
-        <amw-button variant="filled" color="primary" icon="save" (click)="saveLabel()">
+        <amw-button variant="text" (click)="toggleCreateForm()" data-testid="label-dashboard-cancel-btn">Cancel</amw-button>
+        <amw-button variant="filled" color="primary" icon="save" (click)="saveLabel()" data-testid="label-dashboard-save-btn">
           {{ editingLabel() ? 'Update' : 'Create' }}
         </amw-button>
       </div>
@@ -63,7 +63,7 @@
     } @else {
       <div class="nom-dashboard__grid">
         @for (label of labels(); track label.id) {
-          <article class="nom-dashboard__card">
+          <article class="nom-dashboard__card" [attr.data-testid]="'label-dashboard-card-' + label.id">
             <div class="nom-dashboard__card-content">
               <h2 class="nom-dashboard__card-title">
                 @if (label.color) {
@@ -76,8 +76,8 @@
               }
             </div>
             <div class="nom-dashboard__card-actions">
-              <amw-button variant="text" color="primary" icon="edit" (click)="startEdit(label)">Edit</amw-button>
-              <amw-button variant="text" color="warn" icon="delete" (click)="deleteLabel(label)">Delete</amw-button>
+              <amw-button variant="text" color="primary" icon="edit" (click)="startEdit(label)" [attr.data-testid]="'label-dashboard-edit-btn-' + label.id">Edit</amw-button>
+              <amw-button variant="text" color="warn" icon="delete" (click)="deleteLabel(label)" [attr.data-testid]="'label-dashboard-delete-btn-' + label.id">Delete</amw-button>
             </div>
           </article>
         }

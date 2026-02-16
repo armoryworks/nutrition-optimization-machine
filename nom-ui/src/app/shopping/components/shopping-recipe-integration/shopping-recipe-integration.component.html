@@ -9,10 +9,10 @@
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onRetry()">
+      <amw-button data-testid="shopping-recipe-integration-retry-btn" variant="filled" color="primary" (click)="onRetry()">
         Retry
       </amw-button>
-      <amw-button variant="outlined" color="primary" (click)="onBack()">
+      <amw-button data-testid="shopping-recipe-integration-back-error-btn" variant="outlined" color="primary" (click)="onBack()">
         Back to Shopping List
       </amw-button>
     </div>
@@ -33,7 +33,7 @@
             <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
           </div>
         </div>
-        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
+        <amw-button data-testid="shopping-recipe-integration-back-btn" variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
           Back
         </amw-button>
       </div>
@@ -43,7 +43,7 @@
   <!-- Search Bar -->
   <amw-card>
     <ng-template #cardContent>
-      <amw-input label="Search Recipes" placeholder="Search by name, description, or author..." suffixIcon="search"
+      <amw-input data-testid="shopping-recipe-integration-search-input" label="Search Recipes" placeholder="Search by name, description, or author..." suffixIcon="search"
         (input)="onSearch($event)">
       </amw-input>
     </ng-template>
@@ -69,7 +69,7 @@
           @if (hasRecipes()) {
           <div class="nom-recipe-list">
             @for (recipe of filteredRecipes(); track recipe.id) {
-            <div class="nom-recipe-item" [class.nom-recipe-item--selected]="selectedRecipe()?.id === recipe.id"
+            <div class="nom-recipe-item" [attr.data-testid]="'shopping-recipe-integration-recipe-item-' + recipe.id" [class.nom-recipe-item--selected]="selectedRecipe()?.id === recipe.id"
               (click)="onSelectRecipe(recipe)">
               <div class="nom-recipe-item-content">
                 <div class="nom-recipe-item-header">
@@ -129,17 +129,17 @@
             </div>
 
             <form [formGroup]="servingsForm" class="nom-servings-form">
-              <amw-input label="Number of Servings" type="number" placeholder="4" [min]="1" [max]="100"
+              <amw-input data-testid="shopping-recipe-integration-servings-input" label="Number of Servings" type="number" placeholder="4" [min]="1" [max]="100"
                 hint="Adjust the quantity of ingredients based on servings" formControlName="servings">
               </amw-input>
             </form>
 
             <div class="nom-actions">
-              <amw-button variant="filled" color="primary" icon="add_shopping_cart"
+              <amw-button data-testid="shopping-recipe-integration-add-to-list-btn" variant="filled" color="primary" icon="add_shopping_cart"
                 [disabled]="servingsForm.invalid || isAdding()" (click)="onAddToShoppingList()">
                 {{ isAdding() ? 'Adding...' : 'Add to Shopping List' }}
               </amw-button>
-              <amw-button variant="outlined" color="primary" (click)="onClearSelection()">
+              <amw-button data-testid="shopping-recipe-integration-clear-selection-btn" variant="outlined" color="primary" (click)="onClearSelection()">
                 Clear Selection
               </amw-button>
             </div>

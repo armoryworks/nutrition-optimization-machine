@@ -10,7 +10,8 @@
     [options]="getPracticeTypeOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('societalReligiousEthicalTypeIds', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-societal-practice-types-select">
   </amw-select>
 
   <amw-chip-input
@@ -20,13 +21,15 @@
     [suggestions]="allCuratedIngredients"
     [removable]="true"
     [allowCustomValues]="true"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-societal-mandatory-inclusions-chip-input">
   </amw-chip-input>
 
   <amw-textarea
     formControlName="fastingSchedules"
     label="Fasting Schedules"
     placeholder="e.g., Every Friday, Lent"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-societal-fasting-schedules-input">
   </amw-textarea>
 </div>

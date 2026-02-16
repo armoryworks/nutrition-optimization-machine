@@ -2,6 +2,7 @@
   <div class="shopping-list__header">
     <h2>Shopping List</h2>
     <amw-button
+      data-testid="shopping-list-add-item-btn"
       variant="filled"
       color="primary"
       icon="add"
@@ -13,6 +14,7 @@
   <!-- Dynamic Filters -->
   <div class="shopping-list__filters">
     <amw-select
+      data-testid="shopping-list-priority-filter-select"
       [formControl]="filtersForm.get('priorityFilter')"
       label="Filter by Priority"
       [options]="[{value: '', label: 'All Priorities'}].concat(priorities().map(p => ({value: p.referenceId, label: p.referenceName})))"
@@ -20,6 +22,7 @@
     </amw-select>
 
     <amw-select
+      data-testid="shopping-list-category-filter-select"
       [formControl]="filtersForm.get('categoryFilter')"
       label="Filter by Category"
       [options]="[{value: '', label: 'All Categories'}].concat(categories().map(c => ({value: c.referenceId, label: c.referenceName})))"
@@ -27,6 +30,7 @@
     </amw-select>
 
     <amw-button
+      data-testid="shopping-list-clear-filters-btn"
       variant="text"
       (click)="clearFilters()">
       Clear Filters
@@ -51,11 +55,13 @@
         </div>
         <div class="shopping-item__actions">
           <amw-button
+            [attr.data-testid]="'shopping-list-edit-item-btn-' + $index"
             variant="icon"
             icon="edit"
             (click)="editItem(item)">
           </amw-button>
           <amw-button
+            [attr.data-testid]="'shopping-list-delete-item-btn-' + $index"
             variant="icon"
             icon="delete"
             (click)="deleteItem(item)">

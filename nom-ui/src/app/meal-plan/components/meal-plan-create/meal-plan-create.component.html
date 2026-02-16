@@ -18,27 +18,31 @@
           label="Recipe Name"
           placeholder="Enter recipe name..."
           icon="restaurant_menu"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-recipe-input">
         </amw-input>
 
         <amw-select
           formControlName="mealType"
           label="Meal Type"
           [options]="mealTypes"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-type-select">
         </amw-select>
 
         <amw-datepicker
           formControlName="date"
           label="Date"
-          [required]="true">
+          [required]="true"
+          data-testid="meal-plan-date-input">
         </amw-datepicker>
 
         <amw-textarea
           formControlName="description"
           label="Description (Optional)"
           placeholder="Add a description for your meal plan..."
-          [rows]="3">
+          [rows]="3"
+          data-testid="meal-plan-description-input">
         </amw-textarea>
       </form>
     </div>
@@ -53,7 +57,8 @@
         [disabled]="mealPlanForm.invalid || isLoading()"
         [amwValidationTooltip]="validationContext"
         [loading]="isLoading()"
-        (click)="onSubmit()">
+        (click)="onSubmit()"
+        data-testid="meal-plan-submit-btn">
         Create Meal Plan
       </amw-button>
     </div>

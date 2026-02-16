@@ -8,7 +8,7 @@
       <div class="measurement-list__error">
         <amw-icon name="error" color="warn"></amw-icon>
         <p>{{ error() }}</p>
-        <amw-button variant="text" color="primary" (click)="onRefresh()">Retry</amw-button>
+        <amw-button variant="text" color="primary" (click)="onRefresh()" data-testid="measurement-list-retry-btn">Retry</amw-button>
       </div>
       } @else {
       <div class="measurement-list__table-container">
@@ -19,14 +19,15 @@
         </div>
         } @else {
         <amw-data-table [config]="tableConfig" [columns]="tableColumns" [data]="measurements()"
-          (rowClick)="onEdit($event)" class="measurement-list__table">
+          (rowClick)="onEdit($event)" class="measurement-list__table" data-testid="measurement-list-table">
         </amw-data-table>
         }
       </div>
       }
 
       <div class="measurement-list__actions">
-        <amw-button variant="filled" color="primary" (click)="onRefresh()" icon="refresh">
+        <amw-button variant="filled" color="primary" (click)="onRefresh()" icon="refresh"
+          data-testid="measurement-list-refresh-btn">
           Refresh
         </amw-button>
       </div>

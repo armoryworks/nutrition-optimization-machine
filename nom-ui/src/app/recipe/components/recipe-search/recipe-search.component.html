@@ -8,7 +8,7 @@
   <!-- Search Form -->
   <div class="nom-search__form">
     <div class="nom-search__row">
-      <amw-input class="nom-search__field" [formControl]="searchControl" label="Search recipes"
+      <amw-input data-testid="recipe-search-input" class="nom-search__field" [formControl]="searchControl" label="Search recipes"
         placeholder="Try 'spaghetti', 'chicken', or 'healthy breakfast'..." (keyup.enter)="onSearchSubmit()">
       </amw-input>
     </div>
@@ -28,7 +28,7 @@
     <amw-icon name="error_outline" class="nom-search__empty-icon"></amw-icon>
     <h3 class="nom-search__empty-title">Search Failed</h3>
     <p class="nom-search__empty-message">{{ errorMessage() }}</p>
-    <amw-button variant="filled" color="primary" icon="refresh" (click)="onSearchSubmit()">
+    <amw-button data-testid="recipe-search-retry-btn" variant="filled" color="primary" icon="refresh" (click)="onSearchSubmit()">
       Try Again
     </amw-button>
   </div>
@@ -42,6 +42,7 @@
     <div class="nom-search__grid">
       @for (recipe of searchResults(); track recipe.id) {
       <amw-card
+        [attr.data-testid]="'recipe-search-result-card-' + $index"
         class="nom-search__card"
         [image]="recipe.imageUrl || placeholderImage"
         [imageAlt]="recipe.name"
@@ -90,7 +91,7 @@
         No recipes found matching "{{ searchQuery() }}".
         Try different keywords or browse our popular recipes.
       </p>
-      <amw-button variant="filled" color="primary" icon="restaurant" (click)="browsePublicRecipes()">
+      <amw-button data-testid="recipe-search-browse-btn" variant="filled" color="primary" icon="restaurant" (click)="browsePublicRecipes()">
         Browse Popular Recipes
       </amw-button>
     </div>
@@ -101,17 +102,17 @@
   <!-- Landing State (no search performed) -->
   @if (!hasSearched() && !isLoading()) {
   <div class="nom-landing__features">
-    <div class="nom-landing__feature" (click)="browsePublicRecipes()">
+    <div class="nom-landing__feature" data-testid="recipe-search-browse-feature" (click)="browsePublicRecipes()">
       <amw-icon name="restaurant" class="nom-landing__feature-icon"></amw-icon>
       <h3 class="nom-landing__feature-title">Browse Recipes</h3>
       <p class="nom-landing__feature-description">Explore our collection of popular and trending recipes</p>
     </div>
-    <div class="nom-landing__feature" (click)="onLogin()">
+    <div class="nom-landing__feature" data-testid="recipe-search-login-feature" (click)="onLogin()">
       <amw-icon name="bookmark" class="nom-landing__feature-icon"></amw-icon>
       <h3 class="nom-landing__feature-title">Save Favorites</h3>
       <p class="nom-landing__feature-description">Login to save recipes and create your personal cookbook</p>
     </div>
-    <div class="nom-landing__feature" (click)="onRegister()">
+    <div class="nom-landing__feature" data-testid="recipe-search-register-feature" (click)="onRegister()">
       <amw-icon name="edit" class="nom-landing__feature-icon"></amw-icon>
       <h3 class="nom-landing__feature-title">Share Your Recipes</h3>
       <p class="nom-landing__feature-description">Create an account to publish and share your own recipes</p>

@@ -7,6 +7,7 @@
   </p>
   <div class="nom-horizontal-group flex-wrap justify-center my-4">
     <amw-button
+      data-testid="onboarding-participants-yes-btn"
       variant="filled"
       color="primary"
       (click)="onHasParticipantsAnswer(true)"
@@ -15,6 +16,7 @@
       Yes
     </amw-button>
     <amw-button
+      data-testid="onboarding-participants-no-btn"
       variant="filled"
       color="accent"
       (click)="onHasParticipantsAnswer(false)"
@@ -28,6 +30,7 @@
     How many additional people will be participating?
   </p>
   <amw-input
+    data-testid="onboarding-participants-count-input"
     [formControl]="numberOfAdditionalParticipantsControl"
     label="Number of People"
     type="number"
@@ -44,6 +47,7 @@
   }
   <div class="flex justify-center mt-4">
     <amw-button
+      data-testid="onboarding-participants-prev-btn"
       variant="filled"
       color="accent"
       (click)="goToPreviousSubStep()"
@@ -52,6 +56,7 @@
       Previous
     </amw-button>
     <amw-button
+      data-testid="onboarding-participants-next-btn"
       variant="filled"
       color="primary"
       (click)="onHowManySubmit()"
@@ -67,6 +72,7 @@
   @for (person of internalAdditionalParticipantDetails; let i = $index; track i)
   {
   <amw-input
+    [attr.data-testid]="'onboarding-participant-name-input-' + i"
     [value]="person.name"
     (valueChange)="onParticipantNameChange(i, $event)"
     [label]="'Person ' + (i + 2) + ' Name'"
@@ -83,6 +89,7 @@
   }
   <div class="flex justify-center mt-4">
     <amw-button
+      data-testid="onboarding-participants-names-prev-btn"
       variant="filled"
       color="accent"
       (click)="goToPreviousSubStep()"
@@ -91,6 +98,7 @@
       Previous
     </amw-button>
     <amw-button
+      data-testid="onboarding-participants-names-next-btn"
       variant="filled"
       color="primary"
       (click)="onNamesSubmit()"

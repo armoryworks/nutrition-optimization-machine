@@ -9,10 +9,10 @@
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onRetry()">
+      <amw-button data-testid="shopping-list-share-retry-btn" variant="filled" color="primary" (click)="onRetry()">
         Retry
       </amw-button>
-      <amw-button variant="outlined" color="primary" (click)="onBack()">
+      <amw-button data-testid="shopping-list-share-back-error-btn" variant="outlined" color="primary" (click)="onBack()">
         Back to Shopping List
       </amw-button>
     </div>
@@ -33,7 +33,7 @@
             <p class="nom-subtitle">{{ shoppingList()?.name }}</p>
           </div>
         </div>
-        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
+        <amw-button data-testid="shopping-list-share-back-btn" variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">
           Back
         </amw-button>
       </div>
@@ -53,7 +53,7 @@
           <amw-icon name="link"></amw-icon>
           <span class="nom-link-text">{{ shareLink() }}</span>
         </div>
-        <amw-button variant="filled" color="primary" [icon]="linkCopied() ? 'check' : 'content_copy'"
+        <amw-button data-testid="shopping-list-share-copy-link-btn" variant="filled" color="primary" [icon]="linkCopied() ? 'check' : 'content_copy'"
           (click)="onCopyLink()">
           {{ linkCopied() ? 'Copied!' : 'Copy Link' }}
         </amw-button>
@@ -85,7 +85,7 @@
       <div class="nom-targets-list">
         @for (target of shareTargets(); track target.id) {
         <div class="nom-target-item">
-          <amw-checkbox [checked]="target.isShared" (change)="onToggleShare(target.id, $event)">
+          <amw-checkbox [attr.data-testid]="'shopping-list-share-target-checkbox-' + target.id" [checked]="target.isShared" (change)="onToggleShare(target.id, $event)">
           </amw-checkbox>
           <div class="nom-target-info">
             <span class="nom-target-name">{{ target.name }}</span>
@@ -99,7 +99,7 @@
       </div>
 
       <div class="nom-actions">
-        <amw-button variant="filled" color="primary" icon="save" [disabled]="isSaving()" (click)="onSaveSharing()">
+        <amw-button data-testid="shopping-list-share-save-btn" variant="filled" color="primary" icon="save" [disabled]="isSaving()" (click)="onSaveSharing()">
           {{ isSaving() ? 'Saving...' : 'Save Sharing Preferences' }}
         </amw-button>
       </div>

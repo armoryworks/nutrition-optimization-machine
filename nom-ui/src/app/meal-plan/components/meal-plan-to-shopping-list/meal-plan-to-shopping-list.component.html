@@ -7,8 +7,8 @@
   <div class="nom-error-state" role="alert">
     <p>{{ error() }}</p>
     <div class="nom-actions">
-      <amw-button variant="filled" color="primary" (click)="onRetry()">Retry</amw-button>
-      <amw-button variant="outlined" color="primary" (click)="onBack()">Back</amw-button>
+      <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="meal-plan-shopping-retry-btn">Retry</amw-button>
+      <amw-button variant="outlined" color="primary" (click)="onBack()" data-testid="meal-plan-shopping-back-btn">Back</amw-button>
     </div>
   </div>
   }
@@ -22,7 +22,7 @@
           <amw-icon name="shopping_cart"></amw-icon>
           <h2>Generate Shopping List</h2>
         </div>
-        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()">Back</amw-button>
+        <amw-button variant="outlined" color="primary" icon="arrow_back" (click)="onBack()" data-testid="meal-plan-shopping-back-header-btn">Back</amw-button>
       </div>
     </ng-template>
   </amw-card>
@@ -31,7 +31,8 @@
     <ng-template #cardContent>
       <div class="nom-selection-bar">
         <amw-checkbox [checked]="allSelected()" [indeterminate]="selectedCount() > 0 && !allSelected()"
-          (change)="onToggleAll($event)">
+          (change)="onToggleAll($event)"
+          data-testid="meal-plan-shopping-select-all-checkbox">
           Select All
         </amw-checkbox>
         <span>{{ selectedCount() }} of {{ totalCount() }} selected</span>
@@ -48,7 +49,8 @@
       <div class="nom-ingredients">
         @for (ingredient of ingredients(); track $index) {
         <div class="nom-ingredient">
-          <amw-checkbox [checked]="ingredient.isSelected" (change)="onToggleIngredient($index, $event)">
+          <amw-checkbox [checked]="ingredient.isSelected" (change)="onToggleIngredient($index, $event)"
+            [attr.data-testid]="'meal-plan-shopping-ingredient-checkbox-' + $index">
           </amw-checkbox>
           <div class="nom-ingredient-info">
             <strong>{{ ingredient.name }}</strong>
@@ -61,7 +63,8 @@
 
       <div class="nom-actions">
         <amw-button variant="filled" color="primary" icon="add_shopping_cart"
-          [disabled]="selectedCount() === 0 || isCreating()" (click)="onCreateShoppingList()">
+          [disabled]="selectedCount() === 0 || isCreating()" (click)="onCreateShoppingList()"
+          data-testid="meal-plan-shopping-create-btn">
           {{ isCreating() ? 'Creating...' : 'Create Shopping List' }}
         </amw-button>
       </div>

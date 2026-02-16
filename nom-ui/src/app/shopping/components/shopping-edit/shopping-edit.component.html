@@ -6,6 +6,7 @@
       } @else {
         <form [formGroup]="shoppingForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
           <amw-input
+            data-testid="shopping-edit-name-input"
             type="text"
             formControlName="name"
             placeholder="Enter a name for your shopping list..."
@@ -13,16 +14,18 @@
             [required]="true">
           </amw-input>
           <amw-textarea
+            data-testid="shopping-edit-description-input"
             formControlName="description"
             placeholder="Add a description for your shopping list..."
             label="Description (Optional)">
           </amw-textarea>
         </form>
         <div class="nom-form__actions">
-          <amw-button type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
+          <amw-button data-testid="shopping-edit-cancel-btn" type="button" variant="text" icon="close" [disabled]="isLoading()" (click)="onCancel()">
             {{ formConfig.cancelText || 'Cancel' }}
           </amw-button>
           <amw-button
+            data-testid="shopping-edit-submit-btn"
             type="submit"
             variant="filled"
             color="primary"

@@ -1,17 +1,17 @@
 <div class="nom-detail nom-detail--wide">
   <!-- Header -->
   <div class="nom-detail__actions" style="justify-content: space-between;">
-    <amw-button variant="text" icon="arrow_back" (click)="onBack()">Back</amw-button>
+    <amw-button variant="text" icon="arrow_back" (click)="onBack()" data-testid="household-detail-back-btn">Back</amw-button>
     <div class="nom-dashboard__header-right">
-      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditHousehold()">Edit Household</amw-button>
-      <amw-button variant="outlined" color="accent" icon="person_add" (click)="onInviteMembers()">Invite Members</amw-button>
-      <amw-button variant="icon" [amwMenuTriggerFor]="menu">
+      <amw-button variant="filled" color="primary" icon="edit" (click)="onEditHousehold()" data-testid="household-detail-edit-btn">Edit Household</amw-button>
+      <amw-button variant="outlined" color="accent" icon="person_add" (click)="onInviteMembers()" data-testid="household-detail-invite-btn">Invite Members</amw-button>
+      <amw-button variant="icon" [amwMenuTriggerFor]="menu" data-testid="household-detail-menu-btn">
         <amw-icon name="more_vert"></amw-icon>
       </amw-button>
       <amw-menu #menu>
-        <amw-menu-item label="Copy Invite Link" icon="content_copy" (itemClick)="onCopyInviteLink()"></amw-menu-item>
+        <amw-menu-item label="Copy Invite Link" icon="content_copy" (itemClick)="onCopyInviteLink()" data-testid="household-detail-copy-invite-item"></amw-menu-item>
         <amw-menu-item [isDivider]="true"></amw-menu-item>
-        <amw-menu-item label="Delete Household" icon="delete" (itemClick)="onDeleteHousehold()"></amw-menu-item>
+        <amw-menu-item label="Delete Household" icon="delete" (itemClick)="onDeleteHousehold()" data-testid="household-detail-delete-item"></amw-menu-item>
       </amw-menu>
     </div>
   </div>
@@ -26,7 +26,7 @@
     <div class="nom-dashboard__error" role="alert">
       <amw-icon name="error_outline"></amw-icon>
       <p>{{ error() }}</p>
-      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()">Try Again</amw-button>
+      <amw-button variant="outlined" color="primary" icon="refresh" (click)="onRetry()" data-testid="household-detail-retry-btn">Try Again</amw-button>
     </div>
   }
 
@@ -86,7 +86,7 @@
     <div class="nom-detail__section">
       <h3 class="nom-detail__section-title">Quick Actions</h3>
       <div class="nom-dashboard__grid--3col">
-        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewMealPlans()">
+        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewMealPlans()" data-testid="household-detail-meal-plans-card">
           <div class="nom-dashboard__card-header">
             <amw-icon name="schedule" class="nom-dashboard__card-icon"></amw-icon>
           </div>
@@ -95,7 +95,7 @@
             <p class="nom-dashboard__card-subtitle">Plan meals for the household</p>
           </div>
         </div>
-        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewShoppingLists()">
+        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewShoppingLists()" data-testid="household-detail-shopping-card">
           <div class="nom-dashboard__card-header">
             <amw-icon name="shopping_cart" class="nom-dashboard__card-icon"></amw-icon>
           </div>
@@ -104,7 +104,7 @@
             <p class="nom-dashboard__card-subtitle">Manage shopping lists</p>
           </div>
         </div>
-        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewRecipes()">
+        <div class="nom-dashboard__card nom-dashboard__card--clickable" (click)="onViewRecipes()" data-testid="household-detail-recipes-card">
           <div class="nom-dashboard__card-header">
             <amw-icon name="restaurant_menu" class="nom-dashboard__card-icon"></amw-icon>
           </div>
@@ -134,7 +134,7 @@
                 @if (member.role) {
                   <amw-chip [label]="member.role" color="primary"></amw-chip>
                 }
-                <amw-button variant="icon" (click)="onRemoveMember(member.id)">
+                <amw-button variant="icon" (click)="onRemoveMember(member.id)" data-testid="household-detail-remove-member-btn">
                   <amw-icon name="remove_circle"></amw-icon>
                 </amw-button>
               </div>

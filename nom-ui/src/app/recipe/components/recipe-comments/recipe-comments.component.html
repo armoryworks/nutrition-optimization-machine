@@ -16,7 +16,7 @@
       <amw-icon name="error" color="warn"></amw-icon>
       <h3>Error</h3>
       <p>{{ error() }}</p>
-      <amw-button variant="filled" color="primary" (click)="loadComments()" icon="refresh">
+      <amw-button data-testid="recipe-comments-retry-btn" variant="filled" color="primary" (click)="loadComments()" icon="refresh">
         Try Again
       </amw-button>
     </div>
@@ -29,6 +29,7 @@
       <h3>Add a Comment</h3>
       <form [formGroup]="commentForm" (ngSubmit)="submitComment()" class="nom-recipe-comments__form">
         <amw-input
+          data-testid="recipe-comments-title-input"
           formControlName="title"
           label="Title (Optional)"
           placeholder="Enter a title for your comment"
@@ -36,6 +37,7 @@
         </amw-input>
 
         <amw-textarea
+          data-testid="recipe-comments-text-textarea"
           formControlName="commentText"
           label="Comment"
           placeholder="Share your thoughts about this recipe..."
@@ -53,6 +55,7 @@
 
         <div class="nom-recipe-comments__actions">
           <amw-button
+            data-testid="recipe-comments-submit-btn"
             variant="filled"
             color="primary"
             type="submit"
@@ -97,6 +100,7 @@
 
           <div class="nom-recipe-comments__comment-actions">
             <amw-icon-button
+              [attr.data-testid]="'recipe-comments-delete-btn-' + $index"
               icon="delete"
               color="warn"
               (buttonClick)="deleteComment(comment.id)"

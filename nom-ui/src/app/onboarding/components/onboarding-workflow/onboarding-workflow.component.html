@@ -18,7 +18,7 @@
             'bg-red-100 text-red-700': !submitMessage()!.includes('successfully')
           }">
           <p class="nom-message-text font-semibold">{{ submitMessage() }}</p>
-          <amw-button variant="filled" color="primary" (click)="onCompletionRedirect()" class="mt-4">
+          <amw-button data-testid="onboarding-workflow-dashboard-btn" variant="filled" color="primary" (click)="onCompletionRedirect()" class="mt-4">
             Go to Dashboard
           </amw-button>
         </div>
@@ -81,10 +81,10 @@
             participating on the plan?
           </p>
           <div class="nom-horizontal-group flex-wrap justify-center my-4">
-            <amw-button variant="filled" color="primary" (click)="onIndividualPreferencesAnswer(true)" class="mr-2">
+            <amw-button data-testid="onboarding-workflow-individual-yes-btn" variant="filled" color="primary" (click)="onIndividualPreferencesAnswer(true)" class="mr-2">
               Yes
             </amw-button>
-            <amw-button variant="filled" color="accent" (click)="onIndividualPreferencesAnswer(false)">
+            <amw-button data-testid="onboarding-workflow-individual-no-btn" variant="filled" color="accent" (click)="onIndividualPreferencesAnswer(false)">
               No
             </amw-button>
           </div>
@@ -173,17 +173,17 @@
       @if (!submitMessage() && !!currentStep && currentStep.id) {
       <div class="nom-card__footer flex justify-between items-center px-6 py-4">
         @if(currentStepIndex() > 0){
-        <amw-button variant="text" color="accent" (click)="previousStep()"
+        <amw-button data-testid="onboarding-workflow-prev-btn" variant="text" color="accent" (click)="previousStep()"
           [disabled]="currentStepIndex() === 0 || isLoading() || isSubmitting()">
           Previous
         </amw-button>
-        } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) { <amw-button variant="outlined"
+        } @if(NO_FLOW_STEPS.indexOf(currentStep.id) < 0){ @if (isSkippable()) { <amw-button data-testid="onboarding-workflow-skip-btn" variant="outlined"
           (click)="skipCurrentStep()" [disabled]="isLoading() || isSubmitting()">
           Skip
           </amw-button>
           }
 
-          <amw-button variant="filled" color="primary" (click)="triggerChildComponentSubmission()"
+          <amw-button data-testid="onboarding-workflow-next-btn" variant="filled" color="primary" (click)="triggerChildComponentSubmission()"
             [disabled]="isLoading() || isSubmitting()" [loading]="isSubmitting()">
             {{ isSubmitStep() ? 'Submit Onboarding' : 'Next' }}
           </amw-button>

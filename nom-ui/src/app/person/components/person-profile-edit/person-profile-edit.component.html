@@ -14,7 +14,7 @@
           <span>{{ error() }}</span>
         </div>
         <div class="nom-form__actions">
-          <amw-button variant="filled" color="primary" (click)="onRetry()">Try Again</amw-button>
+          <amw-button variant="filled" color="primary" (click)="onRetry()" data-testid="person-profile-retry-btn">Try Again</amw-button>
         </div>
       } @else if (!isInitialLoading()) {
         <form [formGroup]="personForm" (ngSubmit)="onSubmit()" class="nom-form__fields">
@@ -23,11 +23,12 @@
             label="Your Name"
             placeholder="Enter your name"
             icon="person"
-            [required]="true">
+            [required]="true"
+            data-testid="person-profile-name-input">
           </amw-input>
         </form>
         <div class="nom-form__actions">
-          <amw-button type="button" variant="text" (click)="onCancel()">
+          <amw-button type="button" variant="text" (click)="onCancel()" data-testid="person-profile-cancel-btn">
             {{ cancelText }}
           </amw-button>
           <amw-button
@@ -37,7 +38,8 @@
             [disabled]="personForm.invalid || isLoading()"
             [amwValidationTooltip]="validationContext"
             [loading]="isLoading()"
-            (click)="onSubmit()">
+            (click)="onSubmit()"
+            data-testid="person-profile-submit-btn">
             {{ submitText }}
           </amw-button>
         </div>

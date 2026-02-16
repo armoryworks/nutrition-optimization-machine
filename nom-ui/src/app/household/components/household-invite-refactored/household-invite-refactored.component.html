@@ -12,7 +12,7 @@
       <ng-template #cardContent>
         <form [formGroup]="inviteForm" (ngSubmit)="generateInviteToken()">
           <amw-input type="number" formControlName="expiresInDays" label="Token Expiration (Days)"
-            hint="How long the invite link should be valid (1-30 days)" [required]="true" class="full-width">
+            hint="How long the invite link should be valid (1-30 days)" [required]="true" class="full-width" data-testid="household-invite-r-days-input">
           </amw-input>
 
           <!-- Error Message -->
@@ -30,17 +30,17 @@
             <h3>Invite Link Generated</h3>
 
             <div class="invite-link-container">
-              <amw-input [value]="inviteLink()" label="Invite Link" [readonly]="true" class="full-width">
+              <amw-input [value]="inviteLink()" label="Invite Link" [readonly]="true" class="full-width" data-testid="household-invite-r-link-input">
               </amw-input>
-              <amw-button variant="icon" (click)="copyInviteLink()">
+              <amw-button variant="icon" (click)="copyInviteLink()" data-testid="household-invite-r-link-copy-btn">
                 <amw-icon name="content_copy"></amw-icon>
               </amw-button>
             </div>
 
             <div class="invite-token-container">
-              <amw-input [value]="inviteToken()" label="Invite Token" [readonly]="true" class="full-width">
+              <amw-input [value]="inviteToken()" label="Invite Token" [readonly]="true" class="full-width" data-testid="household-invite-r-token-input">
               </amw-input>
-              <amw-button variant="icon" (click)="copyToken()">
+              <amw-button variant="icon" (click)="copyToken()" data-testid="household-invite-r-token-copy-btn">
                 <amw-icon name="content_copy"></amw-icon>
               </amw-button>
             </div>
@@ -58,11 +58,11 @@
 
           <!-- Form Actions -->
           <div class="form-actions">
-            <amw-button type="button" variant="text" (click)="onBack()">
+            <amw-button type="button" variant="text" (click)="onBack()" data-testid="household-invite-r-back-btn">
               Back
             </amw-button>
             <amw-button type="submit" variant="filled" color="primary" [disabled]="inviteForm.invalid || isLoading()"
-              [loading]="isLoading()" [amwValidationTooltip]="validationContext">
+              [loading]="isLoading()" [amwValidationTooltip]="validationContext" data-testid="household-invite-r-submit-btn">
               Generate Invite Link
             </amw-button>
           </div>

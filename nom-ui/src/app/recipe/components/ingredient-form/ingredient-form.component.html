@@ -25,7 +25,8 @@
               label="Ingredient Name"
               placeholder="e.g., All-Purpose Flour"
               [required]="true"
-              [attr.aria-describedby]="existingIngredient() && showDuplicateChecking() ? 'duplicate-warning' : null">
+              [attr.aria-describedby]="existingIngredient() && showDuplicateChecking() ? 'duplicate-warning' : null"
+              data-testid="ingredient-name-input">
             </amw-input>
 
             @if (isCheckingDuplicate()) {
@@ -48,7 +49,8 @@
               formControlName="description"
               label="Description (Optional)"
               placeholder="A brief description of the ingredient..."
-              [rows]="3">
+              [rows]="3"
+              data-testid="ingredient-description-input">
             </amw-textarea>
           </div>
 
@@ -56,14 +58,14 @@
           <div class="nom-modal__section">
             <div class="nom-dashboard__section-header">
               <h3 class="nom-modal__section-title">Nutritional Information (per 100g)</h3>
-              <amw-button variant="outlined" type="button" icon="add" (click)="addNutrient()">Add Nutrient</amw-button>
+              <amw-button variant="outlined" type="button" icon="add" (click)="addNutrient()" data-testid="ingredient-add-nutrient-btn">Add Nutrient</amw-button>
             </div>
 
             <div formArrayName="nutrients" class="nom-dashboard__list">
               @for (nutrient of nutrients.controls; track $index) {
-                <div class="nom-dashboard__list-item ingredient-form__nutrient-row" [formGroupName]="$index">
-                  <amw-select formControlName="nutrientId" label="Nutrient" [required]="true" [options]="getNutrientTypeOptions()"></amw-select>
-                  <amw-input formControlName="amount" label="Amount" type="number" [required]="true" style="width: 100px;"></amw-input>
+                <div class="nom-dashboard__list-item ingredient-form__nutrient-row" [formGroupName]="$index" [attr.data-testid]="'ingredient-nutrient-row-' + $index">
+                  <amw-select formControlName="nutrientId" label="Nutrient" [required]="true" [options]="getNutrientTypeOptions()" [attr.data-testid]="'ingredient-nutrient-select-' + $index"></amw-select>
+                  <amw-input formControlName="amount" label="Amount" type="number" [required]="true" style="width: 100px;" [attr.data-testid]="'ingredient-nutrient-value-' + $index"></amw-input>
                   <amw-select formControlName="measurementId" label="Unit" [required]="true" [options]="getMeasurementOptions()" style="width: 120px;"></amw-select>
                   <amw-button variant="icon" type="button" (click)="removeNutrient($index)" title="Remove Nutrient">
                     <amw-icon name="delete_outline"></amw-icon>
@@ -92,7 +94,8 @@
         [amwValidationTooltip]="validationContext"
         [disabled]="ingredientForm.invalid || isSubmitting()"
         [loading]="isSubmitting()"
-        (click)="onSubmit()">
+        (click)="onSubmit()"
+        data-testid="ingredient-submit-btn">
         {{ formConfig().submitText || 'Save' }}
       </amw-button>
     </div>
@@ -125,8 +128,8 @@
             <div class="nom-form__section">
               <h3 class="nom-form__section-title">General Information</h3>
               <div class="nom-form__fields">
-                <amw-input formControlName="name" label="Ingredient Name" placeholder="e.g., All-Purpose Flour" [required]="true"></amw-input>
-                <amw-textarea formControlName="description" label="Description (Optional)" placeholder="A brief description of the ingredient..." [rows]="3"></amw-textarea>
+                <amw-input formControlName="name" label="Ingredient Name" placeholder="e.g., All-Purpose Flour" [required]="true" data-testid="ingredient-name-input"></amw-input>
+                <amw-textarea formControlName="description" label="Description (Optional)" placeholder="A brief description of the ingredient..." [rows]="3" data-testid="ingredient-description-input"></amw-textarea>
               </div>
             </div>
 
@@ -134,14 +137,14 @@
             <div class="nom-form__section">
               <div class="nom-dashboard__section-header">
                 <h3 class="nom-form__section-title">Nutritional Information (per 100g)</h3>
-                <amw-button variant="outlined" type="button" icon="add" (click)="addNutrient()">Add Nutrient</amw-button>
+                <amw-button variant="outlined" type="button" icon="add" (click)="addNutrient()" data-testid="ingredient-add-nutrient-btn">Add Nutrient</amw-button>
               </div>
 
               <div formArrayName="nutrients" class="nom-dashboard__list">
                 @for (nutrient of nutrients.controls; track $index; let i = $index) {
-                  <div [formGroupName]="i" class="nom-dashboard__list-item ingredient-form__nutrient-row">
-                    <amw-select formControlName="nutrientId" label="Nutrient" [required]="true" [options]="getNutrientTypeOptions()"></amw-select>
-                    <amw-input formControlName="amount" label="Amount" type="number" [required]="true" style="width: 100px;"></amw-input>
+                  <div [formGroupName]="i" class="nom-dashboard__list-item ingredient-form__nutrient-row" [attr.data-testid]="'ingredient-nutrient-row-' + i">
+                    <amw-select formControlName="nutrientId" label="Nutrient" [required]="true" [options]="getNutrientTypeOptions()" [attr.data-testid]="'ingredient-nutrient-select-' + i"></amw-select>
+                    <amw-input formControlName="amount" label="Amount" type="number" [required]="true" style="width: 100px;" [attr.data-testid]="'ingredient-nutrient-value-' + i"></amw-input>
                     <amw-select formControlName="measurementId" label="Unit" [required]="true" [options]="getMeasurementOptions()" style="width: 120px;"></amw-select>
                     <amw-button variant="icon" type="button" (click)="removeNutrient(i)" title="Remove Nutrient">
                       <amw-icon name="delete_outline"></amw-icon>
@@ -168,7 +171,8 @@
               [amwValidationTooltip]="validationContext"
               [disabled]="ingredientForm.invalid || isSubmitting()"
               [loading]="isSubmitting()"
-              (click)="onSubmit()">
+              (click)="onSubmit()"
+              data-testid="ingredient-submit-btn">
               {{ isSubmitting() ? 'Saving...' : (formConfig().submitText || 'Save') }}
             </amw-button>
           </div>

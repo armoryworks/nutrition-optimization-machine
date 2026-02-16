@@ -87,17 +87,17 @@
           }
           <h3 class="nom-wizard__complete-title">{{ submitMessage()!.includes('successfully') ? 'All Done!' : 'Error' }}</h3>
           <p class="nom-wizard__complete-message">{{ submitMessage() }}</p>
-          <amw-button variant="filled" color="primary" (click)="onGoToDashboard()">Go to Dashboard</amw-button>
+          <amw-button variant="filled" color="primary" (click)="onGoToDashboard()" data-testid="onboarding-dashboard-btn">Go to Dashboard</amw-button>
         </div>
       }
     </div>
 
     @if (!isLoading() && questions().length > 0 && !submitMessage() && currentQuestion) {
       <div class="nom-wizard__actions nom-wizard__actions--between">
-        <amw-button variant="outlined" (click)="goToPreviousQuestion()" [disabled]="currentQuestionIndex() === 0 || isSubmitting()">
+        <amw-button variant="outlined" (click)="goToPreviousQuestion()" [disabled]="currentQuestionIndex() === 0 || isSubmitting()" data-testid="onboarding-prev-btn">
           Previous
         </amw-button>
-        <amw-button variant="filled" color="primary" (click)="goToNextQuestion()" [disabled]="isSubmitting()" [loading]="isSubmitting()">
+        <amw-button variant="filled" color="primary" (click)="goToNextQuestion()" [disabled]="isSubmitting()" [loading]="isSubmitting()" data-testid="onboarding-next-btn">
           {{ currentQuestionIndex() === questions().length - 1 ? 'Submit' : 'Next' }}
         </amw-button>
       </div>

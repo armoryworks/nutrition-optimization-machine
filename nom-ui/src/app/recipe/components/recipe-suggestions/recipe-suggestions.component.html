@@ -8,6 +8,7 @@
   <div class="nav-tabs">
     <button
       class="nav-tab"
+      data-testid="recipe-suggestions-tab-ingredients"
       [class.active]="activeTab() === 'ingredients'"
       (click)="setActiveTab('ingredients')">
       <i class="fas fa-carrot"></i>
@@ -15,6 +16,7 @@
     </button>
     <button
       class="nav-tab"
+      data-testid="recipe-suggestions-tab-ai"
       [class.active]="activeTab() === 'ai'"
       (click)="setActiveTab('ai')">
       <i class="fas fa-magic"></i>
@@ -22,6 +24,7 @@
     </button>
     <button
       class="nav-tab"
+      data-testid="recipe-suggestions-tab-trending"
       [class.active]="activeTab() === 'trending'"
       (click)="setActiveTab('trending')">
       <i class="fas fa-fire"></i>
@@ -29,6 +32,7 @@
     </button>
     <button
       class="nav-tab"
+      data-testid="recipe-suggestions-tab-seasonal"
       [class.active]="activeTab() === 'seasonal'"
       (click)="setActiveTab('seasonal')">
       <i class="fas fa-leaf"></i>
@@ -44,28 +48,28 @@
         <div class="form-row">
           <div class="form-group">
             <label for="limit">Results Limit</label>
-            <input type="number" id="limit" formControlName="limit" min="1" max="50">
+            <input type="number" id="limit" formControlName="limit" data-testid="recipe-suggestions-limit-input" min="1" max="50">
           </div>
           <div class="form-group">
             <label for="maxMissingIngredients">Max Missing Ingredients</label>
-            <input type="number" id="maxMissingIngredients" formControlName="maxMissingIngredients" min="0" max="20">
+            <input type="number" id="maxMissingIngredients" formControlName="maxMissingIngredients" data-testid="recipe-suggestions-max-missing-ingredients-input" min="0" max="20">
           </div>
           <div class="form-group">
             <label for="maxMissingTools">Max Missing Tools</label>
-            <input type="number" id="maxMissingTools" formControlName="maxMissingTools" min="0" max="10">
+            <input type="number" id="maxMissingTools" formControlName="maxMissingTools" data-testid="recipe-suggestions-max-missing-tools-input" min="0" max="10">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>
-              <input type="checkbox" formControlName="includeIngredientsOnHand">
+              <input type="checkbox" formControlName="includeIngredientsOnHand" data-testid="recipe-suggestions-ingredients-onhand-checkbox">
               Include Ingredients on Hand
             </label>
           </div>
           <div class="form-group">
             <label>
-              <input type="checkbox" formControlName="includeToolsOnHand">
+              <input type="checkbox" formControlName="includeToolsOnHand" data-testid="recipe-suggestions-tools-onhand-checkbox">
               Include Tools on Hand
             </label>
           </div>
@@ -74,15 +78,15 @@
         <div class="form-row">
           <div class="form-group">
             <label for="maxPrepTime">Max Prep Time (minutes)</label>
-            <input type="number" id="maxPrepTime" formControlName="maxPrepTime" min="1" max="480">
+            <input type="number" id="maxPrepTime" formControlName="maxPrepTime" data-testid="recipe-suggestions-max-prep-time-input" min="1" max="480">
           </div>
           <div class="form-group">
             <label for="maxCookTime">Max Cook Time (minutes)</label>
-            <input type="number" id="maxCookTime" formControlName="maxCookTime" min="1" max="480">
+            <input type="number" id="maxCookTime" formControlName="maxCookTime" data-testid="recipe-suggestions-max-cook-time-input" min="1" max="480">
           </div>
           <div class="form-group">
             <label for="maxDifficulty">Max Difficulty</label>
-            <select id="maxDifficulty" formControlName="maxDifficulty">
+            <select id="maxDifficulty" formControlName="maxDifficulty" data-testid="recipe-suggestions-max-difficulty-select">
               <option value="">Any</option>
               @for (difficulty of difficulties(); track difficulty.id) {
               <option [value]="difficulty.id">
@@ -96,7 +100,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="dietaryRestrictions">Dietary Restrictions</label>
-            <select id="dietaryRestrictions" formControlName="dietaryRestrictions" multiple>
+            <select id="dietaryRestrictions" formControlName="dietaryRestrictions" data-testid="recipe-suggestions-dietary-select" multiple>
               @for (option of dietaryOptions(); track option) {
               <option [value]="option">{{option}}</option>
               }
@@ -104,7 +108,7 @@
           </div>
           <div class="form-group">
             <label for="cuisines">Cuisines</label>
-            <select id="cuisines" formControlName="cuisines" multiple>
+            <select id="cuisines" formControlName="cuisines" data-testid="recipe-suggestions-cuisines-select" multiple>
               @for (option of cuisineOptions; track option) {
               <option [value]="option">{{option}}</option>
               }
@@ -122,6 +126,7 @@
         <button
           type="button"
           class="ingredient-item"
+          [attr.data-testid]="'recipe-suggestions-ingredient-' + $index"
           [class.selected]="selectedIngredients().includes(ingredient)"
           (click)="toggleIngredient(ingredient)"
           [attr.aria-label]="'Select ingredient ' + ingredient"
@@ -141,6 +146,7 @@
         <button
           type="button"
           class="tool-item"
+          [attr.data-testid]="'recipe-suggestions-tool-' + $index"
           [class.selected]="selectedTools().includes(tool)"
           (click)="toggleTool(tool)"
           [attr.aria-label]="'Select tool ' + tool"
@@ -154,19 +160,19 @@
 
     <!-- Quick Action Buttons -->
     <div class="quick-actions">
-      <button class="btn btn-primary" (click)="getQuickSuggestions(30)">
+      <button class="btn btn-primary" data-testid="recipe-suggestions-quick-btn" (click)="getQuickSuggestions(30)">
         <i class="fas fa-clock"></i>
         Quick Recipes (30 min)
       </button>
-      <button class="btn btn-success" (click)="getBeginnerSuggestions()">
+      <button class="btn btn-success" data-testid="recipe-suggestions-beginner-btn" (click)="getBeginnerSuggestions()">
         <i class="fas fa-star"></i>
         Beginner Friendly
       </button>
-      <button class="btn btn-warning" (click)="getBudgetSuggestions(25)">
+      <button class="btn btn-warning" data-testid="recipe-suggestions-budget-btn" (click)="getBudgetSuggestions(25)">
         <i class="fas fa-dollar-sign"></i>
         Budget Friendly ($25)
       </button>
-      <button class="btn btn-info" (click)="getDietarySuggestions(['Vegetarian'])">
+      <button class="btn btn-info" data-testid="recipe-suggestions-vegetarian-btn" (click)="getDietarySuggestions(['Vegetarian'])">
         <i class="fas fa-seedling"></i>
         Vegetarian
       </button>
@@ -277,11 +283,11 @@
           </div>
 
           <div class="card-actions">
-            <button class="btn btn-primary" (click)="viewRecipe(item.recipeId)">
+            <button class="btn btn-primary" [attr.data-testid]="'recipe-suggestions-view-btn-' + $index" (click)="viewRecipe(item.recipeId)">
               <i class="fas fa-eye"></i>
               View Recipe
             </button>
-            <button class="btn btn-outline-primary" (click)="saveRecipe(item.recipeId)">
+            <button class="btn btn-outline-primary" [attr.data-testid]="'recipe-suggestions-save-btn-' + $index" (click)="saveRecipe(item.recipeId)">
               <i class="fas fa-heart"></i>
               Save
             </button>
@@ -322,9 +328,10 @@
       <form [formGroup]="aiSuggestionForm" class="ai-form">
         <div class="form-group">
           <label for="aiDescription">Describe your ideal recipe</label>
-          <textarea 
-            id="aiDescription" 
+          <textarea
+            id="aiDescription"
             formControlName="description"
+            data-testid="recipe-suggestions-ai-description-textarea"
             placeholder="e.g., I want to make a quick vegetarian dinner using tomatoes and pasta, something Italian-inspired but healthy..."
             rows="4"></textarea>
         </div>
@@ -332,26 +339,26 @@
         <div class="form-row">
           <div class="form-group">
             <label for="aiServingSize">Serving Size</label>
-            <input type="number" id="aiServingSize" formControlName="servingSize" min="1" max="20">
+            <input type="number" id="aiServingSize" formControlName="servingSize" data-testid="recipe-suggestions-ai-serving-input" min="1" max="20">
           </div>
           <div class="form-group">
             <label for="aiMaxPrepTime">Max Prep Time (minutes)</label>
-            <input type="number" id="aiMaxPrepTime" formControlName="maxPrepTime" min="1" max="480">
+            <input type="number" id="aiMaxPrepTime" formControlName="maxPrepTime" data-testid="recipe-suggestions-ai-prep-time-input" min="1" max="480">
           </div>
           <div class="form-group">
             <label for="aiMaxCookTime">Max Cook Time (minutes)</label>
-            <input type="number" id="aiMaxCookTime" formControlName="maxCookTime" min="1" max="480">
+            <input type="number" id="aiMaxCookTime" formControlName="maxCookTime" data-testid="recipe-suggestions-ai-cook-time-input" min="1" max="480">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="aiBudgetLimit">Budget Limit ($)</label>
-            <input type="number" id="aiBudgetLimit" formControlName="budgetLimit" min="1" max="500">
+            <input type="number" id="aiBudgetLimit" formControlName="budgetLimit" data-testid="recipe-suggestions-ai-budget-input" min="1" max="500">
           </div>
           <div class="form-group">
             <label for="aiCuisine">Preferred Cuisine</label>
-            <select id="aiCuisine" formControlName="cuisine">
+            <select id="aiCuisine" formControlName="cuisine" data-testid="recipe-suggestions-ai-cuisine-select">
               <option value="">Any</option>
               @for (option of cuisineOptions; track option) {
               <option [value]="option">{{option}}</option>
@@ -360,7 +367,7 @@
           </div>
           <div class="form-group">
             <label for="aiMealType">Meal Type</label>
-            <select id="aiMealType" formControlName="mealType">
+            <select id="aiMealType" formControlName="mealType" data-testid="recipe-suggestions-ai-meal-type-select">
               <option value="">Any</option>
               @for (option of mealTypeOptions; track option) {
               <option [value]="option">{{option}}</option>
@@ -372,7 +379,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="aiDifficulty">Difficulty Level</label>
-            <select id="aiDifficulty" formControlName="difficulty">
+            <select id="aiDifficulty" formControlName="difficulty" data-testid="recipe-suggestions-ai-difficulty-select">
               <option value="">Any</option>
               @for (option of difficultyOptions; track option) {
               <option [value]="option">{{option}}</option>
@@ -381,7 +388,7 @@
           </div>
           <div class="form-group">
             <label for="aiDietaryRestrictions">Dietary Restrictions</label>
-            <select id="aiDietaryRestrictions" formControlName="dietaryRestrictions" multiple>
+            <select id="aiDietaryRestrictions" formControlName="dietaryRestrictions" data-testid="recipe-suggestions-ai-dietary-select" multiple>
               @for (option of dietaryOptions(); track option) {
               <option [value]="option">{{option}}</option>
               }
@@ -392,13 +399,13 @@
         <div class="form-row">
           <div class="form-group">
             <label>
-              <input type="checkbox" formControlName="includeNutritionalInfo">
+              <input type="checkbox" formControlName="includeNutritionalInfo" data-testid="recipe-suggestions-ai-nutritional-checkbox">
               Include Nutritional Information
             </label>
           </div>
           <div class="form-group">
             <label>
-              <input type="checkbox" formControlName="includeSubstitutions">
+              <input type="checkbox" formControlName="includeSubstitutions" data-testid="recipe-suggestions-ai-substitutions-checkbox">
               Include Ingredient Substitutions
             </label>
           </div>
@@ -407,6 +414,7 @@
         <button
           type="button"
           class="btn btn-primary btn-lg"
+          data-testid="recipe-suggestions-ai-generate-btn"
           [disabled]="aiSuggestionForm.invalid || aiLoading()"
           (click)="generateAISuggestions()">
           @if (!aiLoading()) {
@@ -515,11 +523,11 @@
           </div>
 
           <div class="card-actions">
-            <button class="btn btn-primary" (click)="viewRecipe(item.recipeId)">
+            <button class="btn btn-primary" [attr.data-testid]="'recipe-suggestions-ai-view-btn-' + $index" (click)="viewRecipe(item.recipeId)">
               <i class="fas fa-eye"></i>
               View Recipe
             </button>
-            <button class="btn btn-outline-primary" (click)="saveRecipe(item.recipeId)">
+            <button class="btn btn-outline-primary" [attr.data-testid]="'recipe-suggestions-ai-save-btn-' + $index" (click)="saveRecipe(item.recipeId)">
               <i class="fas fa-heart"></i>
               Save
             </button>

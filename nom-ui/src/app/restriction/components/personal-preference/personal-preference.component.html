@@ -6,7 +6,8 @@
     formControlName="personalPreferenceSpiceLevel"
     label="Preferred Spice Level"
     [options]="getSpiceLevelSelectOptions()"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-preference-spice-level-select">
   </amw-select>
 
   <amw-chip-input
@@ -16,7 +17,8 @@
     [suggestions]="allCuratedIngredients"
     [removable]="true"
     [allowCustomValues]="true"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-preference-disliked-ingredients-chip-input">
   </amw-chip-input>
 
   <amw-select
@@ -25,7 +27,8 @@
     [options]="getTextureSelectOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('dislikedTextures', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-preference-disliked-textures-select">
   </amw-select>
 
   <amw-select
@@ -34,6 +37,7 @@
     [options]="getCookingMethodSelectOptions()"
     [multiple]="true"
     (selectionChange)="onMultiSelectChange('preferredCookingMethods', $event)"
-    class="nom-form__field">
+    class="nom-form__field"
+    data-testid="restriction-preference-cooking-methods-select">
   </amw-select>
 </div>

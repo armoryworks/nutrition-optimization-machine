@@ -11,6 +11,7 @@
         id="url"
         type="url"
         formControlName="url"
+        data-testid="recipe-scraping-url-input"
         placeholder="https://example.com/recipe"
         class="form-control"
         [class.is-invalid]="urlControl?.invalid && urlControl?.touched"
@@ -32,7 +33,7 @@
     <div class="form-options">
       <div class="checkbox-group">
         <label class="checkbox-label">
-          <input type="checkbox" formControlName="importKeywordsAsTags" />
+          <input type="checkbox" formControlName="importKeywordsAsTags" data-testid="recipe-scraping-keywords-checkbox" />
           <span class="checkmark"></span>
           Import keywords as tags
         </label>
@@ -40,7 +41,7 @@
 
       <div class="checkbox-group">
         <label class="checkbox-label">
-          <input type="checkbox" formControlName="stayInEditMode" />
+          <input type="checkbox" formControlName="stayInEditMode" data-testid="recipe-scraping-editmode-checkbox" />
           <span class="checkmark"></span>
           Stay in edit mode after import
         </label>
@@ -51,6 +52,7 @@
       <button
         type="submit"
         class="btn btn-primary"
+        data-testid="recipe-scraping-test-btn"
         [disabled]="scrapingForm.invalid || isLoading()"
       >
         @if (isLoading()) {
@@ -62,6 +64,7 @@
       <button
         type="button"
         class="btn btn-secondary"
+        data-testid="recipe-scraping-cancel-btn"
         (click)="cancel()"
         [disabled]="isLoading()"
       >
@@ -180,6 +183,7 @@
         <button
           type="button"
           class="btn btn-success"
+          data-testid="recipe-scraping-import-btn"
           (click)="createRecipe()"
           [disabled]="isLoading()"
         >
@@ -192,6 +196,7 @@
         <button
           type="button"
           class="btn btn-secondary"
+          data-testid="recipe-scraping-reset-btn"
           (click)="reset()"
           [disabled]="isLoading()"
         >

@@ -13,13 +13,15 @@
           formControlName="name"
           placeholder="Enter a name for your household..."
           label="Household Name"
-          [required]="true">
+          [required]="true"
+          data-testid="household-name-input">
         </amw-input>
 
         <amw-textarea
           formControlName="description"
           placeholder="Add a description to help identify your household..."
-          label="Description (Optional)">
+          label="Description (Optional)"
+          data-testid="household-description-input">
         </amw-textarea>
       </form>
     </div>
@@ -38,7 +40,8 @@
         [loading]="isLoading()"
         [amwValidationTooltip]="validationContext"
         [disabled]="householdForm.invalid"
-        (click)="onSubmit()">
+        (click)="onSubmit()"
+        data-testid="household-submit-btn">
         {{ formConfig.submitText || 'Create Household' }}
       </amw-button>
     </div>

@@ -14,18 +14,21 @@
           formControlName="name"
           placeholder="My Cookbook"
           label="Cookbook Name"
-          [required]="true">
+          [required]="true"
+          data-testid="cookbook-create-name-input">
         </amw-input>
 
         <amw-textarea
           formControlName="description"
           placeholder="A collection of..."
-          label="Description (Optional)">
+          label="Description (Optional)"
+          data-testid="cookbook-create-description-input">
         </amw-textarea>
 
         <amw-checkbox
           formControlName="isPublic"
-          label="Make this cookbook public">
+          label="Make this cookbook public"
+          data-testid="cookbook-create-public-checkbox">
         </amw-checkbox>
       </form>
     </div>
@@ -34,7 +37,8 @@
         type="button"
         variant="text"
         [disabled]="isLoading()"
-        (click)="onCancel()">
+        (click)="onCancel()"
+        data-testid="cookbook-create-cancel-btn">
         Cancel
       </amw-button>
       <amw-button
@@ -44,7 +48,8 @@
         [loading]="isLoading()"
         [amwValidationTooltip]="validationContext"
         [disabled]="cookbookForm.invalid"
-        (click)="onSubmit()">
+        (click)="onSubmit()"
+        data-testid="cookbook-create-submit-btn">
         Create Cookbook
       </amw-button>
     </div>

@@ -71,7 +71,8 @@
                 (click)="selectItem(item)"
                 (keydown)="onKeyDown($event, item)"
                 [attr.aria-label]="'Select ' + item.entityType + ': ' + item.name"
-                [attr.aria-pressed]="selectedItem()?.id === item.id">
+                [attr.aria-pressed]="selectedItem()?.id === item.id"
+                data-testid="curation-item">
                 <div class="nom-master-detail__item-badge curation-queue__badge--{{ item.entityType.toLowerCase() }}">
                   {{ item.entityType }}
                 </div>
@@ -230,7 +231,7 @@
 
                 <!-- Decision Form -->
                 <div class="nom-master-detail__form-row">
-                  <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true">
+                  <amw-textarea formControlName="decisionNotes" label="Decision Notes (Required)" [required]="true" data-testid="curation-notes-input">
                   </amw-textarea>
 
                   <amw-textarea formControlName="publicNotes" label="Public Notes (Optional)">
@@ -240,7 +241,8 @@
                 <div class="nom-master-detail__form-actions">
                   <amw-button variant="filled" color="primary" type="button" (click)="approve()"
                     [disabled]="decisionForm.invalid || isSubmitting()"
-                    aria-label="Approve this item" icon="check">
+                    aria-label="Approve this item" icon="check"
+                    data-testid="curation-approve-btn">
                     Approve
                   </amw-button>
 
