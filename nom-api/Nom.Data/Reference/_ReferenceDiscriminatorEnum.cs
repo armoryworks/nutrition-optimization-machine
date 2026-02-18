@@ -49,6 +49,7 @@ namespace Nom.Data.Reference
         MedicalConditionType = 6008,           // For medical conditions (Celiac Disease, Diabetes, etc.)
         SocietalRestrictionType = 6009,        // For religious/ethical restrictions (Kosher, Halal, etc.)
         PersonalPreferenceType = 6010,         // For personal preferences (Spice levels, textures, etc.)
+        PersonAttributeType = 6011,            // For person attribute types (Height, Weight, Gender, DOB)
         SortOptionType = 6013,                 // For search/sort options (relevance, rating, name, etc.)
         SortDirectionType = 6014,              // For sort directions (asc, desc)
         DayOfWeekType = 6015,                  // For days of week (Monday, Tuesday, etc.)

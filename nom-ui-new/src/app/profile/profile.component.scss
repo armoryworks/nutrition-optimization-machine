@@ -1,0 +1,26 @@
+@use 'variables' as vars;
+
+.nom-profile__unit-toggle {
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-profile__option-hint {
+  display: block;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: 2px;
+}
+
+.nom-profile__success {
+  background: var(--mat-sys-primary-container);
+  border: 1px solid var(--mat-sys-primary);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  color: var(--mat-sys-on-primary-container);
+  font-size: vars.$font-size-sm;
+}

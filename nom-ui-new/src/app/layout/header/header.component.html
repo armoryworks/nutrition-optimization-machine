@@ -30,9 +30,14 @@
       <button mat-icon-button class="nom-header__action-btn" aria-label="Notifications">
         <mat-icon>notifications_none</mat-icon>
       </button>
-      <button class="nom-header__avatar" (click)="logoutClick.emit()" aria-label="User menu">
-        <span>U</span>
+      <button class="nom-header__avatar" (click)="toggleUserMenu()" aria-label="User menu">
+        <span>{{ userInitial() }}</span>
       </button>
+
+      @if (userMenuOpen()) {
+        <div class="nom-header__popover-backdrop" (click)="userMenuOpen.set(false)"></div>
+        <nom-user-menu (closed)="userMenuOpen.set(false)"></nom-user-menu>
+      }
     } @else {
       <button
         mat-flat-button

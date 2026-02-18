@@ -1,0 +1,81 @@
+@use 'variables' as vars;
+
+.nom-settings {
+  max-width: vars.$content-max-narrow;
+  margin: 0 auto;
+  padding: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
+}
+
+.nom-settings__header {
+  margin-bottom: vars.$spacing-8;
+}
+
+.nom-settings__title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-settings__subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-settings__grid {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-settings__card {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-5 vars.$spacing-6;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms vars.$transition-timing,
+              box-shadow 150ms vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    box-shadow: vars.$elevation-1;
+  }
+}
+
+.nom-settings__card-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
+}
+
+.nom-settings__card-content {
+  flex: 1;
+}
+
+.nom-settings__card-title {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-1;
+}
+
+.nom-settings__card-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-settings__card-arrow {
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}

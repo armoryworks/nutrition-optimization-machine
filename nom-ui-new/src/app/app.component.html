@@ -3,8 +3,7 @@
 <nom-header
   [isLoggedIn]="isLoggedIn()"
   [isDarkTheme]="isDarkTheme()"
-  (themeToggle)="toggleTheme()"
-  (logoutClick)="logout()">
+  (themeToggle)="toggleTheme()">
 </nom-header>
 
 <main id="main-content" class="nom-main" [attr.inert]="isLoading() ? '' : null">

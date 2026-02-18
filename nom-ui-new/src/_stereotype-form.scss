@@ -146,8 +146,13 @@
   justify-content: flex-end;
   gap: vars.$spacing-3;
   margin-top: vars.$spacing-6;
-  padding-top: vars.$spacing-6;
+  padding-top: vars.$spacing-4;
+  padding-bottom: vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
+  position: sticky;
+  bottom: 0;
+  background: var(--mat-sys-surface);
+  z-index: 1;
 
   @media (max-width: vars.$breakpoint-mobile) {
     flex-direction: column-reverse;

@@ -1,0 +1,103 @@
+@use 'variables' as vars;
+
+:host {
+  position: absolute;
+  top: calc(100% + vars.$spacing-2);
+  right: 0;
+  z-index: vars.$z-dropdown;
+}
+
+.nom-user-menu {
+  width: 280px;
+  padding: vars.$spacing-3;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  box-shadow: vars.$elevation-3;
+}
+
+.nom-user-menu__identity {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-2;
+}
+
+.nom-user-menu__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  flex-shrink: 0;
+}
+
+.nom-user-menu__info {
+  min-width: 0;
+}
+
+.nom-user-menu__email {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.nom-user-menu__divider {
+  height: 1px;
+  background: var(--mat-sys-outline-variant);
+  margin: vars.$spacing-2 0;
+}
+
+.nom-user-menu__nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  border-radius: vars.$nom-border-radius;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+  width: 100%;
+  text-align: left;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &--danger {
+    color: var(--mat-sys-error);
+
+    mat-icon {
+      color: var(--mat-sys-error);
+    }
+
+    &:hover {
+      background: var(--mat-sys-error-container);
+    }
+  }
+}

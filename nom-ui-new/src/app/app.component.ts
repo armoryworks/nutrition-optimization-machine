@@ -32,8 +32,4 @@ export class App {
   toggleSidebar(): void {
     this.sidebarOpen.update(v => !v);
   }
-
-  logout(): void {
-    this.authService.logout().subscribe();
-  }
 }

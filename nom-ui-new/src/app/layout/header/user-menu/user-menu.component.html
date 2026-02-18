@@ -1,0 +1,30 @@
+<div class="nom-user-menu">
+  <div class="nom-user-menu__identity">
+    <div class="nom-user-menu__avatar">
+      <span>{{ initial() }}</span>
+    </div>
+    <div class="nom-user-menu__info">
+      <span class="nom-user-menu__email">{{ email() }}</span>
+    </div>
+  </div>
+
+  <div class="nom-user-menu__divider"></div>
+
+  <nav class="nom-user-menu__nav" aria-label="User menu">
+    <a class="nom-user-menu__item" routerLink="/profile" (click)="closed.emit()">
+      <mat-icon>person</mat-icon>
+      <span>Profile</span>
+    </a>
+    <a class="nom-user-menu__item" routerLink="/settings" (click)="closed.emit()">
+      <mat-icon>settings</mat-icon>
+      <span>Settings</span>
+    </a>
+  </nav>
+
+  <div class="nom-user-menu__divider"></div>
+
+  <button class="nom-user-menu__item nom-user-menu__item--danger" (click)="onLogout()">
+    <mat-icon>logout</mat-icon>
+    <span>Sign Out</span>
+  </button>
+</div>

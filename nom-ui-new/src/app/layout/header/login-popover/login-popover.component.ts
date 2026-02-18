@@ -1,12 +1,13 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
+import { PersonService } from '../../../core/services/person.service';
 
 @Component({
   selector: 'nom-login-popover',
@@ -26,6 +27,8 @@ export class LoginPopover {
   closed = output<void>();
 
   private authService = inject(AuthService);
+  private personService = inject(PersonService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
 
   loginForm = this.fb.group({
@@ -48,6 +51,7 @@ export class LoginPopover {
       next: () => {
         this.loading.set(false);
         this.closed.emit();
+        this.checkOnboardingState();
       },
       error: (err) => {
         this.loading.set(false);
@@ -56,6 +60,16 @@ export class LoginPopover {
             ? 'Invalid email or password.'
             : 'Unable to sign in. Please try again.'
         );
+      },
+    });
+  }
+
+  private checkOnboardingState(): void {
+    this.personService.getOnboardingState().subscribe({
+      next: (state) => {
+        if (!state.isComplete) {
+          this.router.navigate(['/onboarding']);
+        }
       },
     });
   }

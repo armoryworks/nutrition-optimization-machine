@@ -1,0 +1,58 @@
+<div class="nom-form--full">
+  @if (isStandalone()) {
+    <div class="nom-form__header">
+      <h1 class="nom-form__title">Dietary Restrictions</h1>
+      <p class="nom-form__subtitle">Select any dietary restrictions, allergies, or preferences that apply to you</p>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="nom-restrictions__success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @for (category of categories(); track category.label) {
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">{{ category.label }}</h2>
+
+      <div class="nom-restrictions__chips">
+        @for (item of category.items; track item.referenceId) {
+          <button
+            type="button"
+            class="nom-restrictions__chip"
+            [class.nom-restrictions__chip--selected]="isSelected(item.referenceId)"
+            (click)="toggleRestriction(item.referenceId)"
+            [attr.aria-pressed]="isSelected(item.referenceId)">
+            @if (isSelected(item.referenceId)) {
+              <mat-icon class="nom-restrictions__chip-icon">check</mat-icon>
+            }
+            {{ item.referenceName }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  @if (isStandalone()) {
+    <div class="nom-form__actions">
+      <button mat-flat-button type="button" (click)="onSubmit()">
+        Save Preferences
+      </button>
+    </div>
+  } @else {
+    <div class="nom-form__actions">
+      <button mat-flat-button type="button" (click)="onSubmit()">
+        Continue
+      </button>
+    </div>
+  }
+</div>
