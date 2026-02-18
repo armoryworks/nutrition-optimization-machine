@@ -1,0 +1,76 @@
+<div class="nom-search" data-testid="search-page">
+  @if (loading()) {
+    <div class="nom-search__loading">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Searching...</p>
+    </div>
+  } @else if (error()) {
+    <div class="nom-search__empty">
+      <mat-icon class="nom-search__empty-icon">error_outline</mat-icon>
+      <h2>Something went wrong</h2>
+      <p>{{ error() }}</p>
+      <button class="nom-search__retry-btn" (click)="performSearch(query())">Try Again</button>
+    </div>
+  } @else {
+    <div class="nom-search__header">
+      <h1 class="nom-search__title">
+        @if (query()) {
+          Results for "{{ query() }}"
+        } @else {
+          All Recipes
+        }
+      </h1>
+      <span class="nom-search__count">{{ totalCount() }} recipes found</span>
+    </div>
+
+    @if (results().length > 0) {
+      <div class="nom-search__grid">
+        @for (recipe of results(); track recipe.id) {
+          <a class="nom-search__card"
+             [routerLink]="['/recipe', recipe.id]"
+             data-testid="search-result-card">
+            @if (recipe.imageUrl) {
+              <img
+                [src]="recipe.imageUrl"
+                [alt]="recipe.name"
+                class="nom-search__card-img"
+                loading="lazy">
+            } @else {
+              <div class="nom-search__card-img nom-search__card-img--placeholder">
+                <mat-icon>restaurant</mat-icon>
+              </div>
+            }
+            <div class="nom-search__card-info">
+              @if (recipe.categories.length > 0) {
+                <span class="nom-search__card-category">{{ recipe.categories[0] }}</span>
+              }
+              <span class="nom-search__card-name">{{ recipe.name }}</span>
+              @if (recipe.description) {
+                <p class="nom-search__card-desc">{{ recipe.description }}</p>
+              }
+              <div class="nom-search__card-meta">
+                <span class="nom-search__card-time">
+                  <mat-icon class="nom-search__card-meta-icon">schedule</mat-icon>
+                  {{ recipe.totalTime }} min
+                </span>
+                @if (recipe.averageRating > 0) {
+                  <span class="nom-search__card-rating">
+                    <mat-icon class="nom-search__card-meta-icon">star</mat-icon>
+                    {{ recipe.averageRating }}
+                  </span>
+                }
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    } @else {
+      <div class="nom-search__empty">
+        <mat-icon class="nom-search__empty-icon">search_off</mat-icon>
+        <h2>No recipes found</h2>
+        <p>Try a different search term.</p>
+        <a routerLink="/home" class="nom-search__empty-link">Browse all recipes</a>
+      </div>
+    }
+  }
+</div>

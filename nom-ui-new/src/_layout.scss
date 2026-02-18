@@ -1,0 +1,154 @@
+// =============================================================================
+// APP SHELL LAYOUT
+// =============================================================================
+
+@use 'variables' as vars;
+
+// Main content area - fills between header and footer
+.nom-main {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Two-column grid: content + sidebar
+.nom-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: 100%;
+  padding: 0 vars.$spacing-6;
+
+  &--with-sidebar {
+    grid-template-columns: 1fr vars.$layout-sidebar-width;
+    gap: vars.$spacing-6;
+  }
+}
+
+.nom-layout__content {
+  overflow-y: auto;
+  min-height: 0;
+  padding: vars.$spacing-4 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-layout__sidebar {
+  overflow-y: auto;
+  min-height: 0;
+  padding: vars.$spacing-6 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-5;
+}
+
+// Responsive: sidebar becomes sidecar below breakpoint
+@media (max-width: vars.$breakpoint-desktop) {
+  .nom-layout--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .nom-layout__sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: vars.$z-modal;
+    width: vars.$layout-sidebar-width;
+    max-width: 90vw;
+    height: 100vh;
+    background: var(--mat-sys-surface);
+    box-shadow: vars.$elevation-3;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    padding: vars.$spacing-5;
+
+    &--open {
+      transform: translateX(0);
+    }
+  }
+}
+
+// Sidebar toggle tab (right edge, below breakpoint only)
+.nom-sidebar-toggle {
+  display: none;
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: vars.$z-dropdown;
+  writing-mode: vertical-rl;
+  padding: vars.$spacing-3 vars.$spacing-1;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-right: none;
+  border-radius: vars.$nom-border-radius-lg 0 0 vars.$nom-border-radius-lg;
+  box-shadow: vars.$elevation-2;
+  cursor: pointer;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    writing-mode: horizontal-tb;
+    font-size: 18px;
+    margin-bottom: vars.$spacing-1;
+  }
+
+  @media (max-width: vars.$breakpoint-desktop) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: vars.$spacing-1;
+  }
+}
+
+// Sidebar close button (inside sidecar, below breakpoint only)
+.nom-sidebar-close {
+  display: none;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: transparent;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  cursor: pointer;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: vars.$spacing-3;
+
+  @media (max-width: vars.$breakpoint-desktop) {
+    display: flex;
+  }
+}
+
+// Backdrop overlay
+.nom-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: vars.$z-modal-backdrop;
+  background: rgba(0, 0, 0, 0.3);
+
+  &--visible {
+    display: block;
+  }
+}
+
+// Skip link
+.nom-skip-link {
+  position: absolute;
+  top: -100%;
+  left: vars.$spacing-4;
+  z-index: vars.$z-tooltip;
+  padding: vars.$spacing-2 vars.$spacing-4;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  border-radius: vars.$nom-border-radius;
+  text-decoration: none;
+  font-weight: vars.$font-weight-medium;
+
+  &:focus {
+    top: vars.$spacing-2;
+  }
+}

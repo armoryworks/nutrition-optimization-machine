@@ -1,13 +1,16 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AmwIconComponent, AmwButtonComponent, AmwInlineLoadingComponent } from 'angular-material-wrap';
 import { RecipeSearchService } from '../recipe/services/recipe-search.service';
 import { RecipeSearchResult } from '../recipe/models/recipe-search.model';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'nom-home',
   standalone: true,
   imports: [
+    CommonModule,
     RouterLink,
     AmwIconComponent,
     AmwButtonComponent,
@@ -18,7 +21,10 @@ import { RecipeSearchResult } from '../recipe/models/recipe-search.model';
 })
 export class HomeComponent implements OnInit {
   private recipeSearchService = inject(RecipeSearchService);
+  private authService = inject(AuthService);
   private router = inject(Router);
+
+  isLoggedIn$ = this.authService.isLoggedIn$;
 
   recipes = signal<RecipeSearchResult[]>([]);
   isLoading = signal(false);

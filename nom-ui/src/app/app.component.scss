@@ -11,23 +11,19 @@ body {
 :host {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   height: 100vh;
+  overflow: hidden;
 }
 
 .nom-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   height: 60px;
   padding: 0 vars.$spacing-6;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   background: var(--mat-sys-surface);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
-  z-index: 1000;
+  z-index: vars.$z-sticky;
 
   @media (max-width: vars.$breakpoint-mobile) {
     height: 56px;
@@ -74,7 +70,6 @@ body {
     flex: 1;
     display: flex;
     align-items: center;
-    max-width: 500px;
     margin: 0 vars.$spacing-6;
     padding: vars.$spacing-2 vars.$spacing-4;
     background: var(--mat-sys-surface-container);
@@ -120,66 +115,12 @@ body {
     }
   }
 
-  // Navigation Section
-  &__nav {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-1;
-
-    @media (max-width: vars.$breakpoint-mobile) {
-      gap: 0;
-    }
-  }
-
-  &__nav-link {
-    display: flex;
-    align-items: center;
-    gap: vars.$spacing-2;
-    padding: vars.$spacing-2 vars.$spacing-4;
-    text-decoration: none;
-    color: var(--mat-sys-on-surface-variant);
-    font-size: vars.$font-size-sm;
-    font-weight: vars.$font-weight-medium;
-    border-radius: vars.$nom-border-radius;
-    transition: all vars.$transition-duration-fast ease;
-
-    &:hover {
-      color: var(--mat-sys-on-surface);
-      background: var(--mat-sys-surface-container);
-    }
-
-    &.active {
-      color: var(--mat-sys-primary);
-      background: var(--mat-sys-primary-container);
-    }
-
-    amw-icon {
-      font-size: 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
-    }
-
-    @media (max-width: vars.$breakpoint-mobile) {
-      padding: vars.$spacing-2;
-
-      span {
-        display: none;
-      }
-    }
-  }
-
-  // Actions Section (Theme, User, Register) — hidden at desktop when sidebar visible
+  // Actions Section (Theme, Notifications, User Menu / Login)
   &__actions {
     display: flex;
     align-items: center;
     gap: vars.$spacing-3;
     flex-shrink: 0;
-
-    &--mobile {
-      @media (min-width: vars.$layout-sidebar-breakpoint) {
-        display: none;
-      }
-    }
   }
 
   &__icon-btn {
@@ -215,17 +156,11 @@ body {
 
 }
 
-// Main content area — clears the fixed header and footer
+// Main content area — fills space between header and footer
 .nom-main {
   flex: 1;
-  padding-top: 60px;   // Match .nom-header height
-  padding-bottom: 40px; // Match .nom-footer height
-  overflow-y: auto;
-  box-sizing: border-box;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding-top: 56px;  // Match responsive header height
-  }
+  min-height: 0; // Allow flex item to shrink below content size
+  overflow: hidden; // Children (.nom-app-layout columns) scroll independently
 }
 
 .nom-user-menu {
@@ -314,36 +249,6 @@ body {
   }
 }
 
-.nom-sidenav {
-  position: fixed;
-  top: 0;
-  right: -250px;
-  width: 250px;
-  height: 100%;
-  padding-top: 60px;
-  transition: right vars.$transition-duration-normal ease-in-out;
-  z-index: 1000;
-
-  &--open {
-    right: 0;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-
-    li {
-      .nom-sidenav__link {
-        display: block;
-        padding: vars.$spacing-4 vars.$spacing-5;
-        text-decoration: none;
-        transition: background-color vars.$transition-duration-fast ease;
-      }
-    }
-  }
-}
-
 // Generic centered popover - content determines size
 .nom-popover-backdrop {
   position: fixed;
@@ -363,10 +268,7 @@ body {
 
 // Footer Styles
 .nom-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   height: 40px;
   display: flex;
   justify-content: space-between;

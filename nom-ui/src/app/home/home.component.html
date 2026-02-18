@@ -7,11 +7,39 @@
     <span class="nom-dashboard__subtitle">Discover community recipes</span>
   </div>
   <div class="nom-dashboard__header-right">
+    @if (!(isLoggedIn$ | async)) {
+    <amw-button variant="filled" color="primary" routerLink="/register" icon="rocket_launch"
+      data-testid="home-get-started-btn">
+      Get Started
+    </amw-button>
+    }
     <amw-button variant="outlined" color="primary" routerLink="/search" icon="search">
       Search Recipes
     </amw-button>
   </div>
 </header>
+
+@if (!(isLoggedIn$ | async)) {
+<div class="home__hero">
+  <div class="home__hero-content">
+    <h2 class="home__hero-title">Plan, Cook, Optimize</h2>
+    <p class="home__hero-desc">
+      NOM helps you organize your diet with meal planning, nutritional tracking,
+      shopping lists, and recipe management — all in one place.
+    </p>
+    <div class="home__hero-actions">
+      <amw-button variant="filled" color="primary" routerLink="/register" icon="person_add"
+        data-testid="home-hero-register-btn">
+        Create Account
+      </amw-button>
+      <amw-button variant="outlined" color="primary" routerLink="/about" icon="info"
+        data-testid="home-hero-about-btn">
+        Learn More
+      </amw-button>
+    </div>
+  </div>
+</div>
+}
 
 @if (isLoading()) {
   <amw-inline-loading message="Loading recipes..." />

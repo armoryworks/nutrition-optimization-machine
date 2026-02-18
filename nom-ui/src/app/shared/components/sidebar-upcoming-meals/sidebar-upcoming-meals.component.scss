@@ -1,0 +1,103 @@
+@use '../../../../variables' as vars;
+
+.sidebar-panel {
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    margin-bottom: vars.$spacing-3;
+
+    amw-icon {
+      color: var(--mat-sys-primary);
+      font-size: 1.25rem;
+    }
+  }
+
+  &__title {
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-semibold;
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-3;
+  }
+
+  &__loading {
+    padding: vars.$spacing-4;
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$font-size-sm;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-1;
+    margin-top: vars.$spacing-3;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    amw-icon {
+      font-size: 1rem;
+    }
+  }
+}
+
+.sidebar-upcoming {
+  &__day {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$spacing-1;
+  }
+
+  &__day-label {
+    font-size: vars.$font-size-xs;
+    font-weight: vars.$font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__meal {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    padding: vars.$spacing-2;
+    border-radius: vars.$nom-border-radius;
+    text-decoration: none;
+    color: var(--mat-sys-on-surface);
+    transition: background-color vars.$transition-duration-fast ease;
+
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
+    }
+  }
+
+  &__meal-type {
+    font-size: vars.$font-size-xs;
+    font-weight: vars.$font-weight-medium;
+    color: var(--mat-sys-primary);
+    min-width: 60px;
+  }
+
+  &__meal-title {
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-medium;
+  }
+
+  &__empty {
+    padding: vars.$spacing-2;
+    font-size: vars.$font-size-sm;
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+}

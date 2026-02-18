@@ -1,0 +1,30 @@
+@use 'variables' as vars;
+
+:host {
+  display: block;
+}
+
+.nom-register__submit {
+  width: 100%;
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.02em;
+  min-height: 40px;
+}
+
+.nom-register__footer {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  a {
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+    font-weight: vars.$font-weight-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

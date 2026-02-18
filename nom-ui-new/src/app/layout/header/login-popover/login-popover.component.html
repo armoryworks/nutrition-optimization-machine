@@ -1,0 +1,46 @@
+<div class="nom-login-popover">
+  <h3 class="nom-login-popover__title">Sign In</h3>
+
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="outline" class="nom-login-popover__field">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" type="email" autocomplete="email">
+      <mat-icon matPrefix>email</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="nom-login-popover__field">
+      <mat-label>Password</mat-label>
+      <input matInput formControlName="password"
+             [type]="showPassword() ? 'text' : 'password'"
+             autocomplete="current-password">
+      <mat-icon matPrefix>lock</mat-icon>
+      <button mat-icon-button matSuffix type="button"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+        <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    @if (errorMessage()) {
+      <p class="nom-login-popover__error">{{ errorMessage() }}</p>
+    }
+
+    <div class="nom-login-popover__forgot-row">
+      <a routerLink="/forgot-password" (click)="closed.emit()" class="nom-login-popover__forgot">Forgot password?</a>
+    </div>
+
+    <button mat-flat-button color="primary" type="submit"
+            class="nom-login-popover__submit"
+            [disabled]="loading() || loginForm.invalid">
+      @if (loading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Sign In
+      }
+    </button>
+  </form>
+
+  <p class="nom-login-popover__footer">
+    Don't have an account? <a routerLink="/register" (click)="closed.emit()">Create Account</a>
+  </p>
+</div>

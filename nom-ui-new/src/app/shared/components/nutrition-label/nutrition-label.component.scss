@@ -1,0 +1,111 @@
+@use 'variables' as vars;
+
+.nom-nutrition-label {
+  background: var(--mat-sys-surface-container-low);
+  border: 2px solid var(--mat-sys-on-surface);
+  border-radius: vars.$nom-border-radius;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  max-width: 280px;
+  width: 100%;
+}
+
+.nom-nutrition-label__title {
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-bold;
+  line-height: 1;
+  margin: 0 0 vars.$spacing-1;
+}
+
+// Thick and medium divider bars
+.nom-nutrition-label__bar {
+  background: var(--mat-sys-on-surface);
+
+  &--heavy {
+    height: 8px;
+    margin: vars.$spacing-1 0;
+  }
+
+  &--medium {
+    height: 4px;
+    margin: vars.$spacing-1 0;
+  }
+}
+
+// Servings line
+.nom-nutrition-label__servings {
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-1;
+}
+
+// Calories row
+.nom-nutrition-label__calories {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: vars.$spacing-1 0;
+}
+
+.nom-nutrition-label__calories-label {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-bold;
+}
+
+.nom-nutrition-label__calories-value {
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-bold;
+}
+
+// % Daily Value header
+.nom-nutrition-label__dv-header {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-bold;
+  text-align: right;
+  padding: vars.$spacing-1 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+// Nutrient rows
+.nom-nutrition-label__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: vars.$spacing-1 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: vars.$font-size-sm;
+
+  &--child {
+    padding-left: vars.$spacing-4;
+  }
+}
+
+.nom-nutrition-label__nutrient {
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-nutrition-label__dv {
+  flex-shrink: 0;
+  margin-left: vars.$spacing-2;
+  text-align: right;
+}
+
+// Footnote
+.nom-nutrition-label__footnote {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: vars.$spacing-2;
+  line-height: vars.$line-height-normal;
+}
+
+// Empty state
+.nom-nutrition-label--empty {
+  .nom-nutrition-label__empty-msg {
+    text-align: center;
+    padding: vars.$spacing-5 0;
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+    margin: 0;
+  }
+}
