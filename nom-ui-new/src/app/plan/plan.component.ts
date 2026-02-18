@@ -56,7 +56,7 @@ export class Plan implements OnInit {
   successMessage = signal('');
   activeTab = signal<'create' | 'join'>('create');
 
-  isStandalone = computed(() => this.mode() === 'standalone');
+  isStandalone = computed(() => this.mode() !== 'wizard');
   hasRestrictions = computed(() => this.initialRestrictions().length > 0);
 
   createForm = this.fb.group({
