@@ -1,0 +1,99 @@
+@use '@angular/material' as mat;
+
+// Emit all M3 system-level color tokens as CSS custom properties.
+// mat.all-component-themes() only emits the subset that Material components
+// internally reference. This mixin fills in the full palette so our custom
+// components can use any --mat-sys-* variable reliably.
+@mixin nom-system-colors($theme) {
+  // Primary
+  --mat-sys-primary: #{mat.get-theme-color($theme, primary)};
+  --mat-sys-on-primary: #{mat.get-theme-color($theme, on-primary)};
+  --mat-sys-primary-container: #{mat.get-theme-color($theme, primary-container)};
+  --mat-sys-on-primary-container: #{mat.get-theme-color($theme, on-primary-container)};
+  --mat-sys-inverse-primary: #{mat.get-theme-color($theme, inverse-primary)};
+
+  // Secondary
+  --mat-sys-secondary: #{mat.get-theme-color($theme, secondary)};
+  --mat-sys-on-secondary: #{mat.get-theme-color($theme, on-secondary)};
+  --mat-sys-secondary-container: #{mat.get-theme-color($theme, secondary-container)};
+  --mat-sys-on-secondary-container: #{mat.get-theme-color($theme, on-secondary-container)};
+
+  // Tertiary
+  --mat-sys-tertiary: #{mat.get-theme-color($theme, tertiary)};
+  --mat-sys-on-tertiary: #{mat.get-theme-color($theme, on-tertiary)};
+  --mat-sys-tertiary-container: #{mat.get-theme-color($theme, tertiary-container)};
+  --mat-sys-on-tertiary-container: #{mat.get-theme-color($theme, on-tertiary-container)};
+
+  // Error
+  --mat-sys-error: #{mat.get-theme-color($theme, error)};
+  --mat-sys-on-error: #{mat.get-theme-color($theme, on-error)};
+  --mat-sys-error-container: #{mat.get-theme-color($theme, error-container)};
+  --mat-sys-on-error-container: #{mat.get-theme-color($theme, on-error-container)};
+
+  // Surface
+  --mat-sys-surface: #{mat.get-theme-color($theme, surface)};
+  --mat-sys-on-surface: #{mat.get-theme-color($theme, on-surface)};
+  --mat-sys-surface-variant: #{mat.get-theme-color($theme, surface-variant)};
+  --mat-sys-on-surface-variant: #{mat.get-theme-color($theme, on-surface-variant)};
+  --mat-sys-surface-container-lowest: #{mat.get-theme-color($theme, surface-container-lowest)};
+  --mat-sys-surface-container-low: #{mat.get-theme-color($theme, surface-container-low)};
+  --mat-sys-surface-container: #{mat.get-theme-color($theme, surface-container)};
+  --mat-sys-surface-container-high: #{mat.get-theme-color($theme, surface-container-high)};
+  --mat-sys-surface-container-highest: #{mat.get-theme-color($theme, surface-container-highest)};
+  --mat-sys-surface-dim: #{mat.get-theme-color($theme, surface-dim)};
+  --mat-sys-surface-bright: #{mat.get-theme-color($theme, surface-bright)};
+  --mat-sys-surface-tint: #{mat.get-theme-color($theme, surface-tint)};
+  --mat-sys-inverse-surface: #{mat.get-theme-color($theme, inverse-surface)};
+  --mat-sys-inverse-on-surface: #{mat.get-theme-color($theme, inverse-on-surface)};
+
+  // Outline
+  --mat-sys-outline: #{mat.get-theme-color($theme, outline)};
+  --mat-sys-outline-variant: #{mat.get-theme-color($theme, outline-variant)};
+
+  // Shadow & scrim
+  --mat-sys-shadow: #{mat.get-theme-color($theme, shadow)};
+  --mat-sys-scrim: #{mat.get-theme-color($theme, scrim)};
+}
+
+// Define M3 theme - dark default
+$nom-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$blue-palette,
+    tertiary: mat.$green-palette,
+  ),
+  typography: (
+    brand-family: 'Inter, system-ui, -apple-system, sans-serif',
+    plain-family: 'Inter, system-ui, -apple-system, sans-serif',
+  ),
+  density: (scale: 0),
+));
+
+// Apply theme globally
+html {
+  @include mat.all-component-themes($nom-theme);
+  @include mat.typography-hierarchy($nom-theme);
+  @include nom-system-colors($nom-theme);
+
+  // Override M3 pill-shaped corners with 5px radius site-wide
+  --mat-sys-corner-full: 5px;
+  --mat-button-filled-container-shape: 5px;
+  --mat-button-outlined-container-shape: 5px;
+  --mat-button-text-container-shape: 5px;
+  --mat-button-protected-container-shape: 5px;
+  --mat-fab-small-shape: 5px;
+  --mat-fab-shape: 5px;
+}
+
+// Light theme variant
+.light-theme {
+  $light-theme: mat.define-theme((
+    color: (
+      theme-type: light,
+      primary: mat.$blue-palette,
+      tertiary: mat.$green-palette,
+    ),
+  ));
+  @include mat.all-component-colors($light-theme);
+  @include nom-system-colors($light-theme);
+}

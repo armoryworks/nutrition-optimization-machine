@@ -14,51 +14,28 @@
     <input
       type="text"
       class="nom-header__search-input"
-      placeholder="Search recipes..."
+      placeholder="Search recipes, ingredients..."
       aria-label="Search recipes"
       (keyup.enter)="onSearch($event)"
     />
   </div>
 
-  <nav class="nom-header__nav" role="navigation" aria-label="Main navigation">
-    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nom-header__nav-link">
-      <amw-icon name="home"></amw-icon>
-      <span>Home</span>
-    </a>
-    @if (!(isLoggedIn$ | async)) {
-      <a routerLink="/register" routerLinkActive="active" class="nom-header__nav-link">
-        <amw-icon name="rocket_launch"></amw-icon>
-        <span>Get Started</span>
-      </a>
-    } @else {
-      <a routerLink="/meal-plan" routerLinkActive="active" class="nom-header__nav-link">
-        <amw-icon name="restaurant_menu"></amw-icon>
-        <span>Meal Plans</span>
-      </a>
-      <a routerLink="/recipes" routerLinkActive="active" class="nom-header__nav-link">
-        <amw-icon name="menu_book"></amw-icon>
-        <span>Recipes</span>
-      </a>
-    }
-    <a routerLink="/about" routerLinkActive="active" class="nom-header__nav-link">
-      <amw-icon name="info"></amw-icon>
-      <span>About</span>
-    </a>
-  </nav>
-
-  <!-- Actions: visible only below sidebar breakpoint (mobile/tablet) -->
-  <div class="nom-header__actions nom-header__actions--mobile">
+  <div class="nom-header__actions">
     <button class="nom-header__icon-btn" (click)="toggleTheme()"
       [attr.aria-label]="'Toggle ' + (isDarkTheme() ? 'light' : 'dark') + ' theme'">
       <amw-icon [name]="isDarkTheme() ? 'light_mode' : 'dark_mode'"></amw-icon>
     </button>
 
     @if (isLoggedIn$ | async) {
+    <button class="nom-header__icon-btn" aria-label="Notifications">
+      <amw-icon name="notifications_none"></amw-icon>
+    </button>
     <div class="nom-user-menu" data-testid="app-user-menu">
       <amw-menu #userMenu triggerIcon="account_circle" menuClass="nom-user-menu__dropdown">
         <amw-menu-item label="User Menu" icon="account_circle" [disabled]="true"></amw-menu-item>
         <amw-menu-item [isDivider]="true"></amw-menu-item>
-        <amw-menu-item label="Households" icon="home" routerLink="/household"></amw-menu-item>
+        <amw-menu-item label="Home" icon="home" routerLink="/home"></amw-menu-item>
+        <amw-menu-item label="Households" icon="groups" routerLink="/household"></amw-menu-item>
         <amw-menu-item label="Shopping" icon="shopping_cart" routerLink="/shopping"></amw-menu-item>
         <amw-menu-item label="Meal Plans" icon="restaurant_menu" routerLink="/meal-plan"></amw-menu-item>
         <amw-menu-item label="Messages" icon="message" routerLink="/messaging"></amw-menu-item>
@@ -69,6 +46,7 @@
         <amw-menu-item label="Curation Queue" icon="rate_review" routerLink="/curation"></amw-menu-item>
         }
         <amw-menu-item [isDivider]="true"></amw-menu-item>
+        <amw-menu-item label="About" icon="info" routerLink="/about"></amw-menu-item>
         <amw-menu-item label="Edit Profile" icon="person" routerLink="/edit-profile"></amw-menu-item>
         <amw-menu-item label="Privacy Settings" icon="security" routerLink="/privacy-settings"></amw-menu-item>
         <amw-menu-item label="Logout" icon="logout" (itemClick)="logout()" data-testid="app-logout-btn"></amw-menu-item>
@@ -97,11 +75,24 @@
     <div class="nom-app-layout__main">
       <router-outlet></router-outlet>
     </div>
-    <aside class="nom-app-layout__sidebar">
+    @if (isLoggedIn$ | async) {
+    <aside class="nom-app-layout__sidebar" [class.nom-app-layout__sidebar--open]="sidebarOpen()">
+      <button class="nom-sidebar-close" (click)="toggleSidebar()">
+        <amw-icon name="close"></amw-icon> Close Panel
+      </button>
       <nom-context-sidebar></nom-context-sidebar>
     </aside>
+    }
   </div>
 </main>
+
+@if (isLoggedIn$ | async) {
+<button class="nom-sidebar-toggle" (click)="toggleSidebar()" title="Open sidebar panel">
+  <amw-icon name="widgets"></amw-icon>
+  Panel
+</button>
+<div class="nom-sidebar-backdrop" [class.nom-sidebar-backdrop--visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
+}
 
 <!-- Global full-screen loading overlay -->
 <amw-full-screen-loading></amw-full-screen-loading>

@@ -1,0 +1,33 @@
+<div class="sidebar-panel">
+  <div class="sidebar-panel__header">
+    <amw-icon name="tune"></amw-icon>
+    <h3 class="sidebar-panel__title">Dietary Restrictions</h3>
+  </div>
+
+  @if (loading()) {
+  <div class="sidebar-panel__loading">Loading...</div>
+  }
+
+  @if (!loading()) {
+  <div class="sidebar-panel__body">
+    @if (personName()) {
+    <div class="sidebar-restrictions__person">{{ personName() }}</div>
+    }
+
+    @if (restrictions().length > 0) {
+    <div class="sidebar-restrictions__chips">
+      @for (restriction of restrictions(); track restriction) {
+      <span class="sidebar-restrictions__chip">{{ restriction }}</span>
+      }
+    </div>
+    } @else {
+    <div class="sidebar-panel__empty">No dietary restrictions set</div>
+    }
+  </div>
+
+  <a routerLink="/person" class="sidebar-panel__link">
+    Edit restrictions
+    <amw-icon name="arrow_forward"></amw-icon>
+  </a>
+  }
+</div>

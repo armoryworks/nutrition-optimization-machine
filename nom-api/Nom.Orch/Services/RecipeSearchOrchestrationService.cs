@@ -75,6 +75,11 @@ namespace Nom.Orch.Services
         {
             var popularRecipes = await _context.Recipes
                 .Include(r => r.Ratings)
+                .Include(r => r.RecipeCategories)
+                    .ThenInclude(rc => rc.Category)
+                .Include(r => r.RecipeTags)
+                    .ThenInclude(rt => rt.Tag)
+                .Include(r => r.Author)
                 .Where(r => r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.Ratings!.Count)
                 .ThenByDescending(r => r.Ratings!.Average(rating => rating.Rating))
@@ -96,6 +101,12 @@ namespace Nom.Orch.Services
         public async Task<RecipeSearchResponseModel> GetRecentRecipesAsync(int count = 10)
         {
             var recentRecipes = await _context.Recipes
+                .Include(r => r.Ratings)
+                .Include(r => r.RecipeCategories)
+                    .ThenInclude(rc => rc.Category)
+                .Include(r => r.RecipeTags)
+                    .ThenInclude(rt => rt.Tag)
+                .Include(r => r.Author)
                 .Where(r => r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.CreatedDate)
                 .Take(count)

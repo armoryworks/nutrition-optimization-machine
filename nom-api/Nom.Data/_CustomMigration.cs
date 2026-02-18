@@ -3,8 +3,11 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 using Nom.Data.Reference; // For ReferenceDiscriminatorEnum
 using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Collections.Generic; // Required for List
+using System.Text.Json;
 
 namespace Nom.Data
 {
@@ -237,10 +240,14 @@ namespace Nom.Data
             AddNutrientGuidelines(migrationBuilder);
 
             CreateReferenceGroupView(migrationBuilder);
+
+            SeedSampleRecipes(migrationBuilder);
         }
 
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
         {
+            RemoveSampleRecipes(migrationBuilder);
+
             DropReferenceGroupView(migrationBuilder);
 
             RemoveNutrientGuidelines(migrationBuilder);
@@ -1716,6 +1723,164 @@ namespace Nom.Data
                 table: "Reference",
                 keyColumn: "Id",
                 keyValues: dayOfWeekIds.Cast<object>().ToArray());
+        }
+        // =====================================================================
+        // Sample Recipe Seed Data (from SeedData/recipes.json embedded resource)
+        // =====================================================================
+
+        private class SeedIngredientDto
+        {
+            public long Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string PluralName { get; set; } = string.Empty;
+        }
+
+        private class SeedRecipeDto
+        {
+            public long Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public long PrepTimeMinutes { get; set; }
+            public long CookTimeMinutes { get; set; }
+            public long Servings { get; set; }
+            public long CategoryId { get; set; }
+            public string Slug { get; set; } = string.Empty;
+            public string? Image { get; set; }
+            public List<SeedRecipeStepDto> Steps { get; set; } = new();
+            public List<SeedRecipeIngredientDto> Ingredients { get; set; } = new();
+            public List<SeedRecipeNutritionDto> Nutrition { get; set; } = new();
+        }
+
+        private class SeedRecipeStepDto
+        {
+            public int StepNumber { get; set; }
+            public string Summary { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+        }
+
+        private class SeedRecipeIngredientDto
+        {
+            public long IngredientId { get; set; }
+            public decimal Quantity { get; set; }
+            public long MeasurementId { get; set; }
+            public string RawLine { get; set; } = string.Empty;
+        }
+
+        private class SeedRecipeNutritionDto
+        {
+            public long NutrientId { get; set; }
+            public decimal Amount { get; set; }
+            public string Unit { get; set; } = string.Empty;
+            public decimal? DailyValuePercentage { get; set; }
+        }
+
+        private class SeedDataRoot
+        {
+            public List<SeedIngredientDto> Ingredients { get; set; } = new();
+            public List<SeedRecipeDto> Recipes { get; set; } = new();
+        }
+
+        private static SeedDataRoot LoadSeedData()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames()
+                .First(n => n.EndsWith("recipes.json"));
+
+            using var stream = assembly.GetManifestResourceStream(resourceName)!;
+            using var reader = new StreamReader(stream);
+            var json = reader.ReadToEnd();
+
+            return JsonSerializer.Deserialize<SeedDataRoot>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            })!;
+        }
+
+        private static string EscapeSql(string value)
+        {
+            return value.Replace("'", "''");
+        }
+
+        public static void SeedSampleRecipes(MigrationBuilder migrationBuilder)
+        {
+            var data = LoadSeedData();
+            var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+            // 1. Insert ingredients
+            foreach (var ing in data.Ingredients)
+            {
+                var nameNorm = EscapeSql(ing.Name.ToLowerInvariant());
+                var pluralNorm = EscapeSql(ing.PluralName.ToLowerInvariant());
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""Ingredient"" (""Id"", ""Name"", ""PluralName"", ""NameNormalized"", ""PluralNameNormalized"", ""FdcDataType"", ""CurationStatusId"", ""AuthorId"", ""OnHand"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({ing.Id}, '{EscapeSql(ing.Name)}', '{EscapeSql(ing.PluralName)}', '{nameNorm}', '{pluralNorm}', '', {CurationStatusTypeCuratedId}, {SystemPersonId}, false, '{now}', {SystemPersonId});
+                ");
+            }
+
+            // Update ingredient sequence
+            migrationBuilder.Sql(@"SELECT setval(pg_get_serial_sequence('recipe.""Ingredient""', 'Id'), (SELECT COALESCE(MAX(""Id""), 1) FROM recipe.""Ingredient""));");
+
+            // 2. Insert recipes
+            foreach (var recipe in data.Recipes)
+            {
+                var nameNorm = EscapeSql(recipe.Name.ToLowerInvariant());
+                var descNorm = EscapeSql((recipe.Description ?? "").ToLowerInvariant());
+                var imageVal = recipe.Image != null ? $"'{EscapeSql(recipe.Image)}'" : "NULL";
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""Recipe"" (""Id"", ""Name"", ""Description"", ""PrepTimeMinutes"", ""CookTimeMinutes"", ""Servings"", ""CurationStatusId"", ""AuthorId"", ""Version"", ""Slug"", ""Image"", ""NameNormalized"", ""DescriptionNormalized"", ""IsOcrRecipe"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({recipe.Id}, '{EscapeSql(recipe.Name)}', '{EscapeSql(recipe.Description)}', {recipe.PrepTimeMinutes}, {recipe.CookTimeMinutes}, {recipe.Servings}, {CurationStatusTypeCuratedId}, {SystemPersonId}, 1, '{EscapeSql(recipe.Slug)}', {imageVal}, '{nameNorm}', '{descNorm}', false, '{now}', {SystemPersonId});
+                ");
+
+                // 3. Insert recipe steps
+                foreach (var step in recipe.Steps)
+                {
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeStep"" (""RecipeId"", ""StepNumber"", ""Summary"", ""Description"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {step.StepNumber}, '{EscapeSql(step.Summary)}', '{EscapeSql(step.Description)}', '{now}', {SystemPersonId});
+                    ");
+                }
+
+                // 4. Insert recipe ingredients
+                foreach (var ing in recipe.Ingredients)
+                {
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeIngredient"" (""RecipeId"", ""IngredientId"", ""Quantity"", ""MeasurementId"", ""RawLine"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {ing.IngredientId}, {ing.Quantity}, {ing.MeasurementId}, '{EscapeSql(ing.RawLine)}', '{now}', {SystemPersonId});
+                    ");
+                }
+
+                // 5. Insert recipe category
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""RecipeCategory"" (""RecipeId"", ""CategoryId"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({recipe.Id}, {recipe.CategoryId}, '{now}', {SystemPersonId});
+                ");
+
+                // 6. Insert recipe nutrition
+                foreach (var nut in recipe.Nutrition)
+                {
+                    var dvpVal = nut.DailyValuePercentage.HasValue
+                        ? nut.DailyValuePercentage.Value.ToString("F2")
+                        : "NULL";
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeNutrition"" (""RecipeId"", ""NutrientId"", ""Amount"", ""Unit"", ""DailyValuePercentage"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {nut.NutrientId}, {nut.Amount.ToString("F4")}, '{EscapeSql(nut.Unit)}', {dvpVal}, '{now}', {SystemPersonId});
+                    ");
+                }
+            }
+
+            // Update recipe sequence
+            migrationBuilder.Sql(@"SELECT setval(pg_get_serial_sequence('recipe.""Recipe""', 'Id'), (SELECT COALESCE(MAX(""Id""), 1) FROM recipe.""Recipe""));");
+        }
+
+        public static void RemoveSampleRecipes(MigrationBuilder migrationBuilder)
+        {
+            // Remove in reverse dependency order
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeNutrition"" WHERE ""RecipeId"" BETWEEN 100 AND 199;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeCategory"" WHERE ""RecipeId"" BETWEEN 100 AND 199;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeIngredient"" WHERE ""RecipeId"" BETWEEN 100 AND 199;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeStep"" WHERE ""RecipeId"" BETWEEN 100 AND 199;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""Recipe"" WHERE ""Id"" BETWEEN 100 AND 199;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""Ingredient"" WHERE ""Id"" BETWEEN 100 AND 199;");
         }
     }
 #pragma warning restore CS8625

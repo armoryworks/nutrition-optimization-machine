@@ -1,0 +1,71 @@
+@if (hasData()) {
+  <div class="nom-nutrition-label" role="region" aria-label="Nutrition Facts">
+    <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+    <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
+
+    @if (servings()) {
+      <p class="nom-nutrition-label__servings">{{ servings() }} servings per container</p>
+    }
+
+    <div class="nom-nutrition-label__calories">
+      <span class="nom-nutrition-label__calories-label">Calories</span>
+      <span class="nom-nutrition-label__calories-value">
+        @if (calories()) {
+          {{ calories()!.amount | number:'1.0-0' }}
+        } @else {
+          —
+        }
+      </span>
+    </div>
+    <div class="nom-nutrition-label__bar nom-nutrition-label__bar--medium"></div>
+
+    <div class="nom-nutrition-label__dv-header">% Daily Value*</div>
+
+    @for (nutrient of macroNutrients(); track nutrient.displayName) {
+      <div class="nom-nutrition-label__row"
+           [class.nom-nutrition-label__row--child]="nutrient.isChild">
+        <span class="nom-nutrition-label__nutrient">
+          @if (nutrient.bold) {
+            <strong>{{ nutrient.displayName }}</strong> {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+          } @else {
+            {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+          }
+        </span>
+        @if (nutrient.dailyValuePercent != null) {
+          <span class="nom-nutrition-label__dv">
+            <strong>{{ nutrient.dailyValuePercent | number:'1.0-0' }}%</strong>
+          </span>
+        }
+      </div>
+    }
+
+    <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
+
+    @for (nutrient of microNutrients(); track nutrient.displayName) {
+      <div class="nom-nutrition-label__row">
+        <span class="nom-nutrition-label__nutrient">
+          {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+        </span>
+        @if (nutrient.dailyValuePercent != null) {
+          <span class="nom-nutrition-label__dv">
+            {{ nutrient.dailyValuePercent | number:'1.0-0' }}%
+          </span>
+        }
+      </div>
+    }
+
+    <div class="nom-nutrition-label__footnote">
+      * The % Daily Value tells you how much a nutrient in a serving
+      contributes to a daily diet. 2,000 calories a day is used for
+      general nutrition advice.
+    </div>
+  </div>
+} @else {
+  <div class="nom-nutrition-label nom-nutrition-label--empty" role="region" aria-label="Nutrition Facts">
+    <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+    <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
+    <p class="nom-nutrition-label__empty-msg">
+      Nutrition data is not yet available for this recipe.
+    </p>
+  </div>
+}

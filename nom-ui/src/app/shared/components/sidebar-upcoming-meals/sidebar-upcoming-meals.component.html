@@ -1,0 +1,35 @@
+<div class="sidebar-panel">
+  <div class="sidebar-panel__header">
+    <amw-icon name="restaurant_menu"></amw-icon>
+    <h3 class="sidebar-panel__title">Upcoming Meals</h3>
+  </div>
+
+  @if (loading()) {
+  <div class="sidebar-panel__loading">Loading...</div>
+  }
+
+  @if (!loading()) {
+  <div class="sidebar-panel__body">
+    @for (day of days(); track day.dayLabel) {
+    <div class="sidebar-upcoming__day">
+      <div class="sidebar-upcoming__day-label">{{ day.dayLabel }}</div>
+      @if (day.meals.length > 0) {
+        @for (meal of day.meals; track meal.id) {
+        <a [routerLink]="['/meal-plan', meal.id]" class="sidebar-upcoming__meal">
+          <span class="sidebar-upcoming__meal-type">{{ meal.mealType }}</span>
+          <span class="sidebar-upcoming__meal-title">{{ meal.title }}</span>
+        </a>
+        }
+      } @else {
+      <div class="sidebar-upcoming__empty">No meals planned</div>
+      }
+    </div>
+    }
+  </div>
+
+  <a routerLink="/meal-plan" class="sidebar-panel__link">
+    View all meal plans
+    <amw-icon name="arrow_forward"></amw-icon>
+  </a>
+  }
+</div>

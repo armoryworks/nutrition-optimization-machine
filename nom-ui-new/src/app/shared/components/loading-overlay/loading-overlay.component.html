@@ -1,0 +1,10 @@
+<div class="nom-loading-overlay" role="alert" aria-busy="true" aria-live="polite">
+  <div class="nom-loading-overlay__panel">
+    <mat-spinner diameter="48" class="nom-loading-overlay__spinner"></mat-spinner>
+    <ul class="nom-loading-overlay__messages" aria-label="Loading status">
+      @for (msg of messages(); track msg) {
+        <li class="nom-loading-overlay__message">{{ msg }}</li>
+      }
+    </ul>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+@use 'variables' as vars;
+
+.nom-sidebar-panel {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$card-padding;
+}
+
+.nom-sidebar-panel__header {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-sidebar-panel__icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--mat-sys-primary);
+}
+
+.nom-sidebar-panel__title {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0;
+}
+
+.nom-sidebar-panel__body {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-sidebar-panel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-4 0;
+  text-align: center;
+}
+
+.nom-sidebar-panel__empty-text {
+  font-size: vars.$font-size-sm;
+  opacity: 0.7;
+}
+
+.nom-sidebar-panel__link {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font-weight: vars.$font-weight-medium;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.nom-sidebar-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: vars.$spacing-2;
+}
+
+.nom-sidebar-panel__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -1,0 +1,76 @@
+@use 'variables' as vars;
+
+:host {
+  position: absolute;
+  top: calc(100% + vars.$spacing-2);
+  right: 0;
+  z-index: vars.$z-dropdown;
+}
+
+.nom-login-popover {
+  width: 320px;
+  padding: vars.$spacing-5;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  box-shadow: vars.$elevation-3;
+}
+
+.nom-login-popover__title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-login-popover__field {
+  width: 100%;
+  margin-bottom: vars.$spacing-1;
+}
+
+.nom-login-popover__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-xs;
+  margin: 0 0 vars.$spacing-3;
+}
+
+.nom-login-popover__forgot-row {
+  text-align: right;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-login-popover__forgot {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font-weight: vars.$font-weight-medium;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.nom-login-popover__submit {
+  width: 100%;
+  margin-top: vars.$spacing-2;
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.02em;
+  min-height: 40px;
+}
+
+.nom-login-popover__footer {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+  margin: vars.$spacing-4 0 0;
+
+  a {
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+    font-weight: vars.$font-weight-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

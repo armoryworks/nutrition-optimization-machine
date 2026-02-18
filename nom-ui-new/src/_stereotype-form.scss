@@ -1,0 +1,173 @@
+// =============================================================================
+// FORM STEREOTYPE
+// =============================================================================
+
+@use 'variables' as vars;
+
+// --- Form-Card Variant (Centered card forms) ---
+
+.nom-form--card {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
+  padding: vars.$spacing-8 vars.$spacing-4;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4;
+    align-items: stretch;
+  }
+}
+
+.nom-form__card {
+  width: 100%;
+  max-width: 600px;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius-lg;
+  border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: vars.$elevation-2;
+  overflow: hidden;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    max-width: none;
+  }
+
+  &--narrow { max-width: 460px; }
+}
+
+.nom-form__card-icon {
+  display: flex;
+  justify-content: flex-end;
+  padding: vars.$spacing-4 vars.$spacing-6 0;
+
+  mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.6;
+  }
+}
+
+.nom-form__card-header { padding: vars.$spacing-4 vars.$spacing-6; }
+
+.nom-form__card-title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-form__card-subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: vars.$line-height-normal;
+}
+
+.nom-form__card-content { padding: 0 vars.$spacing-6 vars.$spacing-6; }
+
+.nom-form__card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4 vars.$spacing-6;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column-reverse;
+    button { width: 100%; }
+  }
+}
+
+// --- Form-Full Variant (Full-width sectioned forms) ---
+
+.nom-form--full {
+  max-width: vars.$content-max-narrow;
+  margin: 0 auto;
+  padding: vars.$spacing-6;
+
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
+}
+
+.nom-form__header { margin-bottom: vars.$spacing-6; }
+
+.nom-form__title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-form__subtitle {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.nom-form__section {
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+  border: 1px solid var(--mat-sys-outline-variant);
+  padding: vars.$spacing-6;
+  margin-bottom: vars.$spacing-6;
+  &:last-child { margin-bottom: 0; }
+}
+
+.nom-form__section-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-form__section-description {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0 0 vars.$spacing-4;
+  line-height: vars.$line-height-normal;
+}
+
+.nom-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-form__field-row {
+  display: flex;
+  gap: vars.$spacing-4;
+  @media (max-width: vars.$breakpoint-mobile) { flex-direction: column; }
+  > * { flex: 1; }
+}
+
+.nom-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-6;
+  padding-top: vars.$spacing-6;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: column-reverse;
+    button { width: 100%; }
+  }
+}
+
+// --- Error States ---
+
+.nom-form__error {
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-3;
+  color: var(--mat-sys-on-error-container);
+  font-size: vars.$font-size-sm;
+  box-shadow: vars.$elevation-1;
+}

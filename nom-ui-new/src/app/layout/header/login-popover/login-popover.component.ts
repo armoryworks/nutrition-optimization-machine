@@ -1,0 +1,62 @@
+import { Component, inject, output, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthService } from '../../../core/services/auth.service';
+
+@Component({
+  selector: 'nom-login-popover',
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  templateUrl: './login-popover.component.html',
+  styleUrl: './login-popover.component.scss',
+})
+export class LoginPopover {
+  closed = output<void>();
+
+  private authService = inject(AuthService);
+  private fb = inject(FormBuilder);
+
+  loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+
+  loading = signal(false);
+  errorMessage = signal('');
+  showPassword = signal(false);
+
+  onSubmit(): void {
+    if (this.loginForm.invalid) return;
+
+    this.loading.set(true);
+    this.errorMessage.set('');
+
+    const { email, password } = this.loginForm.getRawValue();
+    this.authService.login(email!, password!).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.closed.emit();
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.errorMessage.set(
+          err.status === 401
+            ? 'Invalid email or password.'
+            : 'Unable to sign in. Please try again.'
+        );
+      },
+    });
+  }
+}

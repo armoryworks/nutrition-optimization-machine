@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOM — Nutrition Optimization Machine — Layout Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    html, body { height: 100%; overflow: auto; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f1f5f9; /* neutral-100 */
+      color: #1e293b; /* neutral-800 */
+      line-height: 1.5;
+    }
+
+    /* ===== COLOR TOKENS ===== */
+    :root {
+      --primary-50: #eff6ff;
+      --primary-100: #dbeafe;
+      --primary-200: #bfdbfe;
+      --primary-300: #93c5fd;
+      --primary-400: #60a5fa;
+      --primary-500: #3b82f6;
+      --primary-600: #2563eb;
+      --primary-700: #1d4ed8;
+      --primary-800: #1e40af;
+
+      --secondary-400: #c084fc;
+      --secondary-500: #a855f7;
+      --secondary-600: #9333ea;
+
+      --tertiary-50: #f0fdf4;
+      --tertiary-100: #dcfce7;
+      --tertiary-400: #4ade80;
+      --tertiary-500: #22c55e;
+      --tertiary-600: #16a34a;
+
+      --neutral-50: #f8fafc;
+      --neutral-100: #f1f5f9;
+      --neutral-200: #e2e8f0;
+      --neutral-300: #cbd5e1;
+      --neutral-400: #94a3b8;
+      --neutral-500: #64748b;
+      --neutral-600: #475569;
+      --neutral-700: #334155;
+      --neutral-800: #1e293b;
+      --neutral-900: #0f172a;
+
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+
+      --elevation-1: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --elevation-2: 0 2px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06);
+      --elevation-3: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
+
+      --radius: 8px;
+      --radius-sm: 4px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      --hero-max: 1400px;
+      --sidebar-max: 420px;
+      --shell-gap: 24px;
+    }
+
+    /* ===== PAGE SHELL ===== */
+    /* Full-viewport flex column: fixed header, scrollable content, fixed footer */
+    .page-shell {
+      max-width: calc(var(--hero-max) + var(--shell-gap) + var(--sidebar-max));
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top bar row: fixed header */
+    .topbar-row {
+      flex-shrink: 0;
+      padding: 16px 0;
+    }
+
+    /* Content row: hero + sidebar, fills remaining space */
+    .content-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--sidebar-max);
+      gap: var(--shell-gap);
+      flex: 1;
+      min-height: 0; /* allow children to shrink below content size */
+    }
+
+    /* ===== LIGHT HEADER (full-width) ===== */
+    .topnav {
+      background: #fff;
+      color: var(--neutral-800);
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 20px;
+      gap: 16px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--elevation-1);
+    }
+    .topnav__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      white-space: nowrap;
+      letter-spacing: -0.02em;
+      color: var(--neutral-900);
+    }
+    .topnav__brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-600);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #fff;
+    }
+    .topnav__brand-sub {
+      font-weight: 400;
+      font-size: 0.7rem;
+      color: var(--neutral-400);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .topnav__search {
+      display: flex;
+      align-items: center;
+      background: var(--neutral-100);
+      border: 1px solid var(--neutral-200);
+      border-radius: 8px;
+      padding: 6px 12px;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .topnav__search .material-icons { font-size: 18px; color: var(--neutral-400); }
+    .topnav__search input {
+      background: none;
+      border: none;
+      color: var(--neutral-800);
+      font-size: 0.875rem;
+      outline: none;
+      width: 100%;
+    }
+    .topnav__search input::placeholder { color: var(--neutral-400); }
+    .topnav__actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .topnav__icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--neutral-400);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .topnav__icon-btn:hover { background: var(--neutral-100); color: var(--neutral-700); }
+    .topnav__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary-600);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+
+    /* ===== SECTION HEADERS ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--neutral-800);
+    }
+    .section-header__actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ===== CARD BASE ===== */
+    .card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--elevation-1);
+      overflow: hidden;
+    }
+    .card--outlined {
+      box-shadow: none;
+      border: 1px solid var(--neutral-200);
+    }
+    .card__header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--neutral-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card__header h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .card__body { padding: 20px; }
+    .card__body--compact { padding: 16px; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn .material-icons { font-size: 18px; }
+    .btn--primary {
+      background: var(--primary-600);
+      color: #fff;
+      letter-spacing: 0.01em;
+      font-weight: 600;
+    }
+    .btn--primary:hover { background: var(--primary-700); }
+    .btn--secondary {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+    }
+    .btn--secondary:hover { background: var(--neutral-200); }
+    .btn--outlined {
+      background: transparent;
+      color: var(--primary-600);
+      border: 1px solid var(--neutral-200);
+    }
+    .btn--outlined:hover { background: var(--primary-50); border-color: var(--primary-200); }
+    .btn--ghost {
+      background: transparent;
+      color: var(--neutral-500);
+      padding: 6px 10px;
+    }
+    .btn--ghost:hover { background: var(--neutral-100); color: var(--neutral-700); }
+    .btn--sm { font-size: 0.8rem; padding: 5px 10px; }
+    .btn--sm .material-icons { font-size: 16px; }
+    .btn--success {
+      background: var(--tertiary-500);
+      color: #fff;
+      font-weight: 600;
+    }
+    .btn--success:hover { background: var(--tertiary-600); }
+    .btn--icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--neutral-400);
+      border: none;
+    }
+    .btn--icon:hover { background: var(--neutral-100); color: var(--neutral-600); }
+
+    /* ===== CHIP / BADGE ===== */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .chip--primary { background: var(--primary-100); color: var(--primary-700); }
+    .chip--tertiary { background: var(--tertiary-100); color: var(--tertiary-600); }
+    .chip--warning { background: #fef3c7; color: #92400e; }
+    .chip--neutral { background: var(--neutral-100); color: var(--neutral-600); }
+
+    /* ===== WEEKLY MEAL PLAN GRID ===== */
+    .meal-grid {
+      display: grid;
+      grid-template-columns: 100px repeat(7, 1fr);
+      gap: 1px;
+      background: var(--neutral-200);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .meal-grid__corner {
+      background: var(--neutral-50);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .meal-grid__day-header {
+      background: var(--neutral-50);
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--neutral-600);
+    }
+    .meal-grid__day-header span {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--neutral-400);
+      margin-top: 2px;
+    }
+    .meal-grid__day-header--today {
+      background: var(--primary-50);
+      color: var(--primary-700);
+    }
+    .meal-grid__day-header--today span { color: var(--primary-400); }
+    .meal-grid__row-label {
+      background: #fff;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--neutral-600);
+    }
+    .meal-grid__row-label .material-icons { font-size: 16px; color: var(--neutral-400); }
+    .meal-grid__cell {
+      background: #fff;
+      padding: 8px;
+      min-height: 90px;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .meal-grid__cell:hover { background: var(--primary-50); }
+    .meal-grid__cell--today { background: var(--primary-50); }
+    .meal-grid__cell--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .meal-grid__add-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px dashed var(--neutral-300);
+      background: transparent;
+      color: var(--neutral-400);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .meal-grid__add-btn:hover {
+      border-color: var(--primary-400);
+      color: var(--primary-500);
+      background: var(--primary-50);
+    }
+    .meal-grid__add-btn .material-icons { font-size: 16px; }
+
+    /* Meal card within grid cell */
+    .meal-card {
+      border-radius: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .meal-card:hover { transform: translateY(-1px); }
+    .meal-card__name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--neutral-800);
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    .meal-card__meta {
+      font-size: 0.65rem;
+      color: var(--neutral-400);
+    }
+    .meal-card--breakfast { background: #fef3c7; border-left: 3px solid #f59e0b; }
+    .meal-card--lunch { background: var(--tertiary-50); border-left: 3px solid var(--tertiary-500); }
+    .meal-card--dinner { background: var(--primary-50); border-left: 3px solid var(--primary-500); }
+    .meal-card--snack { background: var(--neutral-50); border-left: 3px solid var(--neutral-400); }
+
+    /* ===== ALERT BANNER ===== */
+    .alert {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+    }
+    .alert .material-icons { font-size: 20px; }
+    .alert--warning {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .alert__action {
+      margin-left: auto;
+    }
+
+    /* ===== SHOPPING LIST CARD ===== */
+    .shopping-list__category {
+      margin-bottom: 16px;
+    }
+    .shopping-list__category:last-child { margin-bottom: 0; }
+    .shopping-list__category-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--neutral-400);
+      margin-bottom: 8px;
+    }
+    .shopping-list__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 0.85rem;
+      color: var(--neutral-700);
+    }
+    .shopping-list__item input[type="checkbox"] {
+      accent-color: var(--primary-600);
+      width: 16px;
+      height: 16px;
+    }
+    .shopping-list__item-qty {
+      color: var(--neutral-400);
+      font-size: 0.8rem;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .shopping-list__total {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 12px;
+      margin-top: 12px;
+      border-top: 1px solid var(--neutral-200);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* ===== NUTRITION SNAPSHOT ===== */
+    .nutrition-ring {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+    .nutrition-ring__circle {
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+    .nutrition-ring__circle svg { transform: rotate(-90deg); }
+    .nutrition-ring__circle-bg { fill: none; stroke: var(--neutral-100); stroke-width: 6; }
+    .nutrition-ring__circle-fill { fill: none; stroke-width: 6; stroke-linecap: round; }
+    .nutrition-ring__circle-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      line-height: 1.1;
+    }
+    .nutrition-ring__circle-label small {
+      font-weight: 400;
+      font-size: 0.6rem;
+      color: var(--neutral-400);
+      text-transform: uppercase;
+    }
+    .nutrition-ring__details { flex: 1; }
+    .nutrition-macro {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.8rem;
+    }
+    .nutrition-macro__label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--neutral-600);
+    }
+    .nutrition-macro__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .nutrition-macro__value {
+      font-weight: 600;
+      color: var(--neutral-800);
+    }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .progress-row:last-child { margin-bottom: 0; }
+    .progress-row__label {
+      font-size: 0.8rem;
+      color: var(--neutral-600);
+      width: 80px;
+      flex-shrink: 0;
+    }
+    .progress-row__bar {
+      flex: 1;
+      height: 6px;
+      background: var(--neutral-100);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-row__fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .progress-row__value {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--neutral-700);
+      width: 42px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ===== QUICK ACTIONS GRID ===== */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 8px;
+      border-radius: var(--radius);
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-100);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      color: var(--neutral-600);
+    }
+    .quick-action:hover {
+      background: var(--primary-50);
+      border-color: var(--primary-200);
+      color: var(--primary-700);
+    }
+    .quick-action .material-icons { font-size: 22px; }
+    .quick-action span { font-size: 0.75rem; font-weight: 500; }
+
+    /* ===== SUPPLEMENTS / TRACKER ===== */
+    .supplement-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+    .supplement-row:last-child { border-bottom: none; }
+    .supplement-row__icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .supplement-row__icon--vitamin { background: #fef3c7; color: #d97706; }
+    .supplement-row__icon--mineral { background: var(--primary-100); color: var(--primary-600); }
+    .supplement-row__icon--omega { background: #fce7f3; color: #db2777; }
+    .supplement-row__info { flex: 1; }
+    .supplement-row__name { font-size: 0.8rem; font-weight: 600; color: var(--neutral-800); }
+    .supplement-row__dose { font-size: 0.7rem; color: var(--neutral-400); }
+    .supplement-row__status {
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+    .supplement-row__status--taken { color: var(--success); }
+    .supplement-row__status--pending { color: var(--neutral-400); }
+
+    /* ===== COLUMN STACKS (independently scrollable) ===== */
+    .sidebar-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 0; /* override grid item min-height:auto so overflow works */
+      overflow-y: auto;
+      padding-bottom: 24px;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 24px;
+    }
+
+    /* ===== WEEK NAV ===== */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .week-nav__label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--neutral-700);
+    }
+    .week-nav__date {
+      font-size: 0.8rem;
+      color: var(--neutral-400);
+    }
+
+    /* ===== PERSONS SWITCHER ===== */
+    .persons-switcher {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .persons-switcher__label {
+      font-size: 0.8rem;
+      color: var(--neutral-500);
+      margin-right: 4px;
+    }
+    .person-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 4px 4px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--neutral-200);
+      background: #fff;
+      color: var(--neutral-600);
+      transition: all 0.15s;
+    }
+    .person-chip:hover { border-color: var(--primary-300); }
+    .person-chip--active {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      color: #fff;
+    }
+    .person-chip__avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: var(--neutral-200);
+      color: var(--neutral-600);
+    }
+    .person-chip--active .person-chip__avatar {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    /* ===== FOOTER NOTE (fixed at bottom) ===== */
+    .mockup-note {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      color: var(--neutral-400);
+      border-top: 1px solid var(--neutral-200);
+    }
+
+    /* ===== SIDEBAR TOGGLE (hidden on wide screens) ===== */
+    .sidebar-toggle {
+      display: none; /* shown via media query */
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      width: 36px;
+      padding: 12px 0;
+      border: 1px solid var(--neutral-200);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      background: #fff;
+      box-shadow: var(--elevation-2);
+      cursor: pointer;
+      color: var(--neutral-500);
+      writing-mode: vertical-rl;
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: color 0.15s;
+    }
+    .sidebar-toggle .material-icons {
+      font-size: 18px;
+      writing-mode: horizontal-tb;
+    }
+    .sidebar-toggle:hover { color: var(--primary-600); }
+
+    /* ===== SIDEBAR BACKDROP (overlay) ===== */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 199;
+      background: rgba(0,0,0,0.3);
+    }
+    .sidebar-backdrop--visible { display: block; }
+
+    /* ===== RESPONSIVE: sidebar collapses below 1400px ===== */
+    @media (max-width: 1400px) {
+      .content-row {
+        grid-template-columns: 1fr; /* single column, sidebar hidden */
+      }
+      .sidebar-toggle { display: flex; }
+
+      .sidebar-stack {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 200;
+        width: var(--sidebar-max);
+        max-width: 90vw;
+        height: 100vh;
+        background: var(--neutral-50);
+        box-shadow: var(--elevation-3);
+        padding: 20px;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        overflow-y: auto;
+      }
+      .sidebar-stack--open {
+        transform: translateX(0);
+      }
+
+      /* Close button inside the sidecar */
+      .sidebar-close {
+        display: flex;
+      }
+    }
+
+    /* ===== SIDEBAR CLOSE BUTTON (inside sidecar, hidden on wide) ===== */
+    .sidebar-close {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding: 6px 12px;
+      border: 1px solid var(--neutral-200);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--neutral-500);
+      transition: all 0.15s;
+    }
+    .sidebar-close:hover { background: var(--neutral-100); color: var(--neutral-700); }
+    .sidebar-close .material-icons { font-size: 18px; }
+  </style>
+</head>
+<body>
+
+<!-- ===== PAGE SHELL ===== -->
+<div class="page-shell">
+
+  <!-- ===== TOP BAR ROW: full-width header with logo, search, icons ===== -->
+  <div class="topbar-row">
+
+    <nav class="topnav">
+      <div class="topnav__brand">
+        <div>
+          NOM
+          <div class="topnav__brand-sub">Nutrition Optimization Machine</div>
+        </div>
+      </div>
+      <div class="topnav__search">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Search recipes, ingredients...">
+      </div>
+      <div class="topnav__actions">
+        <button class="topnav__icon-btn" title="Notifications"><span class="material-icons">notifications_none</span></button>
+        <button class="topnav__icon-btn" title="Settings"><span class="material-icons">settings</span></button>
+        <div class="topnav__avatar" title="Daniel H">DH</div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ===== CONTENT ROW: hero (centered 1400px) | sidebar (420px outside) ===== -->
+  <div class="content-row">
+
+    <!-- ===== MAIN / HERO COLUMN ===== -->
+    <div class="main-content">
+
+      <!-- Week header -->
+      <div class="section-header">
+        <div>
+          <h2>This Week's Plan</h2>
+          <div style="display: flex; gap: 16px; align-items: center; margin-top: 4px;">
+            <div class="week-nav">
+              <button class="btn btn--icon"><span class="material-icons">chevron_left</span></button>
+              <span class="week-nav__label">Feb 17 – 23</span>
+              <button class="btn btn--icon"><span class="material-icons">chevron_right</span></button>
+              <span class="week-nav__date">Week 8, 2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="section-header__actions">
+          <div class="persons-switcher">
+            <span class="persons-switcher__label">Planning for:</span>
+            <div class="person-chip person-chip--active">
+              <div class="person-chip__avatar">D</div>
+              Daniel
+            </div>
+            <div class="person-chip">
+              <div class="person-chip__avatar">S</div>
+              Sarah
+            </div>
+          </div>
+          <button class="btn btn--outlined"><span class="material-icons">auto_awesome</span> Auto-Fill</button>
+          <button class="btn btn--primary"><span class="material-icons">add</span> Add Meal</button>
+        </div>
+      </div>
+
+      <!-- Grocery alert -->
+      <div class="alert alert--warning">
+        <span class="material-icons">shopping_cart</span>
+        <div>
+          <strong>Groceries needed by Tuesday</strong> — 12 items missing for this week's plan
+        </div>
+        <div class="alert__action">
+          <button class="btn btn--sm btn--secondary"><span class="material-icons">arrow_forward</span> View Shopping List</button>
+        </div>
+      </div>
+
+      <!-- ===== WEEKLY MEAL GRID ===== -->
+      <div class="card">
+        <div class="meal-grid">
+          <!-- Header row -->
+          <div class="meal-grid__corner"></div>
+          <div class="meal-grid__day-header">Mon<span>Feb 17</span></div>
+          <div class="meal-grid__day-header">Tue<span>Feb 18</span></div>
+          <div class="meal-grid__day-header meal-grid__day-header--today">Wed<span>Feb 19</span></div>
+          <div class="meal-grid__day-header">Thu<span>Feb 20</span></div>
+          <div class="meal-grid__day-header">Fri<span>Feb 21</span></div>
+          <div class="meal-grid__day-header">Sat<span>Feb 22</span></div>
+          <div class="meal-grid__day-header">Sun<span>Feb 23</span></div>
+
+          <!-- Breakfast row -->
+          <div class="meal-grid__row-label"><span class="material-icons">wb_sunny</span> Breakfast</div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--breakfast">
+              <div class="meal-card__name">Greek Yogurt Bowl</div>
+              <div class="meal-card__meta">380 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--breakfast">
+              <div class="meal-card__name">Overnight Oats</div>
+              <div class="meal-card__meta">420 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--today">
+            <div class="meal-card meal-card--breakfast">
+              <div class="meal-card__name">Avocado Toast</div>
+              <div class="meal-card__meta">350 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--breakfast">
+              <div class="meal-card__name">Smoothie Bowl</div>
+              <div class="meal-card__meta">310 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--breakfast">
+              <div class="meal-card__name">Egg Scramble</div>
+              <div class="meal-card__meta">390 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+
+          <!-- Lunch row -->
+          <div class="meal-grid__row-label"><span class="material-icons">wb_cloudy</span> Lunch</div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--lunch">
+              <div class="meal-card__name">Chicken Caesar Salad</div>
+              <div class="meal-card__meta">520 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--lunch">
+              <div class="meal-card__name">Lentil Soup</div>
+              <div class="meal-card__meta">380 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--today">
+            <div class="meal-card meal-card--lunch">
+              <div class="meal-card__name">Quinoa Buddha Bowl</div>
+              <div class="meal-card__meta">480 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--lunch">
+              <div class="meal-card__name">Turkey Wrap</div>
+              <div class="meal-card__meta">440 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--lunch">
+              <div class="meal-card__name">Grilled Veggie Plate</div>
+              <div class="meal-card__meta">360 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+
+          <!-- Dinner row -->
+          <div class="meal-grid__row-label"><span class="material-icons">nights_stay</span> Dinner</div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--dinner">
+              <div class="meal-card__name">Salmon & Asparagus</div>
+              <div class="meal-card__meta">580 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--dinner">
+              <div class="meal-card__name">Pasta Primavera</div>
+              <div class="meal-card__meta">620 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--today">
+            <div class="meal-card meal-card--dinner">
+              <div class="meal-card__name">Stir-Fry Tofu</div>
+              <div class="meal-card__meta">490 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--dinner">
+              <div class="meal-card__name">Grilled Chicken Thighs</div>
+              <div class="meal-card__meta">540 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--dinner">
+              <div class="meal-card__name">Black Bean Tacos</div>
+              <div class="meal-card__meta">510 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+
+          <!-- Snack row -->
+          <div class="meal-grid__row-label"><span class="material-icons">local_cafe</span> Snack</div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--snack">
+              <div class="meal-card__name">Apple & Almonds</div>
+              <div class="meal-card__meta">180 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--today meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--snack">
+              <div class="meal-card__name">Trail Mix</div>
+              <div class="meal-card__meta">210 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+          <div class="meal-grid__cell">
+            <div class="meal-card meal-card--snack">
+              <div class="meal-card__name">Hummus & Veggies</div>
+              <div class="meal-card__meta">190 kcal</div>
+            </div>
+          </div>
+          <div class="meal-grid__cell meal-grid__cell--empty">
+            <button class="meal-grid__add-btn"><span class="material-icons">add</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SHOPPING LIST CARD ===== -->
+      <div class="card">
+        <div class="card__header">
+          <h3><span class="material-icons" style="font-size:18px; vertical-align:middle; margin-right:6px;">shopping_cart</span> Shopping List — This Week</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="chip chip--warning">12 items</span>
+            <button class="btn btn--ghost btn--sm"><span class="material-icons">more_horiz</span></button>
+          </div>
+        </div>
+        <div class="card__body" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px;">
+          <!-- Produce -->
+          <div class="shopping-list__category">
+            <div class="shopping-list__category-name">Produce</div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Avocados</span><span class="shopping-list__item-qty">3</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Asparagus</span><span class="shopping-list__item-qty">1 bunch</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Bell Peppers</span><span class="shopping-list__item-qty">4</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Spinach</span><span class="shopping-list__item-qty">200g</span></div>
+          </div>
+          <!-- Protein -->
+          <div class="shopping-list__category">
+            <div class="shopping-list__category-name">Protein</div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Salmon Fillets</span><span class="shopping-list__item-qty">2 × 150g</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Chicken Thighs</span><span class="shopping-list__item-qty">500g</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Firm Tofu</span><span class="shopping-list__item-qty">1 block</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Greek Yogurt</span><span class="shopping-list__item-qty">500g</span></div>
+          </div>
+          <!-- Pantry -->
+          <div class="shopping-list__category">
+            <div class="shopping-list__category-name">Pantry &amp; Grains</div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Quinoa</span><span class="shopping-list__item-qty">400g</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Black Beans (canned)</span><span class="shopping-list__item-qty">2 cans</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Rolled Oats</span><span class="shopping-list__item-qty">500g</span></div>
+            <div class="shopping-list__item"><input type="checkbox"><span>Corn Tortillas</span><span class="shopping-list__item-qty">12 pack</span></div>
+          </div>
+        </div>
+        <div style="padding: 0 20px 16px; display:flex; justify-content:space-between; align-items:center;">
+          <div class="shopping-list__total" style="border:none; padding:0; margin:0;">
+            <span>Est. Total: ~$68</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn--outlined btn--sm"><span class="material-icons">print</span> Print</button>
+            <button class="btn btn--outlined btn--sm"><span class="material-icons">share</span> Share</button>
+            <button class="btn btn--success btn--sm"><span class="material-icons">check</span> Mark All Purchased</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT SIDEBAR (420px, outside centered hero) ===== -->
+    <aside class="sidebar-stack" id="sidebar">
+      <button class="sidebar-close" onclick="toggleSidebar()">
+        <span class="material-icons">close</span> Close Panel
+      </button>
+
+      <!-- Nutrition Snapshot -->
+      <div class="card">
+        <div class="card__header">
+          <h3>Nutrition Snapshot</h3>
+          <span class="chip chip--primary">Today</span>
+        </div>
+        <div class="card__body">
+          <div class="nutrition-ring">
+            <div class="nutrition-ring__circle">
+              <svg viewBox="0 0 36 36" width="80" height="80">
+                <circle class="nutrition-ring__circle-bg" cx="18" cy="18" r="15.9"/>
+                <circle class="nutrition-ring__circle-fill" cx="18" cy="18" r="15.9"
+                  stroke="var(--primary-500)"
+                  stroke-dasharray="72, 100" />
+              </svg>
+              <div class="nutrition-ring__circle-label">
+                1,320
+                <small>kcal</small>
+              </div>
+            </div>
+            <div class="nutrition-ring__details">
+              <div class="nutrition-macro">
+                <span class="nutrition-macro__label"><span class="nutrition-macro__dot" style="background: var(--primary-500)"></span> Protein</span>
+                <span class="nutrition-macro__value">86g</span>
+              </div>
+              <div class="nutrition-macro">
+                <span class="nutrition-macro__label"><span class="nutrition-macro__dot" style="background: var(--warning)"></span> Carbs</span>
+                <span class="nutrition-macro__value">142g</span>
+              </div>
+              <div class="nutrition-macro">
+                <span class="nutrition-macro__label"><span class="nutrition-macro__dot" style="background: var(--error)"></span> Fat</span>
+                <span class="nutrition-macro__value">52g</span>
+              </div>
+              <div class="nutrition-macro">
+                <span class="nutrition-macro__label"><span class="nutrition-macro__dot" style="background: var(--tertiary-500)"></span> Fiber</span>
+                <span class="nutrition-macro__value">28g</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;">
+            <div class="progress-row">
+              <span class="progress-row__label">Vitamin A</span>
+              <div class="progress-row__bar"><div class="progress-row__fill" style="width:85%; background:var(--tertiary-500)"></div></div>
+              <span class="progress-row__value">85%</span>
+            </div>
+            <div class="progress-row">
+              <span class="progress-row__label">Vitamin C</span>
+              <div class="progress-row__bar"><div class="progress-row__fill" style="width:100%; background:var(--primary-500)"></div></div>
+              <span class="progress-row__value">120%</span>
+            </div>
+            <div class="progress-row">
+              <span class="progress-row__label">Iron</span>
+              <div class="progress-row__bar"><div class="progress-row__fill" style="width:62%; background:var(--warning)"></div></div>
+              <span class="progress-row__value">62%</span>
+            </div>
+            <div class="progress-row">
+              <span class="progress-row__label">Calcium</span>
+              <div class="progress-row__bar"><div class="progress-row__fill" style="width:74%; background:var(--secondary-500)"></div></div>
+              <span class="progress-row__value">74%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supplements -->
+      <div class="card">
+        <div class="card__header">
+          <h3>Supplements</h3>
+          <button class="btn btn--ghost btn--sm"><span class="material-icons">edit</span></button>
+        </div>
+        <div class="card__body card__body--compact">
+          <div class="supplement-row">
+            <div class="supplement-row__icon supplement-row__icon--vitamin"><span class="material-icons">wb_sunny</span></div>
+            <div class="supplement-row__info">
+              <div class="supplement-row__name">Vitamin D3</div>
+              <div class="supplement-row__dose">2000 IU — morning</div>
+            </div>
+            <span class="supplement-row__status supplement-row__status--taken">Taken</span>
+          </div>
+          <div class="supplement-row">
+            <div class="supplement-row__icon supplement-row__icon--omega"><span class="material-icons">water_drop</span></div>
+            <div class="supplement-row__info">
+              <div class="supplement-row__name">Omega-3 Fish Oil</div>
+              <div class="supplement-row__dose">1000 mg — with lunch</div>
+            </div>
+            <span class="supplement-row__status supplement-row__status--pending">Pending</span>
+          </div>
+          <div class="supplement-row">
+            <div class="supplement-row__icon supplement-row__icon--mineral"><span class="material-icons">science</span></div>
+            <div class="supplement-row__info">
+              <div class="supplement-row__name">Magnesium</div>
+              <div class="supplement-row__dose">400 mg — evening</div>
+            </div>
+            <span class="supplement-row__status supplement-row__status--pending">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card__header">
+          <h3>Quick Actions</h3>
+        </div>
+        <div class="card__body card__body--compact">
+          <div class="quick-actions">
+            <a href="#" class="quick-action">
+              <span class="material-icons">auto_awesome</span>
+              <span>Generate Plan</span>
+            </a>
+            <a href="#" class="quick-action">
+              <span class="material-icons">content_copy</span>
+              <span>Copy Last Week</span>
+            </a>
+            <a href="#" class="quick-action">
+              <span class="material-icons">file_download</span>
+              <span>Export PDF</span>
+            </a>
+            <a href="#" class="quick-action">
+              <span class="material-icons">groups</span>
+              <span>Household</span>
+            </a>
+            <a href="#" class="quick-action">
+              <span class="material-icons">tune</span>
+              <span>Restrictions</span>
+            </a>
+            <a href="#" class="quick-action">
+              <span class="material-icons">bar_chart</span>
+              <span>Weekly Report</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dietary Notes -->
+      <div class="card card--outlined">
+        <div class="card__body card__body--compact" style="display:flex; align-items:flex-start; gap:12px;">
+          <span class="material-icons" style="color:var(--warning); font-size:20px; margin-top:2px;">info</span>
+          <div>
+            <div style="font-size:0.85rem; font-weight:600; margin-bottom:4px;">Iron is low this week</div>
+            <div style="font-size:0.8rem; color:var(--neutral-500); line-height:1.5;">
+              Consider adding spinach, lentils, or red meat to upcoming meals. Current intake: 62% of daily target.
+            </div>
+            <button class="btn btn--outlined btn--sm" style="margin-top:8px;">
+              <span class="material-icons">search</span> Find Iron-Rich Recipes
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="mockup-note">
+    NOM Layout Mockup — Static HTML/CSS — Not Functional
+  </div>
+</div>
+
+<!-- Sidebar toggle tab (visible < 1400px) -->
+<button class="sidebar-toggle" onclick="toggleSidebar()" title="Open sidebar panel">
+  <span class="material-icons">widgets</span>
+  Panel
+</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+<script>
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('sidebar-stack--open');
+    document.getElementById('sidebar-backdrop').classList.toggle('sidebar-backdrop--visible');
+  }
+</script>
+</body>
+</html>

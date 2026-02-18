@@ -1,0 +1,151 @@
+@if (loading()) {
+  <div class="nom-recipe__loading">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Loading recipe...</p>
+  </div>
+} @else if (error()) {
+  <div class="nom-recipe__not-found" data-testid="recipe-error">
+    <mat-icon class="nom-recipe__not-found-icon">error_outline</mat-icon>
+    <h2>Something went wrong</h2>
+    <p>{{ error() }}</p>
+    <a mat-flat-button color="primary" routerLink="/home">Browse Recipes</a>
+  </div>
+} @else if (recipe()) {
+  <div class="nom-recipe__banner">
+    <a routerLink="/home" class="nom-recipe__back" data-testid="recipe-back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Back to recipes
+    </a>
+  </div>
+
+  <div class="nom-recipe__columns" data-testid="recipe-detail">
+    <!-- Column 1: Overview (vertical tabs) -->
+    <div class="nom-recipe__column nom-recipe__column--overview">
+      <nav class="nom-recipe__tab-nav">
+        <button class="nom-recipe__tab-btn"
+                [class.nom-recipe__tab-btn--active]="activeTab() === 0"
+                (click)="activeTab.set(0)">
+          <mat-icon>info_outline</mat-icon>
+          Overview
+        </button>
+        <button class="nom-recipe__tab-btn"
+                [class.nom-recipe__tab-btn--active]="activeTab() === 1"
+                (click)="activeTab.set(1)">
+          <mat-icon>monitor_heart</mat-icon>
+          Nutrition
+        </button>
+        <button class="nom-recipe__tab-btn"
+                [class.nom-recipe__tab-btn--active]="activeTab() === 2"
+                (click)="activeTab.set(2)">
+          <mat-icon>eco</mat-icon>
+          Diet
+        </button>
+      </nav>
+
+      <div class="nom-recipe__tab-panel">
+        @switch (activeTab()) {
+          @case (0) {
+            @if (recipe()!.imageUrl) {
+              <div class="nom-recipe__hero">
+                <img [src]="recipe()!.imageUrl" [alt]="recipe()!.name" class="nom-recipe__hero-img">
+              </div>
+            }
+            <h1 class="nom-recipe__title">{{ recipe()!.name }}</h1>
+            @if (recipe()!.description) {
+              <p class="nom-recipe__description">{{ recipe()!.description }}</p>
+            }
+            <div class="nom-recipe__meta">
+              @if (recipe()!.prepTimeMinutes) {
+                <span class="nom-recipe__meta-item">
+                  <mat-icon>schedule</mat-icon>
+                  Prep: {{ recipe()!.prepTimeMinutes }} min
+                </span>
+              }
+              @if (recipe()!.cookTimeMinutes) {
+                <span class="nom-recipe__meta-item">
+                  <mat-icon>local_fire_department</mat-icon>
+                  Cook: {{ recipe()!.cookTimeMinutes }} min
+                </span>
+              }
+              @if (recipe()!.servings) {
+                <span class="nom-recipe__meta-item">
+                  <mat-icon>restaurant</mat-icon>
+                  {{ recipe()!.servings }} {{ recipe()!.servings === 1 ? 'serving' : 'servings' }}
+                </span>
+              }
+              @if (recipe()!.rating > 0) {
+                <span class="nom-recipe__meta-item">
+                  <mat-icon>star</mat-icon>
+                  {{ recipe()!.rating }} ({{ recipe()!.ratingCount }})
+                </span>
+              }
+              @if (recipe()!.authorName) {
+                <span class="nom-recipe__meta-item nom-recipe__meta-author">
+                  <mat-icon>person</mat-icon>
+                  {{ recipe()!.authorName }}
+                </span>
+              }
+            </div>
+          }
+          @case (1) {
+            <nom-nutrition-label
+              [nutrition]="recipe()!.nutrition ?? []"
+              [servings]="recipe()!.servings">
+            </nom-nutrition-label>
+          }
+          @case (2) {
+            <p class="nom-recipe__empty-section">
+              Dietary information and allergen warnings will appear here once configured.
+            </p>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Column 2: Ingredients -->
+    <div class="nom-recipe__column nom-recipe__column--ingredients">
+      <h2 class="nom-recipe__section-title">
+        <mat-icon>checklist</mat-icon>
+        Ingredients
+      </h2>
+      @if (recipe()!.ingredients && recipe()!.ingredients!.length > 0) {
+        <ul class="nom-recipe__ingredients">
+          @for (item of recipe()!.ingredients; track item.ingredientId) {
+            <li class="nom-recipe__ingredient">
+              {{ item.quantity }} {{ item.measurement }} {{ item.name }}
+              @if (item.notes) {
+                <span class="nom-recipe__ingredient-notes">({{ item.notes }})</span>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="nom-recipe__empty-section">No ingredients listed.</p>
+      }
+    </div>
+
+    <!-- Column 3: Instructions -->
+    <div class="nom-recipe__column nom-recipe__column--instructions">
+      <h2 class="nom-recipe__section-title">
+        <mat-icon>format_list_numbered</mat-icon>
+        Instructions
+      </h2>
+      @if (recipe()!.steps && recipe()!.steps!.length > 0) {
+        <ol class="nom-recipe__steps">
+          @for (step of recipe()!.steps; track step.order) {
+            <li class="nom-recipe__step">{{ step.description }}</li>
+          }
+        </ol>
+      } @else {
+        <p class="nom-recipe__empty-section">No instructions listed.</p>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="nom-recipe__not-found" data-testid="recipe-not-found">
+    <mat-icon class="nom-recipe__not-found-icon">search_off</mat-icon>
+    <h2>Recipe not found</h2>
+    <p>The recipe you're looking for doesn't exist.</p>
+    <a mat-flat-button color="primary" routerLink="/home">Browse Recipes</a>
+  </div>
+}

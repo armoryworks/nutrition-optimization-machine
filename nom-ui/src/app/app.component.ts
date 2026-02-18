@@ -39,6 +39,7 @@ export class AppComponent implements OnInit {
   isDarkTheme = computed(() => this.themeService.getCurrentTheme() === 'dark');
   isLoggedIn$ = this.authService.isLoggedIn$;
   showLoginPopover = signal(false);
+  sidebarOpen = signal(false);
   currentYear = new Date().getFullYear();
 
   constructor() {
@@ -77,6 +78,10 @@ export class AppComponent implements OnInit {
         console.error('Logout failed:', error);
       }
     });
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update(open => !open);
   }
 
   onSearch(event: Event): void {

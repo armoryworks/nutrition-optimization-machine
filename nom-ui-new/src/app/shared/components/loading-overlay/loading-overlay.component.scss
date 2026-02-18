@@ -1,0 +1,78 @@
+@use 'variables' as vars;
+
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: vars.$z-modal-backdrop;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 200ms vars.$transition-timing,
+    visibility 200ms vars.$transition-timing;
+  pointer-events: none;
+
+  &.nom-loading-overlay--visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+.nom-loading-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.nom-loading-overlay__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: vars.$spacing-5;
+  padding: vars.$spacing-8;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  box-shadow: vars.$elevation-4;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.nom-loading-overlay__spinner {
+  flex-shrink: 0;
+}
+
+.nom-loading-overlay__messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  width: 100%;
+  text-align: center;
+}
+
+.nom-loading-overlay__message {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: vars.$line-height-normal;
+  animation: slideIn 250ms vars.$transition-timing both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

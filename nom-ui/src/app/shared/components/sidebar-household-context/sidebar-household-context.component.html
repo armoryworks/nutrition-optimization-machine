@@ -1,0 +1,38 @@
+<div class="sidebar-panel">
+  <div class="sidebar-panel__header">
+    <amw-icon name="groups"></amw-icon>
+    <h3 class="sidebar-panel__title">Households</h3>
+  </div>
+
+  @if (loading()) {
+  <div class="sidebar-panel__loading">Loading...</div>
+  }
+
+  @if (!loading()) {
+  <div class="sidebar-panel__body">
+    @if (households().length > 0) {
+      @for (household of households(); track household.id) {
+      <a [routerLink]="['/household', household.id]" class="sidebar-household__item">
+        <div class="sidebar-household__info">
+          <span class="sidebar-household__name">{{ household.name }}</span>
+          @if (household.isOwner) {
+          <span class="sidebar-household__badge">Owner</span>
+          }
+        </div>
+        <div class="sidebar-household__members">
+          <amw-icon name="person"></amw-icon>
+          <span>{{ household.memberCount }} member{{ household.memberCount !== 1 ? 's' : '' }}</span>
+        </div>
+      </a>
+      }
+    } @else {
+    <div class="sidebar-panel__empty">No households yet</div>
+    }
+  </div>
+
+  <a routerLink="/household" class="sidebar-panel__link">
+    Manage households
+    <amw-icon name="arrow_forward"></amw-icon>
+  </a>
+  }
+</div>

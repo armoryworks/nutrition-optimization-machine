@@ -5,6 +5,39 @@
   font-weight: 700;
 }
 
+// Hero CTA for anonymous users
+.home__hero {
+  padding: vars.$spacing-lg;
+  margin-bottom: vars.$spacing-lg;
+  background: var(--mat-sys-primary-container);
+  border-radius: vars.$nom-border-radius-lg;
+}
+
+.home__hero-content {
+  max-width: 600px;
+}
+
+.home__hero-title {
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-bold;
+  color: var(--mat-sys-on-primary-container);
+  margin: 0 0 vars.$spacing-sm;
+}
+
+.home__hero-desc {
+  font-size: vars.$font-size-md;
+  color: var(--mat-sys-on-primary-container);
+  line-height: vars.$line-height-relaxed;
+  margin: 0 0 vars.$spacing-md;
+  opacity: 0.85;
+}
+
+.home__hero-actions {
+  display: flex;
+  gap: vars.$spacing-sm;
+  flex-wrap: wrap;
+}
+
 .home__meal-group {
   margin-bottom: vars.$spacing-lg;
 }

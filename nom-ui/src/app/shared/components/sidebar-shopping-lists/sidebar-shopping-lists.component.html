@@ -1,0 +1,38 @@
+<div class="sidebar-panel">
+  <div class="sidebar-panel__header">
+    <amw-icon name="shopping_cart"></amw-icon>
+    <h3 class="sidebar-panel__title">Shopping Lists</h3>
+  </div>
+
+  @if (loading()) {
+  <div class="sidebar-panel__loading">Loading...</div>
+  }
+
+  @if (!loading()) {
+  <div class="sidebar-panel__body">
+    @if (lists().length > 0) {
+      @for (list of lists(); track list.id) {
+      <a [routerLink]="['/shopping', list.id]" class="sidebar-shopping__list">
+        <div class="sidebar-shopping__list-info">
+          <span class="sidebar-shopping__list-name">{{ list.name }}</span>
+          <span class="sidebar-shopping__list-count">{{ list.completedItemCount }}/{{ list.itemCount }} items</span>
+        </div>
+        <div class="sidebar-shopping__progress">
+          <div class="sidebar-shopping__progress-bar">
+            <div class="sidebar-shopping__progress-fill" [style.width.%]="list.progressPercent"></div>
+          </div>
+          <span class="sidebar-shopping__progress-text">{{ list.progressPercent }}%</span>
+        </div>
+      </a>
+      }
+    } @else {
+    <div class="sidebar-panel__empty">No active shopping lists</div>
+    }
+  </div>
+
+  <a routerLink="/shopping" class="sidebar-panel__link">
+    View all lists
+    <amw-icon name="arrow_forward"></amw-icon>
+  </a>
+  }
+</div>
