@@ -44,7 +44,7 @@ export class Household implements OnInit {
   successMessage = signal('');
   activeTab = signal<'create' | 'join'>('create');
 
-  isStandalone = computed(() => this.mode() === 'standalone');
+  isStandalone = computed(() => this.mode() !== 'wizard');
 
   createForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],

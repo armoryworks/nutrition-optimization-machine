@@ -72,7 +72,7 @@ export class Profile implements OnInit {
 
   genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
-  isStandalone = computed(() => this.mode() === 'standalone');
+  isStandalone = computed(() => this.mode() !== 'wizard');
 
   ngOnInit(): void {
     this.loadReferenceData();

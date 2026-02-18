@@ -45,7 +45,7 @@ export class Restrictions implements OnInit {
   errorMessage = signal('');
   successMessage = signal('');
 
-  isStandalone = computed(() => this.mode() === 'standalone');
+  isStandalone = computed(() => this.mode() !== 'wizard');
 
   categories = computed<RestrictionCategory[]>(() => {
     const items = this.allRestrictions();
