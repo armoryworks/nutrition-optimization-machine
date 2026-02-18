@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -8,5 +9,14 @@ export const routes: Routes = [
   { path: 'register', loadComponent: () => import('./auth/register.component').then(m => m.Register) },
   { path: 'forgot-password', loadComponent: () => import('./auth/forgot-password.component').then(m => m.ForgotPassword) },
   { path: 'reset-password', loadComponent: () => import('./auth/reset-password.component').then(m => m.ResetPassword) },
+
+  // Protected routes
+  { path: 'onboarding', loadComponent: () => import('./onboarding/onboarding.component').then(m => m.Onboarding), canActivate: [authGuard] },
+  { path: 'profile', loadComponent: () => import('./profile/profile.component').then(m => m.Profile), canActivate: [authGuard] },
+  { path: 'restrictions', loadComponent: () => import('./restrictions/restrictions.component').then(m => m.Restrictions), canActivate: [authGuard] },
+  { path: 'household', loadComponent: () => import('./household/household.component').then(m => m.Household), canActivate: [authGuard] },
+  { path: 'plan', loadComponent: () => import('./plan/plan.component').then(m => m.Plan), canActivate: [authGuard] },
+  { path: 'settings', loadComponent: () => import('./settings/settings.component').then(m => m.Settings), canActivate: [authGuard] },
+
   { path: '**', redirectTo: 'home' },
 ];

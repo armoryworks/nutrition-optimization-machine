@@ -157,6 +157,12 @@ namespace Nom.Data
         private const long PersonHealthGoalMuscleGainId = 11053L;
         private const long PersonHealthGoalGeneralHealthId = 11054L;
 
+        // Person Attribute Types
+        private const long PersonAttributeTypeHeightId = 11070L;
+        private const long PersonAttributeTypeWeightId = 11071L;
+        private const long PersonAttributeTypeGenderId = 11072L;
+        private const long PersonAttributeTypeDateOfBirthId = 11073L;
+
         // Day of Week Types
         private const long DayOfWeekMondayId = 11060L;
         private const long DayOfWeekTuesdayId = 11061L;
@@ -234,6 +240,8 @@ namespace Nom.Data
             AddShoppingCategoryTypes(migrationBuilder);
             AddRecipeDifficultyTypes(migrationBuilder);
             AddPersonActivityLevelTypes(migrationBuilder);
+            AddPersonHealthGoalTypes(migrationBuilder);
+            AddPersonAttributeTypes(migrationBuilder);
             AddDayOfWeekTypes(migrationBuilder);
 
             AddNutrientTypes(migrationBuilder);
@@ -261,6 +269,8 @@ namespace Nom.Data
 
             // UI Data Conversion Removal
             RemoveDayOfWeekTypes(migrationBuilder);
+            RemovePersonAttributeTypes(migrationBuilder);
+            RemovePersonHealthGoalTypes(migrationBuilder);
             RemovePersonActivityLevelTypes(migrationBuilder);
             RemoveRecipeDifficultyTypes(migrationBuilder);
             RemoveShoppingCategoryTypes(migrationBuilder);
@@ -353,6 +363,7 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.MedicalConditionType, "Medical Condition Types", "Medical conditions (Celiac Disease, Diabetes, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.SocietalRestrictionType, "Societal Restriction Types", "Religious/ethical restrictions (Kosher, Halal, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.PersonalPreferenceType, "Personal Preference Types", "Personal preferences (Spice levels, textures, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonAttributeType, "Person Attribute Types", "Types of person attributes (Height, Weight, Gender, Date of Birth).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.SortOptionType, "Sort Option Types", "Search/sort options (relevance, rating, name, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.SortDirectionType, "Sort Direction Types", "Sort directions (ascending, descending).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.DayOfWeekType, "Day of Week Types", "Days of the week (Monday, Tuesday, etc.).", DateTime.UtcNow, SystemPersonId },
@@ -399,6 +410,7 @@ namespace Nom.Data
                     (long)ReferenceDiscriminatorEnum.MedicalConditionType,
                     (long)ReferenceDiscriminatorEnum.SocietalRestrictionType,
                     (long)ReferenceDiscriminatorEnum.PersonalPreferenceType,
+                    (long)ReferenceDiscriminatorEnum.PersonAttributeType,
                     (long)ReferenceDiscriminatorEnum.SortOptionType,
                     (long)ReferenceDiscriminatorEnum.SortDirectionType,
                     (long)ReferenceDiscriminatorEnum.DayOfWeekType,
@@ -1606,6 +1618,113 @@ namespace Nom.Data
                     columns: new[] { "ReferenceId", "GroupId" },
                     values: new object[] { id, groupId });
             }
+        }
+
+        public static void AddPersonHealthGoalTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonHealthGoalType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { PersonHealthGoalWeightLossId, "Weight Loss", "Goal to reduce body weight", DateTime.UtcNow, SystemPersonId },
+                    { PersonHealthGoalWeightGainId, "Weight Gain", "Goal to increase body weight", DateTime.UtcNow, SystemPersonId },
+                    { PersonHealthGoalMaintenanceId, "Maintenance", "Goal to maintain current body weight", DateTime.UtcNow, SystemPersonId },
+                    { PersonHealthGoalMuscleGainId, "Muscle Gain", "Goal to build muscle mass", DateTime.UtcNow, SystemPersonId },
+                    { PersonHealthGoalGeneralHealthId, "General Health", "Goal to improve overall health and nutrition", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] healthGoalIds = new long[] {
+                PersonHealthGoalWeightLossId, PersonHealthGoalWeightGainId, PersonHealthGoalMaintenanceId,
+                PersonHealthGoalMuscleGainId, PersonHealthGoalGeneralHealthId
+            };
+            foreach (long id in healthGoalIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemovePersonHealthGoalTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonHealthGoalType;
+            long[] healthGoalIds = new long[] {
+                PersonHealthGoalWeightLossId, PersonHealthGoalWeightGainId, PersonHealthGoalMaintenanceId,
+                PersonHealthGoalMuscleGainId, PersonHealthGoalGeneralHealthId
+            };
+
+            foreach (long id in healthGoalIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: healthGoalIds.Cast<object>().ToArray());
+        }
+
+        public static void AddPersonAttributeTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonAttributeType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { PersonAttributeTypeHeightId, "Height", "Person's height (stored in centimeters)", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeWeightId, "Weight", "Person's weight (stored in kilograms)", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeGenderId, "Gender", "Person's gender identity", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeDateOfBirthId, "Date of Birth", "Person's date of birth (ISO date string)", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] attributeTypeIds = new long[] {
+                PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
+                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId
+            };
+            foreach (long id in attributeTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemovePersonAttributeTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonAttributeType;
+            long[] attributeTypeIds = new long[] {
+                PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
+                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId
+            };
+
+            foreach (long id in attributeTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: attributeTypeIds.Cast<object>().ToArray());
         }
 
         // UI Data Conversion Removal Methods

@@ -1,0 +1,81 @@
+@use 'variables' as vars;
+
+.nom-household__tabs {
+  display: flex;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-6;
+}
+
+.nom-household__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3 vars.$spacing-5;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  cursor: pointer;
+  transition: background-color 150ms vars.$transition-timing,
+              border-color 150ms vars.$transition-timing;
+
+  &:hover { background: var(--mat-sys-surface-container); }
+
+  &--active {
+    background: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.nom-household__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-household__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+}
+
+.nom-household__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-household__item-name {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-household__item-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-household__item-stats {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-household__success {
+  background: var(--mat-sys-primary-container);
+  border: 1px solid var(--mat-sys-primary);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  color: var(--mat-sys-on-primary-container);
+  font-size: vars.$font-size-sm;
+}

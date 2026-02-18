@@ -6,6 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { switchMap } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
@@ -52,10 +53,12 @@ export class Register {
     this.errorMessage.set('');
 
     const { email, password, fullName } = this.registerForm.getRawValue();
-    this.authService.register(email!, password!, fullName || undefined).subscribe({
+    this.authService.register(email!, password!, fullName || undefined).pipe(
+      switchMap(() => this.authService.loginAfterRegister(email!, password!))
+    ).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/home']);
+        this.router.navigate(['/onboarding']);
       },
       error: (err) => {
         this.loading.set(false);

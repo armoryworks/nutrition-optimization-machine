@@ -1,0 +1,83 @@
+<div class="nom-onboarding">
+  <!-- Step indicator -->
+  <div class="nom-onboarding__stepper" role="navigation" aria-label="Onboarding progress">
+    @for (label of stepLabels; track label; let i = $index) {
+      <button
+        type="button"
+        class="nom-onboarding__step"
+        [class.nom-onboarding__step--active]="currentStep() === i"
+        [class.nom-onboarding__step--completed]="completedSteps().has(i)"
+        (click)="goToStep(i)"
+        [attr.aria-current]="currentStep() === i ? 'step' : null">
+        <div class="nom-onboarding__step-indicator">
+          @if (completedSteps().has(i)) {
+            <mat-icon>check</mat-icon>
+          } @else {
+            {{ i + 1 }}
+          }
+        </div>
+        <span class="nom-onboarding__step-label">{{ label }}</span>
+      </button>
+      @if (i < stepLabels.length - 1) {
+        <div class="nom-onboarding__step-connector"
+             [class.nom-onboarding__step-connector--completed]="completedSteps().has(i)"></div>
+      }
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Step content -->
+  <div class="nom-onboarding__content">
+    @switch (currentStep()) {
+      @case (0) {
+        <nom-profile
+          mode="wizard"
+          [initialData]="profileData()"
+          (stepComplete)="onProfileComplete($event)" />
+      }
+      @case (1) {
+        <nom-restrictions
+          mode="wizard"
+          [initialRestrictions]="restrictionsData()"
+          (stepComplete)="onRestrictionsComplete($event)" />
+      }
+      @case (2) {
+        <nom-household
+          mode="wizard"
+          (stepComplete)="onHouseholdComplete($event)"
+          (skipped)="skipStep()" />
+      }
+      @case (3) {
+        <nom-plan
+          mode="wizard"
+          [initialRestrictions]="restrictionsData()"
+          (stepComplete)="onPlanComplete($event)"
+          (skipped)="skipStep()" />
+      }
+    }
+  </div>
+
+  <!-- Navigation bar -->
+  <div class="nom-onboarding__nav">
+    @if (!isFirstStep()) {
+      <button mat-stroked-button (click)="previous()">
+        <mat-icon>arrow_back</mat-icon>
+        Back
+      </button>
+    }
+    <span class="nom-onboarding__spacer"></span>
+    <button mat-button (click)="skipStep()">
+      @if (isLastStep()) {
+        Finish Later
+      } @else {
+        Skip for Now
+      }
+    </button>
+  </div>
+</div>

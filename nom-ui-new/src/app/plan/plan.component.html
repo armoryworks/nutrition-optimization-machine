@@ -1,0 +1,149 @@
+<div class="nom-form--full">
+  @if (isStandalone()) {
+    <div class="nom-form__header">
+      <h1 class="nom-form__title">Plans</h1>
+      <p class="nom-form__subtitle">Create or join meal plans to organize your diet</p>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="nom-plan__success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  <!-- Existing Plans (standalone only) -->
+  @if (isStandalone() && plans().length > 0) {
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Your Plans</h2>
+      <div class="nom-plan__list">
+        @for (p of plans(); track p.id) {
+          <div class="nom-plan__item">
+            <div class="nom-plan__item-info">
+              <span class="nom-plan__item-name">{{ p.name }}</span>
+              @if (p.description) {
+                <span class="nom-plan__item-desc">{{ p.description }}</span>
+              }
+            </div>
+            <div class="nom-plan__item-meta">
+              <span>{{ p.startDate }}</span>
+              <span>{{ p.participants.length }} participants</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Tab toggle -->
+  <div class="nom-plan__tabs">
+    <button
+      type="button"
+      class="nom-plan__tab"
+      [class.nom-plan__tab--active]="activeTab() === 'create'"
+      (click)="activeTab.set('create')">
+      <mat-icon>add_circle_outline</mat-icon>
+      Create Plan
+    </button>
+    <button
+      type="button"
+      class="nom-plan__tab"
+      [class.nom-plan__tab--active]="activeTab() === 'join'"
+      (click)="activeTab.set('join')">
+      <mat-icon>link</mat-icon>
+      Join Plan
+    </button>
+  </div>
+
+  @if (activeTab() === 'create') {
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Create a New Plan</h2>
+      <p class="nom-form__section-description">Set up a structured meal plan with goals and restrictions</p>
+
+      <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
+        <div class="nom-form__fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Plan Name</mat-label>
+            <input matInput formControlName="name" placeholder="e.g. Spring Weight Loss Plan" />
+            @if (createForm.get('name')?.hasError('required')) {
+              <mat-error>Plan name is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Description (optional)</mat-label>
+            <textarea matInput formControlName="description" rows="3" placeholder="What's this plan about?"></textarea>
+          </mat-form-field>
+
+          <div class="nom-form__field-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Start Date</mat-label>
+              <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+              <mat-datepicker #startPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>End Date (optional)</mat-label>
+              <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+              <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+              <mat-datepicker #endPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          @if (hasRestrictions()) {
+            <mat-checkbox formControlName="applyRestrictions">
+              Apply my dietary restrictions to this plan
+            </mat-checkbox>
+          }
+        </div>
+
+        <div class="nom-form__actions">
+          <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()">
+            @if (loading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              Create Plan
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  } @else {
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Join an Existing Plan</h2>
+      <p class="nom-form__section-description">Enter an invitation code to join someone else's plan</p>
+
+      <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
+        <div class="nom-form__fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Invitation Code</mat-label>
+            <input matInput formControlName="invitationCode" placeholder="Paste invitation code here" />
+            <mat-icon matPrefix>link</mat-icon>
+            @if (joinForm.get('invitationCode')?.hasError('required')) {
+              <mat-error>Invitation code is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="nom-form__actions">
+          <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()">
+            @if (loading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              Join Plan
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</div>

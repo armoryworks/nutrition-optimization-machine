@@ -1,0 +1,156 @@
+<div class="nom-form--full">
+  @if (isStandalone()) {
+    <div class="nom-form__header">
+      <h1 class="nom-form__title">Profile</h1>
+      <p class="nom-form__subtitle">Manage your personal information and health settings</p>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="nom-profile__success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+    <!-- Personal Information -->
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Personal Information</h2>
+      <p class="nom-form__section-description">Basic details about yourself</p>
+
+      <div class="nom-form__fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" placeholder="Your name" />
+          @if (profileForm.get('name')?.hasError('required')) {
+            <mat-error>Name is required</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="nom-form__field-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Date of Birth</mat-label>
+            <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="MM/DD/YYYY" />
+            <mat-datepicker-toggle matIconSuffix [for]="dobPicker"></mat-datepicker-toggle>
+            <mat-datepicker #dobPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Gender</mat-label>
+            <mat-select formControlName="gender">
+              @for (option of genderOptions; track option) {
+                <mat-option [value]="option">{{ option }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Physical Measurements -->
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Physical Measurements</h2>
+      <p class="nom-form__section-description">Used for calculating nutritional needs</p>
+
+      <div class="nom-form__fields">
+        <div class="nom-profile__unit-toggle">
+          <mat-button-toggle-group [value]="unitSystem()" (change)="onUnitSystemChange($event.value)" hideSingleSelectionIndicator>
+            <mat-button-toggle value="imperial">Imperial (ft/lbs)</mat-button-toggle>
+            <mat-button-toggle value="metric">Metric (cm/kg)</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        @if (unitSystem() === 'imperial') {
+          <div class="nom-form__field-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Height (feet)</mat-label>
+              <input matInput type="number" formControlName="heightFeet" placeholder="5" />
+              <span matTextSuffix>ft</span>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Height (inches)</mat-label>
+              <input matInput type="number" formControlName="heightInches" placeholder="10" />
+              <span matTextSuffix>in</span>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Weight</mat-label>
+            <input matInput type="number" formControlName="weightLbs" placeholder="150" />
+            <span matTextSuffix>lbs</span>
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline">
+            <mat-label>Height</mat-label>
+            <input matInput type="number" formControlName="heightCm" placeholder="175" />
+            <span matTextSuffix>cm</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Weight</mat-label>
+            <input matInput type="number" formControlName="weightKg" placeholder="70" />
+            <span matTextSuffix>kg</span>
+          </mat-form-field>
+        }
+      </div>
+    </div>
+
+    <!-- Lifestyle -->
+    <div class="nom-form__section">
+      <h2 class="nom-form__section-title">Lifestyle</h2>
+      <p class="nom-form__section-description">Help us tailor your nutritional recommendations</p>
+
+      <div class="nom-form__fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Activity Level</mat-label>
+          <mat-select formControlName="activityLevel">
+            @for (level of activityLevels(); track level.referenceId) {
+              <mat-option [value]="level.referenceId">
+                {{ level.referenceName }}
+                <span class="nom-profile__option-hint">{{ level.referenceDescription }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Health Goal</mat-label>
+          <mat-select formControlName="healthGoal">
+            @for (goal of healthGoals(); track goal.referenceId) {
+              <mat-option [value]="goal.referenceId">
+                {{ goal.referenceName }}
+                <span class="nom-profile__option-hint">{{ goal.referenceDescription }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    @if (isStandalone()) {
+      <div class="nom-form__actions">
+        <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
+          @if (loading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Save Profile
+          }
+        </button>
+      </div>
+    } @else {
+      <div class="nom-form__actions">
+        <button mat-flat-button type="submit" [disabled]="profileForm.invalid">
+          Continue
+        </button>
+      </div>
+    }
+  </form>
+</div>

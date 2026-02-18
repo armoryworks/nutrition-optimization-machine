@@ -1,5 +1,11 @@
 @use 'variables' as vars;
 
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
 .nom-sidebar-panel {
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);

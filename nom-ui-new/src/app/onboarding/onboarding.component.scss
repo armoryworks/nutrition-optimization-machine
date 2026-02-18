@@ -1,0 +1,120 @@
+@use 'variables' as vars;
+
+.nom-onboarding {
+  max-width: vars.$content-max-narrow;
+  margin: 0 auto;
+  padding: vars.$spacing-6;
+  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: vars.$spacing-4;
+  }
+}
+
+// Stepper
+.nom-onboarding__stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: vars.$spacing-8;
+  padding: vars.$spacing-4 0;
+}
+
+.nom-onboarding__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: vars.$spacing-2;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: vars.$spacing-2;
+  min-width: 72px;
+}
+
+.nom-onboarding__step-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  border: 2px solid var(--mat-sys-outline-variant);
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface);
+  transition: all 200ms vars.$transition-timing;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .nom-onboarding__step--active & {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+  }
+
+  .nom-onboarding__step--completed & {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.nom-onboarding__step-label {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  transition: color 200ms vars.$transition-timing;
+
+  .nom-onboarding__step--active & {
+    color: var(--mat-sys-primary);
+    font-weight: vars.$font-weight-semibold;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    display: none;
+  }
+}
+
+.nom-onboarding__step-connector {
+  flex: 1;
+  height: 2px;
+  max-width: 80px;
+  background: var(--mat-sys-outline-variant);
+  margin: 0 vars.$spacing-1;
+  align-self: flex-start;
+  margin-top: 18px; // center with indicator circle
+  transition: background-color 200ms vars.$transition-timing;
+
+  &--completed {
+    background: var(--mat-sys-primary);
+  }
+}
+
+// Content
+.nom-onboarding__content {
+  flex: 1;
+  opacity: 1;
+  transition: opacity 200ms vars.$transition-timing;
+}
+
+// Navigation
+.nom-onboarding__nav {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding-top: vars.$spacing-6;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  margin-top: vars.$spacing-6;
+}
+
+.nom-onboarding__spacer {
+  flex: 1;
+}
