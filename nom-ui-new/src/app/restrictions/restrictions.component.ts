@@ -1,4 +1,8 @@
 import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,19 +12,29 @@ import { LoadingService } from '../core/services/loading.service';
 import { ReferenceItem, ReferenceDiscriminator } from '../core/models/reference.model';
 import { RestrictionRequest } from '../core/models/person.model';
 
-interface RestrictionCategory {
+interface RestrictionSection {
+  groupId: number;
   label: string;
-  items: ReferenceItem[];
+  icon: string;
+  allItems: ReferenceItem[];
+  searchControl: FormControl<string>;
 }
 
-// Client-side categorization of restriction type IDs (discriminator 2000)
-const ALLERGY_IDS = new Set([2012, 2013, 2014, 2015, 2016, 2017, 2018]);
-const RELIGIOUS_IDS = new Set([2010, 2011]);
-const SENSITIVITY_IDS = new Set([2002, 2019]);
+const SECTION_CONFIG: { groupId: number; icon: string }[] = [
+  { groupId: ReferenceDiscriminator.PersonDietaryRestrictionType, icon: 'restaurant' },
+  { groupId: ReferenceDiscriminator.AllergyType, icon: 'warning' },
+  { groupId: ReferenceDiscriminator.MedicalConditionType, icon: 'medical_services' },
+  { groupId: ReferenceDiscriminator.SocietalRestrictionType, icon: 'groups' },
+  { groupId: ReferenceDiscriminator.PersonalPreferenceType, icon: 'tune' },
+];
 
 @Component({
   selector: 'nom-restrictions',
   imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatAutocompleteModule,
     MatChipsModule,
     MatButtonModule,
     MatIconModule,
@@ -39,45 +53,16 @@ export class Restrictions implements OnInit {
   private referenceService = inject(ReferenceService);
   private loadingService = inject(LoadingService);
 
-  allRestrictions = signal<ReferenceItem[]>([]);
+  sections = signal<RestrictionSection[]>([]);
   selectedIds = signal<Set<number>>(new Set());
-  loading = signal(false);
+  itemLookup = signal<Map<number, ReferenceItem>>(new Map());
   errorMessage = signal('');
   successMessage = signal('');
 
   isStandalone = computed(() => this.mode() !== 'wizard');
 
-  categories = computed<RestrictionCategory[]>(() => {
-    const items = this.allRestrictions();
-    if (items.length === 0) return [];
-
-    const dietary: ReferenceItem[] = [];
-    const allergies: ReferenceItem[] = [];
-    const religious: ReferenceItem[] = [];
-    const other: ReferenceItem[] = [];
-
-    for (const item of items) {
-      if (ALLERGY_IDS.has(item.referenceId)) {
-        allergies.push(item);
-      } else if (RELIGIOUS_IDS.has(item.referenceId)) {
-        religious.push(item);
-      } else if (SENSITIVITY_IDS.has(item.referenceId)) {
-        other.push(item);
-      } else {
-        dietary.push(item);
-      }
-    }
-
-    const result: RestrictionCategory[] = [];
-    if (dietary.length) result.push({ label: 'Dietary Preferences', items: dietary });
-    if (allergies.length) result.push({ label: 'Allergies', items: allergies });
-    if (religious.length) result.push({ label: 'Religious & Cultural', items: religious });
-    if (other.length) result.push({ label: 'Sensitivities & Other', items: other });
-    return result;
-  });
-
   ngOnInit(): void {
-    this.loadRestrictionTypes();
+    this.loadRestrictionGroups();
 
     const initial = this.initialRestrictions();
     if (initial.length > 0) {
@@ -85,20 +70,44 @@ export class Restrictions implements OnInit {
     }
   }
 
-  toggleRestriction(id: number): void {
+  filteredItems(section: RestrictionSection): ReferenceItem[] {
+    const search = section.searchControl.value?.toLowerCase() ?? '';
+    if (!search) return [];
+    const selected = this.selectedIds();
+    return section.allItems.filter(
+      item => !selected.has(item.referenceId) &&
+        (item.referenceName.toLowerCase().includes(search) ||
+         (item.referenceDescription?.toLowerCase().includes(search) ?? false))
+    );
+  }
+
+  sectionSelectedItems(groupId: number): ReferenceItem[] {
+    const section = this.sections().find(s => s.groupId === groupId);
+    if (!section) return [];
+    const selected = this.selectedIds();
+    return section.allItems.filter(item => selected.has(item.referenceId));
+  }
+
+  addFromAutocomplete(event: MatAutocompleteSelectedEvent, section: RestrictionSection): void {
+    const item = event.option.value as ReferenceItem;
     this.selectedIds.update(set => {
       const next = new Set(set);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      next.add(item.referenceId);
+      return next;
+    });
+    section.searchControl.setValue('');
+  }
+
+  removeRestriction(id: number): void {
+    this.selectedIds.update(set => {
+      const next = new Set(set);
+      next.delete(id);
       return next;
     });
   }
 
-  isSelected(id: number): boolean {
-    return this.selectedIds().has(id);
+  displayFn(): string {
+    return '';
   }
 
   onSubmit(): void {
@@ -111,19 +120,43 @@ export class Restrictions implements OnInit {
     }
   }
 
-  private loadRestrictionTypes(): void {
-    this.referenceService.getRestrictionTypes().pipe(
+  private loadRestrictionGroups(): void {
+    this.referenceService.getRestrictionGroups().pipe(
       this.loadingService.loading('Loading dietary options...')
     ).subscribe({
-      next: (items) => this.allRestrictions.set(items),
+      next: (data) => {
+        const lookup = new Map<number, ReferenceItem>();
+        const builtSections: RestrictionSection[] = [];
+
+        for (const config of SECTION_CONFIG) {
+          const items = data[config.groupId] ?? [];
+          for (const item of items) {
+            lookup.set(item.referenceId, item);
+          }
+          if (items.length > 0) {
+            builtSections.push({
+              groupId: config.groupId,
+              label: items[0]?.groupName ?? `Group ${config.groupId}`,
+              icon: config.icon,
+              allItems: items.sort((a, b) => a.referenceName.localeCompare(b.referenceName)),
+              searchControl: new FormControl('', { nonNullable: true }),
+            });
+          }
+        }
+
+        this.itemLookup.set(lookup);
+        this.sections.set(builtSections);
+      },
       error: () => this.errorMessage.set('Unable to load dietary options.'),
     });
   }
 
   private buildRestrictions(): RestrictionRequest[] {
     const selected = this.selectedIds();
-    return this.allRestrictions()
-      .filter(item => selected.has(item.referenceId))
+    const lookup = this.itemLookup();
+    return [...selected]
+      .map(id => lookup.get(id))
+      .filter((item): item is ReferenceItem => !!item)
       .map(item => ({
         name: item.referenceName,
         description: item.referenceDescription,

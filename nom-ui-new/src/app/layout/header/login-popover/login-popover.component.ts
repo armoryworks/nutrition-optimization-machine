@@ -65,7 +65,10 @@ export class LoginPopover {
   }
 
   private checkOnboardingState(): void {
-    this.personService.getOnboardingState().subscribe({
+    const personId = this.authService.personId();
+    if (!personId) return;
+
+    this.personService.getOnboardingState(personId).subscribe({
       next: (state) => {
         if (!state.isComplete) {
           this.router.navigate(['/onboarding']);

@@ -284,7 +284,13 @@ namespace Nom.Orch.Services
                 }
             }
 
-            // Persist restrictions
+            // Clean up any person-level restrictions saved during onboarding (before plan existed)
+            var personLevelRestrictions = await _dbContext.Restrictions
+                .Where(r => r.PersonId == primaryPerson.Id && r.PlanId == null)
+                .ToListAsync();
+            _dbContext.Restrictions.RemoveRange(personLevelRestrictions);
+
+            // Persist restrictions to the plan
             if (request.Restrictions != null && request.Restrictions.Any())
             {
                 foreach (var restriction in request.Restrictions)
@@ -337,114 +343,65 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// Gets the current onboarding state for a user, including existing person data
+        /// Gets the onboarding state for a specific person by their ID.
         /// </summary>
-        public async Task<OnboardingStateResponse> GetOnboardingStateAsync(string? userId = null)
+        public async Task<OnboardingStateResponse> GetOnboardingStateAsync(long personId)
         {
-            try
+            var person = await _dbContext.Persons.FindAsync(personId)
+                ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
+
+            var response = new OnboardingStateResponse
             {
-                var response = new OnboardingStateResponse();
-                
-                // Try to get existing person data
-                PersonEntity? existingPerson = null;
-                
-                if (!string.IsNullOrEmpty(userId))
+                HasExistingPerson = true,
+                PersonId = person.Id,
+                PersonDetails = new PersonDetailsRequest
                 {
-                    // If userId provided, try to find person by userId
-                    existingPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == userId);
+                    Id = person.Id,
+                    Name = person.Name ?? string.Empty
                 }
-                else
-                {
-                    // Try to get from current authenticated user
-                    try
-                    {
-                        var currentUserId = GetCurrentUserId();
-                        if (!string.IsNullOrEmpty(currentUserId))
-                        {
-                            existingPerson = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == currentUserId);
-                        }
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        // User not authenticated, which is fine for onboarding
-                        _logger.LogInformation("User not authenticated during onboarding state fetch");
-                    }
-                }
+            };
 
-                if (existingPerson != null)
-                {
-                    response.HasExistingPerson = true;
-                    response.PersonId = existingPerson.Id;
-                    response.PersonDetails = new PersonDetailsRequest
-                    {
-                        Id = existingPerson.Id,
-                        Name = existingPerson.Name ?? string.Empty
-                    };
+            // Get existing attributes
+            var existingAttributes = await _dbContext.PersonAttributes
+                .Where(pa => pa.PersonId == person.Id)
+                .ToListAsync();
 
-                    // Get existing attributes
-                    var existingAttributes = await _dbContext.PersonAttributes
-                        .Where(pa => pa.PersonId == existingPerson.Id)
-                        .ToListAsync();
-
-                    response.Attributes = existingAttributes.Select(pa => new PersonAttributeRequest
-                    {
-                        AttributeTypeRefId = pa.AttributeTypeId,
-                        Value = pa.Value ?? string.Empty
-                    }).ToList();
-
-                    // Get existing restrictions
-                    var existingRestrictions = await _dbContext.Restrictions
-                        .Where(r => r.PersonId == existingPerson.Id)
-                        .ToListAsync();
-
-                    response.Restrictions = existingRestrictions.Select(r => new RestrictionRequest
-                    {
-                        Name = r.Name ?? string.Empty,
-                        Description = r.Description,
-                        RestrictionTypeId = r.RestrictionTypeId ?? 0,
-                        AppliesToEntirePlan = false, // Default value since this property doesn't exist in entity
-                        AffectedPersonIds = new List<long>() // Default empty list since this property doesn't exist in entity
-                    }).ToList();
-
-                    // Check if person is already part of a plan
-                    var planParticipation = await _dbContext.PlanParticipants
-                        .FirstOrDefaultAsync(pp => pp.PersonId == existingPerson.Id);
-
-                    if (planParticipation != null)
-                    {
-                        response.IsComplete = true;
-                        response.CurrentStep = 100; // Completed
-                    }
-                    else
-                    {
-                        response.IsComplete = false;
-                        response.CurrentStep = 50; // Person created but no plan yet
-                    }
-                }
-                else
-                {
-                    response.HasExistingPerson = false;
-                    response.IsComplete = false;
-                    response.CurrentStep = 0; // Not started
-                }
-
-                return response;
-            }
-            catch (Exception ex)
+            response.Attributes = existingAttributes.Select(pa => new PersonAttributeRequest
             {
-                _logger.LogError(ex, "Error fetching onboarding state");
-                throw;
-            }
-        }
+                AttributeTypeRefId = pa.AttributeTypeId,
+                Value = pa.Value ?? string.Empty
+            }).ToList();
 
-        private string? GetCurrentUserId()
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
+            // Get existing restrictions
+            var existingRestrictions = await _dbContext.Restrictions
+                .Where(r => r.PersonId == person.Id)
+                .ToListAsync();
+
+            response.Restrictions = existingRestrictions.Select(r => new RestrictionRequest
             {
-                throw new UnauthorizedAccessException("User not authenticated");
+                Name = r.Name ?? string.Empty,
+                Description = r.Description,
+                RestrictionTypeId = r.RestrictionTypeId ?? 0,
+                AppliesToEntirePlan = false,
+                AffectedPersonIds = new List<long>()
+            }).ToList();
+
+            // Check if person is already part of a plan
+            var planParticipation = await _dbContext.PlanParticipants
+                .FirstOrDefaultAsync(pp => pp.PersonId == person.Id);
+
+            if (planParticipation != null)
+            {
+                response.IsComplete = true;
+                response.CurrentStep = 100; // Completed
             }
-            return userId;
+            else
+            {
+                response.IsComplete = false;
+                response.CurrentStep = 50; // Person created but no plan yet
+            }
+
+            return response;
         }
 
         /// <summary>
@@ -609,6 +566,80 @@ namespace Nom.Orch.Services
                 4102L => "Viewer",
                 _ => "Unknown"
             };
+        }
+
+        /// <summary>
+        /// Saves a person's profile (name + attributes).
+        /// If personId is 0, creates a new person linked to the authenticated user.
+        /// Replaces all existing attributes.
+        /// </summary>
+        public async Task<PersonModel> SaveProfileAsync(long personId, SaveProfileRequest request)
+        {
+            var person = await _dbContext.Persons.FindAsync(personId)
+                ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
+
+            person.Name = request.Name;
+            _dbContext.Persons.Update(person);
+
+            // Remove all existing attributes for this person
+            var oldAttributes = await _dbContext.PersonAttributes
+                .Where(pa => pa.PersonId == person.Id)
+                .ToListAsync();
+            _dbContext.PersonAttributes.RemoveRange(oldAttributes);
+
+            // Add new attributes
+            if (request.Attributes != null)
+            {
+                foreach (var attr in request.Attributes)
+                {
+                    _dbContext.PersonAttributes.Add(new PersonAttributeEntity
+                    {
+                        PersonId = person.Id,
+                        AttributeTypeId = attr.AttributeTypeRefId,
+                        Value = attr.Value,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = person.Id
+                    });
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Saved profile for person {PersonId}", person.Id);
+
+            return await GetPersonModelAsync(person.Id);
+        }
+
+        public async Task SaveRestrictionsAsync(long personId, List<RestrictionRequest> restrictions)
+        {
+            var person = await _dbContext.Persons.FindAsync(personId)
+                ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
+
+            // Remove existing person-level restrictions (those without a plan)
+            var oldRestrictions = await _dbContext.Restrictions
+                .Where(r => r.PersonId == person.Id && r.PlanId == null)
+                .ToListAsync();
+            _dbContext.Restrictions.RemoveRange(oldRestrictions);
+
+            // Add new restrictions at the person level (no plan yet)
+            if (restrictions != null)
+            {
+                foreach (var restriction in restrictions)
+                {
+                    _dbContext.Restrictions.Add(new RestrictionEntity
+                    {
+                        PersonId = person.Id,
+                        PlanId = null,
+                        Name = restriction.Name,
+                        Description = restriction.Description,
+                        RestrictionTypeId = restriction.RestrictionTypeId,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = person.Id
+                    });
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Saved {Count} restrictions for person {PersonId}", restrictions?.Count ?? 0, person.Id);
         }
 
         private async Task<List<PersonAttributeModel>> GetPersonAttributesAsync(long personId)

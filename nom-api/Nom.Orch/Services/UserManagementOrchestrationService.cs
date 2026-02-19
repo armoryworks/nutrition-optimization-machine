@@ -393,7 +393,7 @@ namespace Nom.Orch.Services
         {
             // Use email as username if username is not provided
             var username = !string.IsNullOrWhiteSpace(request.Username) ? request.Username : request.Email;
-            
+
             var user = new IdentityUser
             {
                 UserName = username,
@@ -407,44 +407,20 @@ namespace Nom.Orch.Services
                 throw new Exception($"Failed to register user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
 
-            // Create person entity if FullName is provided
-            if (!string.IsNullOrWhiteSpace(request.FullName))
+            // Always create a PersonEntity for the new user
+            try
             {
-                try
-                {
-                    // Temporarily set the user context for person creation
-                    var httpContext = new DefaultHttpContext();
-                    httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, user.Id)
-                    }));
-                    
-                    // Create a temporary service scope to handle the person creation
-                    // This is a workaround since we can't easily inject HttpContextAccessor here
-                    var personCreateModel = new PersonCreateModel
-                    {
-                        PersonName = request.FullName
-                    };
-                    
-                    // We'll need to handle this differently since we can't easily access the HttpContext here
-                    // For now, we'll create the person directly in the database
-                    var newPerson = new PersonEntity
-                    {
-                        Name = request.FullName,
-                        UserId = user.Id,
-                        CreatedByPersonId = 1L // System person
-                    };
+                var personName = !string.IsNullOrWhiteSpace(request.FullName)
+                    ? request.FullName
+                    : request.Email.Split('@')[0]; // Use email prefix as fallback name
 
-                    _context.Persons.Add(newPerson);
-                    await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("Created person {PersonId} for user {UserId} during registration", newPerson.Id, user.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to create person for user {UserId} during registration", user.Id);
-                    // Don't fail the registration if person creation fails
-                }
+                await _personOrchestrationService.SetupNewRegisteredPersonAsync(user.Id, personName);
+                _logger.LogInformation("Created person for user {UserId} during registration", user.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create person for user {UserId} during registration", user.Id);
+                // Don't fail the registration if person creation fails
             }
 
             return await GetUserByIdAsync(user.Id);

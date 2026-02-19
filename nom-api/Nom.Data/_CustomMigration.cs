@@ -162,6 +162,8 @@ namespace Nom.Data
         private const long PersonAttributeTypeWeightId = 11071L;
         private const long PersonAttributeTypeGenderId = 11072L;
         private const long PersonAttributeTypeDateOfBirthId = 11073L;
+        private const long PersonAttributeTypeActivityLevelId = 11074L;
+        private const long PersonAttributeTypeHealthGoalId = 11075L;
 
         // Day of Week Types
         private const long DayOfWeekMondayId = 11060L;
@@ -244,6 +246,13 @@ namespace Nom.Data
             AddPersonAttributeTypes(migrationBuilder);
             AddDayOfWeekTypes(migrationBuilder);
 
+            // Expanded restriction/preference type seeding
+            AddPersonDietaryRestrictionTypes(migrationBuilder);
+            AddAllergyTypes(migrationBuilder);
+            AddMedicalConditionTypes(migrationBuilder);
+            AddSocietalRestrictionTypes(migrationBuilder);
+            AddPersonalPreferenceTypes(migrationBuilder);
+
             AddNutrientTypes(migrationBuilder);
             AddNutrientGuidelines(migrationBuilder);
 
@@ -275,6 +284,13 @@ namespace Nom.Data
             RemoveRecipeDifficultyTypes(migrationBuilder);
             RemoveShoppingCategoryTypes(migrationBuilder);
             RemoveShoppingPriorityTypes(migrationBuilder);
+
+            // Expanded restriction/preference type removal
+            RemovePersonalPreferenceTypes(migrationBuilder);
+            RemoveSocietalRestrictionTypes(migrationBuilder);
+            RemoveMedicalConditionTypes(migrationBuilder);
+            RemoveAllergyTypes(migrationBuilder);
+            RemovePersonDietaryRestrictionTypes(migrationBuilder);
 
             RemoveFeedbackTypes(migrationBuilder);
             RemoveFeedbackEntityTypes(migrationBuilder);
@@ -357,12 +373,12 @@ namespace Nom.Data
                     { (long)ReferenceDiscriminatorEnum.ShoppingCategoryType, "Shopping Category Types", "Categories for organizing shopping items (Produce, Dairy, Meat, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.RecipeDifficultyType, "Recipe Difficulty Types", "Difficulty levels for recipes (Easy, Medium, Hard).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.PersonActivityLevelType, "Person Activity Level Types", "Activity levels for persons (Sedentary, Lightly Active, etc.).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType, "Person Dietary Restriction Types", "Dietary restrictions for persons (None, Vegetarian, Vegan, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType, "Diets & Eating Patterns", "Voluntary dietary frameworks and eating styles (Vegan, Keto, Paleo, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.PersonHealthGoalType, "Person Health Goal Types", "Health goals for persons (Weight Loss, Maintenance, etc.).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.AllergyType, "Allergy Types", "Types of allergies (Peanuts, Tree Nuts, etc.).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.MedicalConditionType, "Medical Condition Types", "Medical conditions (Celiac Disease, Diabetes, etc.).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.SocietalRestrictionType, "Societal Restriction Types", "Religious/ethical restrictions (Kosher, Halal, etc.).", DateTime.UtcNow, SystemPersonId },
-                    { (long)ReferenceDiscriminatorEnum.PersonalPreferenceType, "Personal Preference Types", "Personal preferences (Spice levels, textures, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.AllergyType, "Allergies & Intolerances", "Immune-mediated allergies and digestive intolerances (Peanuts, Lactose, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.MedicalConditionType, "Medical Conditions", "Diagnosed conditions that affect dietary needs (Celiac, Diabetes, CKD, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.SocietalRestrictionType, "Religious & Cultural", "Faith-based and cultural dietary practices (Kosher, Halal, Jain, etc.).", DateTime.UtcNow, SystemPersonId },
+                    { (long)ReferenceDiscriminatorEnum.PersonalPreferenceType, "Personal Preferences", "Individual taste and lifestyle preferences (No Spicy Food, Budget-Friendly, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.PersonAttributeType, "Person Attribute Types", "Types of person attributes (Height, Weight, Gender, Date of Birth).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.SortOptionType, "Sort Option Types", "Search/sort options (relevance, rating, name, etc.).", DateTime.UtcNow, SystemPersonId },
                     { (long)ReferenceDiscriminatorEnum.SortDirectionType, "Sort Direction Types", "Sort directions (ascending, descending).", DateTime.UtcNow, SystemPersonId },
@@ -1620,6 +1636,365 @@ namespace Nom.Data
             }
         }
 
+        public static void AddPersonDietaryRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 60050L, "Vegan", "Excludes all animal products", DateTime.UtcNow, SystemPersonId },
+                    { 60051L, "Vegetarian", "Excludes meat, poultry, and fish", DateTime.UtcNow, SystemPersonId },
+                    { 60052L, "Pescatarian", "Excludes meat and poultry but includes fish", DateTime.UtcNow, SystemPersonId },
+                    { 60053L, "Flexitarian", "Primarily vegetarian with occasional meat", DateTime.UtcNow, SystemPersonId },
+                    { 60054L, "Raw Vegan", "Uncooked, unprocessed plant foods only", DateTime.UtcNow, SystemPersonId },
+                    { 60055L, "Fruitarian", "Primarily fruits, nuts, and seeds", DateTime.UtcNow, SystemPersonId },
+                    { 60056L, "Keto", "Very low-carb, high-fat diet", DateTime.UtcNow, SystemPersonId },
+                    { 60057L, "Paleo", "Whole, unprocessed foods mimicking ancestral diets", DateTime.UtcNow, SystemPersonId },
+                    { 60058L, "Whole30", "30-day elimination diet removing sugar, grains, dairy, and legumes", DateTime.UtcNow, SystemPersonId },
+                    { 60059L, "Carnivore", "Animal products only, no plant foods", DateTime.UtcNow, SystemPersonId },
+                    { 60060L, "Mediterranean", "Emphasizes fruits, vegetables, whole grains, olive oil", DateTime.UtcNow, SystemPersonId },
+                    { 60061L, "DASH", "Dietary Approaches to Stop Hypertension", DateTime.UtcNow, SystemPersonId },
+                    { 60062L, "MIND", "Mediterranean-DASH hybrid for brain health", DateTime.UtcNow, SystemPersonId },
+                    { 60063L, "Low-FODMAP", "Reduces fermentable carbohydrates for digestive health", DateTime.UtcNow, SystemPersonId },
+                    { 60064L, "Low-Carb", "Reduced carbohydrate intake", DateTime.UtcNow, SystemPersonId },
+                    { 60065L, "Low-Fat", "Reduced fat intake", DateTime.UtcNow, SystemPersonId },
+                    { 60066L, "Low-Sodium", "Reduced sodium/salt intake", DateTime.UtcNow, SystemPersonId },
+                    { 60067L, "High-Protein", "Emphasizes protein-rich foods", DateTime.UtcNow, SystemPersonId },
+                    { 60068L, "Anti-Inflammatory", "Foods that reduce chronic inflammation", DateTime.UtcNow, SystemPersonId },
+                    { 60069L, "Autoimmune Protocol (AIP)", "Elimination diet for autoimmune conditions", DateTime.UtcNow, SystemPersonId },
+                    { 60070L, "Elimination Diet", "Systematic removal and reintroduction of foods", DateTime.UtcNow, SystemPersonId },
+                    { 60071L, "Macrobiotic", "Whole grains, vegetables, and fermented foods", DateTime.UtcNow, SystemPersonId },
+                    { 60072L, "Nordic", "Emphasizes Nordic staples: fish, whole grains, root vegetables", DateTime.UtcNow, SystemPersonId },
+                    { 60073L, "Volumetrics", "Focus on low-calorie-density foods for satiety", DateTime.UtcNow, SystemPersonId },
+                    { 60074L, "Zone Diet", "Balanced macronutrient ratios (40/30/30)", DateTime.UtcNow, SystemPersonId },
+                    { 60075L, "South Beach", "Phased approach emphasizing good carbs and fats", DateTime.UtcNow, SystemPersonId },
+                    { 60076L, "Intermittent Fasting", "Time-restricted eating patterns", DateTime.UtcNow, SystemPersonId },
+                    { 60077L, "Plant-Based", "Primarily plant-derived foods, may include some animal products", DateTime.UtcNow, SystemPersonId },
+                    { 60078L, "Clean Eating", "Whole, minimally processed foods", DateTime.UtcNow, SystemPersonId },
+                    { 60079L, "Sugar-Free", "Excludes added sugars", DateTime.UtcNow, SystemPersonId },
+                    { 60080L, "Grain-Free", "Excludes all grains", DateTime.UtcNow, SystemPersonId },
+                    { 60081L, "Lectin-Free", "Avoids lectin-containing foods", DateTime.UtcNow, SystemPersonId },
+                    { 60082L, "Nightshade-Free", "Excludes nightshade vegetables (tomatoes, peppers, eggplant)", DateTime.UtcNow, SystemPersonId },
+                    { 60083L, "Calorie-Restricted", "Controlled calorie intake for weight management", DateTime.UtcNow, SystemPersonId },
+                    { 60084L, "Carb Cycling", "Alternating high and low carbohydrate days", DateTime.UtcNow, SystemPersonId }
+                });
+
+            foreach (long id in new long[] { 60050L, 60051L, 60052L, 60053L, 60054L, 60055L, 60056L, 60057L, 60058L, 60059L, 60060L, 60061L, 60062L, 60063L, 60064L, 60065L, 60066L, 60067L, 60068L, 60069L, 60070L, 60071L, 60072L, 60073L, 60074L, 60075L, 60076L, 60077L, 60078L, 60079L, 60080L, 60081L, 60082L, 60083L, 60084L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemovePersonDietaryRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType;
+            long[] ids = new long[] { 60050L, 60051L, 60052L, 60053L, 60054L, 60055L, 60056L, 60057L, 60058L, 60059L, 60060L, 60061L, 60062L, 60063L, 60064L, 60065L, 60066L, 60067L, 60068L, 60069L, 60070L, 60071L, 60072L, 60073L, 60074L, 60075L, 60076L, 60077L, 60078L, 60079L, 60080L, 60081L, 60082L, 60083L, 60084L };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddAllergyTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.AllergyType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 60700L, "Milk Allergy", "Immune reaction to milk proteins (casein, whey)", DateTime.UtcNow, SystemPersonId },
+                    { 60701L, "Egg Allergy", "Immune reaction to egg proteins", DateTime.UtcNow, SystemPersonId },
+                    { 60702L, "Fish Allergy", "Immune reaction to finned fish", DateTime.UtcNow, SystemPersonId },
+                    { 60703L, "Shellfish Allergy", "Immune reaction to crustaceans and mollusks", DateTime.UtcNow, SystemPersonId },
+                    { 60704L, "Tree Nut Allergy", "Immune reaction to tree nuts", DateTime.UtcNow, SystemPersonId },
+                    { 60705L, "Peanut Allergy", "Immune reaction to peanuts (a legume)", DateTime.UtcNow, SystemPersonId },
+                    { 60706L, "Wheat Allergy", "Immune reaction to wheat proteins", DateTime.UtcNow, SystemPersonId },
+                    { 60707L, "Soybean Allergy", "Immune reaction to soy proteins", DateTime.UtcNow, SystemPersonId },
+                    { 60708L, "Sesame Allergy", "Immune reaction to sesame seeds", DateTime.UtcNow, SystemPersonId },
+                    { 60709L, "Almond Allergy", "Specific tree nut allergy to almonds", DateTime.UtcNow, SystemPersonId },
+                    { 60710L, "Cashew Allergy", "Specific tree nut allergy to cashews", DateTime.UtcNow, SystemPersonId },
+                    { 60711L, "Walnut Allergy", "Specific tree nut allergy to walnuts", DateTime.UtcNow, SystemPersonId },
+                    { 60712L, "Pecan Allergy", "Specific tree nut allergy to pecans", DateTime.UtcNow, SystemPersonId },
+                    { 60713L, "Pistachio Allergy", "Specific tree nut allergy to pistachios", DateTime.UtcNow, SystemPersonId },
+                    { 60714L, "Macadamia Allergy", "Specific tree nut allergy to macadamia nuts", DateTime.UtcNow, SystemPersonId },
+                    { 60715L, "Brazil Nut Allergy", "Specific tree nut allergy to Brazil nuts", DateTime.UtcNow, SystemPersonId },
+                    { 60716L, "Hazelnut Allergy", "Specific tree nut allergy to hazelnuts", DateTime.UtcNow, SystemPersonId },
+                    { 60717L, "Pine Nut Allergy", "Specific tree nut allergy to pine nuts", DateTime.UtcNow, SystemPersonId },
+                    { 60718L, "Shrimp Allergy", "Specific shellfish allergy to shrimp", DateTime.UtcNow, SystemPersonId },
+                    { 60719L, "Crab Allergy", "Specific shellfish allergy to crab", DateTime.UtcNow, SystemPersonId },
+                    { 60720L, "Lobster Allergy", "Specific shellfish allergy to lobster", DateTime.UtcNow, SystemPersonId },
+                    { 60721L, "Clam Allergy", "Specific shellfish allergy to clams", DateTime.UtcNow, SystemPersonId },
+                    { 60722L, "Mussel Allergy", "Specific shellfish allergy to mussels", DateTime.UtcNow, SystemPersonId },
+                    { 60723L, "Oyster Allergy", "Specific shellfish allergy to oysters", DateTime.UtcNow, SystemPersonId },
+                    { 60724L, "Scallop Allergy", "Specific shellfish allergy to scallops", DateTime.UtcNow, SystemPersonId },
+                    { 60725L, "Corn Allergy", "Immune reaction to corn proteins", DateTime.UtcNow, SystemPersonId },
+                    { 60726L, "Coconut Allergy", "Immune reaction to coconut", DateTime.UtcNow, SystemPersonId },
+                    { 60727L, "Mustard Allergy", "Immune reaction to mustard seeds", DateTime.UtcNow, SystemPersonId },
+                    { 60728L, "Celery Allergy", "Immune reaction to celery", DateTime.UtcNow, SystemPersonId },
+                    { 60729L, "Lupin Allergy", "Immune reaction to lupin (a legume)", DateTime.UtcNow, SystemPersonId },
+                    { 60730L, "Buckwheat Allergy", "Immune reaction to buckwheat", DateTime.UtcNow, SystemPersonId },
+                    { 60731L, "Kiwi Allergy", "Immune reaction to kiwi fruit", DateTime.UtcNow, SystemPersonId },
+                    { 60732L, "Banana Allergy", "Immune reaction to bananas", DateTime.UtcNow, SystemPersonId },
+                    { 60733L, "Avocado Allergy", "Immune reaction to avocados", DateTime.UtcNow, SystemPersonId },
+                    { 60734L, "Mango Allergy", "Immune reaction to mangoes", DateTime.UtcNow, SystemPersonId },
+                    { 60735L, "Strawberry Allergy", "Immune reaction to strawberries", DateTime.UtcNow, SystemPersonId },
+                    { 60736L, "Citrus Allergy", "Immune reaction to citrus fruits", DateTime.UtcNow, SystemPersonId },
+                    { 60737L, "Lactose Intolerance", "Difficulty digesting lactose in dairy products", DateTime.UtcNow, SystemPersonId },
+                    { 60738L, "Fructose Intolerance", "Difficulty absorbing fructose", DateTime.UtcNow, SystemPersonId },
+                    { 60739L, "Histamine Intolerance", "Reduced ability to break down histamine in foods", DateTime.UtcNow, SystemPersonId },
+                    { 60740L, "Sulfite Sensitivity", "Adverse reaction to sulfite preservatives", DateTime.UtcNow, SystemPersonId },
+                    { 60741L, "Salicylate Sensitivity", "Sensitivity to salicylates found in many foods", DateTime.UtcNow, SystemPersonId },
+                    { 60742L, "Tyramine Sensitivity", "Sensitivity to tyramine in aged and fermented foods", DateTime.UtcNow, SystemPersonId },
+                    { 60743L, "Caffeine Sensitivity", "Heightened response to caffeine", DateTime.UtcNow, SystemPersonId },
+                    { 60744L, "MSG Sensitivity", "Sensitivity to monosodium glutamate", DateTime.UtcNow, SystemPersonId },
+                    { 60745L, "Nightshade Sensitivity", "Sensitivity to nightshade family vegetables", DateTime.UtcNow, SystemPersonId },
+                    { 60746L, "FODMAP Sensitivity", "Sensitivity to fermentable short-chain carbohydrates", DateTime.UtcNow, SystemPersonId },
+                    { 60747L, "Alpha-Gal Syndrome", "Delayed allergic reaction to red meat from tick bites", DateTime.UtcNow, SystemPersonId },
+                    { 60748L, "Oral Allergy Syndrome", "Cross-reactive allergies between pollen and raw fruits/vegetables", DateTime.UtcNow, SystemPersonId },
+                    { 60749L, "Gluten Sensitivity", "Non-celiac sensitivity to gluten proteins", DateTime.UtcNow, SystemPersonId }
+                });
+
+            foreach (long id in new long[] { 60700L, 60701L, 60702L, 60703L, 60704L, 60705L, 60706L, 60707L, 60708L, 60709L, 60710L, 60711L, 60712L, 60713L, 60714L, 60715L, 60716L, 60717L, 60718L, 60719L, 60720L, 60721L, 60722L, 60723L, 60724L, 60725L, 60726L, 60727L, 60728L, 60729L, 60730L, 60731L, 60732L, 60733L, 60734L, 60735L, 60736L, 60737L, 60738L, 60739L, 60740L, 60741L, 60742L, 60743L, 60744L, 60745L, 60746L, 60747L, 60748L, 60749L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveAllergyTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.AllergyType;
+            long[] ids = new long[] { 60700L, 60701L, 60702L, 60703L, 60704L, 60705L, 60706L, 60707L, 60708L, 60709L, 60710L, 60711L, 60712L, 60713L, 60714L, 60715L, 60716L, 60717L, 60718L, 60719L, 60720L, 60721L, 60722L, 60723L, 60724L, 60725L, 60726L, 60727L, 60728L, 60729L, 60730L, 60731L, 60732L, 60733L, 60734L, 60735L, 60736L, 60737L, 60738L, 60739L, 60740L, 60741L, 60742L, 60743L, 60744L, 60745L, 60746L, 60747L, 60748L, 60749L };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddMedicalConditionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.MedicalConditionType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 60800L, "Celiac Disease", "Autoimmune disorder triggered by gluten", DateTime.UtcNow, SystemPersonId },
+                    { 60801L, "Crohn's Disease", "Inflammatory bowel disease affecting the digestive tract", DateTime.UtcNow, SystemPersonId },
+                    { 60802L, "Ulcerative Colitis", "Inflammatory bowel disease affecting the colon", DateTime.UtcNow, SystemPersonId },
+                    { 60803L, "Irritable Bowel Syndrome (IBS)", "Chronic digestive condition with varied symptoms", DateTime.UtcNow, SystemPersonId },
+                    { 60804L, "GERD", "Gastroesophageal reflux disease", DateTime.UtcNow, SystemPersonId },
+                    { 60805L, "Type 1 Diabetes", "Autoimmune condition requiring insulin management", DateTime.UtcNow, SystemPersonId },
+                    { 60806L, "Type 2 Diabetes", "Metabolic condition affecting blood sugar regulation", DateTime.UtcNow, SystemPersonId },
+                    { 60807L, "Gestational Diabetes", "Diabetes occurring during pregnancy", DateTime.UtcNow, SystemPersonId },
+                    { 60808L, "Prediabetes", "Blood sugar levels higher than normal but not yet diabetes", DateTime.UtcNow, SystemPersonId },
+                    { 60809L, "Hypertension", "High blood pressure requiring dietary management", DateTime.UtcNow, SystemPersonId },
+                    { 60810L, "Heart Disease", "Cardiovascular conditions requiring heart-healthy diet", DateTime.UtcNow, SystemPersonId },
+                    { 60811L, "High Cholesterol", "Elevated cholesterol requiring dietary management", DateTime.UtcNow, SystemPersonId },
+                    { 60812L, "Chronic Kidney Disease", "Kidney conditions requiring protein/mineral management", DateTime.UtcNow, SystemPersonId },
+                    { 60813L, "Liver Disease", "Liver conditions requiring dietary modifications", DateTime.UtcNow, SystemPersonId },
+                    { 60814L, "Phenylketonuria (PKU)", "Genetic disorder requiring phenylalanine restriction", DateTime.UtcNow, SystemPersonId },
+                    { 60815L, "Galactosemia", "Genetic disorder requiring galactose restriction", DateTime.UtcNow, SystemPersonId },
+                    { 60816L, "Fructose Malabsorption", "Impaired fructose transport in the intestine", DateTime.UtcNow, SystemPersonId },
+                    { 60817L, "Gout", "Inflammatory arthritis requiring purine restriction", DateTime.UtcNow, SystemPersonId },
+                    { 60818L, "Osteoporosis", "Bone density loss requiring calcium and vitamin D focus", DateTime.UtcNow, SystemPersonId },
+                    { 60819L, "Iron-Deficiency Anemia", "Low iron requiring iron-rich diet", DateTime.UtcNow, SystemPersonId },
+                    { 60820L, "Thyroid Disorders", "Thyroid conditions affecting metabolism and nutrition needs", DateTime.UtcNow, SystemPersonId },
+                    { 60821L, "Diverticulitis", "Inflamed pouches in the digestive tract", DateTime.UtcNow, SystemPersonId },
+                    { 60822L, "Gastroparesis", "Delayed stomach emptying requiring modified diet", DateTime.UtcNow, SystemPersonId },
+                    { 60823L, "SIBO", "Small intestinal bacterial overgrowth", DateTime.UtcNow, SystemPersonId },
+                    { 60824L, "Eosinophilic Esophagitis", "Immune-mediated esophageal condition", DateTime.UtcNow, SystemPersonId },
+                    { 60825L, "PCOS", "Polycystic ovary syndrome with metabolic implications", DateTime.UtcNow, SystemPersonId },
+                    { 60826L, "Endometriosis", "Condition that may benefit from anti-inflammatory diet", DateTime.UtcNow, SystemPersonId },
+                    { 60827L, "Autoimmune Conditions", "General autoimmune disorders requiring dietary management", DateTime.UtcNow, SystemPersonId },
+                    { 60828L, "Cancer Recovery", "Nutritional needs during or after cancer treatment", DateTime.UtcNow, SystemPersonId },
+                    { 60829L, "Post-Bariatric Surgery", "Dietary requirements after weight loss surgery", DateTime.UtcNow, SystemPersonId },
+                    { 60830L, "Eating Disorder Recovery", "Nutritional rehabilitation and recovery support", DateTime.UtcNow, SystemPersonId },
+                    { 60831L, "Pregnancy", "Nutritional needs during pregnancy", DateTime.UtcNow, SystemPersonId },
+                    { 60832L, "Breastfeeding", "Nutritional needs during lactation", DateTime.UtcNow, SystemPersonId },
+                    { 60833L, "MCAS", "Mast cell activation syndrome requiring low-histamine diet", DateTime.UtcNow, SystemPersonId },
+                    { 60834L, "Wilson's Disease", "Copper metabolism disorder requiring copper restriction", DateTime.UtcNow, SystemPersonId }
+                });
+
+            foreach (long id in new long[] { 60800L, 60801L, 60802L, 60803L, 60804L, 60805L, 60806L, 60807L, 60808L, 60809L, 60810L, 60811L, 60812L, 60813L, 60814L, 60815L, 60816L, 60817L, 60818L, 60819L, 60820L, 60821L, 60822L, 60823L, 60824L, 60825L, 60826L, 60827L, 60828L, 60829L, 60830L, 60831L, 60832L, 60833L, 60834L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveMedicalConditionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.MedicalConditionType;
+            long[] ids = new long[] { 60800L, 60801L, 60802L, 60803L, 60804L, 60805L, 60806L, 60807L, 60808L, 60809L, 60810L, 60811L, 60812L, 60813L, 60814L, 60815L, 60816L, 60817L, 60818L, 60819L, 60820L, 60821L, 60822L, 60823L, 60824L, 60825L, 60826L, 60827L, 60828L, 60829L, 60830L, 60831L, 60832L, 60833L, 60834L };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddSocietalRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.SocietalRestrictionType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 60900L, "Kosher", "Adheres to Jewish dietary laws (kashrut)", DateTime.UtcNow, SystemPersonId },
+                    { 60901L, "Halal", "Adheres to Islamic dietary laws", DateTime.UtcNow, SystemPersonId },
+                    { 60902L, "Jain", "Strict vegetarian diet excluding root vegetables", DateTime.UtcNow, SystemPersonId },
+                    { 60903L, "Hindu Vegetarian", "Vegetarian diet following Hindu traditions", DateTime.UtcNow, SystemPersonId },
+                    { 60904L, "Buddhist Vegetarian", "Vegetarian diet following Buddhist traditions", DateTime.UtcNow, SystemPersonId },
+                    { 60905L, "Seventh-Day Adventist", "Health-focused diet recommended by the church", DateTime.UtcNow, SystemPersonId },
+                    { 60906L, "Rastafarian Ital", "Natural, unprocessed diet following Rastafarian principles", DateTime.UtcNow, SystemPersonId },
+                    { 60907L, "Orthodox Fasting", "Periodic fasting following Orthodox Christian traditions", DateTime.UtcNow, SystemPersonId },
+                    { 60908L, "Ethical Vegan", "Avoiding animal products for ethical reasons", DateTime.UtcNow, SystemPersonId },
+                    { 60909L, "Sustainability-Focused", "Prioritizing environmentally sustainable food choices", DateTime.UtcNow, SystemPersonId },
+                    { 60910L, "Fair Trade Only", "Preference for fair trade certified products", DateTime.UtcNow, SystemPersonId },
+                    { 60911L, "Locally Sourced", "Preference for locally produced foods", DateTime.UtcNow, SystemPersonId },
+                    { 60912L, "Organic Only", "Preference for certified organic foods", DateTime.UtcNow, SystemPersonId },
+                    { 60913L, "No Alcohol", "Avoidance of alcohol in cooking and beverages", DateTime.UtcNow, SystemPersonId }
+                });
+
+            foreach (long id in new long[] { 60900L, 60901L, 60902L, 60903L, 60904L, 60905L, 60906L, 60907L, 60908L, 60909L, 60910L, 60911L, 60912L, 60913L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveSocietalRestrictionTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.SocietalRestrictionType;
+            long[] ids = new long[] { 60900L, 60901L, 60902L, 60903L, 60904L, 60905L, 60906L, 60907L, 60908L, 60909L, 60910L, 60911L, 60912L, 60913L };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: ids.Cast<object>().ToArray());
+        }
+
+        public static void AddPersonalPreferenceTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonalPreferenceType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { 61000L, "No Spicy Food", "Avoidance of spicy or hot foods", DateTime.UtcNow, SystemPersonId },
+                    { 61001L, "Mild Spice Only", "Preference for mild levels of spice", DateTime.UtcNow, SystemPersonId },
+                    { 61002L, "No Raw Fish", "Avoidance of raw fish (sushi, sashimi)", DateTime.UtcNow, SystemPersonId },
+                    { 61003L, "No Raw Meat", "Avoidance of raw or undercooked meat", DateTime.UtcNow, SystemPersonId },
+                    { 61004L, "No Organ Meats", "Avoidance of offal and organ meats", DateTime.UtcNow, SystemPersonId },
+                    { 61005L, "No Game Meat", "Avoidance of wild game meats", DateTime.UtcNow, SystemPersonId },
+                    { 61006L, "No Insects", "Avoidance of insect-based foods (entomophagy)", DateTime.UtcNow, SystemPersonId },
+                    { 61007L, "No Fermented Foods", "Avoidance of fermented foods (kimchi, sauerkraut, etc.)", DateTime.UtcNow, SystemPersonId },
+                    { 61008L, "No Artificial Sweeteners", "Avoidance of synthetic sugar substitutes", DateTime.UtcNow, SystemPersonId },
+                    { 61009L, "No Artificial Colors", "Avoidance of artificial food colorings", DateTime.UtcNow, SystemPersonId },
+                    { 61010L, "No Preservatives", "Avoidance of chemical preservatives", DateTime.UtcNow, SystemPersonId },
+                    { 61011L, "No GMO", "Preference for non-genetically modified foods", DateTime.UtcNow, SystemPersonId },
+                    { 61012L, "No Processed Foods", "Avoidance of heavily processed foods", DateTime.UtcNow, SystemPersonId },
+                    { 61013L, "No Fast Food", "Avoidance of fast food and takeout", DateTime.UtcNow, SystemPersonId },
+                    { 61014L, "No Mushy Textures", "Aversion to soft or mushy food textures", DateTime.UtcNow, SystemPersonId },
+                    { 61015L, "No Slimy Textures", "Aversion to slimy food textures", DateTime.UtcNow, SystemPersonId },
+                    { 61016L, "No Cilantro", "Avoidance of cilantro (genetic taste aversion)", DateTime.UtcNow, SystemPersonId },
+                    { 61017L, "No Olives", "Avoidance of olives", DateTime.UtcNow, SystemPersonId },
+                    { 61018L, "No Mushrooms", "Avoidance of mushrooms", DateTime.UtcNow, SystemPersonId },
+                    { 61019L, "No Onions", "Avoidance of onions", DateTime.UtcNow, SystemPersonId },
+                    { 61020L, "No Garlic", "Avoidance of garlic", DateTime.UtcNow, SystemPersonId },
+                    { 61021L, "Low-Waste Cooking", "Preference for minimal food waste cooking", DateTime.UtcNow, SystemPersonId },
+                    { 61022L, "Budget-Friendly", "Preference for cost-effective ingredients", DateTime.UtcNow, SystemPersonId },
+                    { 61023L, "Quick Prep Only", "Preference for recipes with short preparation time", DateTime.UtcNow, SystemPersonId },
+                    { 61024L, "Meal Prep Friendly", "Preference for recipes suitable for batch cooking", DateTime.UtcNow, SystemPersonId }
+                });
+
+            foreach (long id in new long[] { 61000L, 61001L, 61002L, 61003L, 61004L, 61005L, 61006L, 61007L, 61008L, 61009L, 61010L, 61011L, 61012L, 61013L, 61014L, 61015L, 61016L, 61017L, 61018L, 61019L, 61020L, 61021L, 61022L, 61023L, 61024L })
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemovePersonalPreferenceTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.PersonalPreferenceType;
+            long[] ids = new long[] { 61000L, 61001L, 61002L, 61003L, 61004L, 61005L, 61006L, 61007L, 61008L, 61009L, 61010L, 61011L, 61012L, 61013L, 61014L, 61015L, 61016L, 61017L, 61018L, 61019L, 61020L, 61021L, 61022L, 61023L, 61024L };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: ids.Cast<object>().ToArray());
+        }
+
         public static void AddPersonHealthGoalTypes(MigrationBuilder migrationBuilder)
         {
             long groupId = (long)ReferenceDiscriminatorEnum.PersonHealthGoalType;
@@ -1686,12 +2061,15 @@ namespace Nom.Data
                     { PersonAttributeTypeHeightId, "Height", "Person's height (stored in centimeters)", DateTime.UtcNow, SystemPersonId },
                     { PersonAttributeTypeWeightId, "Weight", "Person's weight (stored in kilograms)", DateTime.UtcNow, SystemPersonId },
                     { PersonAttributeTypeGenderId, "Gender", "Person's gender identity", DateTime.UtcNow, SystemPersonId },
-                    { PersonAttributeTypeDateOfBirthId, "Date of Birth", "Person's date of birth (ISO date string)", DateTime.UtcNow, SystemPersonId }
+                    { PersonAttributeTypeDateOfBirthId, "Date of Birth", "Person's date of birth (ISO date string)", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeActivityLevelId, "Activity Level", "Person's physical activity level (value is a PersonActivityLevelType reference ID)", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeHealthGoalId, "Health Goal", "Person's health goal (value is a PersonHealthGoalType reference ID)", DateTime.UtcNow, SystemPersonId }
                 });
 
             long[] attributeTypeIds = new long[] {
                 PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
-                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId
+                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId,
+                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId
             };
             foreach (long id in attributeTypeIds)
             {
@@ -1708,7 +2086,8 @@ namespace Nom.Data
             long groupId = (long)ReferenceDiscriminatorEnum.PersonAttributeType;
             long[] attributeTypeIds = new long[] {
                 PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
-                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId
+                PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId,
+                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId
             };
 
             foreach (long id in attributeTypeIds)

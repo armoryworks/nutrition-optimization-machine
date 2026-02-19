@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
+import { LoadingService } from '../core/services/loading.service';
 
 @Component({
   selector: 'nom-register',
@@ -25,6 +26,7 @@ import { AuthService } from '../core/services/auth.service';
 })
 export class Register {
   private authService = inject(AuthService);
+  private loadingService = inject(LoadingService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
@@ -54,7 +56,8 @@ export class Register {
 
     const { email, password, fullName } = this.registerForm.getRawValue();
     this.authService.register(email!, password!, fullName || undefined).pipe(
-      switchMap(() => this.authService.loginAfterRegister(email!, password!))
+      switchMap(() => this.authService.loginAfterRegister(email!, password!)),
+      this.loadingService.loading('Creating your account...')
     ).subscribe({
       next: () => {
         this.loading.set(false);

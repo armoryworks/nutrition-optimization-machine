@@ -7,6 +7,8 @@ import {
   PersonCreateModel,
   PersonCreateResponseModel,
   UpdatePersonRequest,
+  SaveProfileRequest,
+  RestrictionRequest,
   OnboardingStateResponse,
   OnboardingCompleteRequest,
   OnboardingCompleteResponse,
@@ -34,11 +36,23 @@ export class PersonService {
     return this.http.get<PersonModel[]>(`${this.apiUrl}/search`, { params });
   }
 
-  getOnboardingState(): Observable<OnboardingStateResponse> {
-    return this.http.get<OnboardingStateResponse>(`${this.apiUrl}/onboarding-state`);
+  getOnboardingState(personId: number): Observable<OnboardingStateResponse> {
+    return this.http.get<OnboardingStateResponse>(`${this.apiUrl}/${personId}/onboarding`);
   }
 
-  completeOnboarding(request: OnboardingCompleteRequest): Observable<OnboardingCompleteResponse> {
-    return this.http.post<OnboardingCompleteResponse>(`${this.apiUrl}/onboarding-complete`, request);
+  completeOnboarding(personId: number, request: OnboardingCompleteRequest): Observable<OnboardingCompleteResponse> {
+    return this.http.post<OnboardingCompleteResponse>(`${this.apiUrl}/${personId}/onboarding`, request);
+  }
+
+  getCurrentPerson(): Observable<PersonModel> {
+    return this.http.get<PersonModel>(`${this.apiUrl}/me`);
+  }
+
+  saveProfile(personId: number, request: SaveProfileRequest): Observable<PersonModel> {
+    return this.http.put<PersonModel>(`${this.apiUrl}/${personId}/profile`, request);
+  }
+
+  saveRestrictions(personId: number, restrictions: RestrictionRequest[]): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${personId}/restrictions`, restrictions);
   }
 }

@@ -225,7 +225,7 @@ app.UseContainerSecurity(); // Container security middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Custom registration endpoint that handles full name and creates PersonEntity
+// Custom registration endpoint that always creates both IdentityUser and PersonEntity
 app.MapPost("api/auth/register-custom", async (
     [FromBody] RegisterRequest request,
     UserManager<IdentityUser> userManager,
@@ -258,44 +258,25 @@ app.MapPost("api/auth/register-custom", async (
         return Results.BadRequest(new { message = "Registration failed.", errors = result.Errors });
     }
 
-    // Create PersonEntity if full name is provided
-    if (!string.IsNullOrWhiteSpace(request.FullName))
+    // Always create a PersonEntity for the new user
+    long personId = 0;
+    try
     {
-        try
-        {
-            var personRequest = new PersonCreateModel
-            {
-                PersonName = request.FullName
-            };
+        var personName = !string.IsNullOrWhiteSpace(request.FullName)
+            ? request.FullName
+            : request.Email.Split('@')[0]; // Use email prefix as fallback name
 
-            // Temporarily set the user ID in the HTTP context for the service
-            var httpContext = new DefaultHttpContext();
-            httpContext.User = new System.Security.Claims.ClaimsPrincipal(
-                new System.Security.Claims.ClaimsIdentity(new[]
-                {
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id)
-                })
-            );
-
-            // Create a scoped service provider to get the service with the correct context
-            using var scope = app.Services.CreateScope();
-            var scopedPersonService = scope.ServiceProvider.GetRequiredService<IPersonOrchestrationService>();
-            
-            // Use reflection to set the HttpContextAccessor for this request
-            var httpContextAccessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
-            httpContextAccessor.HttpContext = httpContext;
-
-            await scopedPersonService.UpsertPersonAsync(personRequest);
-            logger.LogInformation("Created PersonEntity for user {UserId} with name {FullName}", user.Id, request.FullName);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to create PersonEntity for user {UserId}", user.Id);
-            // Don't fail the registration if PersonEntity creation fails
-        }
+        var person = await personService.SetupNewRegisteredPersonAsync(user.Id, personName);
+        personId = person.Id;
+        logger.LogInformation("Created PersonEntity {PersonId} for user {UserId}", personId, user.Id);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to create PersonEntity for user {UserId}", user.Id);
+        // Don't fail the registration if PersonEntity creation fails
     }
 
-    return Results.Ok(new { message = "Registration successful.", userId = user.Id });
+    return Results.Ok(new { message = "Registration successful.", userId = user.Id, personId });
 });
 
 // Keep the default Identity endpoints for login, logout, etc.

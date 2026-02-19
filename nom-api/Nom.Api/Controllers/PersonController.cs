@@ -70,6 +70,32 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
+        /// Gets the Person entity for the currently authenticated user.
+        /// </summary>
+        [HttpGet("me")]
+        [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCurrentPerson()
+        {
+            try
+            {
+                var personId = _personOrchestrationService.GetCurrentPersonId();
+                if (!personId.HasValue)
+                {
+                    return NotFound(new { message = "No person profile found for the current user." });
+                }
+
+                var person = await _personOrchestrationService.GetPersonByIdAsync(personId.Value);
+                return Ok(person);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving current person");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
         /// Gets all persons in the system
         /// </summary>
         [HttpGet]
@@ -92,7 +118,7 @@ namespace Nom.Api.Controllers
         /// <summary>
         /// Gets a specific person by ID
         /// </summary>
-        [HttpGet("{id}", Name = "GetPersonById")]
+        [HttpGet("{id:long}", Name = "GetPersonById")]
         [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetPersonById(long id)
@@ -116,7 +142,7 @@ namespace Nom.Api.Controllers
         /// <summary>
         /// Updates a person's information
         /// </summary>
-        [HttpPut("{id}")]
+        [HttpPut("{id:long}")]
         [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -151,7 +177,7 @@ namespace Nom.Api.Controllers
         /// <summary>
         /// Deletes a person
         /// </summary>
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:long}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeletePerson(long id)
@@ -188,30 +214,105 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpGet("onboarding-state")]
-        [AllowAnonymous] // Allow fetching onboarding state without authentication
-        public async Task<IActionResult> GetOnboardingState([FromQuery] string? userId = null)
-        {
-            try
-            {
-                var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(userId);
-                return Ok(onboardingState);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching onboarding state");
-                return StatusCode(500, new { message = "Failed to fetch onboarding state" });
-            }
-        }
-
-        [HttpPost("onboarding-complete")]
-        [AllowAnonymous] // Allow onboarding completion without authentication
-        public async Task<IActionResult> OnboardingComplete([FromBody] OnboardingCompleteRequest request)
+        /// <summary>
+        /// Saves a person's profile (name + attributes).
+        /// Replaces all existing attributes. Pass id=0 to create a new person.
+        /// </summary>
+        [HttpPut("{id:long}/profile")]
+        [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SaveProfile(long id, [FromBody] SaveProfileRequest request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
+            try
+            {
+                var person = await _personOrchestrationService.SaveProfileAsync(id, request);
+                return Ok(person);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving profile for person {PersonId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
+        /// Saves person-level restrictions (before a plan exists).
+        /// Replaces all existing person-level restrictions.
+        /// </summary>
+        [HttpPut("{id:long}/restrictions")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SaveRestrictions(long id, [FromBody] List<RestrictionRequest> restrictions)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _personOrchestrationService.SaveRestrictionsAsync(id, restrictions);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving restrictions for person {PersonId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        /// <summary>
+        /// Gets the onboarding state for a specific person.
+        /// </summary>
+        [HttpGet("{id:long}/onboarding")]
+        [ProducesResponseType(typeof(OnboardingStateResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOnboardingState(long id)
+        {
+            try
+            {
+                var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(id);
+                return Ok(onboardingState);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching onboarding state for person {PersonId}", id);
+                return StatusCode(500, new { message = "Failed to fetch onboarding state" });
+            }
+        }
+
+        /// <summary>
+        /// Completes onboarding for a specific person.
+        /// </summary>
+        [HttpPost("{id:long}/onboarding")]
+        [ProducesResponseType(typeof(OnboardingCompleteResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CompleteOnboarding(long id, [FromBody] OnboardingCompleteRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Ensure the request uses the person ID from the URL
+            request.PersonId = id;
 
             var response = await _personOrchestrationService.CompleteOnboardingAsync(request);
 

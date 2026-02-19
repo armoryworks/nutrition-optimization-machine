@@ -84,6 +84,11 @@ export interface UpdatePersonRequest {
   userId: string | null;
 }
 
+export interface SaveProfileRequest {
+  name: string;
+  attributes: PersonAttributeRequest[];
+}
+
 export interface PlanParticipantModel {
   id: number;
   personId: number;

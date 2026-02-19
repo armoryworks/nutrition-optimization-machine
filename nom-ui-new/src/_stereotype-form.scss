@@ -36,9 +36,8 @@
 }
 
 .nom-form__card-icon {
-  display: flex;
-  justify-content: flex-end;
-  padding: vars.$spacing-4 vars.$spacing-6 0;
+  float: right;
+  padding: vars.$spacing-4 vars.$spacing-6 0 0;
 
   mat-icon {
     font-size: 2rem;
