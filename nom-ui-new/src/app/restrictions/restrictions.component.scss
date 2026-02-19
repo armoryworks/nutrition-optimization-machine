@@ -1,46 +1,27 @@
 @use 'variables' as vars;
 
-.nom-restrictions__chips {
+.nom-restrictions__section-icon {
+  vertical-align: middle;
+  margin-right: vars.$spacing-2;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-restrictions__pills {
   display: flex;
   flex-wrap: wrap;
   gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-4;
 }
 
-.nom-restrictions__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: vars.$spacing-1;
-  padding: vars.$spacing-2 vars.$spacing-4;
-  border-radius: vars.$nom-border-radius-pill;
-  border: 1px solid var(--mat-sys-outline-variant);
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font-size: vars.$font-size-sm;
-  cursor: pointer;
-  transition: background-color 150ms vars.$transition-timing,
-              border-color 150ms vars.$transition-timing,
-              color 150ms vars.$transition-timing;
-
-  &:hover {
-    background: var(--mat-sys-surface-container);
-  }
-
-  &--selected {
-    background: var(--mat-sys-primary-container);
-    border-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary-container);
-
-    &:hover {
-      background: var(--mat-sys-primary-container);
-      opacity: 0.9;
-    }
-  }
+.nom-restrictions__search {
+  width: 100%;
 }
 
-.nom-restrictions__chip-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+.nom-restrictions__option-desc {
+  display: block;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: 2px;
 }
 
 .nom-restrictions__success {

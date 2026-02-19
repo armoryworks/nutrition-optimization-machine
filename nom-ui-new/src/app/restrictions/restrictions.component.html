@@ -1,8 +1,8 @@
 <div class="nom-form--full">
   @if (isStandalone()) {
     <div class="nom-form__header">
-      <h1 class="nom-form__title">Dietary Restrictions</h1>
-      <p class="nom-form__subtitle">Select any dietary restrictions, allergies, or preferences that apply to you</p>
+      <h1 class="nom-form__title">Dietary Restrictions & Preferences</h1>
+      <p class="nom-form__subtitle">Search and select any dietary restrictions, allergies, or preferences that apply to you</p>
     </div>
   }
 
@@ -20,39 +20,56 @@
     </div>
   }
 
-  @for (category of categories(); track category.label) {
+  @for (section of sections(); track section.groupId) {
     <div class="nom-form__section">
-      <h2 class="nom-form__section-title">{{ category.label }}</h2>
+      <h2 class="nom-form__section-title">
+        <mat-icon class="nom-restrictions__section-icon">{{ section.icon }}</mat-icon>
+        {{ section.label }}
+      </h2>
 
-      <div class="nom-restrictions__chips">
-        @for (item of category.items; track item.referenceId) {
-          <button
-            type="button"
-            class="nom-restrictions__chip"
-            [class.nom-restrictions__chip--selected]="isSelected(item.referenceId)"
-            (click)="toggleRestriction(item.referenceId)"
-            [attr.aria-pressed]="isSelected(item.referenceId)">
-            @if (isSelected(item.referenceId)) {
-              <mat-icon class="nom-restrictions__chip-icon">check</mat-icon>
+      @if (sectionSelectedItems(section.groupId).length > 0) {
+        <mat-chip-set class="nom-restrictions__pills">
+          @for (item of sectionSelectedItems(section.groupId); track item.referenceId) {
+            <mat-chip (removed)="removeRestriction(item.referenceId)">
+              {{ item.referenceName }}
+              <button matChipRemove aria-label="Remove {{ item.referenceName }}">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          }
+        </mat-chip-set>
+      }
+
+      <mat-form-field class="nom-restrictions__search" appearance="outline">
+        <mat-label>Search {{ section.label.toLowerCase() }}...</mat-label>
+        <input matInput
+               [formControl]="section.searchControl"
+               [matAutocomplete]="auto"
+               [attr.aria-label]="'Search ' + section.label">
+        <mat-icon matSuffix>search</mat-icon>
+        <mat-autocomplete #auto="matAutocomplete"
+                          [displayWith]="displayFn"
+                          (optionSelected)="addFromAutocomplete($event, section)">
+          @for (item of filteredItems(section); track item.referenceId) {
+            <mat-option [value]="item">
+              <span>{{ item.referenceName }}</span>
+              @if (item.referenceDescription) {
+                <small class="nom-restrictions__option-desc">{{ item.referenceDescription }}</small>
+              }
+            </mat-option>
+          } @empty {
+            @if (section.searchControl.value) {
+              <mat-option disabled>No matching options</mat-option>
             }
-            {{ item.referenceName }}
-          </button>
-        }
-      </div>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
     </div>
   }
 
-  @if (isStandalone()) {
-    <div class="nom-form__actions">
-      <button mat-flat-button type="button" (click)="onSubmit()">
-        Save Preferences
-      </button>
-    </div>
-  } @else {
-    <div class="nom-form__actions">
-      <button mat-flat-button type="button" (click)="onSubmit()">
-        Continue
-      </button>
-    </div>
-  }
+  <div class="nom-form__actions">
+    <button mat-flat-button type="button" (click)="onSubmit()">
+      {{ isStandalone() ? 'Save Preferences' : 'Continue' }}
+    </button>
+  </div>
 </div>

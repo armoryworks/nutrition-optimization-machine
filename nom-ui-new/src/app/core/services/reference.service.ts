@@ -57,4 +57,14 @@ export class ReferenceService {
   getRestrictionTypes(): Observable<ReferenceItem[]> {
     return this.getReferencesByGroup(ReferenceDiscriminator.RestrictionType);
   }
+
+  getRestrictionGroups(): Observable<Record<number, ReferenceItem[]>> {
+    return this.getReferencesBulk([
+      ReferenceDiscriminator.PersonDietaryRestrictionType,
+      ReferenceDiscriminator.AllergyType,
+      ReferenceDiscriminator.MedicalConditionType,
+      ReferenceDiscriminator.SocietalRestrictionType,
+      ReferenceDiscriminator.PersonalPreferenceType,
+    ]);
+  }
 }

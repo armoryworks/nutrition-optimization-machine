@@ -1,6 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, switchMap, catchError, of } from 'rxjs';
+import { Observable, tap, switchMap, catchError, of, map } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { PersonModel } from '../models/person.model';
 
 export interface AuthTokenResponse {
   tokenType: string;
@@ -14,9 +16,13 @@ export class AuthService {
   private http = inject(HttpClient);
   private isLoggedInSignal = signal(false);
   private usernameSignal = signal('');
+  private personIdSignal = signal<number | null>(null);
+  private lastValidated = 0;
+  private readonly VALIDATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
   readonly isLoggedIn = this.isLoggedInSignal.asReadonly();
   readonly username = this.usernameSignal.asReadonly();
+  readonly personId = this.personIdSignal.asReadonly();
 
   get accessToken(): string | null {
     return localStorage.getItem('authToken');
@@ -85,10 +91,26 @@ export class AuthService {
     );
   }
 
+  isTokenFresh(): boolean {
+    return Date.now() - this.lastValidated < this.VALIDATION_INTERVAL;
+  }
+
+  validateToken(): Observable<boolean> {
+    return this.http.get('/api/auth/manage/info').pipe(
+      tap(() => this.lastValidated = Date.now()),
+      map(() => true),
+      catchError(() => {
+        this.clearSession();
+        return of(false);
+      })
+    );
+  }
+
   private storeTokens(response: AuthTokenResponse): void {
     localStorage.setItem('authToken', response.accessToken);
     localStorage.setItem('refreshToken', response.refreshToken);
     this.isLoggedInSignal.set(true);
+    this.lastValidated = Date.now();
   }
 
   private fetchAndStoreUserInfo(): Observable<void> {
@@ -98,7 +120,19 @@ export class AuthService {
         localStorage.setItem('username', email);
         this.usernameSignal.set(email);
       }),
-      switchMap(() => of(undefined))
+      switchMap(() => this.fetchAndStorePersonId()),
+      catchError(() => of(undefined))
+    );
+  }
+
+  private fetchAndStorePersonId(): Observable<void> {
+    return this.http.get<PersonModel>(`${environment.apiUrl}/Person/me`).pipe(
+      tap(person => {
+        localStorage.setItem('personId', String(person.id));
+        this.personIdSignal.set(person.id);
+      }),
+      switchMap(() => of(undefined)),
+      catchError(() => of(undefined))
     );
   }
 
@@ -107,6 +141,10 @@ export class AuthService {
     if (token) {
       this.isLoggedInSignal.set(true);
       this.usernameSignal.set(localStorage.getItem('username') ?? '');
+      const storedPersonId = localStorage.getItem('personId');
+      if (storedPersonId) {
+        this.personIdSignal.set(Number(storedPersonId));
+      }
     }
   }
 
@@ -114,7 +152,9 @@ export class AuthService {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('personId');
     this.isLoggedInSignal.set(false);
     this.usernameSignal.set('');
+    this.personIdSignal.set(null);
   }
 }

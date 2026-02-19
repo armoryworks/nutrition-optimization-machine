@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, input, output, signal, computed, effect, untracked, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,11 +9,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthService } from '../core/services/auth.service';
 import { ReferenceService } from '../core/services/reference.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
 import { ReferenceItem, ReferenceDiscriminator } from '../core/models/reference.model';
-import { PersonAttributeRequest, PersonDetailsRequest } from '../core/models/person.model';
+import { PersonAttributeRequest, PersonDetailsRequest, SaveProfileRequest } from '../core/models/person.model';
 
 export interface ProfileFormData {
   personDetails: PersonDetailsRequest;
@@ -45,6 +46,7 @@ export class Profile implements OnInit {
   saved = output<ProfileFormData>();
 
   private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
   private referenceService = inject(ReferenceService);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
@@ -74,14 +76,25 @@ export class Profile implements OnInit {
 
   isStandalone = computed(() => this.mode() !== 'wizard');
 
-  ngOnInit(): void {
-    this.loadReferenceData();
+  /**
+   * Reacts to async initialData changes in wizard mode.
+   * When the parent sets initialData after its HTTP call completes,
+   * this effect populates the form once reference data is also ready.
+   */
+  private populateEffect = effect(() => {
     const data = this.initialData();
-    if (data) {
-      this.populateFromData(data);
-    } else if (this.isStandalone()) {
-      this.loadExistingProfile();
+    const types = this.attributeTypes();
+    if (data && types.length > 0) {
+      untracked(() => this.populateFromData(data));
     }
+  });
+
+  ngOnInit(): void {
+    this.loadReferenceData(() => {
+      if (this.isStandalone()) {
+        this.loadExistingProfile();
+      }
+    });
   }
 
   onSubmit(): void {
@@ -99,7 +112,7 @@ export class Profile implements OnInit {
     this.unitSystem.set(value);
   }
 
-  private loadReferenceData(): void {
+  private loadReferenceData(onComplete?: () => void): void {
     this.referenceService.getReferencesBulk([
       ReferenceDiscriminator.PersonActivityLevelType,
       ReferenceDiscriminator.PersonHealthGoalType,
@@ -111,16 +124,20 @@ export class Profile implements OnInit {
         this.activityLevels.set(data[ReferenceDiscriminator.PersonActivityLevelType] ?? []);
         this.healthGoals.set(data[ReferenceDiscriminator.PersonHealthGoalType] ?? []);
         this.attributeTypes.set(data[ReferenceDiscriminator.PersonAttributeType] ?? []);
+        onComplete?.();
       },
     });
   }
 
   private loadExistingProfile(): void {
-    this.personService.getOnboardingState().pipe(
+    const personId = this.authService.personId();
+    if (!personId) return;
+
+    this.personService.getOnboardingState(personId).pipe(
       this.loadingService.loading('Loading your profile...')
     ).subscribe({
       next: (state) => {
-        if (state.hasExistingPerson && state.personDetails) {
+        if (state.personDetails) {
           this.populateFromData({
             personDetails: state.personDetails,
             attributes: state.attributes ?? [],
@@ -164,17 +181,12 @@ export class Profile implements OnInit {
           }
           break;
         }
-      }
-    }
-
-    // Activity level and health goal are stored as attribute refs
-    for (const attr of data.personDetails.attributes ?? []) {
-      const typeName = this.getAttributeTypeName(attr.attributeTypeRefId);
-      if (typeName === 'Activity Level') {
-        // Value is the referenceId of the activity level
-        this.profileForm.patchValue({ activityLevel: parseInt(attr.value, 10) });
-      } else if (typeName === 'Health Goal') {
-        this.profileForm.patchValue({ healthGoal: parseInt(attr.value, 10) });
+        case 'Activity Level':
+          this.profileForm.patchValue({ activityLevel: parseInt(attr.value, 10) });
+          break;
+        case 'Health Goal':
+          this.profileForm.patchValue({ healthGoal: parseInt(attr.value, 10) });
+          break;
       }
     }
   }
@@ -231,26 +243,45 @@ export class Profile implements OnInit {
       attributes.push({ attributeTypeRefId: dobId, value: form.dateOfBirth.toISOString().split('T')[0] });
     }
 
+    // Activity Level — store the selected referenceId as the value
+    const activityLevelTypeId = this.getAttributeTypeId('Activity Level');
+    if (activityLevelTypeId && form.activityLevel) {
+      attributes.push({ attributeTypeRefId: activityLevelTypeId, value: String(form.activityLevel) });
+    }
+
+    // Health Goal — store the selected referenceId as the value
+    const healthGoalTypeId = this.getAttributeTypeId('Health Goal');
+    if (healthGoalTypeId && form.healthGoal) {
+      attributes.push({ attributeTypeRefId: healthGoalTypeId, value: String(form.healthGoal) });
+    }
+
     return {
       personDetails: {
         id: 0,
         name: form.name ?? '',
-        attributes: [
-          ...attributes,
-          ...(form.activityLevel ? [{ attributeTypeRefId: form.activityLevel, value: String(form.activityLevel) }] : []),
-          ...(form.healthGoal ? [{ attributeTypeRefId: form.healthGoal, value: String(form.healthGoal) }] : []),
-        ],
+        attributes,
       },
       attributes,
     };
   }
 
   private saveProfile(formData: ProfileFormData): void {
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+      return;
+    }
+
     this.loading.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
 
-    this.personService.upsertPerson({ personName: formData.personDetails.name }).pipe(
+    const request: SaveProfileRequest = {
+      name: formData.personDetails.name,
+      attributes: formData.personDetails.attributes,
+    };
+
+    this.personService.saveProfile(personId, request).pipe(
       this.loadingService.loading('Saving profile...')
     ).subscribe({
       next: () => {

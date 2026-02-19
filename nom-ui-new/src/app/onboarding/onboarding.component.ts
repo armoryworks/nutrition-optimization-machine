@@ -2,9 +2,10 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../core/services/auth.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
-import { OnboardingCompleteRequest, RestrictionRequest } from '../core/models/person.model';
+import { OnboardingCompleteRequest, RestrictionRequest, SaveProfileRequest } from '../core/models/person.model';
 import { Profile, ProfileFormData } from '../profile/profile.component';
 import { Restrictions } from '../restrictions/restrictions.component';
 import { Household, HouseholdFormData } from '../household/household.component';
@@ -25,6 +26,7 @@ import { Plan, PlanFormData } from '../plan/plan.component';
 })
 export class Onboarding implements OnInit {
   private router = inject(Router);
+  private authService = inject(AuthService);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
 
@@ -33,6 +35,7 @@ export class Onboarding implements OnInit {
   errorMessage = signal('');
 
   profileData = signal<ProfileFormData | null>(null);
+  profileSaved = signal(false);
   restrictionsData = signal<RestrictionRequest[]>([]);
   householdData = signal<HouseholdFormData | null>(null);
   planData = signal<PlanFormData | null>(null);
@@ -44,7 +47,13 @@ export class Onboarding implements OnInit {
   isFirstStep = computed(() => this.currentStep() === 0);
 
   ngOnInit(): void {
-    this.personService.getOnboardingState().pipe(
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.router.navigate(['/home']);
+      return;
+    }
+
+    this.personService.getOnboardingState(personId).pipe(
       this.loadingService.loading('Checking your progress...')
     ).subscribe({
       next: (state) => {
@@ -71,14 +80,54 @@ export class Onboarding implements OnInit {
 
   onProfileComplete(data: ProfileFormData): void {
     this.profileData.set(data);
-    this.markComplete(0);
-    this.next();
+
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.markComplete(0);
+      this.next();
+      return;
+    }
+
+    const request: SaveProfileRequest = {
+      name: data.personDetails.name,
+      attributes: data.attributes,
+    };
+
+    this.personService.saveProfile(personId, request).pipe(
+      this.loadingService.loading('Saving profile...')
+    ).subscribe({
+      next: () => {
+        this.profileSaved.set(true);
+        this.markComplete(0);
+        this.next();
+      },
+      error: () => {
+        this.errorMessage.set('Unable to save profile. Please try again.');
+      },
+    });
   }
 
   onRestrictionsComplete(restrictions: RestrictionRequest[]): void {
     this.restrictionsData.set(restrictions);
-    this.markComplete(1);
-    this.next();
+
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.markComplete(1);
+      this.next();
+      return;
+    }
+
+    this.personService.saveRestrictions(personId, restrictions).pipe(
+      this.loadingService.loading('Saving dietary preferences...')
+    ).subscribe({
+      next: () => {
+        this.markComplete(1);
+        this.next();
+      },
+      error: () => {
+        this.errorMessage.set('Unable to save dietary preferences. Please try again.');
+      },
+    });
   }
 
   onHouseholdComplete(data: HouseholdFormData): void {
@@ -120,14 +169,20 @@ export class Onboarding implements OnInit {
   }
 
   completeOnboarding(): void {
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.errorMessage.set('Unable to identify your account. Please try logging in again.');
+      return;
+    }
+
     const profile = this.profileData();
     const restrictions = this.restrictionsData();
     const plan = this.planData();
 
     const request: OnboardingCompleteRequest = {
-      personId: null,
+      personId: personId,
       personDetails: profile?.personDetails ?? { id: 0, name: '', attributes: [] },
-      attributes: profile?.attributes ?? [],
+      attributes: this.profileSaved() ? [] : (profile?.attributes ?? []),
       restrictions: restrictions,
       planInvitationCode: plan?.invitationCode ?? null,
       hasAdditionalParticipants: false,
@@ -136,7 +191,7 @@ export class Onboarding implements OnInit {
       applyIndividualPreferencesToEachPerson: false,
     };
 
-    this.personService.completeOnboarding(request).pipe(
+    this.personService.completeOnboarding(personId, request).pipe(
       this.loadingService.loading('Setting up your account...')
     ).subscribe({
       next: () => {

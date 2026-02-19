@@ -1,5 +1,6 @@
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
@@ -7,6 +8,7 @@ let isRefreshing = false;
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
   const authService = inject(AuthService);
+  const router = inject(Router);
 
   // Don't attach token to auth endpoints (login, register, refresh, etc.)
   // except for /manage/info which requires auth
@@ -27,10 +29,12 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
             if (result) {
               return next(addToken(req, result.accessToken));
             }
+            router.navigate(['/home']);
             return throwError(() => error);
           }),
           catchError((refreshError) => {
             isRefreshing = false;
+            router.navigate(['/home']);
             return throwError(() => refreshError);
           })
         );

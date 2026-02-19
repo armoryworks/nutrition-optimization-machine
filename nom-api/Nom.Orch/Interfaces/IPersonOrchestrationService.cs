@@ -1,5 +1,6 @@
 // File: Nom.Orch/Interfaces/IPersonOrchestrationService.cs
 using System.Threading.Tasks;
+using Nom.Data.Person;
 using Nom.Orch.Models.Person;
 
 namespace Nom.Orch.Interfaces
@@ -14,9 +15,12 @@ namespace Nom.Orch.Interfaces
         /// Creates a new person if one does not already exist for the current user,
         /// otherwise updates the existing person's name. This prevents duplicate entries.
         /// </summary>
-        /// <param name="request">The person data to create or update.</param>
-        /// <returns>A response containing the ID of the created or updated person.</returns>
         Task<PersonCreateResponseModel> UpsertPersonAsync(PersonCreateModel request);
+
+        /// <summary>
+        /// Creates a Person entity for a newly registered user.
+        /// </summary>
+        Task<PersonEntity> SetupNewRegisteredPersonAsync(string identityUserId, string personName);
 
         Task<PersonModel> GetPersonByUserIdAsync(string userId);
         Task<PersonModel> GetPersonByIdAsync(long personId);
@@ -27,11 +31,9 @@ namespace Nom.Orch.Interfaces
         Task<OnboardingCompleteResponse> CompleteOnboardingAsync(OnboardingCompleteRequest request);
 
         /// <summary>
-        /// Gets the current onboarding state for a user, including existing person data
+        /// Gets the onboarding state for a specific person by their ID.
         /// </summary>
-        /// <param name="userId">Optional user ID to fetch onboarding state for</param>
-        /// <returns>The current onboarding state</returns>
-        Task<OnboardingStateResponse> GetOnboardingStateAsync(string? userId = null);
+        Task<OnboardingStateResponse> GetOnboardingStateAsync(long personId);
 
         /// <summary>
         /// Gets the current PersonId from the authenticated user's claims.
@@ -42,10 +44,21 @@ namespace Nom.Orch.Interfaces
         /// <summary>
         /// Gets the current PersonId from the authenticated user's claims.
         /// Throws UnauthorizedAccessException if PersonId is not available.
-        /// Use this method only for endpoints that require a complete user profile.
         /// </summary>
         long GetCurrentPersonIdRequired();
 
         Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20);
+
+        /// <summary>
+        /// Saves a person's profile (name + attributes).
+        /// Replaces all existing attributes.
+        /// </summary>
+        Task<PersonModel> SaveProfileAsync(long personId, SaveProfileRequest request);
+
+        /// <summary>
+        /// Saves person-level restrictions (no plan required).
+        /// Replaces all existing person-level restrictions (where PlanId is null).
+        /// </summary>
+        Task SaveRestrictionsAsync(long personId, List<RestrictionRequest> restrictions);
     }
 }

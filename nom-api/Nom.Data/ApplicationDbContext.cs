@@ -262,7 +262,14 @@ namespace Nom.Data
                 .HasValue<ShoppingCategoryTypeViewEntity>((long)ReferenceDiscriminatorEnum.ShoppingCategoryType)
                 .HasValue<RecipeDifficultyTypeViewEntity>((long)ReferenceDiscriminatorEnum.RecipeDifficultyType)
                 .HasValue<PersonActivityLevelTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonActivityLevelType)
-                .HasValue<DayOfWeekTypeViewEntity>((long)ReferenceDiscriminatorEnum.DayOfWeekType);
+                .HasValue<PersonHealthGoalTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonHealthGoalType)
+                .HasValue<PersonAttributeTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonAttributeType)
+                .HasValue<DayOfWeekTypeViewEntity>((long)ReferenceDiscriminatorEnum.DayOfWeekType)
+                .HasValue<PersonDietaryRestrictionTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonDietaryRestrictionType)
+                .HasValue<AllergyTypeViewEntity>((long)ReferenceDiscriminatorEnum.AllergyType)
+                .HasValue<MedicalConditionTypeViewEntity>((long)ReferenceDiscriminatorEnum.MedicalConditionType)
+                .HasValue<SocietalRestrictionTypeViewEntity>((long)ReferenceDiscriminatorEnum.SocietalRestrictionType)
+                .HasValue<PersonalPreferenceTypeViewEntity>((long)ReferenceDiscriminatorEnum.PersonalPreferenceType);
             #endregion
 
             #region Plan Namespace Fluent API Configurations

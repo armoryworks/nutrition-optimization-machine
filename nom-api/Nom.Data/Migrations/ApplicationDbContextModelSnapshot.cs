@@ -3905,6 +3905,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue("Nutrient");
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.AllergyTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6007L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.CuisineTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3961,6 +3968,13 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(1L);
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.MedicalConditionTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6008L);
+                });
+
             modelBuilder.Entity("Nom.Data.Reference.NutrientTypeViewEntity", b =>
                 {
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
@@ -3973,6 +3987,34 @@ namespace Nom.Data.Migrations
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
                     b.HasDiscriminator().HasValue(6004L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.PersonAttributeTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6011L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.PersonDietaryRestrictionTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6005L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.PersonHealthGoalTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6006L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.PersonalPreferenceTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6010L);
                 });
 
             modelBuilder.Entity("Nom.Data.Reference.PlanInvitationRoleViewEntity", b =>
@@ -4029,6 +4071,13 @@ namespace Nom.Data.Migrations
                     b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
 
                     b.HasDiscriminator().HasValue(4L);
+                });
+
+            modelBuilder.Entity("Nom.Data.Reference.SocietalRestrictionTypeViewEntity", b =>
+                {
+                    b.HasBaseType("Nom.Data.Reference.GroupedReferenceViewEntity");
+
+                    b.HasDiscriminator().HasValue(6009L);
                 });
 
             modelBuilder.Entity("MealRecipeIndex", b =>
