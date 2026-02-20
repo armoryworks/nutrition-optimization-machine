@@ -10,6 +10,23 @@
 
   <div class="nom-user-menu__divider"></div>
 
+  <nav class="nom-user-menu__nav" aria-label="Quick navigation">
+    <a class="nom-user-menu__item" routerLink="/plan" (click)="closed.emit()">
+      <mat-icon>calendar_month</mat-icon>
+      <span>Meal Plan</span>
+    </a>
+    <a class="nom-user-menu__item" routerLink="/household" (click)="closed.emit()">
+      <mat-icon>group</mat-icon>
+      <span>Household</span>
+    </a>
+    <a class="nom-user-menu__item" routerLink="/restrictions" (click)="closed.emit()">
+      <mat-icon>block</mat-icon>
+      <span>Restrictions</span>
+    </a>
+  </nav>
+
+  <div class="nom-user-menu__divider"></div>
+
   <nav class="nom-user-menu__nav" aria-label="User menu">
     <a class="nom-user-menu__item" routerLink="/profile" (click)="closed.emit()">
       <mat-icon>person</mat-icon>

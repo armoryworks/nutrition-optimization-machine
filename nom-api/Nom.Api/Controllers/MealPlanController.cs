@@ -62,7 +62,7 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:long}")]
         [ProducesResponseType(typeof(MealPlanResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetMealPlan([Required] long id)
@@ -83,7 +83,7 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:long}")]
         [ProducesResponseType(typeof(MealPlanResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -110,7 +110,7 @@ namespace Nom.Api.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:long}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteMealPlan([Required] long id)
@@ -191,6 +191,86 @@ namespace Nom.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred in DeleteRule.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpGet("week")]
+        [ProducesResponseType(typeof(MealPlanWeekResponseModel), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetWeek(
+            [Required][FromQuery] long householdId,
+            [Required][FromQuery] DateOnly weekStart)
+        {
+            try
+            {
+                var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetWeek.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpPost("exclusion")]
+        [ProducesResponseType(typeof(MealPlanExclusionResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateExclusion([FromBody] MealPlanExclusionCreateModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var response = await _mealPlanOrchestrationService.CreateExclusionAsync(model);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in CreateExclusion.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpGet("exclusion")]
+        [ProducesResponseType(typeof(List<MealPlanExclusionResponseModel>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetExclusions(
+            [Required][FromQuery] long householdId,
+            [Required][FromQuery] DateOnly startDate,
+            [Required][FromQuery] DateOnly endDate)
+        {
+            try
+            {
+                var response = await _mealPlanOrchestrationService.GetExclusionsAsync(householdId, startDate, endDate);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetExclusions.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpDelete("exclusion/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteExclusion([Required] long id)
+        {
+            try
+            {
+                var success = await _mealPlanOrchestrationService.DeleteExclusionAsync(id);
+                if (!success)
+                {
+                    return NotFound();
+                }
+                return Ok(new { Message = "Exclusion deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in DeleteExclusion.");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
             }
         }

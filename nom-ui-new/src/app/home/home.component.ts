@@ -1,8 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
+import { AuthService } from '../core/services/auth.service';
 import { RecipeSearchResult } from '../core/models/recipe-search.model';
+import { Dashboard } from './dashboard/dashboard.component';
 
 interface RecipeCategory {
   label: string;
@@ -12,19 +14,23 @@ interface RecipeCategory {
 
 @Component({
   selector: 'nom-home',
-  imports: [MatIconModule, RouterLink],
+  imports: [MatIconModule, RouterLink, Dashboard],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
 export class Home implements OnInit {
   private recipeSearch = inject(RecipeSearchService);
+  private authService = inject(AuthService);
 
+  isLoggedIn = computed(() => this.authService.isLoggedIn());
   categories = signal<RecipeCategory[]>([]);
   loading = signal(true);
   error = signal('');
 
   ngOnInit(): void {
-    this.loadRecipes();
+    if (!this.isLoggedIn()) {
+      this.loadRecipes();
+    }
   }
 
   loadRecipes(): void {

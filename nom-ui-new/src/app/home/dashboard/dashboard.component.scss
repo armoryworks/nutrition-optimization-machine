@@ -1,0 +1,183 @@
+@use 'variables' as vars;
+
+// ── Today's meals section ──
+
+button.nom-dashboard__list-item {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.nom-db-today__entries {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-db-today__entry {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+.nom-db-today__thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: vars.$nom-border-radius;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nom-db-today__thumb-placeholder {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius;
+  flex-shrink: 0;
+}
+
+.nom-db-today__recipe {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nom-db-today__note {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+.nom-db-today__empty {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.6;
+}
+
+.nom-db-today__cal {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+// ── Compact week grid ──
+
+.nom-db-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: vars.$spacing-2;
+}
+
+.nom-db-week__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: vars.$spacing-3 vars.$spacing-2;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface-container-low);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &--today {
+    background: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
+
+    .nom-db-week__day-num {
+      color: var(--mat-sys-on-primary-container);
+      font-weight: vars.$font-weight-bold;
+    }
+  }
+}
+
+.nom-db-week__day-label {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nom-db-week__day-num {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: vars.$spacing-1 0;
+}
+
+.nom-db-week__meals {
+  display: flex;
+  gap: vars.$spacing-1;
+}
+
+.nom-db-week__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mat-sys-outline-variant);
+
+  &--filled {
+    background: var(--mat-sys-primary);
+  }
+}
+
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-db-week {
+    grid-template-columns: repeat(7, minmax(48px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+// ── Macro cards ──
+
+.nom-db-macro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: vars.$spacing-1;
+}
+
+.nom-db-macro__icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--mat-sys-primary);
+}
+
+.nom-db-macro__value {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-bold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-db-macro__label {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// ── Navigation cards ──
+
+.nom-db-nav__icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: var(--mat-sys-primary);
+  margin-bottom: vars.$spacing-2;
+}

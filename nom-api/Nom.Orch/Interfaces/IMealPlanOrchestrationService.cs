@@ -1,5 +1,6 @@
 // File: Nom.Orch/Interfaces/IMealPlanOrchestrationService.cs
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nom.Orch.Models.MealPlan;
@@ -14,9 +15,17 @@ namespace Nom.Orch.Interfaces
         Task<MealPlanResponseModel?> UpdateMealPlanAsync(long id, MealPlanUpdateModel model);
         Task<bool> DeleteMealPlanAsync(long id);
 
+        // Weekly calendar
+        Task<MealPlanWeekResponseModel> GetWeekAsync(long householdId, DateOnly weekStart);
+
         // Meal Plan Rules
         Task<MealPlanRuleCreateResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model);
         Task<MealPlanRuleResponseModel?> GetRuleAsync(long id);
         Task<bool> DeleteRuleAsync(long id);
+
+        // Meal Plan Exclusions
+        Task<MealPlanExclusionResponseModel> CreateExclusionAsync(MealPlanExclusionCreateModel model);
+        Task<List<MealPlanExclusionResponseModel>> GetExclusionsAsync(long householdId, DateOnly start, DateOnly end);
+        Task<bool> DeleteExclusionAsync(long id);
     }
 } 

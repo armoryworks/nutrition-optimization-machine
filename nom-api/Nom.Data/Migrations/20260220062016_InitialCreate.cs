@@ -937,6 +937,48 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MealPlanExclusion",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    MealTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MealPlanExclusion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Reference_MealTypeId",
+                        column: x => x.MealTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PersonAttribute",
                 schema: "person",
                 columns: table => new
@@ -2137,6 +2179,7 @@ namespace Nom.Data.Migrations
                     RestrictionTypeId = table.Column<long>(type: "bigint", nullable: true),
                     IngredientId = table.Column<long>(type: "bigint", nullable: true),
                     NutrientId = table.Column<long>(type: "bigint", nullable: true),
+                    Severity = table.Column<int>(type: "integer", nullable: true),
                     BeginDate = table.Column<DateOnly>(type: "date", nullable: true),
                     EndDate = table.Column<DateOnly>(type: "date", nullable: true),
                     PersonEntityId = table.Column<long>(type: "bigint", nullable: true),
@@ -3222,6 +3265,25 @@ namespace Nom.Data.Migrations
                 column: "RecipeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MealPlanExclusion_HouseholdId_PersonId_Date_MealTypeId",
+                schema: "plan",
+                table: "MealPlanExclusion",
+                columns: new[] { "HouseholdId", "PersonId", "Date", "MealTypeId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MealPlanExclusion_MealTypeId",
+                schema: "plan",
+                table: "MealPlanExclusion",
+                column: "MealTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MealPlanExclusion_PersonId",
+                schema: "plan",
+                table: "MealPlanExclusion",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MealPlanRule_DayOfWeekId",
                 schema: "plan",
                 table: "MealPlanRule",
@@ -4070,6 +4132,10 @@ namespace Nom.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "MealPlan",
+                schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "MealPlanExclusion",
                 schema: "plan");
 
             migrationBuilder.DropTable(

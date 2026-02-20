@@ -1,4 +1,6 @@
 import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -8,10 +10,18 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { PlanService } from '../core/services/plan.service';
+import { MealPlanService } from '../core/services/meal-plan.service';
+import { HouseholdService } from '../core/services/household.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PlanModel } from '../core/models/plan.model';
+import { HouseholdResponseModel, HouseholdMemberResponseModel } from '../core/models/household.model';
+import { MealPlanWeekResponse, MealPlanDay, MealPlanCell, MealPlanExclusion } from '../core/models/meal-plan.model';
 import { RestrictionRequest } from '../core/models/person.model';
+import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
 
 export interface PlanFormData {
   planName: string | null;
@@ -25,6 +35,8 @@ export interface PlanFormData {
 @Component({
   selector: 'nom-plan',
   imports: [
+    DecimalPipe,
+    RouterLink,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -34,6 +46,8 @@ export interface PlanFormData {
     MatNativeDateModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
+    MatTooltipModule,
   ],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
@@ -48,17 +62,44 @@ export class Plan implements OnInit {
 
   private fb = inject(FormBuilder);
   private planService = inject(PlanService);
+  private mealPlanService = inject(MealPlanService);
+  private householdService = inject(HouseholdService);
   private loadingService = inject(LoadingService);
+  private dialog = inject(MatDialog);
 
+  // Wizard mode state
   plans = signal<PlanModel[]>([]);
   loading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
   activeTab = signal<'create' | 'join'>('create');
 
+  // Calendar mode state
+  households = signal<HouseholdResponseModel[]>([]);
+  activeHouseholdId = signal<number | null>(null);
+  weekData = signal<MealPlanWeekResponse | null>(null);
+  currentWeekStart = signal<string>(Plan.getMonday(new Date()));
+  members = signal<HouseholdMemberResponseModel[]>([]);
+
+  // Computed
   isStandalone = computed(() => this.mode() !== 'wizard');
   hasRestrictions = computed(() => this.initialRestrictions().length > 0);
+  hasHousehold = computed(() => this.households().length > 0);
 
+  weekLabel = computed(() => {
+    const data = this.weekData();
+    if (!data) return '';
+    const start = new Date(data.weekStart + 'T00:00:00');
+    const end = new Date(data.weekEnd + 'T00:00:00');
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}, ${end.getFullYear()}`;
+  });
+
+  isCurrentWeek = computed(() => {
+    return this.currentWeekStart() === Plan.getMonday(new Date());
+  });
+
+  // Wizard mode forms
   createForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
     description: [''],
@@ -73,9 +114,114 @@ export class Plan implements OnInit {
 
   ngOnInit(): void {
     if (this.isStandalone()) {
-      this.loadPlans();
+      this.loadHouseholds();
     }
   }
+
+  // --- Calendar navigation ---
+
+  navigateWeek(direction: -1 | 1): void {
+    const current = new Date(this.currentWeekStart() + 'T00:00:00');
+    current.setDate(current.getDate() + direction * 7);
+    this.currentWeekStart.set(Plan.toDateString(current));
+    this.loadWeek();
+  }
+
+  goToToday(): void {
+    this.currentWeekStart.set(Plan.getMonday(new Date()));
+    this.loadWeek();
+  }
+
+  onHouseholdChange(householdId: number): void {
+    this.activeHouseholdId.set(householdId);
+    const household = this.households().find(h => h.id === householdId);
+    this.members.set(household?.members ?? []);
+    this.loadWeek();
+  }
+
+  onCellClick(day: MealPlanDay, cell: MealPlanCell): void {
+    const householdId = this.activeHouseholdId();
+    if (!householdId) return;
+
+    const dialogRef = this.dialog.open(RecipeSearchDialog, {
+      width: '560px',
+      data: {
+        householdId,
+        date: day.date,
+        mealTypeId: cell.mealTypeId,
+        mealType: cell.mealType,
+        entries: cell.entries,
+      } as RecipeSearchDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
+      if (result?.changed) this.loadWeek();
+    });
+  }
+
+  formatDayHeader(dateStr: string): string {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+  }
+
+  isToday(dateStr: string): boolean {
+    return dateStr === Plan.toDateString(new Date());
+  }
+
+  // --- Exclusion controls ---
+
+  isExcluded(day: MealPlanDay, member: HouseholdMemberResponseModel): boolean {
+    return day.exclusions.some(e => e.personId === member.personId && e.mealTypeId === null);
+  }
+
+  getExclusionForMember(day: MealPlanDay, member: HouseholdMemberResponseModel): MealPlanExclusion | undefined {
+    return day.exclusions.find(e => e.personId === member.personId && e.mealTypeId === null);
+  }
+
+  toggleExclusion(day: MealPlanDay, member: HouseholdMemberResponseModel): void {
+    const householdId = this.activeHouseholdId();
+    if (!householdId) return;
+
+    const existing = this.getExclusionForMember(day, member);
+    if (existing) {
+      this.mealPlanService.deleteExclusion(existing.id).subscribe(() => this.loadWeek());
+    } else {
+      this.mealPlanService.createExclusion({
+        householdId,
+        personId: member.personId,
+        date: day.date,
+        mealTypeId: null,
+      }).subscribe(() => this.loadWeek());
+    }
+  }
+
+  getMemberInitial(member: HouseholdMemberResponseModel): string {
+    return member.personName.charAt(0).toUpperCase();
+  }
+
+  // --- Nutrition helpers ---
+
+  getDayCalories(day: MealPlanDay): number {
+    return day.cells.reduce((sum, c) => sum + (c.totalCalories ?? 0), 0);
+  }
+
+  getDayProtein(day: MealPlanDay): number {
+    return day.cells.reduce((sum, c) => sum + (c.totalProteinGrams ?? 0), 0);
+  }
+
+  getDayCarbs(day: MealPlanDay): number {
+    return day.cells.reduce((sum, c) => sum + (c.totalCarbGrams ?? 0), 0);
+  }
+
+  getDayFat(day: MealPlanDay): number {
+    return day.cells.reduce((sum, c) => sum + (c.totalFatGrams ?? 0), 0);
+  }
+
+  hasDayNutrition(day: MealPlanDay): boolean {
+    return day.cells.some(c => c.totalCalories != null);
+  }
+
+  // --- Wizard mode methods (unchanged) ---
 
   onCreateSubmit(): void {
     if (this.createForm.invalid) return;
@@ -84,8 +230,8 @@ export class Plan implements OnInit {
     const data: PlanFormData = {
       planName: form.name,
       planDescription: form.description || null,
-      startDate: form.startDate ? this.toDateString(form.startDate) : null,
-      endDate: form.endDate ? this.toDateString(form.endDate) : null,
+      startDate: form.startDate ? Plan.toDateString(form.startDate) : null,
+      endDate: form.endDate ? Plan.toDateString(form.endDate) : null,
       applyRestrictions: form.applyRestrictions ?? false,
       invitationCode: null,
     };
@@ -122,6 +268,41 @@ export class Plan implements OnInit {
     this.skipped.emit();
   }
 
+  // --- Private methods ---
+
+  private loadHouseholds(): void {
+    this.householdService.getHouseholds().subscribe({
+      next: (list) => {
+        this.households.set(list);
+        if (list.length > 0) {
+          this.activeHouseholdId.set(list[0].id);
+          this.members.set(list[0].members ?? []);
+          this.loadWeek();
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  private loadWeek(): void {
+    const householdId = this.activeHouseholdId();
+    if (!householdId) return;
+
+    this.loading.set(true);
+    this.mealPlanService.getWeek(householdId, this.currentWeekStart()).pipe(
+      this.loadingService.loading('Loading meal plan...')
+    ).subscribe({
+      next: (data) => {
+        this.weekData.set(data);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.errorMessage.set('Unable to load meal plan.');
+      },
+    });
+  }
+
   private createPlan(data: PlanFormData): void {
     this.loading.set(true);
     this.errorMessage.set('');
@@ -149,7 +330,6 @@ export class Plan implements OnInit {
       next: () => {
         this.loading.set(false);
         this.successMessage.set('Plan created successfully.');
-        this.loadPlans();
         this.createForm.reset({ startDate: new Date(), applyRestrictions: true });
         this.saved.emit(data);
       },
@@ -160,16 +340,17 @@ export class Plan implements OnInit {
     });
   }
 
-  private loadPlans(): void {
-    this.planService.getMyPlans().pipe(
-      this.loadingService.loading('Loading your plans...')
-    ).subscribe({
-      next: (list) => this.plans.set(list),
-      error: () => {}, // silently fail — user may not have a person yet
-    });
+  // --- Static helpers ---
+
+  static getMonday(date: Date): string {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return Plan.toDateString(d);
   }
 
-  private toDateString(date: Date): string {
+  static toDateString(date: Date): string {
     return date.toISOString().split('T')[0];
   }
 }
