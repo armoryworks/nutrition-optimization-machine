@@ -12,5 +12,7 @@ namespace Nom.Orch.Models.Household
         public string Role { get; set; } = string.Empty;
         public DateTime JoinedDate { get; set; }
         public bool IsActive { get; set; } = true;
+        public bool HasProfile { get; set; }
+        public bool HasRestrictions { get; set; }
     }
 } 

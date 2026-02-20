@@ -11,6 +11,19 @@
   margin-top: 2px;
 }
 
+.nom-profile__section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
 .nom-profile__success {
   background: var(--mat-sys-primary-container);
   border: 1px solid var(--mat-sys-primary);

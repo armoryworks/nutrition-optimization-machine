@@ -29,6 +29,13 @@ namespace Nom.Data.Person
         /// </summary>
         public string? UserId { get; set; } // Matches IdentityUser.Id type (typically string)
 
+        /// <summary>
+        /// Optional email for non-user persons (e.g., dependents). For user-linked persons,
+        /// the canonical email lives in ASP.NET Identity.
+        /// </summary>
+        [MaxLength(255)]
+        public string? Email { get; set; }
+
         public virtual ICollection<PlanParticipantEntity> PlanParticipations { get; set; } = new List<PlanParticipantEntity>();
 
         // Other attributes can be added here or via a PersonAttributeEntity for extensibility

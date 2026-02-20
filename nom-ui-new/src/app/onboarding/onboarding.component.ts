@@ -61,8 +61,14 @@ export class Onboarding implements OnInit {
           this.router.navigate(['/home']);
           return;
         }
+        // Resume at the correct step and mark prior steps complete
         if (state.currentStep > 0 && state.currentStep < this.totalSteps) {
           this.currentStep.set(state.currentStep);
+          const completed = new Set<number>();
+          for (let i = 0; i < state.currentStep; i++) {
+            completed.add(i);
+          }
+          this.completedSteps.set(completed);
         }
         // Pre-populate from existing state
         if (state.personDetails?.name) {
@@ -70,6 +76,7 @@ export class Onboarding implements OnInit {
             personDetails: state.personDetails,
             attributes: state.attributes ?? [],
           });
+          this.profileSaved.set(state.attributes?.length > 0);
         }
         if (state.restrictions?.length) {
           this.restrictionsData.set(state.restrictions);
@@ -136,6 +143,10 @@ export class Onboarding implements OnInit {
     this.next();
   }
 
+  onHouseholdSkipped(): void {
+    this.next();
+  }
+
   onPlanComplete(data: PlanFormData): void {
     this.planData.set(data);
     this.markComplete(3);
@@ -177,7 +188,9 @@ export class Onboarding implements OnInit {
 
     const profile = this.profileData();
     const restrictions = this.restrictionsData();
+    const household = this.householdData();
     const plan = this.planData();
+    const members = household?.members ?? [];
 
     const request: OnboardingCompleteRequest = {
       personId: personId,
@@ -185,10 +198,14 @@ export class Onboarding implements OnInit {
       attributes: this.profileSaved() ? [] : (profile?.attributes ?? []),
       restrictions: restrictions,
       planInvitationCode: plan?.invitationCode ?? null,
-      hasAdditionalParticipants: false,
-      numberOfAdditionalParticipants: 0,
-      additionalParticipantDetails: [],
-      applyIndividualPreferencesToEachPerson: false,
+      hasAdditionalParticipants: members.length > 0,
+      numberOfAdditionalParticipants: members.length,
+      additionalParticipantDetails: members.map(m => ({
+        id: m.personId,
+        name: m.personName,
+        attributes: [],
+      })),
+      applyIndividualPreferencesToEachPerson: household?.dietaryScope === 'individual',
     };
 
     this.personService.completeOnboarding(personId, request).pipe(

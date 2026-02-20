@@ -35,6 +35,16 @@
           }
         </mat-form-field>
 
+        @if (showEmail()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Email (optional)</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="For sending an invite later" />
+            @if (profileForm.get('email')?.hasError('email')) {
+              <mat-error>Please enter a valid email address</mat-error>
+            }
+          </mat-form-field>
+        }
+
         <div class="nom-form__field-row">
           <mat-form-field appearance="outline">
             <mat-label>Date of Birth</mat-label>
@@ -135,22 +145,47 @@
       </div>
     </div>
 
-    @if (isStandalone()) {
-      <div class="nom-form__actions">
-        <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
-          @if (loading()) {
-            <mat-spinner diameter="20"></mat-spinner>
-          } @else {
-            Save Profile
-          }
-        </button>
-      </div>
-    } @else {
-      <div class="nom-form__actions">
-        <button mat-flat-button type="submit" [disabled]="profileForm.invalid">
-          Continue
-        </button>
-      </div>
-    }
+    <!-- Less Common -->
+    <div class="nom-form__section">
+      <button type="button" class="nom-profile__section-toggle"
+              (click)="lessCommonExpanded.set(!lessCommonExpanded())">
+        <h2 class="nom-form__section-title">Less Common</h2>
+        <mat-icon>{{ lessCommonExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </button>
+
+      @if (lessCommonExpanded()) {
+        <p class="nom-form__section-description">
+          These values can be measured via indirect calorimetry at a clinic or gym,
+          or estimated using online calculators based on your age, height, weight, and activity level.
+        </p>
+
+        <div class="nom-form__fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Resting Metabolic Rate (RMR)</mat-label>
+            <input matInput type="number" formControlName="rmr" placeholder="e.g. 1800" />
+            <span matTextSuffix>kcal/day</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Active Metabolic Rate (AMR)</mat-label>
+            <input matInput type="number" formControlName="amr" placeholder="e.g. 2400" />
+            <span matTextSuffix>kcal/day</span>
+          </mat-form-field>
+        </div>
+      }
+    </div>
+
+    <div class="nom-form__actions">
+      @if (showCancel()) {
+        <button mat-button type="button" (click)="cancelled.emit()">Cancel</button>
+      }
+      <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          {{ resolvedSubmitLabel() }}
+        }
+      </button>
+    </div>
   </form>
 </div>

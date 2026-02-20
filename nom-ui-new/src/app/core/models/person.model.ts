@@ -46,6 +46,7 @@ export interface OnboardingStateResponse {
   numberOfAdditionalParticipants: number;
   additionalParticipantDetails: PersonDetailsRequest[];
   applyIndividualPreferencesToEachPerson: boolean;
+  hasHousehold: boolean;
   currentStep: number;
   isComplete: boolean;
 }
@@ -87,6 +88,8 @@ export interface UpdatePersonRequest {
 export interface SaveProfileRequest {
   name: string;
   attributes: PersonAttributeRequest[];
+  email?: string;
+  householdId?: number;
 }
 
 export interface PlanParticipantModel {

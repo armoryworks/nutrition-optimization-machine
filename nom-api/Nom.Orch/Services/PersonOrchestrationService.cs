@@ -220,26 +220,68 @@ namespace Nom.Orch.Services
             {
                 foreach (var participantDetails in request.AdditionalParticipantDetails)
                 {
-                    var newParticipant = new PersonEntity
-                    {
-                        Name = participantDetails.Name,
-                        CreatedByPersonId = primaryPerson.Id,
-                        CreatedDate = DateTime.UtcNow
-                    };
-                    _dbContext.Persons.Add(newParticipant);
-                    await _dbContext.SaveChangesAsync();
+                    long actualPersonId;
 
-                    // Track the mapping from TempId to actual PersonId
-                    additionalParticipantPersonIds[participantDetails.Id] = newParticipant.Id;
-
-                    var participant = new PlanParticipantEntity
+                    // Check if this is a pre-created dependent (Id > 0 and owned by the primary person)
+                    if (participantDetails.Id > 0)
                     {
-                        PlanId = defaultPlan.Id,
-                        PersonId = newParticipant.Id,
-                        RoleRefId = 4101L, // Member role
-                        JoinedDate = DateTime.UtcNow
-                    };
-                    _dbContext.PlanParticipants.Add(participant);
+                        var existingPerson = await _dbContext.Persons.FindAsync(participantDetails.Id);
+                        if (existingPerson != null && existingPerson.CreatedByPersonId == primaryPerson.Id)
+                        {
+                            actualPersonId = existingPerson.Id;
+                        }
+                        else
+                        {
+                            // Not a valid pre-created dependent — create new
+                            var newParticipant = new PersonEntity
+                            {
+                                Name = participantDetails.Name,
+                                CreatedByPersonId = primaryPerson.Id,
+                                CreatedDate = DateTime.UtcNow
+                            };
+                            _dbContext.Persons.Add(newParticipant);
+                            await _dbContext.SaveChangesAsync();
+                            actualPersonId = newParticipant.Id;
+                        }
+                    }
+                    else
+                    {
+                        // TempId — create new person (original behavior)
+                        var newParticipant = new PersonEntity
+                        {
+                            Name = participantDetails.Name,
+                            CreatedByPersonId = primaryPerson.Id,
+                            CreatedDate = DateTime.UtcNow
+                        };
+                        _dbContext.Persons.Add(newParticipant);
+                        await _dbContext.SaveChangesAsync();
+                        actualPersonId = newParticipant.Id;
+                    }
+
+                    additionalParticipantPersonIds[participantDetails.Id] = actualPersonId;
+
+                    // Add to plan as participant (avoid duplicates)
+                    var alreadyParticipant = await _dbContext.PlanParticipants
+                        .AnyAsync(pp => pp.PlanId == defaultPlan.Id && pp.PersonId == actualPersonId);
+                    if (!alreadyParticipant)
+                    {
+                        _dbContext.PlanParticipants.Add(new PlanParticipantEntity
+                        {
+                            PlanId = defaultPlan.Id,
+                            PersonId = actualPersonId,
+                            RoleRefId = 4101L, // Member role
+                            JoinedDate = DateTime.UtcNow
+                        });
+                    }
+
+                    // Migrate person-level restrictions to the plan
+                    var dependentRestrictions = await _dbContext.Restrictions
+                        .Where(r => r.PersonId == actualPersonId && r.PlanId == null)
+                        .ToListAsync();
+                    foreach (var r in dependentRestrictions)
+                    {
+                        r.PlanId = defaultPlan.Id;
+                    }
                 }
             }
 
@@ -386,6 +428,11 @@ namespace Nom.Orch.Services
                 AffectedPersonIds = new List<long>()
             }).ToList();
 
+            // Check household membership
+            var hasHousehold = await _dbContext.HouseholdMembers
+                .AnyAsync(hm => hm.PersonId == person.Id && hm.IsActive);
+            response.HasHousehold = hasHousehold;
+
             // Check if person is already part of a plan
             var planParticipation = await _dbContext.PlanParticipants
                 .FirstOrDefaultAsync(pp => pp.PersonId == person.Id);
@@ -393,12 +440,18 @@ namespace Nom.Orch.Services
             if (planParticipation != null)
             {
                 response.IsComplete = true;
-                response.CurrentStep = 100; // Completed
+                response.CurrentStep = 4; // All steps complete
             }
             else
             {
                 response.IsComplete = false;
-                response.CurrentStep = 50; // Person created but no plan yet
+                // Infer current wizard step from saved data
+                // Step 0: Profile, Step 1: Restrictions, Step 2: Household, Step 3: Plan
+                int step = 0;
+                if (existingAttributes.Any()) step = 1;
+                if (existingRestrictions.Any()) step = 2;
+                if (hasHousehold) step = 3;
+                response.CurrentStep = step;
             }
 
             return response;
@@ -570,22 +623,81 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Saves a person's profile (name + attributes).
-        /// If personId is 0, creates a new person linked to the authenticated user.
-        /// Replaces all existing attributes.
+        /// If personId is 0, creates a new non-user person (optionally adding to a household).
+        /// If personId > 0, updates the existing person. Replaces all existing attributes.
         /// </summary>
         public async Task<PersonModel> SaveProfileAsync(long personId, SaveProfileRequest request)
         {
-            var person = await _dbContext.Persons.FindAsync(personId)
-                ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
+            PersonEntity person;
+            long currentPersonId;
 
-            person.Name = request.Name;
-            _dbContext.Persons.Update(person);
+            if (personId == 0)
+            {
+                // Create a new non-user person
+                currentPersonId = GetCurrentPersonIdRequired();
 
-            // Remove all existing attributes for this person
-            var oldAttributes = await _dbContext.PersonAttributes
-                .Where(pa => pa.PersonId == person.Id)
-                .ToListAsync();
-            _dbContext.PersonAttributes.RemoveRange(oldAttributes);
+                // Validate household membership if specified
+                if (request.HouseholdId.HasValue)
+                {
+                    var isMember = await _dbContext.HouseholdMembers
+                        .AnyAsync(hm => hm.PersonId == currentPersonId
+                                     && hm.HouseholdId == request.HouseholdId.Value
+                                     && hm.IsActive);
+                    if (!isMember)
+                    {
+                        throw new UnauthorizedAccessException("You are not a member of the specified household.");
+                    }
+                }
+
+                person = new PersonEntity
+                {
+                    Name = request.Name,
+                    Email = request.Email,
+                    UserId = null,
+                    CreatedByPersonId = currentPersonId,
+                    CreatedDate = DateTime.UtcNow,
+                };
+                _dbContext.Persons.Add(person);
+                await _dbContext.SaveChangesAsync();
+
+                // Add to household if specified
+                if (request.HouseholdId.HasValue)
+                {
+                    _dbContext.HouseholdMembers.Add(new HouseholdMemberEntity
+                    {
+                        HouseholdId = request.HouseholdId.Value,
+                        PersonId = person.Id,
+                        Role = "Member",
+                        JoinedDate = DateTime.UtcNow,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = currentPersonId,
+                        IsActive = true,
+                    });
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Created non-user person {PersonId} for creator {CreatorId}", person.Id, currentPersonId);
+            }
+            else
+            {
+                // Update existing person
+                person = await _dbContext.Persons.FindAsync(personId)
+                    ?? throw new KeyNotFoundException($"Person with ID {personId} not found.");
+
+                person.Name = request.Name;
+                if (request.Email != null)
+                {
+                    person.Email = request.Email;
+                }
+                _dbContext.Persons.Update(person);
+                currentPersonId = person.Id;
+
+                // Remove all existing attributes for this person
+                var oldAttributes = await _dbContext.PersonAttributes
+                    .Where(pa => pa.PersonId == person.Id)
+                    .ToListAsync();
+                _dbContext.PersonAttributes.RemoveRange(oldAttributes);
+            }
 
             // Add new attributes
             if (request.Attributes != null)
@@ -598,7 +710,7 @@ namespace Nom.Orch.Services
                         AttributeTypeId = attr.AttributeTypeRefId,
                         Value = attr.Value,
                         CreatedDate = DateTime.UtcNow,
-                        CreatedByPersonId = person.Id
+                        CreatedByPersonId = currentPersonId
                     });
                 }
             }

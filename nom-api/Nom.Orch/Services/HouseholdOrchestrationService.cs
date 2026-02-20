@@ -108,7 +108,7 @@ namespace Nom.Orch.Services
             if (household == null)
                 return null;
 
-            // Get household members with person details and email from Identity User table
+            // Get household members with person details, email, and profile/restriction status
             var members = await (from hm in _context.HouseholdMembers
                                 where hm.HouseholdId == id && hm.IsActive
                                 join p in _context.Persons on hm.PersonId equals p.Id
@@ -120,10 +120,12 @@ namespace Nom.Orch.Services
                                     HouseholdId = hm.HouseholdId,
                                     PersonId = hm.PersonId,
                                     PersonName = p.Name,
-                                    PersonEmail = user != null ? user.Email : null,
+                                    PersonEmail = user != null ? user.Email : p.Email,
                                     Role = hm.Role,
                                     JoinedDate = hm.JoinedDate ?? hm.CreatedDate,
-                                    IsActive = hm.IsActive
+                                    IsActive = hm.IsActive,
+                                    HasProfile = _context.PersonAttributes.Any(pa => pa.PersonId == p.Id),
+                                    HasRestrictions = _context.Restrictions.Any(r => r.PersonId == p.Id && r.PlanId == null),
                                 }).ToListAsync();
 
             // Get statistics
@@ -294,9 +296,27 @@ namespace Nom.Orch.Services
                     throw new InvalidOperationException($"Member with ID {memberId} not found in household {householdId}");
                 }
 
-                // Remove the member
+                var personId = householdMember.PersonId;
+
+                // Remove the membership
                 _context.HouseholdMembers.Remove(householdMember);
                 await _context.SaveChangesAsync();
+
+                // For non-user persons, also clean up the person entity and associated data
+                var person = await _context.Persons.FindAsync(personId);
+                if (person != null && person.UserId == null)
+                {
+                    var attributes = await _context.PersonAttributes
+                        .Where(pa => pa.PersonId == personId).ToListAsync();
+                    _context.PersonAttributes.RemoveRange(attributes);
+
+                    var restrictions = await _context.Restrictions
+                        .Where(r => r.PersonId == personId && r.PlanId == null).ToListAsync();
+                    _context.Restrictions.RemoveRange(restrictions);
+
+                    _context.Persons.Remove(person);
+                    await _context.SaveChangesAsync();
+                }
 
                 return true;
             }

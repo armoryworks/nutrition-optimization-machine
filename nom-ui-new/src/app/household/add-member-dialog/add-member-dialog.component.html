@@ -1,0 +1,41 @@
+<div class="nom-dialog__title-bar">
+  <h2 mat-dialog-title>
+    @if (currentStep() === 0) {
+      {{ isEditMode() ? 'Edit ' + data.personName : 'Add Household Member' }}
+    } @else {
+      {{ isEditMode() ? 'Edit Dietary Preferences' : 'Dietary Preferences' }}
+    }
+  </h2>
+  <button mat-icon-button (click)="cancel()" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (currentStep() === 0) {
+    <nom-profile
+      mode="wizard"
+      [showEmail]="true"
+      [showCancel]="true"
+      [initialData]="profileInitialData()"
+      submitLabel="Save & Continue"
+      (stepComplete)="onProfileComplete($event)"
+      (cancelled)="cancel()" />
+  } @else {
+    <nom-restrictions
+      mode="wizard"
+      [initialRestrictions]="restrictionsInitialData()"
+      (stepComplete)="onRestrictionsComplete($event)" />
+
+    <div class="nom-form__actions">
+      <button mat-button (click)="skipRestrictions()">Skip</button>
+    </div>
+  }
+</mat-dialog-content>
