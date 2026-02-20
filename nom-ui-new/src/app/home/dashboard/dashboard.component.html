@@ -45,38 +45,60 @@
       @if (today(); as day) {
         <div class="nom-dashboard__list">
           @for (cell of day.cells; track cell.mealTypeId) {
-            <button class="nom-dashboard__list-item nom-dashboard__list-item--clickable"
-                    (click)="onMealClick(day, cell)">
+            <div class="nom-dashboard__list-item">
               <div class="nom-dashboard__list-item-content">
-                <div>
-                  <p class="nom-dashboard__list-item-title">{{ cell.mealType }}</p>
+                <div class="nom-db-today__body">
+                  <div class="nom-db-today__header">
+                    <p class="nom-dashboard__list-item-title">{{ cell.mealType }}</p>
+                    <div class="nom-db-today__header-right">
+                      @if (cell.totalCalories) {
+                        <span class="nom-db-today__cal">{{ cell.totalCalories | number:'1.0-0' }} cal</span>
+                      }
+                      <button mat-icon-button
+                              class="nom-db-today__edit"
+                              (click)="onMealClick(day, cell)"
+                              [attr.aria-label]="'Edit ' + cell.mealType">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    </div>
+                  </div>
                   @if (cell.entries.length > 0) {
                     <div class="nom-db-today__entries">
                       @for (entry of cell.entries; track entry.id) {
-                        <div class="nom-db-today__entry">
-                          @if (entry.recipeImage) {
-                            <img class="nom-db-today__thumb"
-                                 [src]="entry.recipeImage"
-                                 [alt]="entry.recipeName ?? entry.title ?? ''"
-                                 loading="lazy" />
-                          } @else {
+                        @if (entry.recipeId) {
+                          <a class="nom-db-today__entry nom-db-today__entry--link"
+                             [routerLink]="'/recipe/' + entry.recipeId">
+                            @if (entry.recipeImage) {
+                              <img class="nom-db-today__thumb"
+                                   [src]="entry.recipeImage"
+                                   [alt]="entry.recipeName ?? ''"
+                                   loading="lazy" />
+                            } @else {
+                              <div class="nom-db-today__thumb-placeholder">
+                                <mat-icon>restaurant</mat-icon>
+                              </div>
+                            }
+                            <span class="nom-db-today__recipe">{{ entry.recipeName }}</span>
+                          </a>
+                        } @else {
+                          <div class="nom-db-today__entry">
                             <div class="nom-db-today__thumb-placeholder">
-                              <mat-icon>{{ entry.recipeId ? 'restaurant' : 'sticky_note_2' }}</mat-icon>
+                              <mat-icon>sticky_note_2</mat-icon>
                             </div>
-                          }
-                          <span class="nom-db-today__recipe">{{ entry.recipeName ?? entry.title }}</span>
-                        </div>
+                            <span class="nom-db-today__recipe">{{ entry.title }}</span>
+                          </div>
+                        }
                       }
                     </div>
                   } @else {
-                    <span class="nom-db-today__empty">Not planned yet</span>
+                    <button class="nom-db-today__empty-action" (click)="onMealClick(day, cell)">
+                      <mat-icon>add</mat-icon>
+                      <span>Add recipes</span>
+                    </button>
                   }
                 </div>
               </div>
-              @if (cell.totalCalories) {
-                <span class="nom-db-today__cal">{{ cell.totalCalories | number:'1.0-0' }} cal</span>
-              }
-            </button>
+            </div>
           }
         </div>
       } @else {

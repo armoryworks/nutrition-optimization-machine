@@ -2,24 +2,55 @@
 
 // ── Today's meals section ──
 
-button.nom-dashboard__list-item {
+.nom-db-today__body {
   width: 100%;
-  font: inherit;
-  color: inherit;
-  text-align: left;
+}
+
+.nom-db-today__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: vars.$spacing-1;
+}
+
+.nom-db-today__header-right {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+}
+
+.nom-db-today__edit {
+  opacity: 0.5;
+  transition: opacity vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .nom-db-today__entries {
   display: flex;
   flex-direction: column;
   gap: vars.$spacing-2;
-  margin-top: vars.$spacing-1;
 }
 
 .nom-db-today__entry {
   display: flex;
   align-items: center;
   gap: vars.$spacing-2;
+
+  &--link {
+    text-decoration: none;
+    color: inherit;
+    border-radius: vars.$nom-border-radius;
+    padding: vars.$spacing-1;
+    margin: -(vars.$spacing-1);
+    transition: background-color vars.$transition-duration-fast vars.$transition-timing;
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+    }
+  }
 }
 
 .nom-db-today__thumb {
@@ -53,16 +84,30 @@ button.nom-dashboard__list-item {
   color: var(--mat-sys-on-surface);
 }
 
-.nom-db-today__note {
-  font-size: vars.$font-size-sm;
+.nom-db-today__empty-action {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: none;
   color: var(--mat-sys-on-surface-variant);
-  font-style: italic;
-}
-
-.nom-db-today__empty {
+  font: inherit;
   font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
   opacity: 0.6;
+  transition: opacity vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .nom-db-today__cal {
