@@ -17,6 +17,7 @@ namespace Nom.Orch.Models.Person
         public int NumberOfAdditionalParticipants { get; set; }
         public List<PersonDetailsRequest> AdditionalParticipantDetails { get; set; } = new();
         public bool ApplyIndividualPreferencesToEachPerson { get; set; }
+        public bool HasHousehold { get; set; }
         public int CurrentStep { get; set; }
         public bool IsComplete { get; set; }
     }

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260219071110_InitialCreate")]
+    [Migration("20260220050849_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -890,6 +890,10 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<long?>("HouseholdEntityId")
                         .HasColumnType("bigint");

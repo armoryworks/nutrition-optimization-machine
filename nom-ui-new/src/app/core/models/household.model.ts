@@ -41,6 +41,8 @@ export interface HouseholdMemberResponseModel {
   role: string;
   joinedDate: string;
   isActive: boolean;
+  hasProfile: boolean;
+  hasRestrictions: boolean;
 }
 
 export interface HouseholdMemberCreateModel {

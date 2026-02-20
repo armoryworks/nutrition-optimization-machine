@@ -19,6 +19,7 @@ import { PersonAttributeRequest, PersonDetailsRequest, SaveProfileRequest } from
 export interface ProfileFormData {
   personDetails: PersonDetailsRequest;
   attributes: PersonAttributeRequest[];
+  email?: string;
 }
 
 @Component({
@@ -41,9 +42,13 @@ export interface ProfileFormData {
 export class Profile implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');
   initialData = input<ProfileFormData | null>(null);
+  showEmail = input(false);
+  submitLabel = input<string | null>(null);
+  showCancel = input(false);
 
   stepComplete = output<ProfileFormData>();
   saved = output<ProfileFormData>();
+  cancelled = output<void>();
 
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
@@ -55,12 +60,14 @@ export class Profile implements OnInit {
   healthGoals = signal<ReferenceItem[]>([]);
   attributeTypes = signal<ReferenceItem[]>([]);
   unitSystem = signal<'imperial' | 'metric'>('imperial');
+  lessCommonExpanded = signal(false);
   loading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
 
   profileForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
+    email: ['', Validators.email],
     dateOfBirth: [null as Date | null],
     gender: [''],
     heightFeet: [null as number | null, [Validators.min(1), Validators.max(8)]],
@@ -70,11 +77,18 @@ export class Profile implements OnInit {
     weightKg: [null as number | null, [Validators.min(1), Validators.max(500)]],
     activityLevel: [null as number | null],
     healthGoal: [null as number | null],
+    rmr: [null as number | null, [Validators.min(500), Validators.max(10000)]],
+    amr: [null as number | null, [Validators.min(500), Validators.max(10000)]],
   });
 
   genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
   isStandalone = computed(() => this.mode() !== 'wizard');
+  resolvedSubmitLabel = computed(() => {
+    const custom = this.submitLabel();
+    if (custom) return custom;
+    return this.isStandalone() ? 'Save Profile' : 'Continue';
+  });
 
   /**
    * Reacts to async initialData changes in wizard mode.
@@ -149,6 +163,9 @@ export class Profile implements OnInit {
 
   private populateFromData(data: ProfileFormData): void {
     this.profileForm.patchValue({ name: data.personDetails.name });
+    if (data.email) {
+      this.profileForm.patchValue({ email: data.email });
+    }
 
     for (const attr of data.attributes) {
       const typeName = this.getAttributeTypeName(attr.attributeTypeRefId);
@@ -186,6 +203,14 @@ export class Profile implements OnInit {
           break;
         case 'Health Goal':
           this.profileForm.patchValue({ healthGoal: parseInt(attr.value, 10) });
+          break;
+        case 'Resting Metabolic Rate':
+          this.profileForm.patchValue({ rmr: parseFloat(attr.value) });
+          this.lessCommonExpanded.set(true);
+          break;
+        case 'Active Metabolic Rate':
+          this.profileForm.patchValue({ amr: parseFloat(attr.value) });
+          this.lessCommonExpanded.set(true);
           break;
       }
     }
@@ -255,6 +280,18 @@ export class Profile implements OnInit {
       attributes.push({ attributeTypeRefId: healthGoalTypeId, value: String(form.healthGoal) });
     }
 
+    // Resting Metabolic Rate
+    const rmrId = this.getAttributeTypeId('Resting Metabolic Rate');
+    if (rmrId && form.rmr != null) {
+      attributes.push({ attributeTypeRefId: rmrId, value: String(form.rmr) });
+    }
+
+    // Active Metabolic Rate
+    const amrId = this.getAttributeTypeId('Active Metabolic Rate');
+    if (amrId && form.amr != null) {
+      attributes.push({ attributeTypeRefId: amrId, value: String(form.amr) });
+    }
+
     return {
       personDetails: {
         id: 0,
@@ -262,6 +299,7 @@ export class Profile implements OnInit {
         attributes,
       },
       attributes,
+      email: form.email || undefined,
     };
   }
 

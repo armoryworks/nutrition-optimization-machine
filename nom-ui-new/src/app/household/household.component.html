@@ -42,85 +42,173 @@
     </div>
   }
 
-  <!-- Tab toggle -->
-  <div class="nom-household__tabs">
-    <button
-      type="button"
-      class="nom-household__tab"
-      [class.nom-household__tab--active]="activeTab() === 'create'"
-      (click)="activeTab.set('create')">
-      <mat-icon>add_home</mat-icon>
-      Create Household
-    </button>
-    <button
-      type="button"
-      class="nom-household__tab"
-      [class.nom-household__tab--active]="activeTab() === 'join'"
-      (click)="activeTab.set('join')">
-      <mat-icon>group_add</mat-icon>
-      Join Household
-    </button>
-  </div>
-
-  @if (activeTab() === 'create') {
+  <!-- Member grid (visible when a household exists) -->
+  @if (hasHousehold()) {
     <div class="nom-form__section">
-      <h2 class="nom-form__section-title">Create a New Household</h2>
-      <p class="nom-form__section-description">Set up a household to plan meals together with family or roommates</p>
+      <h2 class="nom-form__section-title">Household Members</h2>
 
-      <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
-        <div class="nom-form__fields">
-          <mat-form-field appearance="outline">
-            <mat-label>Household Name</mat-label>
-            <input matInput formControlName="name" placeholder="e.g. The Smith Family" />
-            @if (createForm.get('name')?.hasError('required')) {
-              <mat-error>Name is required</mat-error>
-            }
-          </mat-form-field>
+      <div class="nom-household__dietary-scope">
+        <mat-slide-toggle
+          [checked]="dietaryScope() === 'individual'"
+          (change)="onDietaryScopeChange($event.checked)">
+          Set dietary preferences individually per person
+        </mat-slide-toggle>
+      </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Description (optional)</mat-label>
-            <textarea matInput formControlName="description" rows="3" placeholder="A brief description of your household"></textarea>
-          </mat-form-field>
+      <div class="nom-household__member-grid">
+        <!-- Primary user row -->
+        <div class="nom-household__member-row nom-household__member-row--primary">
+          <div class="nom-household__member-info">
+            <span class="nom-household__member-name">{{ primaryUserName() }} (You)</span>
+          </div>
+          <div class="nom-household__member-status">
+            <span class="nom-household__status-badge nom-household__status-badge--done">
+              <mat-icon>check_circle</mat-icon> Profile
+            </span>
+            <span class="nom-household__status-badge nom-household__status-badge--done">
+              <mat-icon>check_circle</mat-icon> Dietary
+            </span>
+          </div>
         </div>
 
-        <div class="nom-form__actions">
-          <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()">
-            @if (loading()) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              Create Household
-            }
-          </button>
-        </div>
-      </form>
+        <!-- Other member rows -->
+        @for (member of nonUserMembers(); track member.id) {
+          <div class="nom-household__member-row">
+            <div class="nom-household__member-info">
+              <span class="nom-household__member-name">{{ member.personName }}</span>
+              @if (member.personEmail) {
+                <span class="nom-household__member-email">{{ member.personEmail }}</span>
+              }
+            </div>
+            <div class="nom-household__member-status">
+              @if (member.hasProfile) {
+                <button class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+                        (click)="openEditMemberDialog(member, 0)" title="Edit profile">
+                  <mat-icon>check_circle</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+                </button>
+              } @else {
+                <button class="nom-household__status-badge nom-household__status-badge--pending nom-household__status-badge--clickable"
+                        (click)="openEditMemberDialog(member, 0)" title="Edit profile">
+                  <mat-icon>radio_button_unchecked</mat-icon> Profile <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+                </button>
+              }
+              @if (member.hasRestrictions) {
+                <button class="nom-household__status-badge nom-household__status-badge--done nom-household__status-badge--clickable"
+                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences">
+                  <mat-icon>check_circle</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+                </button>
+              } @else {
+                <button class="nom-household__status-badge nom-household__status-badge--pending nom-household__status-badge--clickable"
+                        (click)="openEditMemberDialog(member, 1)" title="Edit dietary preferences">
+                  <mat-icon>radio_button_unchecked</mat-icon> Dietary <mat-icon class="nom-household__badge-edit">edit</mat-icon>
+                </button>
+              }
+            </div>
+            <div class="nom-household__member-actions">
+              <button mat-icon-button (click)="removeMember(member)" aria-label="Remove member">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="nom-household__add-member">
+        <button mat-stroked-button (click)="openAddMemberDialog()">
+          <mat-icon>person_add</mat-icon>
+          Add Person
+        </button>
+      </div>
     </div>
+
+    @if (!isStandalone()) {
+      <div class="nom-form__actions">
+        <button mat-flat-button (click)="onContinue()">
+          Continue
+        </button>
+      </div>
+    }
   } @else {
-    <div class="nom-form__section">
-      <h2 class="nom-form__section-title">Join an Existing Household</h2>
-      <p class="nom-form__section-description">Enter an invite code from someone in the household</p>
-
-      <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
-        <div class="nom-form__fields">
-          <mat-form-field appearance="outline">
-            <mat-label>Invite Code</mat-label>
-            <input matInput formControlName="token" placeholder="Paste invite code here" />
-            <mat-icon matPrefix>vpn_key</mat-icon>
-            @if (joinForm.get('token')?.hasError('required')) {
-              <mat-error>Invite code is required</mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <div class="nom-form__actions">
-          <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()">
-            @if (loading()) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              Join Household
-            }
-          </button>
-        </div>
-      </form>
+    <!-- Tab toggle -->
+    <div class="nom-household__tabs">
+      <button
+        type="button"
+        class="nom-household__tab"
+        [class.nom-household__tab--active]="activeTab() === 'create'"
+        (click)="activeTab.set('create')">
+        <mat-icon>add_home</mat-icon>
+        Create Household
+      </button>
+      <button
+        type="button"
+        class="nom-household__tab"
+        [class.nom-household__tab--active]="activeTab() === 'join'"
+        (click)="activeTab.set('join')">
+        <mat-icon>group_add</mat-icon>
+        Join Household
+      </button>
     </div>
+
+    @if (activeTab() === 'create') {
+      <div class="nom-form__section">
+        <h2 class="nom-form__section-title">Create a New Household</h2>
+        <p class="nom-form__section-description">Set up a household to plan meals together with family or roommates</p>
+
+        <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
+          <div class="nom-form__fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Household Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g. The Smith Family" />
+              @if (createForm.get('name')?.hasError('required')) {
+                <mat-error>Name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Description (optional)</mat-label>
+              <textarea matInput formControlName="description" rows="3" placeholder="A brief description of your household"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="nom-form__actions">
+            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Create Household
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    } @else {
+      <div class="nom-form__section">
+        <h2 class="nom-form__section-title">Join an Existing Household</h2>
+        <p class="nom-form__section-description">Enter an invite code from someone in the household</p>
+
+        <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
+          <div class="nom-form__fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Invite Code</mat-label>
+              <input matInput formControlName="token" placeholder="Paste invite code here" />
+              <mat-icon matPrefix>vpn_key</mat-icon>
+              @if (joinForm.get('token')?.hasError('required')) {
+                <mat-error>Invite code is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="nom-form__actions">
+            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Join Household
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    }
   }
 </div>

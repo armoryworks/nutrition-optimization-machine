@@ -1,0 +1,25 @@
+@use 'variables' as vars;
+
+.nom-dialog__title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.nom-form__error {
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  color: var(--mat-sys-on-error-container);
+  font-size: vars.$font-size-sm;
+}

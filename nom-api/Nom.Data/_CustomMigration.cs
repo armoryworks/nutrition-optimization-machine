@@ -164,6 +164,8 @@ namespace Nom.Data
         private const long PersonAttributeTypeDateOfBirthId = 11073L;
         private const long PersonAttributeTypeActivityLevelId = 11074L;
         private const long PersonAttributeTypeHealthGoalId = 11075L;
+        private const long PersonAttributeTypeRMRId = 11076L;
+        private const long PersonAttributeTypeAMRId = 11077L;
 
         // Day of Week Types
         private const long DayOfWeekMondayId = 11060L;
@@ -2063,13 +2065,16 @@ namespace Nom.Data
                     { PersonAttributeTypeGenderId, "Gender", "Person's gender identity", DateTime.UtcNow, SystemPersonId },
                     { PersonAttributeTypeDateOfBirthId, "Date of Birth", "Person's date of birth (ISO date string)", DateTime.UtcNow, SystemPersonId },
                     { PersonAttributeTypeActivityLevelId, "Activity Level", "Person's physical activity level (value is a PersonActivityLevelType reference ID)", DateTime.UtcNow, SystemPersonId },
-                    { PersonAttributeTypeHealthGoalId, "Health Goal", "Person's health goal (value is a PersonHealthGoalType reference ID)", DateTime.UtcNow, SystemPersonId }
+                    { PersonAttributeTypeHealthGoalId, "Health Goal", "Person's health goal (value is a PersonHealthGoalType reference ID)", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeRMRId, "Resting Metabolic Rate", "Resting metabolic rate in kcal/day", DateTime.UtcNow, SystemPersonId },
+                    { PersonAttributeTypeAMRId, "Active Metabolic Rate", "Active metabolic rate in kcal/day", DateTime.UtcNow, SystemPersonId }
                 });
 
             long[] attributeTypeIds = new long[] {
                 PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
                 PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId,
-                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId
+                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId,
+                PersonAttributeTypeRMRId, PersonAttributeTypeAMRId
             };
             foreach (long id in attributeTypeIds)
             {
@@ -2087,7 +2092,8 @@ namespace Nom.Data
             long[] attributeTypeIds = new long[] {
                 PersonAttributeTypeHeightId, PersonAttributeTypeWeightId,
                 PersonAttributeTypeGenderId, PersonAttributeTypeDateOfBirthId,
-                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId
+                PersonAttributeTypeActivityLevelId, PersonAttributeTypeHealthGoalId,
+                PersonAttributeTypeRMRId, PersonAttributeTypeAMRId
             };
 
             foreach (long id in attributeTypeIds)

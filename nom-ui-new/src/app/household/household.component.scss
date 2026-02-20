@@ -79,3 +79,120 @@
   color: var(--mat-sys-on-primary-container);
   font-size: vars.$font-size-sm;
 }
+
+// Member grid
+.nom-household__dietary-scope {
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-household__member-grid {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-household__member-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-4;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+
+  &--primary {
+    background: var(--mat-sys-primary-container);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.nom-household__member-info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-household__member-name {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-household__member-email {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-household__member-status {
+  display: flex;
+  gap: vars.$spacing-2;
+  flex-shrink: 0;
+}
+
+.nom-household__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: vars.$chip-padding-y vars.$chip-padding-x;
+  border-radius: vars.$nom-border-radius-pill;
+  font-size: vars.$font-size-xs;
+  white-space: nowrap;
+  border: none;
+  font-family: inherit;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &--done {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  &--pending {
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &--clickable {
+    cursor: pointer;
+    transition: filter 150ms vars.$transition-timing;
+
+    &:hover {
+      filter: brightness(0.92);
+
+      .nom-household__badge-edit {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+.nom-household__badge-edit {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  margin-left: vars.$spacing-1;
+  transition: opacity 150ms vars.$transition-timing;
+}
+
+.nom-household__member-actions {
+  flex-shrink: 0;
+}
+
+.nom-household__add-member {
+  display: flex;
+  justify-content: center;
+  margin-top: vars.$spacing-4;
+}
