@@ -1694,6 +1694,50 @@ namespace Nom.Data.Migrations
                     b.ToTable("MealPlan", "plan");
                 });
 
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanExclusionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<long>("HouseholdId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("MealTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PersonId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MealTypeId");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("HouseholdId", "PersonId", "Date", "MealTypeId")
+                        .IsUnique();
+
+                    b.ToTable("MealPlanExclusion", "plan");
+                });
+
             modelBuilder.Entity("Nom.Data.Plan.MealPlanRuleEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -1923,6 +1967,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("RestrictionTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<int?>("Severity")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -4705,6 +4752,32 @@ namespace Nom.Data.Migrations
                     b.Navigation("MealType");
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Nom.Data.Plan.MealPlanExclusionEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
+                        .WithMany()
+                        .HasForeignKey("MealTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Household");
+
+                    b.Navigation("MealType");
+
+                    b.Navigation("Person");
                 });
 
             modelBuilder.Entity("Nom.Data.Plan.MealPlanRuleEntity", b =>

@@ -44,6 +44,12 @@ namespace Nom.Data.Plan
         [ForeignKey(nameof(NutrientId))]
         public virtual NutrientEntity? Nutrient { get; set; } // If restriction is about a specific nutrient (e.g., "Low Sodium")
 
+        /// <summary>
+        /// Severity level (1-5 scale). 1 = mild preference, 5 = absolute (e.g., allergy).
+        /// Affects filtering and ranking behavior in meal planning.
+        /// </summary>
+        public int? Severity { get; set; } = 3;
+
         [Column(TypeName = "date")]
         public DateOnly? BeginDate { get; set; }
 

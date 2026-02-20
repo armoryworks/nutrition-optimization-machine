@@ -1138,90 +1138,94 @@ Each story follows the format:
 
 ## 9. Meal Planning
 
-### US-MP-001: Meal Plan Dashboard
+### US-MP-001: Unified Meal Plan Page
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want to see all my meal plans so that I can manage my weekly meal schedules.
+**Story**: As a logged-in user, I want a single meal plan page that combines a weekly calendar, plan context sidebar, and nutrition display so that I can manage my household's meals from one place.
 
-**Route**: `/meal-plan`
-**Component**: `MealPlanDashboardComponent`
+**Route**: `/plan`
+**Component**: `PlanComponent`
+**Service**: `MealPlanService`, `PlanService`, `PersonService`
+
+**Acceptance Criteria**:
+1. Page loads the active plan for the current household
+2. Main area displays a weekly calendar grid (7 columns × 4 meal rows: Breakfast, Lunch, Dinner, Snack)
+3. Sidebar displays plan context (goals, household members with restrictions, weekly exclusion summary)
+4. Per-meal nutrition chips (calories, protein, carbs, fat) shown on each filled cell
+5. Per-day nutrition totals shown at the bottom of each day column
+6. Week navigation via previous/next arrows with current week label
+7. Current day column is visually highlighted
+8. Calendar stereotype layout with sidebar
+
+### US-MP-002: Assign Recipe via Cell Click
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to click an empty meal slot to open a recipe search dialog so that I can quickly assign recipes to my plan.
+
+**Route**: `/plan` (dialog overlay)
+**Component**: `PlanComponent`, `RecipeSearchDialogComponent`
+**Service**: `MealPlanService`, `RecipeSearchService`
+
+**Acceptance Criteria**:
+1. Clicking an empty cell (day × meal type intersection) opens a recipe search dialog
+2. Dialog contains a search input that queries curated recipes in real-time
+3. Results display as recipe cards with name, image thumbnail, total time, and calorie estimate
+4. Results are filtered by household dietary compatibility (restricted recipes flagged or hidden)
+5. Selecting a recipe assigns it to the clicked slot and closes the dialog
+6. The calendar cell immediately updates to show the assigned recipe
+7. Dialog has a "Cancel" button to close without selection
+8. Dialog includes a "Roulette" button for random suggestion (see US-MP-011)
+
+### US-MP-003: Weekly Calendar with View Toggles
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want the weekly calendar as my primary view with options to toggle to daily or monthly views so that I can see my meals at different levels of detail.
+
+**Route**: `/plan`
+**Component**: `PlanComponent`
 **Service**: `MealPlanService`
 
 **Acceptance Criteria**:
-1. Dashboard header with "Meal Plans" title
-2. "Create Meal Plan" action button navigating to `/meal-plan/create`
-3. List of meal plans showing: recipe name, date, meal type, household
-4. Click on plan navigates to detail
-5. Empty state with invitation to create first plan
-6. Dashboard stereotype layout
+1. Weekly view is the default and primary view
+2. Toggle buttons (Weekly / Daily / Monthly) are available in the calendar header
+3. Weekly view: 7-column grid with 4 meal rows per day, recipe cards in filled slots
+4. Daily view: Single-day expanded view showing full recipe details, nutrition breakdown, and notes for each meal slot
+5. Monthly view: Condensed calendar overview showing filled/empty indicators per day with meal count badges
+6. View toggle preserves the current date context (switching from weekly to daily keeps the selected day)
+7. Week/day/month navigation arrows update the visible date range
+8. Current day is always visually highlighted regardless of view
 
-### US-MP-002: Create Meal Plan Entry
-
-**Role**: Authenticated User
-**Story**: As a logged-in user, I want to create a meal plan entry by selecting a recipe, date, and meal type so that I can schedule my meals.
-
-**Route**: `/meal-plan/create`
-**Component**: `MealPlanCreateComponent`
-**Service**: `MealPlanService`
-
-**Acceptance Criteria**:
-1. Form includes: Recipe selection (searchable dropdown), Date picker, Meal Type (Breakfast/Lunch/Dinner/Snack), Notes
-2. Recipe selection searches curated recipes
-3. Date defaults to today
-4. "Create" button submits the plan entry
-5. "Cancel" button returns to dashboard
-6. Validation ensures recipe and date are selected
-7. Form-card stereotype layout
-
-### US-MP-003: Meal Plan Calendar View
+### US-MP-004: Meal Slot Detail & Actions
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want a weekly calendar view of my meal plans so that I can see my entire week's meals at a glance.
+**Story**: As a logged-in user, I want to click a filled meal slot to see recipe details and available actions so that I can review or modify my plan.
 
-**Route**: `/meal-plan/calendar`
-**Component**: `MealPlanCalendarComponent`
-**Service**: `MealPlanService`
-
-**Acceptance Criteria**:
-1. 7-column grid showing days of the week
-2. 4 meal slots per day (Breakfast, Lunch, Dinner, Snack)
-3. Each slot shows the recipe name if assigned
-4. Week navigation (previous/next week)
-5. Click on empty slot navigates to create with date pre-filled
-6. Click on filled slot navigates to plan detail
-7. Current day highlighted
-8. Calendar stereotype layout
-
-### US-MP-004: Meal Plan Detail
-
-**Role**: Authenticated User
-**Story**: As a logged-in user, I want to view the details of a meal plan entry so that I can see the recipe and plan information.
-
-**Route**: `/meal-plan/{id}`
-**Component**: `MealPlanDetailComponent`
-**Service**: `MealPlanService`
+**Route**: `/plan` (inline expansion or dialog)
+**Component**: `PlanComponent`
+**Service**: `MealPlanService`, `RecipeService`
 
 **Acceptance Criteria**:
-1. Displays recipe name, date, meal type, notes
-2. Link to full recipe detail
-3. "Edit" button navigates to `/meal-plan/{id}/edit`
-4. "Delete" button with confirmation
-5. Nutritional summary for the planned meal
+1. Clicking a filled cell expands or opens a detail view showing: recipe name, image, prep/cook time, servings, nutritional summary
+2. Actions available: "View Recipe" (navigates to full recipe detail), "Change Recipe" (re-opens search dialog), "Clear Slot" (removes recipe with confirmation), "Edit Notes" (opens notes field)
+3. Nutritional summary shows calories, protein, carbs, fat for the planned meal
+4. Servings are scaled based on participating household members (excluding excluded members for that slot)
+5. Close/collapse returns to normal calendar view
 
 ### US-MP-005: Edit Meal Plan Entry
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want to edit a meal plan entry so that I can adjust my schedule.
+**Story**: As a logged-in user, I want to modify or clear a meal plan entry so that I can adjust my schedule as needed.
 
-**Route**: `/meal-plan/{id}/edit`
-**Component**: `MealPlanEditComponent`
+**Route**: `/plan` (via cell interaction)
+**Component**: `PlanComponent`
 **Service**: `MealPlanService`
 
 **Acceptance Criteria**:
-1. Form pre-populated with existing plan data
-2. Recipe, date, meal type, and notes are editable
-3. Save updates the plan entry
-4. Cancel returns to detail without saving
+1. "Change Recipe" action on a filled cell opens the recipe search dialog pre-contextualized to that slot
+2. Selecting a new recipe replaces the existing assignment
+3. "Clear Slot" removes the recipe from that slot with a brief confirmation
+4. Drag-and-drop between cells to move a meal to a different slot (future enhancement)
+5. Changes are saved immediately (no separate save button)
 
 ### US-MP-006: Meal Plan Rules
 
@@ -1239,38 +1243,44 @@ Each story follows the format:
 4. Delete rules
 5. Rules are applied during meal plan creation
 
-### US-MP-007: Recipe Selection for Meal Plan
+### US-MP-007: Recipe Search Dialog for Meal Slots
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want to browse and select recipes for my meal plan so that I can choose from my available recipes.
+**Story**: As a logged-in user, I want a dedicated recipe search dialog when assigning meals so that I can quickly find compatible recipes without leaving the plan page.
 
-**Route**: `/meal-plan/recipe-selection`
-**Component**: `MealPlanRecipeSelectionComponent`
-**Service**: `MealPlanService`, `RecipeService`
+**Route**: `/plan` (dialog overlay)
+**Component**: `RecipeSearchDialogComponent`
+**Service**: `RecipeSearchService`, `SubstitutionService`
 
 **Acceptance Criteria**:
-1. Browsable list of available curated recipes
-2. Search and filter functionality
-3. Recipe cards with key details
-4. "Add to Meal Plan" button with date/meal type selection
-5. Quick-add workflow
+1. Dialog opens from cell click (US-MP-002) or "Change Recipe" action (US-MP-005)
+2. Search input with real-time filtering of curated recipe database
+3. Recipes with high-severity restriction conflicts (severity 4-5) are hidden by default with a "Show restricted" toggle
+4. Recipes with low-severity restriction conflicts (severity 1-3) are shown but flagged with a warning badge
+5. Each recipe card shows: name, image, total time, calorie estimate, dietary compatibility indicators
+6. Selecting a recipe assigns it to the target slot and closes the dialog
+7. "Roulette" button triggers recipe roulette (US-MP-011) for random suggestion
+8. Dialog is contextual: knows the target day and meal type for proper filtering
 
 ### US-MP-008: Generate Shopping List from Meal Plan
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want to generate a shopping list from my weekly meal plan so that I have all ingredients needed for the week.
+**Story**: As a logged-in user, I want to generate a shopping list from my meal plan with a configurable frequency so that I can shop on my preferred schedule.
 
-**Route**: `/meal-plan/shopping-list` or `/meal-plan/{id}/shopping-list`
-**Component**: `MealPlanToShoppingListComponent`
+**Route**: `/plan` (action button), configured in `/settings`
+**Component**: `PlanComponent`, `SettingsComponent`
 **Service**: `MealPlanService`, `ShoppingListService`
 
 **Acceptance Criteria**:
-1. Select date range (default: current week)
-2. Preview consolidated ingredient list from all meals in range
-3. Duplicate ingredients are merged with summed quantities
-4. Option to add to existing shopping list or create new one
-5. "Generate" button creates the shopping list
-6. Confirmation with link to created shopping list
+1. "Generate Shopping List" button on the plan page
+2. Shopping list generation frequency is user-configurable in Settings (weekly, bi-weekly, monthly, custom day range)
+3. Default frequency is weekly (current week's meals)
+4. Generation previews a consolidated ingredient list from all meals in the configured date range
+5. Ingredient quantities are scaled based on participating household members (respecting exclusions)
+6. Duplicate ingredients are merged with summed quantities
+7. Substituted ingredients use the replacement ingredient (per substitution rules)
+8. Option to add to existing shopping list or create new one
+9. "Generate" button creates the shopping list with confirmation
 
 ### US-MP-009: Print Meal Plan
 
@@ -1288,21 +1298,98 @@ Each story follows the format:
 4. PDF generation option
 5. Browser print dialog integration
 
-### US-MP-010: Weekly Nutrition Summary
+### US-MP-010: Inline Nutrition Display
 
 **Role**: Authenticated User
-**Story**: As a logged-in user, I want to see the nutritional summary of my weekly meal plan so that I can track my dietary intake.
+**Story**: As a logged-in user, I want to see nutrition information directly on the meal plan calendar so that I can track my dietary intake without navigating to a separate page.
 
-**Route**: `/meal-plan/nutrition` or `/meal-plan/{id}/nutrition`
-**Component**: `MealPlanNutritionComponent`
+**Route**: `/plan` (inline on calendar)
+**Component**: `PlanComponent`
+**Service**: `MealPlanService`, `RecipeService`
+
+**Acceptance Criteria**:
+1. Each filled meal cell displays compact nutrition chips: calories, protein, carbs, fat
+2. Per-day summary row at the bottom of each column shows total daily macros
+3. Daily totals are compared against each member's recommended values (based on RMR/AMR when available)
+4. Values exceeding recommended limits are highlighted with a warning color
+5. Nutrition values account for serving scaling and member exclusions
+6. Weekly totals are available via a summary footer or tooltip
+7. Clicking a nutrition chip expands to show micro nutrient details (vitamins, minerals) in a tooltip or popover
+
+### US-MP-011: Recipe Roulette
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want a "roulette" button that suggests a random recipe for a meal slot so that I can get inspiration when I'm indecisive about what to eat.
+
+**Route**: `/plan` (within recipe search dialog or directly on cell)
+**Component**: `RecipeSearchDialogComponent`, `PlanComponent`
+**Service**: `MealPlanService`, `RecipeSearchService`, `SubstitutionService`
+
+**Acceptance Criteria**:
+1. "Roulette" button is available on empty meal cells and within the recipe search dialog
+2. Pressing roulette suggests a single random recipe that passes all dietary filters
+3. Suggestion algorithm hard-filters recipes that conflict with severity 4-5 restrictions for any active household member
+4. Suggestion algorithm soft-ranks (deprioritizes but doesn't exclude) recipes conflicting with severity 1-3 restrictions
+5. Caloric targeting: suggestions are weighted toward recipes whose calorie content fits the remaining daily target for participating members, calculated from their RMR/AMR values
+6. Member exclusions for the target slot are respected (excluded members' dietary needs and caloric targets are not considered)
+7. User can: Accept (assigns recipe to slot), Re-roll (get another suggestion), or Dismiss (close without assigning)
+8. Recipe card shown during roulette displays: name, image, calories, prep time, and compatibility score
+
+### US-MP-012: Member Exclusions
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to exclude household members from specific days or individual meals so that the plan accurately reflects who is eating at home.
+
+**Route**: `/plan` (calendar interaction)
+**Component**: `PlanComponent`, `MemberExclusionComponent`
+**Service**: `MealPlanService`, `PersonService`
+
+**Acceptance Criteria**:
+1. Each day column header has a member exclusion control (icon/button) to exclude members for the entire day
+2. Each individual meal cell has a member exclusion control to exclude members for that specific meal
+3. Day-level exclusion (e.g., "John is away Tuesday") removes the member from all meals that day
+4. Per-meal exclusion (e.g., "Sarah skips Thursday dinner") is more granular and overrides day-level inclusion
+5. Excluded members are visually indicated on the cell/column (e.g., small avatar with strikethrough or X overlay)
+6. Exclusions affect: nutrition calculations (excluded member's needs removed), shopping list quantities (fewer servings), recipe roulette caloric targets
+7. Exclusion state is persisted and editable (toggle on/off)
+8. Sidebar (US-MP-014) shows a summary of the week's exclusions
+
+### US-MP-013: Meal Slot Notes
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to add freeform notes to any meal slot so that I can annotate my plan with reminders and preferences.
+
+**Route**: `/plan` (inline on cell)
+**Component**: `PlanComponent`
 **Service**: `MealPlanService`
 
 **Acceptance Criteria**:
-1. Macro breakdown (calories, protein, carbs, fat) per day and weekly total
-2. Micro nutrient tracking (vitamins, minerals)
-3. Visual charts/graphs for nutrient distribution
-4. Comparison against recommended daily values
-5. Per-meal and per-day breakdown
+1. Each meal cell (filled or empty) has an optional notes/journal field
+2. A small notes icon appears on cells that have notes attached
+3. Clicking the notes icon (or expanding the cell) reveals the freeform text area
+4. Notes are plain text with reasonable length limit (500 characters)
+5. Notes are saved automatically on blur or via a save action
+6. Example use cases: "Try the spicy version", "Pack for lunch box", "Double the recipe for leftovers"
+7. Notes are visible in daily view (US-MP-003) without needing to expand
+
+### US-MP-014: Plan Context Sidebar
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want a sidebar on the plan page showing goals, household members, and restrictions so that I have at-a-glance context while editing my meal calendar.
+
+**Route**: `/plan` (sidebar panel)
+**Component**: `PlanContextSidebarComponent`
+**Service**: `PlanService`, `PersonService`, `HouseholdService`
+
+**Acceptance Criteria**:
+1. Sidebar displays the active plan's goals (e.g., "Lose weight", "Build muscle") with their descriptions
+2. Household member list shows each member's name and their dietary restriction chips
+3. Members with RMR/AMR values show their daily caloric target
+4. Weekly exclusion summary shows which members are excluded from which days/meals this week
+5. Quick link to edit restrictions navigates to `/restrictions`
+6. Quick link to manage household navigates to `/household`
+7. Sidebar scrolls independently from the calendar
+8. On narrow screens (below 1280px), sidebar collapses into the sidecar panel (consistent with US-SHELL-011)
 
 ---
 
@@ -1747,6 +1834,97 @@ Each story follows the format:
 
 ---
 
+## 21. Ingredient Substitution System
+
+### US-SUB-001: Curated Substitution Rules
+
+**Role**: Site-Wide Admin
+**Story**: As an admin, I want to create and manage communal substitution rules so that all users benefit from verified ingredient substitutions for common dietary restrictions.
+
+**Route**: `/curation/substitutions` (admin interface)
+**Component**: `CuratedSubstitutionComponent`
+**Service**: `SubstitutionService`
+
+**Acceptance Criteria**:
+1. Admin interface for CRUD operations on curated substitution rules
+2. Each rule specifies: source ingredient, replacement ingredient (or null for elimination), applicable restriction type(s)
+3. Rules include a confidence/quality rating indicating how well the substitution preserves recipe intent
+4. Rules are reference data available to all users (not user-specific)
+5. Examples: "for dairy allergy, replace milk with oat milk", "for celiac, replace wheat flour with almond flour"
+6. Elimination rules have a null replacement (e.g., "for nut allergy, eliminate peanuts" with no substitute)
+7. Route requires `CanManageCuration` claim
+8. Rules can be searched, filtered by restriction type, and paginated
+
+### US-SUB-002: Personal Substitution Rules
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to create personal substitution overrides so that my specific preferences take priority over the communal rules.
+
+**Route**: `/restrictions` or `/profile/substitutions`
+**Component**: `PersonalSubstitutionComponent`
+**Service**: `SubstitutionService`, `PersonService`
+
+**Acceptance Criteria**:
+1. Users can create personal substitution rules with the same structure as curated rules (source → replacement or null)
+2. Personal rules are scoped to the individual user
+3. Personal rules take priority over curated rules when both apply to the same source ingredient
+4. Management UI is accessible from the restrictions page or a dedicated substitutions section
+5. Users can view which curated rules they are overriding
+6. Users can delete personal rules to fall back to curated rules
+
+### US-SUB-003: Recipe-Specific Substitution Overrides
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to make one-off substitution decisions for a specific recipe instance in my meal plan so that I can customize individual meals without affecting my general rules.
+
+**Route**: `/plan` (via meal slot detail, US-MP-004)
+**Component**: `RecipeSubstitutionComponent`
+**Service**: `SubstitutionService`, `MealPlanService`
+
+**Acceptance Criteria**:
+1. When viewing a meal slot detail, restricted ingredients in the recipe are flagged
+2. Each flagged ingredient shows: the current substitution rule (curated or personal) and an option to override
+3. Override options: choose a different replacement ingredient, eliminate the ingredient, or accept the original (bypass restriction for this instance)
+4. Recipe-specific overrides apply only to that specific meal plan entry, not to the recipe globally
+5. Overrides are persisted with the meal plan entry
+6. Recipe-specific overrides take highest priority (over personal and curated rules)
+
+### US-SUB-004: Unified Substitution/Elimination Model
+
+**Role**: System
+**Story**: As the system, I want a unified data model where eliminations are substitutions with a null replacement so that all dietary modifications use a single consistent mechanism.
+
+**Acceptance Criteria**:
+1. Data model uses a single `SubstitutionRule` entity for both substitutions and eliminations
+2. A substitution has a non-null `replacementIngredientId`; an elimination has a null `replacementIngredientId`
+3. When a recipe contains a restricted ingredient, the system proposes: a substitution (if a rule with a replacement exists) or an elimination (if the rule has null replacement)
+4. The priority chain for rule resolution is: recipe-specific > personal > curated
+5. If no rule exists for a restricted ingredient, the system flags it as "unresolved" for user decision
+6. Nutrition calculations use the replacement ingredient's nutritional data when a substitution is applied
+
+### US-SUB-005: Configurable Restriction Severity
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to set a severity level (1-5) for each of my dietary restrictions so that the system knows which restrictions are absolute requirements vs. soft preferences.
+
+**Route**: `/restrictions` (within restriction management)
+**Component**: `RestrictionsComponent`
+**Service**: `PersonService`, `SubstitutionService`
+
+**Acceptance Criteria**:
+1. Each dietary restriction has a severity slider or selector (1-5 scale)
+2. Severity 5 = Absolute (e.g., severe allergen — must never appear in any recipe)
+3. Severity 4 = Strong (e.g., medical condition — should be filtered out by default)
+4. Severity 3 = Moderate (e.g., religious/ethical — important but user can override per-meal)
+5. Severity 2 = Mild (e.g., general preference — shown as warning but not filtered)
+6. Severity 1 = Minimal (e.g., slight dislike — soft-ranked in roulette, no warnings)
+7. Severity affects recipe search dialog: severity 4-5 hard-filters, severity 1-3 shows warnings
+8. Severity affects recipe roulette: severity 4-5 excludes, severity 1-3 deprioritizes
+9. Default severity for new restrictions is 3 (Moderate)
+10. Severity is per-person, per-restriction (different household members can have different severities for the same restriction type)
+
+---
+
 ## Appendix A: Route Map
 
 | Route | Component | Auth Required | Stereotype |
@@ -1785,19 +1963,11 @@ Each story follows the format:
 | `/shopping/:id/bulk-edit` | ShoppingBulkEditorComponent | Yes | Form-Full |
 | `/shopping/:id/share` | ShoppingListShareComponent | Yes | Form-Card |
 | `/shopping/:id/export` | ShoppingListExportComponent | Yes | Form-Card |
-| `/meal-plan` | MealPlanDashboardComponent | Yes | Dashboard |
-| `/meal-plan/create` | MealPlanCreateComponent | Yes | Form-Card |
-| `/meal-plan/calendar` | MealPlanCalendarComponent | Yes | Calendar |
-| `/meal-plan/rules` | MealPlanRulesComponent | Yes | Settings |
-| `/meal-plan/recipe-selection` | MealPlanRecipeSelectionComponent | Yes | Search |
-| `/meal-plan/nutrition` | MealPlanNutritionComponent | Yes | Detail |
-| `/meal-plan/print` | MealPlanPrintComponent | Yes | Detail |
-| `/meal-plan/shopping-list` | MealPlanToShoppingListComponent | Yes | Form-Card |
-| `/meal-plan/:id` | MealPlanDetailComponent | Yes | Detail |
-| `/meal-plan/:id/edit` | MealPlanEditComponent | Yes | Form-Card |
-| `/meal-plan/:id/shopping-list` | MealPlanToShoppingListComponent | Yes | Form-Card |
-| `/meal-plan/:id/print` | MealPlanPrintComponent | Yes | Detail |
-| `/meal-plan/:id/nutrition` | MealPlanNutritionComponent | Yes | Detail |
+| `/plan` | PlanComponent | Yes | Calendar |
+| `/plan/print` | MealPlanPrintComponent | Yes | Detail |
+| `/plan/rules` | MealPlanRulesComponent | Yes | Settings |
+| `/settings` | SettingsComponent | Yes | Settings |
+| `/curation/substitutions` | CuratedSubstitutionComponent | Yes (Admin) | Dashboard |
 | `/messaging` | MessagingInboxComponent | Yes | Dashboard |
 | `/messaging/new` | MessageComposeComponent | Yes | Form-Card |
 | `/messaging/thread/:id` | MessageThreadDetailComponent | Yes | Detail |
@@ -1824,17 +1994,18 @@ Each story follows the format:
 |---------|----------------|
 | `AuthService` | US-AUTH-001 through US-AUTH-008, US-HOME-001 |
 | `RecipeService` | US-RCP-001 through US-RCP-010, US-MP-007 |
-| `RecipeSearchService` | US-RCP-006, US-HOME-003 |
+| `RecipeSearchService` | US-RCP-006, US-HOME-003, US-MP-002, US-MP-007, US-MP-011 |
 | `CurationService` | US-CUR-001 through US-CUR-004, US-RCP-007 |
-| `HouseholdService` | US-HH-001 through US-HH-007, US-SHELL-014 |
-| `ShoppingListService` | US-SHOP-001 through US-SHOP-009, US-SHELL-013 |
-| `MealPlanService` | US-MP-001 through US-MP-010, US-SHELL-012 |
+| `HouseholdService` | US-HH-001 through US-HH-007, US-SHELL-014, US-MP-014 |
+| `ShoppingListService` | US-SHOP-001 through US-SHOP-009, US-SHELL-013, US-MP-008 |
+| `MealPlanService` | US-MP-001 through US-MP-014, US-SHELL-012, US-SUB-003 |
 | `MessagingService` | US-MSG-001 through US-MSG-004 |
-| `PersonService` | US-PROF-001, US-SHELL-016, US-MSG-002 |
+| `PersonService` | US-PROF-001, US-SHELL-016, US-MSG-002, US-MP-012, US-MP-014, US-SUB-002, US-SUB-005 |
+| `SubstitutionService` | US-SUB-001 through US-SUB-005, US-MP-007, US-MP-011 |
 | `PrivacyService` | US-PRV-001 through US-PRV-004 |
 | `UserManagementService` | US-ADM-001 |
 | `CookbookService` | US-CB-001 through US-CB-004 |
-| `PlanService` | US-CP-001 |
+| `PlanService` | US-CP-001, US-MP-001, US-MP-014 |
 | `ThemeService` | US-SHELL-002 |
 | `WebhookService` | US-WH-001 |
 | `LabelService` | US-LBL-001 |

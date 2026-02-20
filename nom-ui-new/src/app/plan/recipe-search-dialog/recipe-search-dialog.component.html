@@ -1,0 +1,112 @@
+<div class="nom-dialog__title-bar">
+  <h2 mat-dialog-title>
+    {{ data.mealType }} — {{ data.date }}
+  </h2>
+  <button mat-icon-button (click)="done()" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <!-- Current entries -->
+  @if (entries().length > 0) {
+    <div class="nom-recipe-dialog__entries">
+      @for (entry of entries(); track entry.id) {
+        <div class="nom-recipe-dialog__entry">
+          <div class="nom-recipe-dialog__entry-info">
+            @if (entry.recipeName) {
+              <mat-icon class="nom-recipe-dialog__entry-icon">restaurant</mat-icon>
+              <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName }}</span>
+            } @else {
+              <mat-icon class="nom-recipe-dialog__entry-icon">sticky_note_2</mat-icon>
+              <span class="nom-recipe-dialog__entry-name">{{ entry.title }}</span>
+            }
+            @if (entry.notes) {
+              <span class="nom-recipe-dialog__entry-notes">{{ entry.notes }}</span>
+            }
+          </div>
+          <button mat-icon-button (click)="removeEntry(entry)" [disabled]="busy()" aria-label="Remove item">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Recipe search -->
+  <mat-form-field appearance="outline" class="nom-recipe-dialog__search">
+    <mat-label>Search recipes to add</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      [value]="searchQuery()"
+      (input)="onSearchInput($any($event.target).value)"
+      placeholder="Type to search..."
+      [disabled]="busy()" />
+  </mat-form-field>
+
+  @if (searching()) {
+    <div class="nom-recipe-dialog__loading">
+      <mat-spinner diameter="24"></mat-spinner>
+    </div>
+  }
+
+  @if (results().length > 0) {
+    <div class="nom-recipe-dialog__results">
+      @for (recipe of results(); track recipe.id) {
+        <button
+          class="nom-recipe-dialog__result"
+          (click)="addRecipe(recipe)"
+          [disabled]="busy()">
+          <div class="nom-recipe-dialog__result-info">
+            <span class="nom-recipe-dialog__result-name">{{ recipe.name }}</span>
+            @if (recipe.description) {
+              <span class="nom-recipe-dialog__result-desc">{{ recipe.description }}</span>
+            }
+          </div>
+          <div class="nom-recipe-dialog__result-meta">
+            @if (recipe.totalTimeMinutes) {
+              <span>{{ recipe.totalTimeMinutes }} min</span>
+            }
+            @if (recipe.servings) {
+              <span>{{ recipe.servings }} servings</span>
+            }
+          </div>
+        </button>
+      }
+    </div>
+  } @else if (searchQuery().length >= 2 && !searching()) {
+    <p class="nom-recipe-dialog__no-results">No recipes found</p>
+  }
+
+  <!-- Quick note -->
+  <details class="nom-recipe-dialog__note-section">
+    <summary>Add a quick note instead</summary>
+    <div class="nom-recipe-dialog__fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Title</mat-label>
+        <input matInput [value]="noteTitle()" (input)="noteTitle.set($any($event.target).value)" [disabled]="busy()" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Notes</mat-label>
+        <textarea matInput [value]="noteText()" (input)="noteText.set($any($event.target).value)" rows="2" [disabled]="busy()"></textarea>
+      </mat-form-field>
+      <button mat-stroked-button (click)="addNote()" [disabled]="busy() || (!noteTitle() && !noteText())">
+        <mat-icon>add</mat-icon>
+        Add Note
+      </button>
+    </div>
+  </details>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (entries().length > 0) {
+    <button mat-button color="warn" (click)="clearAll()" [disabled]="busy()">
+      <mat-icon>delete_sweep</mat-icon>
+      Clear All
+    </button>
+  }
+  <button mat-flat-button (click)="done()" [disabled]="busy()">
+    Done
+  </button>
+</mat-dialog-actions>

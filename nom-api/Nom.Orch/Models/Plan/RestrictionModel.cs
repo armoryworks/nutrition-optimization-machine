@@ -11,5 +11,6 @@ namespace Nom.Orch.Models.Plan
         public string? RestrictionType { get; set; }
         public string? IngredientName { get; set; }
         public string? NutrientName { get; set; }
+        public int? Severity { get; set; }
     }
 } 

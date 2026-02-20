@@ -1,0 +1,179 @@
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
+import { MealPlanService } from '../../core/services/meal-plan.service';
+import { HouseholdService } from '../../core/services/household.service';
+import { MealPlanWeekResponse, MealPlanDay, MealPlanCell } from '../../core/models/meal-plan.model';
+import { HouseholdResponseModel } from '../../core/models/household.model';
+import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
+
+@Component({
+  selector: 'nom-dashboard',
+  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss',
+})
+export class Dashboard implements OnInit {
+  private mealPlanService = inject(MealPlanService);
+  private householdService = inject(HouseholdService);
+  private dialog = inject(MatDialog);
+
+  households = signal<HouseholdResponseModel[]>([]);
+  weekData = signal<MealPlanWeekResponse | null>(null);
+  loading = signal(true);
+  error = signal('');
+
+  hasHousehold = computed(() => this.households().length > 0);
+
+  today = computed(() => {
+    const data = this.weekData();
+    if (!data) return null;
+    const todayStr = Dashboard.toDateString(new Date());
+    return data.days.find(d => d.date === todayStr) ?? null;
+  });
+
+  todayCalories = computed(() => {
+    const day = this.today();
+    if (!day) return 0;
+    return day.cells.reduce((sum, c) => sum + (c.totalCalories ?? 0), 0);
+  });
+
+  todayProtein = computed(() => {
+    const day = this.today();
+    if (!day) return 0;
+    return day.cells.reduce((sum, c) => sum + (c.totalProteinGrams ?? 0), 0);
+  });
+
+  todayCarbs = computed(() => {
+    const day = this.today();
+    if (!day) return 0;
+    return day.cells.reduce((sum, c) => sum + (c.totalCarbGrams ?? 0), 0);
+  });
+
+  todayFat = computed(() => {
+    const day = this.today();
+    if (!day) return 0;
+    return day.cells.reduce((sum, c) => sum + (c.totalFatGrams ?? 0), 0);
+  });
+
+  filledMealsToday = computed(() => {
+    const day = this.today();
+    if (!day) return 0;
+    return day.cells.filter(c => c.entries.length > 0).length;
+  });
+
+  totalMealSlots = computed(() => {
+    const day = this.today();
+    return day?.cells.length ?? 0;
+  });
+
+  weekLabel = computed(() => {
+    const data = this.weekData();
+    if (!data) return '';
+    const start = new Date(data.weekStart + 'T00:00:00');
+    const end = new Date(data.weekEnd + 'T00:00:00');
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}, ${end.getFullYear()}`;
+  });
+
+  ngOnInit(): void {
+    this.loadDashboardData();
+  }
+
+  isToday(dateStr: string): boolean {
+    return dateStr === Dashboard.toDateString(new Date());
+  }
+
+  formatDayShort(dateStr: string): string {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString(undefined, { weekday: 'short' });
+  }
+
+  formatDayNumber(dateStr: string): string {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString(undefined, { day: 'numeric' });
+  }
+
+  getMealIcon(mealType: string): string {
+    const icons: Record<string, string> = {
+      'Breakfast': 'egg_alt',
+      'Lunch': 'lunch_dining',
+      'Dinner': 'dinner_dining',
+      'Snack': 'cookie',
+      'Snacks': 'cookie',
+    };
+    return icons[mealType] ?? 'restaurant';
+  }
+
+  hasNutritionToday(): boolean {
+    return this.todayCalories() > 0;
+  }
+
+  onMealClick(day: MealPlanDay, cell: MealPlanCell): void {
+    const householdId = this.households()[0]?.id;
+    if (!householdId) return;
+
+    const dialogRef = this.dialog.open(RecipeSearchDialog, {
+      width: '560px',
+      data: {
+        householdId,
+        date: day.date,
+        mealTypeId: cell.mealTypeId,
+        mealType: cell.mealType,
+        entries: cell.entries,
+      } as RecipeSearchDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
+      if (result?.changed) this.loadWeek(householdId);
+    });
+  }
+
+  private loadDashboardData(): void {
+    this.loading.set(true);
+    this.householdService.getHouseholds().subscribe({
+      next: (list) => {
+        this.households.set(list);
+        if (list.length > 0) {
+          this.loadWeek(list[0].id);
+        } else {
+          this.loading.set(false);
+        }
+      },
+      error: () => {
+        this.error.set('Unable to load households.');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private loadWeek(householdId: number): void {
+    const monday = Dashboard.getMonday(new Date());
+    this.mealPlanService.getWeek(householdId, monday).subscribe({
+      next: (data) => {
+        this.weekData.set(data);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Unable to load meal plan.');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  static getMonday(date: Date): string {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return Dashboard.toDateString(d);
+  }
+
+  static toDateString(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+}

@@ -1,0 +1,166 @@
+@use 'variables' as vars;
+
+.nom-dialog__title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h2 { margin: 0; }
+}
+
+// ── Current entries list ──
+
+.nom-recipe-dialog__entries {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-recipe-dialog__entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-recipe-dialog__entry-info {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  min-width: 0;
+  flex: 1;
+}
+
+.nom-recipe-dialog__entry-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-recipe-dialog__entry-name {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nom-recipe-dialog__entry-notes {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Recipe search ──
+
+.nom-recipe-dialog__search {
+  width: 100%;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-recipe-dialog__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-4;
+}
+
+.nom-recipe-dialog__results {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-recipe-dialog__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background-color vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.nom-recipe-dialog__result-info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  min-width: 0;
+  flex: 1;
+}
+
+.nom-recipe-dialog__result-name {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nom-recipe-dialog__result-desc {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nom-recipe-dialog__result-meta {
+  display: flex;
+  gap: vars.$spacing-3;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-recipe-dialog__no-results {
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  padding: vars.$spacing-4;
+  font-size: vars.$font-size-sm;
+}
+
+// ── Quick note ──
+
+.nom-recipe-dialog__note-section {
+  margin-top: vars.$spacing-2;
+
+  summary {
+    cursor: pointer;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: vars.$font-size-sm;
+    padding: vars.$spacing-2 0;
+  }
+}
+
+.nom-recipe-dialog__fields {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+  margin-top: vars.$spacing-2;
+}

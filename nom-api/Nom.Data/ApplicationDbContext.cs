@@ -89,6 +89,7 @@ namespace Nom.Data
         public DbSet<HouseholdGroupEntity> HouseholdGroups { get; set; } = default!;
         public DbSet<MealPlanEntity> MealPlans { get; set; } = default!;
         public DbSet<MealPlanRuleEntity> MealPlanRules { get; set; } = default!;
+        public DbSet<MealPlanExclusionEntity> MealPlanExclusions { get; set; } = default!;
         #endregion
 
         #region Privacy
@@ -369,6 +370,33 @@ namespace Nom.Data
                 .WithMany()
                 .HasForeignKey(pp => pp.RoleRefId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MealPlanExclusionEntity>(entity =>
+            {
+                entity.ToTable("MealPlanExclusion", schema: "plan");
+
+                entity.HasIndex(e => new { e.HouseholdId, e.PersonId, e.Date, e.MealTypeId })
+                    .IsUnique()
+                    .HasFilter(null);
+
+                entity.HasOne(e => e.Household)
+                    .WithMany()
+                    .HasForeignKey(e => e.HouseholdId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Person)
+                    .WithMany()
+                    .HasForeignKey(e => e.PersonId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.MealType)
+                    .WithMany()
+                    .HasForeignKey(e => e.MealTypeId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
             #endregion
 
             #region Recipe Namespace Fluent API Configurations

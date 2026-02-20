@@ -1,5 +1,273 @@
 @use 'variables' as vars;
 
+// =============================================================================
+// CALENDAR MODE
+// =============================================================================
+
+.nom-plan__nav {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+}
+
+.nom-plan__household-select {
+  width: 200px;
+
+  // Compact form field for header
+  ::ng-deep .mat-mdc-form-field-infix {
+    padding-top: vars.$spacing-2 !important;
+    padding-bottom: vars.$spacing-2 !important;
+    min-height: 36px;
+  }
+}
+
+.nom-plan__loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: vars.$spacing-16;
+}
+
+// --- Calendar Grid ---
+
+.nom-plan__calendar {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$card-border-radius;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.nom-plan__corner {
+  background: var(--mat-sys-surface-container);
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-plan__day-header {
+  padding: vars.$spacing-3 vars.$spacing-2;
+  text-align: center;
+  background: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  border-right: 1px solid var(--mat-sys-outline-variant);
+
+  &:last-child { border-right: none; }
+
+  &--today {
+    background: var(--mat-sys-primary-container);
+  }
+}
+
+.nom-plan__day-name {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-plan__exclusions {
+  display: flex;
+  justify-content: center;
+  gap: vars.$spacing-1;
+  margin-top: vars.$spacing-1;
+}
+
+.nom-plan__exclusion-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  cursor: pointer;
+  padding: 0;
+  transition: all vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    transform: scale(1.1);
+  }
+
+  &--excluded {
+    background: var(--mat-sys-error-container);
+    border-color: var(--mat-sys-error);
+    color: var(--mat-sys-on-error-container);
+    text-decoration: line-through;
+
+    &:hover {
+      background: var(--mat-sys-error);
+      color: var(--mat-sys-on-error);
+    }
+  }
+}
+
+.nom-plan__meal-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$spacing-2;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container);
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+// --- Cells ---
+
+.nom-plan__cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  padding: vars.$spacing-2;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+  cursor: pointer;
+  transition: background-color vars.$transition-duration-fast vars.$transition-timing;
+
+  &:last-child { border-right: none; }
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &--filled {
+    background: var(--mat-sys-surface-container-low);
+
+    &:hover {
+      background: var(--mat-sys-surface-container);
+    }
+  }
+
+  &--today {
+    background: color-mix(in srgb, var(--mat-sys-primary-container) 20%, var(--mat-sys-surface));
+
+    &:hover {
+      background: color-mix(in srgb, var(--mat-sys-primary-container) 35%, var(--mat-sys-surface));
+    }
+  }
+}
+
+.nom-plan__cell-entry {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  width: 100%;
+
+  & + & {
+    margin-top: 2px;
+  }
+}
+
+.nom-plan__cell-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nom-plan__cell-recipe {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+  text-align: left;
+  word-break: break-word;
+  line-height: vars.$line-height-tight;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.nom-plan__cell-title {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+  font-style: italic;
+}
+
+.nom-plan__cell-add {
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.3;
+  transition: opacity vars.$transition-duration-fast vars.$transition-timing;
+
+  .nom-plan__cell:hover & {
+    opacity: 0.7;
+  }
+}
+
+.nom-plan__cell-note-icon {
+  position: absolute;
+  top: vars.$spacing-1;
+  right: vars.$spacing-1;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.5;
+}
+
+// --- Nutrition Summary Row ---
+
+.nom-plan__meal-label--summary {
+  font-size: 10px;
+  border-bottom: none;
+}
+
+.nom-plan__nutrition-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container);
+  min-height: 52px;
+
+  &:last-child { border-right: none; }
+
+  &--today {
+    background: color-mix(in srgb, var(--mat-sys-primary-container) 30%, var(--mat-sys-surface-container));
+  }
+}
+
+.nom-plan__macro {
+  font-size: 10px;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.2;
+
+  &--cal {
+    font-weight: vars.$font-weight-semibold;
+    color: var(--mat-sys-on-surface);
+    font-size: vars.$font-size-xs;
+  }
+
+  &--empty {
+    color: var(--mat-sys-on-surface-variant);
+    opacity: 0.4;
+  }
+}
+
+// =============================================================================
+// WIZARD MODE (unchanged)
+// =============================================================================
+
 .nom-plan__tabs {
   display: flex;
   gap: vars.$spacing-2;
@@ -27,45 +295,6 @@
     border-color: var(--mat-sys-primary);
     color: var(--mat-sys-on-primary-container);
   }
-}
-
-.nom-plan__list {
-  display: flex;
-  flex-direction: column;
-  gap: vars.$spacing-3;
-}
-
-.nom-plan__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: vars.$spacing-4;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: vars.$nom-border-radius;
-  background: var(--mat-sys-surface);
-}
-
-.nom-plan__item-info {
-  display: flex;
-  flex-direction: column;
-  gap: vars.$spacing-1;
-}
-
-.nom-plan__item-name {
-  font-weight: vars.$font-weight-semibold;
-  color: var(--mat-sys-on-surface);
-}
-
-.nom-plan__item-desc {
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.nom-plan__item-meta {
-  display: flex;
-  gap: vars.$spacing-4;
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-plan__success {

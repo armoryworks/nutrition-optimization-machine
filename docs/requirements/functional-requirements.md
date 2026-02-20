@@ -212,17 +212,45 @@ To provide comprehensive shopping list functionality for households and individu
 
 ### Objective
 
-To enable users to plan meals and create structured meal schedules.
+To enable users to plan meals via a unified plan page with a weekly calendar, inline nutrition display, recipe roulette, member exclusions, and integration with shopping lists and the substitution system.
 
 ### Requirements
 
-| ID        | Requirement           | Status      | Details                                     |
-| --------- | --------------------- | ----------- | ------------------------------------------- |
-| FR-MP-7.1 | Meal Plan Creation    |  COMPLETE | Create meal plans with name and description |
-| FR-MP-7.2 | Meal Entry Management |  COMPLETE | Add, edit, and remove meal entries          |
-| FR-MP-7.3 | Recipe Integration    |  COMPLETE | Link recipes to meal plan entries           |
-| FR-MP-7.4 | Date-Based Planning   |  COMPLETE | Plan meals for specific dates and times     |
-| FR-MP-7.5 | Household Integration |  COMPLETE | Share meal plans with household members     |
+| ID         | Requirement                          | Status             | Details                                                                       |
+| ---------- | ------------------------------------ | ------------------ | ----------------------------------------------------------------------------- |
+| FR-MP-7.1  | Meal Plan Creation                   |  COMPLETE        | Create meal plans with name and description                                   |
+| FR-MP-7.2  | Meal Entry Management                |  COMPLETE        | Add, edit, and remove meal entries                                            |
+| FR-MP-7.3  | Recipe Integration                   |  COMPLETE        | Link recipes to meal plan entries                                             |
+| FR-MP-7.4  | Date-Based Planning                  |  COMPLETE        | Plan meals for specific dates and times                                       |
+| FR-MP-7.5  | Household Integration                |  COMPLETE        | Share meal plans with household members                                       |
+| FR-MP-7.6  | Unified Plan Page                    | NOT IMPLEMENTED    | Single `/plan` page with weekly calendar, sidebar, and inline nutrition       |
+| FR-MP-7.7  | Recipe Assignment Dialog             | NOT IMPLEMENTED    | Click empty cell → recipe search dialog with dietary filtering                |
+| FR-MP-7.8  | Recipe Roulette                      | NOT IMPLEMENTED    | Random recipe suggestion filtered by dietary restrictions and caloric targets  |
+| FR-MP-7.9  | Member Exclusions                    | NOT IMPLEMENTED    | Day-level and per-meal household member exclusions                            |
+| FR-MP-7.10 | Inline Nutrition Display             | NOT IMPLEMENTED    | Per-meal calorie/macro chips and per-day summary totals on calendar           |
+| FR-MP-7.11 | Meal Slot Notes                      | NOT IMPLEMENTED    | Freeform notes/journal per meal cell                                          |
+| FR-MP-7.12 | View Toggles                         | NOT IMPLEMENTED    | Weekly (primary), daily detail, and monthly overview view options             |
+| FR-MP-7.13 | Configurable Shopping List Frequency | NOT IMPLEMENTED    | User-configurable generation interval (weekly, bi-weekly, monthly, custom)    |
+| FR-MP-7.14 | Plan Context Sidebar                 | NOT IMPLEMENTED    | Sidebar showing plan goals, member restrictions, and weekly exclusion summary |
+
+## Ingredient Substitution System
+
+### Objective
+
+To provide a unified system for managing ingredient substitutions and eliminations across three scopes (curated, personal, recipe-specific), enabling dietary-aware recipe adaptation with configurable restriction severity.
+
+### Requirements
+
+| ID        | Requirement                          | Status          | Details                                                                          |
+| --------- | ------------------------------------ | --------------- | -------------------------------------------------------------------------------- |
+| FR-IS-8.1 | Curated Substitution Rules           | NOT IMPLEMENTED | Admin-managed communal substitution reference data available to all users         |
+| FR-IS-8.2 | Personal Substitution Rules          | NOT IMPLEMENTED | User-scoped substitution overrides that take priority over curated rules          |
+| FR-IS-8.3 | Recipe-Specific Overrides            | NOT IMPLEMENTED | Instance-level substitution decisions for specific meal plan entries              |
+| FR-IS-8.4 | Unified Substitution/Elimination     | NOT IMPLEMENTED | Single data model: null replacement = elimination, non-null = substitution       |
+| FR-IS-8.5 | Restriction Severity Levels          | NOT IMPLEMENTED | 1-5 scale per restriction per person; affects filtering and ranking behavior     |
+| FR-IS-8.6 | Substitution Priority Chain          | NOT IMPLEMENTED | Resolution order: recipe-specific > personal > curated                           |
+| FR-IS-8.7 | Unresolved Restriction Flagging      | NOT IMPLEMENTED | System flags restricted ingredients with no substitution rule for user decision   |
+| FR-IS-8.8 | Substitution Nutrition Recalculation | NOT IMPLEMENTED | Nutrition calculations use replacement ingredient data when substitutions applied |
 
 ## Implementation Status Summary
 
@@ -242,7 +270,8 @@ To enable users to plan meals and create structured meal schedules.
 - **Privacy Features**:  COMPLETE - Data subject rights management
 - **Household Management**:  FOUNDATION - Backend complete, frontend components in progress
 - **Shopping Lists**:  FOUNDATION - Backend complete, frontend components in progress
-- **Meal Planning**:  FOUNDATION - Backend complete, frontend components in progress
+- **Meal Planning**:  FOUNDATION - Backend CRUD complete, unified plan page with roulette/exclusions/nutrition not yet implemented
+- **Ingredient Substitution**:  NOT STARTED - Data model, three-scope rules, severity levels, and nutrition recalculation
 - **Messaging System**:  PARTIAL - Backend complete, frontend inbox UI in progress
 
 ### Next Development Priorities

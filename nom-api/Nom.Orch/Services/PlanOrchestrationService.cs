@@ -97,7 +97,8 @@ namespace Nom.Orch.Services
                         Description = r.Description,
                         RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
                         IngredientName = r.Ingredient != null ? r.Ingredient.Name : null,
-                        NutrientName = r.Nutrient != null ? r.Nutrient.Name : null
+                        NutrientName = r.Nutrient != null ? r.Nutrient.Name : null,
+                        Severity = r.Severity
                     }).ToList()
                 })
                 .ToListAsync();
@@ -177,7 +178,8 @@ namespace Nom.Orch.Services
                         Description = r.Description,
                         RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
                         IngredientName = r.Ingredient != null ? r.Ingredient.Name : null,
-                        NutrientName = r.Nutrient != null ? r.Nutrient.Name : null
+                        NutrientName = r.Nutrient != null ? r.Nutrient.Name : null,
+                        Severity = r.Severity
                     }).ToList()
                 })
                 .ToListAsync();
@@ -263,7 +265,8 @@ namespace Nom.Orch.Services
                     Description = r.Description,
                     RestrictionType = r.RestrictionType?.Name,
                     IngredientName = r.Ingredient?.Name,
-                    NutrientName = r.Nutrient?.Name
+                    NutrientName = r.Nutrient?.Name,
+                    Severity = r.Severity
                 }).ToList(),
                 Participants = plan.Participants.Select(pp => new PlanParticipantModel
                 {
@@ -386,6 +389,7 @@ namespace Nom.Orch.Services
                     RestrictionTypeId = restriction.RestrictionTypeId,
                     IngredientId = restriction.IngredientId,
                     NutrientId = restriction.NutrientId,
+                    Severity = restriction.Severity,
                     CreatedDate = DateTime.UtcNow
                 };
 
