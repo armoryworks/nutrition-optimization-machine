@@ -14,13 +14,16 @@
       @for (entry of entries(); track entry.id) {
         <div class="nom-recipe-dialog__entry">
           <div class="nom-recipe-dialog__entry-info">
-            @if (entry.recipeName) {
-              <mat-icon class="nom-recipe-dialog__entry-icon">restaurant</mat-icon>
-              <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName }}</span>
+            @if (entry.recipeImage) {
+              <img class="nom-recipe-dialog__entry-thumb"
+                   [src]="entry.recipeImage"
+                   [alt]="entry.recipeName ?? ''" />
             } @else {
-              <mat-icon class="nom-recipe-dialog__entry-icon">sticky_note_2</mat-icon>
-              <span class="nom-recipe-dialog__entry-name">{{ entry.title }}</span>
+              <mat-icon class="nom-recipe-dialog__entry-icon">
+                {{ entry.recipeId ? 'restaurant' : 'sticky_note_2' }}
+              </mat-icon>
             }
+            <span class="nom-recipe-dialog__entry-name">{{ entry.recipeName ?? entry.title }}</span>
             @if (entry.notes) {
               <span class="nom-recipe-dialog__entry-notes">{{ entry.notes }}</span>
             }

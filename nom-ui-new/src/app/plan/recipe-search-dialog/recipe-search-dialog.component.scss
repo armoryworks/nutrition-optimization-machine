@@ -36,6 +36,14 @@
   flex: 1;
 }
 
+.nom-recipe-dialog__entry-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: vars.$nom-border-radius;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .nom-recipe-dialog__entry-icon {
   font-size: 18px;
   width: 18px;

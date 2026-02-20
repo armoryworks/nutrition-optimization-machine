@@ -12,7 +12,8 @@ button.nom-dashboard__list-item {
 .nom-db-today__entries {
   display: flex;
   flex-direction: column;
-  gap: vars.$spacing-1;
+  gap: vars.$spacing-2;
+  margin-top: vars.$spacing-1;
 }
 
 .nom-db-today__entry {
@@ -22,17 +23,16 @@ button.nom-dashboard__list-item {
 }
 
 .nom-db-today__thumb {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: vars.$nom-border-radius;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .nom-db-today__thumb-placeholder {
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,14 +40,17 @@ button.nom-dashboard__list-item {
   background: var(--mat-sys-surface-container);
   border-radius: vars.$nom-border-radius;
   flex-shrink: 0;
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
 }
 
 .nom-db-today__recipe {
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .nom-db-today__note {

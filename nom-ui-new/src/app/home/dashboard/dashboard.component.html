@@ -48,7 +48,6 @@
             <button class="nom-dashboard__list-item nom-dashboard__list-item--clickable"
                     (click)="onMealClick(day, cell)">
               <div class="nom-dashboard__list-item-content">
-                <mat-icon>{{ getMealIcon(cell.mealType) }}</mat-icon>
                 <div>
                   <p class="nom-dashboard__list-item-title">{{ cell.mealType }}</p>
                   @if (cell.entries.length > 0) {
@@ -61,9 +60,9 @@
                                  [alt]="entry.recipeName ?? entry.title ?? ''"
                                  loading="lazy" />
                           } @else {
-                            <mat-icon class="nom-db-today__thumb-placeholder">
-                              {{ entry.recipeId ? 'restaurant' : 'sticky_note_2' }}
-                            </mat-icon>
+                            <div class="nom-db-today__thumb-placeholder">
+                              <mat-icon>{{ entry.recipeId ? 'restaurant' : 'sticky_note_2' }}</mat-icon>
+                            </div>
                           }
                           <span class="nom-db-today__recipe">{{ entry.recipeName ?? entry.title }}</span>
                         </div>
