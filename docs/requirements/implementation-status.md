@@ -299,7 +299,26 @@ This document provides a comprehensive overview of the current implementation st
 - **ShoppingListExport**: Export to PDF, CSV, and email
 - **CategoryManagement**: Category customization with color picker, icon selector, and drag-drop reordering
 
-### Meal Planning: COMPLETE 
+### Pantry & Inventory: IN PROGRESS
+
+**Status**: Pantry inventory system to enable smart shopping (buy only what's needed)
+
+**Backend Status**: IN PROGRESS
+
+- **Schema**: PantryItemEntity updated with HouseholdId FK; MealPlanEntity has CompletedDate
+- **Reference Data**: ItemStatusType (On Shopping List, Acquired, In Pantry, Used, Expired) and ShoppingStatusType (Planned, In Progress, Completed, Cancelled) seeded
+- **Migration**: `AddPantryHouseholdAndMealCompletion` created
+- **PantryController**: Not yet implemented
+- **PantryOrchestrationService**: Not yet implemented
+- **Shopping Needs Computation**: Not yet implemented (needed − pantry = shopping list)
+
+**Frontend Status**: NOT STARTED
+
+- **Pantry Page**: `/pantry` — view/add/edit/remove pantry items
+- **Shopping Integration**: Shopping list to subtract pantry stock
+- **Meal Completion**: Mark meals as cooked on `/plan`, deduct from pantry
+
+### Meal Planning: COMPLETE
 
 **Status**: Full meal planning system with calendar view and shopping list generation
 

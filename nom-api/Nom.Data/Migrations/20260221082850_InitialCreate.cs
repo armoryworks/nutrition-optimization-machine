@@ -1,3 +1,4 @@
+using Nom.Data;
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -198,6 +199,31 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reference", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RetailPackaging",
+                schema: "reference",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IngredientPattern = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    PackageName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    PackageSize = table.Column<decimal>(type: "numeric(10,2)", nullable: false),
+                    PackageSizeUnit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SizeCategory = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SizeInBaseUnits = table.Column<decimal>(type: "numeric(12,4)", nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    Source = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetailPackaging", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -1774,6 +1800,7 @@ namespace Nom.Data.Migrations
                     RecipeId = table.Column<long>(type: "bigint", nullable: true),
                     Note = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
                     Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CompletedDate = table.Column<DateOnly>(type: "date", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -1984,6 +2011,7 @@ namespace Nom.Data.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: true),
                     PlanId = table.Column<long>(type: "bigint", nullable: false),
                     ShoppingTripId = table.Column<long>(type: "bigint", nullable: true),
                     IngredientId = table.Column<long>(type: "bigint", nullable: false),
@@ -2002,6 +2030,12 @@ namespace Nom.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PantryItem", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PantryItem_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_PantryItem_Ingredient_IngredientId",
                         column: x => x.IngredientId,
@@ -3443,6 +3477,12 @@ namespace Nom.Data.Migrations
                 column: "NutrientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PantryItem_HouseholdId",
+                schema: "shopping",
+                table: "PantryItem",
+                column: "HouseholdId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PantryItem_IngredientId",
                 schema: "shopping",
                 table: "PantryItem",
@@ -3996,14 +4036,13 @@ namespace Nom.Data.Migrations
                 principalTable: "Nutrient",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
-
-            CustomMigration.ApplyCustomUpOperations(migrationBuilder);
+            migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            CustomMigration.ApplyCustomDownOperations(migrationBuilder);
+        { 
+            migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropForeignKey(
                 name: "FK_Ingredient_Person_AuthorId",
                 schema: "recipe",
@@ -4241,6 +4280,10 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "Restriction",
                 schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "RetailPackaging",
+                schema: "reference");
 
             migrationBuilder.DropTable(
                 name: "ScrapingReport",

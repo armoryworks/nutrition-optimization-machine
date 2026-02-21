@@ -106,7 +106,8 @@
               (click)="onCellClick(day, day.cells[mealIdx])">
               @if (day.cells[mealIdx].entries.length > 0) {
                 @for (entry of day.cells[mealIdx].entries; track entry.id) {
-                  <div class="nom-plan__cell-entry">
+                  <div class="nom-plan__cell-entry"
+                       [class.nom-plan__cell-entry--completed]="entry.completedDate">
                     @if (entry.recipeImage) {
                       <img class="nom-plan__cell-thumb"
                            [src]="entry.recipeImage"
@@ -114,6 +115,17 @@
                            loading="lazy" />
                     }
                     <span class="nom-plan__cell-recipe">{{ entry.recipeName ?? entry.title }}</span>
+                    @if (entry.recipeId && !entry.completedDate) {
+                      <button class="nom-plan__cell-complete"
+                              (click)="completeMeal($event, entry)"
+                              matTooltip="Mark as cooked"
+                              aria-label="Mark as cooked">
+                        <mat-icon>check_circle_outline</mat-icon>
+                      </button>
+                    }
+                    @if (entry.completedDate) {
+                      <mat-icon class="nom-plan__cell-done" matTooltip="Cooked">check_circle</mat-icon>
+                    }
                   </div>
                 }
               } @else {

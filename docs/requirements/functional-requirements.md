@@ -207,6 +207,23 @@ To provide comprehensive shopping list functionality for households and individu
 | FR-SL-6.3 | Item Categorization    |  COMPLETE | Categorize items with labels and organization   |
 | FR-SL-6.4 | Household Integration  |  IMPLEMENTED | Smart shopping list with 12 endpoints plus share/unshare |
 | FR-SL-6.5 | Recipe Integration     |  COMPLETE | Generate shopping lists from recipes            |
+| FR-SL-6.6 | Pantry-Aware Shopping  | IN PROGRESS | Shopping list = needed ingredients minus pantry stock |
+
+## Pantry & Inventory
+
+### Objective
+
+To track household pantry inventory so the shopping list only shows items that need to be purchased, accounting for perishability and consumption through meal completion.
+
+### Requirements
+
+| ID         | Requirement              | Status        | Details                                                              |
+| ---------- | ------------------------ | ------------- | -------------------------------------------------------------------- |
+| FR-PI-6A.1 | Pantry Item Tracking     | IN PROGRESS   | Track ingredients on hand with quantity, unit, acquisition date       |
+| FR-PI-6A.2 | Expiration Management    | IN PROGRESS   | Auto-compute expected expiration via department-based shelf-life defaults |
+| FR-PI-6A.3 | Shopping Needs Computation | IN PROGRESS | Upcoming recipe ingredients minus pantry stock = shopping needs      |
+| FR-PI-6A.4 | Meal Completion          | IN PROGRESS   | Mark meals as cooked to deduct ingredients from pantry               |
+| FR-PI-6A.5 | Perishability Heuristics | IN PROGRESS   | Department-based defaults (Produce 5d, Meat 3d, Grains 180d, etc.)  |
 
 ## Meal Planning
 

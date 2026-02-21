@@ -1,0 +1,176 @@
+<div class="nom-pantry">
+  <!-- Header -->
+  <div class="nom-pantry__header">
+    <div class="nom-pantry__header-left">
+      <h1 class="nom-pantry__title">Pantry</h1>
+      @if (!loading() && activeItems().length > 0) {
+        <span class="nom-pantry__stats">
+          {{ activeItems().length }} items on hand
+        </span>
+      }
+    </div>
+    <div class="nom-pantry__header-right">
+      <button mat-stroked-button (click)="toggleAddForm()">
+        <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showAddForm() ? 'Cancel' : 'Add Item' }}
+      </button>
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Item Form -->
+  @if (showAddForm()) {
+    <div class="nom-pantry__add-form">
+      <h3 class="nom-pantry__add-title">Add to Pantry</h3>
+      <div class="nom-pantry__add-fields">
+        <mat-form-field class="nom-pantry__add-ingredient">
+          <mat-label>Ingredient</mat-label>
+          <input matInput
+                 [value]="ingredientSearch()"
+                 (input)="onIngredientSearchChange($any($event.target).value)"
+                 [matAutocomplete]="auto"
+                 placeholder="Search ingredients...">
+          <mat-autocomplete #auto="matAutocomplete"
+                           (optionSelected)="selectIngredient($event.option.value)"
+                           [displayWith]="displayIngredient">
+            @for (option of ingredientOptions(); track option.id) {
+              <mat-option [value]="option">{{ option.name }}</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <mat-form-field class="nom-pantry__add-qty">
+          <mat-label>Qty</mat-label>
+          <input matInput
+                 type="number"
+                 [value]="newQuantity()"
+                 (input)="newQuantity.set(+$any($event.target).value)"
+                 min="0.1"
+                 step="0.5">
+        </mat-form-field>
+
+        <mat-form-field class="nom-pantry__add-unit">
+          <mat-label>Unit</mat-label>
+          <mat-select [value]="selectedMeasurementId()"
+                      (selectionChange)="selectedMeasurementId.set($event.value)">
+            @for (m of measurements(); track m.id) {
+              <mat-option [value]="m.id">{{ m.name }} ({{ m.symbol }})</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-flat-button
+                class="nom-pantry__add-btn"
+                (click)="addItem()"
+                [disabled]="!selectedIngredient() || !selectedMeasurementId() || adding()">
+          @if (adding()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>add</mat-icon>
+              Add
+            </ng-container>
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="nom-pantry__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-pantry__empty">
+      <mat-icon class="nom-pantry__empty-icon">error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+  } @else if (activeItems().length === 0 && expiredItems().length === 0) {
+    <div class="nom-pantry__empty">
+      <mat-icon class="nom-pantry__empty-icon">kitchen</mat-icon>
+      <h2>Pantry is empty</h2>
+      <p>Add items to your pantry so your shopping list only shows what you need.</p>
+      <button mat-flat-button (click)="toggleAddForm()">
+        <mat-icon>add</mat-icon>
+        Add First Item
+      </button>
+    </div>
+  } @else {
+    <!-- Expiring Soon Warning -->
+    @if (expiringSoonItems().length > 0) {
+      <div class="nom-pantry__warning">
+        <mat-icon>warning</mat-icon>
+        <span>{{ expiringSoonItems().length }} item{{ expiringSoonItems().length > 1 ? 's' : '' }} expiring soon</span>
+      </div>
+    }
+
+    <!-- Active Items -->
+    <div class="nom-pantry__list">
+      <div class="nom-pantry__list-header">
+        <span class="nom-pantry__col-name">Ingredient</span>
+        <span class="nom-pantry__col-qty">Quantity</span>
+        <span class="nom-pantry__col-exp">Expires</span>
+        <span class="nom-pantry__col-actions"></span>
+      </div>
+      @for (item of activeItems(); track item.id) {
+        <div class="nom-pantry__item"
+             [class.nom-pantry__item--expiring]="item.isExpiringSoon">
+          <span class="nom-pantry__col-name">{{ item.ingredientName }}</span>
+          <span class="nom-pantry__col-qty">
+            {{ formatQuantity(item.quantity) }} {{ item.measurementSymbol }}
+          </span>
+          <span class="nom-pantry__col-exp">
+            @if (item.expectedExpirationDate) {
+              {{ item.expectedExpirationDate }}
+            } @else {
+              &mdash;
+            }
+          </span>
+          <span class="nom-pantry__col-actions">
+            <button mat-icon-button
+                    (click)="removeItem(item.id)"
+                    aria-label="Remove item"
+                    class="nom-pantry__remove-btn">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Expired Items -->
+    @if (expiredItems().length > 0) {
+      <details class="nom-pantry__expired-section">
+        <summary class="nom-pantry__expired-header">
+          <mat-icon>schedule</mat-icon>
+          {{ expiredItems().length }} expired item{{ expiredItems().length > 1 ? 's' : '' }}
+        </summary>
+        <div class="nom-pantry__list nom-pantry__list--expired">
+          @for (item of expiredItems(); track item.id) {
+            <div class="nom-pantry__item nom-pantry__item--expired">
+              <span class="nom-pantry__col-name">{{ item.ingredientName }}</span>
+              <span class="nom-pantry__col-qty">
+                {{ formatQuantity(item.quantity) }} {{ item.measurementSymbol }}
+              </span>
+              <span class="nom-pantry__col-exp">{{ item.expectedExpirationDate }}</span>
+              <span class="nom-pantry__col-actions">
+                <button mat-icon-button
+                        (click)="removeItem(item.id)"
+                        aria-label="Remove expired item"
+                        class="nom-pantry__remove-btn">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </span>
+            </div>
+          }
+        </div>
+      </details>
+    }
+  }
+</div>

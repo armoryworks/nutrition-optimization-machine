@@ -18,6 +18,8 @@ export const routes: Routes = [
   { path: 'household', loadComponent: () => import('./household/household.component').then(m => m.Household), canActivate: [authGuard] },
   { path: 'plan', loadComponent: () => import('./plan/plan.component').then(m => m.Plan), canActivate: [authGuard] },
   { path: 'settings', loadComponent: () => import('./settings/settings.component').then(m => m.Settings), canActivate: [authGuard] },
+  { path: 'pantry', loadChildren: () => import('./pantry/pantry.routes').then(m => m.PANTRY_ROUTES), canActivate: [authGuard] },
+  { path: 'shopping', loadChildren: () => import('./shopping/shopping.routes').then(m => m.SHOPPING_ROUTES), canActivate: [authGuard] },
 
   { path: '**', redirectTo: 'home' },
 ];

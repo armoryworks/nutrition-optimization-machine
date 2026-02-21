@@ -103,6 +103,11 @@
   text-overflow: ellipsis;
 }
 
+.nom-sidebar-panel__shopping-summary {
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
 .nom-sidebar-panel__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

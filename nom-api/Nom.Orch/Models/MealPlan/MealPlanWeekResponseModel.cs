@@ -43,5 +43,6 @@ namespace Nom.Orch.Models.MealPlan
         public decimal? ProteinGrams { get; set; }
         public decimal? CarbGrams { get; set; }
         public decimal? FatGrams { get; set; }
+        public DateOnly? CompletedDate { get; set; }
     }
 }

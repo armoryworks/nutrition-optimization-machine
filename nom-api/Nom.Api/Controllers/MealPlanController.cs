@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.MealPlan;
+using Nom.Orch.Models.Pantry;
 using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Api.Controllers
@@ -12,13 +13,16 @@ namespace Nom.Api.Controllers
     public class MealPlanController : BaseApiController
     {
         private readonly IMealPlanOrchestrationService _mealPlanOrchestrationService;
+        private readonly IPantryOrchestrationService _pantryService;
         private readonly ILogger<MealPlanController> _logger;
 
         public MealPlanController(
             IMealPlanOrchestrationService mealPlanOrchestrationService,
+            IPantryOrchestrationService pantryService,
             ILogger<MealPlanController> logger)
         {
             _mealPlanOrchestrationService = mealPlanOrchestrationService;
+            _pantryService = pantryService;
             _logger = logger;
         }
 
@@ -295,6 +299,27 @@ namespace Nom.Api.Controllers
             {
                 _logger.LogError(ex, "An error occurred in DeleteExclusion.");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
+        [HttpPut("{id}/complete")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CompleteMealPlan([Required] long id)
+        {
+            try
+            {
+                var success = await _pantryService.DeductFromPantryAsync(id);
+                if (!success)
+                    return NotFound(new { message = "Meal plan not found or has no recipe" });
+
+                return Ok(new { message = "Meal completed and pantry updated" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing meal plan {Id}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Failed to complete meal plan" });
             }
         }
     }
