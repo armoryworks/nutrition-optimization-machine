@@ -48,6 +48,19 @@
       [disabled]="busy()" />
   </mat-form-field>
 
+  <button
+    mat-stroked-button
+    class="nom-recipe-dialog__surprise"
+    (click)="surpriseMe()"
+    [disabled]="busy() || rouletteLoading()">
+    @if (rouletteLoading()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      <mat-icon>casino</mat-icon>
+    }
+    Surprise me
+  </button>
+
   @if (searching()) {
     <div class="nom-recipe-dialog__loading">
       <mat-spinner diameter="24"></mat-spinner>

@@ -166,6 +166,11 @@
   }
 }
 
+.nom-recipe-dialog__surprise {
+  width: 100%;
+  margin-bottom: vars.$spacing-3;
+}
+
 .nom-recipe-dialog__fields {
   display: flex;
   flex-direction: column;

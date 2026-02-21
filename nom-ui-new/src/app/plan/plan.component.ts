@@ -22,6 +22,7 @@ import { HouseholdResponseModel, HouseholdMemberResponseModel } from '../core/mo
 import { MealPlanWeekResponse, MealPlanDay, MealPlanCell, MealPlanExclusion } from '../core/models/meal-plan.model';
 import { RestrictionRequest } from '../core/models/person.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
+import { ShuffleConfirmDialog, ShuffleConfirmResult } from './shuffle-confirm-dialog.component';
 
 export interface PlanFormData {
   planName: string | null;
@@ -80,6 +81,7 @@ export class Plan implements OnInit {
   weekData = signal<MealPlanWeekResponse | null>(null);
   currentWeekStart = signal<string>(Plan.getMonday(new Date()));
   members = signal<HouseholdMemberResponseModel[]>([]);
+  shuffling = signal(false);
 
   // Computed
   isStandalone = computed(() => this.mode() !== 'wizard');
@@ -156,6 +158,49 @@ export class Plan implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
       if (result?.changed) this.loadWeek();
+    });
+  }
+
+  shuffleEmptySlots(): void {
+    const householdId = this.activeHouseholdId();
+    const data = this.weekData();
+    if (!householdId || !data) return;
+
+    const today = Plan.toDateString(new Date());
+    const futureDays = data.days.filter(d => d.date >= today);
+    if (futureDays.length === 0) return;
+
+    const hasFilledSlots = futureDays.some(d => d.cells.some(c => c.entries.length > 0));
+    const hasEmptySlots = futureDays.some(d => d.cells.some(c => c.entries.length === 0));
+
+    // Determine date range from future days
+    const startDate = futureDays[0].date;
+    const endDate = futureDays[futureDays.length - 1].date;
+
+    // TODO: Also skip meals where shopping has been completed (shopping feature incomplete)
+    if (hasFilledSlots) {
+      const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
+      dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {
+        if (result === 'empty') {
+          this.callShuffle(householdId, startDate, endDate, false);
+        } else if (result === 'replace') {
+          this.callShuffle(householdId, startDate, endDate, true);
+        }
+      });
+    } else if (hasEmptySlots) {
+      this.callShuffle(householdId, startDate, endDate, false);
+    }
+  }
+
+  private callShuffle(householdId: number, startDate: string, endDate: string, replaceExisting: boolean): void {
+    this.shuffling.set(true);
+
+    this.mealPlanService.shuffle({ householdId, startDate, endDate, replaceExisting }).subscribe({
+      next: (response) => {
+        this.weekData.set(response.week);
+        this.shuffling.set(false);
+      },
+      error: () => { this.shuffling.set(false); },
     });
   }
 

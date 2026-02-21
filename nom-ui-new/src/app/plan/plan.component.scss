@@ -21,6 +21,11 @@
   }
 }
 
+// Shuffle button spinner alignment
+:host ::ng-deep .mat-mdc-button .mat-mdc-progress-spinner {
+  display: inline-block;
+}
+
 .nom-plan__loading {
   display: flex;
   justify-content: center;

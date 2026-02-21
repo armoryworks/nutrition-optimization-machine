@@ -23,6 +23,9 @@ namespace Nom.Orch.Interfaces
         Task<MealPlanRuleResponseModel?> GetRuleAsync(long id);
         Task<bool> DeleteRuleAsync(long id);
 
+        // Shuffle
+        Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId);
+
         // Meal Plan Exclusions
         Task<MealPlanExclusionResponseModel> CreateExclusionAsync(MealPlanExclusionCreateModel model);
         Task<List<MealPlanExclusionResponseModel>> GetExclusionsAsync(long householdId, DateOnly start, DateOnly end);

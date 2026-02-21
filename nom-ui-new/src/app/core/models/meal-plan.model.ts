@@ -82,3 +82,16 @@ export interface MealPlanExclusionCreateRequest {
   date: string;
   mealTypeId: number | null;
 }
+
+export interface MealPlanShuffleRequest {
+  householdId: number;
+  startDate: string;
+  endDate: string;
+  replaceExisting: boolean;
+}
+
+export interface MealPlanShuffleResponse {
+  created: number;
+  deleted: number;
+  week: MealPlanWeekResponse;
+}

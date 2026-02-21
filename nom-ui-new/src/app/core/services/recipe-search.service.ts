@@ -27,4 +27,13 @@ export class RecipeSearchService {
     const params = new HttpParams().set('count', count.toString());
     return this.http.get<RecipeSearchResponse>(`${this.apiUrl}/recent`, { params });
   }
+
+  getRandom(count = 1, householdId?: number, minCalories?: number, maxCalories?: number, recipeTypeId?: number): Observable<RecipeSearchResponse> {
+    let params = new HttpParams().set('count', count.toString());
+    if (householdId) params = params.set('householdId', householdId.toString());
+    if (minCalories) params = params.set('minCalories', minCalories.toString());
+    if (maxCalories) params = params.set('maxCalories', maxCalories.toString());
+    if (recipeTypeId) params = params.set('recipeTypeId', recipeTypeId.toString());
+    return this.http.get<RecipeSearchResponse>(`${this.apiUrl}/random`, { params });
+  }
 }

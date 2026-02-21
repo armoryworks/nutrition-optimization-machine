@@ -4,10 +4,27 @@
     <h3 class="nom-sidebar-panel__title">Upcoming Meals</h3>
   </div>
   <div class="nom-sidebar-panel__body">
-    <div class="nom-sidebar-panel__empty">
-      <span class="nom-sidebar-panel__empty-text">No meals planned</span>
-      <a class="nom-sidebar-panel__link" href="#">View all meal plans &rarr;</a>
-    </div>
+    @if (upcomingMeals().length > 0) {
+      <ul class="nom-sidebar-panel__meal-list">
+        @for (meal of upcomingMeals(); track $index) {
+          <li class="nom-sidebar-panel__meal">
+            <span class="nom-sidebar-panel__meal-day">{{ meal.dayLabel }}</span>
+            <span class="nom-sidebar-panel__meal-type">{{ meal.mealType }}</span>
+            <span class="nom-sidebar-panel__meal-recipes">
+              @for (entry of meal.entries; track entry.id; let last = $last) {
+                {{ entry.recipeName ?? entry.title }}@if (!last) {, }
+              }
+            </span>
+          </li>
+        }
+      </ul>
+      <a class="nom-sidebar-panel__link" routerLink="/plan">View all meal plans &rarr;</a>
+    } @else {
+      <div class="nom-sidebar-panel__empty">
+        <span class="nom-sidebar-panel__empty-text">No meals planned</span>
+        <a class="nom-sidebar-panel__link" routerLink="/plan">View all meal plans &rarr;</a>
+      </div>
+    }
   </div>
 </section>
 
@@ -19,7 +36,7 @@
   <div class="nom-sidebar-panel__body">
     <div class="nom-sidebar-panel__empty">
       <span class="nom-sidebar-panel__empty-text">No active shopping lists</span>
-      <a class="nom-sidebar-panel__link" href="#">View all lists &rarr;</a>
+      <a class="nom-sidebar-panel__link" routerLink="/plan">View all lists &rarr;</a>
     </div>
   </div>
 </section>
@@ -31,22 +48,22 @@
   </div>
   <div class="nom-sidebar-panel__body">
     <div class="nom-sidebar-panel__actions">
-      <button mat-stroked-button class="nom-sidebar-panel__action-btn">
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/plan">
         <mat-icon>add</mat-icon>
         <span>New Plan</span>
-      </button>
-      <button mat-stroked-button class="nom-sidebar-panel__action-btn">
+      </a>
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/search">
         <mat-icon>restaurant_menu</mat-icon>
         <span>New Recipe</span>
-      </button>
-      <button mat-stroked-button class="nom-sidebar-panel__action-btn">
+      </a>
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/plan">
         <mat-icon>shopping_cart</mat-icon>
         <span>Shop</span>
-      </button>
-      <button mat-stroked-button class="nom-sidebar-panel__action-btn">
+      </a>
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/search">
         <mat-icon>search</mat-icon>
         <span>Search</span>
-      </button>
+      </a>
     </div>
   </div>
 </section>

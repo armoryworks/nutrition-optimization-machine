@@ -21,6 +21,17 @@
             </mat-select>
           </mat-form-field>
         }
+        <button mat-stroked-button
+                (click)="shuffleEmptySlots()"
+                [disabled]="!weekData() || shuffling()"
+                matTooltip="Fill empty slots with random recipes">
+          @if (shuffling()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <mat-icon>casino</mat-icon>
+          }
+          Shuffle
+        </button>
         <div class="nom-plan__nav">
           <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week">
             <mat-icon>chevron_left</mat-icon>

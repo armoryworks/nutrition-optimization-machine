@@ -124,6 +124,77 @@ namespace Nom.Orch.Services
             };
         }
 
+        public async Task<RecipeSearchResponseModel> GetRandomRecipesAsync(int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null)
+        {
+            var query = _context.Recipes
+                .Include(r => r.Ratings)
+                .Include(r => r.RecipeCategories)
+                    .ThenInclude(rc => rc.Category)
+                .Include(r => r.RecipeTags)
+                    .ThenInclude(rt => rt.Tag)
+                .Include(r => r.Author)
+                .Where(r => r.CurationStatus!.Name == "Approved");
+
+            // Exclude recipes that contain restricted ingredients for household members
+            if (householdId.HasValue)
+            {
+                var restrictedIngredientIds = await _context.HouseholdMembers
+                    .Where(hm => hm.HouseholdId == householdId.Value && hm.IsActive)
+                    .SelectMany(hm => hm.Person.Restrictions)
+                    .Where(r => r.IngredientId.HasValue
+                        && (r.EndDate == null || r.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow))
+                        && (r.BeginDate == null || r.BeginDate <= DateOnly.FromDateTime(DateTime.UtcNow)))
+                    .Select(r => r.IngredientId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (restrictedIngredientIds.Count > 0)
+                {
+                    query = query.Where(r => !r.RecipeIngredients!
+                        .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
+                }
+            }
+
+            // Filter by calorie range using the recipe's nutrition data
+            if (minCalories.HasValue)
+            {
+                query = query.Where(r => r.Nutrition != null && r.Nutrition
+                    .Any(n => n.Nutrient != null
+                        && (n.Nutrient.Name.ToLower().Contains("calories") || n.Nutrient.Name.ToLower().Contains("energy") || n.Nutrient.Name.ToLower().Contains("kcal"))
+                        && n.Amount >= minCalories.Value));
+            }
+
+            if (maxCalories.HasValue)
+            {
+                query = query.Where(r => r.Nutrition != null && r.Nutrition
+                    .Any(n => n.Nutrient != null
+                        && (n.Nutrient.Name.ToLower().Contains("calories") || n.Nutrient.Name.ToLower().Contains("energy") || n.Nutrient.Name.ToLower().Contains("kcal"))
+                        && n.Amount <= maxCalories.Value));
+            }
+
+            // Filter by recipe type
+            if (recipeTypeId.HasValue)
+            {
+                query = query.Where(r => r.RecipeTypes!.Any(rt => rt.Id == recipeTypeId.Value));
+            }
+
+            var randomRecipes = await query
+                .OrderBy(r => EF.Functions.Random())
+                .Take(count)
+                .ToListAsync();
+
+            var results = randomRecipes.Select(r => MapToSearchResult(r, new RecipeSearchModel())).ToList();
+
+            return new RecipeSearchResponseModel
+            {
+                Results = results,
+                TotalCount = results.Count,
+                PageNumber = 1,
+                PageSize = count,
+                TotalPages = 1
+            };
+        }
+
         public async Task<RecipeSearchResponseModel> GetRecipesByIngredientsAsync(List<long> ingredientIds, int count = 20)
         {
             var recipes = await _context.Recipes

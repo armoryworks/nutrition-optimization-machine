@@ -9,6 +9,8 @@ import {
   MealPlanResponse,
   MealPlanExclusion,
   MealPlanExclusionCreateRequest,
+  MealPlanShuffleRequest,
+  MealPlanShuffleResponse,
 } from '../models/meal-plan.model';
 
 @Injectable({ providedIn: 'root' })
@@ -49,5 +51,9 @@ export class MealPlanService {
 
   deleteExclusion(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/exclusion/${id}`);
+  }
+
+  shuffle(request: MealPlanShuffleRequest): Observable<MealPlanShuffleResponse> {
+    return this.http.post<MealPlanShuffleResponse>(`${this.apiUrl}/shuffle`, request);
   }
 }

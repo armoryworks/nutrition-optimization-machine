@@ -39,6 +39,17 @@
             <mat-icon>restaurant</mat-icon>
             {{ filledMealsToday() }}/{{ totalMealSlots() }} planned
           </span>
+          <button mat-stroked-button
+                  (click)="shuffleTodayEmpty()"
+                  [disabled]="!today() || shufflingToday()"
+                  matTooltip="Fill meal slots with random recipes">
+            @if (shufflingToday()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>casino</mat-icon>
+            }
+            Shuffle
+          </button>
         </div>
       </div>
 
