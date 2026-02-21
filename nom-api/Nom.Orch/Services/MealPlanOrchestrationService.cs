@@ -224,6 +224,188 @@ namespace Nom.Orch.Services
             return true;
         }
 
+        // Meal composition templates: defines how many recipes of each type compose a meal
+        private static readonly Dictionary<long, (long RecipeTypeId, string Label)[]> MealComposition = new()
+        {
+            [1100] = new[] { (3101L, "Entree"), (3103L, "Fruit/Vegetable") },       // Breakfast: 2
+            [1101] = new[] { (3100L, "Appetizer"), (3101L, "Entree"), (3102L, "Starch") }, // Lunch: 3
+            [1102] = new[] { (3100L, "Appetizer"), (3101L, "Entree"), (3102L, "Starch") }, // Dinner: 3
+            [1103] = new[] { (3104L, "Snack") },                                    // Snacks: 1
+        };
+
+        public async Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId)
+        {
+            int deletedCount = 0;
+
+            // 1. If replacing, delete existing entries in the date range
+            if (model.ReplaceExisting)
+            {
+                var existing = await _context.MealPlans
+                    .Where(mp => mp.HouseholdId == model.HouseholdId
+                        && mp.Date >= model.StartDate
+                        && mp.Date <= model.EndDate)
+                    .ToListAsync();
+
+                deletedCount = existing.Count;
+                _context.MealPlans.RemoveRange(existing);
+                await _context.SaveChangesAsync();
+            }
+
+            // 2. Get restricted ingredient IDs for this household
+            var restrictedIngredientIds = await _context.HouseholdMembers
+                .Where(hm => hm.HouseholdId == model.HouseholdId && hm.IsActive)
+                .SelectMany(hm => hm.Person.Restrictions)
+                .Where(r => r.IngredientId.HasValue
+                    && (r.EndDate == null || r.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow))
+                    && (r.BeginDate == null || r.BeginDate <= DateOnly.FromDateTime(DateTime.UtcNow)))
+                .Select(r => r.IngredientId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            // 3. Determine which cells need filling
+            var existingEntries = model.ReplaceExisting
+                ? new List<MealPlanEntity>()
+                : await _context.MealPlans
+                    .Where(mp => mp.HouseholdId == model.HouseholdId
+                        && mp.Date >= model.StartDate
+                        && mp.Date <= model.EndDate)
+                    .ToListAsync();
+
+            var filledCells = new HashSet<(DateOnly Date, long MealTypeId)>(
+                existingEntries.Select(e => (e.Date, e.MealTypeId)));
+
+            // Build list of empty cells to fill
+            var emptyCells = new List<(DateOnly Date, long MealTypeId)>();
+            for (var date = model.StartDate; date <= model.EndDate; date = date.AddDays(1))
+            {
+                foreach (var mt in MealTypes)
+                {
+                    if (!filledCells.Contains((date, mt.Id)))
+                    {
+                        emptyCells.Add((date, mt.Id));
+                    }
+                }
+            }
+
+            // 4. Expand each empty cell into composition sub-slots
+            var expanded = new List<(DateOnly Date, long MealTypeId, long RecipeTypeId)>();
+            foreach (var cell in emptyCells)
+            {
+                if (MealComposition.TryGetValue(cell.MealTypeId, out var slots))
+                {
+                    foreach (var slot in slots)
+                    {
+                        expanded.Add((cell.Date, cell.MealTypeId, slot.RecipeTypeId));
+                    }
+                }
+                else
+                {
+                    expanded.Add((cell.Date, cell.MealTypeId, 0));
+                }
+            }
+
+            // 5. Group by (recipe type, meal type) and fetch random recipes per combination
+            //    This ensures breakfast entrees are separate from dinner entrees, etc.
+            var countByTypeAndMeal = expanded
+                .GroupBy(e => (e.RecipeTypeId, e.MealTypeId))
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var recipePools = new Dictionary<(long RecipeTypeId, long MealTypeId), List<RecipeEntity>>();
+            foreach (var ((recipeTypeId, mealTypeId), count) in countByTypeAndMeal)
+            {
+                var query = _context.Recipes
+                    .Where(r => r.CurationStatus!.Name == "Approved");
+
+                if (restrictedIngredientIds.Count > 0)
+                {
+                    query = query.Where(r => !r.RecipeIngredients!
+                        .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
+                }
+
+                if (recipeTypeId != 0)
+                {
+                    query = query.Where(r => r.RecipeTypes!.Any(rt => rt.Id == recipeTypeId));
+                }
+
+                // Prefer recipes whose category matches the meal type (e.g., breakfast entrees for breakfast)
+                var mealAffineRecipes = await query
+                    .Where(r => r.RecipeCategories!.Any(rc => rc.CategoryId == mealTypeId))
+                    .OrderBy(r => EF.Functions.Random())
+                    .Take(count)
+                    .ToListAsync();
+
+                // Fallback: if not enough meal-affine recipes, fill from the full pool
+                if (mealAffineRecipes.Count < count)
+                {
+                    var existingIds = mealAffineRecipes.Select(r => r.Id).ToHashSet();
+                    var fallback = await query
+                        .Where(r => !existingIds.Contains(r.Id))
+                        .OrderBy(r => EF.Functions.Random())
+                        .Take(count - mealAffineRecipes.Count)
+                        .ToListAsync();
+                    mealAffineRecipes.AddRange(fallback);
+                }
+
+                recipePools[(recipeTypeId, mealTypeId)] = mealAffineRecipes;
+            }
+
+            // 6. Assign recipes to slots, preferring unused but allowing reuse
+            var usedIds = new HashSet<long>();
+            var poolCounters = new Dictionary<(long, long), int>();
+            var newEntities = new List<MealPlanEntity>();
+            var now = DateTime.UtcNow;
+
+            foreach (var slot in expanded)
+            {
+                var poolKey = (slot.RecipeTypeId, slot.MealTypeId);
+                if (!recipePools.TryGetValue(poolKey, out var pool) || pool.Count == 0)
+                    continue;
+
+                // Prefer an unused recipe; if all used, cycle through the pool
+                var recipe = pool.FirstOrDefault(r => !usedIds.Contains(r.Id));
+                if (recipe == null)
+                {
+                    poolCounters.TryGetValue(poolKey, out var idx);
+                    recipe = pool[idx % pool.Count];
+                    poolCounters[poolKey] = idx + 1;
+                }
+
+                usedIds.Add(recipe.Id);
+
+                newEntities.Add(new MealPlanEntity
+                {
+                    HouseholdId = model.HouseholdId,
+                    AuthorId = authorId,
+                    Date = slot.Date,
+                    MealTypeId = slot.MealTypeId,
+                    Title = recipe.Name,
+                    RecipeId = recipe.Id,
+                    CreatedDate = now,
+                    LastModifiedDate = now,
+                });
+            }
+
+            // 7. Bulk insert
+            _context.MealPlans.AddRange(newEntities);
+            await _context.SaveChangesAsync();
+
+            // 8. Return the week view for the date range
+            var weekStart = model.StartDate;
+            // Align to Monday for GetWeekAsync
+            var dayOfWeek = weekStart.DayOfWeek;
+            var mondayOffset = dayOfWeek == DayOfWeek.Sunday ? -6 : (int)DayOfWeek.Monday - (int)dayOfWeek;
+            var monday = weekStart.AddDays(mondayOffset);
+
+            var week = await GetWeekAsync(model.HouseholdId, monday);
+
+            return new MealPlanShuffleResponseModel
+            {
+                Created = newEntities.Count,
+                Deleted = deletedCount,
+                Week = week,
+            };
+        }
+
         // Meal type IDs from reference data seed
         private static readonly (long Id, string Name)[] MealTypes = new[]
         {

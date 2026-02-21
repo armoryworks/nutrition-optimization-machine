@@ -10,6 +10,7 @@ namespace Nom.Orch.Interfaces
         Task<List<string>> GetSearchSuggestionsAsync(string query);
         Task<RecipeSearchResponseModel> GetPopularRecipesAsync(int count = 10);
         Task<RecipeSearchResponseModel> GetRecentRecipesAsync(int count = 10);
+        Task<RecipeSearchResponseModel> GetRandomRecipesAsync(int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null);
         Task<RecipeSearchResponseModel> GetRecipesByIngredientsAsync(List<long> ingredientIds, int count = 20);
 
         // Advanced search features (from Mealie)

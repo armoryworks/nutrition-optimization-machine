@@ -50,6 +50,8 @@ export class RecipeSearchDialog implements OnInit {
   results = signal<RecipeSearchResult[]>([]);
   searching = signal(false);
 
+  rouletteLoading = signal(false);
+
   noteTitle = signal('');
   noteText = signal('');
 
@@ -90,6 +92,21 @@ export class RecipeSearchDialog implements OnInit {
   onSearchInput(query: string): void {
     this.searchQuery.set(query);
     this.searchSubject.next(query);
+  }
+
+  surpriseMe(): void {
+    this.rouletteLoading.set(true);
+    this.recipeSearchService.getRandom(1, this.data.householdId).subscribe({
+      next: (response) => {
+        this.rouletteLoading.set(false);
+        if (response.results.length > 0) {
+          this.addRecipe(response.results[0]);
+        }
+      },
+      error: () => {
+        this.rouletteLoading.set(false);
+      },
+    });
   }
 
   addRecipe(recipe: RecipeSearchResult): void {

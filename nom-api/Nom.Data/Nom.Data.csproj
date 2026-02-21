@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="SeedData\recipes.json" />
+    <EmbeddedResource Include="SeedData\recipes-extended.json" />
   </ItemGroup>
 
   <ItemGroup>

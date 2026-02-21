@@ -23,6 +23,14 @@ namespace Nom.Data
         private const long MealTypeDinnerId = 1102L;
         private const long MealTypeSnacksId = 1103L;
 
+        // --- Recipe Type IDs (3100L series to align with GroupId 3 = RecipeType) ---
+        private const long RecipeTypeAppetizerId = 3100L;
+        private const long RecipeTypeEntreeId = 3101L;
+        private const long RecipeTypeStarchId = 3102L;
+        private const long RecipeTypeVegetableId = 3103L;
+        private const long RecipeTypeSnackId = 3104L;
+        private const long RecipeTypeDessertId = 3105L;
+
         // --- CORRECTED: Plan Invitation Role IDs (41xxL series to align with GroupId 4000) ---
         private const long PlanInvitationRoleAdminId = 4100L;
         private const long PlanInvitationRoleMemberId = 4101L;
@@ -261,10 +269,20 @@ namespace Nom.Data
             CreateReferenceGroupView(migrationBuilder);
 
             SeedSampleRecipes(migrationBuilder);
+
+            AddRecipeTypes(migrationBuilder);
+            AssignRecipeTypesToSeedRecipes(migrationBuilder);
+
+            SeedExtendedRecipes(migrationBuilder);
         }
 
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
         {
+            RemoveExtendedRecipes(migrationBuilder);
+
+            RemoveRecipeTypeAssignments(migrationBuilder);
+            RemoveRecipeTypes(migrationBuilder);
+
             RemoveSampleRecipes(migrationBuilder);
 
             DropReferenceGroupView(migrationBuilder);
@@ -483,6 +501,133 @@ namespace Nom.Data
                 table: "Reference",
                 keyColumn: "Id",
                 keyValues: new object[] { MealTypeBreakfastId, MealTypeLunchId, MealTypeDinnerId, MealTypeSnacksId });
+        }
+
+        public static void AddRecipeTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { RecipeTypeAppetizerId, "Appetizer/Starter", "Light opening dish (salad, soup, appetizer)", DateTime.UtcNow, SystemPersonId },
+                    { RecipeTypeEntreeId, "Entree", "Protein-focused main dish", DateTime.UtcNow, SystemPersonId },
+                    { RecipeTypeStarchId, "Starch/Carbohydrate", "Carbohydrate-based dish (rice, pasta, bread, grains)", DateTime.UtcNow, SystemPersonId },
+                    { RecipeTypeVegetableId, "Vegetable/Salad", "Vegetable-focused or salad dish", DateTime.UtcNow, SystemPersonId },
+                    { RecipeTypeSnackId, "Snack", "Small between-meal item", DateTime.UtcNow, SystemPersonId },
+                    { RecipeTypeDessertId, "Dessert", "Sweet course", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] recipeTypeIds = new long[] {
+                RecipeTypeAppetizerId, RecipeTypeEntreeId, RecipeTypeStarchId,
+                RecipeTypeVegetableId, RecipeTypeSnackId, RecipeTypeDessertId
+            };
+            foreach (long id in recipeTypeIds)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveRecipeTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.RecipeType;
+            long[] recipeTypeIds = new long[] {
+                RecipeTypeAppetizerId, RecipeTypeEntreeId, RecipeTypeStarchId,
+                RecipeTypeVegetableId, RecipeTypeSnackId, RecipeTypeDessertId
+            };
+            foreach (long id in recipeTypeIds)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[] {
+                    RecipeTypeAppetizerId, RecipeTypeEntreeId, RecipeTypeStarchId,
+                    RecipeTypeVegetableId, RecipeTypeSnackId, RecipeTypeDessertId });
+        }
+
+        public static void AssignRecipeTypesToSeedRecipes(MigrationBuilder migrationBuilder)
+        {
+            // Assign recipe types to the 24 seed recipes via the junction table
+            var assignments = new (long RecipeId, long RecipeTypeId)[]
+            {
+                // Breakfast recipes
+                (100, RecipeTypeStarchId),           // Classic Buttermilk Pancakes
+                (101, RecipeTypeEntreeId),            // Veggie Scrambled Eggs
+                (102, RecipeTypeVegetableId),         // Banana Smoothie Bowl
+                (103, RecipeTypeStarchId),            // Classic French Toast
+                (104, RecipeTypeEntreeId),            // Spinach and Feta Omelette
+                (105, RecipeTypeEntreeId),            // Smoked Salmon Bagel
+
+                // Lunch recipes
+                (106, RecipeTypeEntreeId),            // Grilled Chicken Caesar Wrap
+                (107, RecipeTypeAppetizerId),         // Black Bean and Corn Salad
+                (107, RecipeTypeVegetableId),         // Black Bean and Corn Salad (also vegetable)
+                (108, RecipeTypeEntreeId),            // Turkey Avocado Sandwich
+                (109, RecipeTypeAppetizerId),         // Creamy Tomato Basil Soup
+                (110, RecipeTypeEntreeId),            // Greek Quinoa Bowl
+                (110, RecipeTypeStarchId),            // Greek Quinoa Bowl (also starch)
+                (111, RecipeTypeEntreeId),            // Chicken Teriyaki Stir-Fry
+
+                // Dinner recipes
+                (112, RecipeTypeEntreeId),            // Spaghetti Bolognese
+                (112, RecipeTypeStarchId),            // Spaghetti Bolognese (also starch)
+                (113, RecipeTypeEntreeId),            // Lemon Herb Grilled Chicken
+                (114, RecipeTypeEntreeId),            // Coconut Shrimp Curry
+                (115, RecipeTypeEntreeId),            // Baked Salmon with Roasted Asparagus
+                (115, RecipeTypeVegetableId),         // Baked Salmon with Roasted Asparagus (also vegetable)
+                (116, RecipeTypeEntreeId),            // Beef Tacos with Fresh Salsa
+                (117, RecipeTypeStarchId),            // Creamy Mushroom Risotto
+                (117, RecipeTypeVegetableId),         // Creamy Mushroom Risotto (also vegetable)
+
+                // Snack recipes
+                (118, RecipeTypeSnackId),             // Hummus and Veggie Sticks
+                (119, RecipeTypeSnackId),             // Apple Peanut Butter Bites
+                (120, RecipeTypeSnackId),             // Cheese and Crackers Board
+                (121, RecipeTypeSnackId),             // Trail Mix Energy Balls
+                (122, RecipeTypeSnackId),             // Caprese Skewers
+                (122, RecipeTypeAppetizerId),         // Caprese Skewers (also appetizer)
+                (123, RecipeTypeSnackId),             // Guacamole with Tortilla Chips
+            };
+
+            foreach (var (recipeId, recipeTypeId) in assignments)
+            {
+                migrationBuilder.InsertData(
+                    schema: "recipe",
+                    table: "recipe_type_index",
+                    columns: new[] { "RecipeId", "RecipeTypeId" },
+                    values: new object[] { recipeId, recipeTypeId });
+            }
+        }
+
+        public static void RemoveRecipeTypeAssignments(MigrationBuilder migrationBuilder)
+        {
+            // Remove all recipe type assignments for seed recipes (IDs 100-123)
+            for (long recipeId = 100; recipeId <= 123; recipeId++)
+            {
+                long[] allTypeIds = new long[] {
+                    RecipeTypeAppetizerId, RecipeTypeEntreeId, RecipeTypeStarchId,
+                    RecipeTypeVegetableId, RecipeTypeSnackId, RecipeTypeDessertId
+                };
+                foreach (long typeId in allTypeIds)
+                {
+                    // Use Sql to avoid errors when row doesn't exist
+                    migrationBuilder.Sql(
+                        $"DELETE FROM recipe.\"recipe_type_index\" WHERE \"RecipeId\" = {recipeId} AND \"RecipeTypeId\" = {typeId};");
+                }
+            }
         }
 
         public static void AddHouseholdGroups(MigrationBuilder migrationBuilder)
@@ -2385,6 +2530,140 @@ namespace Nom.Data
             migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeStep"" WHERE ""RecipeId"" BETWEEN 100 AND 199;");
             migrationBuilder.Sql(@"DELETE FROM recipe.""Recipe"" WHERE ""Id"" BETWEEN 100 AND 199;");
             migrationBuilder.Sql(@"DELETE FROM recipe.""Ingredient"" WHERE ""Id"" BETWEEN 100 AND 199;");
+        }
+
+        // =====================================================================
+        // Extended Recipe Seed Data (from SeedData/recipes-extended.json)
+        // =====================================================================
+
+        private class ExtendedSeedRecipeDto
+        {
+            public long Id { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public long PrepTimeMinutes { get; set; }
+            public long CookTimeMinutes { get; set; }
+            public long Servings { get; set; }
+            public long CategoryId { get; set; }
+            public string Slug { get; set; } = string.Empty;
+            public string? Image { get; set; }
+            public long? RecipeTypeId { get; set; }
+            public List<SeedRecipeStepDto> Steps { get; set; } = new();
+            public List<SeedRecipeIngredientDto> Ingredients { get; set; } = new();
+            public List<SeedRecipeNutritionDto> Nutrition { get; set; } = new();
+        }
+
+        private class ExtendedSeedDataRoot
+        {
+            public List<SeedIngredientDto> Ingredients { get; set; } = new();
+            public List<ExtendedSeedRecipeDto> Recipes { get; set; } = new();
+        }
+
+        private static ExtendedSeedDataRoot LoadExtendedSeedData()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames()
+                .First(n => n.EndsWith("recipes-extended.json"));
+
+            using var stream = assembly.GetManifestResourceStream(resourceName)!;
+            using var reader = new StreamReader(stream);
+            var json = reader.ReadToEnd();
+
+            return JsonSerializer.Deserialize<ExtendedSeedDataRoot>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            })!;
+        }
+
+        public static void SeedExtendedRecipes(MigrationBuilder migrationBuilder)
+        {
+            var data = LoadExtendedSeedData();
+            var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+            // 1. Insert any new ingredients (if present)
+            foreach (var ing in data.Ingredients)
+            {
+                var nameNorm = EscapeSql(ing.Name.ToLowerInvariant());
+                var pluralNorm = EscapeSql(ing.PluralName.ToLowerInvariant());
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""Ingredient"" (""Id"", ""Name"", ""PluralName"", ""NameNormalized"", ""PluralNameNormalized"", ""FdcDataType"", ""CurationStatusId"", ""AuthorId"", ""OnHand"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({ing.Id}, '{EscapeSql(ing.Name)}', '{EscapeSql(ing.PluralName)}', '{nameNorm}', '{pluralNorm}', '', {CurationStatusTypeCuratedId}, {SystemPersonId}, false, '{now}', {SystemPersonId});
+                ");
+            }
+
+            // 2. Insert recipes
+            foreach (var recipe in data.Recipes)
+            {
+                var nameNorm = EscapeSql(recipe.Name.ToLowerInvariant());
+                var descNorm = EscapeSql((recipe.Description ?? "").ToLowerInvariant());
+                var imageVal = recipe.Image != null ? $"'{EscapeSql(recipe.Image)}'" : "NULL";
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""Recipe"" (""Id"", ""Name"", ""Description"", ""PrepTimeMinutes"", ""CookTimeMinutes"", ""Servings"", ""CurationStatusId"", ""AuthorId"", ""Version"", ""Slug"", ""Image"", ""NameNormalized"", ""DescriptionNormalized"", ""IsOcrRecipe"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({recipe.Id}, '{EscapeSql(recipe.Name)}', '{EscapeSql(recipe.Description)}', {recipe.PrepTimeMinutes}, {recipe.CookTimeMinutes}, {recipe.Servings}, {CurationStatusTypeCuratedId}, {SystemPersonId}, 1, '{EscapeSql(recipe.Slug)}', {imageVal}, '{nameNorm}', '{descNorm}', false, '{now}', {SystemPersonId});
+                ");
+
+                // 3. Insert recipe steps
+                foreach (var step in recipe.Steps)
+                {
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeStep"" (""RecipeId"", ""StepNumber"", ""Summary"", ""Description"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {step.StepNumber}, '{EscapeSql(step.Summary)}', '{EscapeSql(step.Description)}', '{now}', {SystemPersonId});
+                    ");
+                }
+
+                // 4. Insert recipe ingredients
+                foreach (var ing in recipe.Ingredients)
+                {
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeIngredient"" (""RecipeId"", ""IngredientId"", ""Quantity"", ""MeasurementId"", ""RawLine"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {ing.IngredientId}, {ing.Quantity}, {ing.MeasurementId}, '{EscapeSql(ing.RawLine)}', '{now}', {SystemPersonId});
+                    ");
+                }
+
+                // 5. Insert recipe category
+                migrationBuilder.Sql($@"
+                    INSERT INTO recipe.""RecipeCategory"" (""RecipeId"", ""CategoryId"", ""CreatedDate"", ""CreatedByPersonId"")
+                    VALUES ({recipe.Id}, {recipe.CategoryId}, '{now}', {SystemPersonId});
+                ");
+
+                // 6. Insert recipe nutrition
+                foreach (var nut in recipe.Nutrition)
+                {
+                    var dvpVal = nut.DailyValuePercentage.HasValue
+                        ? nut.DailyValuePercentage.Value.ToString("F2")
+                        : "NULL";
+                    migrationBuilder.Sql($@"
+                        INSERT INTO recipe.""RecipeNutrition"" (""RecipeId"", ""NutrientId"", ""Amount"", ""Unit"", ""DailyValuePercentage"", ""CreatedDate"", ""CreatedByPersonId"")
+                        VALUES ({recipe.Id}, {nut.NutrientId}, {nut.Amount.ToString("F4")}, '{EscapeSql(nut.Unit)}', {dvpVal}, '{now}', {SystemPersonId});
+                    ");
+                }
+
+                // 7. Insert recipe type assignment (if recipeTypeId present)
+                if (recipe.RecipeTypeId.HasValue && recipe.RecipeTypeId.Value > 0)
+                {
+                    migrationBuilder.InsertData(
+                        schema: "recipe",
+                        table: "recipe_type_index",
+                        columns: new[] { "RecipeId", "RecipeTypeId" },
+                        values: new object[] { recipe.Id, recipe.RecipeTypeId.Value });
+                }
+            }
+
+            // Update sequences
+            migrationBuilder.Sql(@"SELECT setval(pg_get_serial_sequence('recipe.""Ingredient""', 'Id'), (SELECT COALESCE(MAX(""Id""), 1) FROM recipe.""Ingredient""));");
+            migrationBuilder.Sql(@"SELECT setval(pg_get_serial_sequence('recipe.""Recipe""', 'Id'), (SELECT COALESCE(MAX(""Id""), 1) FROM recipe.""Recipe""));");
+        }
+
+        public static void RemoveExtendedRecipes(MigrationBuilder migrationBuilder)
+        {
+            // Remove recipe type assignments for extended recipes
+            migrationBuilder.Sql(@"DELETE FROM recipe.""recipe_type_index"" WHERE ""RecipeId"" BETWEEN 200 AND 399;");
+            // Remove in reverse dependency order
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeNutrition"" WHERE ""RecipeId"" BETWEEN 200 AND 399;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeCategory"" WHERE ""RecipeId"" BETWEEN 200 AND 399;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeIngredient"" WHERE ""RecipeId"" BETWEEN 200 AND 399;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""RecipeStep"" WHERE ""RecipeId"" BETWEEN 200 AND 399;");
+            migrationBuilder.Sql(@"DELETE FROM recipe.""Recipe"" WHERE ""Id"" BETWEEN 200 AND 399;");
         }
     }
 #pragma warning restore CS8625

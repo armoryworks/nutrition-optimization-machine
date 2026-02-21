@@ -131,6 +131,29 @@ namespace Nom.Api.Controllers
             }
         }
 
+        [HttpPost("shuffle")]
+        [ProducesResponseType(typeof(MealPlanShuffleResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ShuffleMealPlans([FromBody] MealPlanShuffleModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var authorId = GetCurrentPersonIdRequired();
+                var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in ShuffleMealPlans.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
         [HttpPost("rule")]
         [ProducesResponseType(typeof(MealPlanRuleCreateResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

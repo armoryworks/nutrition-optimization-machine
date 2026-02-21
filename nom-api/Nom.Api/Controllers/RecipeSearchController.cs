@@ -108,6 +108,25 @@ namespace Nom.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Get random approved recipes, optionally filtered by household restrictions and calorie range.
+        /// </summary>
+        [HttpGet("random")]
+        [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRandomRecipes([Range(1, 50)] int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null)
+        {
+            try
+            {
+                var results = await _searchOrchestrationService.GetRandomRecipesAsync(count, householdId, minCalories, maxCalories, recipeTypeId);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetRandomRecipes.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+        }
+
         [HttpPost("by-ingredients")]
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -63,6 +63,46 @@
   }
 }
 
+.nom-sidebar-panel__meal-list {
+  list-style: none;
+  margin: 0 0 vars.$spacing-3 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-sidebar-panel__meal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: vars.$spacing-2;
+  background: var(--mat-sys-surface-container);
+  border-radius: vars.$nom-border-radius;
+}
+
+.nom-sidebar-panel__meal-day {
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nom-sidebar-panel__meal-type {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-sidebar-panel__meal-recipes {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nom-sidebar-panel__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

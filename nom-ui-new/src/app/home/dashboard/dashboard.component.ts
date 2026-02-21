@@ -4,16 +4,18 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { HouseholdService } from '../../core/services/household.service';
 import { MealPlanWeekResponse, MealPlanDay, MealPlanCell } from '../../core/models/meal-plan.model';
 import { HouseholdResponseModel } from '../../core/models/household.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
+import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-confirm-dialog.component';
 
 @Component({
   selector: 'nom-dashboard',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -26,6 +28,7 @@ export class Dashboard implements OnInit {
   weekData = signal<MealPlanWeekResponse | null>(null);
   loading = signal(true);
   error = signal('');
+  shufflingToday = signal(false);
 
   hasHousehold = computed(() => this.households().length > 0);
 
@@ -130,6 +133,47 @@ export class Dashboard implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: RecipeSearchDialogResult) => {
       if (result?.changed) this.loadWeek(householdId);
+    });
+  }
+
+  shuffleTodayEmpty(): void {
+    const householdId = this.households()[0]?.id;
+    const day = this.today();
+    if (!householdId || !day) return;
+
+    const hasFilledSlots = day.cells.some(c => c.entries.length > 0);
+    const hasEmptySlots = day.cells.some(c => c.entries.length === 0);
+    const todayStr = day.date;
+
+    // TODO: Also skip meals where shopping has been completed (shopping feature incomplete)
+    if (hasFilledSlots) {
+      const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
+      dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {
+        if (result === 'empty') {
+          this.callShuffle(householdId, todayStr, false);
+        } else if (result === 'replace') {
+          this.callShuffle(householdId, todayStr, true);
+        }
+      });
+    } else if (hasEmptySlots) {
+      this.callShuffle(householdId, todayStr, false);
+    }
+  }
+
+  private callShuffle(householdId: number, date: string, replaceExisting: boolean): void {
+    this.shufflingToday.set(true);
+
+    this.mealPlanService.shuffle({
+      householdId,
+      startDate: date,
+      endDate: date,
+      replaceExisting,
+    }).subscribe({
+      next: (response) => {
+        this.weekData.set(response.week);
+        this.shufflingToday.set(false);
+      },
+      error: () => { this.shufflingToday.set(false); },
     });
   }
 
