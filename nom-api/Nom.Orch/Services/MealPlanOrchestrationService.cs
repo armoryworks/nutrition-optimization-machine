@@ -459,6 +459,7 @@ namespace Nom.Orch.Services
                             RecipeImage = e.Recipe?.Image,
                             Title = e.Title,
                             Notes = e.Note,
+                            CompletedDate = e.CompletedDate,
                         };
 
                         if (e.Recipe?.Nutrition != null)

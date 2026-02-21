@@ -32,6 +32,7 @@ export interface MealPlanEntry {
   proteinGrams: number | null;
   carbGrams: number | null;
   fatGrams: number | null;
+  completedDate: string | null;
 }
 
 export interface MealPlanExclusion {

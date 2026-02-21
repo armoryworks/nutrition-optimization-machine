@@ -42,5 +42,13 @@ namespace Nom.Data.Plan
 
         [MaxLength(255)]
         public string? Title { get; set; }
+
+        /// <summary>
+        /// The date when this meal was actually prepared/cooked.
+        /// Used to trigger pantry deductions when a meal is completed.
+        /// Null means the meal has not been completed yet.
+        /// </summary>
+        [Column(TypeName = "date")]
+        public DateOnly? CompletedDate { get; set; }
     }
 }

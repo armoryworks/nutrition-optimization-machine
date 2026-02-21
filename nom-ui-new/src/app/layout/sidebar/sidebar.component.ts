@@ -24,6 +24,22 @@ export class Sidebar implements OnInit {
 
   weekData = signal<MealPlanWeekResponse | null>(null);
 
+  upcomingShoppingSummary = computed(() => {
+    const data = this.weekData();
+    if (!data) return null;
+    const todayStr = Sidebar.toDateString(new Date());
+    const recipeIds = new Set<number>();
+    for (const day of data.days) {
+      if (day.date < todayStr) continue;
+      for (const cell of day.cells) {
+        for (const entry of cell.entries) {
+          if (entry.recipeId) recipeIds.add(entry.recipeId);
+        }
+      }
+    }
+    return recipeIds.size > 0 ? recipeIds.size : 0;
+  });
+
   upcomingMeals = computed<UpcomingMeal[]>(() => {
     const data = this.weekData();
     if (!data) return [];

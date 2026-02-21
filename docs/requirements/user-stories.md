@@ -1136,6 +1136,71 @@ Each story follows the format:
 
 ---
 
+## 8A. Pantry & Inventory
+
+### US-PANTRY-001: View Pantry Inventory
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to see what ingredients I currently have on hand in my household's pantry so that I know what's available before shopping.
+
+**Route**: `/pantry`
+
+**Acceptance Criteria**:
+1. List all pantry items with ingredient name, quantity, unit, department, acquisition date, and expiration date
+2. Visual warning for items expiring within 3 days
+3. Items grouped or sortable by department
+4. Show item status (In Pantry, Expired)
+5. Empty state directs user to add items or complete a shopping trip
+
+### US-PANTRY-002: Add Pantry Item
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to add ingredients to my pantry so that the shopping list accounts for what I already have.
+
+**Acceptance Criteria**:
+1. Search/select ingredient from existing ingredient database
+2. Specify quantity and unit of measure
+3. Expiration date auto-computed from department-based shelf life defaults
+4. User can override the auto-computed expiration date
+5. Item appears in pantry immediately after adding
+
+### US-PANTRY-003: Pantry-Aware Shopping List
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want my shopping list to only show ingredients I actually need to buy, subtracting what I already have in the pantry.
+
+**Acceptance Criteria**:
+1. Shopping list = ingredients needed for upcoming meals minus pantry stock (not expired)
+2. Unit conversion handles different measurement units (e.g., 2 cups pantry stock vs 500ml needed)
+3. Items with sufficient pantry stock are excluded from the shopping list
+4. Items with partial pantry stock show only the remaining quantity needed
+5. Expired pantry items do not count toward on-hand stock
+
+### US-PANTRY-004: Meal Completion & Pantry Deduction
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want to mark a meal as cooked so that the recipe's ingredients are deducted from my pantry.
+
+**Acceptance Criteria**:
+1. "Mark as cooked" action on meal plan cells
+2. Deducts recipe ingredient quantities from pantry stock
+3. Completed meals show visual indicator on the plan calendar
+4. Pantry quantities decrease proportionally
+5. CompletedDate recorded on the meal plan entry
+
+### US-PANTRY-005: Perishability & Expiration
+
+**Role**: Authenticated User
+**Story**: As a logged-in user, I want perishable items (produce, meat) to automatically expire based on their category so that the shopping list reminds me to buy fresh items.
+
+**Acceptance Criteria**:
+1. Department-based default shelf life (Produce 5 days, Meat 3 days, Dairy 10 days, Grains 180 days, etc.)
+2. Expired items automatically excluded from pantry stock calculations
+3. Visual warning on pantry page for items expiring soon
+4. User can manually override expiration dates
+
+---
+
 ## 9. Meal Planning
 
 ### US-MP-001: Unified Meal Plan Page

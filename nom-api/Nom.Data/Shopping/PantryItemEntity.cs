@@ -1,7 +1,7 @@
 using System; // Required for DateOnly
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Nom.Data.Plan;     // Required for PlanEntity
+using Nom.Data.Plan;     // Required for PlanEntity, HouseholdEntity
 using Nom.Data.Recipe;    // Required for IngredientEntity
 using Nom.Data.Reference; // Required for ItemStatusType
 using Nom.Data.Measurement; // Required for Measurement
@@ -17,6 +17,18 @@ namespace Nom.Data.Shopping // Namespace remains Shopping
     [Table("PantryItem", Schema = "shopping")] // Table name capitalized, schema lowercase
     public class PantryItemEntity : BaseEntity
     {
+        /// <summary>
+        /// Foreign key to the Household entity. Allows direct household scoping
+        /// without navigating through Plan. Nullable for backward compatibility.
+        /// </summary>
+        public long? HouseholdId { get; set; }
+
+        /// <summary>
+        /// Navigation property to the associated HouseholdEntity.
+        /// </summary>
+        [ForeignKey(nameof(HouseholdId))]
+        public virtual HouseholdEntity? Household { get; set; }
+
         /// <summary>
         /// Foreign key to the Plan entity this item is associated with.
         /// This represents the inventory (pantry stock and shopping list items) for a given plan.

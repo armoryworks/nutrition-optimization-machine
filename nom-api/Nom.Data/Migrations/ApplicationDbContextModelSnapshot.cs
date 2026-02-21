@@ -1649,6 +1649,9 @@ namespace Nom.Data.Migrations
                     b.Property<long>("AuthorId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateOnly?>("CompletedDate")
+                        .HasColumnType("date");
+
                     b.Property<long?>("CreatedByPersonId")
                         .HasColumnType("bigint");
 
@@ -3336,6 +3339,65 @@ namespace Nom.Data.Migrations
                     b.ToTable("Group", "reference");
                 });
 
+            modelBuilder.Entity("Nom.Data.Reference.RetailPackagingEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("CreatedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IngredientPattern")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("LastModifiedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PackageName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("PackageSize")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("PackageSizeUnit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SizeCategory")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("SizeInBaseUnits")
+                        .HasColumnType("decimal(12,4)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RetailPackaging", "reference");
+                });
+
             modelBuilder.Entity("Nom.Data.Shopping.PantryItemEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -3355,6 +3417,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateOnly?>("ExpectedExpirationDate")
                         .HasColumnType("date");
+
+                    b.Property<long?>("HouseholdId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
@@ -3389,6 +3454,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId");
 
                     b.HasIndex("IngredientId");
 
@@ -5273,6 +5340,10 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Shopping.PantryItemEntity", b =>
                 {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId");
+
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
@@ -5300,6 +5371,8 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Shopping.ShoppingTripEntity", "ShoppingTrip")
                         .WithMany()
                         .HasForeignKey("ShoppingTripId");
+
+                    b.Navigation("Household");
 
                     b.Navigation("Ingredient");
 

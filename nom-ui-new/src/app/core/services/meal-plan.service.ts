@@ -56,4 +56,8 @@ export class MealPlanService {
   shuffle(request: MealPlanShuffleRequest): Observable<MealPlanShuffleResponse> {
     return this.http.post<MealPlanShuffleResponse>(`${this.apiUrl}/shuffle`, request);
   }
+
+  completeMealPlan(id: number): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.apiUrl}/${id}/complete`, {});
+  }
 }

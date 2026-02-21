@@ -49,6 +49,16 @@ if exist "%MIGRATIONS_DIR%" (
 mkdir "%MIGRATIONS_DIR%"
 echo Migrations folder reset.
 
+REM --- Step 3.5: Ensure dotnet-ef tool is installed ---
+echo.
+echo [3.5/8] Ensuring dotnet-ef tool is installed in container...
+docker exec %API_CONTAINER% sh -c "export PATH=\"$PATH:$HOME/.dotnet/tools\" && dotnet ef --version" >nul 2>&1
+if errorlevel 1 (
+    echo Installing dotnet-ef tool...
+    docker exec %API_CONTAINER% sh -c "dotnet tool install --global dotnet-ef"
+)
+echo dotnet-ef ready.
+
 REM --- Step 4: Build the solution ---
 echo.
 echo [4/8] Cleaning build artifacts and building solution...

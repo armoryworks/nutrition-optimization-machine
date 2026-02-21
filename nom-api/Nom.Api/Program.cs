@@ -80,6 +80,9 @@ builder.Services.Configure<FormOptions>(options =>
 
 builder.Services.AddMemoryCache();
 
+builder.Services.Configure<Nom.Orch.Models.Shopping.RetailPackagingLookupSettings>(
+    builder.Configuration.GetSection("RetailPackagingLookup"));
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
                         b => b.MigrationsAssembly("Nom.Data")));

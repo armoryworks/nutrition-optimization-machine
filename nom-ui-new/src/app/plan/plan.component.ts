@@ -19,7 +19,7 @@ import { HouseholdService } from '../core/services/household.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PlanModel } from '../core/models/plan.model';
 import { HouseholdResponseModel, HouseholdMemberResponseModel } from '../core/models/household.model';
-import { MealPlanWeekResponse, MealPlanDay, MealPlanCell, MealPlanExclusion } from '../core/models/meal-plan.model';
+import { MealPlanWeekResponse, MealPlanDay, MealPlanCell, MealPlanEntry, MealPlanExclusion } from '../core/models/meal-plan.model';
 import { RestrictionRequest } from '../core/models/person.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleConfirmDialog, ShuffleConfirmResult } from './shuffle-confirm-dialog.component';
@@ -381,6 +381,22 @@ export class Plan implements OnInit {
       error: () => {
         this.loading.set(false);
         this.errorMessage.set('Unable to create plan. Please try again.');
+      },
+    });
+  }
+
+  // --- Meal completion ---
+
+  completeMeal(event: Event, entry: MealPlanEntry): void {
+    event.stopPropagation(); // Prevent cell click from opening recipe dialog
+
+    this.mealPlanService.completeMealPlan(entry.id).subscribe({
+      next: () => {
+        // Update the entry in-place to show completed state
+        entry.completedDate = Plan.toDateString(new Date());
+      },
+      error: () => {
+        this.errorMessage.set('Failed to mark meal as cooked.');
       },
     });
   }

@@ -127,6 +127,7 @@ namespace Nom.Data
         #region Reference
         public DbSet<ReferenceGroupEntity> ReferenceGroups { get; set; } = default!;
         public DbSet<ReferenceEntity> References { get; set; } = default!;
+        public DbSet<RetailPackagingEntity> RetailPackagings { get; set; } = default!;
 
         public DbSet<MealTypeViewEntity> MealTypes { get; set; } = default!;
         public DbSet<RecipeTypeViewEntity> RecipeTypes { get; set; } = default!;
@@ -231,6 +232,7 @@ namespace Nom.Data
             #region Reference Namespace Fluent API Configurations
             modelBuilder.Entity<ReferenceGroupEntity>().ToTable("Group", schema: "reference");
             modelBuilder.Entity<ReferenceEntity>().ToTable("Reference", schema: "reference");
+            modelBuilder.Entity<RetailPackagingEntity>().ToTable("RetailPackaging", schema: "reference");
 
             modelBuilder.Entity<ReferenceEntity>()
                 .HasMany(r => r.Groups)

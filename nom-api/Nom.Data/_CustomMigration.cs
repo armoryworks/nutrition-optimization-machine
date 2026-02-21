@@ -86,6 +86,19 @@ namespace Nom.Data
         private const long DefaultHouseholdGroupId = 1L;
         private const long DefaultShoppingListGroupId = 1L;
 
+        // --- Shopping Status Type IDs (400L series, GroupId 4 = ShoppingStatusType) ---
+        private const long ShoppingStatusPlannedId = 400L;
+        private const long ShoppingStatusInProgressId = 401L;
+        private const long ShoppingStatusCompletedId = 402L;
+        private const long ShoppingStatusCancelledId = 403L;
+
+        // --- Item Status Type IDs (500L series, GroupId 5 = ItemStatusType) ---
+        private const long ItemStatusOnShoppingListId = 500L;
+        private const long ItemStatusAcquiredId = 501L;
+        private const long ItemStatusInPantryId = 502L;
+        private const long ItemStatusUsedId = 503L;
+        private const long ItemStatusExpiredId = 504L;
+
         // --- Privacy Consent Type IDs (8xxxL series) ---
         private const long PrivacyConsentTypeAnalyticsId = 8000L;
         private const long PrivacyConsentTypeMarketingId = 8001L;
@@ -274,10 +287,14 @@ namespace Nom.Data
             AssignRecipeTypesToSeedRecipes(migrationBuilder);
 
             SeedExtendedRecipes(migrationBuilder);
+
+            AddRetailPackaging(migrationBuilder);
         }
 
         public static void ApplyCustomDownOperations(this MigrationBuilder migrationBuilder)
         {
+            RemoveRetailPackaging(migrationBuilder);
+
             RemoveExtendedRecipes(migrationBuilder);
 
             RemoveRecipeTypeAssignments(migrationBuilder);
@@ -556,6 +573,339 @@ namespace Nom.Data
                 keyValues: new object[] {
                     RecipeTypeAppetizerId, RecipeTypeEntreeId, RecipeTypeStarchId,
                     RecipeTypeVegetableId, RecipeTypeSnackId, RecipeTypeDessertId });
+        }
+
+        public static void AddShoppingStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingStatusType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { ShoppingStatusPlannedId, "Planned", "Shopping trip is planned but not yet started", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingStatusInProgressId, "In Progress", "Shopping trip is currently underway", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingStatusCompletedId, "Completed", "Shopping trip has been completed", DateTime.UtcNow, SystemPersonId },
+                    { ShoppingStatusCancelledId, "Cancelled", "Shopping trip was cancelled", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] ids = new long[] {
+                ShoppingStatusPlannedId, ShoppingStatusInProgressId,
+                ShoppingStatusCompletedId, ShoppingStatusCancelledId
+            };
+            foreach (long id in ids)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveShoppingStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ShoppingStatusType;
+            long[] ids = new long[] {
+                ShoppingStatusPlannedId, ShoppingStatusInProgressId,
+                ShoppingStatusCompletedId, ShoppingStatusCancelledId
+            };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[] {
+                    ShoppingStatusPlannedId, ShoppingStatusInProgressId,
+                    ShoppingStatusCompletedId, ShoppingStatusCancelledId });
+        }
+
+        public static void AddItemStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ItemStatusType;
+            migrationBuilder.InsertData(
+                schema: "reference",
+                table: "Reference",
+                columns: new[] { "Id", "Name", "Description", "CreatedDate", "CreatedByPersonId" },
+                values: new object[,]
+                {
+                    { ItemStatusOnShoppingListId, "On Shopping List", "Item is on the shopping list, not yet acquired", DateTime.UtcNow, SystemPersonId },
+                    { ItemStatusAcquiredId, "Acquired", "Item has been purchased but not yet stocked", DateTime.UtcNow, SystemPersonId },
+                    { ItemStatusInPantryId, "In Pantry", "Item is currently in the pantry and available for use", DateTime.UtcNow, SystemPersonId },
+                    { ItemStatusUsedId, "Used", "Item has been consumed or used in a recipe", DateTime.UtcNow, SystemPersonId },
+                    { ItemStatusExpiredId, "Expired", "Item has expired and is no longer usable", DateTime.UtcNow, SystemPersonId }
+                });
+
+            long[] ids = new long[] {
+                ItemStatusOnShoppingListId, ItemStatusAcquiredId, ItemStatusInPantryId,
+                ItemStatusUsedId, ItemStatusExpiredId
+            };
+            foreach (long id in ids)
+            {
+                migrationBuilder.InsertData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    columns: new[] { "ReferenceId", "GroupId" },
+                    values: new object[] { id, groupId });
+            }
+        }
+
+        public static void RemoveItemStatusTypes(MigrationBuilder migrationBuilder)
+        {
+            long groupId = (long)ReferenceDiscriminatorEnum.ItemStatusType;
+            long[] ids = new long[] {
+                ItemStatusOnShoppingListId, ItemStatusAcquiredId, ItemStatusInPantryId,
+                ItemStatusUsedId, ItemStatusExpiredId
+            };
+            foreach (long id in ids)
+            {
+                migrationBuilder.DeleteData(
+                    schema: "reference",
+                    table: "ReferenceIndex",
+                    keyColumns: new[] { "ReferenceId", "GroupId" },
+                    keyValues: new object[] { id, groupId });
+            }
+            migrationBuilder.DeleteData(
+                schema: "reference",
+                table: "Reference",
+                keyColumn: "Id",
+                keyValues: new object[] {
+                    ItemStatusOnShoppingListId, ItemStatusAcquiredId, ItemStatusInPantryId,
+                    ItemStatusUsedId, ItemStatusExpiredId });
+        }
+
+        public static void AddRetailPackaging(MigrationBuilder migrationBuilder)
+        {
+            // Canned Goods (10000-10009)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10000, 'coconut milk', 'can', 13.50, 'fl oz', 'volume', 399.2490, true, 'seed', NOW(), 1),
+                (10001, 'coconut cream', 'can', 13.50, 'fl oz', 'volume', 399.2490, true, 'seed', NOW(), 1),
+                (10002, 'diced tomato', 'can', 14.50, 'oz', 'mass', 411.0678, true, 'seed', NOW(), 1),
+                (10003, 'crushed tomato', 'can', 28.00, 'oz', 'mass', 793.7860, true, 'seed', NOW(), 1),
+                (10004, 'tomato paste', 'can', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1),
+                (10005, 'tomato sauce', 'can', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10006, 'chickpea', 'can', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10007, 'black bean', 'can', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10008, 'kidney bean', 'can', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10009, 'corn kernels', 'can', 15.25, 'oz', 'mass', 432.3299, true, 'seed', NOW(), 1);
+            ");
+
+            // Broth/Stock (10020-10024)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10020, 'chicken broth', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1),
+                (10021, 'vegetable broth', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1),
+                (10022, 'beef broth', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1),
+                (10023, 'chicken stock', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1),
+                (10024, 'bone broth', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1);
+            ");
+
+            // Pasta (10030-10039)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10030, 'spaghetti', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10031, 'penne', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10032, 'linguine', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10033, 'fettuccine', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10034, 'macaroni', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10035, 'rigatoni', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10036, 'farfalle', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10037, 'angel hair', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10038, 'lasagna', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10039, 'ramen', 'pack', 3.00, 'oz', 'mass', 85.0485, true, 'seed', NOW(), 1);
+            ");
+
+            // Rice/Grains (10040-10049)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10040, 'jasmine rice', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10041, 'white rice', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10042, 'brown rice', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10043, 'basmati rice', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10044, 'quinoa', 'bag', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10045, 'couscous', 'box', 10.00, 'oz', 'mass', 283.4950, true, 'seed', NOW(), 1),
+                (10046, 'barley', 'bag', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10047, 'oats', 'container', 18.00, 'oz', 'mass', 510.2910, true, 'seed', NOW(), 1),
+                (10048, 'granola', 'bag', 12.00, 'oz', 'mass', 340.1940, true, 'seed', NOW(), 1),
+                (10049, 'lentil', 'bag', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1);
+            ");
+
+            // Dairy (10050-10068)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10050, 'unsalted butter', 'stick', 4.00, 'oz', 'mass', 113.3980, true, 'seed', NOW(), 1),
+                (10051, 'butter', 'stick', 4.00, 'oz', 'mass', 113.3980, true, 'seed', NOW(), 1),
+                (10052, 'cream cheese', 'block', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10053, 'sour cream', 'container', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10054, 'greek yogurt', 'tub', 32.00, 'oz', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10055, 'whole milk', 'carton', 64.00, 'fl oz', 'volume', 1892.7360, true, 'seed', NOW(), 1),
+                (10056, 'heavy cream', 'carton', 16.00, 'fl oz', 'volume', 473.1840, true, 'seed', NOW(), 1),
+                (10057, 'half and half', 'carton', 16.00, 'fl oz', 'volume', 473.1840, true, 'seed', NOW(), 1),
+                (10058, 'feta cheese', 'container', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1),
+                (10059, 'parmesan cheese', 'wedge', 5.00, 'oz', 'mass', 141.7475, true, 'seed', NOW(), 1),
+                (10060, 'fresh mozzarella', 'ball', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10061, 'mozzarella', 'bag', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10062, 'cheddar cheese', 'block', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10063, 'ricotta', 'container', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10064, 'egg', 'dozen', 12.00, 'ct', 'count', 12.0000, true, 'seed', NOW(), 1),
+                (10065, 'whipped cream', 'can', 6.50, 'oz', 'mass', 184.2718, true, 'seed', NOW(), 1),
+                (10066, 'buttermilk', 'carton', 32.00, 'fl oz', 'volume', 946.3680, true, 'seed', NOW(), 1),
+                (10067, 'goat cheese', 'log', 4.00, 'oz', 'mass', 113.3980, true, 'seed', NOW(), 1),
+                (10068, 'gruyere', 'wedge', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1);
+            ");
+
+            // Bakery (10070-10079)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10070, 'sourdough bread', 'loaf', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10071, 'bread', 'loaf', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10072, 'flour tortilla', 'pack', 10.00, 'ct', 'count', 10.0000, true, 'seed', NOW(), 1),
+                (10073, 'corn tortilla', 'pack', 30.00, 'ct', 'count', 30.0000, true, 'seed', NOW(), 1),
+                (10074, 'tortilla', 'pack', 10.00, 'ct', 'count', 10.0000, true, 'seed', NOW(), 1),
+                (10075, 'pita', 'pack', 6.00, 'ct', 'count', 6.0000, true, 'seed', NOW(), 1),
+                (10076, 'naan', 'pack', 4.00, 'ct', 'count', 4.0000, true, 'seed', NOW(), 1),
+                (10077, 'english muffin', 'pack', 6.00, 'ct', 'count', 6.0000, true, 'seed', NOW(), 1),
+                (10078, 'bagel', 'pack', 6.00, 'ct', 'count', 6.0000, true, 'seed', NOW(), 1),
+                (10079, 'hamburger bun', 'pack', 8.00, 'ct', 'count', 8.0000, true, 'seed', NOW(), 1);
+            ");
+
+            // Oils (10080-10085)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10080, 'olive oil', 'bottle', 16.90, 'fl oz', 'volume', 499.8006, true, 'seed', NOW(), 1),
+                (10081, 'vegetable oil', 'bottle', 48.00, 'fl oz', 'volume', 1419.5520, true, 'seed', NOW(), 1),
+                (10082, 'canola oil', 'bottle', 48.00, 'fl oz', 'volume', 1419.5520, true, 'seed', NOW(), 1),
+                (10083, 'coconut oil', 'jar', 14.00, 'fl oz', 'volume', 414.0360, true, 'seed', NOW(), 1),
+                (10084, 'sesame oil', 'bottle', 8.00, 'fl oz', 'volume', 236.5920, true, 'seed', NOW(), 1),
+                (10085, 'avocado oil', 'bottle', 16.90, 'fl oz', 'volume', 499.8006, true, 'seed', NOW(), 1);
+            ");
+
+            // Vinegars (10090-10094)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10090, 'balsamic vinegar', 'bottle', 16.90, 'fl oz', 'volume', 499.8006, true, 'seed', NOW(), 1),
+                (10091, 'rice vinegar', 'bottle', 12.00, 'fl oz', 'volume', 354.8880, true, 'seed', NOW(), 1),
+                (10092, 'apple cider vinegar', 'bottle', 16.00, 'fl oz', 'volume', 473.1840, true, 'seed', NOW(), 1),
+                (10093, 'red wine vinegar', 'bottle', 16.00, 'fl oz', 'volume', 473.1840, true, 'seed', NOW(), 1),
+                (10094, 'white wine vinegar', 'bottle', 16.00, 'fl oz', 'volume', 473.1840, true, 'seed', NOW(), 1);
+            ");
+
+            // Condiments (10100-10118)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10100, 'soy sauce', 'bottle', 10.00, 'fl oz', 'volume', 295.7400, true, 'seed', NOW(), 1),
+                (10101, 'honey', 'bottle', 12.00, 'oz', 'mass', 340.1940, true, 'seed', NOW(), 1),
+                (10102, 'maple syrup', 'bottle', 12.00, 'fl oz', 'volume', 354.8880, true, 'seed', NOW(), 1),
+                (10103, 'dijon mustard', 'jar', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10104, 'mustard', 'bottle', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10105, 'ketchup', 'bottle', 20.00, 'oz', 'mass', 566.9900, true, 'seed', NOW(), 1),
+                (10106, 'mayo', 'jar', 15.00, 'fl oz', 'volume', 443.6100, true, 'seed', NOW(), 1),
+                (10107, 'mayonnaise', 'jar', 15.00, 'fl oz', 'volume', 443.6100, true, 'seed', NOW(), 1),
+                (10108, 'hot sauce', 'bottle', 5.00, 'fl oz', 'volume', 147.8700, true, 'seed', NOW(), 1),
+                (10109, 'sriracha', 'bottle', 9.00, 'fl oz', 'volume', 266.1660, true, 'seed', NOW(), 1),
+                (10110, 'peanut butter', 'jar', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10111, 'almond butter', 'jar', 12.00, 'oz', 'mass', 340.1940, true, 'seed', NOW(), 1),
+                (10112, 'tahini', 'jar', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10113, 'fish sauce', 'bottle', 8.50, 'fl oz', 'volume', 251.3790, true, 'seed', NOW(), 1),
+                (10114, 'worcestershire', 'bottle', 10.00, 'fl oz', 'volume', 295.7400, true, 'seed', NOW(), 1),
+                (10115, 'teriyaki', 'bottle', 10.00, 'fl oz', 'volume', 295.7400, true, 'seed', NOW(), 1),
+                (10116, 'hoisin', 'bottle', 8.00, 'fl oz', 'volume', 236.5920, true, 'seed', NOW(), 1),
+                (10117, 'barbecue sauce', 'bottle', 18.00, 'oz', 'mass', 510.2910, true, 'seed', NOW(), 1),
+                (10118, 'salsa', 'jar', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1);
+            ");
+
+            // Baking (10120-10133)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10120, 'all-purpose flour', 'bag', 5.00, 'lb', 'mass', 2267.9600, true, 'seed', NOW(), 1),
+                (10121, 'flour', 'bag', 5.00, 'lb', 'mass', 2267.9600, true, 'seed', NOW(), 1),
+                (10122, 'sugar', 'bag', 4.00, 'lb', 'mass', 1814.3680, true, 'seed', NOW(), 1),
+                (10123, 'brown sugar', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10124, 'powdered sugar', 'bag', 2.00, 'lb', 'mass', 907.1840, true, 'seed', NOW(), 1),
+                (10125, 'baking soda', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10126, 'baking powder', 'can', 8.10, 'oz', 'mass', 229.6310, true, 'seed', NOW(), 1),
+                (10127, 'vanilla extract', 'bottle', 2.00, 'fl oz', 'volume', 59.1480, true, 'seed', NOW(), 1),
+                (10128, 'chocolate chip', 'bag', 12.00, 'oz', 'mass', 340.1940, true, 'seed', NOW(), 1),
+                (10129, 'cocoa powder', 'container', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10130, 'cornstarch', 'box', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10131, 'almond flour', 'bag', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10132, 'breadcrumb', 'container', 15.00, 'oz', 'mass', 425.2425, true, 'seed', NOW(), 1),
+                (10133, 'panko', 'bag', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1);
+            ");
+
+            // Produce - Packaged (10140-10159)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10140, 'baby spinach', 'bag', 5.00, 'oz', 'mass', 141.7475, true, 'seed', NOW(), 1),
+                (10141, 'spinach', 'bag', 5.00, 'oz', 'mass', 141.7475, true, 'seed', NOW(), 1),
+                (10142, 'arugula', 'bag', 5.00, 'oz', 'mass', 141.7475, true, 'seed', NOW(), 1),
+                (10143, 'kale', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10144, 'romaine lettuce', 'head', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10145, 'cherry tomato', 'pint', 10.50, 'oz', 'mass', 297.6698, true, 'seed', NOW(), 1),
+                (10146, 'grape tomato', 'pint', 10.50, 'oz', 'mass', 297.6698, true, 'seed', NOW(), 1),
+                (10147, 'blueberry', 'pint', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1),
+                (10148, 'strawberry', 'container', 16.00, 'oz', 'mass', 453.5920, true, 'seed', NOW(), 1),
+                (10149, 'raspberry', 'container', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1),
+                (10150, 'mushroom', 'container', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10151, 'fresh ginger', 'knob', 2.00, 'oz', 'mass', 56.6990, true, 'seed', NOW(), 1),
+                (10152, 'fresh basil', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10153, 'fresh cilantro', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10154, 'fresh parsley', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10155, 'fresh thyme', 'pack', 0.66, 'oz', 'mass', 18.7067, true, 'seed', NOW(), 1),
+                (10156, 'fresh rosemary', 'pack', 0.75, 'oz', 'mass', 21.2621, true, 'seed', NOW(), 1),
+                (10157, 'fresh dill', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10158, 'fresh mint', 'bunch', 1.00, 'ct', 'count', 1.0000, true, 'seed', NOW(), 1),
+                (10159, 'blackberry', 'container', 6.00, 'oz', 'mass', 170.0970, true, 'seed', NOW(), 1);
+            ");
+
+            // Spices (10160-10177)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10160, 'black pepper', 'grinder', 1.50, 'oz', 'mass', 42.5243, true, 'seed', NOW(), 1),
+                (10161, 'salt', 'container', 26.00, 'oz', 'mass', 737.0870, true, 'seed', NOW(), 1),
+                (10162, 'cumin', 'jar', 1.70, 'oz', 'mass', 48.1942, true, 'seed', NOW(), 1),
+                (10163, 'paprika', 'jar', 2.10, 'oz', 'mass', 59.5340, true, 'seed', NOW(), 1),
+                (10164, 'smoked paprika', 'jar', 2.10, 'oz', 'mass', 59.5340, true, 'seed', NOW(), 1),
+                (10165, 'chili powder', 'jar', 2.50, 'oz', 'mass', 70.8738, true, 'seed', NOW(), 1),
+                (10166, 'cayenne', 'jar', 1.75, 'oz', 'mass', 49.6116, true, 'seed', NOW(), 1),
+                (10167, 'cinnamon', 'jar', 2.37, 'oz', 'mass', 67.1883, true, 'seed', NOW(), 1),
+                (10168, 'turmeric', 'jar', 1.70, 'oz', 'mass', 48.1942, true, 'seed', NOW(), 1),
+                (10169, 'garlic powder', 'jar', 3.12, 'oz', 'mass', 88.4505, true, 'seed', NOW(), 1),
+                (10170, 'onion powder', 'jar', 2.62, 'oz', 'mass', 74.2557, true, 'seed', NOW(), 1),
+                (10171, 'italian seasoning', 'jar', 0.87, 'oz', 'mass', 24.6441, true, 'seed', NOW(), 1),
+                (10172, 'curry powder', 'jar', 2.00, 'oz', 'mass', 56.6990, true, 'seed', NOW(), 1),
+                (10173, 'red pepper flake', 'jar', 1.50, 'oz', 'mass', 42.5243, true, 'seed', NOW(), 1),
+                (10174, 'oregano', 'jar', 0.75, 'oz', 'mass', 21.2621, true, 'seed', NOW(), 1),
+                (10175, 'bay leaf', 'jar', 0.12, 'oz', 'mass', 3.4019, true, 'seed', NOW(), 1),
+                (10176, 'nutmeg', 'jar', 1.10, 'oz', 'mass', 31.1845, true, 'seed', NOW(), 1),
+                (10177, 'coriander', 'jar', 0.87, 'oz', 'mass', 24.6441, true, 'seed', NOW(), 1);
+            ");
+
+            // Other (10180-10183)
+            migrationBuilder.Sql(@"
+                INSERT INTO reference.""RetailPackaging"" (""Id"", ""IngredientPattern"", ""PackageName"", ""PackageSize"", ""PackageSizeUnit"", ""SizeCategory"", ""SizeInBaseUnits"", ""IsDefault"", ""Source"", ""CreatedDate"", ""CreatedByPersonId"") VALUES
+                (10180, 'cracker', 'box', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1),
+                (10181, 'tortilla chip', 'bag', 13.00, 'oz', 'mass', 368.5435, true, 'seed', NOW(), 1),
+                (10182, 'tofu', 'block', 14.00, 'oz', 'mass', 396.8930, true, 'seed', NOW(), 1),
+                (10183, 'tempeh', 'package', 8.00, 'oz', 'mass', 226.7960, true, 'seed', NOW(), 1);
+            ");
+
+            // Reset the identity sequence to be safe
+            migrationBuilder.Sql(@"SELECT setval(pg_get_serial_sequence('reference.""RetailPackaging""', 'Id'), (SELECT COALESCE(MAX(""Id""), 1) FROM reference.""RetailPackaging""));");
+        }
+
+        public static void RemoveRetailPackaging(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql(@"DELETE FROM reference.""RetailPackaging"" WHERE ""Source"" = 'seed';");
         }
 
         public static void AssignRecipeTypesToSeedRecipes(MigrationBuilder migrationBuilder)

@@ -170,10 +170,50 @@
   align-items: center;
   gap: vars.$spacing-1;
   width: 100%;
+  position: relative;
 
   & + & {
     margin-top: 2px;
   }
+
+  &--completed {
+    opacity: 0.6;
+
+    .nom-plan__cell-recipe {
+      text-decoration: line-through;
+    }
+  }
+}
+
+.nom-plan__cell-complete {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity vars.$transition-duration-fast;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: var(--mat-sys-primary);
+  }
+
+  .nom-plan__cell:hover & {
+    opacity: 1;
+  }
+}
+
+.nom-plan__cell-done {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--mat-sys-primary);
 }
 
 .nom-plan__cell-thumb {

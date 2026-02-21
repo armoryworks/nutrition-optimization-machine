@@ -28,16 +28,23 @@
   </div>
 </section>
 
-<section class="nom-sidebar-panel" data-testid="sidebar-shopping-lists">
+<section class="nom-sidebar-panel" data-testid="sidebar-shopping">
   <div class="nom-sidebar-panel__header">
     <mat-icon class="nom-sidebar-panel__icon">shopping_cart</mat-icon>
-    <h3 class="nom-sidebar-panel__title">Shopping Lists</h3>
+    <h3 class="nom-sidebar-panel__title">Shopping</h3>
   </div>
   <div class="nom-sidebar-panel__body">
-    <div class="nom-sidebar-panel__empty">
-      <span class="nom-sidebar-panel__empty-text">No active shopping lists</span>
-      <a class="nom-sidebar-panel__link" routerLink="/plan">View all lists &rarr;</a>
-    </div>
+    @if (upcomingShoppingSummary(); as recipeCount) {
+      <p class="nom-sidebar-panel__shopping-summary">
+        Shopping for {{ recipeCount }} upcoming recipe{{ recipeCount === 1 ? '' : 's' }}
+      </p>
+      <a class="nom-sidebar-panel__link" routerLink="/shopping">View shopping list &rarr;</a>
+    } @else {
+      <div class="nom-sidebar-panel__empty">
+        <span class="nom-sidebar-panel__empty-text">No upcoming recipes to shop for</span>
+        <a class="nom-sidebar-panel__link" routerLink="/plan">Plan meals &rarr;</a>
+      </div>
+    }
   </div>
 </section>
 
@@ -56,7 +63,11 @@
         <mat-icon>restaurant_menu</mat-icon>
         <span>New Recipe</span>
       </a>
-      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/plan">
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/pantry">
+        <mat-icon>kitchen</mat-icon>
+        <span>Pantry</span>
+      </a>
+      <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/shopping">
         <mat-icon>shopping_cart</mat-icon>
         <span>Shop</span>
       </a>

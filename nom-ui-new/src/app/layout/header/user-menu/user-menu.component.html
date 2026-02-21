@@ -15,6 +15,14 @@
       <mat-icon>calendar_month</mat-icon>
       <span>Meal Plan</span>
     </a>
+    <a class="nom-user-menu__item" routerLink="/pantry" (click)="closed.emit()">
+      <mat-icon>kitchen</mat-icon>
+      <span>Pantry</span>
+    </a>
+    <a class="nom-user-menu__item" routerLink="/shopping" (click)="closed.emit()">
+      <mat-icon>shopping_cart</mat-icon>
+      <span>Shopping</span>
+    </a>
     <a class="nom-user-menu__item" routerLink="/household" (click)="closed.emit()">
       <mat-icon>group</mat-icon>
       <span>Household</span>
