@@ -294,5 +294,119 @@ else
     echo "Database migration applied successfully."
 fi
 
-echo "Database and migration reset complete!"
-echo "You can now run your API project."
+# ═══════════════════════════════════════════════════
+#  INGREDIENT IMPORT (Steps 9-12)
+# ═══════════════════════════════════════════════════
+
+REPO_ROOT=$(dirname "$SOLUTION_ROOT")
+DATA_DIR="${REPO_ROOT}/data-analysis"
+USDA_SOURCE_DIR="${DATA_DIR}/usda-source"
+OFF_DIR="${DATA_DIR}/off"
+ETL_OUTPUT_DIR="${DATA_DIR}/etl/output"
+USDA_VERSION="${USDA_VERSION:-FoodData_Central_csv_2025-12-18}"
+USDA_URL="https://fdc.nal.usda.gov/fdc-datasets/${USDA_VERSION}.zip"
+OFF_URL="https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz"
+
+# 9. Download USDA data if missing
+echo ""
+echo "[9/12] Checking USDA source data..."
+if [ ! -f "${USDA_SOURCE_DIR}/food.csv" ]; then
+    echo "USDA data not found at ${USDA_SOURCE_DIR}. Downloading..."
+    mkdir -p "${USDA_SOURCE_DIR}"
+    USDA_ZIP="/tmp/${USDA_VERSION}.zip"
+    if [ ! -f "$USDA_ZIP" ]; then
+        echo "  Downloading ${USDA_URL}..."
+        curl -L -o "$USDA_ZIP" "$USDA_URL"
+        check_status "USDA download"
+    fi
+    echo "  Extracting to ${USDA_SOURCE_DIR}..."
+    unzip -o "$USDA_ZIP" -d "${USDA_SOURCE_DIR}"
+    check_status "USDA extraction"
+    # Flatten if zip contained a subdirectory
+    if [ -f "${USDA_SOURCE_DIR}/${USDA_VERSION}/food.csv" ]; then
+        mv "${USDA_SOURCE_DIR}/${USDA_VERSION}"/* "${USDA_SOURCE_DIR}/"
+        rmdir "${USDA_SOURCE_DIR}/${USDA_VERSION}"
+    fi
+    echo "USDA data ready."
+else
+    echo "USDA data found at ${USDA_SOURCE_DIR}."
+fi
+
+# 10. Download OFF data if missing
+echo ""
+echo "[10/12] Checking Open Food Facts data..."
+if [ ! -f "${OFF_DIR}/openfoodfacts-products.jsonl.gz" ]; then
+    echo "OFF data not found. Downloading (~10GB, this will take a while)..."
+    mkdir -p "${OFF_DIR}"
+    curl -L -o "${OFF_DIR}/openfoodfacts-products.jsonl.gz" "$OFF_URL"
+    check_status "OFF download"
+    echo "OFF data ready."
+else
+    echo "OFF data found."
+fi
+
+# 11. Run ETL
+echo ""
+echo "[11/12] Running combined ETL (USDA + OFF → CSVs)..."
+if ! command -v node &> /dev/null; then
+    echo "WARNING: Node.js not found. Skipping ETL and import." >&2
+    echo "Install Node.js to enable ingredient import."
+    echo "Database and migration reset complete (without ingredient import)."
+    exit 0
+fi
+
+USDA_BASE="${USDA_SOURCE_DIR}" node "${DATA_DIR}/etl/prepare_combined_import.js"
+check_status "ETL processing"
+
+if [ ! -f "${ETL_OUTPUT_DIR}/combined_food.csv" ]; then
+    echo "ERROR: ETL did not produce expected output files." >&2
+    exit 1
+fi
+echo "ETL complete. Output in ${ETL_OUTPUT_DIR}."
+
+# 11.5. Run retail packaging lookup (optional, skipped if output already exists)
+PACKAGING_LOOKUP_SQL="${ETL_OUTPUT_DIR}/packaging_lookup.sql"
+if [ ! -f "${PACKAGING_LOOKUP_SQL}" ]; then
+    echo ""
+    echo "[11.5/12] Running retail packaging lookup (Open Food Facts)..."
+    echo "  This queries OFF API for common retail package sizes."
+    echo "  Use --limit=N to control how many ingredients to look up."
+    PACKAGING_LIMIT="${PACKAGING_LIMIT:-100}"
+    node "${DATA_DIR}/etl/lookup_packaging.js" --limit="${PACKAGING_LIMIT}"
+    # Non-fatal: packaging lookup is optional
+    if [ $? -ne 0 ]; then
+        echo "WARNING: Packaging lookup had errors (non-fatal, continuing)." >&2
+    fi
+else
+    echo ""
+    echo "[11.5/12] Retail packaging lookup already exists, skipping."
+    echo "  Delete ${PACKAGING_LOOKUP_SQL} to regenerate."
+fi
+
+# 12. Run C# ingredient import
+echo ""
+echo "[12/12] Running ingredient import into database..."
+IMPORT_CONN="Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};UserID=${DB_USER};Password=${DB_PASSWORD}"
+
+dotnet run --project "${SOLUTION_ROOT}/Nom.Import" -- \
+    "--ConnectionStrings:NomConnection=${IMPORT_CONN}" \
+    "--ImportSettings:SourceDirectory=${ETL_OUTPUT_DIR}"
+check_status "Ingredient import"
+
+# 12.5. Import packaging lookup results if they exist
+if [ -f "${PACKAGING_LOOKUP_SQL}" ]; then
+    echo ""
+    echo "[12.5/12] Importing retail packaging lookup results..."
+    PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -f "${PACKAGING_LOOKUP_SQL}"
+    if [ $? -ne 0 ]; then
+        echo "WARNING: Packaging SQL import had errors (non-fatal)." >&2
+    else
+        echo "Packaging lookup results imported."
+    fi
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════"
+echo "  Database reset + migration + ingredient import complete!"
+echo "  You can now run your API project."
+echo "═══════════════════════════════════════════════════"

@@ -105,6 +105,60 @@ namespace Nom.Orch.Services
             return MapToResponse(created, DateOnly.FromDateTime(DateTime.UtcNow));
         }
 
+        public async Task<List<PantryItemResponseModel>> AddPantryItemsBatchAsync(List<PantryItemCreateModel> items)
+        {
+            if (items == null || items.Count == 0)
+                return new List<PantryItemResponseModel>();
+
+            // Look up the household's plan once (all items belong to same household)
+            var householdId = items[0].HouseholdId;
+            var household = await _context.Set<Nom.Data.Plan.HouseholdEntity>()
+                .Include(h => h.Plans)
+                .FirstOrDefaultAsync(h => h.Id == householdId);
+
+            if (household?.Plans.Any() != true)
+                throw new InvalidOperationException($"Household {householdId} has no associated plans. Create a plan first.");
+
+            var plan = household.Plans.First();
+            var now = DateTime.UtcNow;
+            var entities = new List<PantryItemEntity>();
+
+            foreach (var model in items)
+            {
+                var entity = new PantryItemEntity
+                {
+                    HouseholdId = model.HouseholdId,
+                    PlanId = plan.Id,
+                    IngredientId = model.IngredientId,
+                    Quantity = model.Quantity,
+                    MeasurementId = model.MeasurementId,
+                    ItemStatusTypeId = StatusInPantryId,
+                    AcquisitionDate = model.AcquisitionDate ?? DateOnly.FromDateTime(now),
+                    ExpectedExpirationDate = model.ExpectedExpirationDate,
+                    SourceLocation = model.SourceLocation,
+                    Notes = model.Notes,
+                    CreatedDate = now,
+                    LastModifiedDate = now
+                };
+                entities.Add(entity);
+                _context.PantryItems.Add(entity);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Reload all with includes
+            var ids = entities.Select(e => e.Id).ToList();
+            var created = await _context.PantryItems
+                .Include(p => p.Ingredient)
+                .Include(p => p.Measurement)
+                .Include(p => p.ItemStatusType)
+                .Where(p => ids.Contains(p.Id))
+                .ToListAsync();
+
+            var today = DateOnly.FromDateTime(now);
+            return created.Select(p => MapToResponse(p, today)).ToList();
+        }
+
         public async Task<PantryItemResponseModel?> UpdatePantryItemAsync(long id, PantryItemUpdateModel model)
         {
             var entity = await _context.PantryItems
