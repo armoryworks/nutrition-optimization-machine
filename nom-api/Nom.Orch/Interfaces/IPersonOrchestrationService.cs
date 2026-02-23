@@ -25,6 +25,7 @@ namespace Nom.Orch.Interfaces
         Task<PersonModel> GetPersonByUserIdAsync(string userId);
         Task<PersonModel> GetPersonByIdAsync(long personId);
         Task<List<PersonModel>> GetAllPersonsAsync();
+        Task<List<PersonModel>> GetPersonsForHouseholdsAsync(List<long> householdIds);
         Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId);
         Task<PersonModel> UpdatePersonAsync(UpdatePersonRequest request);
         Task<bool> DeletePersonAsync(long personId);
@@ -48,6 +49,11 @@ namespace Nom.Orch.Interfaces
         long GetCurrentPersonIdRequired();
 
         Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20);
+
+        /// <summary>
+        /// Checks if a person is an active member of any of the specified households.
+        /// </summary>
+        Task<bool> IsPersonInHouseholdsAsync(long personId, List<long> householdIds);
 
         /// <summary>
         /// Saves a person's profile (name + attributes).

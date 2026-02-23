@@ -28,17 +28,31 @@ namespace Nom.Orch.Services
 
         public async Task<List<HouseholdResponseModel>> GetAllHouseholdsAsync()
         {
-            var households = await _context.Households.ToListAsync();
+            return await GetHouseholdsForMemberAsync(null);
+        }
+
+        public async Task<List<HouseholdResponseModel>> GetHouseholdsForMemberAsync(List<long>? householdIds)
+        {
+            var query = _context.Households.AsQueryable();
+            if (householdIds != null)
+            {
+                if (householdIds.Count == 0) return new List<HouseholdResponseModel>();
+                query = query.Where(h => householdIds.Contains(h.Id));
+            }
+
+            var households = await query.ToListAsync();
+            var ids = households.Select(h => h.Id).ToList();
 
             // Get member counts per household from HouseholdMembers table
             var memberCounts = await _context.HouseholdMembers
-                .Where(hm => hm.IsActive)
+                .Where(hm => hm.IsActive && ids.Contains(hm.HouseholdId))
                 .GroupBy(hm => hm.HouseholdId)
                 .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);
 
             // Get meal plan counts per household
             var planCounts = await _context.MealPlans
+                .Where(mp => ids.Contains(mp.HouseholdId))
                 .GroupBy(mp => mp.HouseholdId)
                 .Select(g => new { HouseholdId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.HouseholdId, x => x.Count);

@@ -517,6 +517,25 @@ namespace Nom.Orch.Services
             return personModels;
         }
 
+        public async Task<List<PersonModel>> GetPersonsForHouseholdsAsync(List<long> householdIds)
+        {
+            if (householdIds.Count == 0) return new List<PersonModel>();
+
+            var personIds = await _dbContext.HouseholdMembers
+                .Where(hm => hm.IsActive && householdIds.Contains(hm.HouseholdId))
+                .Select(hm => hm.PersonId)
+                .Distinct()
+                .ToListAsync();
+
+            var personModels = new List<PersonModel>();
+            foreach (var personId in personIds)
+            {
+                personModels.Add(await GetPersonModelAsync(personId));
+            }
+
+            return personModels;
+        }
+
         public async Task<List<PersonModel>> GetPersonsByPlanIdAsync(long planId)
         {
             var participants = await _dbContext.PlanParticipants
@@ -547,6 +566,13 @@ namespace Nom.Orch.Services
             await _dbContext.SaveChangesAsync();
 
             return await GetPersonModelAsync(person.Id);
+        }
+
+        public async Task<bool> IsPersonInHouseholdsAsync(long personId, List<long> householdIds)
+        {
+            if (householdIds.Count == 0) return false;
+            return await _dbContext.HouseholdMembers
+                .AnyAsync(hm => hm.PersonId == personId && hm.IsActive && householdIds.Contains(hm.HouseholdId));
         }
 
         public async Task<List<PersonModel>> SearchPersonsAsync(string query, int limit = 20)

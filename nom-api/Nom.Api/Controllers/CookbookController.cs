@@ -27,6 +27,9 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<CookbookResponseModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCookbooks([FromQuery, Required] long householdId)
         {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
             try
             {
                 var result = await _cookbookService.GetCookbooksAsync(householdId);
@@ -48,6 +51,10 @@ namespace Nom.Api.Controllers
             {
                 var result = await _cookbookService.GetCookbookAsync(id);
                 if (result == null) return NotFound();
+
+                if (!IsHouseholdMember(result.HouseholdId))
+                    return Forbid();
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -63,6 +70,9 @@ namespace Nom.Api.Controllers
         public async Task<IActionResult> CreateCookbook([FromBody] CookbookCreateModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
 
             try
             {
@@ -85,8 +95,13 @@ namespace Nom.Api.Controllers
 
             try
             {
+                var existing = await _cookbookService.GetCookbookAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var result = await _cookbookService.UpdateCookbookAsync(id, model);
-                if (result == null) return NotFound();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -103,8 +118,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var success = await _cookbookService.DeleteCookbookAsync(id);
-                if (!success) return NotFound();
+                var existing = await _cookbookService.GetCookbookAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
+                await _cookbookService.DeleteCookbookAsync(id);
                 return Ok(new { Message = "Cookbook deleted successfully." });
             }
             catch (Exception ex)
@@ -121,6 +141,12 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                var existing = await _cookbookService.GetCookbookAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var added = await _cookbookService.AddRecipeToCookbookAsync(id, recipeId);
                 if (!added) return Conflict(new { Message = "Recipe already in cookbook." });
                 return Ok(new { Message = "Recipe added to cookbook." });
@@ -139,6 +165,12 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                var existing = await _cookbookService.GetCookbookAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var removed = await _cookbookService.RemoveRecipeFromCookbookAsync(id, recipeId);
                 if (!removed) return NotFound();
                 return Ok(new { Message = "Recipe removed from cookbook." });
@@ -156,6 +188,12 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                var existing = await _cookbookService.GetCookbookAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var result = await _cookbookService.GetCookbookRecipesAsync(id);
                 return Ok(result);
             }

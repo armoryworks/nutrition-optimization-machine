@@ -8,7 +8,7 @@ namespace Nom.Orch.Interfaces
 {
     public interface IRecipeOrchestrationService
     {
-        Task<List<RecipeResponseModel>> GetAllRecipesAsync();
+        Task<List<RecipeResponseModel>> GetAllRecipesAsync(long? currentPersonId = null);
         Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId);
         Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model, long currentPersonId);
         Task<RecipeResponseModel?> GetRecipeAsync(long id);

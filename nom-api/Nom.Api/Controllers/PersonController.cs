@@ -29,6 +29,18 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
+        /// Returns true if the target person is the current user or shares a household.
+        /// </summary>
+        private async Task<bool> CanAccessPersonAsync(long targetPersonId)
+        {
+            var currentPersonId = GetCurrentPersonId();
+            if (currentPersonId.HasValue && currentPersonId.Value == targetPersonId)
+                return true;
+
+            return await _personOrchestrationService.IsPersonInHouseholdsAsync(targetPersonId, GetUserHouseholdIds());
+        }
+
+        /// <summary>
         /// Creates or updates the person profile linked to the authenticated user.
         /// Prevents the creation of duplicate person records for the same user.
         /// </summary>
@@ -96,7 +108,7 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Gets all persons in the system
+        /// Gets persons visible to the current user (household co-members).
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
@@ -105,18 +117,19 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var persons = await _personOrchestrationService.GetAllPersonsAsync();
+                var householdIds = GetUserHouseholdIds();
+                var persons = await _personOrchestrationService.GetPersonsForHouseholdsAsync(householdIds);
                 return Ok(persons);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all persons");
+                _logger.LogError(ex, "Error retrieving persons");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
             }
         }
 
         /// <summary>
-        /// Gets a specific person by ID
+        /// Gets a specific person by ID (must be self or share a household)
         /// </summary>
         [HttpGet("{id:long}", Name = "GetPersonById")]
         [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
@@ -125,6 +138,9 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                if (!await CanAccessPersonAsync(id))
+                    return Forbid();
+
                 var person = await _personOrchestrationService.GetPersonByIdAsync(id);
                 if (person == null)
                 {
@@ -140,7 +156,7 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Updates a person's information
+        /// Updates a person's information (must be self or share a household)
         /// </summary>
         [HttpPut("{id:long}")]
         [ProducesResponseType(typeof(PersonModel), StatusCodes.Status200OK)]
@@ -157,6 +173,9 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest("ID mismatch");
             }
+
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
 
             try
             {
@@ -175,13 +194,16 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Deletes a person
+        /// Deletes a person (must be self or share a household)
         /// </summary>
         [HttpDelete("{id:long}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeletePerson(long id)
         {
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
+
             try
             {
                 var result = await _personOrchestrationService.DeletePersonAsync(id);
@@ -200,11 +222,11 @@ namespace Nom.Api.Controllers
 
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> SearchPersons([FromQuery] string query, [FromQuery] int limit = 20)
+        public async Task<IActionResult> SearchPersons([FromQuery] string query, [FromQuery] int limit = 10)
         {
             try
             {
-                var results = await _personOrchestrationService.SearchPersonsAsync(query, limit);
+                var results = await _personOrchestrationService.SearchPersonsAsync(query, Math.Min(limit, 10));
                 return Ok(results);
             }
             catch (Exception ex)
@@ -228,6 +250,10 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            // id=0 means creating a new dependent — allow if user has a household
+            if (id != 0 && !await CanAccessPersonAsync(id))
+                return Forbid();
 
             try
             {
@@ -259,6 +285,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
+
             try
             {
                 await _personOrchestrationService.SaveRestrictionsAsync(id, restrictions);
@@ -276,12 +305,16 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Gets the onboarding state for a specific person.
+        /// Gets the onboarding state for a specific person (self only).
         /// </summary>
         [HttpGet("{id:long}/onboarding")]
         [ProducesResponseType(typeof(OnboardingStateResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetOnboardingState(long id)
         {
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue || currentPersonId.Value != id)
+                return Forbid();
+
             try
             {
                 var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(id);
@@ -299,7 +332,7 @@ namespace Nom.Api.Controllers
         }
 
         /// <summary>
-        /// Completes onboarding for a specific person.
+        /// Completes onboarding for a specific person (self only).
         /// </summary>
         [HttpPost("{id:long}/onboarding")]
         [ProducesResponseType(typeof(OnboardingCompleteResponse), StatusCodes.Status200OK)]
@@ -310,6 +343,10 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue || currentPersonId.Value != id)
+                return Forbid();
 
             // Ensure the request uses the person ID from the URL
             request.PersonId = id;

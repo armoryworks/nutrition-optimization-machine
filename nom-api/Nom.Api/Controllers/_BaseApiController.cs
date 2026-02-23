@@ -114,5 +114,53 @@ namespace Nom.Api.Controllers
 
             return null;
         }
+
+        /// <summary>
+        /// Returns all household IDs the current user is a member of (from HouseholdMember claims).
+        /// </summary>
+        protected List<long> GetUserHouseholdIds()
+        {
+            return User.Claims
+                .Where(c => c.Type == "HouseholdMember")
+                .Select(c => long.TryParse(c.Value, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Checks whether the current user is a member of the specified household.
+        /// </summary>
+        protected bool IsHouseholdMember(long householdId)
+        {
+            return User.Claims
+                .Any(c => c.Type == "HouseholdMember" && c.Value == householdId.ToString());
+        }
+
+        /// <summary>
+        /// Checks whether the current user has management permissions for the specified household.
+        /// </summary>
+        protected bool CanManageHousehold(long householdId)
+        {
+            return User.Claims
+                .Any(c => c.Type == "can_manage_household" && c.Value == householdId.ToString());
+        }
+
+        /// <summary>
+        /// Checks whether the current user can invite members to the specified household.
+        /// </summary>
+        protected bool CanInviteToHousehold(long householdId)
+        {
+            return User.Claims
+                .Any(c => c.Type == "can_invite_household" && c.Value == householdId.ToString());
+        }
+
+        /// <summary>
+        /// Checks whether the current user is an admin of the specified household.
+        /// </summary>
+        protected bool IsHouseholdAdmin(long householdId)
+        {
+            return User.Claims
+                .Any(c => c.Type == "admin_household" && c.Value == householdId.ToString());
+        }
     }
 }
