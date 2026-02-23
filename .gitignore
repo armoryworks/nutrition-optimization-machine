@@ -72,3 +72,13 @@ __pycache__/
 **/cypress/screenshots/*
 **/cypress/videos/*
 **/screenshots/*
+
+# Data analysis — generated/downloaded files
+data-analysis/etl/output/
+data-analysis/off/*.jsonl.gz
+data-analysis/off/*.json
+data-analysis/usda-source/
+data-analysis/usda/package-lock.json
+
+# Backup files
+*.bak

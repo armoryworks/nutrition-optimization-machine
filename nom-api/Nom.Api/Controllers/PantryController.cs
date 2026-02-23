@@ -78,6 +78,31 @@ namespace Nom.Api.Controllers
             }
         }
 
+        [HttpPost("batch")]
+        public async Task<ActionResult<List<PantryItemResponseModel>>> AddPantryItemsBatch(
+            [FromBody] List<PantryItemCreateModel> items)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (items == null || items.Count == 0)
+                return BadRequest(new { message = "No items provided" });
+
+            try
+            {
+                var created = await _pantryService.AddPantryItemsBatchAsync(items);
+                return Ok(created);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding pantry items batch ({Count} items)", items.Count);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Failed to add pantry items" });
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult<PantryItemResponseModel>> UpdatePantryItem(
             long id, [FromBody] PantryItemUpdateModel model)

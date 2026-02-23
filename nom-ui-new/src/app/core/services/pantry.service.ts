@@ -27,6 +27,10 @@ export class PantryService {
     return this.http.post<PantryItemResponse>(this.apiUrl, request);
   }
 
+  addPantryItemsBatch(items: PantryItemCreateRequest[]): Observable<PantryItemResponse[]> {
+    return this.http.post<PantryItemResponse[]>(`${this.apiUrl}/batch`, items);
+  }
+
   updatePantryItem(id: number, request: PantryItemUpdateRequest): Observable<PantryItemResponse> {
     return this.http.put<PantryItemResponse>(`${this.apiUrl}/${id}`, request);
   }

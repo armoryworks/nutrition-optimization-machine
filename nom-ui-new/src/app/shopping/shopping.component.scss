@@ -106,6 +106,20 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
+// Complete trip button
+.nom-shopping__complete-btn {
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.02em;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+
+  mat-spinner {
+    display: inline-block;
+  }
+}
+
 // Department sections
 .nom-shopping__dept {
   margin-bottom: vars.$spacing-4;
@@ -197,5 +211,37 @@
   white-space: nowrap;
   min-width: 80px;
   text-align: right;
+
+  &--editable {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    padding-bottom: 1px;
+    transition: border-color vars.$transition-duration-fast;
+
+    &:hover {
+      border-bottom-color: var(--mat-sys-outline);
+    }
+  }
+
+  &--overridden {
+    color: var(--mat-sys-primary);
+    font-weight: vars.$font-weight-semibold;
+  }
 }
 
+.nom-shopping__item-qty-input {
+  width: 120px;
+  min-width: 80px;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius;
+  outline: none;
+  text-align: right;
+
+  &:focus {
+    box-shadow: 0 0 0 2px var(--mat-sys-primary-container);
+  }
+}

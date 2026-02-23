@@ -1,10 +1,14 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ElementRef, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { environment } from '../../environments/environment';
 import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdService } from '../core/services/household.service';
 import { RecipeService } from '../core/services/recipe.service';
@@ -12,7 +16,7 @@ import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
 import { MealPlanWeekResponse } from '../core/models/meal-plan.model';
 import { RecipeModel } from '../core/models/recipe.model';
-import { PantryItemResponse } from '../core/models/pantry.model';
+import { PantryItemResponse, PantryItemCreateRequest } from '../core/models/pantry.model';
 import { RetailPackagingResponse } from '../core/models/retail-packaging.model';
 
 export interface ShoppingPortion {
@@ -26,6 +30,13 @@ export interface ShoppingItem {
   portions: ShoppingPortion[];
   department: string;
   checkKey: string;
+  // Raw base quantities for pantry transfer
+  baseMassG: number;
+  baseVolumeMl: number;
+  baseCount: number;
+  // Retail package info for quantity override scaling
+  retailPackage: RetailPackagingResponse | null;
+  retailPackageCount: number;
 }
 
 export interface ShoppingDepartment {
@@ -65,6 +76,23 @@ const DEPARTMENT_ICONS: Record<string, string> = {
   'Frozen': 'ac_unit',
   'Beverages': 'local_cafe',
   'Other': 'category',
+};
+
+/** Department-based default shelf life in days (reused from pantry component) */
+const SHELF_LIFE_DEFAULTS: Record<string, number> = {
+  'produce': 5,
+  'meat & seafood': 3,
+  'dairy & eggs': 10,
+  'bakery': 5,
+  'grains & pasta': 180,
+  'canned & jarred': 365,
+  'condiments & sauces': 90,
+  'spices & seasonings': 365,
+  'oils & vinegars': 180,
+  'baking': 180,
+  'frozen': 90,
+  'beverages': 30,
+  'other': 90,
 };
 
 // Unit conversion: recipe measurements → base units (ml for volume, g for mass)
@@ -141,6 +169,17 @@ function toWeightDisplay(grams: number): ShoppingPortion {
   return { quantity: roundToFraction(grams / 28.3495, 2) || 0.5, unit: 'oz' };
 }
 
+/** Convert ml to the best recipe-friendly volume display (tsp, tbsp, cup) */
+function toVolumeDisplay(ml: number): ShoppingPortion {
+  if (ml >= 236.588) {
+    return { quantity: roundToFraction(ml / 236.588, 4) || 0.25, unit: 'cup' };
+  }
+  if (ml >= 14.787) {
+    return { quantity: roundToFraction(ml / 14.787, 4) || 0.25, unit: 'tbsp' };
+  }
+  return { quantity: roundToFraction(ml / 4.929, 4) || 0.25, unit: 'tsp' };
+}
+
 /** Convert ml to the best liquid display (fl oz or qt or gal) */
 function toLiquidDisplay(ml: number): ShoppingPortion {
   const flOz = ml / 29.574;
@@ -151,11 +190,11 @@ function toLiquidDisplay(ml: number): ShoppingPortion {
 
 /**
  * Find the best retail packaging match for an ingredient name.
- * Prefers exact matches, then longest partial match (more specific wins).
+ * Matches by longest pattern (most specific). No sizeCategory filter —
+ * the caller converts recipe units to the package's category via density.
  */
 function findRetailPackage(
   name: string,
-  sizeCategory: 'volume' | 'mass' | 'count',
   packages: RetailPackagingResponse[]
 ): RetailPackagingResponse | null {
   const lower = name.toLowerCase();
@@ -163,7 +202,6 @@ function findRetailPackage(
   let bestLen = 0;
 
   for (const pkg of packages) {
-    if (pkg.sizeCategory !== sizeCategory) continue;
     const pattern = pkg.ingredientPattern.toLowerCase();
     if (lower.includes(pattern) && pattern.length > bestLen) {
       bestMatch = pkg;
@@ -185,6 +223,34 @@ function pluralizePackage(name: string, count: number): string {
   return name + 's';
 }
 
+/**
+ * Format a retail packaging portion for display.
+ * 1 package  → "16.9 fl oz bottle"   (omit count of 1)
+ * 2 packages → "2 × 8 oz boxes"      (× separator prevents number collision)
+ */
+function formatRetailPortion(pkg: RetailPackagingResponse, pkgCount: number): ShoppingPortion {
+  const pkgLabel = `${pkg.packageSize} ${pkg.packageSizeUnit} ${pluralizePackage(pkg.packageName, pkgCount)}`;
+  if (pkgCount <= 1) {
+    return { quantity: 0, unit: pkgLabel };
+  }
+  return { quantity: 0, unit: `${pkgCount} × ${pkgLabel}` };
+}
+
+/** Is this a small-volume item (spice, seasoning, extract) that should stay in tsp/tbsp? */
+function isSmallVolumeItem(name: string): boolean {
+  return /\b(salt|pepper|paprika|cumin|cinnamon|turmeric|oregano|chili powder|cayenne|nutmeg|coriander|garlic powder|onion powder|ginger powder|allspice|cardamom|cloves|fennel seed|mustard powder|saffron|baking soda|baking powder|cream of tartar|vanilla extract|vanilla|almond extract|extract|seasoning|spice)\b/i.test(name);
+}
+
+/** Convert ml to the best small-volume display (tsp or tbsp) */
+function toSmallVolumeDisplay(ml: number): ShoppingPortion {
+  const tbsp = ml / 14.787;
+  if (tbsp >= 1) {
+    return { quantity: roundToFraction(tbsp, 4) || 0.25, unit: 'tbsp' };
+  }
+  const tsp = ml / 4.929;
+  return { quantity: roundToFraction(tsp, 4) || 0.25, unit: 'tsp' };
+}
+
 /** Accumulator used during ingredient merging */
 interface RawAccumulator {
   ingredientId: number;
@@ -199,10 +265,12 @@ interface RawAccumulator {
   selector: 'nom-shopping',
   imports: [
     RouterLink,
+    FormsModule,
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
   ],
   templateUrl: './shopping.component.html',
   styleUrl: './shopping.component.scss',
@@ -213,6 +281,8 @@ export class ShoppingComponent implements OnInit {
   private recipeService = inject(RecipeService);
   private pantryService = inject(PantryService);
   private retailPackagingService = inject(RetailPackagingService);
+  private http = inject(HttpClient);
+  private snackBar = inject(MatSnackBar);
 
   householdId = signal(0);
   daysAhead = signal(4);
@@ -224,6 +294,14 @@ export class ShoppingComponent implements OnInit {
   loading = signal(true);
   error = signal('');
   checkedItems = signal<Set<string>>(new Set());
+
+  // Inline quantity editing
+  editingItem = signal<string | null>(null);
+  quantityOverrides = signal<Map<string, string>>(new Map());
+
+  // Complete trip state
+  completingTrip = signal(false);
+  measurements = signal<{ id: number; name: string; symbol: string }[]>([]);
 
   departments = computed<ShoppingDepartment[]>(() => {
     const weeks = this.weekDataList();
@@ -331,53 +409,39 @@ export class ShoppingComponent implements OnInit {
         totalCount = 0;
       }
 
-      // Try retail packaging first — convert to "X cans", "1 box", etc.
+      // Try retail packaging — find best match regardless of unit category,
+      // then convert recipe amounts to the package's category via density.
       let handledByRetail = false;
+      let retailPkgCount = 0;
+      const pkg = findRetailPackage(name, packages);
 
-      // For mass-based ingredients, try matching a mass retail package
-      if (totalMassG > 0) {
-        const pkg = findRetailPackage(name, 'mass', packages);
-        if (pkg) {
-          // Also fold in volume via density
-          if (totalVolumeMl > 0) {
-            totalMassG += totalVolumeMl * getIngredientDensity(name);
-            totalVolumeMl = 0;
-          }
-          const pkgCount = Math.ceil(totalMassG / pkg.sizeInBaseUnits);
-          portions.push({
-            quantity: pkgCount,
-            unit: `${pkg.packageSize} ${pkg.packageSizeUnit} ${pluralizePackage(pkg.packageName, pkgCount)}`,
-          });
+      if (pkg) {
+        const density = getIngredientDensity(name);
+        let totalBase: number;
+
+        if (pkg.sizeCategory === 'mass') {
+          // Convert everything to grams to match mass-based package
+          totalBase = totalMassG
+            + totalVolumeMl * density
+            + (totalCount > 0 && !isCountable ? totalCount * 100 : 0);
+        } else if (pkg.sizeCategory === 'volume') {
+          // Convert everything to ml to match volume-based package
+          totalBase = totalVolumeMl
+            + (density > 0 ? totalMassG / density : 0)
+            + (totalCount > 0 && !isCountable ? totalCount * 236.588 : 0);
+        } else {
+          // Count-based package
+          totalBase = totalCount;
+        }
+
+        if (totalBase > 0) {
+          retailPkgCount = Math.ceil(totalBase / pkg.sizeInBaseUnits);
+          portions.push(formatRetailPortion(pkg, retailPkgCount));
           handledByRetail = true;
           totalMassG = 0;
-        }
-      }
-
-      // For volume-based ingredients, try matching a volume retail package
-      if (totalVolumeMl > 0) {
-        const pkg = findRetailPackage(name, 'volume', packages);
-        if (pkg) {
-          const pkgCount = Math.ceil(totalVolumeMl / pkg.sizeInBaseUnits);
-          portions.push({
-            quantity: pkgCount,
-            unit: `${pkg.packageSize} ${pkg.packageSizeUnit} ${pluralizePackage(pkg.packageName, pkgCount)}`,
-          });
-          handledByRetail = true;
           totalVolumeMl = 0;
-        }
-      }
-
-      // For count-based ingredients, try matching a count retail package
-      if (totalCount > 0) {
-        const pkg = findRetailPackage(name, 'count', packages);
-        if (pkg) {
-          const pkgCount = Math.ceil(totalCount / pkg.sizeInBaseUnits);
-          portions.push({
-            quantity: pkgCount,
-            unit: `${pkg.packageSize} ${pkg.packageSizeUnit} ${pluralizePackage(pkg.packageName, pkgCount)}`,
-          });
-          handledByRetail = true;
-          totalCount = 0;
+          if (pkg.sizeCategory !== 'count') totalCount = isCountable ? totalCount : 0;
+          else totalCount = 0;
         }
       }
 
@@ -392,6 +456,9 @@ export class ShoppingComponent implements OnInit {
             const totalG = totalMassG + totalVolumeMl * 0.15;
             portions.push({ quantity: Math.max(1, Math.ceil(totalG / 28)), unit: 'bunch' });
           }
+        } else if (isSmallVolumeItem(name) && totalVolumeMl > 0) {
+          // Spices/seasonings: keep in tsp/tbsp (not oz)
+          portions.push(toSmallVolumeDisplay(totalVolumeMl));
         } else if (isLiquid(name)) {
           let totalMl = totalVolumeMl;
           if (totalMassG > 0) totalMl += totalMassG;
@@ -399,12 +466,19 @@ export class ShoppingComponent implements OnInit {
             portions.push(toLiquidDisplay(totalMl));
           }
         } else {
+          // Combine mass + volume via density
           let totalG = totalMassG;
           if (totalVolumeMl > 0) {
             totalG += totalVolumeMl * getIngredientDensity(name);
           }
           if (totalG > 0) {
-            portions.push(toWeightDisplay(totalG));
+            // For very small amounts (< 2 oz), show in recipe-friendly volume
+            // units if the original was volume (more useful than "1/2 oz")
+            if (totalG < 57 && totalVolumeMl > 0 && totalMassG === 0) {
+              portions.push(toVolumeDisplay(totalVolumeMl));
+            } else {
+              portions.push(toWeightDisplay(totalG));
+            }
           }
         }
       }
@@ -417,6 +491,11 @@ export class ShoppingComponent implements OnInit {
         portions,
         department: dept,
         checkKey: `${ingredientId}`,
+        baseMassG: accs.filter(a => a.category === 'mass').reduce((s, a) => s + a.baseQuantity, 0),
+        baseVolumeMl: accs.filter(a => a.category === 'volume').reduce((s, a) => s + a.baseQuantity, 0),
+        baseCount: accs.filter(a => a.category === 'count' || a.category === 'other').reduce((s, a) => s + a.baseQuantity, 0),
+        retailPackage: handledByRetail ? pkg : null,
+        retailPackageCount: retailPkgCount,
       };
 
       const items = deptMap.get(dept) ?? [];
@@ -446,6 +525,224 @@ export class ShoppingComponent implements OnInit {
   );
 
   checkedCount = computed(() => this.checkedItems().size);
+
+  // --- Inline quantity editing ---
+
+  startEditing(checkKey: string, currentText: string): void {
+    this.editingItem.set(checkKey);
+    // Pre-populate the override with the current displayed text
+    const overrides = new Map(this.quantityOverrides());
+    if (!overrides.has(checkKey)) {
+      overrides.set(checkKey, currentText);
+      this.quantityOverrides.set(overrides);
+    }
+  }
+
+  saveEdit(checkKey: string, value: string): void {
+    const trimmed = value.trim();
+    if (trimmed) {
+      const overrides = new Map(this.quantityOverrides());
+      overrides.set(checkKey, trimmed);
+      this.quantityOverrides.set(overrides);
+    }
+    this.editingItem.set(null);
+  }
+
+  cancelEdit(): void {
+    this.editingItem.set(null);
+  }
+
+  getDisplayText(item: ShoppingItem): string {
+    const override = this.quantityOverrides().get(item.checkKey);
+    if (override) return override;
+    // Build default text from portions
+    return item.portions.map(p => {
+      const qty = p.quantity > 0 ? this.formatQuantity(p.quantity) + ' ' : '';
+      return qty + p.unit;
+    }).join(' + ');
+  }
+
+  hasOverride(checkKey: string): boolean {
+    return this.quantityOverrides().has(checkKey);
+  }
+
+  // --- Complete Shopping Trip ---
+
+  completeTrip(): void {
+    if (this.completingTrip()) return;
+
+    const checked = this.checkedItems();
+    if (checked.size === 0) return;
+
+    const departments = this.departments();
+    const allMeasurements = this.measurements();
+
+    // Find measurement IDs by name
+    const gramId = allMeasurements.find(m => m.name.toLowerCase() === 'gram')?.id;
+    const mlId = allMeasurements.find(m => m.name.toLowerCase() === 'milliliter')?.id;
+    const pieceId = allMeasurements.find(m => m.name.toLowerCase() === 'piece')?.id;
+
+    if (!gramId || !mlId || !pieceId) {
+      this.snackBar.open('Measurement data not loaded. Please refresh and try again.', 'OK', { duration: 4000 });
+      return;
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const items: PantryItemCreateRequest[] = [];
+
+    for (const dept of departments) {
+      for (const item of dept.items) {
+        if (!checked.has(item.checkKey)) continue;
+
+        // Determine quantity and measurement based on override or original data
+        const override = this.quantityOverrides().get(item.checkKey);
+        let quantity: number;
+        let measurementId: number;
+
+        if (override) {
+          // Parse override: user may type "6 cans", "2 lb", "500 g", etc.
+          const parsed = this.parseOverride(override, item);
+          quantity = parsed.quantity;
+          measurementId = parsed.measurementId ?? this.pickBestMeasurement(item, gramId, mlId, pieceId);
+        } else if (item.retailPackage && item.retailPackageCount > 0) {
+          // Use retail package: pkgCount × package base units
+          const totalBase = item.retailPackageCount * item.retailPackage.sizeInBaseUnits;
+          if (item.retailPackage.sizeCategory === 'mass') {
+            quantity = totalBase; measurementId = gramId;
+          } else if (item.retailPackage.sizeCategory === 'volume') {
+            quantity = totalBase; measurementId = mlId;
+          } else {
+            quantity = totalBase; measurementId = pieceId;
+          }
+        } else {
+          // Use raw base quantities
+          if (item.baseMassG > 0) {
+            quantity = Math.round(item.baseMassG * 100) / 100;
+            measurementId = gramId;
+          } else if (item.baseVolumeMl > 0) {
+            quantity = Math.round(item.baseVolumeMl * 100) / 100;
+            measurementId = mlId;
+          } else {
+            quantity = Math.max(1, Math.ceil(item.baseCount));
+            measurementId = pieceId;
+          }
+        }
+
+        if (quantity <= 0) continue;
+
+        // Shelf life from department
+        const shelfLife = SHELF_LIFE_DEFAULTS[dept.name.toLowerCase()] ?? 90;
+        const expDate = new Date(today);
+        expDate.setDate(expDate.getDate() + shelfLife);
+
+        items.push({
+          householdId: this.householdId(),
+          ingredientId: item.ingredientId,
+          quantity,
+          measurementId,
+          acquisitionDate: todayStr,
+          expectedExpirationDate: expDate.toISOString().split('T')[0],
+        });
+      }
+    }
+
+    if (items.length === 0) {
+      this.snackBar.open('No valid items to transfer.', 'OK', { duration: 3000 });
+      return;
+    }
+
+    this.completingTrip.set(true);
+    this.pantryService.addPantryItemsBatch(items).subscribe({
+      next: () => {
+        this.snackBar.open(`${items.length} item(s) added to pantry!`, 'OK', { duration: 3000 });
+        // Clear checked items and overrides
+        this.checkedItems.set(new Set());
+        this.quantityOverrides.set(new Map());
+        this.saveCheckedState();
+        this.completingTrip.set(false);
+        // Reload to reflect pantry deductions
+        this.loading.set(true);
+        this.loadData();
+      },
+      error: () => {
+        this.snackBar.open('Failed to add items to pantry.', 'OK', { duration: 4000 });
+        this.completingTrip.set(false);
+      },
+    });
+  }
+
+  private parseOverride(text: string, item: ShoppingItem): { quantity: number; measurementId: number | null } {
+    const allMeasurements = this.measurements();
+    // Try to parse patterns like "6 cans", "2.5 lb", "500 g", "3"
+    const match = text.match(/^(\d+(?:\.\d+)?)\s*(.*)?$/);
+    if (!match) return { quantity: 1, measurementId: null };
+
+    const num = parseFloat(match[1]);
+    const unitText = (match[2] || '').trim().toLowerCase();
+
+    if (!unitText) {
+      // Just a number — scale based on original retail package
+      if (item.retailPackage && item.retailPackageCount > 0) {
+        const totalBase = num * item.retailPackage.sizeInBaseUnits;
+        const gramId = allMeasurements.find(m => m.name.toLowerCase() === 'gram')?.id;
+        const mlId = allMeasurements.find(m => m.name.toLowerCase() === 'milliliter')?.id;
+        const pieceId = allMeasurements.find(m => m.name.toLowerCase() === 'piece')?.id;
+        if (item.retailPackage.sizeCategory === 'mass') return { quantity: totalBase, measurementId: gramId ?? null };
+        if (item.retailPackage.sizeCategory === 'volume') return { quantity: totalBase, measurementId: mlId ?? null };
+        return { quantity: totalBase, measurementId: pieceId ?? null };
+      }
+      return { quantity: num, measurementId: null };
+    }
+
+    // Try to match unit text to known measurements
+    const unitMap: Record<string, string> = {
+      'g': 'gram', 'gram': 'gram', 'grams': 'gram',
+      'oz': 'ounce', 'ounce': 'ounce', 'ounces': 'ounce',
+      'lb': 'pound', 'lbs': 'pound', 'pound': 'pound', 'pounds': 'pound',
+      'kg': 'kilogram', 'kilogram': 'kilogram', 'kilograms': 'kilogram',
+      'ml': 'milliliter', 'milliliter': 'milliliter', 'milliliters': 'milliliter',
+      'l': 'liter', 'liter': 'liter', 'liters': 'liter',
+      'cup': 'cup', 'cups': 'cup',
+      'tbsp': 'tablespoon', 'tablespoon': 'tablespoon', 'tablespoons': 'tablespoon',
+      'tsp': 'teaspoon', 'teaspoon': 'teaspoon', 'teaspoons': 'teaspoon',
+      'piece': 'piece', 'pieces': 'piece', 'each': 'piece',
+      'dozen': 'dozen',
+    };
+
+    const mappedName = unitMap[unitText];
+    if (mappedName) {
+      const meas = allMeasurements.find(m => m.name.toLowerCase() === mappedName);
+      if (meas) {
+        // Convert to base units for pantry storage
+        const info = getUnitInfo(mappedName);
+        return { quantity: num * info.toBase, measurementId: allMeasurements.find(m => m.name.toLowerCase() === (info.category === 'mass' ? 'gram' : info.category === 'volume' ? 'milliliter' : 'piece'))?.id ?? null };
+      }
+    }
+
+    // If unit is a package name (can, box, bottle, bag, jar, tub, bunch, etc.)
+    if (/^(cans?|boxes?|bottles?|bags?|jars?|tubs?|bunch|bunches|cartons?|packs?|containers?)$/.test(unitText)) {
+      // Use the number × retail package size if available
+      if (item.retailPackage) {
+        const totalBase = num * item.retailPackage.sizeInBaseUnits;
+        const gramId = allMeasurements.find(m => m.name.toLowerCase() === 'gram')?.id;
+        const mlId = allMeasurements.find(m => m.name.toLowerCase() === 'milliliter')?.id;
+        const pieceId = allMeasurements.find(m => m.name.toLowerCase() === 'piece')?.id;
+        if (item.retailPackage.sizeCategory === 'mass') return { quantity: totalBase, measurementId: gramId ?? null };
+        if (item.retailPackage.sizeCategory === 'volume') return { quantity: totalBase, measurementId: mlId ?? null };
+        return { quantity: totalBase, measurementId: pieceId ?? null };
+      }
+    }
+
+    // Fallback: just use the number
+    return { quantity: num, measurementId: null };
+  }
+
+  private pickBestMeasurement(item: ShoppingItem, gramId: number, mlId: number, pieceId: number): number {
+    if (item.baseMassG > 0) return gramId;
+    if (item.baseVolumeMl > 0) return mlId;
+    return pieceId;
+  }
 
   ngOnInit(): void {
     this.householdService.getHouseholds().subscribe({
@@ -522,16 +819,20 @@ export class ShoppingComponent implements OnInit {
       );
     }
 
-    // Fetch meal plan weeks, pantry items, and retail packaging in parallel
+    // Fetch meal plan weeks, pantry items, retail packaging, and measurements in parallel
     forkJoin({
       weeks: forkJoin(weekFetches),
       pantry: this.pantryService.getPantryItems(this.householdId()),
       packaging: this.retailPackagingService.getAll(),
+      measurements: this.measurements().length > 0
+        ? of(this.measurements())
+        : this.http.get<{ id: number; name: string; symbol: string }[]>(`${environment.apiUrl}/Measurement/all`),
     }).subscribe({
-      next: ({ weeks, pantry, packaging }) => {
+      next: ({ weeks, pantry, packaging, measurements }) => {
         this.weekDataList.set(weeks);
         this.pantryItems.set(pantry);
         this.retailPackages.set(packaging);
+        this.measurements.set(measurements);
         this.loadRecipes(weeks);
       },
       error: () => {
@@ -594,10 +895,7 @@ export class ShoppingComponent implements OnInit {
     const unmatchedNames: string[] = [];
     for (const dept of departments) {
       for (const item of dept.items) {
-        const hasMatch =
-          findRetailPackage(item.name, 'mass', packages) ||
-          findRetailPackage(item.name, 'volume', packages) ||
-          findRetailPackage(item.name, 'count', packages);
+        const hasMatch = findRetailPackage(item.name, packages);
         if (!hasMatch) {
           unmatchedNames.push(item.name);
         }

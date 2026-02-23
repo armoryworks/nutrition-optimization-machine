@@ -108,8 +108,134 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM ============================================================
+REM  INGREDIENT IMPORT (Steps 9-12)
+REM ============================================================
+
+set REPO_ROOT=%~dp0..
+set DATA_DIR=%REPO_ROOT%\data-analysis
+set USDA_SOURCE_DIR=%DATA_DIR%\usda-source
+set OFF_DIR=%DATA_DIR%\off
+set ETL_OUTPUT_DIR=%DATA_DIR%\etl\output
+if not defined USDA_VERSION set USDA_VERSION=FoodData_Central_csv_2025-12-18
+set USDA_URL=https://fdc.nal.usda.gov/fdc-datasets/%USDA_VERSION%.zip
+set OFF_URL=https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz
+
+REM --- Step 9: Download USDA data if missing ---
+echo.
+echo [9/12] Checking USDA source data...
+if not exist "%USDA_SOURCE_DIR%\food.csv" (
+    echo USDA data not found. Downloading...
+    if not exist "%USDA_SOURCE_DIR%" mkdir "%USDA_SOURCE_DIR%"
+    set USDA_ZIP=%TEMP%\%USDA_VERSION%.zip
+    if not exist "!USDA_ZIP!" (
+        echo   Downloading %USDA_URL%...
+        powershell -Command "Invoke-WebRequest -Uri '%USDA_URL%' -OutFile '!USDA_ZIP!'"
+        if errorlevel 1 (
+            echo ERROR: USDA download failed.
+            exit /b 1
+        )
+    )
+    echo   Extracting to %USDA_SOURCE_DIR%...
+    powershell -Command "Expand-Archive -Path '!USDA_ZIP!' -DestinationPath '%USDA_SOURCE_DIR%' -Force"
+    REM The zip may contain a subdirectory — flatten if needed
+    if exist "%USDA_SOURCE_DIR%\%USDA_VERSION%\food.csv" (
+        xcopy /Y /E "%USDA_SOURCE_DIR%\%USDA_VERSION%\*" "%USDA_SOURCE_DIR%\" >nul
+        rmdir /s /q "%USDA_SOURCE_DIR%\%USDA_VERSION%"
+    )
+    if errorlevel 1 (
+        echo ERROR: USDA extraction failed.
+        exit /b 1
+    )
+    echo USDA data ready.
+) else (
+    echo USDA data found.
+)
+
+REM --- Step 10: Download OFF data if missing ---
+echo.
+echo [10/12] Checking Open Food Facts data...
+if not exist "%OFF_DIR%\openfoodfacts-products.jsonl.gz" (
+    echo OFF data not found. Downloading (~10GB, this will take a while^)...
+    if not exist "%OFF_DIR%" mkdir "%OFF_DIR%"
+    powershell -Command "Invoke-WebRequest -Uri '%OFF_URL%' -OutFile '%OFF_DIR%\openfoodfacts-products.jsonl.gz'"
+    if errorlevel 1 (
+        echo ERROR: OFF download failed.
+        exit /b 1
+    )
+    echo OFF data ready.
+) else (
+    echo OFF data found.
+)
+
+REM --- Step 11: Run ETL ---
+echo.
+echo [11/12] Running combined ETL (USDA + OFF -^> CSVs^)...
+where node >nul 2>nul
+if errorlevel 1 (
+    echo WARNING: Node.js not found. Skipping ETL and import.
+    echo Install Node.js to enable ingredient import.
+    echo Database and migration reset complete (without ingredient import^).
+    exit /b 0
+)
+
+set USDA_BASE=%USDA_SOURCE_DIR%
+node "%DATA_DIR%\etl\prepare_combined_import.js"
+if errorlevel 1 (
+    echo ERROR: ETL processing failed.
+    exit /b 1
+)
+
+if not exist "%ETL_OUTPUT_DIR%\combined_food.csv" (
+    echo ERROR: ETL did not produce expected output files.
+    exit /b 1
+)
+echo ETL complete.
+
+REM --- Step 11.5: Run retail packaging lookup (optional) ---
+set PACKAGING_LOOKUP_SQL=%ETL_OUTPUT_DIR%\packaging_lookup.sql
+if not exist "%PACKAGING_LOOKUP_SQL%" (
+    echo.
+    echo [11.5/12] Running retail packaging lookup (Open Food Facts^)...
+    if not defined PACKAGING_LIMIT set PACKAGING_LIMIT=100
+    node "%DATA_DIR%\etl\lookup_packaging.js" --limit=%PACKAGING_LIMIT%
+    REM Non-fatal: packaging lookup is optional
+    if errorlevel 1 (
+        echo WARNING: Packaging lookup had errors (non-fatal, continuing^).
+    )
+) else (
+    echo.
+    echo [11.5/12] Retail packaging lookup already exists, skipping.
+    echo   Delete %PACKAGING_LOOKUP_SQL% to regenerate.
+)
+
+REM --- Step 12: Run C# ingredient import ---
+echo.
+echo [12/12] Running ingredient import into database...
+set IMPORT_CONN=Host=localhost;Port=5432;Database=%DB_NAME%;UserID=%DB_USER%;Password=%DB_PASSWORD%
+
+dotnet run --project "%~dp0Nom.Import" -- "--ConnectionStrings:NomConnection=%IMPORT_CONN%" "--ImportSettings:SourceDirectory=%ETL_OUTPUT_DIR%"
+if errorlevel 1 (
+    echo ERROR: Ingredient import failed.
+    exit /b 1
+)
+
+REM --- Step 12.5: Import packaging lookup results ---
+if exist "%PACKAGING_LOOKUP_SQL%" (
+    echo.
+    echo [12.5/12] Importing retail packaging lookup results...
+    docker cp "%PACKAGING_LOOKUP_SQL%" %POSTGRES_CONTAINER%:/tmp/packaging_lookup.sql
+    docker exec %POSTGRES_CONTAINER% psql -U %DB_USER% -d %DB_NAME% -f /tmp/packaging_lookup.sql
+    if errorlevel 1 (
+        echo WARNING: Packaging SQL import had errors (non-fatal^).
+    ) else (
+        echo Packaging lookup results imported.
+    )
+    docker exec %POSTGRES_CONTAINER% rm -f /tmp/packaging_lookup.sql
+)
+
 echo.
 echo ============================================================
-echo  Database and migration reset complete!
+echo  Database reset + migration + ingredient import complete!
 echo  You can now run your API project.
 echo ============================================================

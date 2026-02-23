@@ -10,6 +10,20 @@
       }
     </div>
     <div class="nom-shopping__header-right">
+      @if (checkedCount() > 0 && !completingTrip()) {
+        <button mat-flat-button
+                class="nom-shopping__complete-btn"
+                (click)="completeTrip()">
+          <mat-icon>move_to_inbox</mat-icon>
+          Complete Trip ({{ checkedCount() }})
+        </button>
+      }
+      @if (completingTrip()) {
+        <button mat-flat-button class="nom-shopping__complete-btn" disabled>
+          <mat-spinner diameter="18"></mat-spinner>
+          Transferring...
+        </button>
+      }
       <div class="nom-shopping__days-control">
         <span class="nom-shopping__days-label">Next</span>
         <input type="number"
@@ -73,11 +87,23 @@
                 (change)="toggleChecked(item.checkKey)">
               </mat-checkbox>
               <span class="nom-shopping__item-name">{{ item.name }}</span>
-              <span class="nom-shopping__item-qty">
-                @for (portion of item.portions; track $index; let last = $last) {
-                  {{ formatQuantity(portion.quantity) }} {{ portion.unit }}@if (!last) { + }
-                }
-              </span>
+              @if (editingItem() === item.checkKey) {
+                <input class="nom-shopping__item-qty-input"
+                       [ngModel]="quantityOverrides().get(item.checkKey) ?? ''"
+                       (ngModelChange)="$event"
+                       (keydown.enter)="saveEdit(item.checkKey, $any($event.target).value)"
+                       (keydown.escape)="cancelEdit()"
+                       (blur)="saveEdit(item.checkKey, $any($event.target).value)"
+                       #editInput>
+              } @else {
+                <span class="nom-shopping__item-qty"
+                      [class.nom-shopping__item-qty--editable]="true"
+                      [class.nom-shopping__item-qty--overridden]="hasOverride(item.checkKey)"
+                      (click)="startEditing(item.checkKey, getDisplayText(item))"
+                      title="Click to edit quantity">
+                  {{ getDisplayText(item) }}
+                </span>
+              }
             </li>
           }
         </ul>
