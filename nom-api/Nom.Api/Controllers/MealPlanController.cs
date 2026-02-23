@@ -33,7 +33,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync(startDate, endDate);
+                var householdIds = GetUserHouseholdIds();
+                var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync(startDate, endDate, householdIds);
                 return Ok(mealPlans);
             }
             catch (Exception ex)
@@ -52,6 +53,9 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
 
             try
             {
@@ -75,9 +79,11 @@ namespace Nom.Api.Controllers
             {
                 var response = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
                 if (response == null)
-                {
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(response.HouseholdId))
+                    return Forbid();
+
                 return Ok(response);
             }
             catch (Exception ex)
@@ -100,11 +106,14 @@ namespace Nom.Api.Controllers
 
             try
             {
-                var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
-                if (response == null)
-                {
+                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+                if (existing == null)
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
+                var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -121,11 +130,14 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var success = await _mealPlanOrchestrationService.DeleteMealPlanAsync(id);
-                if (!success)
-                {
+                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+                if (existing == null)
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
+                await _mealPlanOrchestrationService.DeleteMealPlanAsync(id);
                 return Ok(new { Message = "Meal plan deleted successfully." });
             }
             catch (Exception ex)
@@ -144,6 +156,9 @@ namespace Nom.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
 
             try
             {
@@ -168,6 +183,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
+
             try
             {
                 var response = await _mealPlanOrchestrationService.CreateRuleAsync(model);
@@ -189,9 +207,11 @@ namespace Nom.Api.Controllers
             {
                 var response = await _mealPlanOrchestrationService.GetRuleAsync(id);
                 if (response == null)
-                {
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(response.HouseholdId))
+                    return Forbid();
+
                 return Ok(response);
             }
             catch (Exception ex)
@@ -208,11 +228,14 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var success = await _mealPlanOrchestrationService.DeleteRuleAsync(id);
-                if (!success)
-                {
+                var rule = await _mealPlanOrchestrationService.GetRuleAsync(id);
+                if (rule == null)
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(rule.HouseholdId))
+                    return Forbid();
+
+                await _mealPlanOrchestrationService.DeleteRuleAsync(id);
                 return Ok(new { Message = "Meal plan rule deleted successfully." });
             }
             catch (Exception ex)
@@ -228,6 +251,9 @@ namespace Nom.Api.Controllers
             [Required][FromQuery] long householdId,
             [Required][FromQuery] DateOnly weekStart)
         {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
             try
             {
                 var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
@@ -250,6 +276,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
+
             try
             {
                 var response = await _mealPlanOrchestrationService.CreateExclusionAsync(model);
@@ -269,6 +298,9 @@ namespace Nom.Api.Controllers
             [Required][FromQuery] DateOnly startDate,
             [Required][FromQuery] DateOnly endDate)
         {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
             try
             {
                 var response = await _mealPlanOrchestrationService.GetExclusionsAsync(householdId, startDate, endDate);
@@ -288,11 +320,14 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var success = await _mealPlanOrchestrationService.DeleteExclusionAsync(id);
-                if (!success)
-                {
+                var exclusion = await _mealPlanOrchestrationService.GetExclusionAsync(id);
+                if (exclusion == null)
                     return NotFound();
-                }
+
+                if (!IsHouseholdMember(exclusion.HouseholdId))
+                    return Forbid();
+
+                await _mealPlanOrchestrationService.DeleteExclusionAsync(id);
                 return Ok(new { Message = "Exclusion deleted successfully." });
             }
             catch (Exception ex)
@@ -309,6 +344,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+                if (existing == null)
+                    return NotFound(new { message = "Meal plan not found" });
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var success = await _pantryService.DeductFromPantryAsync(id);
                 if (!success)
                     return NotFound(new { message = "Meal plan not found or has no recipe" });
@@ -323,4 +365,4 @@ namespace Nom.Api.Controllers
             }
         }
     }
-} 
+}

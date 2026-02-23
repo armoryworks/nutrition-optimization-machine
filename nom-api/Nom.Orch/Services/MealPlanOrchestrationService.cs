@@ -25,13 +25,15 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
-        public async Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null, List<long>? householdIds = null)
         {
             var query = _context.MealPlans
                 .Include(mp => mp.Recipe)
                 .Include(mp => mp.MealType)
                 .AsQueryable();
 
+            if (householdIds != null)
+                query = query.Where(mp => householdIds.Contains(mp.HouseholdId));
             if (startDate.HasValue)
                 query = query.Where(mp => mp.Date >= DateOnly.FromDateTime(startDate.Value));
             if (endDate.HasValue)
@@ -530,6 +532,27 @@ namespace Nom.Orch.Services
             await _context.Entry(exclusion).Reference(e => e.Person).LoadAsync();
             if (exclusion.MealTypeId.HasValue)
                 await _context.Entry(exclusion).Reference(e => e.MealType).LoadAsync();
+
+            return new MealPlanExclusionResponseModel
+            {
+                Id = exclusion.Id,
+                HouseholdId = exclusion.HouseholdId,
+                PersonId = exclusion.PersonId,
+                PersonName = exclusion.Person?.Name ?? string.Empty,
+                Date = exclusion.Date,
+                MealTypeId = exclusion.MealTypeId,
+                MealType = exclusion.MealType?.Name
+            };
+        }
+
+        public async Task<MealPlanExclusionResponseModel?> GetExclusionAsync(long id)
+        {
+            var exclusion = await _context.MealPlanExclusions
+                .Include(e => e.Person)
+                .Include(e => e.MealType)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (exclusion == null) return null;
 
             return new MealPlanExclusionResponseModel
             {

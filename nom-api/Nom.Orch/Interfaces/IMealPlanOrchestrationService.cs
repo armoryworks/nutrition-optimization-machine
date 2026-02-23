@@ -9,7 +9,7 @@ namespace Nom.Orch.Interfaces
 {
     public interface IMealPlanOrchestrationService
     {
-        Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null);
+        Task<List<MealPlanResponseModel>> GetAllMealPlansAsync(DateTime? startDate = null, DateTime? endDate = null, List<long>? householdIds = null);
         Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId);
         Task<MealPlanResponseModel?> GetMealPlanAsync(long id);
         Task<MealPlanResponseModel?> UpdateMealPlanAsync(long id, MealPlanUpdateModel model);
@@ -28,6 +28,7 @@ namespace Nom.Orch.Interfaces
 
         // Meal Plan Exclusions
         Task<MealPlanExclusionResponseModel> CreateExclusionAsync(MealPlanExclusionCreateModel model);
+        Task<MealPlanExclusionResponseModel?> GetExclusionAsync(long id);
         Task<List<MealPlanExclusionResponseModel>> GetExclusionsAsync(long householdId, DateOnly start, DateOnly end);
         Task<bool> DeleteExclusionAsync(long id);
     }

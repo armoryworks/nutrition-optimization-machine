@@ -25,6 +25,9 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<List<PantryItemResponseModel>>> GetPantryItems(
             [FromQuery] long householdId)
         {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
             try
             {
                 var items = await _pantryService.GetPantryItemsAsync(householdId);
@@ -45,6 +48,10 @@ namespace Nom.Api.Controllers
             {
                 var item = await _pantryService.GetPantryItemAsync(id);
                 if (item == null) return NotFound();
+
+                if (!IsHouseholdMember(item.HouseholdId))
+                    return Forbid();
+
                 return Ok(item);
             }
             catch (Exception ex)
@@ -60,6 +67,9 @@ namespace Nom.Api.Controllers
             [FromBody] PantryItemCreateModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (!IsHouseholdMember(model.HouseholdId))
+                return Forbid();
 
             try
             {
@@ -86,6 +96,11 @@ namespace Nom.Api.Controllers
             if (items == null || items.Count == 0)
                 return BadRequest(new { message = "No items provided" });
 
+            // Verify membership for all household IDs in the batch
+            var householdIds = items.Select(i => i.HouseholdId).Distinct().ToList();
+            if (householdIds.Any(hId => !IsHouseholdMember(hId)))
+                return Forbid();
+
             try
             {
                 var created = await _pantryService.AddPantryItemsBatchAsync(items);
@@ -109,6 +124,12 @@ namespace Nom.Api.Controllers
         {
             try
             {
+                var existing = await _pantryService.GetPantryItemAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
                 var item = await _pantryService.UpdatePantryItemAsync(id, model);
                 if (item == null) return NotFound();
                 return Ok(item);
@@ -126,8 +147,13 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var result = await _pantryService.RemovePantryItemAsync(id);
-                if (!result) return NotFound();
+                var existing = await _pantryService.GetPantryItemAsync(id);
+                if (existing == null) return NotFound();
+
+                if (!IsHouseholdMember(existing.HouseholdId))
+                    return Forbid();
+
+                await _pantryService.RemovePantryItemAsync(id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -143,6 +169,9 @@ namespace Nom.Api.Controllers
             [FromQuery] long householdId,
             [FromQuery] int daysAhead = 4)
         {
+            if (!IsHouseholdMember(householdId))
+                return Forbid();
+
             try
             {
                 var needs = await _pantryService.GetShoppingNeedsAsync(householdId, daysAhead);

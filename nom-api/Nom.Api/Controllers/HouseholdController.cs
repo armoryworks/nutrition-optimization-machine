@@ -23,7 +23,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var households = await _householdService.GetAllHouseholdsAsync();
+                var householdIds = GetUserHouseholdIds();
+                var households = await _householdService.GetHouseholdsForMemberAsync(householdIds);
                 return Ok(households);
             }
             catch (Exception ex)
@@ -50,6 +51,9 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<HouseholdResponseModel>> GetHousehold(long id)
         {
+            if (!IsHouseholdMember(id))
+                return Forbid();
+
             try
             {
                 var household = await _householdService.GetHouseholdAsync(id);
@@ -68,6 +72,9 @@ namespace Nom.Api.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<HouseholdResponseModel>> UpdateHousehold(long id, [FromBody] HouseholdUpdateModel request)
         {
+            if (!CanManageHousehold(id))
+                return Forbid();
+
             try
             {
                 var response = await _householdService.UpdateHouseholdAsync(id, request);
@@ -86,6 +93,9 @@ namespace Nom.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteHousehold(long id)
         {
+            if (!IsHouseholdAdmin(id))
+                return Forbid();
+
             try
             {
                 var success = await _householdService.DeleteHouseholdAsync(id);
@@ -104,6 +114,9 @@ namespace Nom.Api.Controllers
         [HttpPost("invite-token")]
         public async Task<ActionResult<HouseholdInviteTokenResponseModel>> CreateInviteToken([FromBody] HouseholdInviteTokenCreateModel request)
         {
+            if (!CanInviteToHousehold(request.HouseholdId))
+                return Forbid();
+
             try
             {
                 var response = await _householdService.CreateInviteTokenAsync(request);
@@ -118,6 +131,9 @@ namespace Nom.Api.Controllers
         [HttpPost("member")]
         public async Task<ActionResult<HouseholdMemberResponseModel>> AddMember([FromBody] HouseholdMemberCreateModel request)
         {
+            if (!CanManageHousehold(request.HouseholdId))
+                return Forbid();
+
             try
             {
                 var response = await _householdService.AddMemberAsync(request);
@@ -132,6 +148,9 @@ namespace Nom.Api.Controllers
         [HttpDelete("{householdId}/member/{memberId}")]
         public async Task<ActionResult> RemoveMember(long householdId, long memberId)
         {
+            if (!CanManageHousehold(householdId))
+                return Forbid();
+
             try
             {
                 var success = await _householdService.RemoveMemberAsync(householdId, memberId);
@@ -176,4 +195,4 @@ namespace Nom.Api.Controllers
             }
         }
     }
-} 
+}

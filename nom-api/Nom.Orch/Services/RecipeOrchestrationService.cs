@@ -124,14 +124,19 @@ namespace Nom.Orch.Services
             Console.WriteLine($"Total nutrients added: {addedCount}");
         }
 
-        public async Task<List<RecipeResponseModel>> GetAllRecipesAsync()
+        public async Task<List<RecipeResponseModel>> GetAllRecipesAsync(long? currentPersonId = null)
         {
-            var recipes = await _context.Recipes
+            var query = _context.Recipes
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
                 .Include(r => r.CurationStatus)
-                .ToListAsync();
+                .AsQueryable();
+
+            if (currentPersonId.HasValue)
+                query = query.Where(r => r.CurationStatus!.Name == "Approved" || r.AuthorId == currentPersonId.Value);
+
+            var recipes = await query.ToListAsync();
 
             return recipes.Select(r => new RecipeResponseModel
             {

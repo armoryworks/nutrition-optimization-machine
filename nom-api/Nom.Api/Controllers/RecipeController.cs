@@ -25,7 +25,8 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var recipes = await _recipeService.GetAllRecipesAsync();
+                var personId = GetCurrentPersonId();
+                var recipes = await _recipeService.GetAllRecipesAsync(personId);
                 return Ok(recipes);
             }
             catch (Exception ex)
@@ -130,11 +131,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var response = await _recipeService.UpdateRecipeAsync(id, request);
-                if (response == null)
-                {
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
+                    return Unauthorized("User not authenticated");
+
+                var existing = await _recipeService.GetRecipeAsync(id);
+                if (existing == null)
                     return NotFound(new { message = "Recipe not found" });
-                }
+
+                if (existing.AuthorId != currentPersonId.Value)
+                    return Forbid("You can only edit your own recipes");
+
+                var response = await _recipeService.UpdateRecipeAsync(id, request);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -148,11 +156,18 @@ namespace Nom.Api.Controllers
         {
             try
             {
-                var success = await _recipeService.DeleteRecipeAsync(id);
-                if (!success)
-                {
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
+                    return Unauthorized("User not authenticated");
+
+                var existing = await _recipeService.GetRecipeAsync(id);
+                if (existing == null)
                     return NotFound(new { message = "Recipe not found" });
-                }
+
+                if (existing.AuthorId != currentPersonId.Value)
+                    return Forbid("You can only delete your own recipes");
+
+                await _recipeService.DeleteRecipeAsync(id);
                 return NoContent();
             }
             catch (Exception ex)
