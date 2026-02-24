@@ -6,7 +6,7 @@
       {{ isEditMode() ? 'Edit Dietary Preferences' : 'Dietary Preferences' }}
     }
   </h2>
-  <button mat-icon-button (click)="cancel()" aria-label="Close dialog">
+  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog">
     <mat-icon>close</mat-icon>
   </button>
 </div>
@@ -22,20 +22,29 @@
   @if (currentStep() === 0) {
     <nom-profile
       mode="wizard"
+      [hideActions]="true"
       [showEmail]="true"
-      [showCancel]="true"
       [initialData]="profileInitialData()"
-      submitLabel="Save & Continue"
-      (stepComplete)="onProfileComplete($event)"
-      (cancelled)="cancel()" />
+      (stepComplete)="onProfileComplete($event)" />
   } @else {
     <nom-restrictions
       mode="wizard"
+      [hideActions]="true"
       [initialRestrictions]="restrictionsInitialData()"
       (stepComplete)="onRestrictionsComplete($event)" />
-
-    <div class="nom-form__actions">
-      <button mat-button (click)="skipRestrictions()">Skip</button>
-    </div>
   }
 </mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (currentStep() === 0) {
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-flat-button
+            (click)="profileRef()?.submit()"
+            [disabled]="profileRef()?.profileForm?.invalid || profileRef()?.loading()">
+      Save & Continue
+    </button>
+  } @else {
+    <button mat-button (click)="skipRestrictions()">Skip</button>
+    <button mat-flat-button (click)="restrictionsRef()?.submit()">Continue</button>
+  }
+</mat-dialog-actions>

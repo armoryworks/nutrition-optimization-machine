@@ -45,6 +45,7 @@ export class Profile implements OnInit {
   showEmail = input(false);
   submitLabel = input<string | null>(null);
   showCancel = input(false);
+  hideActions = input(false);
 
   stepComplete = output<ProfileFormData>();
   saved = output<ProfileFormData>();
@@ -109,6 +110,11 @@ export class Profile implements OnInit {
         this.loadExistingProfile();
       }
     });
+  }
+
+  /** Public entry point for parent components to trigger form submission. */
+  submit(): void {
+    this.onSubmit();
   }
 
   onSubmit(): void {

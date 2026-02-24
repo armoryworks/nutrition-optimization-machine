@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, viewChild, OnInit } from '@angular/core';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -42,6 +42,9 @@ export class AddMemberDialog implements OnInit {
   createdPersonId = signal<number | null>(null);
   profileInitialData = signal<ProfileFormData | null>(null);
   restrictionsInitialData = signal<RestrictionRequest[]>([]);
+
+  profileRef = viewChild(Profile);
+  restrictionsRef = viewChild(Restrictions);
 
   isEditMode = computed(() => !!this.data.personId);
 

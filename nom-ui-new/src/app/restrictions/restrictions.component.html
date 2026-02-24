@@ -67,9 +67,11 @@
     </div>
   }
 
-  <div class="nom-form__actions">
-    <button mat-flat-button type="button" (click)="onSubmit()">
-      {{ isStandalone() ? 'Save Preferences' : 'Continue' }}
-    </button>
-  </div>
+  @if (!hideActions()) {
+    <div class="nom-form__actions">
+      <button mat-flat-button type="button" (click)="onSubmit()">
+        {{ isStandalone() ? 'Save Preferences' : 'Continue' }}
+      </button>
+    </div>
+  }
 </div>

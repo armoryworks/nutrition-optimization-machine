@@ -75,6 +75,14 @@ export class AuthService {
     );
   }
 
+  /** Re-issues the bearer token with fresh claims from the DB (e.g. after household create/join). */
+  refreshClaims(): Observable<AuthTokenResponse | null> {
+    return this.http.post<AuthTokenResponse>('/api/auth/refresh-claims', {}).pipe(
+      tap(response => this.storeTokens(response)),
+      catchError(() => of(null))
+    );
+  }
+
   attemptTokenRefresh(): Observable<AuthTokenResponse | null> {
     const refreshToken = this.refreshToken;
     if (!refreshToken) {
