@@ -46,6 +46,7 @@ const SECTION_CONFIG: { groupId: number; icon: string }[] = [
 export class Restrictions implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');
   initialRestrictions = input<RestrictionRequest[]>([]);
+  hideActions = input(false);
 
   stepComplete = output<RestrictionRequest[]>();
   saved = output<RestrictionRequest[]>();
@@ -64,7 +65,7 @@ export class Restrictions implements OnInit {
   ngOnInit(): void {
     this.loadRestrictionGroups();
 
-    const initial = this.initialRestrictions();
+    const initial = this.initialRestrictions() ?? [];
     if (initial.length > 0) {
       this.selectedIds.set(new Set(initial.map(r => r.restrictionTypeId)));
     }
@@ -108,6 +109,11 @@ export class Restrictions implements OnInit {
 
   displayFn(): string {
     return '';
+  }
+
+  /** Public entry point for parent components to trigger submission. */
+  submit(): void {
+    this.onSubmit();
   }
 
   onSubmit(): void {

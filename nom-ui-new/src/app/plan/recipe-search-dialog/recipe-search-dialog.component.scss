@@ -4,8 +4,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: vars.$modal-padding vars.$modal-padding 0;
 
   h2 { margin: 0; }
+
+  .mat-mdc-dialog-title {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.nom-dialog__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface-variant);
+  border-radius: vars.$nom-border-radius;
+  flex-shrink: 0;
+  transition: background-color vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-highest);
+  }
 }
 
 // ── Current entries list ──

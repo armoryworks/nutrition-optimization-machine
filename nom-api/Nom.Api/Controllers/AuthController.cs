@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.UserManagement;
@@ -15,6 +16,26 @@ namespace Nom.Api.Controllers
         public AuthController(IUserManagementOrchestrationService userService)
         {
             _userService = userService;
+        }
+
+        /// <summary>
+        /// Re-issues the bearer token with fresh claims from the database.
+        /// Call after any membership change (household create/join, plan participation).
+        /// </summary>
+        [Authorize]
+        [HttpPost("refresh-claims")]
+        public async Task<IActionResult> RefreshClaims(
+            [FromServices] SignInManager<IdentityUser> signInManager,
+            [FromServices] UserManager<IdentityUser> userManager)
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            // CreateUserPrincipalAsync triggers CustomClaimsPrincipalFactory
+            var principal = await signInManager.CreateUserPrincipalAsync(user);
+
+            // SignIn with bearer scheme writes new token to response body
+            return SignIn(principal, IdentityConstants.BearerScheme);
         }
 
         [HttpPost("forgotPassword")]

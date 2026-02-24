@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../core/services/auth.service';
@@ -209,7 +210,8 @@ export class Onboarding implements OnInit {
     };
 
     this.personService.completeOnboarding(personId, request).pipe(
-      this.loadingService.loading('Setting up your account...')
+      this.loadingService.loading('Setting up your account...'),
+      switchMap(() => this.authService.refreshClaims()),
     ).subscribe({
       next: () => {
         this.router.navigate(['/home']);

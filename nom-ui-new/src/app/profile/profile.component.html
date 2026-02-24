@@ -175,17 +175,19 @@
       }
     </div>
 
-    <div class="nom-form__actions">
-      @if (showCancel()) {
-        <button mat-button type="button" (click)="cancelled.emit()">Cancel</button>
-      }
-      <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
-        @if (loading()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          {{ resolvedSubmitLabel() }}
+    @if (!hideActions()) {
+      <div class="nom-form__actions">
+        @if (showCancel()) {
+          <button mat-button type="button" (click)="cancelled.emit()">Cancel</button>
         }
-      </button>
-    </div>
+        <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
+          @if (loading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            {{ resolvedSubmitLabel() }}
+          }
+        </button>
+      </div>
+    }
   </form>
 </div>
