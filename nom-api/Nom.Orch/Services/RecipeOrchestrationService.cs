@@ -7,6 +7,8 @@ using Nom.Data.Recipe;
 using Nom.Data.Nutrient;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace Nom.Orch.Services
 {
@@ -698,6 +700,128 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        // Recipe Image/Assets Implementation
+        public async Task<RecipeAssetResponseModel> UploadImageAsync(long recipeId, long personId, string fileName, string contentType, byte[] fileData)
+        {
+            var recipe = await _context.Recipes.FindAsync(recipeId);
+            if (recipe == null)
+                throw new ArgumentException("Recipe not found");
+            if (recipe.AuthorId != personId)
+                throw new UnauthorizedAccessException("Only the recipe author can upload images");
+
+            // Resize image if needed using ImageSharp
+            using var image = SixLabors.ImageSharp.Image.Load(fileData);
+            if (image.Width > 1200)
+            {
+                var ratio = 1200.0 / image.Width;
+                var newHeight = (int)(image.Height * ratio);
+                image.Mutate(x => x.Resize(1200, newHeight));
+            }
+
+            using var ms = new MemoryStream();
+            await image.SaveAsJpegAsync(ms);
+            var processedData = ms.ToArray();
+
+            var extension = Path.GetExtension(fileName);
+            var asset = new RecipeAssetEntity
+            {
+                RecipeId = recipeId,
+                Name = fileName,
+                FileExtension = extension,
+                Icon = "image",
+                FileData = processedData,
+                ContentType = "image/jpeg",
+                FileSize = processedData.Length,
+                Description = "Recipe image",
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _context.Set<RecipeAssetEntity>().Add(asset);
+
+            // Update recipe image URL to point to serve endpoint
+            recipe.Image = $"/api/recipe/{recipeId}/image";
+            recipe.LastModifiedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new RecipeAssetResponseModel
+            {
+                Id = asset.Id,
+                RecipeId = asset.RecipeId,
+                Name = asset.Name,
+                FileExtension = asset.FileExtension,
+                ContentType = asset.ContentType,
+                FileSize = asset.FileSize,
+                Description = asset.Description,
+                CreatedDate = asset.CreatedDate
+            };
+        }
+
+        public async Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId)
+        {
+            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
+            var asset = await _context.Set<RecipeAssetEntity>()
+                .Where(a => a.RecipeId == recipeId && imageExtensions.Contains(a.FileExtension.ToLower()))
+                .OrderByDescending(a => a.CreatedDate)
+                .FirstOrDefaultAsync();
+
+            if (asset == null)
+                return null;
+
+            return (asset.FileData, asset.ContentType ?? "image/jpeg");
+        }
+
+        public async Task<bool> DeleteImageAsync(long recipeId, long assetId, long personId)
+        {
+            var recipe = await _context.Recipes.FindAsync(recipeId);
+            if (recipe == null)
+                return false;
+            if (recipe.AuthorId != personId)
+                throw new UnauthorizedAccessException("Only the recipe author can delete images");
+
+            var asset = await _context.Set<RecipeAssetEntity>()
+                .FirstOrDefaultAsync(a => a.Id == assetId && a.RecipeId == recipeId);
+            if (asset == null)
+                return false;
+
+            _context.Set<RecipeAssetEntity>().Remove(asset);
+
+            // Check if there are remaining image assets
+            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
+            var remainingImages = await _context.Set<RecipeAssetEntity>()
+                .AnyAsync(a => a.RecipeId == recipeId && a.Id != assetId && imageExtensions.Contains(a.FileExtension.ToLower()));
+
+            if (!remainingImages)
+            {
+                recipe.Image = null;
+                recipe.LastModifiedDate = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<RecipeAssetResponseModel>> GetAssetsAsync(long recipeId)
+        {
+            var assets = await _context.Set<RecipeAssetEntity>()
+                .Where(a => a.RecipeId == recipeId)
+                .OrderByDescending(a => a.CreatedDate)
+                .Select(a => new RecipeAssetResponseModel
+                {
+                    Id = a.Id,
+                    RecipeId = a.RecipeId,
+                    Name = a.Name,
+                    FileExtension = a.FileExtension,
+                    ContentType = a.ContentType,
+                    FileSize = a.FileSize,
+                    Description = a.Description,
+                    CreatedDate = a.CreatedDate
+                })
+                .ToListAsync();
+
+            return assets;
         }
     }
 }

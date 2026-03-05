@@ -1,0 +1,61 @@
+@use 'variables' as vars;
+
+.nom-rating {
+  margin-top: vars.$spacing-6;
+}
+
+.nom-rating__title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-rating__summary {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+.nom-rating__average {
+  font-size: vars.$font-size-2xl;
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-rating__stars {
+  display: flex;
+  color: var(--mat-sys-primary);
+}
+
+.nom-rating__count {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-rating__user {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  margin-top: vars.$spacing-4;
+  padding-top: vars.$spacing-4;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-rating__user-label {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-rating__star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--mat-sys-primary);
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}

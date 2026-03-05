@@ -309,5 +309,103 @@ namespace Nom.Api.Controllers
                 return StatusCode(500, new { message = "Failed to delete rating", error = ex.Message });
             }
         }
+
+        // Recipe Image/Asset Endpoints
+
+        [HttpPost("{id}/image")]
+        [RequestSizeLimit(10_485_760)] // 10MB
+        public async Task<ActionResult<RecipeAssetResponseModel>> UploadImage(long id, IFormFile file)
+        {
+            try
+            {
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
+                    return Unauthorized("User not authenticated");
+
+                if (file == null || file.Length == 0)
+                    return BadRequest(new { message = "No file provided" });
+
+                var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                    return BadRequest(new { message = "Only JPEG, PNG, GIF, and WebP images are allowed" });
+
+                using var ms = new System.IO.MemoryStream();
+                await file.CopyToAsync(ms);
+                var fileData = ms.ToArray();
+
+                var result = await _recipeService.UploadImageAsync(id, currentPersonId.Value, file.FileName, file.ContentType, fileData);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to upload image", error = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{id}/image")]
+        public async Task<IActionResult> GetImage(long id)
+        {
+            try
+            {
+                var result = await _recipeService.GetImageAsync(id);
+                if (result == null)
+                    return NotFound(new { message = "No image found for this recipe" });
+
+                var (fileData, contentType) = result.Value;
+                return File(fileData, contentType);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve image", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/image/{assetId}")]
+        public async Task<ActionResult> DeleteImage(long id, long assetId)
+        {
+            try
+            {
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
+                    return Unauthorized("User not authenticated");
+
+                var success = await _recipeService.DeleteImageAsync(id, assetId, currentPersonId.Value);
+                if (!success)
+                    return NotFound(new { message = "Image not found" });
+
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to delete image", error = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/assets")]
+        public async Task<ActionResult<List<RecipeAssetResponseModel>>> GetAssets(long id)
+        {
+            try
+            {
+                var assets = await _recipeService.GetAssetsAsync(id);
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to retrieve assets", error = ex.Message });
+            }
+        }
     }
 }

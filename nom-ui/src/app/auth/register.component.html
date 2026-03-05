@@ -1,0 +1,124 @@
+<div class="nom-form--card">
+  @if (registeredEmail()) {
+    <div class="nom-form__card nom-form__card--narrow">
+      <div class="nom-form__card-icon">
+        <mat-icon>mark_email_read</mat-icon>
+      </div>
+      <div class="nom-form__card-header">
+        <h1 class="nom-form__card-title">Check Your Email</h1>
+        <p class="nom-form__card-subtitle">We've sent a confirmation link to <strong>{{ registeredEmail() }}</strong>. Click the link to activate your account.</p>
+      </div>
+      <div class="nom-form__card-content">
+        @if (resendSuccess()) {
+          <div class="nom-form__success">
+            <mat-icon>check_circle</mat-icon>
+            <span>Confirmation email resent successfully.</span>
+          </div>
+        }
+        @if (errorMessage()) {
+          <div class="nom-form__error">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+        <div class="nom-form__card-actions">
+          <button mat-stroked-button (click)="onResendConfirmation()">
+            <mat-icon>send</mat-icon>
+            Resend Confirmation Email
+          </button>
+        </div>
+      </div>
+      <div class="nom-register__footer">
+        <a routerLink="/home">Go to Sign In</a>
+      </div>
+    </div>
+  } @else {
+    <div class="nom-form__card nom-form__card--narrow">
+      <div class="nom-form__card-icon">
+        <mat-icon>person_add</mat-icon>
+      </div>
+
+      <div class="nom-form__card-header">
+        <h1 class="nom-form__card-title">Create Account</h1>
+        <p class="nom-form__card-subtitle">Set up your NOM account to save recipes, plan meals, and track nutrition.</p>
+      </div>
+
+      <div class="nom-form__card-content">
+        @if (errorMessage()) {
+          <div class="nom-form__error">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+          <div class="nom-form__fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" type="email" autocomplete="email">
+              <mat-icon matPrefix>email</mat-icon>
+              @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
+                <mat-error>Enter a valid email address</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName" type="text" autocomplete="name">
+              <mat-icon matPrefix>person</mat-icon>
+              <mat-hint>Optional</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Password</mat-label>
+              <input matInput formControlName="password"
+                     [type]="showPassword() ? 'text' : 'password'"
+                     autocomplete="new-password">
+              <mat-icon matPrefix>lock</mat-icon>
+              <button mat-icon-button matSuffix type="button"
+                      (click)="showPassword.set(!showPassword())"
+                      [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
+                <mat-error>Password must be at least 8 characters</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Confirm Password</mat-label>
+              <input matInput formControlName="confirmPassword"
+                     [type]="showConfirmPassword() ? 'text' : 'password'"
+                     autocomplete="new-password">
+              <mat-icon matPrefix>lock_outline</mat-icon>
+              <button mat-icon-button matSuffix type="button"
+                      (click)="showConfirmPassword.set(!showConfirmPassword())"
+                      [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
+                <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+                <mat-error>Passwords do not match</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="nom-form__card-actions">
+            <button mat-flat-button color="primary" type="submit"
+                    class="nom-register__submit"
+                    [disabled]="loading() || registerForm.invalid">
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Create Account
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="nom-register__footer">
+        Already have an account? <a routerLink="/home">Sign in</a>
+      </div>
+    </div>
+  }
+</div>

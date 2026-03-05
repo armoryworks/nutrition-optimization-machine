@@ -1,115 +1,69 @@
-<!-- Header -->
-<header class="nom-dashboard__header">
-  <div class="nom-dashboard__header-left">
-    <h1 class="nom-dashboard__title">
-      Welcome to <span class="home__accent">NOM</span>
-    </h1>
-    <span class="nom-dashboard__subtitle">Discover community recipes</span>
-  </div>
-  <div class="nom-dashboard__header-right">
-    @if (!(isLoggedIn$ | async)) {
-    <amw-button variant="filled" color="primary" routerLink="/register" icon="rocket_launch"
-      data-testid="home-get-started-btn">
-      Get Started
-    </amw-button>
-    }
-    <amw-button variant="outlined" color="primary" routerLink="/search" icon="search">
-      Search Recipes
-    </amw-button>
-  </div>
-</header>
-
-@if (!(isLoggedIn$ | async)) {
-<div class="home__hero">
-  <div class="home__hero-content">
-    <h2 class="home__hero-title">Plan, Cook, Optimize</h2>
-    <p class="home__hero-desc">
-      NOM helps you organize your diet with meal planning, nutritional tracking,
-      shopping lists, and recipe management — all in one place.
-    </p>
-    <div class="home__hero-actions">
-      <amw-button variant="filled" color="primary" routerLink="/register" icon="person_add"
-        data-testid="home-hero-register-btn">
-        Create Account
-      </amw-button>
-      <amw-button variant="outlined" color="primary" routerLink="/about" icon="info"
-        data-testid="home-hero-about-btn">
-        Learn More
-      </amw-button>
-    </div>
-  </div>
-</div>
-}
-
-@if (isLoading()) {
-  <amw-inline-loading message="Loading recipes..." />
-} @else if (error()) {
-  <div class="nom-dashboard__error" role="alert">
-    <amw-icon name="error_outline"></amw-icon>
-    <p>{{ error() }}</p>
-    <amw-button variant="outlined" color="primary" (click)="loadRecipes()" icon="refresh">
-      Try Again
-    </amw-button>
-  </div>
-} @else if (recipes().length === 0) {
-  <!-- Clean empty state -->
-  <div class="nom-dashboard__empty">
-    <amw-icon name="restaurant" class="nom-dashboard__empty-icon"></amw-icon>
-    <h3 class="nom-dashboard__empty-title">No recipes yet</h3>
-    <p class="nom-dashboard__empty-message">
-      Recipes will appear here once the community starts sharing.
-    </p>
-    <amw-button variant="outlined" color="primary" routerLink="/search">
-      Browse Recipe Search
-    </amw-button>
-  </div>
+@if (isLoggedIn()) {
+  <nom-dashboard />
 } @else {
-  <!-- Recipe groups by meal type -->
-  @for (group of mealGroups; track group) {
-    @if (getRecipesForGroup(group).length > 0) {
-      <section class="home__meal-group">
-        <h2 class="home__group-title">
-          <amw-icon [name]="getGroupIcon(group)"></amw-icon>
-          {{ group }}
-        </h2>
-        <div class="home__recipe-grid">
-          @for (recipe of getRecipesForGroup(group); track recipe.id) {
-            <div class="home__recipe-card" (click)="navigateToRecipe(recipe.id)">
-              <h3 class="home__recipe-name">{{ recipe.name }}</h3>
-              <p class="home__recipe-author">by {{ recipe.authorName }}</p>
-              @if (recipe.description) {
-                <p class="home__recipe-desc">{{ recipe.description }}</p>
-              }
-            </div>
-          }
-        </div>
-      </section>
-    }
-  }
+  <div class="nom-home" data-testid="home-page">
+    @if (loading()) {
+      <div class="nom-home__loading">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading recipes...</p>
+      </div>
+    } @else if (error()) {
+      <div class="nom-home__error">
+        <mat-icon class="nom-home__error-icon">error_outline</mat-icon>
+        <h2>Something went wrong</h2>
+        <p>{{ error() }}</p>
+        <button class="nom-home__retry-btn" (click)="loadRecipes()">Try Again</button>
+      </div>
+    } @else if (categories().length === 0) {
+      <div class="nom-home__empty">
+        <mat-icon class="nom-home__empty-icon">restaurant</mat-icon>
+        <h2>No recipes yet</h2>
+        <p>Recipes will appear here once the community starts sharing.</p>
+      </div>
+    } @else {
+      @for (category of categories(); track category.label) {
+        <section class="nom-home__category" data-testid="home-category">
+          <div class="nom-home__category-header">
+            <mat-icon class="nom-home__category-icon">{{ category.icon }}</mat-icon>
+            <h2 class="nom-home__category-title">{{ category.label }}</h2>
+          </div>
 
-  <!-- Uncategorized recipes -->
-  @if (getUncategorizedRecipes().length > 0) {
-    <section class="home__meal-group">
-      <h2 class="home__group-title">
-        @if (hasAnyCategorizedRecipes()) {
-          <amw-icon name="more_horiz"></amw-icon>
-          More Recipes
-        } @else {
-          <amw-icon name="restaurant"></amw-icon>
-          Recipes
-        }
-      </h2>
-      <div class="home__recipe-grid">
-        @for (recipe of getUncategorizedRecipes(); track recipe.id) {
-          <div class="home__recipe-card" (click)="navigateToRecipe(recipe.id)">
-            <h3 class="home__recipe-name">{{ recipe.name }}</h3>
-            <p class="home__recipe-author">by {{ recipe.authorName }}</p>
-            @if (recipe.description) {
-              <p class="home__recipe-desc">{{ recipe.description }}</p>
+          <div class="nom-home__recipe-row">
+            @for (recipe of category.recipes; track recipe.id) {
+              <a class="nom-home__recipe-card"
+                 [routerLink]="['/recipe', recipe.id]"
+                 data-testid="recipe-card">
+                @if (recipe.imageUrl) {
+                  <img
+                    [src]="recipe.imageUrl"
+                    [alt]="recipe.name"
+                    class="nom-home__recipe-img"
+                    loading="lazy">
+                } @else {
+                  <div class="nom-home__recipe-img nom-home__recipe-img--placeholder">
+                    <mat-icon>restaurant</mat-icon>
+                  </div>
+                }
+                <div class="nom-home__recipe-info">
+                  <span class="nom-home__recipe-name">{{ recipe.name }}</span>
+                  <div class="nom-home__recipe-meta">
+                    <span class="nom-home__recipe-time">
+                      <mat-icon class="nom-home__recipe-meta-icon">schedule</mat-icon>
+                      {{ recipe.totalTime }} min
+                    </span>
+                    @if (recipe.averageRating > 0) {
+                      <span class="nom-home__recipe-rating">
+                        <mat-icon class="nom-home__recipe-meta-icon">star</mat-icon>
+                        {{ recipe.averageRating }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </a>
             }
           </div>
-        }
-      </div>
-    </section>
-  }
+        </section>
+      }
+    }
+  </div>
 }

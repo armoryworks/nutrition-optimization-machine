@@ -1,0 +1,122 @@
+<div class="nom-shopping">
+  <!-- Header -->
+  <div class="nom-shopping__header">
+    <div class="nom-shopping__header-left">
+      <h1 class="nom-shopping__title">Shopping List</h1>
+      @if (!loading() && departments().length > 0) {
+        <span class="nom-shopping__stats">
+          {{ checkedCount() }} of {{ totalItemCount() }} items
+        </span>
+      }
+    </div>
+    <div class="nom-shopping__header-right">
+      @if (checkedCount() > 0 && !completingTrip()) {
+        <button mat-flat-button
+                class="nom-shopping__complete-btn"
+                (click)="completeTrip()">
+          <mat-icon>move_to_inbox</mat-icon>
+          Complete Trip ({{ checkedCount() }})
+        </button>
+      }
+      @if (completingTrip()) {
+        <button mat-flat-button class="nom-shopping__complete-btn" disabled>
+          <mat-spinner diameter="18"></mat-spinner>
+          Transferring...
+        </button>
+      }
+      <div class="nom-shopping__days-control">
+        <span class="nom-shopping__days-label">Next</span>
+        <input type="number"
+               class="nom-shopping__days-input"
+               [value]="daysAhead()"
+               (change)="onDaysChange($event)"
+               min="1"
+               max="14"
+               aria-label="Number of days ahead">
+        <span class="nom-shopping__days-label">days</span>
+      </div>
+      <button mat-icon-button (click)="refresh()" aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text">
+        <mat-icon>content_copy</mat-icon>
+      </button>
+      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV">
+        <mat-icon>download</mat-icon>
+      </button>
+      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list">
+        <mat-icon>share</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-shopping__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-shopping__empty">
+      <mat-icon class="nom-shopping__empty-icon">error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-stroked-button (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+  } @else if (departments().length === 0) {
+    <div class="nom-shopping__empty">
+      <mat-icon class="nom-shopping__empty-icon">shopping_cart</mat-icon>
+      <h2>No upcoming meals</h2>
+      <p>Add meals to your plan to generate a shopping list.</p>
+      <a mat-flat-button routerLink="/plan">
+        <mat-icon>calendar_today</mat-icon>
+        Go to Meal Plan
+      </a>
+    </div>
+  } @else {
+    @if (lookingUpPackaging()) {
+      <div class="nom-shopping__lookup-indicator">
+        <mat-spinner diameter="16"></mat-spinner>
+        <span>Refining packaging info...</span>
+      </div>
+    }
+    @for (dept of departments(); track dept.name) {
+      <section class="nom-shopping__dept">
+        <div class="nom-shopping__dept-header">
+          <mat-icon class="nom-shopping__dept-icon">{{ dept.icon }}</mat-icon>
+          <h2 class="nom-shopping__dept-name">{{ dept.name }}</h2>
+          <span class="nom-shopping__dept-count">{{ dept.items.length }}</span>
+        </div>
+        <ul class="nom-shopping__items">
+          @for (item of dept.items; track item.checkKey) {
+            <li class="nom-shopping__item"
+                [class.nom-shopping__item--checked]="isChecked(item.checkKey)">
+              <mat-checkbox
+                [checked]="isChecked(item.checkKey)"
+                (change)="toggleChecked(item.checkKey)">
+              </mat-checkbox>
+              <span class="nom-shopping__item-name">{{ item.name }}</span>
+              @if (editingItem() === item.checkKey) {
+                <input class="nom-shopping__item-qty-input"
+                       [ngModel]="quantityOverrides().get(item.checkKey) ?? ''"
+                       (ngModelChange)="$event"
+                       (keydown.enter)="saveEdit(item.checkKey, $any($event.target).value)"
+                       (keydown.escape)="cancelEdit()"
+                       (blur)="saveEdit(item.checkKey, $any($event.target).value)"
+                       #editInput>
+              } @else {
+                <span class="nom-shopping__item-qty"
+                      [class.nom-shopping__item-qty--editable]="true"
+                      [class.nom-shopping__item-qty--overridden]="hasOverride(item.checkKey)"
+                      (click)="startEditing(item.checkKey, getDisplayText(item))"
+                      title="Click to edit quantity">
+                  {{ getDisplayText(item) }}
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>

@@ -1,153 +1,25 @@
 // =============================================================================
-// DASHBOARD STEREOTYPE - GLOBAL CLASSES
-// =============================================================================
-// File: _stereotype-dashboard.scss
-//
-// These classes are available GLOBALLY to all components.
-// Components use them directly in HTML templates.
-// Component SCSS should NOT redefine these - only add component-specific overrides.
-//
-// USAGE IN HTML:
-//   <div class="nom-dashboard nom-dashboard--with-sidebar">
-//     <aside class="nom-dashboard__sidebar">...</aside>
-//     <main class="nom-dashboard__main">
-//       <header class="nom-dashboard__header">...</header>
-//       <div class="nom-dashboard__grid">...</div>
-//     </main>
-//   </div>
-//
+// DASHBOARD STEREOTYPE
 // =============================================================================
 
-@use './variables' as vars;
-@use './mixins' as mixins;
+@use 'variables' as vars;
+@use 'mixins' as mixins;
 
-// =============================================================================
-// CONTAINER VARIANTS
-// =============================================================================
+// --- Container ---
 
 .nom-dashboard {
   width: 100%;
   max-width: vars.$content-max-medium;
   margin: 0 auto;
   padding: vars.$spacing-4 vars.$spacing-6;
-  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
 
-  @include mixins.breakpoint(mobile) {
-    padding: vars.$spacing-3 vars.$spacing-4;
-  }
+  @include mixins.breakpoint(mobile) { padding: vars.$spacing-3 vars.$spacing-4; }
 }
 
-.nom-dashboard--with-sidebar {
-  display: grid;
-  grid-template-columns: vars.$sidebar-width 1fr;
-  gap: 0;
-  max-width: none;
-  padding: 0;
-  height: calc(100vh - vars.$header-height - vars.$footer-height);
+.nom-dashboard--full-width { max-width: none; }
+.nom-dashboard--compact { padding: vars.$spacing-2 vars.$spacing-4; }
 
-  @media (max-width: vars.$breakpoint-tablet) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.nom-dashboard--full-width {
-  max-width: none;
-}
-
-.nom-dashboard--compact {
-  padding: vars.$spacing-2 vars.$spacing-4;
-}
-
-// =============================================================================
-// SIDEBAR
-// =============================================================================
-
-.nom-dashboard__sidebar {
-  background: var(--mat-sys-surface-container-low);
-  border-right: 1px solid var(--mat-sys-outline-variant);
-  padding: vars.$spacing-5;
-  position: sticky;
-  top: vars.$header-height;
-  height: calc(100vh - vars.$header-height - vars.$footer-height);
-  overflow-y: auto;
-
-  // Custom scrollbar
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--mat-sys-outline-variant);
-    border-radius: 3px;
-  }
-
-  @media (max-width: vars.$breakpoint-tablet) {
-    display: none;
-  }
-}
-
-.nom-dashboard__main {
-  padding: vars.$spacing-4 vars.$spacing-6;
-  overflow-y: auto;
-  height: 100%;
-
-  @include mixins.breakpoint(mobile) {
-    padding: vars.$spacing-3 vars.$spacing-4;
-  }
-}
-
-// =============================================================================
-// FILTER GROUPS (Sidebar)
-// =============================================================================
-
-.nom-dashboard__filter-group {
-  margin-bottom: vars.$spacing-6;
-}
-
-.nom-dashboard__filter-title {
-  font-size: vars.$font-size-xs;
-  font-weight: vars.$font-weight-semibold;
-  color: var(--mat-sys-on-surface-variant);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 vars.$spacing-3;
-}
-
-.nom-dashboard__filter-item {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-  padding: vars.$spacing-2 vars.$spacing-3;
-  border-radius: vars.$nom-border-radius;
-  cursor: pointer;
-  @include mixins.nom-transition(background-color);
-
-  &:hover {
-    background: var(--mat-sys-surface-container);
-  }
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--mat-sys-primary);
-    cursor: pointer;
-  }
-
-  span,
-  label {
-    font-size: vars.$font-size-sm;
-    color: var(--mat-sys-on-surface);
-    cursor: pointer;
-  }
-}
-
-// =============================================================================
-// HEADER
-// =============================================================================
+// --- Header ---
 
 .nom-dashboard__header {
   display: flex;
@@ -169,24 +41,6 @@
   align-items: baseline;
   gap: vars.$spacing-3;
   flex-shrink: 0;
-
-  @include mixins.breakpoint(mobile) {
-    flex-direction: column;
-    gap: vars.$spacing-1;
-  }
-}
-
-.nom-dashboard__header-center {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-  flex: 1;
-  justify-content: center;
-
-  @include mixins.breakpoint(mobile) {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
 }
 
 .nom-dashboard__header-right {
@@ -194,15 +48,6 @@
   align-items: center;
   gap: vars.$spacing-3;
   flex-shrink: 0;
-
-  @include mixins.breakpoint(mobile) {
-    width: 100%;
-    justify-content: stretch;
-
-    > * {
-      flex: 1;
-    }
-  }
 }
 
 .nom-dashboard__title {
@@ -211,10 +56,6 @@
   margin: 0;
   color: var(--mat-sys-on-surface);
   line-height: vars.$line-height-tight;
-
-  @include mixins.breakpoint(mobile) {
-    font-size: vars.$font-size-xl;
-  }
 }
 
 .nom-dashboard__subtitle {
@@ -223,9 +64,7 @@
   margin: 0;
 }
 
-// =============================================================================
-// STATS PILLS
-// =============================================================================
+// --- Stats ---
 
 .nom-dashboard__stats {
   display: flex;
@@ -251,8 +90,7 @@
     transform: translateY(-1px);
   }
 
-  mat-icon,
-  amw-icon {
+  mat-icon {
     font-size: 1rem;
     width: 1rem;
     height: 1rem;
@@ -260,98 +98,28 @@
   }
 }
 
-// =============================================================================
-// TABS
-// =============================================================================
-
-.nom-dashboard__tabs {
-  display: flex;
-  gap: vars.$spacing-1;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
-  margin-bottom: vars.$spacing-6;
-
-  @include mixins.breakpoint(mobile) {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-  }
-}
-
-.nom-dashboard__tab {
-  padding: vars.$spacing-3 vars.$spacing-5;
-  font-size: vars.$font-size-sm;
-  font-weight: vars.$font-weight-medium;
-  color: var(--mat-sys-on-surface-variant);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-  @include mixins.nom-transition(color);
-  @include mixins.nom-transition(border-color);
-
-  &:hover {
-    color: var(--mat-sys-on-surface);
-  }
-
-  &--active {
-    color: var(--mat-sys-primary);
-    border-bottom-color: var(--mat-sys-primary);
-  }
-}
-
-// =============================================================================
-// CARD GRID
-// =============================================================================
+// --- Card Grid ---
 
 .nom-dashboard__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(vars.$card-min-width, 1fr));
   gap: vars.$card-gap;
 
-  @include mixins.breakpoint(mobile) {
-    grid-template-columns: 1fr;
-  }
+  @include mixins.breakpoint(mobile) { grid-template-columns: 1fr; }
 }
 
 .nom-dashboard__grid--2col {
   grid-template-columns: repeat(2, 1fr);
-
-  @include mixins.breakpoint(mobile) {
-    grid-template-columns: 1fr;
-  }
+  @include mixins.breakpoint(mobile) { grid-template-columns: 1fr; }
 }
 
 .nom-dashboard__grid--3col {
   grid-template-columns: repeat(3, 1fr);
-
-  @media (max-width: vars.$breakpoint-tablet) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include mixins.breakpoint(mobile) {
-    grid-template-columns: 1fr;
-  }
+  @media (max-width: vars.$breakpoint-tablet) { grid-template-columns: repeat(2, 1fr); }
+  @include mixins.breakpoint(mobile) { grid-template-columns: 1fr; }
 }
 
-.nom-dashboard__grid--4col {
-  grid-template-columns: repeat(4, 1fr);
-
-  @media (max-width: vars.$breakpoint-tablet) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include mixins.breakpoint(mobile) {
-    grid-template-columns: 1fr;
-  }
-}
-
-// =============================================================================
-// CARDS
-// =============================================================================
+// --- Cards ---
 
 .nom-dashboard__card {
   background: var(--mat-sys-surface-container-low);
@@ -360,48 +128,19 @@
   overflow: hidden;
   box-shadow: vars.$elevation-1;
   @include mixins.nom-transition(transform);
-  @include mixins.nom-transition(box-shadow);
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: vars.$elevation-3;
   }
 
-  &--clickable {
-    cursor: pointer;
-  }
-
+  &--clickable { cursor: pointer; }
   &--flat {
-    &:hover {
-      transform: none;
-      box-shadow: vars.$elevation-1;
-    }
+    &:hover { transform: none; box-shadow: vars.$elevation-1; }
   }
 }
 
-.nom-dashboard__card-image {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  background: var(--mat-sys-surface-container);
-}
-
-.nom-dashboard__card-content {
-  padding: vars.$spacing-5;
-}
-
-.nom-dashboard__card-header {
-  padding: vars.$spacing-4 vars.$spacing-5 0;
-  display: flex;
-  align-items: flex-start;
-  gap: vars.$spacing-3;
-}
-
-.nom-dashboard__card-icon {
-  font-size: vars.$font-size-xl;
-  color: var(--mat-sys-primary);
-  flex-shrink: 0;
-}
+.nom-dashboard__card-content { padding: vars.$spacing-5; }
 
 .nom-dashboard__card-title {
   font-size: vars.$font-size-lg;
@@ -417,15 +156,6 @@
   margin: 0;
 }
 
-.nom-dashboard__card-meta {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
-  margin-top: vars.$spacing-3;
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
-}
-
 .nom-dashboard__card-actions {
   padding: vars.$spacing-3 vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
@@ -434,157 +164,7 @@
   gap: vars.$spacing-2;
 }
 
-// =============================================================================
-// DATA TABLE
-// =============================================================================
-
-.nom-dashboard__table-container {
-  background: var(--mat-sys-surface-container-low);
-  border-radius: vars.$nom-border-radius;
-  overflow: hidden;
-  border: 1px solid var(--mat-sys-outline-variant);
-}
-
-.nom-dashboard__table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-
-  th,
-  td {
-    padding: vars.$spacing-3 vars.$spacing-4;
-    text-align: left;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
-  }
-
-  th {
-    font-weight: vars.$font-weight-semibold;
-    font-size: vars.$font-size-xs;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--mat-sys-on-surface-variant);
-    background: var(--mat-sys-surface-container-low);
-    position: sticky;
-    top: 0;
-    z-index: vars.$z-sticky;
-  }
-
-  tbody tr {
-    @include mixins.nom-transition(background-color);
-
-    &:hover {
-      background: var(--mat-sys-surface-container);
-    }
-
-    &:last-child td {
-      border-bottom: none;
-    }
-  }
-
-  .action-cell {
-    text-align: right;
-    white-space: nowrap;
-  }
-}
-
-// =============================================================================
-// PAGINATION
-// =============================================================================
-
-.nom-dashboard__pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: vars.$spacing-4;
-  padding: vars.$spacing-4 0;
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.nom-dashboard__pagination-info {
-  white-space: nowrap;
-}
-
-.nom-dashboard__pagination-controls {
-  display: flex;
-  gap: vars.$spacing-1;
-}
-
-.nom-dashboard__per-page {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-2;
-}
-
-// =============================================================================
-// SECTIONS
-// =============================================================================
-
-.nom-dashboard__section {
-  margin-bottom: vars.$spacing-8;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.nom-dashboard__section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: vars.$spacing-4;
-  gap: vars.$spacing-4;
-
-  @include mixins.breakpoint(mobile) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
-.nom-dashboard__section-title {
-  font-size: vars.$font-size-lg;
-  font-weight: vars.$font-weight-semibold;
-  margin: 0;
-  color: var(--mat-sys-on-surface);
-}
-
-.nom-dashboard__section-actions {
-  display: flex;
-  gap: vars.$spacing-2;
-  flex-shrink: 0;
-}
-
-// =============================================================================
-// FILTERS (Inline)
-// =============================================================================
-
-.nom-dashboard__filters {
-  display: flex;
-  gap: vars.$spacing-4;
-  align-items: flex-end;
-  margin-bottom: vars.$spacing-4;
-
-  @include mixins.breakpoint(mobile) {
-    flex-direction: column;
-    gap: vars.$spacing-2;
-  }
-}
-
-.nom-dashboard__filter-field {
-  flex: 1;
-  min-width: 180px;
-  max-width: 300px;
-
-  @include mixins.breakpoint(mobile) {
-    width: 100%;
-    min-width: unset;
-    max-width: none;
-  }
-}
-
-// =============================================================================
-// EMPTY STATE
-// =============================================================================
+// --- Empty State ---
 
 .nom-dashboard__empty {
   display: flex;
@@ -619,53 +199,68 @@
   line-height: vars.$line-height-normal;
 }
 
-// =============================================================================
-// LOADING & ERROR STATES
-// =============================================================================
+// --- Sections ---
 
-.nom-dashboard__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: vars.$spacing-12;
-  text-align: center;
-  grid-column: 1 / -1;
+.nom-dashboard__section {
+  margin-bottom: vars.$spacing-8;
+  &:last-child { margin-bottom: 0; }
 }
 
-.nom-dashboard__error {
+.nom-dashboard__section-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: vars.$spacing-3;
-  padding: vars.$spacing-4 vars.$spacing-5;
-  background: var(--mat-sys-error-container);
-  border: 1px solid var(--mat-sys-error);
-  border-left: 4px solid var(--mat-sys-error);
-  border-radius: vars.$nom-border-radius-lg;
-  color: var(--mat-sys-on-error-container);
-  box-shadow: vars.$elevation-1;
+  margin-bottom: vars.$spacing-4;
+  gap: vars.$spacing-4;
+}
 
-  mat-icon,
-  amw-icon {
-    color: var(--mat-sys-error);
-    flex-shrink: 0;
+.nom-dashboard__section-title {
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+// --- Table ---
+
+.nom-dashboard__table-container {
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-dashboard__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th, td {
+    padding: vars.$spacing-3 vars.$spacing-4;
+    text-align: left;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
   }
 
-  p {
-    margin: 0;
-    flex: 1;
-    min-width: 200px;
+  th {
+    font-weight: vars.$font-weight-semibold;
+    font-size: vars.$font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mat-sys-on-surface-variant);
+    background: var(--mat-sys-surface-container-low);
+    position: sticky;
+    top: 0;
+    z-index: vars.$z-sticky;
   }
 
-  .nom-form__actions {
-    flex-shrink: 0;
+  tbody tr {
+    @include mixins.nom-transition(background-color);
+    &:hover { background: var(--mat-sys-surface-container); }
+    &:last-child td { border-bottom: none; }
   }
 }
 
-// =============================================================================
-// ITEM LIST (Alternative to Cards)
-// =============================================================================
+// --- List Items ---
 
 .nom-dashboard__list {
   display: flex;
@@ -691,9 +286,7 @@
     box-shadow: vars.$elevation-2;
   }
 
-  &--clickable {
-    cursor: pointer;
-  }
+  &--clickable { cursor: pointer; }
 }
 
 .nom-dashboard__list-item-content {
@@ -710,33 +303,21 @@
   @include mixins.nom-text-truncate;
 }
 
-.nom-dashboard__list-item-meta {
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
-}
+// --- Error ---
 
-.nom-dashboard__list-item-actions {
+.nom-dashboard__error {
   display: flex;
-  gap: vars.$spacing-1;
-  flex-shrink: 0;
-}
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-4 vars.$spacing-5;
+  background: var(--mat-sys-error-container);
+  border: 1px solid var(--mat-sys-error);
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: vars.$nom-border-radius-lg;
+  color: var(--mat-sys-on-error-container);
+  box-shadow: vars.$elevation-1;
 
-// =============================================================================
-// LEGACY MIXIN SUPPORT (for gradual migration)
-// =============================================================================
-
-@mixin nom-dashboard {
-  @extend .nom-dashboard;
-}
-
-@mixin nom-dashboard-page-header($compact: false) {
-  @extend .nom-dashboard__header;
-}
-
-@mixin nom-dashboard-grid {
-  @extend .nom-dashboard__grid;
-}
-
-@mixin nom-dashboard-item-card {
-  @extend .nom-dashboard__card;
+  mat-icon { color: var(--mat-sys-error); flex-shrink: 0; }
+  p { margin: 0; flex: 1; min-width: 200px; }
 }

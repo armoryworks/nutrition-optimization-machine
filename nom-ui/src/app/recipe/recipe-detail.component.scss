@@ -1,0 +1,349 @@
+@use 'variables' as vars;
+
+// Host fills the content area for independent column scrolling
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+// Banner: back link (does not scroll)
+.nom-recipe__banner {
+  flex-shrink: 0;
+  padding: vars.$spacing-1 vars.$spacing-4;
+}
+
+.nom-recipe__back {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Hero image (inside Overview tab panel)
+.nom-recipe__hero {
+  border-radius: vars.$nom-border-radius-lg;
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-recipe__hero-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+// Three-column grid
+.nom-recipe__columns {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(240px, 380px) 1fr;
+  gap: vars.$spacing-4;
+}
+
+// Each column scrolls independently
+.nom-recipe__column {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+// Overview column: vertical tabs (nav | panel)
+.nom-recipe__column--overview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+}
+
+.nom-recipe__column--ingredients,
+.nom-recipe__column--instructions {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-5;
+}
+
+// Vertical tab navigation (rotated text)
+.nom-recipe__tab-nav {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+}
+
+.nom-recipe__tab-btn {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg); // bottom-to-top reading, letter bases face the panel
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: vars.$spacing-3 vars.$spacing-2;
+  border: 1px solid var(--mat-sys-outline-variant);
+  margin-bottom: -1px; // collapse borders between stacked tabs
+  border-radius: 0 vars.$nom-border-radius vars.$nom-border-radius 0; // visually rounded on left after rotation
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    transform: rotate(180deg); // counter-rotate so icons stay upright
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+    color: var(--mat-sys-on-surface);
+  }
+
+  // Active tab: filled primary-container so it's unmistakable
+  &--active {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+    border-color: var(--mat-sys-primary-container);
+
+    mat-icon {
+      color: var(--mat-sys-on-primary-container);
+    }
+
+    &:hover {
+      background: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+    }
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Tab panel (scrolls independently)
+.nom-recipe__tab-panel {
+  overflow-y: auto;
+  min-height: 0;
+  padding: vars.$spacing-3;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0 vars.$nom-border-radius-lg vars.$nom-border-radius-lg 0;
+  background: var(--mat-sys-surface-container-low);
+}
+
+// Title inside overview tab
+.nom-recipe__title {
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-bold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-recipe__description {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.6;
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-recipe__meta {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-recipe__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.nom-recipe__meta-author {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+  font-weight: vars.$font-weight-medium;
+  align-self: flex-start;
+
+  mat-icon {
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+// Section titles (ingredients & instructions columns)
+.nom-recipe__section-title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+  margin: 0 0 vars.$spacing-4;
+  padding-bottom: vars.$spacing-3;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+// Ingredients list
+.nom-recipe__ingredients {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-recipe__ingredient {
+  padding: vars.$spacing-2 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.nom-recipe__ingredient-notes {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+// Steps list
+.nom-recipe__steps {
+  padding-left: vars.$spacing-5;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-recipe__step {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  line-height: 1.6;
+  padding-left: vars.$spacing-2;
+}
+
+// Engagement section (comments & ratings)
+.nom-recipe__engagement {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 vars.$spacing-4;
+}
+
+// Empty section text
+.nom-recipe__empty-section {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+  font-size: vars.$font-size-sm;
+  margin: 0;
+}
+
+// States: loading, error, not found
+.nom-recipe__not-found,
+.nom-recipe__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: vars.$spacing-10;
+  color: var(--mat-sys-on-surface-variant);
+  height: 100%;
+}
+
+.nom-recipe__not-found-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  opacity: 0.4;
+  margin-bottom: vars.$spacing-4;
+}
+
+// Responsive: stack columns below tablet
+@media (max-width: vars.$breakpoint-tablet) {
+  :host {
+    height: auto;
+  }
+
+  .nom-recipe__columns {
+    grid-template-columns: 1fr;
+    flex: none;
+    padding-bottom: vars.$spacing-6;
+  }
+
+  .nom-recipe__column {
+    overflow-y: visible;
+    min-height: auto;
+  }
+
+  .nom-recipe__column--overview {
+    grid-template-columns: auto 1fr;
+  }
+
+  .nom-recipe__meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: vars.$spacing-3;
+  }
+}
+
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-recipe__banner {
+    padding: vars.$spacing-2 vars.$spacing-3;
+  }
+
+  .nom-recipe__columns {
+    gap: vars.$spacing-3;
+    padding: 0 vars.$spacing-3;
+  }
+
+  .nom-recipe__column--overview {
+    grid-template-columns: 1fr;
+  }
+
+  .nom-recipe__tab-nav {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    padding-right: 0;
+    padding-bottom: vars.$spacing-2;
+  }
+
+  .nom-recipe__hero-img {
+    height: 160px;
+  }
+}

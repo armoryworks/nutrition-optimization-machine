@@ -1,13 +1,17 @@
-// File: nom-ui/src/styles/_variables.scss
+// =============================================================================
+// DESIGN TOKENS
+// =============================================================================
 
 // Breakpoints
 $breakpoint-mobile: 768px;
+$breakpoint-tablet: 1024px;
+$breakpoint-desktop: 1280px;
 
-// Spacing Scale (4px base unit, standardized)
+// Spacing Scale (4px base unit)
 $spacing-0: 0;
 $spacing-1: 0.25rem;   // 4px
 $spacing-2: 0.5rem;    // 8px
-$spacing-3: 0.75rem;   // 12px - commonly used for compact padding/gaps
+$spacing-3: 0.75rem;   // 12px
 $spacing-4: 1rem;      // 16px
 $spacing-5: 1.25rem;   // 20px
 $spacing-6: 1.5rem;    // 24px
@@ -24,96 +28,26 @@ $spacing-lg: $spacing-8;   // 32px
 $spacing-xl: $spacing-12;  // 48px
 $spacing-2xl: $spacing-16; // 64px
 
-// Legacy spacing aliases (for backward compatibility - prefer semantic aliases above)
-$spacing-xsmall: $spacing-1;   // 4px
-$spacing-small: $spacing-2;    // 8px
-$spacing-medium: $spacing-4;   // 16px
-$spacing-large: $spacing-6;    // 24px
-$spacing-xlarge: $spacing-8;   // 32px
-$spacing-xxlarge: $spacing-12; // 48px
-
-// Component-specific spacing (use these in global styles)
-$form-field-gap: $spacing-4;           // 16px - gap between form fields
-$form-section-gap: $spacing-6;         // 24px - gap between form sections
-$card-padding: $spacing-6;             // 24px - standard card padding
-$card-padding-compact: $spacing-4;     // 16px - compact card padding
-$card-padding-sm: $spacing-4;          // 16px - alias for backward compatibility
-$list-item-padding: $spacing-3;        // 12px - list item padding
-$button-padding-y: $spacing-2;         // 8px - button vertical padding
-$button-padding-x: $spacing-6;         // 24px - button horizontal padding
-$button-padding-x-sm: $spacing-4;      // 16px - small button horizontal padding
-$chip-padding-y: $spacing-1;           // 4px - chip vertical padding
-$chip-padding-x: $spacing-3;           // 12px - chip horizontal padding
-$input-padding-y: $spacing-3;          // 12px - input vertical padding
-$input-padding-x: $spacing-4;          // 16px - input horizontal padding
-$container-gap: $spacing-3;            // 12px - default flex gap
-
-// --- ENHANCED COLOR VARIABLES ---
-
-// Primary Colors (Blue)
-$nom-primary-50: #eff6ff;
-$nom-primary-100: #dbeafe;
-$nom-primary-200: #bfdbfe;
-$nom-primary-300: #93c5fd;
-$nom-primary-400: #60a5fa;
-$nom-primary-500: #3b82f6;
-$nom-primary-600: #2563eb;
-$nom-primary-700: #1d4ed8;
-$nom-primary-800: #1e40af;
-$nom-primary-900: #1e3a8a;
-
-// Secondary Colors (Purple)
-$nom-secondary-50: #faf5ff;
-$nom-secondary-100: #f3e8ff;
-$nom-secondary-200: #e9d5ff;
-$nom-secondary-300: #d8b4fe;
-$nom-secondary-400: #c084fc;
-$nom-secondary-500: #a855f7;
-$nom-secondary-600: #9333ea;
-$nom-secondary-700: #7c3aed;
-$nom-secondary-800: #6b21a8;
-$nom-secondary-900: #581c87;
-
-// Tertiary Colors (Green)
-$nom-tertiary-50: #f0fdf4;
-$nom-tertiary-100: #dcfce7;
-$nom-tertiary-200: #bbf7d0;
-$nom-tertiary-300: #86efac;
-$nom-tertiary-400: #4ade80;
-$nom-tertiary-500: #22c55e;
-$nom-tertiary-600: #16a34a;
-$nom-tertiary-700: #15803d;
-$nom-tertiary-800: #166534;
-$nom-tertiary-900: #14532d;
-
-// Neutral Colors
-$nom-neutral-50: #f8fafc;
-$nom-neutral-100: #f1f5f9;
-$nom-neutral-200: #e2e8f0;
-$nom-neutral-300: #cbd5e1;
-$nom-neutral-400: #94a3b8;
-$nom-neutral-500: #64748b;
-$nom-neutral-600: #475569;
-$nom-neutral-700: #334155;
-$nom-neutral-800: #1e293b;
-$nom-neutral-900: #0f172a;
-
-// Semantic Colors
-$nom-success: #10b981;
-$nom-warning: #f59e0b;
-$nom-error: #ef4444;
-$nom-info: #3b82f6;
-
-// Legacy Colors (for backward compatibility)
-$nom-border-color: $nom-neutral-200;
-$nom-border-color-light: $nom-neutral-100;
-$nom-text-color-light: $nom-neutral-600;
-$nom-background-color-light: $nom-neutral-50;
+// Component-specific spacing
+$form-field-gap: $spacing-4;
+$form-section-gap: $spacing-6;
+$card-padding: $spacing-6;
+$card-padding-compact: $spacing-4;
+$card-padding-sm: $spacing-4;
+$list-item-padding: $spacing-3;
+$button-padding-y: $spacing-2;
+$button-padding-x: $spacing-6;
+$button-padding-x-sm: $spacing-4;
+$chip-padding-y: $spacing-1;
+$chip-padding-x: $spacing-3;
+$input-padding-y: $spacing-3;
+$input-padding-x: $spacing-4;
+$container-gap: $spacing-3;
 
 // Typography Scale
 $font-size-xs: 0.75rem;   // 12px
 $font-size-sm: 0.875rem;  // 14px
-$font-size-md: 1rem;      // 16px (base)
+$font-size-md: 1rem;      // 16px
 $font-size-lg: 1.25rem;   // 20px
 $font-size-xl: 1.5rem;    // 24px
 $font-size-2xl: 2rem;     // 32px
@@ -131,12 +65,11 @@ $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
 // Component Sizing
-$button-height: 40px;           // Standard button height (touch-friendly)
-$button-height-sm: 32px;        // Small button height
-$button-height-lg: 48px;        // Large button height
-
-$input-height: 48px;            // Form field height (touch-friendly)
-$card-min-height: 200px;        // Minimum card height
+$button-height: 40px;
+$button-height-sm: 32px;
+$button-height-lg: 48px;
+$input-height: 48px;
+$card-min-height: 200px;
 
 // Transitions
 $transition-duration-fast: 0.15s;
@@ -156,74 +89,39 @@ $elevation-5: 0 16px 48px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.1);
 $nom-border-radius: 4px;
 $nom-border-radius-sm: 2px;
 $nom-border-radius-lg: 8px;
-$nom-border-radius-pill: 12px;     // Pills, chips, stats badges
+$nom-border-radius-pill: 5px;
 
-// Card/Panel backgrounds
-$nom-card-bg-light: $nom-neutral-100;
-$nom-card-bg-dark: $nom-neutral-800;
-$nom-panel-bg-light: $nom-neutral-50;
-$nom-panel-bg-dark: $nom-neutral-900;
-
-// High-contrast text
-$nom-text-high-contrast-light: $nom-neutral-900;
-$nom-text-high-contrast-dark: $nom-neutral-50;
-
-// Subtle border
-$nom-border-subtle-light: $nom-neutral-200;
-$nom-border-subtle-dark: $nom-neutral-700;
-
-// =============================================================================
-// LAYOUT DIMENSIONS
-// =============================================================================
-$sidebar-width: 280px;
-$sidebar-width-collapsed: 64px;
-$header-height: 64px;
+// Layout Dimensions
+$header-height: 56px;
 $footer-height: 48px;
+$layout-sidebar-width: 420px;
 
+// Content widths
 $content-max-narrow: 800px;
 $content-max-medium: 1200px;
 $content-max-wide: 1600px;
-
-// Two-column app layout
 $layout-max-width: 1920px;
-$layout-main-max-width: 1400px;
-$layout-sidebar-width: 520px;
-$layout-sidebar-breakpoint: 1280px;
 
-// =============================================================================
-// CONTROL DIMENSIONS
-// =============================================================================
+// Control Dimensions
 $control-height: 44px;
 $control-height-sm: 36px;
 $control-height-lg: 52px;
-
 $icon-button-size: 40px;
 $icon-button-size-sm: 32px;
 $icon-button-size-lg: 48px;
 
-// =============================================================================
-// CARD DIMENSIONS
-// =============================================================================
+// Card Dimensions
 $card-min-width: 320px;
 $card-gap: 16px;
 $card-border-radius: 8px;
 
-// =============================================================================
-// MODAL DIMENSIONS
-// =============================================================================
+// Modal Dimensions
 $modal-width-sm: 500px;
 $modal-width-md: 600px;
 $modal-width-lg: 800px;
 $modal-padding: 24px;
 
-// =============================================================================
-// TABLET BREAKPOINT
-// =============================================================================
-$breakpoint-tablet: 1024px;
-
-// =============================================================================
-// Z-INDEX SCALE
-// =============================================================================
+// Z-Index Scale
 $z-base: 0;
 $z-dropdown: 100;
 $z-sticky: 200;

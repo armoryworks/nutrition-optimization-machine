@@ -1,0 +1,85 @@
+@use '../../variables' as *;
+
+.nom-cookbook-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-2;
+}
+
+.nom-cookbook-detail__actions {
+  display: flex;
+  gap: $spacing-2;
+}
+
+.nom-cookbook-recipes {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.nom-cookbook-recipe {
+  display: flex;
+  align-items: center;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: $spacing-3;
+  transition: background $transition-duration-fast;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-cookbook-recipe__body {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  flex: 1;
+  padding: $spacing-3;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.nom-cookbook-recipe__img,
+.nom-cookbook-recipe__img-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: $spacing-2;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nom-cookbook-recipe__img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-cookbook-recipe__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nom-cookbook-recipe__name {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-cookbook-recipe__desc {
+  font-size: $font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,35 @@
+<div class="nom-rating">
+  <h3 class="nom-rating__title">
+    <mat-icon>star</mat-icon>
+    Rating
+  </h3>
+
+  @if (!loading()) {
+    <div class="nom-rating__summary">
+      <span class="nom-rating__average">{{ averageRating().toFixed(1) }}</span>
+      <div class="nom-rating__stars nom-rating__stars--display">
+        @for (star of stars; track star) {
+          <mat-icon>{{ star <= roundRating() ? 'star' : 'star_border' }}</mat-icon>
+        }
+      </div>
+      <span class="nom-rating__count">({{ ratings().length }} rating{{ ratings().length === 1 ? '' : 's' }})</span>
+    </div>
+
+    @if (currentPersonId()) {
+      <div class="nom-rating__user">
+        <span class="nom-rating__user-label">Your rating:</span>
+        <div class="nom-rating__stars nom-rating__stars--interactive">
+          @for (star of stars; track star) {
+            <button class="nom-rating__star-btn"
+                    (mouseenter)="hoverStar.set(star)"
+                    (mouseleave)="hoverStar.set(0)"
+                    (click)="onRate(star)"
+                    [attr.aria-label]="star + ' star' + (star > 1 ? 's' : '')">
+              <mat-icon>{{ star <= (hoverStar() || userRatingValue()) ? 'star' : 'star_border' }}</mat-icon>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

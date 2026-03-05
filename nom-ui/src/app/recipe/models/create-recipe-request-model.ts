@@ -1,9 +1,0 @@
-import { RecipeIngredientModel } from './recipe-ingredient.model';
-import { RecipeStepModel } from './recipe-step.model';
-
-export interface CreateRecipeRequestModel {
-    name: string;
-    description?: string;
-    ingredients: RecipeIngredientModel[];
-    steps: RecipeStepModel[];
-}
