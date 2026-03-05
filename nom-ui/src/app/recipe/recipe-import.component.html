@@ -1,0 +1,93 @@
+<div class="nom-form--card">
+  <div class="nom-form__card">
+    <div class="nom-form__card-header">
+      <a routerLink="/recipes/mine" class="nom-import__back">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <h1 class="nom-form__card-title">Import Recipe from URL</h1>
+      <p class="nom-form__card-subtitle">Paste a recipe URL to automatically import it</p>
+    </div>
+
+    <div class="nom-form__card-content">
+      @if (error()) {
+        <div class="nom-form__error">
+          <mat-icon>error</mat-icon>
+          {{ error() }}
+        </div>
+      }
+
+      <div class="nom-form__fields">
+        <mat-form-field>
+          <mat-label>Recipe URL</mat-label>
+          <input matInput [(ngModel)]="url" placeholder="https://example.com/recipe/..." type="url">
+          <mat-icon matPrefix>link</mat-icon>
+        </mat-form-field>
+
+        <mat-checkbox [(ngModel)]="importKeywordsAsTags">
+          Import keywords as tags
+        </mat-checkbox>
+      </div>
+
+      <div class="nom-import__actions">
+        <button mat-stroked-button [disabled]="!url.trim() || previewLoading()" (click)="onPreview()">
+          @if (previewLoading()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <mat-icon>preview</mat-icon>
+          }
+          Preview
+        </button>
+        <button mat-flat-button [disabled]="!url.trim() || importing()" (click)="onImport()">
+          @if (importing()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            <mat-icon>download</mat-icon>
+          }
+          Import
+        </button>
+      </div>
+
+      @if (preview()) {
+        <div class="nom-import__preview">
+          <h3 class="nom-import__preview-title">Preview</h3>
+          <div class="nom-import__preview-content">
+            @if (preview()!.image) {
+              <img class="nom-import__preview-img" [src]="preview()!.image" [alt]="preview()!.name">
+            }
+            <h4>{{ preview()!.name }}</h4>
+            @if (preview()!.description) {
+              <p class="nom-import__preview-desc">{{ preview()!.description }}</p>
+            }
+            <div class="nom-import__preview-meta">
+              @if (preview()!.prepTime) {
+                <span><mat-icon>schedule</mat-icon> Prep: {{ preview()!.prepTime }}</span>
+              }
+              @if (preview()!.cookTime) {
+                <span><mat-icon>local_fire_department</mat-icon> Cook: {{ preview()!.cookTime }}</span>
+              }
+              @if (preview()!.recipeYield) {
+                <span><mat-icon>restaurant</mat-icon> Yield: {{ preview()!.recipeYield }}</span>
+              }
+            </div>
+            @if (preview()!.ingredients.length > 0) {
+              <h5>Ingredients ({{ preview()!.ingredients.length }})</h5>
+              <ul>
+                @for (ing of preview()!.ingredients; track $index) {
+                  <li>{{ ing }}</li>
+                }
+              </ul>
+            }
+            @if (preview()!.steps.length > 0) {
+              <h5>Steps ({{ preview()!.steps.length }})</h5>
+              <ol>
+                @for (step of preview()!.steps; track $index) {
+                  <li>{{ step }}</li>
+                }
+              </ol>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

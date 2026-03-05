@@ -1,0 +1,55 @@
+@use 'variables' as vars;
+
+.nom-privacy__back {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-privacy__success {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  border-radius: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-privacy__section {
+  padding: vars.$spacing-4 0;
+
+  & + & {
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+.nom-privacy__section-title {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-lg;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-privacy__section-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: vars.$spacing-4;
+}
+
+.nom-privacy__actions {
+  display: flex;
+  gap: vars.$spacing-3;
+}
+
+.nom-privacy__section--danger {
+  .nom-privacy__section-title {
+    color: var(--mat-sys-error);
+  }
+}

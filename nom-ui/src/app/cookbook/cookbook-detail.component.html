@@ -1,0 +1,77 @@
+<div class="nom-dashboard" data-testid="cookbook-detail">
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-dashboard__error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <a mat-flat-button routerLink="/cookbooks">Back to Cookbooks</a>
+    </div>
+  } @else if (cookbook()) {
+    <div class="nom-dashboard__header">
+      <div>
+        <a routerLink="/cookbooks" class="nom-cookbook-detail__back">
+          <mat-icon>arrow_back</mat-icon>
+          Cookbooks
+        </a>
+        <h1 class="nom-dashboard__title">{{ cookbook()!.name }}</h1>
+        @if (cookbook()!.description) {
+          <p class="nom-dashboard__subtitle">{{ cookbook()!.description }}</p>
+        }
+      </div>
+      <div class="nom-cookbook-detail__actions">
+        <button mat-stroked-button (click)="onEdit()">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+        <button mat-stroked-button class="nom-btn--destructive" (click)="onDelete()">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <section class="nom-dashboard__section">
+      <div class="nom-dashboard__section-header">
+        <h2 class="nom-dashboard__section-title">Recipes ({{ recipes().length }})</h2>
+      </div>
+
+      @if (recipes().length === 0) {
+        <div class="nom-dashboard__empty">
+          <mat-icon class="nom-dashboard__empty-icon">restaurant_menu</mat-icon>
+          <h2 class="nom-dashboard__empty-title">No recipes in this cookbook</h2>
+          <p class="nom-dashboard__empty-message">
+            Add recipes from recipe detail pages to build your collection.
+          </p>
+        </div>
+      } @else {
+        <div class="nom-cookbook-recipes">
+          @for (recipe of recipes(); track recipe.id) {
+            <div class="nom-cookbook-recipe">
+              <a class="nom-cookbook-recipe__body" [routerLink]="'/recipe/' + recipe.id">
+                @if (recipe.imageUrl) {
+                  <img class="nom-cookbook-recipe__img" [src]="recipe.imageUrl" [alt]="recipe.name" loading="lazy">
+                } @else {
+                  <div class="nom-cookbook-recipe__img-placeholder">
+                    <mat-icon>restaurant</mat-icon>
+                  </div>
+                }
+                <div class="nom-cookbook-recipe__info">
+                  <span class="nom-cookbook-recipe__name">{{ recipe.name }}</span>
+                  @if (recipe.description) {
+                    <span class="nom-cookbook-recipe__desc">{{ recipe.description }}</span>
+                  }
+                </div>
+              </a>
+              <button mat-icon-button (click)="onRemoveRecipe(recipe.id)" aria-label="Remove from cookbook">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

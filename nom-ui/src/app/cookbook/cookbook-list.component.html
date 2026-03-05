@@ -1,0 +1,62 @@
+<div class="nom-dashboard" data-testid="cookbook-list">
+  <div class="nom-dashboard__header">
+    <h1 class="nom-dashboard__title">Cookbooks</h1>
+    <button mat-flat-button (click)="onCreate()">
+      <mat-icon>add</mat-icon>
+      New Cookbook
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-dashboard__error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (cookbooks().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">collections_bookmark</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No cookbooks yet</h2>
+      <p class="nom-dashboard__empty-message">Create a cookbook to organize your recipes into collections.</p>
+      <button mat-flat-button (click)="onCreate()">
+        <mat-icon>add</mat-icon>
+        Create Cookbook
+      </button>
+    </div>
+  } @else {
+    <div class="nom-cookbook-grid">
+      @for (cookbook of cookbooks(); track cookbook.id) {
+        <div class="nom-cookbook-card">
+          <a class="nom-cookbook-card__body" [routerLink]="'/cookbook/' + cookbook.id">
+            <div class="nom-cookbook-card__icon-wrap">
+              <mat-icon>collections_bookmark</mat-icon>
+            </div>
+            <div class="nom-cookbook-card__info">
+              <span class="nom-cookbook-card__name">{{ cookbook.name }}</span>
+              @if (cookbook.description) {
+                <span class="nom-cookbook-card__desc">{{ cookbook.description }}</span>
+              }
+              <span class="nom-cookbook-card__meta">
+                {{ cookbook.recipeCount }} recipe{{ cookbook.recipeCount === 1 ? '' : 's' }}
+                @if (cookbook.isPublic) {
+                  · <mat-icon class="nom-cookbook-card__public-icon">public</mat-icon> Public
+                }
+              </span>
+            </div>
+          </a>
+          <div class="nom-cookbook-card__actions">
+            <button mat-icon-button (click)="onEdit(cookbook)" aria-label="Edit cookbook">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button (click)="onDelete(cookbook)" aria-label="Delete cookbook">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

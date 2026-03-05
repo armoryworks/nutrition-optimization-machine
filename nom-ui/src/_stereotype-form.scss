@@ -1,321 +1,10 @@
 // =============================================================================
 // FORM STEREOTYPE
 // =============================================================================
-// Use for: form pages with input fields
-// Components: registration, login, person-profile-edit, shopping-create, household-create
-// =============================================================================
 
-@use './variables' as vars;
+@use 'variables' as vars;
 
-// -----------------------------------------------------------------------------
-// Form Page Container
-// -----------------------------------------------------------------------------
-%nom-form-page {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: vars.$spacing-8 vars.$spacing-4;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-4 vars.$spacing-2;
-  }
-}
-
-%nom-form-page--narrow {
-  max-width: 500px;
-}
-
-%nom-form-page--wide {
-  max-width: 800px;
-}
-
-// -----------------------------------------------------------------------------
-// Form Card
-// -----------------------------------------------------------------------------
-%nom-form-card {
-  border-radius: vars.$nom-border-radius-lg;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-%nom-form-card-header {
-  padding: vars.$spacing-6 vars.$spacing-6 0;
-}
-
-%nom-form-card-title {
-  font-size: vars.$font-size-xl;
-  font-weight: vars.$font-weight-semibold;
-  color: var(--mat-sys-on-surface);
-  margin: 0 0 vars.$spacing-2;
-}
-
-%nom-form-card-subtitle {
-  font-size: vars.$font-size-sm;
-  color: var(--mat-sys-on-surface-variant);
-  margin: 0;
-}
-
-%nom-form-card-content {
-  padding: vars.$spacing-6;
-}
-
-// -----------------------------------------------------------------------------
-// Form Container
-// -----------------------------------------------------------------------------
-%nom-form {
-  display: flex;
-  flex-direction: column;
-  gap: vars.$form-field-gap;
-  width: 100%;
-}
-
-%nom-form--compact {
-  gap: vars.$spacing-3;
-}
-
-// -----------------------------------------------------------------------------
-// Form Section
-// -----------------------------------------------------------------------------
-%nom-form-section {
-  margin-bottom: vars.$form-section-gap;
-}
-
-%nom-form-section-heading {
-  font-size: vars.$font-size-lg;
-  font-weight: vars.$font-weight-semibold;
-  color: var(--mat-sys-on-surface);
-  margin: 0 0 vars.$spacing-3;
-}
-
-%nom-form-instruction-text {
-  color: var(--mat-sys-on-surface-variant);
-  font-size: vars.$font-size-sm;
-  line-height: vars.$line-height-normal;
-  margin: 0 0 vars.$spacing-4;
-}
-
-// -----------------------------------------------------------------------------
-// Form Fields
-// -----------------------------------------------------------------------------
-%nom-form-field {
-  width: 100%;
-  margin-bottom: vars.$spacing-4;
-}
-
-%nom-form-field--inline {
-  display: flex;
-  gap: vars.$spacing-4;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-    gap: vars.$spacing-4;
-  }
-}
-
-%nom-form-input {
-  width: 100%;
-  font-size: vars.$font-size-md;
-}
-
-%nom-form-textarea {
-  width: 100%;
-  min-height: 100px;
-  resize: vertical;
-}
-
-// -----------------------------------------------------------------------------
-// Form Errors
-// -----------------------------------------------------------------------------
-%nom-form-error {
-  color: var(--mat-sys-error);
-  font-size: vars.$font-size-xs;
-  margin-top: vars.$spacing-1;
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-1;
-}
-
-%nom-form-error-box {
-  background-color: var(--mat-sys-error-container);
-  border: 1px solid var(--mat-sys-error);
-  border-radius: vars.$nom-border-radius-sm;
-  padding: vars.$spacing-3;
-  margin-bottom: vars.$spacing-4;
-}
-
-// -----------------------------------------------------------------------------
-// Form Actions
-// -----------------------------------------------------------------------------
-%nom-form-actions {
-  display: flex;
-  gap: vars.$spacing-3;
-  justify-content: flex-end;
-  margin-top: vars.$spacing-6;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-  }
-}
-
-%nom-form-actions--center {
-  justify-content: center;
-}
-
-%nom-form-actions--between {
-  justify-content: space-between;
-}
-
-%nom-form-submit {
-  padding: vars.$button-padding-y vars.$button-padding-x;
-  border: none;
-  border-radius: vars.$nom-border-radius;
-  font-size: vars.$font-size-md;
-  font-weight: vars.$font-weight-medium;
-  cursor: pointer;
-  min-width: 120px;
-  height: vars.$button-height;
-}
-
-// -----------------------------------------------------------------------------
-// Form Links
-// -----------------------------------------------------------------------------
-%nom-form-links {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: vars.$spacing-4;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-    gap: vars.$spacing-3;
-  }
-}
-
-%nom-form-link {
-  text-decoration: none;
-  font-weight: vars.$font-weight-medium;
-  color: var(--mat-sys-primary);
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Form Options Row (remember me, forgot password)
-// -----------------------------------------------------------------------------
-%nom-form-options-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: vars.$spacing-5;
-}
-
-// -----------------------------------------------------------------------------
-// Progress Bar (for multi-step forms)
-// -----------------------------------------------------------------------------
-%nom-form-progress {
-  margin-bottom: vars.$spacing-4;
-}
-
-// -----------------------------------------------------------------------------
-// Message Text
-// -----------------------------------------------------------------------------
-%nom-form-message-text {
-  font-size: vars.$font-size-sm;
-  line-height: vars.$line-height-normal;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-// =============================================================================
-// Mixin-based API
-// =============================================================================
-@mixin nom-form-page($width: 'default') {
-  @extend %nom-form-page;
-  @if $width == 'narrow' {
-    @extend %nom-form-page--narrow;
-  } @else if $width == 'wide' {
-    @extend %nom-form-page--wide;
-  }
-}
-
-@mixin nom-form-card {
-  @extend %nom-form-card;
-}
-
-@mixin nom-form-card-header {
-  @extend %nom-form-card-header;
-}
-
-@mixin nom-form-card-content {
-  @extend %nom-form-card-content;
-}
-
-@mixin nom-form($compact: false) {
-  @extend %nom-form;
-  @if $compact {
-    @extend %nom-form--compact;
-  }
-}
-
-@mixin nom-form-section {
-  @extend %nom-form-section;
-}
-
-@mixin nom-form-section-heading {
-  @extend %nom-form-section-heading;
-}
-
-@mixin nom-form-field($inline: false) {
-  @extend %nom-form-field;
-  @if $inline {
-    @extend %nom-form-field--inline;
-  }
-}
-
-@mixin nom-form-input {
-  @extend %nom-form-input;
-}
-
-@mixin nom-form-error {
-  @extend %nom-form-error;
-}
-
-@mixin nom-form-error-box {
-  @extend %nom-form-error-box;
-}
-
-@mixin nom-form-actions($align: 'end') {
-  @extend %nom-form-actions;
-  @if $align == 'center' {
-    @extend %nom-form-actions--center;
-  } @else if $align == 'between' {
-    @extend %nom-form-actions--between;
-  }
-}
-
-@mixin nom-form-submit {
-  @extend %nom-form-submit;
-}
-
-@mixin nom-form-links {
-  @extend %nom-form-links;
-}
-
-@mixin nom-form-link {
-  @extend %nom-form-link;
-}
-
-@mixin nom-form-options-row {
-  @extend %nom-form-options-row;
-}
-
-// =============================================================================
-// GLOBAL CLASSES - Use directly in HTML templates
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-// Form-Card Variant (Centered card forms - create, auth, invite)
-// -----------------------------------------------------------------------------
+// --- Form-Card Variant (Centered card forms) ---
 
 .nom-form--card {
   display: flex;
@@ -343,17 +32,14 @@
     max-width: none;
   }
 
-  &--narrow {
-    max-width: 460px;
-  }
+  &--narrow { max-width: 460px; }
 }
 
 .nom-form__card-icon {
-  display: flex;
-  justify-content: flex-end;
-  padding: vars.$spacing-4 vars.$spacing-6 0;
+  float: right;
+  padding: vars.$spacing-4 vars.$spacing-6 0 0;
 
-  mat-icon, amw-icon {
+  mat-icon {
     font-size: 2rem;
     width: 2rem;
     height: 2rem;
@@ -362,9 +48,7 @@
   }
 }
 
-.nom-form__card-header {
-  padding: vars.$spacing-4 vars.$spacing-6;
-}
+.nom-form__card-header { padding: vars.$spacing-4 vars.$spacing-6; }
 
 .nom-form__card-title {
   font-size: vars.$font-size-xl;
@@ -380,9 +64,7 @@
   line-height: vars.$line-height-normal;
 }
 
-.nom-form__card-content {
-  padding: 0 vars.$spacing-6 vars.$spacing-6;
-}
+.nom-form__card-content { padding: 0 vars.$spacing-6 vars.$spacing-6; }
 
 .nom-form__card-actions {
   display: flex;
@@ -393,30 +75,21 @@
 
   @media (max-width: vars.$breakpoint-mobile) {
     flex-direction: column-reverse;
-
-    button {
-      width: 100%;
-    }
+    button { width: 100%; }
   }
 }
 
-// -----------------------------------------------------------------------------
-// Form-Full Variant (Full-width sectioned forms - edit, settings)
-// -----------------------------------------------------------------------------
+// --- Form-Full Variant (Full-width sectioned forms) ---
 
 .nom-form--full {
   max-width: vars.$content-max-narrow;
   margin: 0 auto;
   padding: vars.$spacing-6;
 
-  @media (max-width: vars.$breakpoint-mobile) {
-    padding: vars.$spacing-4;
-  }
+  @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
 }
 
-.nom-form__header {
-  margin-bottom: vars.$spacing-6;
-}
+.nom-form__header { margin-bottom: vars.$spacing-6; }
 
 .nom-form__title {
   font-size: vars.$font-size-xl;
@@ -437,10 +110,7 @@
   border: 1px solid var(--mat-sys-outline-variant);
   padding: vars.$spacing-6;
   margin-bottom: vars.$spacing-6;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  &:last-child { margin-bottom: 0; }
 }
 
 .nom-form__section-title {
@@ -466,14 +136,8 @@
 .nom-form__field-row {
   display: flex;
   gap: vars.$spacing-4;
-
-  @media (max-width: vars.$breakpoint-mobile) {
-    flex-direction: column;
-  }
-
-  > * {
-    flex: 1;
-  }
+  @media (max-width: vars.$breakpoint-mobile) { flex-direction: column; }
+  > * { flex: 1; }
 }
 
 .nom-form__actions {
@@ -481,30 +145,21 @@
   justify-content: flex-end;
   gap: vars.$spacing-3;
   margin-top: vars.$spacing-6;
-  padding-top: vars.$spacing-6;
+  padding-top: vars.$spacing-4;
+  padding-bottom: vars.$spacing-4;
   border-top: 1px solid var(--mat-sys-outline-variant);
+  position: sticky;
+  bottom: 0;
+  background: var(--mat-sys-surface);
+  z-index: 1;
 
   @media (max-width: vars.$breakpoint-mobile) {
     flex-direction: column-reverse;
-
-    button {
-      width: 100%;
-    }
+    button { width: 100%; }
   }
 }
 
-.nom-form__actions--sticky {
-  position: sticky;
-  bottom: 0;
-  background: var(--mat-sys-background);
-  margin-left: calc(-1 * vars.$spacing-6);
-  margin-right: calc(-1 * vars.$spacing-6);
-  padding: vars.$spacing-4 vars.$spacing-6;
-}
-
-// -----------------------------------------------------------------------------
-// Error States
-// -----------------------------------------------------------------------------
+// --- Error States ---
 
 .nom-form__error {
   background: var(--mat-sys-error-container);
@@ -520,4 +175,3 @@
   font-size: vars.$font-size-sm;
   box-shadow: vars.$elevation-1;
 }
-

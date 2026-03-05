@@ -233,6 +233,8 @@ app.MapPost("api/auth/register-custom", async (
     [FromBody] RegisterRequest request,
     UserManager<IdentityUser> userManager,
     IPersonOrchestrationService personService,
+    IEmailSender<IdentityUser> emailSender,
+    IConfiguration configuration,
     ILogger<Program> logger) =>
 {
     if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
@@ -252,13 +254,28 @@ app.MapPost("api/auth/register-custom", async (
     {
         UserName = request.Email,
         Email = request.Email,
-        EmailConfirmed = true // Auto-confirm for now
+        EmailConfirmed = false
     };
 
     var result = await userManager.CreateAsync(user, request.Password);
     if (!result.Succeeded)
     {
         return Results.BadRequest(new { message = "Registration failed.", errors = result.Errors });
+    }
+
+    // Send confirmation email
+    try
+    {
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:4200";
+        var confirmLink = $"{frontendUrl}/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
+        await emailSender.SendConfirmationLinkAsync(user, request.Email, confirmLink);
+        logger.LogInformation("Confirmation email sent to {Email}", request.Email);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Failed to send confirmation email to {Email}", request.Email);
+        // Don't fail registration if email sending fails
     }
 
     // Always create a PersonEntity for the new user

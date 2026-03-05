@@ -35,5 +35,11 @@ namespace Nom.Orch.Interfaces
 
         // Dashboard Analytics
         Task<RecipeDashboardAnalyticsModel> GetDashboardAnalyticsAsync(long personId);
+
+        // Recipe Image/Assets
+        Task<RecipeAssetResponseModel> UploadImageAsync(long recipeId, long personId, string fileName, string contentType, byte[] fileData);
+        Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId);
+        Task<bool> DeleteImageAsync(long recipeId, long assetId, long personId);
+        Task<List<RecipeAssetResponseModel>> GetAssetsAsync(long recipeId);
     }
 }

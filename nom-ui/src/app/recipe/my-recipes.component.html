@@ -1,0 +1,81 @@
+<div class="nom-dashboard">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">My Recipes</h1>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <a mat-stroked-button routerLink="/recipe/import">
+        <mat-icon>link</mat-icon>
+        Import from URL
+      </a>
+      <a mat-flat-button routerLink="/recipe/new">
+        <mat-icon>add</mat-icon>
+        New Recipe
+      </a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-dashboard__error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (recipes().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">menu_book</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No recipes yet</h2>
+      <p class="nom-dashboard__empty-message">
+        You haven't created any recipes yet. Start by creating your first recipe.
+      </p>
+      <a mat-flat-button routerLink="/recipe/new">
+        <mat-icon>add</mat-icon>
+        Create Recipe
+      </a>
+    </div>
+  } @else {
+    <div class="nom-dashboard__grid">
+      @for (recipe of recipes(); track recipe.id) {
+        <a class="nom-dashboard__card nom-dashboard__card--clickable"
+           [routerLink]="'/recipe/' + recipe.id">
+          <div class="nom-dashboard__card-content nom-my-recipes__card">
+            @if (recipe.imageUrl) {
+              <img class="nom-my-recipes__image"
+                   [src]="recipe.imageUrl"
+                   [alt]="recipe.name"
+                   loading="lazy" />
+            } @else {
+              <div class="nom-my-recipes__image-placeholder">
+                <mat-icon>restaurant</mat-icon>
+              </div>
+            }
+            <div class="nom-my-recipes__info">
+              <span class="nom-dashboard__card-title">{{ recipe.name }}</span>
+              @if (recipe.description) {
+                <span class="nom-dashboard__card-subtitle nom-my-recipes__desc">{{ recipe.description }}</span>
+              }
+              <div class="nom-my-recipes__meta">
+                <span class="nom-my-recipes__date">{{ recipe.createdDate | date:'mediumDate' }}</span>
+                @if (recipe.rating > 0) {
+                  <span class="nom-my-recipes__rating">
+                    <mat-icon>star</mat-icon>
+                    {{ recipe.rating | number:'1.1-1' }}
+                  </span>
+                }
+              </div>
+            </div>
+            <a class="nom-my-recipes__edit"
+               [routerLink]="'/recipe/' + recipe.id + '/edit'"
+               (click)="$event.stopPropagation()"
+               aria-label="Edit recipe">
+              <mat-icon>edit</mat-icon>
+            </a>
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>

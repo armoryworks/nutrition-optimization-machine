@@ -1,154 +1,47 @@
-// File: nom-ui/src/app/app.routes.ts
-
 import { Routes } from '@angular/router';
-import { RegistrationComponent } from './auth/registration/registration.component';
-import { ForgotPasswordComponent } from './auth/forgot-password/forgot-password.component';
-import { ResetPasswordComponent } from './auth/reset-password/reset-password.component';
-import { ConfirmEmailComponent } from './auth/confirm-email/confirm-email.component';
-import { SendConfirmationEmailComponent } from './auth/send-confirmation-email/send-confirmation-email.component';
-import { UpdateInfoComponent } from './auth/update-info/update-info.component';
-import { UpdateTwoFactorComponent } from './auth/update-two-factor/update-two-factor.component';
-import { HomeComponent } from './home/home.component';
-import { OnboardingWorkflowComponent } from './onboarding/components/onboarding-workflow/onboarding-workflow.component';
-import { PrivacySettingsComponent } from './user/components/privacy-settings/privacy-settings.component';
-import { IngredientSearchComponent } from './recipe/components/ingredient-search/ingredient-search.component';
-import { PersonProfileEditComponent } from './person/components/person-profile-edit/person-profile-edit.component';
-import { AuthGuard } from './guards/auth.guard';
-import { NoAuthGuard } from './guards/no-auth.guard';
+import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
-  // Public routes - accessible to everyone
   { path: '', redirectTo: 'home', pathMatch: 'full' },
-  { path: 'home', component: HomeComponent },
-  { path: 'about', component: HomeComponent }, // Show home content for now since about page isn't implemented
-  {
-    path: 'search',
-    loadComponent: () => import('./recipe/components/recipe-search/recipe-search.component').then(m => m.RecipeSearchComponent),
-    title: 'Recipe Search'
-  },
-  {
-    path: 'recipe/:id',
-    loadComponent: () => import('./recipe/components/recipe-detail-public/recipe-detail-public.component').then(m => m.RecipeDetailPublicComponent),
-    title: 'Recipe Details'
-  },
+  { path: 'home', loadComponent: () => import('./home/home.component').then(m => m.Home) },
+  { path: 'recipe/new', loadComponent: () => import('./recipe/recipe-form.component').then(m => m.RecipeForm), canActivate: [authGuard] },
+  { path: 'recipe/import', loadComponent: () => import('./recipe/recipe-import.component').then(m => m.RecipeImport), canActivate: [authGuard] },
+  { path: 'recipe/:id/edit', loadComponent: () => import('./recipe/recipe-form.component').then(m => m.RecipeForm), canActivate: [authGuard] },
+  { path: 'recipe/:id', loadComponent: () => import('./recipe/recipe-detail.component').then(m => m.RecipeDetail) },
+  { path: 'recipes/mine', loadComponent: () => import('./recipe/my-recipes.component').then(m => m.MyRecipes), canActivate: [authGuard] },
+  { path: 'ingredients/mine', loadComponent: () => import('./ingredient/my-ingredients.component').then(m => m.MyIngredients), canActivate: [authGuard] },
+  { path: 'ingredient/new', loadComponent: () => import('./ingredient/ingredient-form.component').then(m => m.IngredientForm), canActivate: [authGuard] },
+  { path: 'ingredient/:id/edit', loadComponent: () => import('./ingredient/ingredient-form.component').then(m => m.IngredientForm), canActivate: [authGuard] },
+  { path: 'search', loadComponent: () => import('./search/search.component').then(m => m.Search) },
+  { path: 'register', loadComponent: () => import('./auth/register.component').then(m => m.Register), canActivate: [guestGuard] },
+  { path: 'forgot-password', loadComponent: () => import('./auth/forgot-password.component').then(m => m.ForgotPassword) },
+  { path: 'confirm-email', loadComponent: () => import('./auth/confirm-email.component').then(m => m.ConfirmEmail) },
+  { path: 'reset-password', loadComponent: () => import('./auth/reset-password.component').then(m => m.ResetPassword) },
 
-  // Guest-only routes - redirects authenticated users to onboarding
-  { path: 'register', component: RegistrationComponent, canActivate: [NoAuthGuard] },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'reset-password', component: ResetPasswordComponent },
-  { path: 'confirm-email', component: ConfirmEmailComponent },
-  { path: 'send-confirmation', component: SendConfirmationEmailComponent },
+  // Protected routes
+  { path: 'onboarding', loadComponent: () => import('./onboarding/onboarding.component').then(m => m.Onboarding), canActivate: [authGuard] },
+  { path: 'profile', loadComponent: () => import('./profile/profile.component').then(m => m.Profile), canActivate: [authGuard] },
+  { path: 'restrictions', loadComponent: () => import('./restrictions/restrictions.component').then(m => m.Restrictions), canActivate: [authGuard] },
+  { path: 'household', loadComponent: () => import('./household/household.component').then(m => m.Household), canActivate: [authGuard] },
+  { path: 'plan/curated', loadComponent: () => import('./plan/curated-plans.component').then(m => m.CuratedPlans), canActivate: [authGuard] },
+  { path: 'plan/rules', loadComponent: () => import('./plan/plan-rules.component').then(m => m.PlanRules), canActivate: [authGuard] },
+  { path: 'plan', loadComponent: () => import('./plan/plan.component').then(m => m.Plan), canActivate: [authGuard] },
+  { path: 'settings/security', loadComponent: () => import('./settings/security-settings.component').then(m => m.SecuritySettings), canActivate: [authGuard] },
+  { path: 'settings/privacy', loadComponent: () => import('./settings/privacy-settings.component').then(m => m.PrivacySettings), canActivate: [authGuard] },
+  { path: 'settings', loadComponent: () => import('./settings/settings.component').then(m => m.Settings), canActivate: [authGuard] },
+  { path: 'pantry', loadChildren: () => import('./pantry/pantry.routes').then(m => m.PANTRY_ROUTES), canActivate: [authGuard] },
+  { path: 'shopping', loadChildren: () => import('./shopping/shopping.routes').then(m => m.SHOPPING_ROUTES), canActivate: [authGuard] },
+  { path: 'cookbooks', loadComponent: () => import('./cookbook/cookbook-list.component').then(m => m.CookbookList), canActivate: [authGuard] },
+  { path: 'cookbook/:id', loadComponent: () => import('./cookbook/cookbook-detail.component').then(m => m.CookbookDetail), canActivate: [authGuard] },
+  { path: 'messages/new', loadComponent: () => import('./messaging/compose.component').then(m => m.Compose), canActivate: [authGuard] },
+  { path: 'messages/:id', loadComponent: () => import('./messaging/thread.component').then(m => m.Thread), canActivate: [authGuard] },
+  { path: 'messages', loadComponent: () => import('./messaging/inbox.component').then(m => m.Inbox), canActivate: [authGuard] },
 
-  // Common redirects
-  { path: 'curations', redirectTo: 'curation', pathMatch: 'full' },
-  { path: 'profile', redirectTo: 'user/profile', pathMatch: 'full' },
-  { path: 'settings', redirectTo: 'user/settings', pathMatch: 'full' },
-  { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' },
-  { path: 'plans', redirectTo: 'curated-plans', pathMatch: 'full' },
-  { path: 'plan', redirectTo: 'curated-plans', pathMatch: 'full' },
+  // Admin routes
+  { path: 'admin', loadComponent: () => import('./admin/admin.component').then(m => m.Admin), canActivate: [authGuard] },
+  { path: 'admin/curation', loadComponent: () => import('./admin/curation-queue.component').then(m => m.CurationQueue), canActivate: [authGuard] },
+  { path: 'admin/webhooks', loadComponent: () => import('./admin/webhooks.component').then(m => m.Webhooks), canActivate: [authGuard] },
 
-  // Protected routes - require authentication (using existing structure)
-  {
-    path: 'recipes',
-    loadChildren: () => import('./recipe/recipe.routes').then(m => m.RECIPE_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'ingredient-search',
-    loadComponent: () => import('./recipe/components/ingredient-search/ingredient-search.component').then(m => m.IngredientSearchComponent),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'curation',
-    loadChildren: () => import('./curation/curation.routes').then(m => m.CURATION_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'admin',
-    loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'messaging',
-    loadChildren: () => import('./communication/communication.routes').then(m => m.COMMUNICATION_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'communication',
-    loadChildren: () => import('./communication/communication.routes').then(m => m.COMMUNICATION_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'user',
-    loadChildren: () => import('./user/user.routes').then(m => m.USER_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'household',
-    loadChildren: () => import('./household/household.routes').then(m => m.HOUSEHOLD_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'cookbook',
-    loadChildren: () => import('./cookbook/cookbook.routes').then(m => m.COOKBOOK_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'webhook',
-    loadChildren: () => import('./webhook/webhook.routes').then(m => m.WEBHOOK_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'labels',
-    loadChildren: () => import('./label/label.routes').then(m => m.LABEL_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'shopping',
-    loadChildren: () => import('./shopping/shopping.routes').then(m => m.SHOPPING_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'meal-plan',
-    loadChildren: () => import('./meal-plan/meal-plan.routes').then(m => m.MEAL_PLAN_ROUTES),
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'onboarding',
-    redirectTo: 'onboarding/invitationCode',
-    pathMatch: 'full'
-  },
-  {
-    path: 'onboarding/:stepId',
-    component: OnboardingWorkflowComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'privacy-settings',
-    component: PrivacySettingsComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'update-info',
-    component: UpdateInfoComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'update-two-factor',
-    component: UpdateTwoFactorComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'edit-profile',
-    component: PersonProfileEditComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'curated-plans',
-    loadComponent: () => import('./plan/components/curated-plans/curated-plans.component').then(m => m.CuratedPlansComponent),
-    canActivate: [AuthGuard]
-  },
-
-  // Wildcard route - catches all unmatched paths and redirects to home
-  { path: '**', redirectTo: 'home' }
+  { path: '**', redirectTo: 'home' },
 ];

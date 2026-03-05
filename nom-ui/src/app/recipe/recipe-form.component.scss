@@ -1,0 +1,132 @@
+@use 'variables' as vars;
+
+.nom-recipe-form__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}
+
+// ── Ingredient rows ──
+
+.nom-recipe-form__ingredient-row {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-1;
+}
+
+.nom-recipe-form__ing-name {
+  flex: 3;
+  min-width: 0;
+}
+
+.nom-recipe-form__ing-qty {
+  flex: 1;
+  min-width: 80px;
+  max-width: 100px;
+}
+
+.nom-recipe-form__ing-measure {
+  flex: 1.5;
+  min-width: 100px;
+  max-width: 160px;
+}
+
+.nom-recipe-form__alias {
+  color: var(--mat-sys-on-surface-variant);
+  margin-left: vars.$spacing-1;
+}
+
+// ── Step rows ──
+
+.nom-recipe-form__step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-1;
+}
+
+.nom-recipe-form__drag-handle {
+  cursor: grab;
+  color: var(--mat-sys-on-surface-variant);
+  margin-top: vars.$spacing-4;
+  flex-shrink: 0;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.nom-recipe-form__step-number {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface-variant);
+  min-width: 24px;
+  margin-top: vars.$spacing-4;
+  flex-shrink: 0;
+}
+
+.nom-recipe-form__step-input {
+  flex: 1;
+  min-width: 0;
+}
+
+// ── Actions ──
+
+.nom-recipe-form__spacer {
+  flex: 1;
+}
+
+.nom-recipe-form__remove-btn {
+  margin-top: vars.$spacing-2;
+  flex-shrink: 0;
+}
+
+// ── CDK drag-drop ──
+
+.cdk-drag-preview {
+  background: var(--mat-sys-surface-container-high);
+  border-radius: vars.$nom-border-radius;
+  box-shadow: vars.$elevation-3;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms vars.$transition-timing;
+}
+
+// ── Image upload ──
+
+.nom-recipe-form__image-preview {
+  position: relative;
+  display: inline-block;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-recipe-form__image {
+  max-width: 300px;
+  max-height: 200px;
+  border-radius: vars.$nom-border-radius;
+  object-fit: cover;
+}
+
+.nom-recipe-form__image-remove {
+  position: absolute;
+  top: vars.$spacing-1;
+  right: vars.$spacing-1;
+  background: var(--mat-sys-surface) !important;
+  box-shadow: vars.$elevation-1;
+}
+
+.nom-recipe-form__image-upload {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+}
+
+.nom-recipe-form__upload-error {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-error);
+}

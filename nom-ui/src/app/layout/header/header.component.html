@@ -1,0 +1,57 @@
+<header class="nom-header">
+  <a class="nom-header__brand" routerLink="/home">
+    <mat-icon class="nom-header__brand-icon">restaurant</mat-icon>
+    <div class="nom-header__brand-text">
+      <span class="nom-header__brand-name">NOM</span>
+      <span class="nom-header__brand-subtitle">Nutrition Optimization Machine</span>
+    </div>
+  </a>
+
+  <div class="nom-header__search">
+    <mat-icon class="nom-header__search-icon">search</mat-icon>
+    <input
+      type="text"
+      class="nom-header__search-input"
+      [placeholder]="isLoggedIn() ? 'Search recipes, ingredients, plans...' : 'Search recipes...'"
+      aria-label="Search"
+      (keydown.enter)="onSearch($event)">
+  </div>
+
+  <div class="nom-header__actions">
+    <button
+      mat-icon-button
+      class="nom-header__action-btn"
+      (click)="themeToggle.emit()"
+      [attr.aria-label]="isDarkTheme() ? 'Switch to light theme' : 'Switch to dark theme'">
+      <mat-icon>{{ isDarkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+
+    @if (isLoggedIn()) {
+      <button mat-icon-button class="nom-header__action-btn" aria-label="Notifications">
+        <mat-icon>notifications_none</mat-icon>
+      </button>
+      <button class="nom-header__avatar" (click)="toggleUserMenu()" aria-label="User menu">
+        <span>{{ userInitial() }}</span>
+      </button>
+
+      @if (userMenuOpen()) {
+        <div class="nom-header__popover-backdrop" (click)="userMenuOpen.set(false)"></div>
+        <nom-user-menu (closed)="userMenuOpen.set(false)"></nom-user-menu>
+      }
+    } @else {
+      <button
+        mat-flat-button
+        color="primary"
+        class="nom-header__login-btn"
+        (click)="toggleLoginPopover()">
+        <mat-icon>login</mat-icon>
+        Sign In
+      </button>
+
+      @if (loginPopoverOpen()) {
+        <div class="nom-header__popover-backdrop" (click)="loginPopoverOpen.set(false)"></div>
+        <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
+      }
+    }
+  </div>
+</header>

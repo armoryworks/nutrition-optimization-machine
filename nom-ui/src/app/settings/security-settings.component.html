@@ -1,0 +1,130 @@
+<div class="nom-security">
+  <div class="nom-security__header">
+    <a mat-icon-button routerLink="/settings" aria-label="Back to settings">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div>
+      <h1 class="nom-security__title">Security</h1>
+      <p class="nom-security__subtitle">Manage two-factor authentication</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error() }}</span>
+    </div>
+  }
+  @if (success()) {
+    <div class="nom-security__success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ success() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="nom-security__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (showRecoveryCodes()) {
+    <div class="nom-security__section">
+      <h2 class="nom-security__section-title">Recovery Codes</h2>
+      <p class="nom-security__section-desc">
+        Save these recovery codes in a safe place. Each code can only be used once to sign in if you lose access to your authenticator.
+      </p>
+      <div class="nom-security__codes">
+        @for (code of recoveryCodes(); track $index) {
+          <code class="nom-security__code">{{ code }}</code>
+        }
+      </div>
+      <div class="nom-security__actions">
+        <button mat-stroked-button (click)="onCopyRecoveryCodes()">
+          <mat-icon>content_copy</mat-icon>
+          Copy All
+        </button>
+        <button mat-flat-button (click)="onDismissRecoveryCodes()">Done</button>
+      </div>
+    </div>
+  } @else if (setupMode()) {
+    <div class="nom-security__section">
+      <h2 class="nom-security__section-title">Set Up Authenticator</h2>
+      <p class="nom-security__section-desc">
+        Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), or manually enter the key below.
+      </p>
+      <div class="nom-security__qr-placeholder">
+        <mat-icon>qr_code_2</mat-icon>
+        <p>Scan the QR code from your authenticator app using this URI:</p>
+        <code class="nom-security__uri">{{ authenticatorUri() }}</code>
+      </div>
+      <div class="nom-security__manual-key">
+        <span class="nom-security__key-label">Manual entry key:</span>
+        <code class="nom-security__key-value">{{ sharedKey() }}</code>
+        <button mat-icon-button (click)="onCopyKey()" aria-label="Copy key">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+      </div>
+      <mat-form-field appearance="outline" class="nom-security__verify-field">
+        <mat-label>Verification Code</mat-label>
+        <input matInput [(ngModel)]="verifyCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      </mat-form-field>
+      <div class="nom-security__actions">
+        <button mat-button (click)="onCancelSetup()">Cancel</button>
+        <button mat-flat-button (click)="onVerify()" [disabled]="!verifyCode.trim()">
+          Verify & Enable
+        </button>
+      </div>
+    </div>
+  } @else if (disableMode()) {
+    <div class="nom-security__section">
+      <h2 class="nom-security__section-title">Disable Two-Factor Authentication</h2>
+      <p class="nom-security__section-desc">
+        Enter a code from your authenticator app to confirm disabling 2FA.
+      </p>
+      <mat-form-field appearance="outline" class="nom-security__verify-field">
+        <mat-label>Verification Code</mat-label>
+        <input matInput [(ngModel)]="disableCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      </mat-form-field>
+      <div class="nom-security__actions">
+        <button mat-button (click)="onCancelDisable()">Cancel</button>
+        <button mat-flat-button class="nom-btn--destructive" (click)="onDisable()" [disabled]="!disableCode.trim()">
+          Disable 2FA
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="nom-security__section">
+      <h2 class="nom-security__section-title">Two-Factor Authentication</h2>
+      @if (status()?.isEnabled) {
+        <div class="nom-security__status nom-security__status--enabled">
+          <mat-icon>verified_user</mat-icon>
+          <div>
+            <strong>2FA is enabled</strong>
+            @if (status()?.recoveryCodesLeft !== undefined) {
+              <p>{{ status()!.recoveryCodesLeft }} recovery codes remaining</p>
+            }
+          </div>
+        </div>
+        <div class="nom-security__actions">
+          <button mat-stroked-button class="nom-btn--destructive" (click)="onStartDisable()">
+            <mat-icon>lock_open</mat-icon>
+            Disable 2FA
+          </button>
+        </div>
+      } @else {
+        <div class="nom-security__status">
+          <mat-icon>shield</mat-icon>
+          <div>
+            <strong>2FA is not enabled</strong>
+            <p>Add an extra layer of security to your account by enabling two-factor authentication.</p>
+          </div>
+        </div>
+        <div class="nom-security__actions">
+          <button mat-flat-button (click)="onSetup()">
+            <mat-icon>security</mat-icon>
+            Set Up 2FA
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

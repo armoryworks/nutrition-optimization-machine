@@ -1,0 +1,73 @@
+@use 'variables' as vars;
+
+.nom-curated__back {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+  font-size: vars.$font-size-sm;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-curated__grid {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-curated__card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: vars.$spacing-4;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$spacing-3;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-curated__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.nom-curated__card-name {
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  margin-bottom: vars.$spacing-1;
+}
+
+.nom-curated__card-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-curated__card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$spacing-1;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.nom-curated__card-actions {
+  flex-shrink: 0;
+  margin-left: vars.$spacing-4;
+}

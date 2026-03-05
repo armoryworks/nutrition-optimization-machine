@@ -1,95 +1,60 @@
-// File: nom-ui/src/app/app.component.ts
-
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { AmwIconComponent, AmwMenuComponent, AmwMenuItemComponent, AmwFullScreenLoadingComponent, AmwValidationTooltipOverlayComponent } from 'angular-material-wrap';
-import { ThemeService } from './services/theme.service';
-import { AuthService } from './auth/auth.service';
-import { AuthManagerService } from './utilities/services/auth-manager.service';
-import { Router } from '@angular/router';
-import { LoginComponent } from './auth/login/login.component';
-import { ValidationTooltipOverlayComponent } from './shared/components/validation-tooltip-overlay/validation-tooltip-overlay.component';
-import { ContextSidebarComponent } from './shared/components/context-sidebar/context-sidebar.component';
+import { Component, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
+import { ThemeService } from './core/services/theme.service';
+import { AuthService } from './core/services/auth.service';
+import { LoadingService } from './core/services/loading.service';
+import { Header } from './layout/header/header.component';
+import { Footer } from './layout/footer/footer.component';
+import { Sidebar } from './layout/sidebar/sidebar.component';
+import { LoadingOverlay } from './shared/components/loading-overlay/loading-overlay.component';
 
 @Component({
   selector: 'nom-root',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    AmwIconComponent,
-    AmwMenuComponent,
-    AmwMenuItemComponent,
-    AmwFullScreenLoadingComponent,
-    AmwValidationTooltipOverlayComponent,
-    ValidationTooltipOverlayComponent,
-    LoginComponent,
-    ContextSidebarComponent,
-  ],
+  imports: [RouterOutlet, MatIconModule, Header, Footer, Sidebar, LoadingOverlay],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrl: './app.component.scss'
 })
-export class AppComponent implements OnInit {
+export class App {
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   private themeService = inject(ThemeService);
   private authService = inject(AuthService);
-  authManagerService = inject(AuthManagerService);
-  private router = inject(Router);
+  private loadingService = inject(LoadingService);
 
-  isDarkTheme = computed(() => this.themeService.getCurrentTheme() === 'dark');
-  isLoggedIn$ = this.authService.isLoggedIn$;
-  showLoginPopover = signal(false);
+  isDarkTheme = computed(() => this.themeService.isDark());
+  isLoggedIn = computed(() => this.authService.isLoggedIn());
+  isLoading = computed(() => this.loadingService.isLoading());
   sidebarOpen = signal(false);
-  currentYear = new Date().getFullYear();
+
+  private navLoadingKey: string | null = null;
 
   constructor() {
-  }
-
-  ngOnInit(): void {
-    // Force check user logged in status to load claims
-    this.authManagerService.checkUserLoggedInStatus();
-
-    // Ensure theme is set to dark by default if not already saved
-    const savedTheme = localStorage.getItem('theme');
-    if (!savedTheme) {
-      this.themeService.setTheme('dark');
-    }
-  }
-
-  toggleTheme(): void {
-    this.themeService.toggleTheme();
-  }
-
-  openLoginPopover(): void {
-    this.showLoginPopover.set(true);
-  }
-
-  closeLoginPopover(): void {
-    this.showLoginPopover.set(false);
-  }
-
-  logout(): void {
-    this.authService.logout().subscribe({
-      next: () => {
-        this.closeLoginPopover();
-        this.router.navigate(['/home']);
-      },
-      error: (error) => {
-        console.error('Logout failed:', error);
+    this.router.events.pipe(
+      filter(e =>
+        e instanceof NavigationStart ||
+        e instanceof NavigationEnd ||
+        e instanceof NavigationCancel ||
+        e instanceof NavigationError
+      ),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(e => {
+      if (e instanceof NavigationStart) {
+        this.navLoadingKey = this.loadingService.add('Loading...');
+      } else if (this.navLoadingKey) {
+        this.loadingService.remove(this.navLoadingKey);
+        this.navLoadingKey = null;
       }
     });
   }
 
-  toggleSidebar(): void {
-    this.sidebarOpen.update(open => !open);
+  toggleTheme(): void {
+    this.themeService.toggle();
   }
 
-  onSearch(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const query = input.value.trim();
-    if (query) {
-      this.router.navigate(['/search'], { queryParams: { q: query } });
-      input.value = ''; // Clear the search input after navigation
-    }
+  toggleSidebar(): void {
+    this.sidebarOpen.update(v => !v);
   }
 }

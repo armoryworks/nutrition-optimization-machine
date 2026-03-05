@@ -1,0 +1,63 @@
+<div class="nom-form--card">
+  <div class="nom-form__card">
+    <div class="nom-form__card-header">
+      <a routerLink="/settings" class="nom-privacy__back">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <h1 class="nom-form__card-title">Privacy & Data</h1>
+      <p class="nom-form__card-subtitle">Manage your data and account privacy</p>
+    </div>
+
+    <div class="nom-form__card-content">
+      @if (error()) {
+        <div class="nom-form__error">
+          <mat-icon>error</mat-icon>
+          {{ error() }}
+        </div>
+      }
+
+      @if (success()) {
+        <div class="nom-privacy__success">
+          <mat-icon>check_circle</mat-icon>
+          {{ success() }}
+        </div>
+      }
+
+      <!-- Data Export Section -->
+      <section class="nom-privacy__section">
+        <h2 class="nom-privacy__section-title">
+          <mat-icon>download</mat-icon>
+          Export Your Data
+        </h2>
+        <p class="nom-privacy__section-desc">
+          Download a copy of all your data including recipes, meal plans, and preferences.
+        </p>
+        <div class="nom-privacy__actions">
+          <button mat-stroked-button (click)="onExportJson()">
+            <mat-icon>code</mat-icon>
+            Export as JSON
+          </button>
+          <button mat-stroked-button (click)="onExportCsv()">
+            <mat-icon>table_chart</mat-icon>
+            Export as CSV
+          </button>
+        </div>
+      </section>
+
+      <!-- Account Deletion Section -->
+      <section class="nom-privacy__section nom-privacy__section--danger">
+        <h2 class="nom-privacy__section-title">
+          <mat-icon>warning</mat-icon>
+          Delete Account
+        </h2>
+        <p class="nom-privacy__section-desc">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+        <button mat-flat-button class="nom-btn--destructive" (click)="onDeleteAccount()">
+          <mat-icon>delete_forever</mat-icon>
+          Delete My Account
+        </button>
+      </section>
+    </div>
+  </div>
+</div>

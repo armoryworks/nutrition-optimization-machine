@@ -1,0 +1,55 @@
+<div class="nom-dashboard" data-testid="curated-plans">
+  <div class="nom-dashboard__header">
+    <div>
+      <a routerLink="/plan" class="nom-curated__back">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Plan
+      </a>
+      <h1 class="nom-dashboard__title">Curated Plans</h1>
+      <p class="nom-dashboard__subtitle">Browse community-curated meal plans and clone them to get started quickly.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__empty">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="nom-dashboard__error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (plans().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">auto_awesome</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No curated plans available</h2>
+      <p class="nom-dashboard__empty-message">Check back later for community-curated meal plans.</p>
+    </div>
+  } @else {
+    <div class="nom-curated__grid">
+      @for (plan of plans(); track plan.id) {
+        <div class="nom-curated__card">
+          <div class="nom-curated__card-body">
+            <h3 class="nom-curated__card-name">{{ plan.name }}</h3>
+            @if (plan.description) {
+              <p class="nom-curated__card-desc">{{ plan.description }}</p>
+            }
+            <div class="nom-curated__card-meta">
+              <span><mat-icon>person</mat-icon> {{ plan.authorName }}</span>
+              <span><mat-icon>restaurant</mat-icon> {{ plan.meals.length }} meals</span>
+              @if (plan.restrictions.length > 0) {
+                <span><mat-icon>block</mat-icon> {{ plan.restrictions.length }} restriction{{ plan.restrictions.length === 1 ? '' : 's' }}</span>
+              }
+            </div>
+          </div>
+          <div class="nom-curated__card-actions">
+            <button mat-flat-button (click)="onClone(plan)">
+              <mat-icon>content_copy</mat-icon>
+              Clone
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,84 @@
+@use '../../variables' as *;
+
+.nom-cookbook-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.nom-cookbook-card {
+  display: flex;
+  align-items: center;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: $spacing-3;
+  transition: background $transition-duration-fast;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-cookbook-card__body {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  flex: 1;
+  padding: $spacing-4;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.nom-cookbook-card__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: $spacing-2;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  flex-shrink: 0;
+}
+
+.nom-cookbook-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nom-cookbook-card__name {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-cookbook-card__desc {
+  font-size: $font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-cookbook-card__meta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  font-size: $font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-cookbook-card__public-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.nom-cookbook-card__actions {
+  display: flex;
+  padding-right: $spacing-2;
+}
