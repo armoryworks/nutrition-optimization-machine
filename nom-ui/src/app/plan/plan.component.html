@@ -112,7 +112,10 @@
               class="nom-plan__cell"
               [class.nom-plan__cell--filled]="day.cells[mealIdx].entries.length > 0"
               [class.nom-plan__cell--today]="isToday(day.date)"
-              (click)="onCellClick(day, day.cells[mealIdx])">
+              (click)="onCellClick(day, day.cells[mealIdx])"
+              (keydown.enter)="onCellClick(day, day.cells[mealIdx])"
+              tabindex="0"
+              role="button">
               @if (day.cells[mealIdx].entries.length > 0) {
                 @for (entry of day.cells[mealIdx].entries; track entry.id) {
                   <div class="nom-plan__cell-entry"

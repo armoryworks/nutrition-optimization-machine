@@ -29,7 +29,11 @@
   </button>
   <div class="nom-sidebar-backdrop"
        [class.nom-sidebar-backdrop--visible]="sidebarOpen()"
-       (click)="toggleSidebar()">
+       (click)="toggleSidebar()"
+       (keydown.escape)="toggleSidebar()"
+       tabindex="-1"
+       role="button"
+       aria-label="Close sidebar">
   </div>
 }
 

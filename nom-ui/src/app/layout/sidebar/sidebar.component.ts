@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { HouseholdService } from '../../core/services/household.service';
-import { MealPlanWeekResponse, MealPlanDay, MealPlanEntry } from '../../core/models/meal-plan.model';
+import { MealPlanWeekResponse, MealPlanEntry } from '../../core/models/meal-plan.model';
 
 interface UpcomingMeal {
   dayLabel: string;

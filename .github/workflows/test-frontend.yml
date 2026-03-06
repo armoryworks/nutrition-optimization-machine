@@ -37,11 +37,6 @@ jobs:
           cd nom-ui
           npm run test:ci
 
-      - name: Run E2E tests
-        run: |
-          cd nom-ui
-          npm run e2e:ci
-
       - name: Build for production
         run: |
           cd nom-ui

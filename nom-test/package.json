@@ -16,6 +16,12 @@
     "test:integration:firefox": "cypress run --spec \"cypress/e2e/integration-smoke.cy.ts\" --browser firefox --headed",
     "test:smoke": "cypress run --spec \"cypress/e2e/smoke.cy.ts\"",
     "test:simple": "cypress run --spec \"cypress/e2e/simple-test.cy.ts\"",
+    "test:daily": "cypress run --spec \"cypress/e2e/user-daily-workflow.cy.ts\"",
+    "test:daily:headed": "cypress run --spec \"cypress/e2e/user-daily-workflow.cy.ts\" --headed",
+    "test:admin": "cypress run --spec \"cypress/e2e/admin-curation-workflow.cy.ts\"",
+    "test:admin:headed": "cypress run --spec \"cypress/e2e/admin-curation-workflow.cy.ts\" --headed",
+    "test:anon": "cypress run --spec \"cypress/e2e/anonymous-browse.cy.ts\"",
+    "test:anon:headed": "cypress run --spec \"cypress/e2e/anonymous-browse.cy.ts\" --headed",
     "test:headed": "cypress run --headed",
     "test:record": "cypress run --record",
     "test:docker": "cypress run --e2e --config-file cypress.config.js --env-file .env.test",
@@ -29,7 +35,7 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "cypress": "^14.5.3",
+    "cypress": "^13.17.0",
     "typescript": "^5.0.0"
   }
 }

@@ -42,7 +42,7 @@ export class Home implements OnInit {
         this.categories.set(this.groupByCategory(response.results));
         this.loading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Failed to load recipes. Please try again.');
         this.loading.set(false);
       }

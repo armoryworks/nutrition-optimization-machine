@@ -1,10 +1,20 @@
-name: E2E Tests
+name: E2E Tests (Primary Regression)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
+    paths:
+      - "nom-ui/**"
+      - "nom-api/**"
+      - "nom-test/**"
+      - "docker-compose.test.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+    paths:
+      - "nom-ui/**"
+      - "nom-api/**"
+      - "nom-test/**"
+      - "docker-compose.test.yml"
 
 jobs:
   e2e-tests:
@@ -19,11 +29,6 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
-
     - name: Create environment file
       run: |
         cat > .env << EOF
@@ -36,22 +41,22 @@ jobs:
         EOF
 
     - name: Start test environment
-      run: docker-compose -f docker-compose.test.yml up -d
+      run: docker compose -f docker-compose.test.yml up -d --build
 
     - name: Wait for services to be healthy
       run: |
         echo "Waiting for PostgreSQL..."
         timeout 60 bash -c 'until docker exec nom_postgres_test pg_isready -U nom -d nom_test; do sleep 2; done'
         echo "Waiting for API..."
-        timeout 60 bash -c 'until curl -f http://localhost:8081/health; do sleep 2; done'
+        timeout 120 bash -c 'until curl -sf http://localhost:8081/health; do sleep 3; done'
         echo "Waiting for UI..."
-        timeout 60 bash -c 'until curl -f http://localhost:4201; do sleep 2; done'
+        timeout 60 bash -c 'until curl -sf http://localhost:4201; do sleep 2; done'
 
     - name: Install test dependencies
       working-directory: ./nom-test
       run: npm ci
 
-    - name: Run Cypress tests
+    - name: Run Cypress E2E tests
       working-directory: ./nom-test
       env:
         CYPRESS_BASE_URL: http://localhost:4201
@@ -76,8 +81,8 @@ jobs:
 
     - name: Stop test environment
       if: always()
-      run: docker-compose -f docker-compose.test.yml down -v
+      run: docker compose -f docker-compose.test.yml down -v
 
     - name: Display logs on failure
       if: failure()
-      run: docker-compose -f docker-compose.test.yml logs
+      run: docker compose -f docker-compose.test.yml logs
