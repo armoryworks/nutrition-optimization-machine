@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ElementRef, viewChild } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
@@ -355,7 +355,6 @@ export class ShoppingComponent implements OnInit {
 
     // Subtract pantry stock (active, non-expired items)
     const pantry = this.pantryItems();
-    const todayDate = new Date().toISOString().split('T')[0];
     for (const p of pantry) {
       if (p.isExpired || p.statusName !== 'In Pantry') continue;
 

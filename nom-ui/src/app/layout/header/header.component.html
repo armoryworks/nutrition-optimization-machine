@@ -35,7 +35,7 @@
       </button>
 
       @if (userMenuOpen()) {
-        <div class="nom-header__popover-backdrop" (click)="userMenuOpen.set(false)"></div>
+        <div class="nom-header__popover-backdrop" (click)="userMenuOpen.set(false)" (keydown.escape)="userMenuOpen.set(false)" tabindex="-1" role="button" aria-label="Close menu"></div>
         <nom-user-menu (closed)="userMenuOpen.set(false)"></nom-user-menu>
       }
     } @else {
@@ -49,7 +49,7 @@
       </button>
 
       @if (loginPopoverOpen()) {
-        <div class="nom-header__popover-backdrop" (click)="loginPopoverOpen.set(false)"></div>
+        <div class="nom-header__popover-backdrop" (click)="loginPopoverOpen.set(false)" (keydown.escape)="loginPopoverOpen.set(false)" tabindex="-1" role="button" aria-label="Close popover"></div>
         <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
       }
     }

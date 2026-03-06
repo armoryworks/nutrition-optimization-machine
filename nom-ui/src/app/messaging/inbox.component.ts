@@ -55,7 +55,10 @@ import { LoadingService } from '../core/services/loading.service';
             <div class="nom-inbox__thread"
                  [class.nom-inbox__thread--unread]="thread.unreadCount > 0"
                  [class.nom-inbox__thread--pinned]="thread.isPinned"
-                 (click)="openThread(thread.id)">
+                 (click)="openThread(thread.id)"
+                 (keydown.enter)="openThread(thread.id)"
+                 tabindex="0"
+                 role="button">
               @if (thread.isPinned) {
                 <mat-icon class="nom-inbox__pin-icon">push_pin</mat-icon>
               }

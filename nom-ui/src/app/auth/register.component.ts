@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -92,7 +93,7 @@ export class Register {
     InvalidEmail: 'Please enter a valid email address.',
   };
 
-  private friendlyError(err: any): string {
+  private friendlyError(err: HttpErrorResponse): string {
     if (err.status === 400 && err.error?.errors) {
       const errorKeys = Object.keys(err.error.errors);
       for (const key of errorKeys) {

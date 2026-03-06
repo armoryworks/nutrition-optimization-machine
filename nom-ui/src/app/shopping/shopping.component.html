@@ -109,6 +109,9 @@
                       [class.nom-shopping__item-qty--editable]="true"
                       [class.nom-shopping__item-qty--overridden]="hasOverride(item.checkKey)"
                       (click)="startEditing(item.checkKey, getDisplayText(item))"
+                      (keydown.enter)="startEditing(item.checkKey, getDisplayText(item))"
+                      tabindex="0"
+                      role="button"
                       title="Click to edit quantity">
                   {{ getDisplayText(item) }}
                 </span>

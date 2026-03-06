@@ -45,7 +45,7 @@ const SHELF_LIFE_DEFAULTS: Record<string, number> = {
 };
 
 @Component({
-  selector: 'app-pantry',
+  selector: 'nom-pantry',
   standalone: true,
   imports: [
     CommonModule,

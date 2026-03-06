@@ -31,7 +31,7 @@
             {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
           }
         </span>
-        @if (nutrient.dailyValuePercent != null) {
+        @if (nutrient.dailyValuePercent !== null) {
           <span class="nom-nutrition-label__dv">
             <strong>{{ nutrient.dailyValuePercent | number:'1.0-0' }}%</strong>
           </span>
@@ -46,7 +46,7 @@
         <span class="nom-nutrition-label__nutrient">
           {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
         </span>
-        @if (nutrient.dailyValuePercent != null) {
+        @if (nutrient.dailyValuePercent !== null) {
           <span class="nom-nutrition-label__dv">
             {{ nutrient.dailyValuePercent | number:'1.0-0' }}%
           </span>

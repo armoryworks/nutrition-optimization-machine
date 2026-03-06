@@ -11,6 +11,7 @@ COPY ["Nom.Api/Nom.Api.csproj", "Nom.Api/"]
 COPY ["Nom.Data/Nom.Data.csproj", "Nom.Data/"]
 COPY ["Nom.Orch/Nom.Orch.csproj", "Nom.Orch/"]
 COPY ["Nom.Import/Nom.Import.csproj", "Nom.Import/"]
+COPY ["Nom.Api.Tests/Nom.Api.Tests.csproj", "Nom.Api.Tests/"]
 COPY ["nom-api.sln", "./"]
 
 # Restore dependencies

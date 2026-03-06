@@ -13,7 +13,7 @@ import { CookbookFormDialog, CookbookFormDialogData, CookbookFormDialogResult } 
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
 @Component({
-  selector: 'app-cookbook-detail',
+  selector: 'nom-cookbook-detail',
   standalone: true,
   imports: [
     RouterLink,

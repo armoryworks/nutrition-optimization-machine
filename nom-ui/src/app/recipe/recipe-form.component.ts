@@ -305,7 +305,7 @@ export class RecipeForm implements OnInit {
     this.recipeService.uploadImage(id, file).pipe(
       this.loadingService.loading('Uploading image...'),
     ).subscribe({
-      next: (result: any) => {
+      next: (result) => {
         this.currentImageUrl.set(`/api/recipe/${id}/image?t=${Date.now()}`);
         this.currentAssetId.set(result.id);
       },

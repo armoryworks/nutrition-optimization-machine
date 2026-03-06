@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { RecipeModel, RecipeCreateRequest, RecipeCreateResponse, RecipeUpdateRequest } from '../models/recipe.model';
+import { RecipeModel, RecipeCreateRequest, RecipeCreateResponse, RecipeUpdateRequest, RecipeAssetResponse } from '../models/recipe.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeService {
@@ -33,17 +33,17 @@ export class RecipeService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  uploadImage(recipeId: number, file: File): Observable<any> {
+  uploadImage(recipeId: number, file: File): Observable<RecipeAssetResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post(`${this.apiUrl}/${recipeId}/image`, formData);
+    return this.http.post<RecipeAssetResponse>(`${this.apiUrl}/${recipeId}/image`, formData);
   }
 
   deleteImage(recipeId: number, assetId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${recipeId}/image/${assetId}`);
   }
 
-  getAssets(recipeId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/${recipeId}/assets`);
+  getAssets(recipeId: number): Observable<RecipeAssetResponse[]> {
+    return this.http.get<RecipeAssetResponse[]>(`${this.apiUrl}/${recipeId}/assets`);
   }
 }
