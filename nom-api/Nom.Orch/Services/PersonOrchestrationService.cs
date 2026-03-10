@@ -77,7 +77,7 @@ namespace Nom.Orch.Services
             {
                 Name = request.PersonName,
                 UserId = userId,
-                CreatedByPersonId = 1L // System person
+                CreatedByPersonId = SystemConstants.SystemPersonId
             };
 
             _dbContext.Persons.Add(newPerson);

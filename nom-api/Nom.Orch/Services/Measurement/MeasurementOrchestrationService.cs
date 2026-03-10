@@ -36,6 +36,13 @@ namespace Nom.Orch.Services.Measurement
                 new Logger<MeasurementPerformanceMonitor>(new LoggerFactory()));
         }
 
+        private long GetCurrentPersonId()
+        {
+            var personIdClaim = _httpContextAccessor.HttpContext?.User.Claims
+                .FirstOrDefault(c => c.Type == "PersonId")?.Value;
+            return long.TryParse(personIdClaim, out var id) ? id : SystemConstants.SystemPersonId;
+        }
+
         public async Task<List<MeasurementModel>> GetMeasurementsByCategoryAsync(long categoryId)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -775,7 +782,7 @@ namespace Nom.Orch.Services.Measurement
                     Symbol = measurement.Symbol,
                     IsPreferredUnit = request.IsPreferred,
                     CreatedDate = DateTime.UtcNow,
-                    CreatedByPersonId = 1 // TODO: Get from current user context
+                    CreatedByPersonId = GetCurrentPersonId()
                 };
 
                 _dbContext.IngredientMeasurements.Add(ingredientMeasurement);
@@ -895,7 +902,7 @@ namespace Nom.Orch.Services.Measurement
                     Symbol = measurement.Symbol,
                     StandardAmount = request.StandardDailyValue ?? 0,
                     CreatedDate = DateTime.UtcNow,
-                    CreatedByPersonId = 1 // TODO: Get from current user context
+                    CreatedByPersonId = GetCurrentPersonId()
                 };
 
                 _dbContext.NutrientMeasurements.Add(nutrientMeasurement);
