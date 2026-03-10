@@ -4,7 +4,7 @@ namespace Nom.Data.CustomMigration
 {
     internal class ExtendedSeedDataRoot
     {
-        public List<SeedIngredientDto> Ingredients { get; set; } = new();
-        public List<ExtendedSeedRecipeDto> Recipes { get; set; } = new();
+        public List<SeedIngredientModel> Ingredients { get; set; } = new();
+        public List<ExtendedSeedRecipeModel> Recipes { get; set; } = new();
     }
 }

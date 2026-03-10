@@ -1,6 +1,6 @@
 namespace Nom.Data.CustomMigration
 {
-    internal class SeedRecipeIngredientDto
+    internal class SeedRecipeIngredientModel
     {
         public long IngredientId { get; set; }
         public decimal Quantity { get; set; }

@@ -1,6 +1,6 @@
 namespace Nom.Data.CustomMigration
 {
-    internal class SeedRecipeStepDto
+    internal class SeedRecipeStepModel
     {
         public int StepNumber { get; set; }
         public string Summary { get; set; } = string.Empty;

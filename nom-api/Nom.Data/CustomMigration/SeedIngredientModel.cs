@@ -1,6 +1,6 @@
 namespace Nom.Data.CustomMigration
 {
-    internal class SeedIngredientDto
+    internal class SeedIngredientModel
     {
         public long Id { get; set; }
         public string Name { get; set; } = string.Empty;
