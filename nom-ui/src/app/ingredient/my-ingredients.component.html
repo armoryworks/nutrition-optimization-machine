@@ -1,0 +1,52 @@
+<div class="nom-dashboard">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">My Ingredients</h1>
+      <span class="nom-dashboard__subtitle">{{ ingredients().length }} ingredients</span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <a mat-flat-button routerLink="/ingredient/new">
+        <mat-icon>add</mat-icon>
+        New Ingredient
+      </a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-dashboard__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (ingredients().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">egg</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No ingredients yet</h2>
+      <p class="nom-dashboard__empty-message">Create custom ingredients to use in your recipes.</p>
+      <a mat-flat-button routerLink="/ingredient/new" class="nom-dashboard__empty-action">
+        <mat-icon>add</mat-icon>
+        Create Ingredient
+      </a>
+    </div>
+  } @else {
+    <div class="nom-ingredients__list">
+      @for (ing of ingredients(); track ing.id) {
+        <a class="nom-ingredients__item" [routerLink]="['/ingredient', ing.id, 'edit']">
+          <div class="nom-ingredients__item-info">
+            <span class="nom-ingredients__item-name">{{ ing.name }}</span>
+            @if (ing.description) {
+              <span class="nom-ingredients__item-desc">{{ ing.description }}</span>
+            }
+            @if (ing.aliases.length > 0) {
+              <span class="nom-ingredients__item-aliases">
+                Also: {{ aliasNames(ing) }}
+              </span>
+            }
+          </div>
+          @if (ing.curationStatusName) {
+            <span class="nom-ingredients__item-status">{{ ing.curationStatusName }}</span>
+          }
+          <mat-icon class="nom-ingredients__item-arrow">chevron_right</mat-icon>
+        </a>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,80 @@
+<div class="nom-dashboard">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">Curation Queue</h1>
+      <span class="nom-dashboard__subtitle">{{ items().length }} items pending review</span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-icon-button (click)="loadQueue()" aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="nom-dashboard__error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ errorMessage() }}</p>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="nom-curation__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">fact_check</mat-icon>
+      <h2 class="nom-dashboard__empty-title">Queue is empty</h2>
+      <p class="nom-dashboard__empty-message">No items waiting for review.</p>
+    </div>
+  } @else {
+    <div class="nom-curation__list">
+      @for (item of items(); track item.id) {
+        <div class="nom-curation__item">
+          <div class="nom-curation__item-header">
+            <mat-icon class="nom-curation__item-icon">
+              {{ item.entityType === 'Recipe' ? 'restaurant_menu' : 'egg' }}
+            </mat-icon>
+            <div class="nom-curation__item-info">
+              <span class="nom-curation__item-name">{{ item.entityName }}</span>
+              <span class="nom-curation__item-meta">
+                {{ item.entityType }} by {{ item.authorName }} · {{ item.submittedDate | date:'mediumDate' }}
+              </span>
+            </div>
+            <span class="nom-curation__item-status">{{ item.status }}</span>
+          </div>
+
+          @if (expandedId() === item.id) {
+            <div class="nom-curation__item-actions">
+              <mat-form-field appearance="outline" class="nom-curation__notes-field">
+                <mat-label>Feedback Notes</mat-label>
+                <textarea matInput [(ngModel)]="feedbackNotes" rows="2" placeholder="Optional notes for the author..."></textarea>
+              </mat-form-field>
+              <div class="nom-curation__action-buttons">
+                <button mat-flat-button (click)="approve(item)" [disabled]="processing()">
+                  <mat-icon>check</mat-icon>
+                  Approve
+                </button>
+                <button mat-stroked-button (click)="requestRevision(item)" [disabled]="processing()">
+                  <mat-icon>edit_note</mat-icon>
+                  Request Revision
+                </button>
+                <button mat-button class="nom-btn--destructive" (click)="reject(item)" [disabled]="processing()">
+                  <mat-icon>close</mat-icon>
+                  Reject
+                </button>
+                <span style="flex:1"></span>
+                <button mat-button (click)="expandedId.set(null)">Cancel</button>
+              </div>
+            </div>
+          } @else {
+            <button mat-stroked-button (click)="expandedId.set(item.id)" class="nom-curation__review-btn">
+              Review
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

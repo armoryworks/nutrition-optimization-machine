@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -23,14 +24,15 @@ import { AuthService } from '../core/services/auth.service';
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss',
 })
-export class ResetPassword implements OnInit {
+export class ResetPassword {
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  private email = '';
-  private token = '';
+  private queryParams = toSignal(this.route.queryParams);
+  private email = computed(() => this.queryParams()?.['email'] ?? '');
+  private token = computed(() => this.queryParams()?.['code'] ?? '');
 
   resetForm = this.fb.group({
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -41,17 +43,7 @@ export class ResetPassword implements OnInit {
   errorMessage = signal('');
   showPassword = signal(false);
   showConfirmPassword = signal(false);
-  invalidLink = signal(false);
-
-  ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      this.email = params['email'] || '';
-      this.token = params['code'] || '';
-      if (!this.email || !this.token) {
-        this.invalidLink.set(true);
-      }
-    });
-  }
+  invalidLink = computed(() => !this.email() || !this.token());
 
   private passwordsMatch(group: AbstractControl): ValidationErrors | null {
     const password = group.get('newPassword')?.value;
@@ -66,7 +58,7 @@ export class ResetPassword implements OnInit {
     this.errorMessage.set('');
 
     const { newPassword, confirmNewPassword } = this.resetForm.getRawValue();
-    this.authService.resetPassword(this.email, this.token, newPassword!, confirmNewPassword!).subscribe({
+    this.authService.resetPassword(this.email(), this.token(), newPassword!, confirmNewPassword!).subscribe({
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/home']);

@@ -1,0 +1,110 @@
+@use 'variables' as vars;
+
+.nom-inbox__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}
+
+.nom-inbox__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.nom-inbox__thread {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  cursor: pointer;
+  transition: background vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+
+  &--unread {
+    background: var(--mat-sys-surface-container-low);
+
+    .nom-inbox__thread-subject {
+      font-weight: vars.$font-weight-semibold;
+    }
+
+    .nom-inbox__thread-participants {
+      font-weight: vars.$font-weight-semibold;
+    }
+  }
+
+  &--pinned {
+    border-left: 3px solid var(--mat-sys-primary);
+  }
+}
+
+.nom-inbox__pin-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
+}
+
+.nom-inbox__thread-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nom-inbox__thread-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.nom-inbox__thread-participants {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-inbox__thread-date {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nom-inbox__thread-subject {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-inbox__thread-preview {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-inbox__unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  flex-shrink: 0;
+  padding: 0 vars.$spacing-1;
+}

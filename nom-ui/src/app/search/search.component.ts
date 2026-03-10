@@ -1,5 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { RecipeSearchResult } from '../core/models/recipe-search.model';
@@ -10,7 +11,7 @@ import { RecipeSearchResult } from '../core/models/recipe-search.model';
   templateUrl: './search.component.html',
   styleUrl: './search.component.scss'
 })
-export class Search implements OnInit {
+export class Search {
   private route = inject(ActivatedRoute);
   private recipeSearch = inject(RecipeSearchService);
 
@@ -20,9 +21,11 @@ export class Search implements OnInit {
   loading = signal(false);
   error = signal('');
 
-  ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const q = params['q'] || '';
+  private queryParams = toSignal(this.route.queryParams);
+
+  constructor() {
+    effect(() => {
+      const q = this.queryParams()?.['q'] || '';
       this.query.set(q);
       this.performSearch(q);
     });

@@ -1,0 +1,46 @@
+<div class="nom-thread">
+  <div class="nom-thread__header">
+    <a mat-icon-button routerLink="/messages" aria-label="Back to inbox">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div class="nom-thread__header-info">
+      <h1 class="nom-thread__subject">{{ thread()?.subject ?? 'Conversation' }}</h1>
+      <span class="nom-thread__participants">{{ thread()?.participantNames?.join(', ') }}</span>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-thread__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <div class="nom-thread__messages" #messagesContainer>
+      @for (msg of messages(); track msg.id) {
+        <div class="nom-thread__message" [class.nom-thread__message--own]="msg.senderPersonId === currentPersonId()">
+          <div class="nom-thread__message-header">
+            <span class="nom-thread__message-sender">{{ msg.senderName }}</span>
+            <span class="nom-thread__message-time">{{ formatTime(msg.timestamp) }}</span>
+          </div>
+          <div class="nom-thread__message-body">{{ msg.content }}</div>
+        </div>
+      }
+    </div>
+
+    <div class="nom-thread__compose">
+      <mat-form-field appearance="outline" class="nom-thread__input">
+        <input matInput
+               [(ngModel)]="newMessage"
+               placeholder="Type a message..."
+               (keydown.enter)="send()"
+               [disabled]="sending()" />
+      </mat-form-field>
+      <button mat-flat-button (click)="send()" [disabled]="!newMessage.trim() || sending()">
+        @if (sending()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          <mat-icon>send</mat-icon>
+        }
+      </button>
+    </div>
+  }
+</div>

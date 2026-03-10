@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, startWith, map, switchMap, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MealPlanService } from '../../core/services/meal-plan.service';
@@ -20,14 +20,34 @@ interface UpcomingMeal {
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
-export class Sidebar implements OnInit {
+export class Sidebar {
   private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
   private mealPlanService = inject(MealPlanService);
   private householdService = inject(HouseholdService);
 
-  weekData = signal<MealPlanWeekResponse | null>(null);
-  isHomePage = signal(false);
+  private navEnd = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map(e => e.urlAfterRedirects),
+      startWith(this.router.url),
+    ),
+  );
+
+  isHomePage = computed(() => {
+    const url = this.navEnd();
+    return url === '/home' || url === '/';
+  });
+
+  weekData = toSignal(
+    this.householdService.getHouseholds().pipe(
+      switchMap(list => {
+        if (list.length === 0) return of(null);
+        const monday = Sidebar.getMonday(new Date());
+        return this.mealPlanService.getWeek(list[0].id, monday);
+      }),
+    ),
+    { initialValue: null as MealPlanWeekResponse | null },
+  );
 
   upcomingShoppingSummary = computed(() => {
     const data = this.weekData();
@@ -70,30 +90,6 @@ export class Sidebar implements OnInit {
 
     return meals.slice(0, 6);
   });
-
-  ngOnInit(): void {
-    this.isHomePage.set(this.router.url === '/home' || this.router.url === '/');
-    this.router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(e => {
-      this.isHomePage.set(e.urlAfterRedirects === '/home' || e.urlAfterRedirects === '/');
-    });
-    this.loadUpcoming();
-  }
-
-  private loadUpcoming(): void {
-    this.householdService.getHouseholds().subscribe({
-      next: (list) => {
-        if (list.length > 0) {
-          const monday = Sidebar.getMonday(new Date());
-          this.mealPlanService.getWeek(list[0].id, monday).subscribe({
-            next: (data) => this.weekData.set(data),
-          });
-        }
-      },
-    });
-  }
 
   static getMonday(date: Date): string {
     const d = new Date(date);

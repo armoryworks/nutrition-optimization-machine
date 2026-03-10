@@ -1,0 +1,78 @@
+@use 'variables' as vars;
+
+.nom-curation__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}
+
+.nom-curation__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-curation__item {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  padding: vars.$spacing-4;
+  background: var(--mat-sys-surface);
+}
+
+.nom-curation__item-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+}
+
+.nom-curation__item-icon {
+  color: var(--mat-sys-primary);
+  flex-shrink: 0;
+}
+
+.nom-curation__item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-curation__item-name {
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-curation__item-meta {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-curation__item-status {
+  font-size: vars.$font-size-xs;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  white-space: nowrap;
+}
+
+.nom-curation__review-btn {
+  margin-top: vars.$spacing-3;
+}
+
+.nom-curation__item-actions {
+  margin-top: vars.$spacing-3;
+  padding-top: vars.$spacing-3;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-curation__notes-field {
+  width: 100%;
+}
+
+.nom-curation__action-buttons {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  flex-wrap: wrap;
+}

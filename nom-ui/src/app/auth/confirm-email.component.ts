@@ -1,5 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -50,16 +51,21 @@ import { AuthService } from '../core/services/auth.service';
   `,
   styles: ``,
 })
-export class ConfirmEmail implements OnInit {
+export class ConfirmEmail {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
+
+  private queryParams = toSignal(this.route.queryParams);
 
   loading = signal(true);
   success = signal(false);
   error = signal('');
 
-  ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+  constructor() {
+    effect(() => {
+      const params = this.queryParams();
+      if (!params) return;
+
       const userId = params['userId'];
       const token = params['token'];
 
@@ -74,7 +80,7 @@ export class ConfirmEmail implements OnInit {
           this.success.set(true);
           this.loading.set(false);
         },
-        error: (err) => {
+        error: (err: { error?: { message?: string } }) => {
           this.error.set(err.error?.message || 'Email confirmation failed. The link may have expired.');
           this.loading.set(false);
         },

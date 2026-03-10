@@ -1,0 +1,78 @@
+<div class="nom-form--full">
+  <div class="nom-form__header">
+    <h1 class="nom-form__title">{{ pageTitle() }}</h1>
+    <p class="nom-form__subtitle">{{ pageSubtitle() }}</p>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="nom-ingredient-form__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
+      <div class="nom-form__section">
+        <h2 class="nom-form__section-title">Details</h2>
+        <div class="nom-form__fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" maxlength="255" />
+            @if (ingredientForm.get('name')?.hasError('required')) {
+              <mat-error>Name is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Plural Name</mat-label>
+            <input matInput formControlName="pluralName" maxlength="255" />
+            <mat-hint>e.g. "tomatoes" for "tomato"</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3" maxlength="1023"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      @if (isEditMode() && nutrients().length > 0) {
+        <div class="nom-form__section">
+          <h2 class="nom-form__section-title">Nutrients</h2>
+          <div class="nom-ingredient-form__nutrients">
+            @for (n of nutrients(); track n.id) {
+              <div class="nom-ingredient-form__nutrient">
+                <span class="nom-ingredient-form__nutrient-name">{{ n.nutrientName }}</span>
+                <span class="nom-ingredient-form__nutrient-value">{{ n.amount }} {{ n.unitName }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (isEditMode() && aliases().length > 0) {
+        <div class="nom-form__section">
+          <h2 class="nom-form__section-title">Aliases</h2>
+          <div class="nom-ingredient-form__aliases">
+            @for (a of aliases(); track a.id) {
+              <span class="nom-ingredient-form__alias">{{ a.name }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="nom-form__actions">
+        <a mat-button routerLink="/ingredients/mine">Cancel</a>
+        <button mat-flat-button type="submit"
+                [disabled]="ingredientForm.invalid || saving()">
+          {{ isEditMode() ? 'Save Changes' : 'Create Ingredient' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

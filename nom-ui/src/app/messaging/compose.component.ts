@@ -1,5 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -89,14 +90,18 @@ import { HouseholdMemberResponseModel } from '../core/models/household.model';
   `,
   styles: [],
 })
-export class Compose implements OnInit {
+export class Compose {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private messagingService = inject(MessagingService);
   private householdService = inject(HouseholdService);
   private loadingService = inject(LoadingService);
 
-  members = signal<HouseholdMemberResponseModel[]>([]);
+  private households = toSignal(this.householdService.getHouseholds(), { initialValue: [] });
+  members = computed(() => {
+    const list = this.households();
+    return list.length > 0 && list[0].members ? list[0].members : [];
+  });
   sending = signal(false);
   errorMessage = signal('');
 
@@ -105,16 +110,6 @@ export class Compose implements OnInit {
     subject: ['', [Validators.required, Validators.maxLength(255)]],
     message: ['', Validators.required],
   });
-
-  ngOnInit(): void {
-    this.householdService.getHouseholds().subscribe({
-      next: (list) => {
-        if (list.length > 0 && list[0].members) {
-          this.members.set(list[0].members);
-        }
-      },
-    });
-  }
 
   onSubmit(): void {
     if (this.composeForm.invalid || this.sending()) return;
