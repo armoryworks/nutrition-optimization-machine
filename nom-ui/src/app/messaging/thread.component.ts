@@ -1,5 +1,6 @@
-import { Component, inject, signal, OnInit, ElementRef, viewChild, AfterViewChecked } from '@angular/core';
+import { Component, inject, signal, effect, ElementRef, viewChild, AfterViewChecked } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -180,7 +181,7 @@ import { LoadingService } from '../core/services/loading.service';
     }
   `],
 })
-export class Thread implements OnInit, AfterViewChecked {
+export class Thread implements AfterViewChecked {
   private route = inject(ActivatedRoute);
   private messagingService = inject(MessagingService);
   private loadingService = inject(LoadingService);
@@ -195,12 +196,9 @@ export class Thread implements OnInit, AfterViewChecked {
   newMessage = '';
   private shouldScroll = false;
 
-  ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      const id = Number(params['id']);
-      if (id) this.loadThread(id);
-    });
+  private params = toSignal(this.route.params);
 
+  constructor() {
     // Get current person ID from stored user data
     try {
       const userData = localStorage.getItem('nom_user');
@@ -209,6 +207,11 @@ export class Thread implements OnInit, AfterViewChecked {
         this.currentPersonId.set(parsed.personId ?? 0);
       }
     } catch { /* ignore */ }
+
+    effect(() => {
+      const id = Number(this.params()?.['id']);
+      if (id) this.loadThread(id);
+    });
   }
 
   ngAfterViewChecked(): void {

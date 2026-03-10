@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>{{ data?.cookbook ? 'Edit Cookbook' : 'New Cookbook' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="nom-cookbook-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" maxlength="255" data-testid="cookbook-name-input">
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="3" maxlength="2047"
+                data-testid="cookbook-description-input"></textarea>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="isPublic" data-testid="cookbook-public-toggle">
+      Public cookbook
+    </mat-slide-toggle>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-flat-button
+          [disabled]="form.invalid"
+          (click)="onSave()"
+          data-testid="cookbook-save-btn">
+    Save
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,40 @@
+@use 'variables' as vars;
+
+.nom-plan-rules__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-8;
+}
+
+.nom-plan-rules__empty {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  padding: vars.$spacing-4 0;
+}
+
+.nom-plan-rules__rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  margin-bottom: vars.$spacing-2;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.nom-plan-rules__rule-info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-plan-rules__rule-filter {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-plan-rules__rule-meta {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}

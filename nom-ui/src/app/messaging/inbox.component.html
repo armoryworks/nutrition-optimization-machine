@@ -1,0 +1,85 @@
+<div class="nom-dashboard">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <h1 class="nom-dashboard__title">Messages</h1>
+      @if (unreadCount() > 0) {
+        <span class="nom-dashboard__subtitle">{{ unreadCount() }} unread</span>
+      }
+    </div>
+    <div class="nom-dashboard__header-right">
+      <a mat-flat-button routerLink="/messages/new">
+        <mat-icon>edit</mat-icon>
+        Compose
+      </a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="nom-inbox__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (threads().length === 0) {
+    <div class="nom-dashboard__empty">
+      <mat-icon class="nom-dashboard__empty-icon">forum</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No messages</h2>
+      <p class="nom-dashboard__empty-message">Start a conversation with household members.</p>
+      <a mat-flat-button routerLink="/messages/new" class="nom-dashboard__empty-action">
+        <mat-icon>edit</mat-icon>
+        Compose Message
+      </a>
+    </div>
+  } @else {
+    <div class="nom-inbox__list">
+      @for (thread of sortedThreads(); track thread.id) {
+        <div class="nom-inbox__thread"
+             [class.nom-inbox__thread--unread]="thread.unreadCount > 0"
+             [class.nom-inbox__thread--pinned]="thread.isPinned"
+             (click)="openThread(thread.id)"
+             (keydown.enter)="openThread(thread.id)"
+             tabindex="0"
+             role="button">
+          @if (thread.isPinned) {
+            <mat-icon class="nom-inbox__pin-icon">push_pin</mat-icon>
+          }
+          <div class="nom-inbox__thread-content">
+            <div class="nom-inbox__thread-top">
+              <span class="nom-inbox__thread-participants">
+                {{ thread.participantNames.join(', ') }}
+              </span>
+              <span class="nom-inbox__thread-date">{{ formatDate(thread.lastMessageDate) }}</span>
+            </div>
+            <span class="nom-inbox__thread-subject">{{ thread.subject }}</span>
+            <span class="nom-inbox__thread-preview">{{ thread.lastMessageContent }}</span>
+          </div>
+          @if (thread.unreadCount > 0) {
+            <span class="nom-inbox__unread-badge">{{ thread.unreadCount }}</span>
+          }
+          <button mat-icon-button [matMenuTriggerFor]="threadMenu" (click)="$event.stopPropagation()" aria-label="Thread options">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #threadMenu="matMenu">
+            @if (thread.isPinned) {
+              <button mat-menu-item (click)="unpin(thread)">
+                <mat-icon>push_pin</mat-icon>
+                <span>Unpin</span>
+              </button>
+            } @else {
+              <button mat-menu-item (click)="pin(thread)">
+                <mat-icon>push_pin</mat-icon>
+                <span>Pin</span>
+              </button>
+            }
+            <button mat-menu-item (click)="archive(thread)">
+              <mat-icon>archive</mat-icon>
+              <span>Archive</span>
+            </button>
+            <button mat-menu-item (click)="deleteThread(thread)">
+              <mat-icon>delete</mat-icon>
+              <span>Delete</span>
+            </button>
+          </mat-menu>
+        </div>
+      }
+    </div>
+  }
+</div>

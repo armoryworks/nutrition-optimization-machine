@@ -1,0 +1,72 @@
+@use 'variables' as vars;
+
+.nom-ingredients__list {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-ingredients__item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background vars.$transition-duration-fast vars.$transition-timing;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.nom-ingredients__item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  min-width: 0;
+}
+
+.nom-ingredients__item-name {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-ingredients__item-desc {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-ingredients__item-aliases {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+.nom-ingredients__item-status {
+  font-size: vars.$font-size-xs;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+.nom-ingredients__item-arrow {
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-dashboard__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}

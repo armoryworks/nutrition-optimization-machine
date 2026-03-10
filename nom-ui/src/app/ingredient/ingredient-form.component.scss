@@ -1,0 +1,45 @@
+@use 'variables' as vars;
+
+.nom-ingredient-form__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-12;
+}
+
+.nom-ingredient-form__nutrients {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: vars.$spacing-2;
+}
+
+.nom-ingredient-form__nutrient {
+  display: flex;
+  justify-content: space-between;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: vars.$nom-border-radius;
+  font-size: vars.$font-size-sm;
+}
+
+.nom-ingredient-form__nutrient-name {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-ingredient-form__nutrient-value {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-ingredient-form__aliases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-2;
+}
+
+.nom-ingredient-form__alias {
+  padding: vars.$spacing-1 vars.$spacing-3;
+  background: var(--mat-sys-surface-container-high);
+  border-radius: vars.$nom-border-radius-pill;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+}

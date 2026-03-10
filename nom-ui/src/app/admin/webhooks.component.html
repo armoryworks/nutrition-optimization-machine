@@ -1,0 +1,93 @@
+<div class="nom-form--full">
+  <div class="nom-form__header">
+    <h1 class="nom-form__title">Webhooks</h1>
+    <p class="nom-form__subtitle">Get notified when events happen in your household</p>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="nom-form__error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Existing webhooks -->
+  <div class="nom-form__section">
+    <h2 class="nom-form__section-title">Active Webhooks</h2>
+
+    @if (loading()) {
+      <div class="nom-webhooks__loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else if (webhooks().length === 0) {
+      <p class="nom-webhooks__empty">No webhooks configured. Add one below to receive event notifications.</p>
+    } @else {
+      @for (wh of webhooks(); track wh.id) {
+        <div class="nom-webhooks__item" [class.nom-webhooks__item--inactive]="!wh.isActive">
+          <div class="nom-webhooks__item-info">
+            <span class="nom-webhooks__item-name">{{ wh.name }}</span>
+            <span class="nom-webhooks__item-url">{{ wh.url }}</span>
+            <span class="nom-webhooks__item-event">Event: {{ wh.eventType }}</span>
+          </div>
+          <div class="nom-webhooks__item-actions">
+            <button mat-icon-button (click)="testWebhook(wh)" [disabled]="testing() === wh.id" matTooltip="Test webhook">
+              @if (testing() === wh.id) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>send</mat-icon>
+              }
+            </button>
+            <button mat-icon-button (click)="deleteWebhook(wh)" matTooltip="Delete webhook">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Add webhook form -->
+  <div class="nom-form__section">
+    <h2 class="nom-form__section-title">Add Webhook</h2>
+    <form [formGroup]="webhookForm" (ngSubmit)="onAddWebhook()">
+      <div class="nom-form__fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" placeholder="e.g. Meal Plan Updated" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>URL</mat-label>
+          <input matInput formControlName="url" placeholder="https://example.com/webhook" type="url" />
+          <mat-hint>The endpoint to receive POST requests</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Event Type</mat-label>
+          <mat-select formControlName="eventType">
+            <mat-option value="meal_plan.updated">Meal Plan Updated</mat-option>
+            <mat-option value="meal_plan.created">Meal Plan Created</mat-option>
+            <mat-option value="shopping_list.generated">Shopping List Generated</mat-option>
+            <mat-option value="recipe.created">Recipe Created</mat-option>
+            <mat-option value="recipe.updated">Recipe Updated</mat-option>
+            <mat-option value="pantry.low_stock">Pantry Low Stock</mat-option>
+            <mat-option value="household.member_joined">Member Joined</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+      </div>
+
+      <div class="nom-form__actions">
+        <a mat-button routerLink="/admin">Back to Admin</a>
+        <button mat-flat-button type="submit" [disabled]="webhookForm.invalid || saving()">
+          @if (saving()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Add Webhook
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

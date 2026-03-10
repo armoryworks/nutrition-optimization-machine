@@ -1,0 +1,60 @@
+@use 'variables' as vars;
+
+.nom-webhooks__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-8;
+}
+
+.nom-webhooks__empty {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  padding: vars.$spacing-4 0;
+}
+
+.nom-webhooks__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  margin-bottom: vars.$spacing-2;
+  background: var(--mat-sys-surface-container-low);
+
+  &--inactive {
+    opacity: 0.6;
+  }
+}
+
+.nom-webhooks__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  min-width: 0;
+  flex: 1;
+}
+
+.nom-webhooks__item-name {
+  font-weight: vars.$font-weight-medium;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-webhooks__item-url {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nom-webhooks__item-event {
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-webhooks__item-actions {
+  display: flex;
+  gap: vars.$spacing-1;
+  flex-shrink: 0;
+}
