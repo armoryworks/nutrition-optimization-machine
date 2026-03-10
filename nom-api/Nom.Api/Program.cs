@@ -25,8 +25,16 @@ using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
 using Nom.Api.Settings;
 using Nom.Orch.Settings;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, loggerConfig) =>
+    loggerConfig.ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "NomApi")
+        .WriteTo.Console()
+        .WriteTo.File("logs/nom-.log", rollingInterval: RollingInterval.Day));
 
 // --- Add services to the container. ---
 
@@ -244,6 +252,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 app.UseCors(corsPolicyName);

@@ -17,6 +17,7 @@ using Nom.Data.Shopping;
 using Nom.Data.Measurement;
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -171,6 +172,17 @@ namespace Nom.Data
             base.OnModelCreating(modelBuilder);
             modelBuilder.HasDefaultSchema("auth");
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                {
+                    var parameter = Expression.Parameter(entityType.ClrType, "e");
+                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+                    var filter = Expression.Lambda(Expression.Not(property), parameter);
+                    modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+                }
+            }
         }
 
         public override int SaveChanges()
@@ -196,7 +208,8 @@ namespace Nom.Data
             var entries = ChangeTracker.Entries()
                 .Where(e => e.Entity is BaseEntity && (
                     e.State == EntityState.Added ||
-                    e.State == EntityState.Modified));
+                    e.State == EntityState.Modified ||
+                    e.State == EntityState.Deleted));
 
             foreach (var entry in entries)
             {
@@ -213,6 +226,14 @@ namespace Nom.Data
                 {
                     baseEntity.LastModifiedDate = now;
                     baseEntity.LastModifiedByPersonId = baseEntity.LastModifiedByPersonId ?? currentPersonId;
+                }
+
+                if (entry.State == EntityState.Deleted)
+                {
+                    entry.State = EntityState.Modified;
+                    baseEntity.IsDeleted = true;
+                    baseEntity.DeletedAt = now;
+                    baseEntity.DeletedByPersonId = currentPersonId;
                 }
             }
         }
