@@ -46,7 +46,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(long), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(long), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateCookbook([FromBody] CookbookCreateModel model)
         {
@@ -56,7 +56,7 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var id = await _cookbookService.CreateCookbookAsync(model);
-            return Ok(id);
+            return CreatedAtAction(nameof(GetCookbook), new { id }, id);
         }
 
         [HttpPut("{id}")]

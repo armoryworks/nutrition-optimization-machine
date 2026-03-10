@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -17,7 +16,6 @@ namespace Nom.Orch.UtilityServices
     public class AdvancedMonitoringService : IAdvancedMonitoringService
     {
         private readonly ILogger<AdvancedMonitoringService> _logger;
-        private readonly IConfiguration _configuration;
         private readonly Timer _monitoringTimer;
         private readonly List<SecurityEvent> _securityEvents;
         private readonly object _lockObject = new object();
@@ -29,9 +27,8 @@ namespace Nom.Orch.UtilityServices
         private const int MEMORY_THRESHOLD_MB = 500;
         private const int CPU_THRESHOLD_PERCENT = 80;
 
-        public AdvancedMonitoringService(IConfiguration configuration, ILogger<AdvancedMonitoringService> logger)
+        public AdvancedMonitoringService(ILogger<AdvancedMonitoringService> logger)
         {
-            _configuration = configuration;
             _logger = logger;
             _securityEvents = new List<SecurityEvent>();
 

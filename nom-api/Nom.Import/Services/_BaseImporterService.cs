@@ -13,12 +13,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Microsoft.Extensions.Configuration;
 
 namespace Nom.Import.Services
 {
     /// <summary>
-    /// A base class hosted service responsible for importing 
+    /// A base class hosted service responsible for importing
     /// dataset into the database.
     /// </summary>
     public abstract class BaseImporterService : IHostedService
@@ -33,15 +32,15 @@ namespace Nom.Import.Services
             ILogger logger,
             IServiceProvider serviceProvider,
             IOptions<ImportSettings> importSettings,
-            IHostApplicationLifetime appLifetime,
-            IConfiguration configuration)
+            IHostApplicationLifetime appLifetime)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _importSettings = importSettings.Value;
             _appLifetime = appLifetime;
-            _connectionString = configuration.GetConnectionString("NomConnection")
-                ?? throw new InvalidOperationException("Connection string 'NomConnection' not found.");
+            _connectionString = !string.IsNullOrEmpty(_importSettings.ConnectionString)
+                ? _importSettings.ConnectionString
+                : throw new InvalidOperationException("ImportSettings.ConnectionString is not configured. Bind ConnectionStrings:NomConnection via Configure<ImportSettings>.");
         }
 
         public abstract Task StartAsync(CancellationToken cancellationToken);

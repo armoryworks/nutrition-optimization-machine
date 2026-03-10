@@ -1,6 +1,6 @@
 import { Component, inject, input, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,7 +10,7 @@ import { RecipeCommentResponseModel } from '../core/models/recipe-comment-respon
 
 @Component({
   selector: 'nom-recipe-comments',
-  imports: [DatePipe, FormsModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule],
+  imports: [DatePipe, ReactiveFormsModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule],
   templateUrl: './recipe-comments.component.html',
   styleUrl: './recipe-comments.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +24,7 @@ export class RecipeComments implements OnInit {
   comments = signal<RecipeCommentResponseModel[]>([]);
   loading = signal(false);
   submitting = signal(false);
-  newCommentText = '';
+  newCommentText = new FormControl('');
 
   ngOnInit(): void {
     this.loadComments();
@@ -48,14 +48,14 @@ export class RecipeComments implements OnInit {
   }
 
   onSubmitComment(): void {
-    const text = this.newCommentText.trim();
+    const text = (this.newCommentText.value ?? '').trim();
     if (!text) return;
 
     this.submitting.set(true);
     this.recipeService.addComment(this.recipeId(), text).subscribe({
       next: (comment) => {
         this.comments.set([comment, ...this.comments()]);
-        this.newCommentText = '';
+        this.newCommentText.setValue('');
         this.submitting.set(false);
       },
       error: () => {

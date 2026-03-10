@@ -8,9 +8,9 @@
     <div class="nom-comments__form">
       <mat-form-field class="nom-comments__input">
         <mat-label>Add a comment</mat-label>
-        <textarea matInput [(ngModel)]="newCommentText" rows="3" maxlength="2047"></textarea>
+        <textarea matInput [formControl]="newCommentText" rows="3" maxlength="2047"></textarea>
       </mat-form-field>
-      <button mat-flat-button [disabled]="!newCommentText.trim() || submitting()" (click)="onSubmitComment()">
+      <button mat-flat-button [disabled]="!(newCommentText.value ?? '').trim() || submitting()" (click)="onSubmitComment()">
         Post Comment
       </button>
     </div>

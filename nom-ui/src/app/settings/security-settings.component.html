@@ -65,11 +65,11 @@
       </div>
       <mat-form-field appearance="outline" class="nom-security__verify-field">
         <mat-label>Verification Code</mat-label>
-        <input matInput [(ngModel)]="verifyCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+        <input matInput [formControl]="verifyCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
       </mat-form-field>
       <div class="nom-security__actions">
         <button mat-button (click)="onCancelSetup()">Cancel</button>
-        <button mat-flat-button (click)="onVerify()" [disabled]="!verifyCode.trim()">
+        <button mat-flat-button (click)="onVerify()" [disabled]="!(verifyCode.value ?? '').trim()">
           Verify & Enable
         </button>
       </div>
@@ -82,11 +82,11 @@
       </p>
       <mat-form-field appearance="outline" class="nom-security__verify-field">
         <mat-label>Verification Code</mat-label>
-        <input matInput [(ngModel)]="disableCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+        <input matInput [formControl]="disableCode" maxlength="6" placeholder="000000" autocomplete="one-time-code">
       </mat-form-field>
       <div class="nom-security__actions">
         <button mat-button (click)="onCancelDisable()">Cancel</button>
-        <button mat-flat-button class="nom-btn--destructive" (click)="onDisable()" [disabled]="!disableCode.trim()">
+        <button mat-flat-button class="nom-btn--destructive" (click)="onDisable()" [disabled]="!(disableCode.value ?? '').trim()">
           Disable 2FA
         </button>
       </div>

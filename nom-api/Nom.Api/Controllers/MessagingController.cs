@@ -46,7 +46,7 @@ namespace Nom.Api.Controllers
         {
             var personId = GetCurrentPersonIdRequired();
             var threadId = await _communicationOrch.CreateThreadAsync(request, personId);
-            return Ok(new { threadId });
+            return CreatedAtAction(nameof(GetThread), new { id = threadId }, new { threadId });
         }
 
         [HttpPost("messages")]
@@ -54,7 +54,7 @@ namespace Nom.Api.Controllers
         {
             var personId = GetCurrentPersonIdRequired();
             var messageId = await _communicationOrch.SendMessageAsync(request, personId);
-            return Ok(new { messageId });
+            return Created($"api/messaging/threads/{request.ThreadId}/messages", new { messageId });
         }
 
         [HttpPatch("threads/{id}/read")]

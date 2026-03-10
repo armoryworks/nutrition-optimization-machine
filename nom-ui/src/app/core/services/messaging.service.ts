@@ -2,47 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface MessageThread {
-  id: number;
-  subject: string;
-  lastMessageContent: string;
-  lastMessageDate: string;
-  lastMessageSenderName: string;
-  participantNames: string[];
-  unreadCount: number;
-  isPinned: boolean;
-  isArchived: boolean;
-  threadType: number;
-  recipeId: number | null;
-  ingredientId: number | null;
-  planId: number | null;
-}
-
-export interface Message {
-  id: number;
-  threadId: number;
-  senderPersonId: number;
-  senderName: string;
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-}
-
-export interface CreateThreadRequest {
-  participantPersonIds: number[];
-  subject: string;
-  initialMessage: string;
-  threadType?: number;
-  recipeId?: number | null;
-  ingredientId?: number | null;
-  planId?: number | null;
-}
-
-export interface SendMessageRequest {
-  threadId: number;
-  content: string;
-}
+import { MessageThread } from '../models/message-thread.model';
+import { Message } from '../models/message.model';
+import { CreateThreadRequest } from '../models/create-thread-request.model';
+import { SendMessageRequest } from '../models/send-message-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class MessagingService {

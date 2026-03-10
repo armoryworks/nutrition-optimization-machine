@@ -1,6 +1,6 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,7 +13,7 @@ import { ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
 
 @Component({
   selector: 'nom-recipe-import',
-  imports: [FormsModule, RouterLink, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatProgressSpinnerModule],
   templateUrl: './recipe-import.component.html',
   styleUrl: './recipe-import.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,20 +23,20 @@ export class RecipeImport {
   private loadingService = inject(LoadingService);
   private router = inject(Router);
 
-  url = '';
-  importKeywordsAsTags = true;
+  url = new FormControl('');
+  importKeywordsAsTags = new FormControl(true);
   preview = signal<ScrapedRecipeModel | null>(null);
   importing = signal(false);
   error = signal('');
   previewLoading = signal(false);
 
   onPreview(): void {
-    if (!this.url.trim()) return;
+    if (!(this.url.value ?? '').trim()) return;
     this.error.set('');
     this.previewLoading.set(true);
     this.preview.set(null);
 
-    this.scrapingService.testScrape({ url: this.url }).subscribe({
+    this.scrapingService.testScrape({ url: this.url.value ?? '' }).subscribe({
       next: (result) => {
         this.preview.set(result);
         this.previewLoading.set(false);
@@ -49,13 +49,13 @@ export class RecipeImport {
   }
 
   onImport(): void {
-    if (!this.url.trim() || this.importing()) return;
+    if (!(this.url.value ?? '').trim() || this.importing()) return;
     this.error.set('');
     this.importing.set(true);
 
     this.scrapingService.importFromUrl({
-      url: this.url,
-      importKeywordsAsTags: this.importKeywordsAsTags,
+      url: this.url.value ?? '',
+      importKeywordsAsTags: this.importKeywordsAsTags.value ?? true,
     }).pipe(
       this.loadingService.loading('Importing recipe...'),
     ).subscribe({

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Nom.Api.Settings;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -10,24 +11,12 @@ namespace Nom.Api.Authentication
     public class SmtpEmailSender : IEmailSender<IdentityUser>
     {
         private readonly ILogger<SmtpEmailSender> _logger;
-        private readonly string _smtpHost;
-        private readonly int _smtpPort;
-        private readonly string _smtpUser;
-        private readonly string _smtpPassword;
-        private readonly string _fromAddress;
-        private readonly string _fromName;
-        private readonly bool _useSsl;
+        private readonly EmailSettings _settings;
 
-        public SmtpEmailSender(ILogger<SmtpEmailSender> logger, IConfiguration configuration)
+        public SmtpEmailSender(ILogger<SmtpEmailSender> logger, IOptions<EmailSettings> settings)
         {
             _logger = logger;
-            _smtpHost = configuration["Email:SmtpHost"] ?? "localhost";
-            _smtpPort = int.TryParse(configuration["Email:SmtpPort"], out var port) ? port : 587;
-            _smtpUser = configuration["Email:SmtpUser"] ?? string.Empty;
-            _smtpPassword = configuration["Email:SmtpPassword"] ?? string.Empty;
-            _fromAddress = configuration["Email:FromAddress"] ?? "noreply@nom.local";
-            _fromName = configuration["Email:FromName"] ?? "NOM";
-            _useSsl = !bool.TryParse(configuration["Email:UseSsl"], out var ssl) || ssl;
+            _settings = settings.Value;
         }
 
         public async Task SendConfirmationLinkAsync(IdentityUser user, string email, string confirmationLink)
@@ -83,18 +72,18 @@ namespace Nom.Api.Authentication
             _logger.LogInformation("Sending email to {Email}: {Subject}", toEmail, subject);
 
             using var message = new MailMessage();
-            message.From = new MailAddress(_fromAddress, _fromName);
+            message.From = new MailAddress(_settings.FromAddress, _settings.FromName);
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;
             message.Body = htmlBody;
             message.IsBodyHtml = true;
 
-            using var client = new SmtpClient(_smtpHost, _smtpPort);
-            client.EnableSsl = _useSsl;
+            using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort);
+            client.EnableSsl = _settings.UseSsl;
 
-            if (!string.IsNullOrEmpty(_smtpUser))
+            if (!string.IsNullOrEmpty(_settings.SmtpUser))
             {
-                client.Credentials = new NetworkCredential(_smtpUser, _smtpPassword);
+                client.Credentials = new NetworkCredential(_settings.SmtpUser, _settings.SmtpPassword);
             }
 
             await client.SendMailAsync(message);

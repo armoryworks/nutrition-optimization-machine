@@ -145,7 +145,7 @@ namespace Nom.Api.Controllers
         {
             request.RecipeId = id;
             var response = await _recipeService.AddCommentAsync(request);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetComments), new { id }, response);
         }
 
         [HttpGet("{id}/comments")]
@@ -172,7 +172,7 @@ namespace Nom.Api.Controllers
         {
             request.RecipeId = id;
             var response = await _recipeService.AddRatingAsync(request);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetRatings), new { id }, response);
         }
 
         [HttpGet("{id}/ratings")]
@@ -226,7 +226,7 @@ namespace Nom.Api.Controllers
             var fileData = ms.ToArray();
 
             var result = await _recipeService.UploadImageAsync(id, currentPersonId.Value, file.FileName, file.ContentType, fileData);
-            return Ok(result);
+            return CreatedAtAction(nameof(GetAssets), new { id }, result);
         }
 
         [AllowAnonymous]

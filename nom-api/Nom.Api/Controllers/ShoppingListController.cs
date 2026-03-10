@@ -36,7 +36,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ShoppingListCreateResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ShoppingListCreateResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateShoppingList([FromBody] ShoppingListCreateModel model)
         {
@@ -47,7 +47,7 @@ namespace Nom.Api.Controllers
 
             var authorId = GetCurrentPersonIdRequired();
             var response = await _shoppingListOrchestrationService.CreateShoppingListAsync(model, authorId);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetShoppingList), new { id = response.Id }, response);
         }
 
         [HttpGet("{id}")]
@@ -89,7 +89,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("item")]
-        [ProducesResponseType(typeof(ShoppingListItemResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ShoppingListItemResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddItem([FromBody] ShoppingListItemCreateModel model)
         {
@@ -99,7 +99,7 @@ namespace Nom.Api.Controllers
             }
 
             var response = await _shoppingListOrchestrationService.AddItemAsync(model);
-            return Ok(response);
+            return Created($"api/shoppinglist/item/{response.Id}", response);
         }
 
         [HttpPut("item/{id}")]
@@ -168,7 +168,7 @@ namespace Nom.Api.Controllers
                 PersonId = request.PersonId
             });
             await _db.SaveChangesAsync();
-            return Ok(new { message = "Shopping list shared successfully." });
+            return Created($"api/shoppinglist/{id}/share", new { message = "Shopping list shared successfully." });
         }
 
         [HttpDelete("{id}/share/{personId}")]

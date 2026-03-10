@@ -13,8 +13,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Microsoft.Extensions.Configuration;
-
 namespace Nom.Import.Services
 {
     /// <summary>
@@ -28,8 +26,7 @@ namespace Nom.Import.Services
             ILogger<FdcFoodImporterService> logger,
             IServiceProvider serviceProvider,
             IOptions<ImportSettings> importSettings,
-            IHostApplicationLifetime appLifetime,
-            IConfiguration configuration) : base(logger, serviceProvider, importSettings, appLifetime, configuration)
+            IHostApplicationLifetime appLifetime) : base(logger, serviceProvider, importSettings, appLifetime)
         {
 
         }

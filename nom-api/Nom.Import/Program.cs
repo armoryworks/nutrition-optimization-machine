@@ -65,7 +65,11 @@ namespace Nom.Import
                     Console.WriteLine($"Environment: {hostContext.HostingEnvironment.EnvironmentName}");
                     Console.WriteLine($"Database: {connectionString}");
 
-                    services.Configure<ImportSettings>(hostContext.Configuration.GetSection("ImportSettings"));
+                    services.Configure<ImportSettings>(opts =>
+                    {
+                        hostContext.Configuration.GetSection("ImportSettings").Bind(opts);
+                        opts.ConnectionString = connectionString;
+                    });
 
                     services.AddDbContext<ApplicationDbContext>(options =>
                         options.UseNpgsql(connectionString, o => o.CommandTimeout(300)));

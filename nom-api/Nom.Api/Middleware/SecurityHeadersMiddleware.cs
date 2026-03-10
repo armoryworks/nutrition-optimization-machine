@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Nom.Api.Settings;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Middleware
@@ -11,16 +13,16 @@ namespace Nom.Api.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<SecurityHeadersMiddleware> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly SecurityHeadersSettings _settings;
 
         public SecurityHeadersMiddleware(
-            RequestDelegate next, 
+            RequestDelegate next,
             ILogger<SecurityHeadersMiddleware> logger,
-            IConfiguration configuration)
+            IOptions<SecurityHeadersSettings> settings)
         {
             _next = next;
             _logger = logger;
-            _configuration = configuration;
+            _settings = settings.Value;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -62,7 +64,7 @@ namespace Nom.Api.Middleware
             // Permissions Policy (formerly Feature Policy)
             if (!headers.ContainsKey("Permissions-Policy"))
             {
-                headers.Add("Permissions-Policy", 
+                headers.Add("Permissions-Policy",
                     "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
             }
 
@@ -76,8 +78,7 @@ namespace Nom.Api.Middleware
             // Strict Transport Security (HSTS) - only add for HTTPS
             if (context.Request.IsHttps && !headers.ContainsKey("Strict-Transport-Security"))
             {
-                var enableHsts = _configuration.GetValue<bool>("ENABLE_HSTS", true);
-                if (enableHsts)
+                if (_settings.EnableHsts)
                 {
                     headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
                 }
@@ -95,40 +96,40 @@ namespace Nom.Api.Middleware
         private string BuildContentSecurityPolicy()
         {
             var cspBuilder = new System.Text.StringBuilder();
-            
+
             // Default source
             cspBuilder.Append("default-src 'self'; ");
-            
+
             // Script source - allow self and specific CDNs if needed
             cspBuilder.Append("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; ");
-            
+
             // Style source - allow self and inline styles (for Angular)
             cspBuilder.Append("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; ");
-            
+
             // Image source - allow self, data URIs, and HTTPS
             cspBuilder.Append("img-src 'self' data: https: blob:; ");
-            
+
             // Font source
             cspBuilder.Append("font-src 'self' https://fonts.gstatic.com data:; ");
-            
+
             // Connect source - for API calls
             cspBuilder.Append("connect-src 'self' https: wss:; ");
-            
+
             // Media source
             cspBuilder.Append("media-src 'self'; ");
-            
+
             // Object source
             cspBuilder.Append("object-src 'none'; ");
-            
+
             // Frame ancestors
             cspBuilder.Append("frame-ancestors 'none'; ");
-            
+
             // Form action
             cspBuilder.Append("form-action 'self'; ");
-            
+
             // Base URI
             cspBuilder.Append("base-uri 'self'; ");
-            
+
             // Upgrade insecure requests
             cspBuilder.Append("upgrade-insecure-requests;");
 

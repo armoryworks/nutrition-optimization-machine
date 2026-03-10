@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Nom.Api.Settings;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.UserManagement;
 using System.Threading.Tasks;
@@ -93,7 +95,7 @@ namespace Nom.Api.Controllers
             [FromBody] ResendConfirmationRequest request,
             [FromServices] UserManager<IdentityUser> userManager,
             [FromServices] IEmailSender<IdentityUser> emailSender,
-            [FromServices] IConfiguration configuration)
+            [FromServices] IOptions<FrontendSettings> frontendSettings)
         {
             // Always return OK to avoid revealing which emails are registered
             if (string.IsNullOrWhiteSpace(request.Email))
@@ -105,7 +107,7 @@ namespace Nom.Api.Controllers
             if (user != null && !user.EmailConfirmed)
             {
                 var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-                var frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:4200";
+                var frontendUrl = frontendSettings.Value.Url;
                 var confirmLink = $"{frontendUrl}/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
                 await emailSender.SendConfirmationLinkAsync(user, request.Email, confirmLink);
             }

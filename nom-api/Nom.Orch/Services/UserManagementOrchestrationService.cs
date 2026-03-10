@@ -18,8 +18,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Configuration;
-
 namespace Nom.Orch.Services
 {
     public class UserManagementOrchestrationService : IUserManagementOrchestrationService
@@ -28,20 +26,17 @@ namespace Nom.Orch.Services
         private readonly ILogger<UserManagementOrchestrationService> _logger;
         private readonly ApplicationDbContext _context;
         private readonly IPersonOrchestrationService _personOrchestrationService;
-        private readonly IConfiguration _configuration;
 
         public UserManagementOrchestrationService(
-            UserManager<IdentityUser> userManager, 
+            UserManager<IdentityUser> userManager,
             ILogger<UserManagementOrchestrationService> logger,
             ApplicationDbContext context,
-            IPersonOrchestrationService personOrchestrationService,
-            IConfiguration configuration)
+            IPersonOrchestrationService personOrchestrationService)
         {
             _userManager = userManager;
             _logger = logger;
             _context = context;
             _personOrchestrationService = personOrchestrationService;
-            _configuration = configuration;
         }
 
         public async Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request)

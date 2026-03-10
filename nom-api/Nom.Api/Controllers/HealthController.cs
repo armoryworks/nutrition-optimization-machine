@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json;
@@ -12,16 +13,16 @@ namespace Nom.Api.Controllers
     {
         private readonly HealthCheckService _healthCheckService;
         private readonly ILogger<HealthController> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
 
         public HealthController(
-            HealthCheckService healthCheckService, 
+            HealthCheckService healthCheckService,
             ILogger<HealthController> logger,
-            IConfiguration configuration)
+            IWebHostEnvironment env)
         {
             _healthCheckService = healthCheckService;
             _logger = logger;
-            _configuration = configuration;
+            _env = env;
         }
 
         /// <summary>
@@ -36,7 +37,7 @@ namespace Nom.Api.Controllers
             {
                 status = report.Status.ToString(),
                 timestamp = DateTime.UtcNow,
-                environment = _configuration["ASPNETCORE_ENVIRONMENT"],
+                environment = _env.EnvironmentName,
                 checks = report.Entries.Select(e => new
                 {
                     name = e.Key,
@@ -49,9 +50,9 @@ namespace Nom.Api.Controllers
             };
 
             var statusCode = report.Status == HealthStatus.Healthy ? 200 : 503;
-            
+
             _logger.LogInformation("Health check completed with status: {Status}", report.Status);
-            
+
             return StatusCode(statusCode, result);
         }
 
@@ -66,8 +67,8 @@ namespace Nom.Api.Controllers
 
             var isReady = report.Status == HealthStatus.Healthy;
 
-            var result = new 
-            { 
+            var result = new
+            {
                 status = isReady ? "ready" : "not_ready",
                 timestamp = DateTime.UtcNow,
                 checks = report.Entries.Select(e => new
@@ -88,9 +89,9 @@ namespace Nom.Api.Controllers
         public IActionResult Live()
         {
             // Simple liveness check - if this endpoint responds, the app is alive
-            return Ok(new 
-            { 
-                status = "alive", 
+            return Ok(new
+            {
+                status = "alive",
                 timestamp = DateTime.UtcNow,
                 uptime = GetUptime()
             });
@@ -108,7 +109,7 @@ namespace Nom.Api.Controllers
             {
                 status = report.Status.ToString(),
                 timestamp = DateTime.UtcNow,
-                environment = _configuration["ASPNETCORE_ENVIRONMENT"],
+                environment = _env.EnvironmentName,
                 version = GetType().Assembly.GetName().Version?.ToString(),
                 uptime = GetUptime(),
                 totalDuration = report.TotalDuration.TotalMilliseconds,

@@ -19,9 +19,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Nom.Orch.Models.UserManagement;
 using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
+using Nom.Api.Settings;
+using Nom.Orch.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,7 +67,9 @@ builder.Services.AddCors(options =>
 
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+        opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -82,6 +87,31 @@ builder.Services.AddMemoryCache();
 
 builder.Services.Configure<Nom.Orch.Models.Shopping.RetailPackagingLookupSettings>(
     builder.Configuration.GetSection("RetailPackagingLookup"));
+
+// Strongly-typed options
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<FrontendSettings>(builder.Configuration.GetSection("Frontend"));
+builder.Services.Configure<SecurityHeadersSettings>(builder.Configuration.GetSection("SecurityHeaders"));
+builder.Services.Configure<VulnerabilityScanSettings>(opts =>
+{
+    opts.DefaultConnection = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+    opts.JwtKey = builder.Configuration["Jwt:Key"] ?? string.Empty;
+    opts.PasswordPolicy = builder.Configuration["Identity:PasswordPolicy"] ?? string.Empty;
+    opts.LockoutSettings = builder.Configuration["Identity:LockoutSettings"] ?? string.Empty;
+    opts.PasswordHasher = builder.Configuration["Identity:PasswordHasher"] ?? string.Empty;
+    opts.EnableRbac = builder.Configuration["Authorization:EnableRBAC"] ?? string.Empty;
+    opts.Environment = builder.Configuration["Environment"] ?? string.Empty;
+    opts.LogLevelDefault = builder.Configuration["Logging:LogLevel:Default"] ?? string.Empty;
+    opts.LogLevelTrace = builder.Configuration["Logging:LogLevel:Trace"] ?? string.Empty;
+    opts.LogFilePath = builder.Configuration["Logging:FilePath"] ?? string.Empty;
+    opts.KestrelHttpsEndpoint = builder.Configuration["Kestrel:Endpoints:Https"] ?? string.Empty;
+    opts.CorsPolicy = builder.Configuration["Cors:Policy"] ?? string.Empty;
+    opts.DebugEnabled = builder.Configuration["Debug:Enabled"] ?? string.Empty;
+    opts.SecurityHeaders = builder.Configuration["Security:Headers"] ?? string.Empty;
+    opts.SessionTimeoutMinutes = builder.Configuration["Session:TimeoutMinutes"] ?? string.Empty;
+    opts.EncryptionKey = builder.Configuration["Encryption:Key"] ?? string.Empty;
+    opts.TargetFramework = builder.Configuration["TargetFramework"] ?? string.Empty;
+});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
@@ -236,7 +266,7 @@ app.MapPost("api/auth/register-custom", async (
     UserManager<IdentityUser> userManager,
     IPersonOrchestrationService personService,
     IEmailSender<IdentityUser> emailSender,
-    IConfiguration configuration,
+    IOptions<FrontendSettings> frontendSettings,
     ILogger<Program> logger) =>
 {
     if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
@@ -269,7 +299,7 @@ app.MapPost("api/auth/register-custom", async (
     try
     {
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-        var frontendUrl = configuration["FrontendUrl"] ?? "http://localhost:4200";
+        var frontendUrl = frontendSettings.Value.Url;
         var confirmLink = $"{frontendUrl}/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
         await emailSender.SendConfirmationLinkAsync(user, request.Email, confirmLink);
         logger.LogInformation("Confirmation email sent to {Email}", request.Email);

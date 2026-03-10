@@ -98,8 +98,7 @@
               <span class="nom-shopping__item-name">{{ item.name }}</span>
               @if (editingItem() === item.checkKey) {
                 <input class="nom-shopping__item-qty-input"
-                       [ngModel]="quantityOverrides().get(item.checkKey) ?? ''"
-                       (ngModelChange)="$event"
+                       [value]="quantityOverrides().get(item.checkKey) ?? ''"
                        (keydown.enter)="saveEdit(item.checkKey, $any($event.target).value)"
                        (keydown.escape)="cancelEdit()"
                        (blur)="saveEdit(item.checkKey, $any($event.target).value)"

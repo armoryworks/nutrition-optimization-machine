@@ -1,19 +1,20 @@
 import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TwoFactorService, TwoFactorStatus } from '../core/services/two-factor.service';
+import { TwoFactorService } from '../core/services/two-factor.service';
+import { TwoFactorStatus } from '../core/models/two-factor-status.model';
 import { LoadingService } from '../core/services/loading.service';
 
 @Component({
   selector: 'nom-security-settings',
   imports: [
     RouterLink,
-    FormsModule,
+    ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -40,7 +41,7 @@ export class SecuritySettings implements OnInit {
   setupMode = signal(false);
   sharedKey = signal('');
   authenticatorUri = signal('');
-  verifyCode = '';
+  verifyCode = new FormControl('');
 
   // Recovery codes
   recoveryCodes = signal<string[]>([]);
@@ -48,7 +49,7 @@ export class SecuritySettings implements OnInit {
 
   // Disable flow
   disableMode = signal(false);
-  disableCode = '';
+  disableCode = new FormControl('');
 
   ngOnInit(): void {
     this.loadStatus();
@@ -83,10 +84,10 @@ export class SecuritySettings implements OnInit {
   }
 
   onVerify(): void {
-    if (!this.verifyCode.trim()) return;
+    if (!(this.verifyCode.value ?? '').trim()) return;
     this.error.set('');
 
-    this.twoFactorService.verify(this.verifyCode).pipe(
+    this.twoFactorService.verify(this.verifyCode.value ?? '').pipe(
       this.loadingService.loading('Verifying code...'),
     ).subscribe({
       next: (result) => {
@@ -94,7 +95,7 @@ export class SecuritySettings implements OnInit {
         this.recoveryCodes.set(result.recoveryCodes);
         this.showRecoveryCodes.set(true);
         this.success.set('Two-factor authentication has been enabled.');
-        this.verifyCode = '';
+        this.verifyCode.setValue('');
         this.loadStatus();
       },
       error: () => this.error.set('Invalid verification code. Please try again.'),
@@ -108,15 +109,15 @@ export class SecuritySettings implements OnInit {
   }
 
   onDisable(): void {
-    if (!this.disableCode.trim()) return;
+    if (!(this.disableCode.value ?? '').trim()) return;
     this.error.set('');
 
-    this.twoFactorService.disable(this.disableCode).pipe(
+    this.twoFactorService.disable(this.disableCode.value ?? '').pipe(
       this.loadingService.loading('Disabling 2FA...'),
     ).subscribe({
       next: () => {
         this.disableMode.set(false);
-        this.disableCode = '';
+        this.disableCode.setValue('');
         this.success.set('Two-factor authentication has been disabled.');
         this.loadStatus();
       },
@@ -128,12 +129,12 @@ export class SecuritySettings implements OnInit {
     this.setupMode.set(false);
     this.sharedKey.set('');
     this.authenticatorUri.set('');
-    this.verifyCode = '';
+    this.verifyCode.setValue('');
   }
 
   onCancelDisable(): void {
     this.disableMode.set(false);
-    this.disableCode = '';
+    this.disableCode.setValue('');
   }
 
   onCopyKey(): void {

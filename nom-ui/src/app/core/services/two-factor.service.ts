@@ -1,21 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-export interface TwoFactorSetup {
-  sharedKey: string;
-  authenticatorUri: string;
-}
-
-export interface TwoFactorRecoveryCodes {
-  recoveryCodes: string[];
-}
-
-export interface TwoFactorStatus {
-  isEnabled: boolean;
-  hasAuthenticator: boolean;
-  recoveryCodesLeft: number;
-}
+import { TwoFactorSetup } from '../models/two-factor-setup.model';
+import { TwoFactorRecoveryCodes } from '../models/two-factor-recovery-codes.model';
+import { TwoFactorStatus } from '../models/two-factor-status.model';
 
 @Injectable({ providedIn: 'root' })
 export class TwoFactorService {

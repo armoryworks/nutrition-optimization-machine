@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,15 +34,15 @@ public class CombinedSourceImporterService : IHostedService
         ILogger<CombinedSourceImporterService> logger,
         IServiceProvider serviceProvider,
         IOptions<ImportSettings> importSettings,
-        IHostApplicationLifetime appLifetime,
-        IConfiguration configuration)
+        IHostApplicationLifetime appLifetime)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _importSettings = importSettings.Value;
         _appLifetime = appLifetime;
-        _connectionString = configuration.GetConnectionString("NomConnection")
-            ?? throw new InvalidOperationException("Connection string 'NomConnection' not found.");
+        _connectionString = !string.IsNullOrEmpty(_importSettings.ConnectionString)
+            ? _importSettings.ConnectionString
+            : throw new InvalidOperationException("ImportSettings.ConnectionString is not configured.");
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

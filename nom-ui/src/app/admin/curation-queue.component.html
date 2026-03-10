@@ -49,7 +49,7 @@
             <div class="nom-curation__item-actions">
               <mat-form-field appearance="outline" class="nom-curation__notes-field">
                 <mat-label>Feedback Notes</mat-label>
-                <textarea matInput [(ngModel)]="feedbackNotes" rows="2" placeholder="Optional notes for the author..."></textarea>
+                <textarea matInput [formControl]="feedbackNotes" rows="2" placeholder="Optional notes for the author..."></textarea>
               </mat-form-field>
               <div class="nom-curation__action-buttons">
                 <button mat-flat-button (click)="approve(item)" [disabled]="processing()">

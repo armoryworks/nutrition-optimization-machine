@@ -38,14 +38,14 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(long), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(long), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateWebhook([FromBody] WebhookCreateModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var id = await _webhookService.CreateWebhookAsync(model);
-            return Ok(id);
+            return CreatedAtAction(nameof(GetWebhook), new { id }, id);
         }
 
         [HttpPut("{id}")]

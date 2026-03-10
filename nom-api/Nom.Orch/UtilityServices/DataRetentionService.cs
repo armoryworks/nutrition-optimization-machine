@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using System;
@@ -18,7 +17,6 @@ namespace Nom.Orch.UtilityServices
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<DataRetentionService> _logger;
-        private readonly IConfiguration _configuration;
 
         // Data retention periods (in days)
         private const int USER_ACTIVITY_RETENTION_DAYS = 730; // 2 years
@@ -28,10 +26,9 @@ namespace Nom.Orch.UtilityServices
         private const int TEMP_FILE_RETENTION_DAYS = 7; // 1 week
         private const int FAILED_LOGIN_RETENTION_DAYS = 30; // 1 month
 
-        public DataRetentionService(ApplicationDbContext dbContext, IConfiguration configuration, ILogger<DataRetentionService> logger)
+        public DataRetentionService(ApplicationDbContext dbContext, ILogger<DataRetentionService> logger)
         {
             _dbContext = dbContext;
-            _configuration = configuration;
             _logger = logger;
         }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Text.Json;
@@ -8,12 +9,17 @@ namespace Nom.Api.Middleware
 {
     /// <summary>
     /// Global exception handling middleware that catches unhandled exceptions
-    /// and returns appropriate HTTP status codes with JSON error responses.
+    /// and returns RFC 7807 Problem Details responses.
     /// </summary>
     public class GlobalExceptionMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<GlobalExceptionMiddleware> _logger;
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
         {
@@ -30,57 +36,65 @@ namespace Nom.Api.Middleware
             catch (UnauthorizedAccessException ex)
             {
                 _logger.LogWarning(ex, "Unauthorized access");
-                await WriteErrorResponse(context, StatusCodes.Status401Unauthorized, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message);
             }
             catch (ArgumentNullException ex)
             {
                 _logger.LogWarning(ex, "Bad request: argument null");
-                await WriteErrorResponse(context, StatusCodes.Status400BadRequest, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status400BadRequest, "Bad Request", ex.Message);
             }
             catch (ArgumentOutOfRangeException ex)
             {
                 _logger.LogWarning(ex, "Bad request: argument out of range");
-                await WriteErrorResponse(context, StatusCodes.Status400BadRequest, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status400BadRequest, "Bad Request", ex.Message);
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning(ex, "Bad request: invalid argument");
-                await WriteErrorResponse(context, StatusCodes.Status400BadRequest, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status400BadRequest, "Bad Request", ex.Message);
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Bad request: invalid operation");
-                await WriteErrorResponse(context, StatusCodes.Status400BadRequest, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status400BadRequest, "Bad Request", ex.Message);
             }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "Resource not found");
-                await WriteErrorResponse(context, StatusCodes.Status404NotFound, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status404NotFound, "Not Found", ex.Message);
             }
             catch (NotImplementedException ex)
             {
                 _logger.LogWarning(ex, "Not implemented");
-                await WriteErrorResponse(context, StatusCodes.Status501NotImplemented, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status501NotImplemented, "Not Implemented", ex.Message);
             }
             catch (NotSupportedException ex)
             {
                 _logger.LogWarning(ex, "Not supported");
-                await WriteErrorResponse(context, StatusCodes.Status501NotImplemented, ex.Message);
+                await WriteProblemDetails(context, StatusCodes.Status501NotImplemented, "Not Implemented", ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An unhandled exception occurred");
-                await WriteErrorResponse(context, StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
+                await WriteProblemDetails(context, StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.");
             }
         }
 
-        private static async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
+        private static async Task WriteProblemDetails(HttpContext context, int statusCode, string title, string detail)
         {
             context.Response.StatusCode = statusCode;
-            context.Response.ContentType = "application/json";
+            context.Response.ContentType = "application/problem+json";
 
-            var response = JsonSerializer.Serialize(new { message });
-            await context.Response.WriteAsync(response);
+            var problem = new ProblemDetails
+            {
+                Status = statusCode,
+                Title = title,
+                Detail = detail,
+                Instance = context.Request.Path
+            };
+
+            var json = JsonSerializer.Serialize(problem, JsonOptions);
+            await context.Response.WriteAsync(json);
         }
     }
 }

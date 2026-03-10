@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Cryptography;
@@ -16,16 +15,14 @@ namespace Nom.Orch.UtilityServices
     public class MultiFactorAuthenticationService : IMultiFactorAuthenticationService
     {
         private readonly ILogger<MultiFactorAuthenticationService> _logger;
-        private readonly IConfiguration _configuration;
 
         // TOTP configuration
         private const int TOTP_DIGITS = 6;
         private const int TOTP_PERIOD = 30; // 30 seconds
         private const int TOTP_WINDOW = 1; // Allow 1 period before/after for clock skew
 
-        public MultiFactorAuthenticationService(IConfiguration configuration, ILogger<MultiFactorAuthenticationService> logger)
+        public MultiFactorAuthenticationService(ILogger<MultiFactorAuthenticationService> logger)
         {
-            _configuration = configuration;
             _logger = logger;
         }
 

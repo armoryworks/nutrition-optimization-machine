@@ -14,6 +14,12 @@ namespace Nom.Import.Settings
         public string SourceDirectory { get; set; } = string.Empty;
 
         /// <summary>
+        /// The PostgreSQL connection string used by the bulk-copy importer.
+        /// Bound from ConnectionStrings:NomConnection.
+        /// </summary>
+        public string ConnectionString { get; set; } = string.Empty;
+
+        /// <summary>
         /// Configuration for data quality filtering and scoring.
         /// </summary>
         public QualityFilterSettings QualityFilter { get; set; } = new();

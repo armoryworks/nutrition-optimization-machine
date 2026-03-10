@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -266,7 +266,7 @@ interface RawAccumulator {
   selector: 'nom-shopping',
   imports: [
     RouterLink,
-    FormsModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatCheckboxModule,

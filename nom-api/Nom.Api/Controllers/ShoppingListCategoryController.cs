@@ -41,7 +41,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ShoppingListCategoryResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ShoppingListCategoryResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateCategory([FromBody] ShoppingListCategoryCreateModel model)
         {
@@ -51,7 +51,7 @@ namespace Nom.Api.Controllers
             }
 
             var response = await _categoryOrchestrationService.CreateCategoryAsync(model);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetCategory), new { id = response.Id }, response);
         }
 
         [HttpPut("{id}")]

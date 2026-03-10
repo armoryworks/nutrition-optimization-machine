@@ -22,7 +22,7 @@ namespace Nom.Api.Controllers
         {
             var inviterPersonId = GetCurrentPersonIdRequired();
             var invitation = await _invitationOrchestrationService.CreateInvitationAsync(request, inviterPersonId);
-            return Ok(invitation);
+            return CreatedAtAction(nameof(GetInvitationByCode), new { code = invitation.Code }, invitation);
         }
 
         [HttpPost("claim")]

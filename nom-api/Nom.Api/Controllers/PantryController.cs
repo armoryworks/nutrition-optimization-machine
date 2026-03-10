@@ -68,7 +68,7 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var created = await _pantryService.AddPantryItemsBatchAsync(items);
-            return Ok(created);
+            return Created("api/pantry", created);
         }
 
         [HttpPut("{id}")]

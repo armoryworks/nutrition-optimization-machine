@@ -1,20 +1,21 @@
 import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { AdminService, CurationQueueItem } from '../core/services/admin.service';
+import { AdminService } from '../core/services/admin.service';
+import { CurationQueueItem } from '../core/models/curation-queue-item.model';
 import { LoadingService } from '../core/services/loading.service';
 
 @Component({
   selector: 'nom-curation-queue',
   imports: [
     DatePipe,
-    FormsModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -34,7 +35,7 @@ export class CurationQueue implements OnInit {
   processing = signal(false);
   errorMessage = signal('');
   expandedId = signal<number | null>(null);
-  feedbackNotes = '';
+  feedbackNotes = new FormControl('');
 
   ngOnInit(): void {
     this.loadQueue();
@@ -62,12 +63,12 @@ export class CurationQueue implements OnInit {
     this.adminService.approveCuration({
       entityId: item.entityId,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes,
+      feedbackNotes: this.feedbackNotes.value ?? '',
     }).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);
-        this.feedbackNotes = '';
+        this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
       error: () => {
@@ -82,12 +83,12 @@ export class CurationQueue implements OnInit {
     this.adminService.requestRevision({
       entityId: item.entityId,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes,
+      feedbackNotes: this.feedbackNotes.value ?? '',
     }).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);
-        this.feedbackNotes = '';
+        this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
       error: () => {
@@ -102,12 +103,12 @@ export class CurationQueue implements OnInit {
     this.adminService.rejectCuration({
       entityId: item.entityId,
       entityType: item.entityType,
-      feedbackNotes: this.feedbackNotes,
+      feedbackNotes: this.feedbackNotes.value ?? '',
     }).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);
-        this.feedbackNotes = '';
+        this.feedbackNotes.setValue('');
         this.processing.set(false);
       },
       error: () => {

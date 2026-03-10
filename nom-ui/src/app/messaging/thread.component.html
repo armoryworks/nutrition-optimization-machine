@@ -29,12 +29,12 @@
     <div class="nom-thread__compose">
       <mat-form-field appearance="outline" class="nom-thread__input">
         <input matInput
-               [(ngModel)]="newMessage"
+               [formControl]="newMessage"
                placeholder="Type a message..."
                (keydown.enter)="send()"
                [disabled]="sending()" />
       </mat-form-field>
-      <button mat-flat-button (click)="send()" [disabled]="!newMessage.trim() || sending()">
+      <button mat-flat-button (click)="send()" [disabled]="!(newMessage.value ?? '').trim() || sending()">
         @if (sending()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {

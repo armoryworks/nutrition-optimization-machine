@@ -3,13 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap, switchMap, catchError, of, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PersonModel } from '../models/person.model';
-
-export interface AuthTokenResponse {
-  tokenType: string;
-  accessToken: string;
-  expiresIn: number;
-  refreshToken: string;
-}
+import { AuthTokenResponse } from '../models/auth-token-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

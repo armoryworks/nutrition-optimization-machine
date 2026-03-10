@@ -27,14 +27,14 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(long), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(long), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateLabel([FromBody] LabelCreateModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var id = await _labelService.CreateLabelAsync(model);
-            return Ok(id);
+            return Created($"api/label/{id}", id);
         }
 
         [HttpPut("{id}")]

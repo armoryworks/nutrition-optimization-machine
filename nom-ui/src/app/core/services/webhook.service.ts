@@ -2,30 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface WebhookResponse {
-  id: number;
-  householdId: number;
-  name: string;
-  url: string;
-  eventType: string;
-  isActive: boolean;
-}
-
-export interface WebhookCreateRequest {
-  householdId: number;
-  name: string;
-  url: string;
-  eventType: string;
-  isActive: boolean;
-}
-
-export interface WebhookUpdateRequest {
-  name: string;
-  url: string;
-  eventType: string;
-  isActive: boolean;
-}
+import { WebhookResponse } from '../models/webhook-response.model';
+import { WebhookCreateRequest } from '../models/webhook-create-request.model';
+import { WebhookUpdateRequest } from '../models/webhook-update-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class WebhookService {

@@ -34,7 +34,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(MealPlanCreateResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MealPlanCreateResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateMealPlan([FromBody] MealPlanCreateModel model)
         {
@@ -48,7 +48,7 @@ namespace Nom.Api.Controllers
 
             var authorId = GetCurrentPersonIdRequired();
             var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetMealPlan), new { id = response.Id }, response);
         }
 
         [HttpGet("{id:long}")]
@@ -123,7 +123,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("rule")]
-        [ProducesResponseType(typeof(MealPlanRuleCreateResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MealPlanRuleCreateResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateRule([FromBody] MealPlanRuleCreateModel model)
         {
@@ -136,7 +136,7 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var response = await _mealPlanOrchestrationService.CreateRuleAsync(model);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetRule), new { id = response.Id }, response);
         }
 
         [HttpGet("rule/{id}")]
@@ -184,7 +184,7 @@ namespace Nom.Api.Controllers
         }
 
         [HttpPost("exclusion")]
-        [ProducesResponseType(typeof(MealPlanExclusionResponseModel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MealPlanExclusionResponseModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateExclusion([FromBody] MealPlanExclusionCreateModel model)
         {
@@ -197,7 +197,7 @@ namespace Nom.Api.Controllers
                 return Forbid();
 
             var response = await _mealPlanOrchestrationService.CreateExclusionAsync(model);
-            return Ok(response);
+            return Created($"api/mealplan/exclusion/{response.Id}", response);
         }
 
         [HttpGet("exclusion")]

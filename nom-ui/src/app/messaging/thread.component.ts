@@ -1,20 +1,22 @@
 import { Component, inject, signal, effect, ElementRef, viewChild, AfterViewChecked, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MessagingService, Message, MessageThread } from '../core/services/messaging.service';
+import { MessagingService } from '../core/services/messaging.service';
+import { Message } from '../core/models/message.model';
+import { MessageThread } from '../core/models/message-thread.model';
 import { LoadingService } from '../core/services/loading.service';
 
 @Component({
   selector: 'nom-thread',
   imports: [
     RouterLink,
-    FormsModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -37,7 +39,7 @@ export class Thread implements AfterViewChecked {
   loading = signal(true);
   sending = signal(false);
   currentPersonId = signal(0);
-  newMessage = '';
+  newMessage = new FormControl('');
   private shouldScroll = false;
 
   private params = toSignal(this.route.params);
@@ -91,7 +93,7 @@ export class Thread implements AfterViewChecked {
   }
 
   send(): void {
-    const content = this.newMessage.trim();
+    const content = (this.newMessage.value ?? '').trim();
     const threadId = this.thread()?.id;
     if (!content || !threadId || this.sending()) return;
 
@@ -99,7 +101,7 @@ export class Thread implements AfterViewChecked {
     this.messagingService.sendMessage({ threadId, content }).subscribe({
       next: (msg) => {
         this.messages.update(list => [...list, msg]);
-        this.newMessage = '';
+        this.newMessage.setValue('');
         this.sending.set(false);
         this.shouldScroll = true;
       },

@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
-import { FormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -67,11 +67,11 @@ export class CuratedPlans implements OnInit {
 
 @Component({
   selector: 'nom-clone-plan-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, FormsModule],
+  imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
   templateUrl: './clone-plan-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClonePlanDialog {
   data = inject<{ planName: string }>(MAT_DIALOG_DATA);
-  newName = this.data.planName + ' (Copy)';
+  newName = new FormControl(this.data.planName + ' (Copy)');
 }

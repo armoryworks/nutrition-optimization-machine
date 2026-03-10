@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
-import { MessagingService, MessageThread } from '../core/services/messaging.service';
+import { MessagingService } from '../core/services/messaging.service';
+import { MessageThread } from '../core/models/message-thread.model';
 import { LoadingService } from '../core/services/loading.service';
 
 @Component({

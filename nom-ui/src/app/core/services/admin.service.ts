@@ -2,39 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface CurationQueueItem {
-  id: number;
-  entityId: number;
-  entityType: string;
-  entityName: string;
-  authorName: string;
-  submittedDate: string;
-  status: string;
-  feedbackNotes: string | null;
-}
-
-export interface CurationDecisionRequest {
-  entityId: number;
-  entityType: string;
-  feedbackNotes: string;
-}
-
-export interface UserSummary {
-  userId: string;
-  email: string;
-  fullName: string;
-  isAdmin: boolean;
-  isCurator: boolean;
-  emailConfirmed: boolean;
-  twoFactorEnabled: boolean;
-  createdDate: string;
-}
-
-export interface UpdateUserClaimsRequest {
-  userId: string;
-  claims: { type: string; value: string }[];
-}
+import { CurationQueueItem } from '../models/curation-queue-item.model';
+import { CurationDecisionRequest } from '../models/curation-decision-request.model';
+import { UserSummary } from '../models/user-summary.model';
+import { UpdateUserClaimsRequest } from '../models/update-user-claims-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
