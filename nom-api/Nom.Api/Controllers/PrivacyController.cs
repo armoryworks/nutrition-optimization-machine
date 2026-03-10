@@ -3,10 +3,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Privacy;
-using System;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
@@ -22,16 +20,13 @@ namespace Nom.Api.Controllers
     {
         private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
         private readonly IPersonOrchestrationService _personOrchestrationService;
-        private readonly ILogger<PrivacyController> _logger;
 
         public PrivacyController(
             IPrivacyOrchestrationService privacyOrchestrationService,
-            IPersonOrchestrationService personOrchestrationService,
-            ILogger<PrivacyController> logger)
+            IPersonOrchestrationService personOrchestrationService)
         {
             _privacyOrchestrationService = privacyOrchestrationService;
             _personOrchestrationService = personOrchestrationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -49,26 +44,14 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
+            var success = await _privacyOrchestrationService.UpdateConsentAsync(request, personId);
+            if (success)
             {
-                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
-                var success = await _privacyOrchestrationService.UpdateConsentAsync(request, personId);
-                if (success)
-                {
-                    return Ok(new { Message = "Consent settings updated successfully." });
-                }
+                return Ok(new { Message = "Consent settings updated successfully." });
+            }
 
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to update consent settings." });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while updating consent settings.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Failed to update consent settings." });
         }
 
         /// <summary>
@@ -86,21 +69,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
-                var response = await _privacyOrchestrationService.RequestDataExportAsync(request, personId);
-                return Accepted(response);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while initiating a data export request.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
+            var response = await _privacyOrchestrationService.RequestDataExportAsync(request, personId);
+            return Accepted(response);
         }
 
         /// <summary>
@@ -118,26 +89,14 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
+            var response = await _privacyOrchestrationService.RequestDataDeletionAsync(request, personId);
+            if (!response.Success)
             {
-                var personId = _personOrchestrationService.GetCurrentPersonIdRequired();
-                var response = await _privacyOrchestrationService.RequestDataDeletionAsync(request, personId);
-                if (!response.Success)
-                {
-                    return BadRequest(response);
-                }
+                return BadRequest(response);
+            }
 
-                return Accepted(response);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while initiating a data deletion request.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Accepted(response);
         }
     }
 }

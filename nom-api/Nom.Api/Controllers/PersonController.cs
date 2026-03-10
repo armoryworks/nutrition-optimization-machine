@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nom.Orch.Models.Person;
 using Nom.Orch.Interfaces;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
@@ -18,14 +17,11 @@ namespace Nom.Api.Controllers
     public class PersonController : BaseApiController
     {
         private readonly IPersonOrchestrationService _personOrchestrationService;
-        private readonly ILogger<PersonController> _logger;
 
         public PersonController(
-            IPersonOrchestrationService personOrchestrationService,
-            ILogger<PersonController> logger)
+            IPersonOrchestrationService personOrchestrationService)
         {
             _personOrchestrationService = personOrchestrationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -57,27 +53,19 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            // The UpsertPersonAsync method now contains the logic to check for existing users.
+            var response = await _personOrchestrationService.UpsertPersonAsync(model);
+
+            // Determine if the resource was created or updated for the response code.
+            bool wasCreated = !HttpContext.Response.Headers.ContainsKey("Location");
+
+            if (wasCreated)
             {
-                // The UpsertPersonAsync method now contains the logic to check for existing users.
-                var response = await _personOrchestrationService.UpsertPersonAsync(model);
-
-                // Determine if the resource was created or updated for the response code.
-                bool wasCreated = !HttpContext.Response.Headers.ContainsKey("Location");
-
-                if (wasCreated)
-                {
-                    return CreatedAtAction(nameof(GetPersonById), new { id = response.Id }, response);
-                }
-                else
-                {
-                    return Ok(response);
-                }
+                return CreatedAtAction(nameof(GetPersonById), new { id = response.Id }, response);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "An error occurred in UpsertPerson.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+                return Ok(response);
             }
         }
 
@@ -89,22 +77,14 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCurrentPerson()
         {
-            try
+            var personId = _personOrchestrationService.GetCurrentPersonId();
+            if (!personId.HasValue)
             {
-                var personId = _personOrchestrationService.GetCurrentPersonId();
-                if (!personId.HasValue)
-                {
-                    return NotFound(new { message = "No person profile found for the current user." });
-                }
+                return NotFound(new { message = "No person profile found for the current user." });
+            }
 
-                var person = await _personOrchestrationService.GetPersonByIdAsync(personId.Value);
-                return Ok(person);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving current person");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var person = await _personOrchestrationService.GetPersonByIdAsync(personId.Value);
+            return Ok(person);
         }
 
         /// <summary>
@@ -115,17 +95,9 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllPersons()
         {
-            try
-            {
-                var householdIds = GetUserHouseholdIds();
-                var persons = await _personOrchestrationService.GetPersonsForHouseholdsAsync(householdIds);
-                return Ok(persons);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving persons");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var householdIds = GetUserHouseholdIds();
+            var persons = await _personOrchestrationService.GetPersonsForHouseholdsAsync(householdIds);
+            return Ok(persons);
         }
 
         /// <summary>
@@ -136,23 +108,15 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetPersonById(long id)
         {
-            try
-            {
-                if (!await CanAccessPersonAsync(id))
-                    return Forbid();
+            if (!await CanAccessPersonAsync(id))
+                return Forbid();
 
-                var person = await _personOrchestrationService.GetPersonByIdAsync(id);
-                if (person == null)
-                {
-                    return NotFound();
-                }
-                return Ok(person);
-            }
-            catch (Exception ex)
+            var person = await _personOrchestrationService.GetPersonByIdAsync(id);
+            if (person == null)
             {
-                _logger.LogError(ex, "Error retrieving person {PersonId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+                return NotFound();
             }
+            return Ok(person);
         }
 
         /// <summary>
@@ -177,20 +141,8 @@ namespace Nom.Api.Controllers
             if (!await CanAccessPersonAsync(id))
                 return Forbid();
 
-            try
-            {
-                var updatedPerson = await _personOrchestrationService.UpdatePersonAsync(request);
-                return Ok(updatedPerson);
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating person {PersonId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var updatedPerson = await _personOrchestrationService.UpdatePersonAsync(request);
+            return Ok(updatedPerson);
         }
 
         /// <summary>
@@ -204,36 +156,20 @@ namespace Nom.Api.Controllers
             if (!await CanAccessPersonAsync(id))
                 return Forbid();
 
-            try
+            var result = await _personOrchestrationService.DeletePersonAsync(id);
+            if (!result)
             {
-                var result = await _personOrchestrationService.DeletePersonAsync(id);
-                if (!result)
-                {
-                    return NotFound();
-                }
-                return NoContent();
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting person {PersonId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return NoContent();
         }
 
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<PersonModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchPersons([FromQuery] string query, [FromQuery] int limit = 10)
         {
-            try
-            {
-                var results = await _personOrchestrationService.SearchPersonsAsync(query, Math.Min(limit, 10));
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching persons");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _personOrchestrationService.SearchPersonsAsync(query, Math.Min(limit, 10));
+            return Ok(results);
         }
 
         /// <summary>
@@ -255,20 +191,8 @@ namespace Nom.Api.Controllers
             if (id != 0 && !await CanAccessPersonAsync(id))
                 return Forbid();
 
-            try
-            {
-                var person = await _personOrchestrationService.SaveProfileAsync(id, request);
-                return Ok(person);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving profile for person {PersonId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var person = await _personOrchestrationService.SaveProfileAsync(id, request);
+            return Ok(person);
         }
 
         /// <summary>
@@ -288,20 +212,8 @@ namespace Nom.Api.Controllers
             if (!await CanAccessPersonAsync(id))
                 return Forbid();
 
-            try
-            {
-                await _personOrchestrationService.SaveRestrictionsAsync(id, restrictions);
-                return NoContent();
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving restrictions for person {PersonId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            await _personOrchestrationService.SaveRestrictionsAsync(id, restrictions);
+            return NoContent();
         }
 
         /// <summary>
@@ -315,20 +227,8 @@ namespace Nom.Api.Controllers
             if (!currentPersonId.HasValue || currentPersonId.Value != id)
                 return Forbid();
 
-            try
-            {
-                var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(id);
-                return Ok(onboardingState);
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching onboarding state for person {PersonId}", id);
-                return StatusCode(500, new { message = "Failed to fetch onboarding state" });
-            }
+            var onboardingState = await _personOrchestrationService.GetOnboardingStateAsync(id);
+            return Ok(onboardingState);
         }
 
         /// <summary>

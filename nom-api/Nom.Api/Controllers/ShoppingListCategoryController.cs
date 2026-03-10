@@ -12,30 +12,19 @@ namespace Nom.Api.Controllers
     public class ShoppingListCategoryController : BaseApiController
     {
         private readonly IShoppingListCategoryOrchestrationService _categoryOrchestrationService;
-        private readonly ILogger<ShoppingListCategoryController> _logger;
 
         public ShoppingListCategoryController(
-            IShoppingListCategoryOrchestrationService categoryOrchestrationService,
-            ILogger<ShoppingListCategoryController> logger)
+            IShoppingListCategoryOrchestrationService categoryOrchestrationService)
         {
             _categoryOrchestrationService = categoryOrchestrationService;
-            _logger = logger;
         }
 
         [HttpGet]
         [ProducesResponseType(typeof(List<ShoppingListCategoryResponseModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCategories()
         {
-            try
-            {
-                var categories = await _categoryOrchestrationService.GetAllCategoriesAsync();
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetCategories.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var categories = await _categoryOrchestrationService.GetAllCategoriesAsync();
+            return Ok(categories);
         }
 
         [HttpGet("{id}")]
@@ -43,20 +32,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCategory([Required] long id)
         {
-            try
+            var category = await _categoryOrchestrationService.GetCategoryAsync(id);
+            if (category == null)
             {
-                var category = await _categoryOrchestrationService.GetCategoryAsync(id);
-                if (category == null)
-                {
-                    return NotFound();
-                }
-                return Ok(category);
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetCategory.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(category);
         }
 
         [HttpPost]
@@ -69,16 +50,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _categoryOrchestrationService.CreateCategoryAsync(model);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateCategory.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _categoryOrchestrationService.CreateCategoryAsync(model);
+            return Ok(response);
         }
 
         [HttpPut("{id}")]
@@ -92,20 +65,12 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var response = await _categoryOrchestrationService.UpdateCategoryAsync(id, model);
+            if (response == null)
             {
-                var response = await _categoryOrchestrationService.UpdateCategoryAsync(id, model);
-                if (response == null)
-                {
-                    return NotFound();
-                }
-                return Ok(response);
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateCategory.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
@@ -113,20 +78,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteCategory([Required] long id)
         {
-            try
+            var success = await _categoryOrchestrationService.DeleteCategoryAsync(id);
+            if (!success)
             {
-                var success = await _categoryOrchestrationService.DeleteCategoryAsync(id);
-                if (!success)
-                {
-                    return NotFound();
-                }
-                return Ok(new { Message = "Category deleted successfully." });
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteCategory.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(new { Message = "Category deleted successfully." });
         }
 
         [HttpPost("bulk-operation")]
@@ -139,20 +96,12 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var success = await _categoryOrchestrationService.MoveItemsToCategoryAsync(model);
+            if (success)
             {
-                var success = await _categoryOrchestrationService.MoveItemsToCategoryAsync(model);
-                if (success)
-                {
-                    return Ok(new { Message = "Bulk operation completed successfully." });
-                }
-                return BadRequest(new { Message = "Bulk operation failed." });
+                return Ok(new { Message = "Bulk operation completed successfully." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in BulkOperation.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return BadRequest(new { Message = "Bulk operation failed." });
         }
     }
-} 
+}

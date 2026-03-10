@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, computed, effect, untracked, OnInit } from '@angular/core';
+import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,8 +13,11 @@ import { AuthService } from '../core/services/auth.service';
 import { ReferenceService } from '../core/services/reference.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
-import { ReferenceItem, ReferenceDiscriminator } from '../core/models/reference.model';
-import { PersonAttributeRequest, PersonDetailsRequest, SaveProfileRequest } from '../core/models/person.model';
+import { ReferenceItem } from '../core/models/reference-item.model';
+import { ReferenceDiscriminator } from '../core/models/reference-discriminator.model';
+import { PersonAttributeRequest } from '../core/models/person-attribute-request.model';
+import { PersonDetailsRequest } from '../core/models/person-details-request.model';
+import { SaveProfileRequest } from '../core/models/save-profile-request.model';
 
 export interface ProfileFormData {
   personDetails: PersonDetailsRequest;
@@ -38,6 +41,7 @@ export interface ProfileFormData {
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Profile implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');

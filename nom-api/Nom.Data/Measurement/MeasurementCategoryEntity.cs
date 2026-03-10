@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Audit;
 
 namespace Nom.Data.Measurement
@@ -9,19 +7,14 @@ namespace Nom.Data.Measurement
     /// Represents a category or group for measurement units (e.g., "Mass", "Volume", "Count").
     /// Maps to the 'measurement.MeasurementCategory' table.
     /// </summary>
-    [Table("MeasurementCategory", Schema = "measurement")]
     public class MeasurementCategoryEntity : BaseEntity
     {
-        [Required]
-        [MaxLength(100)]
         public required string Name { get; set; }
 
-        [MaxLength(500)]
         public string? Description { get; set; }
 
         public long? BaseUnitId { get; set; }
 
-        [ForeignKey(nameof(BaseUnitId))]
         public virtual BaseMeasurementEntity? BaseUnit { get; set; }
 
         /// <summary>

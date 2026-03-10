@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { CookbookService } from '../core/services/cookbook.service';
 import { HouseholdService } from '../core/services/household.service';
 import { LoadingService } from '../core/services/loading.service';
-import { CookbookResponseModel } from '../core/models/cookbook.model';
+import { CookbookResponseModel } from '../core/models/cookbook-response.model';
 import { CookbookFormDialog, CookbookFormDialogData, CookbookFormDialogResult } from './cookbook-form-dialog.component';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
@@ -24,6 +24,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
   ],
   templateUrl: './cookbook-list.component.html',
   styleUrls: ['./cookbook-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CookbookList implements OnInit {
   private cookbookService = inject(CookbookService);

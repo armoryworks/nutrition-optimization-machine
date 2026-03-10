@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +13,7 @@ import { RecipeModel } from '../core/models/recipe.model';
   imports: [RouterLink, DatePipe, DecimalPipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './my-recipes.component.html',
   styleUrl: './my-recipes.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MyRecipes implements OnInit {
   private recipeService = inject(RecipeService);

@@ -12,14 +12,11 @@ namespace Nom.Api.Controllers
     public class RecipeSearchController : BaseApiController
     {
         private readonly IRecipeSearchOrchestrationService _searchOrchestrationService;
-        private readonly ILogger<RecipeSearchController> _logger;
 
         public RecipeSearchController(
-            IRecipeSearchOrchestrationService searchOrchestrationService,
-            ILogger<RecipeSearchController> logger)
+            IRecipeSearchOrchestrationService searchOrchestrationService)
         {
             _searchOrchestrationService = searchOrchestrationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -36,16 +33,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in SearchRecipes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
+            return Ok(results);
         }
 
         /// <summary>
@@ -56,16 +45,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSearchSuggestions([Required] string query)
         {
-            try
-            {
-                var suggestions = await _searchOrchestrationService.GetSearchSuggestionsAsync(query);
-                return Ok(suggestions);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetSearchSuggestions.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var suggestions = await _searchOrchestrationService.GetSearchSuggestionsAsync(query);
+            return Ok(suggestions);
         }
 
         /// <summary>
@@ -76,16 +57,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPopularRecipes([Range(1, 50)] int count = 10)
         {
-            try
-            {
-                var results = await _searchOrchestrationService.GetPopularRecipesAsync(count);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetPopularRecipes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _searchOrchestrationService.GetPopularRecipesAsync(count);
+            return Ok(results);
         }
 
         /// <summary>
@@ -96,16 +69,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetRecentRecipes([Range(1, 50)] int count = 10)
         {
-            try
-            {
-                var results = await _searchOrchestrationService.GetRecentRecipesAsync(count);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecentRecipes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _searchOrchestrationService.GetRecentRecipesAsync(count);
+            return Ok(results);
         }
 
         /// <summary>
@@ -115,16 +80,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(RecipeSearchResponseModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetRandomRecipes([Range(1, 50)] int count = 1, long? householdId = null, int? minCalories = null, int? maxCalories = null, long? recipeTypeId = null)
         {
-            try
-            {
-                var results = await _searchOrchestrationService.GetRandomRecipesAsync(count, householdId, minCalories, maxCalories, recipeTypeId);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRandomRecipes.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _searchOrchestrationService.GetRandomRecipesAsync(count, householdId, minCalories, maxCalories, recipeTypeId);
+            return Ok(results);
         }
 
         [HttpPost("by-ingredients")]
@@ -137,16 +94,8 @@ namespace Nom.Api.Controllers
                 return BadRequest("At least one ingredient ID is required.");
             }
 
-            try
-            {
-                var results = await _searchOrchestrationService.GetRecipesByIngredientsAsync(ingredientIds, count);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipesByIngredients.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var results = await _searchOrchestrationService.GetRecipesByIngredientsAsync(ingredientIds, count);
+            return Ok(results);
         }
     }
-} 
+}

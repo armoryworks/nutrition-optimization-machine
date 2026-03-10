@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace Nom.Orch.Models.MealPlan
 {
@@ -9,12 +8,5 @@ namespace Nom.Orch.Models.MealPlan
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
         public bool ReplaceExisting { get; set; }
-    }
-
-    public class MealPlanShuffleResponseModel
-    {
-        public int Created { get; set; }
-        public int Deleted { get; set; }
-        public MealPlanWeekResponseModel Week { get; set; } = new();
     }
 }

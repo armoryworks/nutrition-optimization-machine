@@ -1,18 +1,18 @@
-import { Component, inject, input, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, input, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
-import { RecipeRatingResponseModel } from '../core/models/rating.model';
+import { RecipeService } from '../core/services/recipe.service';
+import { RecipeRatingResponseModel } from '../core/models/recipe-rating-response.model';
 
 @Component({
   selector: 'nom-recipe-rating',
   imports: [MatIconModule, MatButtonModule],
   templateUrl: './recipe-rating.component.html',
-  styleUrl: './recipe-rating.component.scss'
+  styleUrl: './recipe-rating.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeRating implements OnInit {
-  private http = inject(HttpClient);
+  private recipeService = inject(RecipeService);
 
   recipeId = input.required<number>();
   currentPersonId = input<number | null>(null);
@@ -50,9 +50,7 @@ export class RecipeRating implements OnInit {
 
   loadRatings(): void {
     this.loading.set(true);
-    this.http.get<RecipeRatingResponseModel[]>(
-      `${environment.apiUrl}/recipe/${this.recipeId()}/ratings`
-    ).subscribe({
+    this.recipeService.getRatings(this.recipeId()).subscribe({
       next: (ratings) => {
         this.ratings.set(ratings);
         this.loading.set(false);
@@ -68,10 +66,7 @@ export class RecipeRating implements OnInit {
     const existing = this.userRating();
     if (existing) {
       // Update existing rating
-      this.http.put<RecipeRatingResponseModel>(
-        `${environment.apiUrl}/recipe/ratings/${existing.id}`,
-        { rating: star }
-      ).subscribe({
+      this.recipeService.updateRating(existing.id, star).subscribe({
         next: (updated) => {
           this.ratings.set(
             this.ratings().map(r => r.id === updated.id ? updated : r)
@@ -80,10 +75,7 @@ export class RecipeRating implements OnInit {
       });
     } else {
       // Create new rating
-      this.http.post<RecipeRatingResponseModel>(
-        `${environment.apiUrl}/recipe/${this.recipeId()}/ratings`,
-        { rating: star }
-      ).subscribe({
+      this.recipeService.addRating(this.recipeId(), star).subscribe({
         next: (created) => {
           this.ratings.set([...this.ratings(), created]);
         }

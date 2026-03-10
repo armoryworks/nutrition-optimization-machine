@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,133 +20,9 @@ import { LoadingService } from '../core/services/loading.service';
     MatIconModule,
     MatProgressSpinnerModule,
   ],
-  template: `
-    <div class="nom-form--full">
-      <div class="nom-form__header">
-        <h1 class="nom-form__title">{{ pageTitle() }}</h1>
-        <p class="nom-form__subtitle">{{ pageSubtitle() }}</p>
-      </div>
-
-      @if (errorMessage()) {
-        <div class="nom-form__error">
-          <mat-icon>error_outline</mat-icon>
-          <span>{{ errorMessage() }}</span>
-        </div>
-      }
-
-      @if (loading()) {
-        <div class="nom-ingredient-form__loading">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
-      } @else {
-        <form [formGroup]="ingredientForm" (ngSubmit)="onSubmit()">
-          <div class="nom-form__section">
-            <h2 class="nom-form__section-title">Details</h2>
-            <div class="nom-form__fields">
-              <mat-form-field appearance="outline">
-                <mat-label>Name</mat-label>
-                <input matInput formControlName="name" maxlength="255" />
-                @if (ingredientForm.get('name')?.hasError('required')) {
-                  <mat-error>Name is required</mat-error>
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Plural Name</mat-label>
-                <input matInput formControlName="pluralName" maxlength="255" />
-                <mat-hint>e.g. "tomatoes" for "tomato"</mat-hint>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Description</mat-label>
-                <textarea matInput formControlName="description" rows="3" maxlength="1023"></textarea>
-              </mat-form-field>
-            </div>
-          </div>
-
-          @if (isEditMode() && nutrients().length > 0) {
-            <div class="nom-form__section">
-              <h2 class="nom-form__section-title">Nutrients</h2>
-              <div class="nom-ingredient-form__nutrients">
-                @for (n of nutrients(); track n.id) {
-                  <div class="nom-ingredient-form__nutrient">
-                    <span class="nom-ingredient-form__nutrient-name">{{ n.nutrientName }}</span>
-                    <span class="nom-ingredient-form__nutrient-value">{{ n.amount }} {{ n.unitName }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          @if (isEditMode() && aliases().length > 0) {
-            <div class="nom-form__section">
-              <h2 class="nom-form__section-title">Aliases</h2>
-              <div class="nom-ingredient-form__aliases">
-                @for (a of aliases(); track a.id) {
-                  <span class="nom-ingredient-form__alias">{{ a.name }}</span>
-                }
-              </div>
-            </div>
-          }
-
-          <div class="nom-form__actions">
-            <a mat-button routerLink="/ingredients/mine">Cancel</a>
-            <button mat-flat-button type="submit"
-                    [disabled]="ingredientForm.invalid || saving()">
-              {{ isEditMode() ? 'Save Changes' : 'Create Ingredient' }}
-            </button>
-          </div>
-        </form>
-      }
-    </div>
-  `,
-  styles: [`
-    @use 'variables' as vars;
-
-    .nom-ingredient-form__loading {
-      display: flex;
-      justify-content: center;
-      padding: vars.$spacing-12;
-    }
-
-    .nom-ingredient-form__nutrients {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: vars.$spacing-2;
-    }
-
-    .nom-ingredient-form__nutrient {
-      display: flex;
-      justify-content: space-between;
-      padding: vars.$spacing-2 vars.$spacing-3;
-      background: var(--mat-sys-surface-container-low);
-      border-radius: vars.$nom-border-radius;
-      font-size: vars.$font-size-sm;
-    }
-
-    .nom-ingredient-form__nutrient-name {
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .nom-ingredient-form__nutrient-value {
-      font-weight: vars.$font-weight-medium;
-      color: var(--mat-sys-on-surface);
-    }
-
-    .nom-ingredient-form__aliases {
-      display: flex;
-      flex-wrap: wrap;
-      gap: vars.$spacing-2;
-    }
-
-    .nom-ingredient-form__alias {
-      padding: vars.$spacing-1 vars.$spacing-3;
-      background: var(--mat-sys-surface-container-high);
-      border-radius: vars.$nom-border-radius-pill;
-      font-size: vars.$font-size-sm;
-      color: var(--mat-sys-on-surface-variant);
-    }
-  `],
+  templateUrl: './ingredient-form.component.html',
+  styleUrl: './ingredient-form.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IngredientForm implements OnInit {
   private route = inject(ActivatedRoute);

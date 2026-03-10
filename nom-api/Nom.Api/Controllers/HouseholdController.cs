@@ -21,31 +21,17 @@ namespace Nom.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<List<HouseholdResponseModel>>> GetHouseholds()
         {
-            try
-            {
-                var householdIds = GetUserHouseholdIds();
-                var households = await _householdService.GetHouseholdsForMemberAsync(householdIds);
-                return Ok(households);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve households", error = ex.Message });
-            }
+            var householdIds = GetUserHouseholdIds();
+            var households = await _householdService.GetHouseholdsForMemberAsync(householdIds);
+            return Ok(households);
         }
 
         [HttpPost]
         public async Task<ActionResult<HouseholdCreateResponseModel>> CreateHousehold([FromBody] HouseholdCreateModel request)
         {
-            try
-            {
-                var personId = GetCurrentPersonId();
-                var response = await _householdService.CreateHouseholdAsync(request, personId);
-                return CreatedAtAction(nameof(GetHousehold), new { id = response.Id }, response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to create household", error = ex.Message });
-            }
+            var personId = GetCurrentPersonId();
+            var response = await _householdService.CreateHouseholdAsync(request, personId);
+            return CreatedAtAction(nameof(GetHousehold), new { id = response.Id }, response);
         }
 
         [HttpGet("{id}")]
@@ -54,19 +40,12 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(id))
                 return Forbid();
 
-            try
+            var household = await _householdService.GetHouseholdAsync(id);
+            if (household == null)
             {
-                var household = await _householdService.GetHouseholdAsync(id);
-                if (household == null)
-                {
-                    return NotFound(new { message = "Household not found" });
-                }
-                return Ok(household);
+                return NotFound(new { message = "Household not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve household", error = ex.Message });
-            }
+            return Ok(household);
         }
 
         [HttpPut("{id}")]
@@ -75,19 +54,12 @@ namespace Nom.Api.Controllers
             if (!CanManageHousehold(id))
                 return Forbid();
 
-            try
+            var response = await _householdService.UpdateHouseholdAsync(id, request);
+            if (response == null)
             {
-                var response = await _householdService.UpdateHouseholdAsync(id, request);
-                if (response == null)
-                {
-                    return NotFound(new { message = "Household not found" });
-                }
-                return Ok(response);
+                return NotFound(new { message = "Household not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to update household", error = ex.Message });
-            }
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
@@ -96,19 +68,12 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdAdmin(id))
                 return Forbid();
 
-            try
+            var success = await _householdService.DeleteHouseholdAsync(id);
+            if (!success)
             {
-                var success = await _householdService.DeleteHouseholdAsync(id);
-                if (!success)
-                {
-                    return NotFound(new { message = "Household not found" });
-                }
-                return NoContent();
+                return NotFound(new { message = "Household not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete household", error = ex.Message });
-            }
+            return NoContent();
         }
 
         [HttpPost("invite-token")]
@@ -117,15 +82,8 @@ namespace Nom.Api.Controllers
             if (!CanInviteToHousehold(request.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _householdService.CreateInviteTokenAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to create invite token", error = ex.Message });
-            }
+            var response = await _householdService.CreateInviteTokenAsync(request);
+            return Ok(response);
         }
 
         [HttpPost("member")]
@@ -134,15 +92,8 @@ namespace Nom.Api.Controllers
             if (!CanManageHousehold(request.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _householdService.AddMemberAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to add member", error = ex.Message });
-            }
+            var response = await _householdService.AddMemberAsync(request);
+            return Ok(response);
         }
 
         [HttpDelete("{householdId}/member/{memberId}")]
@@ -151,48 +102,22 @@ namespace Nom.Api.Controllers
             if (!CanManageHousehold(householdId))
                 return Forbid();
 
-            try
+            var success = await _householdService.RemoveMemberAsync(householdId, memberId);
+            if (!success)
             {
-                var success = await _householdService.RemoveMemberAsync(householdId, memberId);
-                if (!success)
-                {
-                    return NotFound(new { message = "Member not found in household" });
-                }
-                return NoContent();
+                return NotFound(new { message = "Member not found in household" });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to remove member", error = ex.Message });
-            }
+            return NoContent();
         }
 
         [HttpPost("join")]
         public async Task<ActionResult<HouseholdMemberResponseModel>> JoinHousehold([FromBody] JoinHouseholdRequestModel request)
         {
-            try
-            {
-                // Get the current authenticated user's person ID from claims
-                var personId = GetCurrentPersonIdRequired();
+            // Get the current authenticated user's person ID from claims
+            var personId = GetCurrentPersonIdRequired();
 
-                var response = await _householdService.JoinHouseholdAsync(request.Token, personId);
-                return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to join household", error = ex.Message });
-            }
+            var response = await _householdService.JoinHouseholdAsync(request.Token, personId);
+            return Ok(response);
         }
     }
 }

@@ -11,14 +11,11 @@ namespace Nom.Api.Controllers
     public class PantryController : BaseApiController
     {
         private readonly IPantryOrchestrationService _pantryService;
-        private readonly ILogger<PantryController> _logger;
 
         public PantryController(
-            IPantryOrchestrationService pantryService,
-            ILogger<PantryController> logger)
+            IPantryOrchestrationService pantryService)
         {
             _pantryService = pantryService;
-            _logger = logger;
         }
 
         [HttpGet]
@@ -28,38 +25,20 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(householdId))
                 return Forbid();
 
-            try
-            {
-                var items = await _pantryService.GetPantryItemsAsync(householdId);
-                return Ok(items);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving pantry items for household {HouseholdId}", householdId);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to retrieve pantry items" });
-            }
+            var items = await _pantryService.GetPantryItemsAsync(householdId);
+            return Ok(items);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<PantryItemResponseModel>> GetPantryItem(long id)
         {
-            try
-            {
-                var item = await _pantryService.GetPantryItemAsync(id);
-                if (item == null) return NotFound();
+            var item = await _pantryService.GetPantryItemAsync(id);
+            if (item == null) return NotFound();
 
-                if (!IsHouseholdMember(item.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(item.HouseholdId))
+                return Forbid();
 
-                return Ok(item);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving pantry item {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to retrieve pantry item" });
-            }
+            return Ok(item);
         }
 
         [HttpPost]
@@ -71,21 +50,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var item = await _pantryService.AddPantryItemAsync(model);
-                return CreatedAtAction(nameof(GetPantryItem), new { id = item.Id }, item);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding pantry item");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to add pantry item" });
-            }
+            var item = await _pantryService.AddPantryItemAsync(model);
+            return CreatedAtAction(nameof(GetPantryItem), new { id = item.Id }, item);
         }
 
         [HttpPost("batch")]
@@ -101,67 +67,36 @@ namespace Nom.Api.Controllers
             if (householdIds.Any(hId => !IsHouseholdMember(hId)))
                 return Forbid();
 
-            try
-            {
-                var created = await _pantryService.AddPantryItemsBatchAsync(items);
-                return Ok(created);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding pantry items batch ({Count} items)", items.Count);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to add pantry items" });
-            }
+            var created = await _pantryService.AddPantryItemsBatchAsync(items);
+            return Ok(created);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<PantryItemResponseModel>> UpdatePantryItem(
             long id, [FromBody] PantryItemUpdateModel model)
         {
-            try
-            {
-                var existing = await _pantryService.GetPantryItemAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _pantryService.GetPantryItemAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var item = await _pantryService.UpdatePantryItemAsync(id, model);
-                if (item == null) return NotFound();
-                return Ok(item);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating pantry item {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to update pantry item" });
-            }
+            var item = await _pantryService.UpdatePantryItemAsync(id, model);
+            if (item == null) return NotFound();
+            return Ok(item);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemovePantryItem(long id)
         {
-            try
-            {
-                var existing = await _pantryService.GetPantryItemAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _pantryService.GetPantryItemAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                await _pantryService.RemovePantryItemAsync(id);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing pantry item {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to remove pantry item" });
-            }
+            await _pantryService.RemovePantryItemAsync(id);
+            return NoContent();
         }
 
         [HttpGet("shopping-needs")]
@@ -172,17 +107,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(householdId))
                 return Forbid();
 
-            try
-            {
-                var needs = await _pantryService.GetShoppingNeedsAsync(householdId, daysAhead);
-                return Ok(needs);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error computing shopping needs for household {HouseholdId}", householdId);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to compute shopping needs" });
-            }
+            var needs = await _pantryService.GetShoppingNeedsAsync(householdId, daysAhead);
+            return Ok(needs);
         }
     }
 }

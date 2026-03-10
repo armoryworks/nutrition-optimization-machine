@@ -1,11 +1,11 @@
-import { Component, inject, signal, computed, viewChild, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, viewChild, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PersonService } from '../../core/services/person.service';
 import { LoadingService } from '../../core/services/loading.service';
-import { RestrictionRequest } from '../../core/models/person.model';
+import { RestrictionRequest } from '../../core/models/restriction-request.model';
 import { Profile, ProfileFormData } from '../../profile/profile.component';
 import { Restrictions } from '../../restrictions/restrictions.component';
 
@@ -29,6 +29,7 @@ export interface AddMemberDialogData {
   ],
   templateUrl: './add-member-dialog.component.html',
   styleUrl: './add-member-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddMemberDialog implements OnInit {
   private dialogRef = inject(MatDialogRef<AddMemberDialog>);

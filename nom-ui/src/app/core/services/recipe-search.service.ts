@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { RecipeSearchRequest, RecipeSearchResponse } from '../models/recipe-search.model';
+import { RecipeSearchRequest } from '../models/recipe-search-request.model';
+import { RecipeSearchResponse } from '../models/recipe-search-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeSearchService {

@@ -2,21 +2,19 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  ShoppingListResponse,
-  ShoppingListDetailResponse,
-  ShoppingListCreateRequest,
-  ShoppingListCreateResponse,
-  ShoppingListUpdateRequest,
-  ShoppingListItemResponse,
-  ShoppingListItemCreateRequest,
-  ShoppingListItemUpdateRequest,
-  ShoppingListRecipeAddRequest,
-  ShoppingListShareRequest,
-  ShoppingListCategoryResponse,
-  ShoppingListCategoryCreateRequest,
-  ShoppingListBulkOperationRequest,
-} from '../models/shopping-list.model';
+import { ShoppingListResponse } from '../models/shopping-list-response.model';
+import { ShoppingListDetailResponse } from '../models/shopping-list-detail-response.model';
+import { ShoppingListCreateRequest } from '../models/shopping-list-create-request.model';
+import { ShoppingListCreateResponse } from '../models/shopping-list-create-response.model';
+import { ShoppingListUpdateRequest } from '../models/shopping-list-update-request.model';
+import { ShoppingListItemResponse } from '../models/shopping-list-item-response.model';
+import { ShoppingListItemCreateRequest } from '../models/shopping-list-item-create-request.model';
+import { ShoppingListItemUpdateRequest } from '../models/shopping-list-item-update-request.model';
+import { ShoppingListRecipeAddRequest } from '../models/shopping-list-recipe-add-request.model';
+import { ShoppingListShareRequest } from '../models/shopping-list-share-request.model';
+import { ShoppingListCategoryResponse } from '../models/shopping-list-category-response.model';
+import { ShoppingListCategoryCreateRequest } from '../models/shopping-list-category-create-request.model';
+import { ShoppingListBulkOperationRequest } from '../models/shopping-list-bulk-operation-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class ShoppingListService {

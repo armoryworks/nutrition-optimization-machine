@@ -1,4 +1,4 @@
-import { Component, computed, inject, output } from '@angular/core';
+import { Component, computed, inject, output, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [RouterLink, MatIconModule],
   templateUrl: './user-menu.component.html',
   styleUrl: './user-menu.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserMenu {
   private authService = inject(AuthService);

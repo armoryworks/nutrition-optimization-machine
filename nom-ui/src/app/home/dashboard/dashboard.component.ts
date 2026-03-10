@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,8 +8,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { HouseholdService } from '../../core/services/household.service';
-import { MealPlanWeekResponse, MealPlanDay, MealPlanCell } from '../../core/models/meal-plan.model';
-import { HouseholdResponseModel } from '../../core/models/household.model';
+import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
+import { MealPlanDay } from '../../core/models/meal-plan-day.model';
+import { MealPlanCell } from '../../core/models/meal-plan-cell.model';
+import { HouseholdResponseModel } from '../../core/models/household-response.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-confirm-dialog.component';
 
@@ -18,6 +20,7 @@ import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-c
   imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard implements OnInit {
   private mealPlanService = inject(MealPlanService);

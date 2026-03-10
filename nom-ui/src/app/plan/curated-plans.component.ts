@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { PlanModel } from '../core/models/plan.model';
   imports: [RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './curated-plans.component.html',
   styleUrl: './curated-plans.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CuratedPlans implements OnInit {
   private planService = inject(PlanService);
@@ -67,20 +68,8 @@ export class CuratedPlans implements OnInit {
 @Component({
   selector: 'nom-clone-plan-dialog',
   imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, FormsModule],
-  template: `
-    <h2 mat-dialog-title>Clone Plan</h2>
-    <mat-dialog-content>
-      <p>Enter a name for your copy of "{{ data.planName }}":</p>
-      <mat-form-field style="width: 100%">
-        <mat-label>Plan Name</mat-label>
-        <input matInput [(ngModel)]="newName" maxlength="255">
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-flat-button [mat-dialog-close]="newName" [disabled]="!newName.trim()">Clone</button>
-    </mat-dialog-actions>
-  `,
+  templateUrl: './clone-plan-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClonePlanDialog {
   data = inject<{ planName: string }>(MAT_DIALOG_DATA);

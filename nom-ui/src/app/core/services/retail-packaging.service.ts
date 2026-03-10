@@ -2,12 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  RetailPackagingResponse,
-  RetailPackagingCreateRequest,
-  RetailPackagingLookupRequest,
-  RetailPackagingLookupResponse,
-} from '../models/retail-packaging.model';
+import { RetailPackagingResponse } from '../models/retail-packaging-response.model';
+import { RetailPackagingCreateRequest } from '../models/retail-packaging-create-request.model';
+import { RetailPackagingLookupRequest } from '../models/retail-packaging-lookup-request.model';
+import { RetailPackagingLookupResponse } from '../models/retail-packaging-lookup-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class RetailPackagingService {

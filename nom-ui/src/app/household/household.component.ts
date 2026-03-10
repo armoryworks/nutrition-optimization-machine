@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -10,7 +10,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { HouseholdService } from '../core/services/household.service';
 import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
-import { HouseholdResponseModel, HouseholdCreateResponseModel, HouseholdMemberResponseModel } from '../core/models/household.model';
+import { HouseholdResponseModel } from '../core/models/household-response.model';
+import { HouseholdCreateResponseModel } from '../core/models/household-create-response.model';
+import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 import { AddMemberDialog, AddMemberDialogData } from './add-member-dialog/add-member-dialog.component';
 
 export interface HouseholdFormData {
@@ -34,6 +36,7 @@ export interface HouseholdFormData {
   ],
   templateUrl: './household.component.html',
   styleUrl: './household.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Household implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');

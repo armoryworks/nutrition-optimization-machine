@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using System;
@@ -15,14 +14,11 @@ namespace Nom.Api.Controllers
     public class RecipeAdvancedController : BaseApiController
     {
         private readonly IRecipeAdvancedOrchestrationService _recipeAdvancedOrchestrationService;
-        private readonly ILogger<RecipeAdvancedController> _logger;
 
         public RecipeAdvancedController(
-            IRecipeAdvancedOrchestrationService recipeAdvancedOrchestrationService,
-            ILogger<RecipeAdvancedController> logger)
+            IRecipeAdvancedOrchestrationService recipeAdvancedOrchestrationService)
         {
             _recipeAdvancedOrchestrationService = recipeAdvancedOrchestrationService;
-            _logger = logger;
         }
 
         // Comments
@@ -37,21 +33,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _recipeAdvancedOrchestrationService.CreateCommentAsync(model);
-                return CreatedAtAction(nameof(GetRecipeComments), new { recipeId = model.RecipeId }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Recipe not found for comment creation");
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateComment");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var response = await _recipeAdvancedOrchestrationService.CreateCommentAsync(model);
+            return CreatedAtAction(nameof(GetRecipeComments), new { recipeId = model.RecipeId }, response);
         }
 
         [HttpGet("recipes/{recipeId}/comments")]
@@ -59,16 +42,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeComments(long recipeId)
         {
-            try
-            {
-                var comments = await _recipeAdvancedOrchestrationService.GetRecipeCommentsAsync(recipeId);
-                return Ok(comments);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeComments");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var comments = await _recipeAdvancedOrchestrationService.GetRecipeCommentsAsync(recipeId);
+            return Ok(comments);
         }
 
         [HttpDelete("comments/{commentId}")]
@@ -77,20 +52,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteComment(long commentId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.DeleteCommentAsync(commentId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.DeleteCommentAsync(commentId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Comment not found or not authorized to delete." });
-                }
-                return Ok(new { Message = "Comment deleted successfully." });
+                return NotFound(new { Message = "Comment not found or not authorized to delete." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteComment");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Comment deleted successfully." });
         }
 
         // Ratings
@@ -106,26 +73,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _recipeAdvancedOrchestrationService.CreateRatingAsync(model);
-                return CreatedAtAction(nameof(GetUserRating), new { recipeId = model.RecipeId }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Recipe not found for rating creation");
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "User already rated this recipe");
-                return Conflict(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateRating");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var response = await _recipeAdvancedOrchestrationService.CreateRatingAsync(model);
+            return CreatedAtAction(nameof(GetUserRating), new { recipeId = model.RecipeId }, response);
         }
 
         [HttpGet("recipes/{recipeId}/ratings/user")]
@@ -134,20 +83,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetUserRating(long recipeId)
         {
-            try
+            var rating = await _recipeAdvancedOrchestrationService.GetUserRatingAsync(recipeId);
+            if (rating == null)
             {
-                var rating = await _recipeAdvancedOrchestrationService.GetUserRatingAsync(recipeId);
-                if (rating == null)
-                {
-                    return NotFound(new { Message = "User has not rated this recipe." });
-                }
-                return Ok(rating);
+                return NotFound(new { Message = "User has not rated this recipe." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetUserRating");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(rating);
         }
 
         [HttpGet("recipes/{recipeId}/ratings/average")]
@@ -155,16 +96,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeAverageRating(long recipeId)
         {
-            try
-            {
-                var averageRating = await _recipeAdvancedOrchestrationService.GetRecipeAverageRatingAsync(recipeId);
-                return Ok(new { AverageRating = averageRating });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeAverageRating");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var averageRating = await _recipeAdvancedOrchestrationService.GetRecipeAverageRatingAsync(recipeId);
+            return Ok(new { AverageRating = averageRating });
         }
 
         [HttpPut("ratings/{ratingId}")]
@@ -179,20 +112,12 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var success = await _recipeAdvancedOrchestrationService.UpdateRatingAsync(ratingId, model);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.UpdateRatingAsync(ratingId, model);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Rating not found or not authorized to update." });
-                }
-                return Ok(new { Message = "Rating updated successfully." });
+                return NotFound(new { Message = "Rating not found or not authorized to update." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateRating");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Rating updated successfully." });
         }
 
         [HttpDelete("ratings/{ratingId}")]
@@ -201,20 +126,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteRating(long ratingId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.DeleteRatingAsync(ratingId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.DeleteRatingAsync(ratingId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Rating not found or not authorized to delete." });
-                }
-                return Ok(new { Message = "Rating deleted successfully." });
+                return NotFound(new { Message = "Rating not found or not authorized to delete." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteRating");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Rating deleted successfully." });
         }
 
         // Share Tokens
@@ -229,21 +146,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _recipeAdvancedOrchestrationService.CreateShareTokenAsync(model);
-                return CreatedAtAction(nameof(GetRecipeShareTokens), new { recipeId = model.RecipeId }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Recipe not found for share token creation");
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateShareToken");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var response = await _recipeAdvancedOrchestrationService.CreateShareTokenAsync(model);
+            return CreatedAtAction(nameof(GetRecipeShareTokens), new { recipeId = model.RecipeId }, response);
         }
 
         [HttpGet("recipes/{recipeId}/share-tokens")]
@@ -251,16 +155,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeShareTokens(long recipeId)
         {
-            try
-            {
-                var shareTokens = await _recipeAdvancedOrchestrationService.GetRecipeShareTokensAsync(recipeId);
-                return Ok(shareTokens);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeShareTokens");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var shareTokens = await _recipeAdvancedOrchestrationService.GetRecipeShareTokensAsync(recipeId);
+            return Ok(shareTokens);
         }
 
         [HttpDelete("share-tokens/{shareTokenId}")]
@@ -269,20 +165,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteShareToken(long shareTokenId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.DeleteShareTokenAsync(shareTokenId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.DeleteShareTokenAsync(shareTokenId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Share token not found or not authorized to delete." });
-                }
-                return Ok(new { Message = "Share token deleted successfully." });
+                return NotFound(new { Message = "Share token not found or not authorized to delete." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteShareToken");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Share token deleted successfully." });
         }
 
         [HttpGet("share-tokens/{shareToken}/recipe")]
@@ -291,20 +179,12 @@ namespace Nom.Api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetRecipeByShareToken(string shareToken)
         {
-            try
+            var response = await _recipeAdvancedOrchestrationService.GetRecipeByShareTokenAsync(shareToken);
+            if (response == null)
             {
-                var response = await _recipeAdvancedOrchestrationService.GetRecipeByShareTokenAsync(shareToken);
-                if (response == null)
-                {
-                    return NotFound(new { Message = "Recipe not found or share token is not public." });
-                }
-                return Ok(response);
+                return NotFound(new { Message = "Recipe not found or share token is not public." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeByShareToken");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(response);
         }
 
         // Timeline Events
@@ -319,21 +199,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _recipeAdvancedOrchestrationService.CreateTimelineEventAsync(model);
-                return CreatedAtAction(nameof(GetRecipeTimelineEvents), new { recipeId = model.RecipeId }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Recipe not found for timeline event creation");
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateTimelineEvent");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var response = await _recipeAdvancedOrchestrationService.CreateTimelineEventAsync(model);
+            return CreatedAtAction(nameof(GetRecipeTimelineEvents), new { recipeId = model.RecipeId }, response);
         }
 
         [HttpGet("recipes/{recipeId}/timeline-events")]
@@ -341,16 +208,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeTimelineEvents(long recipeId)
         {
-            try
-            {
-                var events = await _recipeAdvancedOrchestrationService.GetRecipeTimelineEventsAsync(recipeId);
-                return Ok(events);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeTimelineEvents");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var events = await _recipeAdvancedOrchestrationService.GetRecipeTimelineEventsAsync(recipeId);
+            return Ok(events);
         }
 
         [HttpDelete("timeline-events/{eventId}")]
@@ -359,20 +218,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteTimelineEvent(long eventId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.DeleteTimelineEventAsync(eventId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.DeleteTimelineEventAsync(eventId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Timeline event not found or not authorized to delete." });
-                }
-                return Ok(new { Message = "Timeline event deleted successfully." });
+                return NotFound(new { Message = "Timeline event not found or not authorized to delete." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteTimelineEvent");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Timeline event deleted successfully." });
         }
 
         // Notes
@@ -387,21 +238,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _recipeAdvancedOrchestrationService.CreateNoteAsync(model);
-                return CreatedAtAction(nameof(GetRecipeNotes), new { recipeId = model.RecipeId }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Recipe not found for note creation");
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateNote");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var response = await _recipeAdvancedOrchestrationService.CreateNoteAsync(model);
+            return CreatedAtAction(nameof(GetRecipeNotes), new { recipeId = model.RecipeId }, response);
         }
 
         [HttpGet("recipes/{recipeId}/notes")]
@@ -409,16 +247,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeNotes(long recipeId)
         {
-            try
-            {
-                var notes = await _recipeAdvancedOrchestrationService.GetRecipeNotesAsync(recipeId);
-                return Ok(notes);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeNotes");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var notes = await _recipeAdvancedOrchestrationService.GetRecipeNotesAsync(recipeId);
+            return Ok(notes);
         }
 
         [HttpPut("notes/{noteId}")]
@@ -433,20 +263,12 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var success = await _recipeAdvancedOrchestrationService.UpdateNoteAsync(noteId, model);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.UpdateNoteAsync(noteId, model);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Note not found or not authorized to update." });
-                }
-                return Ok(new { Message = "Note updated successfully." });
+                return NotFound(new { Message = "Note not found or not authorized to update." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateNote");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Note updated successfully." });
         }
 
         [HttpDelete("notes/{noteId}")]
@@ -455,20 +277,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteNote(long noteId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.DeleteNoteAsync(noteId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.DeleteNoteAsync(noteId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Note not found or not authorized to delete." });
-                }
-                return Ok(new { Message = "Note deleted successfully." });
+                return NotFound(new { Message = "Note not found or not authorized to delete." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteNote");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Note deleted successfully." });
         }
 
         // Recipe Actions
@@ -478,20 +292,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> MarkRecipeAsMade(long recipeId)
         {
-            try
+            var success = await _recipeAdvancedOrchestrationService.MarkRecipeAsMadeAsync(recipeId);
+            if (!success)
             {
-                var success = await _recipeAdvancedOrchestrationService.MarkRecipeAsMadeAsync(recipeId);
-                if (!success)
-                {
-                    return NotFound(new { Message = "Recipe not found." });
-                }
-                return Ok(new { Message = "Recipe marked as made successfully." });
+                return NotFound(new { Message = "Recipe not found." });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in MarkRecipeAsMade");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            return Ok(new { Message = "Recipe marked as made successfully." });
         }
 
         [HttpGet("recipes/{recipeId}/last-made")]
@@ -499,16 +305,8 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetRecipeLastMade(long recipeId)
         {
-            try
-            {
-                var lastMade = await _recipeAdvancedOrchestrationService.GetRecipeLastMadeAsync(recipeId);
-                return Ok(new { LastMade = lastMade });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRecipeLastMade");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal error occurred." });
-            }
+            var lastMade = await _recipeAdvancedOrchestrationService.GetRecipeLastMadeAsync(recipeId);
+            return Ok(new { LastMade = lastMade });
         }
     }
-} 
+}

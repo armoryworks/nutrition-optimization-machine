@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Api.Controllers;
 using Nom.Orch.Interfaces.Measurement;
 using Nom.Orch.Models.Measurement;
@@ -17,14 +16,11 @@ namespace Nom.Api.Controllers.Measurement
     public class MeasurementController : BaseApiController
     {
         private readonly IMeasurementOrchestrationService _measurementOrchestrationService;
-        private readonly ILogger<MeasurementController> _logger;
 
         public MeasurementController(
-            IMeasurementOrchestrationService measurementOrchestrationService,
-            ILogger<MeasurementController> logger)
+            IMeasurementOrchestrationService measurementOrchestrationService)
         {
             _measurementOrchestrationService = measurementOrchestrationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -35,16 +31,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetMeasurementsByCategory(long categoryId)
         {
-            try
-            {
-                var measurements = await _measurementOrchestrationService.GetMeasurementsByCategoryAsync(categoryId);
-                return Ok(measurements);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurements for category {CategoryId}", categoryId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurements." });
-            }
+            var measurements = await _measurementOrchestrationService.GetMeasurementsByCategoryAsync(categoryId);
+            return Ok(measurements);
         }
 
         /// <summary>
@@ -55,21 +43,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetMeasurementById(long id)
         {
-            try
+            var measurement = await _measurementOrchestrationService.GetMeasurementByIdAsync(id);
+            if (measurement == null)
             {
-                var measurement = await _measurementOrchestrationService.GetMeasurementByIdAsync(id);
-                if (measurement == null)
-                {
-                    return NotFound(new { message = $"Measurement with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement with ID {id} not found." });
+            }
 
-                return Ok(measurement);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement with ID {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the measurement." });
-            }
+            return Ok(measurement);
         }
 
         /// <summary>
@@ -80,20 +60,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ConvertMeasurement([FromQuery] long fromId, [FromQuery] long toId, [FromQuery] decimal value)
         {
-            try
-            {
-                var convertedValue = await _measurementOrchestrationService.ConvertMeasurementAsync(fromId, toId, value);
-                return Ok(convertedValue);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error converting measurement {Value} from {FromId} to {ToId}", value, fromId, toId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while converting the measurement." });
-            }
+            var convertedValue = await _measurementOrchestrationService.ConvertMeasurementAsync(fromId, toId, value);
+            return Ok(convertedValue);
         }
 
         /// <summary>
@@ -104,22 +72,14 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> BulkConvertMeasurements([FromBody] List<BulkConversionRequest> requests)
         {
-            try
+            if (requests == null || !requests.Any())
             {
-                if (requests == null || !requests.Any())
-                {
-                    return BadRequest(new { message = "At least one conversion request is required." });
-                }
+                return BadRequest(new { message = "At least one conversion request is required." });
+            }
 
-                var conversions = requests.Select(r => (r.FromId, r.ToId, r.Value)).ToList();
-                var results = await _measurementOrchestrationService.BulkConvertMeasurementsAsync(conversions);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in bulk conversion of {Count} measurements", requests?.Count ?? 0);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while performing bulk conversion." });
-            }
+            var conversions = requests.Select(r => (r.FromId, r.ToId, r.Value)).ToList();
+            var results = await _measurementOrchestrationService.BulkConvertMeasurementsAsync(conversions);
+            return Ok(results);
         }
 
         /// <summary>
@@ -129,17 +89,9 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(MeasurementPerformanceStats), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPerformanceStats()
         {
-            try
-            {
-                // This would require injecting IMeasurementPerformanceMonitor into the controller
-                // For now, we'll return a placeholder
-                return Ok(new { message = "Performance monitoring endpoint - implementation pending" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving performance statistics");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving performance statistics." });
-            }
+            // This would require injecting IMeasurementPerformanceMonitor into the controller
+            // For now, we'll return a placeholder
+            return Ok(new { message = "Performance monitoring endpoint - implementation pending" });
         }
 
         /// <summary>
@@ -149,16 +101,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<MeasurementConversionModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetConversionPaths([FromQuery] long fromId, [FromQuery] long toId)
         {
-            try
-            {
-                var conversions = await _measurementOrchestrationService.GetConversionPathsAsync(fromId, toId);
-                return Ok(conversions);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving conversion paths from {FromId} to {ToId}", fromId, toId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving conversion paths." });
-            }
+            var conversions = await _measurementOrchestrationService.GetConversionPathsAsync(fromId, toId);
+            return Ok(conversions);
         }
 
         /// <summary>
@@ -168,16 +112,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<IngredientMeasurementModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetIngredientMeasurements(long ingredientId)
         {
-            try
-            {
-                var measurements = await _measurementOrchestrationService.GetIngredientMeasurementsAsync(ingredientId);
-                return Ok(measurements);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurements for ingredient {IngredientId}", ingredientId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving ingredient measurements." });
-            }
+            var measurements = await _measurementOrchestrationService.GetIngredientMeasurementsAsync(ingredientId);
+            return Ok(measurements);
         }
 
         /// <summary>
@@ -187,16 +123,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<NutrientMeasurementModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetNutrientMeasurements(long nutrientId)
         {
-            try
-            {
-                var measurements = await _measurementOrchestrationService.GetNutrientMeasurementsAsync(nutrientId);
-                return Ok(measurements);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurements for nutrient {NutrientId}", nutrientId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving nutrient measurements." });
-            }
+            var measurements = await _measurementOrchestrationService.GetNutrientMeasurementsAsync(nutrientId);
+            return Ok(measurements);
         }
 
         /// <summary>
@@ -212,16 +140,8 @@ namespace Nom.Api.Controllers.Measurement
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var measurement = await _measurementOrchestrationService.CreateMeasurementAsync(request);
-                return CreatedAtAction(nameof(GetMeasurementById), new { id = measurement.Id }, measurement);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating measurement {Name}", request.Name);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while creating the measurement." });
-            }
+            var measurement = await _measurementOrchestrationService.CreateMeasurementAsync(request);
+            return CreatedAtAction(nameof(GetMeasurementById), new { id = measurement.Id }, measurement);
         }
 
         /// <summary>
@@ -237,16 +157,8 @@ namespace Nom.Api.Controllers.Measurement
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var conversion = await _measurementOrchestrationService.CreateConversionAsync(request);
-                return CreatedAtAction(nameof(GetConversionPaths), new { fromId = request.FromMeasurementId, toId = request.ToMeasurementId }, conversion);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating conversion from {FromId} to {ToId}", request.FromMeasurementId, request.ToMeasurementId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while creating the conversion." });
-            }
+            var conversion = await _measurementOrchestrationService.CreateConversionAsync(request);
+            return CreatedAtAction(nameof(GetConversionPaths), new { fromId = request.FromMeasurementId, toId = request.ToMeasurementId }, conversion);
         }
 
         /// <summary>
@@ -262,20 +174,8 @@ namespace Nom.Api.Controllers.Measurement
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var measurement = await _measurementOrchestrationService.UpdateMeasurementAsync(id, request);
-                return Ok(measurement);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating measurement {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating the measurement." });
-            }
+            var measurement = await _measurementOrchestrationService.UpdateMeasurementAsync(id, request);
+            return Ok(measurement);
         }
 
         /// <summary>
@@ -286,21 +186,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteMeasurement(long id)
         {
-            try
+            var deleted = await _measurementOrchestrationService.DeleteMeasurementAsync(id);
+            if (!deleted)
             {
-                var deleted = await _measurementOrchestrationService.DeleteMeasurementAsync(id);
-                if (!deleted)
-                {
-                    return NotFound(new { message = $"Measurement with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement with ID {id} not found." });
+            }
 
-                return Ok(new { message = "Measurement deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting measurement {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while deleting the measurement." });
-            }
+            return Ok(new { message = "Measurement deleted successfully." });
         }
 
         /// <summary>
@@ -311,16 +203,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<MeasurementModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllMeasurements()
         {
-            try
-            {
-                var measurements = await _measurementOrchestrationService.GetAllMeasurementsAsync();
-                return Ok(measurements);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving all measurements");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurements." });
-            }
+            var measurements = await _measurementOrchestrationService.GetAllMeasurementsAsync();
+            return Ok(measurements);
         }
 
         /// <summary>
@@ -331,16 +215,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<MeasurementCategoryModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllCategories()
         {
-            try
-            {
-                var categories = await _measurementOrchestrationService.GetAllCategoriesAsync();
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement categories");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurement categories." });
-            }
+            var categories = await _measurementOrchestrationService.GetAllCategoriesAsync();
+            return Ok(categories);
         }
 
         /// <summary>
@@ -351,21 +227,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCategoryById(long id)
         {
-            try
+            var category = await _measurementOrchestrationService.GetCategoryByIdAsync(id);
+            if (category == null)
             {
-                var category = await _measurementOrchestrationService.GetCategoryByIdAsync(id);
-                if (category == null)
-                {
-                    return NotFound(new { message = $"Measurement category with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement category with ID {id} not found." });
+            }
 
-                return Ok(category);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement category with ID {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the measurement category." });
-            }
+            return Ok(category);
         }
     }
 }

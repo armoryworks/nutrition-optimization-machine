@@ -14,16 +14,13 @@ namespace Nom.Api.Controllers
     {
         private readonly IMealPlanOrchestrationService _mealPlanOrchestrationService;
         private readonly IPantryOrchestrationService _pantryService;
-        private readonly ILogger<MealPlanController> _logger;
 
         public MealPlanController(
             IMealPlanOrchestrationService mealPlanOrchestrationService,
-            IPantryOrchestrationService pantryService,
-            ILogger<MealPlanController> logger)
+            IPantryOrchestrationService pantryService)
         {
             _mealPlanOrchestrationService = mealPlanOrchestrationService;
             _pantryService = pantryService;
-            _logger = logger;
         }
 
         [HttpGet]
@@ -31,17 +28,9 @@ namespace Nom.Api.Controllers
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
         {
-            try
-            {
-                var householdIds = GetUserHouseholdIds();
-                var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync(startDate, endDate, householdIds);
-                return Ok(mealPlans);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetMealPlans.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to retrieve meal plans", error = ex.Message });
-            }
+            var householdIds = GetUserHouseholdIds();
+            var mealPlans = await _mealPlanOrchestrationService.GetAllMealPlansAsync(startDate, endDate, householdIds);
+            return Ok(mealPlans);
         }
 
         [HttpPost]
@@ -57,17 +46,9 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateMealPlan.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            var response = await _mealPlanOrchestrationService.CreateMealPlanAsync(model, authorId);
+            return Ok(response);
         }
 
         [HttpGet("{id:long}")]
@@ -75,22 +56,14 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetMealPlan([Required] long id)
         {
-            try
-            {
-                var response = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
-                if (response == null)
-                    return NotFound();
+            var response = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+            if (response == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(response.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(response.HouseholdId))
+                return Forbid();
 
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetMealPlan.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(response);
         }
 
         [HttpPut("{id:long}")]
@@ -104,23 +77,15 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
-                if (existing == null)
-                    return NotFound();
+            var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+            if (existing == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateMealPlan.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _mealPlanOrchestrationService.UpdateMealPlanAsync(id, model);
+            return Ok(response);
         }
 
         [HttpDelete("{id:long}")]
@@ -128,23 +93,15 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteMealPlan([Required] long id)
         {
-            try
-            {
-                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
-                if (existing == null)
-                    return NotFound();
+            var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+            if (existing == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                await _mealPlanOrchestrationService.DeleteMealPlanAsync(id);
-                return Ok(new { Message = "Meal plan deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteMealPlan.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            await _mealPlanOrchestrationService.DeleteMealPlanAsync(id);
+            return Ok(new { Message = "Meal plan deleted successfully." });
         }
 
         [HttpPost("shuffle")]
@@ -160,17 +117,9 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in ShuffleMealPlans.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            var response = await _mealPlanOrchestrationService.ShuffleMealPlansAsync(model, authorId);
+            return Ok(response);
         }
 
         [HttpPost("rule")]
@@ -186,16 +135,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _mealPlanOrchestrationService.CreateRuleAsync(model);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateRule.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _mealPlanOrchestrationService.CreateRuleAsync(model);
+            return Ok(response);
         }
 
         [HttpGet("rule/{id}")]
@@ -203,22 +144,14 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetRule([Required] long id)
         {
-            try
-            {
-                var response = await _mealPlanOrchestrationService.GetRuleAsync(id);
-                if (response == null)
-                    return NotFound();
+            var response = await _mealPlanOrchestrationService.GetRuleAsync(id);
+            if (response == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(response.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(response.HouseholdId))
+                return Forbid();
 
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetRule.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(response);
         }
 
         [HttpDelete("rule/{id}")]
@@ -226,23 +159,15 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteRule([Required] long id)
         {
-            try
-            {
-                var rule = await _mealPlanOrchestrationService.GetRuleAsync(id);
-                if (rule == null)
-                    return NotFound();
+            var rule = await _mealPlanOrchestrationService.GetRuleAsync(id);
+            if (rule == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(rule.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(rule.HouseholdId))
+                return Forbid();
 
-                await _mealPlanOrchestrationService.DeleteRuleAsync(id);
-                return Ok(new { Message = "Meal plan rule deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteRule.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            await _mealPlanOrchestrationService.DeleteRuleAsync(id);
+            return Ok(new { Message = "Meal plan rule deleted successfully." });
         }
 
         [HttpGet("week")]
@@ -254,16 +179,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(householdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetWeek.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _mealPlanOrchestrationService.GetWeekAsync(householdId, weekStart);
+            return Ok(response);
         }
 
         [HttpPost("exclusion")]
@@ -279,16 +196,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _mealPlanOrchestrationService.CreateExclusionAsync(model);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateExclusion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _mealPlanOrchestrationService.CreateExclusionAsync(model);
+            return Ok(response);
         }
 
         [HttpGet("exclusion")]
@@ -301,16 +210,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(householdId))
                 return Forbid();
 
-            try
-            {
-                var response = await _mealPlanOrchestrationService.GetExclusionsAsync(householdId, startDate, endDate);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetExclusions.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _mealPlanOrchestrationService.GetExclusionsAsync(householdId, startDate, endDate);
+            return Ok(response);
         }
 
         [HttpDelete("exclusion/{id}")]
@@ -318,23 +219,15 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteExclusion([Required] long id)
         {
-            try
-            {
-                var exclusion = await _mealPlanOrchestrationService.GetExclusionAsync(id);
-                if (exclusion == null)
-                    return NotFound();
+            var exclusion = await _mealPlanOrchestrationService.GetExclusionAsync(id);
+            if (exclusion == null)
+                return NotFound();
 
-                if (!IsHouseholdMember(exclusion.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(exclusion.HouseholdId))
+                return Forbid();
 
-                await _mealPlanOrchestrationService.DeleteExclusionAsync(id);
-                return Ok(new { Message = "Exclusion deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteExclusion.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            await _mealPlanOrchestrationService.DeleteExclusionAsync(id);
+            return Ok(new { Message = "Exclusion deleted successfully." });
         }
 
         [HttpPut("{id}/complete")]
@@ -342,27 +235,18 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CompleteMealPlan([Required] long id)
         {
-            try
-            {
-                var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
-                if (existing == null)
-                    return NotFound(new { message = "Meal plan not found" });
+            var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Meal plan not found" });
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var success = await _pantryService.DeductFromPantryAsync(id);
-                if (!success)
-                    return NotFound(new { message = "Meal plan not found or has no recipe" });
+            var success = await _pantryService.DeductFromPantryAsync(id);
+            if (!success)
+                return NotFound(new { message = "Meal plan not found or has no recipe" });
 
-                return Ok(new { message = "Meal completed and pantry updated" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error completing meal plan {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Failed to complete meal plan" });
-            }
+            return Ok(new { message = "Meal completed and pantry updated" });
         }
     }
 }

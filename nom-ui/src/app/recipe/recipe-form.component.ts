@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -16,7 +16,7 @@ import { RecipeService } from '../core/services/recipe.service';
 import { IngredientService } from '../core/services/ingredient.service';
 import { MeasurementService } from '../core/services/measurement.service';
 import { LoadingService } from '../core/services/loading.service';
-import { IngredientSearchResult } from '../core/models/ingredient.model';
+import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
 import { MeasurementOption } from '../core/models/measurement.model';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
@@ -38,6 +38,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
   ],
   templateUrl: './recipe-form.component.html',
   styleUrl: './recipe-form.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeForm implements OnInit {
   private route = inject(ActivatedRoute);

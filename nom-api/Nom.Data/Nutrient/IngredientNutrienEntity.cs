@@ -1,6 +1,4 @@
 // Nom.Data/Nutrient/IngredientNutrientEntity.cs
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Recipe; // Required for Ingredient navigation property
 using Nom.Data.Measurement; // Required for Measurement navigation property
 
@@ -11,7 +9,6 @@ namespace Nom.Data.Nutrient
     /// This entity links an Ingredient to a Nutrient and specifies the amount per typical serving/100g.
     /// Maps to the 'Nutrient.ingredient_nutrient' table.
     /// </summary>
-    [Table("IngredientNutrient", Schema = "nutrient")] // Table name capitalized, schema lowercase
     public class IngredientNutrientEntity : BaseEntity
     {
         /// <summary>
@@ -23,7 +20,6 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Navigation property to the associated IngredientEntity.
         /// </summary>
-        [ForeignKey(nameof(IngredientId))]
         public virtual IngredientEntity Ingredient { get; set; } = default!;
 
         /// <summary>
@@ -35,15 +31,12 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Navigation property to the associated NutrientEntity.
         /// </summary>
-        [ForeignKey(nameof(NutrientId))]
         public virtual NutrientEntity Nutrient { get; set; } = default!;
 
         /// <summary>
         /// The amount of the nutrient present in the ingredient (per 100g by default, or per serving).
         /// Corresponds to DECIMAL NOT NULL.
         /// </summary>
-        [Required]
-        [Column(TypeName = "decimal(18,4)")] // Using a common decimal precision/scale, adjust if needed
         public decimal Amount { get; set; }
 
         /// <summary>
@@ -55,14 +48,12 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementId))]
         public virtual MeasurementEntity? Measurement { get; set; } // Nullable if 'unknown' is allowed for type 0
 
         /// <summary>
         /// The FoodData Central (FDC) ID for the specific nutrient, if this data originated from FDC.
         /// Useful for traceability and debugging. Nullable if not from FDC.
         /// </summary>
-        [MaxLength(50)] // Arbitrary max length, adjust if FDC IDs are longer
         public string? FdcId { get; set; }
     }
 }

@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { IngredientSearchResult, IngredientEditModel, CreateIngredientRequest, UpdateIngredientRequest } from '../models/ingredient.model';
+import { IngredientSearchResult } from '../models/ingredient-search-result.model';
+import { IngredientEditModel } from '../models/ingredient-edit.model';
+import { CreateIngredientRequest } from '../models/create-ingredient-request.model';
+import { UpdateIngredientRequest } from '../models/update-ingredient-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class IngredientService {

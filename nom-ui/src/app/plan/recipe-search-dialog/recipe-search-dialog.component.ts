@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,8 +9,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { RecipeSearchService } from '../../core/services/recipe-search.service';
 import { MealPlanService } from '../../core/services/meal-plan.service';
-import { RecipeSearchResult } from '../../core/models/recipe-search.model';
-import { MealPlanEntry } from '../../core/models/meal-plan.model';
+import { RecipeSearchResult } from '../../core/models/recipe-search-result.model';
+import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 
 export interface RecipeSearchDialogData {
   householdId: number;
@@ -35,6 +35,7 @@ export type RecipeSearchDialogResult = { changed: boolean } | undefined;
   ],
   templateUrl: './recipe-search-dialog.component.html',
   styleUrl: './recipe-search-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeSearchDialog implements OnInit {
   private dialogRef = inject(MatDialogRef<RecipeSearchDialog>);

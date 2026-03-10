@@ -1,4 +1,4 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,6 +22,7 @@ import { PersonService } from '../../../core/services/person.service';
   ],
   templateUrl: './login-popover.component.html',
   styleUrl: './login-popover.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPopover {
   closed = output<void>();

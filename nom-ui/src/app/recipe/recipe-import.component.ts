@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,13 +9,14 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RecipeScrapingService } from '../core/services/recipe-scraping.service';
 import { LoadingService } from '../core/services/loading.service';
-import { ScrapedRecipeModel } from '../core/models/recipe-scraping.model';
+import { ScrapedRecipeModel } from '../core/models/scraped-recipe.model';
 
 @Component({
   selector: 'nom-recipe-import',
   imports: [FormsModule, RouterLink, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatProgressSpinnerModule],
   templateUrl: './recipe-import.component.html',
   styleUrl: './recipe-import.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeImport {
   private scrapingService = inject(RecipeScrapingService);

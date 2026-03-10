@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,8 +9,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReferenceService } from '../core/services/reference.service';
 import { LoadingService } from '../core/services/loading.service';
-import { ReferenceItem, ReferenceDiscriminator } from '../core/models/reference.model';
-import { RestrictionRequest } from '../core/models/person.model';
+import { ReferenceItem } from '../core/models/reference-item.model';
+import { ReferenceDiscriminator } from '../core/models/reference-discriminator.model';
+import { RestrictionRequest } from '../core/models/restriction-request.model';
 
 interface RestrictionSection {
   groupId: number;
@@ -42,6 +43,7 @@ const SECTION_CONFIG: { groupId: number; icon: string }[] = [
   ],
   templateUrl: './restrictions.component.html',
   styleUrl: './restrictions.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Restrictions implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');

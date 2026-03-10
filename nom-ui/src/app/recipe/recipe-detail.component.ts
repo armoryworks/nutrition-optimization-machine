@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +13,8 @@ import { RecipeRating } from './recipe-rating.component';
   selector: 'nom-recipe-detail',
   imports: [MatIconModule, MatButtonModule, RouterLink, NutritionLabel, RecipeComments, RecipeRating],
   templateUrl: './recipe-detail.component.html',
-  styleUrl: './recipe-detail.component.scss'
+  styleUrl: './recipe-detail.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeDetail implements OnInit {
   private route = inject(ActivatedRoute);

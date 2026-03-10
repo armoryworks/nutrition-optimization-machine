@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
   imports: [RouterLink, MatIconModule, MatButtonModule],
   templateUrl: './privacy-settings.component.html',
   styleUrl: './privacy-settings.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrivacySettings {
   private privacyService = inject(PrivacyService);

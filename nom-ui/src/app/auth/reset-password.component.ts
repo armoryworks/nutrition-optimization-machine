@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -23,6 +23,7 @@ import { AuthService } from '../core/services/auth.service';
   ],
   templateUrl: './reset-password.component.html',
   styleUrl: './reset-password.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPassword {
   private authService = inject(AuthService);

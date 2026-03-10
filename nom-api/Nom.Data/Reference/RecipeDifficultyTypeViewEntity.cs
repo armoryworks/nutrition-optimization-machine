@@ -1,5 +1,4 @@
 // Nom.Data.Reference/RecipeDifficultyTypeViewEntity.cs
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Nom.Data.Reference
 {

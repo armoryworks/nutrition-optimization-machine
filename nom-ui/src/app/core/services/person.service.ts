@@ -2,17 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  PersonModel,
-  PersonCreateModel,
-  PersonCreateResponseModel,
-  UpdatePersonRequest,
-  SaveProfileRequest,
-  RestrictionRequest,
-  OnboardingStateResponse,
-  OnboardingCompleteRequest,
-  OnboardingCompleteResponse,
-} from '../models/person.model';
+import { PersonModel } from '../models/person.model';
+import { PersonCreateModel } from '../models/person-create.model';
+import { PersonCreateResponseModel } from '../models/person-create-response.model';
+import { UpdatePersonRequest } from '../models/update-person-request.model';
+import { SaveProfileRequest } from '../models/save-profile-request.model';
+import { RestrictionRequest } from '../models/restriction-request.model';
+import { OnboardingStateResponse } from '../models/onboarding-state-response.model';
+import { OnboardingCompleteRequest } from '../models/onboarding-complete-request.model';
+import { OnboardingCompleteResponse } from '../models/onboarding-complete-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class PersonService {

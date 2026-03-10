@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ScrapedRecipeModel, ScrapeUrlRequest, ImportFromUrlRequest, RecipeScrapingResponseModel } from '../models/recipe-scraping.model';
+import { ScrapedRecipeModel } from '../models/scraped-recipe.model';
+import { ScrapeUrlRequest } from '../models/scrape-url-request.model';
+import { ImportFromUrlRequest } from '../models/import-from-url-request.model';
+import { RecipeScrapingResponseModel } from '../models/recipe-scraping-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeScrapingService {

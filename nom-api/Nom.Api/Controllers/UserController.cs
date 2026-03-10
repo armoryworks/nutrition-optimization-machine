@@ -25,15 +25,8 @@ namespace Nom.Api.Controllers
         [HttpGet("self")]
         public async Task<ActionResult<UserResponseModel>> GetCurrentUser()
         {
-            try
-            {
-                var user = await _userService.GetCurrentUserAsync();
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get current user", error = ex.Message });
-            }
+            var user = await _userService.GetCurrentUserAsync();
+            return Ok(user);
         }
 
         /// <summary>
@@ -43,19 +36,12 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageUserRoles")]
         public async Task<ActionResult<UserResponseModel>> GetUserById(string userId)
         {
-            try
+            var user = await _userService.GetUserByIdAsync(userId);
+            if (user == null)
             {
-                var user = await _userService.GetUserByIdAsync(userId);
-                if (user == null)
-                {
-                    return NotFound(new { message = "User not found" });
-                }
-                return Ok(user);
+                return NotFound(new { message = "User not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get user", error = ex.Message });
-            }
+            return Ok(user);
         }
 
         /// <summary>
@@ -65,15 +51,8 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageUserRoles")]
         public async Task<ActionResult<List<UserResponseModel>>> GetAllUsers()
         {
-            try
-            {
-                var users = await _userService.GetAllUsersAsync();
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get users", error = ex.Message });
-            }
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
         }
 
         /// <summary>
@@ -83,15 +62,8 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageUserRoles")]
         public async Task<ActionResult<UserResponseModel>> CreateUser([FromBody] CreateUserRequestModel request)
         {
-            try
-            {
-                var user = await _userService.CreateUserAsync(request);
-                return CreatedAtAction(nameof(GetUserById), new { userId = user.Id }, user);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to create user", error = ex.Message });
-            }
+            var user = await _userService.CreateUserAsync(request);
+            return CreatedAtAction(nameof(GetUserById), new { userId = user.Id }, user);
         }
 
         /// <summary>
@@ -100,19 +72,12 @@ namespace Nom.Api.Controllers
         [HttpPut("{userId}")]
         public async Task<ActionResult<UserResponseModel>> UpdateUser(string userId, [FromBody] UpdateUserRequestModel request)
         {
-            try
+            var user = await _userService.UpdateUserAsync(userId, request);
+            if (user == null)
             {
-                var user = await _userService.UpdateUserAsync(userId, request);
-                if (user == null)
-                {
-                    return NotFound(new { message = "User not found" });
-                }
-                return Ok(user);
+                return NotFound(new { message = "User not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to update user", error = ex.Message });
-            }
+            return Ok(user);
         }
 
         /// <summary>
@@ -122,15 +87,8 @@ namespace Nom.Api.Controllers
         [Authorize(Policy = "CanManageUserRoles")]
         public async Task<ActionResult> DeleteUser(string userId)
         {
-            try
-            {
-                await _userService.DeleteUserAsync(userId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete user", error = ex.Message });
-            }
+            await _userService.DeleteUserAsync(userId);
+            return NoContent();
         }
 
         /// <summary>
@@ -139,16 +97,9 @@ namespace Nom.Api.Controllers
         [HttpGet("self/ratings")]
         public async Task<ActionResult<List<UserRatingResponseModel>>> GetUserRatings()
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var ratings = await _userService.GetUserRatingsAsync(userId);
-                return Ok(ratings);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get user ratings", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            var ratings = await _userService.GetUserRatingsAsync(userId);
+            return Ok(ratings);
         }
 
         /// <summary>
@@ -157,20 +108,13 @@ namespace Nom.Api.Controllers
         [HttpGet("self/ratings/{recipeId}")]
         public async Task<ActionResult<UserRatingResponseModel>> GetUserRatingForRecipe(long recipeId)
         {
-            try
+            var userId = GetCurrentUserId();
+            var rating = await _userService.GetUserRatingForRecipeAsync(userId, recipeId);
+            if (rating == null)
             {
-                var userId = GetCurrentUserId();
-                var rating = await _userService.GetUserRatingForRecipeAsync(userId, recipeId);
-                if (rating == null)
-                {
-                    return NotFound(new { message = "User has not rated this recipe" });
-                }
-                return Ok(rating);
+                return NotFound(new { message = "User has not rated this recipe" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get user rating", error = ex.Message });
-            }
+            return Ok(rating);
         }
 
         /// <summary>
@@ -179,16 +123,9 @@ namespace Nom.Api.Controllers
         [HttpGet("self/favorites")]
         public async Task<ActionResult<List<UserRatingResponseModel>>> GetUserFavorites()
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var favorites = await _userService.GetUserFavoritesAsync(userId);
-                return Ok(favorites);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get user favorites", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            var favorites = await _userService.GetUserFavoritesAsync(userId);
+            return Ok(favorites);
         }
 
         /// <summary>
@@ -197,20 +134,13 @@ namespace Nom.Api.Controllers
         [HttpPut("password")]
         public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequestModel request)
         {
-            try
+            var userId = GetCurrentUserId();
+            var success = await _userService.ChangePasswordAsync(userId, request);
+            if (!success)
             {
-                var userId = GetCurrentUserId();
-                var success = await _userService.ChangePasswordAsync(userId, request);
-                if (!success)
-                {
-                    return BadRequest(new { message = "Failed to change password" });
-                }
-                return NoContent();
+                return BadRequest(new { message = "Failed to change password" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to change password", error = ex.Message });
-            }
+            return NoContent();
         }
 
         /// <summary>
@@ -219,16 +149,9 @@ namespace Nom.Api.Controllers
         [HttpPost("image")]
         public async Task<ActionResult<string>> UploadUserImage([FromBody] byte[] imageData)
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var imageUrl = await _userService.UploadUserImageAsync(userId, imageData);
-                return Ok(new { imageUrl });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to upload user image", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            var imageUrl = await _userService.UploadUserImageAsync(userId, imageData);
+            return Ok(new { imageUrl });
         }
 
         /// <summary>
@@ -237,20 +160,13 @@ namespace Nom.Api.Controllers
         [HttpDelete("image")]
         public async Task<ActionResult> DeleteUserImage()
         {
-            try
+            var userId = GetCurrentUserId();
+            var success = await _userService.DeleteUserImageAsync(userId);
+            if (!success)
             {
-                var userId = GetCurrentUserId();
-                var success = await _userService.DeleteUserImageAsync(userId);
-                if (!success)
-                {
-                    return BadRequest(new { message = "Failed to delete user image" });
-                }
-                return NoContent();
+                return BadRequest(new { message = "Failed to delete user image" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete user image", error = ex.Message });
-            }
+            return NoContent();
         }
 
         /// <summary>
@@ -259,16 +175,9 @@ namespace Nom.Api.Controllers
         [HttpGet("api-tokens")]
         public async Task<ActionResult<List<ApiTokenResponseModel>>> GetUserApiTokens()
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var tokens = await _userService.GetUserApiTokensAsync(userId);
-                return Ok(tokens);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to get API tokens", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            var tokens = await _userService.GetUserApiTokensAsync(userId);
+            return Ok(tokens);
         }
 
         /// <summary>
@@ -277,16 +186,9 @@ namespace Nom.Api.Controllers
         [HttpPost("api-tokens")]
         public async Task<ActionResult<ApiTokenResponseModel>> CreateApiToken([FromBody] CreateApiTokenRequestModel request)
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var token = await _userService.CreateApiTokenAsync(userId, request);
-                return CreatedAtAction(nameof(GetUserApiTokens), token);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to create API token", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            var token = await _userService.CreateApiTokenAsync(userId, request);
+            return CreatedAtAction(nameof(GetUserApiTokens), token);
         }
 
         /// <summary>
@@ -295,16 +197,9 @@ namespace Nom.Api.Controllers
         [HttpDelete("api-tokens/{tokenId}")]
         public async Task<ActionResult> DeleteApiToken(string tokenId)
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                await _userService.DeleteApiTokenAsync(userId, tokenId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete API token", error = ex.Message });
-            }
+            var userId = GetCurrentUserId();
+            await _userService.DeleteApiTokenAsync(userId, tokenId);
+            return NoContent();
         }
     }
-} 
+}

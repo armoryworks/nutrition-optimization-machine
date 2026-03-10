@@ -1,7 +1,6 @@
 // File: Nom.Data/Privacy/PrivacyRequestEntity.cs
 
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Data.Privacy
 {
@@ -14,7 +13,6 @@ namespace Nom.Data.Privacy
         /// <summary>
         /// The type of GDPR request (e.g., "DataExport", "DataDeletion", "DataRectification").
         /// </summary>
-        [Required]
         public string RequestType { get; set; } = string.Empty;
 
         /// <summary>

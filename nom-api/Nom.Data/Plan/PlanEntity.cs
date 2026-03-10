@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
 using Nom.Data.Reference;
@@ -12,55 +10,43 @@ namespace Nom.Data.Plan
     /// Represents a single meal plan for one or more participants.
     /// Maps to the 'Plan.Plan' table.
     /// </summary>
-    [Table("Plan", Schema = "plan")]
     public class PlanEntity : BaseEntity // Inherits Id
     {
         /// <summary>
         /// The name of the plan (e.g., "Family Weekly Plan", "Weight Loss Challenge").
         /// </summary>
-        [Required]
-        [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// A description of the plan, its goals, or specific notes.
         /// </summary>
-        [MaxLength(2047)]
         public string? Description { get; set; }
 
         /// <summary>
         /// The start date of the plan.
         /// </summary>
-        [Required]
-        [Column(TypeName = "date")]
         public DateOnly StartDate { get; set; }
 
         /// <summary>
         /// The end date of the plan.
         /// </summary>
-        [Column(TypeName = "date")]
         public DateOnly? EndDate { get; set; }
 
         /// <summary>
         /// A unique, nullable code for inviting new participants to this plan.
         /// </summary>
-        [MaxLength(50)]
         public string? InvitationCode { get; set; } // NEW: For inviting users
 
         /// <summary>
         /// Curation status for the plan (NonCurated, PendingCuration, Curated, etc.)
         /// </summary>
-        [Required]
         public long CurationStatusId { get; set; } = 9000L; // Default to NonCurated
-        [ForeignKey(nameof(CurationStatusId))]
         public virtual ReferenceEntity? CurationStatus { get; set; }
 
         /// <summary>
         /// The person who created this plan (author)
         /// </summary>
-        [Required]
         public long AuthorId { get; set; }
-        [ForeignKey(nameof(AuthorId))]
         public virtual PersonEntity? Author { get; set; }
 
         /// <summary>
@@ -77,13 +63,11 @@ namespace Nom.Data.Plan
         /// Reference to the original curated plan if this is a cloned plan
         /// </summary>
         public long? ParentPlanId { get; set; }
-        [ForeignKey(nameof(ParentPlanId))]
         public virtual PlanEntity? ParentPlan { get; set; }
 
         /// <summary>
         /// Version number for plan versioning
         /// </summary>
-        [Required]
         public long Version { get; set; } = 1;
 
         /// <summary>

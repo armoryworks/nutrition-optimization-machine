@@ -1,22 +1,22 @@
-import { Component, inject, input, signal, OnInit } from '@angular/core';
+import { Component, inject, input, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
-import { RecipeCommentResponseModel } from '../core/models/comment.model';
+import { RecipeService } from '../core/services/recipe.service';
+import { RecipeCommentResponseModel } from '../core/models/recipe-comment-response.model';
 
 @Component({
   selector: 'nom-recipe-comments',
   imports: [DatePipe, FormsModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule],
   templateUrl: './recipe-comments.component.html',
-  styleUrl: './recipe-comments.component.scss'
+  styleUrl: './recipe-comments.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeComments implements OnInit {
-  private http = inject(HttpClient);
+  private recipeService = inject(RecipeService);
 
   recipeId = input.required<number>();
   currentPersonId = input<number | null>(null);
@@ -32,9 +32,7 @@ export class RecipeComments implements OnInit {
 
   loadComments(): void {
     this.loading.set(true);
-    this.http.get<RecipeCommentResponseModel[]>(
-      `${environment.apiUrl}/recipe/${this.recipeId()}/comments`
-    ).subscribe({
+    this.recipeService.getComments(this.recipeId()).subscribe({
       next: (comments) => {
         // Newest first
         this.comments.set(comments.sort((a, b) =>
@@ -54,10 +52,7 @@ export class RecipeComments implements OnInit {
     if (!text) return;
 
     this.submitting.set(true);
-    this.http.post<RecipeCommentResponseModel>(
-      `${environment.apiUrl}/recipe/${this.recipeId()}/comments`,
-      { comment: text }
-    ).subscribe({
+    this.recipeService.addComment(this.recipeId(), text).subscribe({
       next: (comment) => {
         this.comments.set([comment, ...this.comments()]);
         this.newCommentText = '';
@@ -70,9 +65,7 @@ export class RecipeComments implements OnInit {
   }
 
   onDeleteComment(commentId: number): void {
-    this.http.delete(
-      `${environment.apiUrl}/recipe/comments/${commentId}`
-    ).subscribe({
+    this.recipeService.deleteComment(commentId).subscribe({
       next: () => {
         this.comments.set(this.comments().filter(c => c.id !== commentId));
       }

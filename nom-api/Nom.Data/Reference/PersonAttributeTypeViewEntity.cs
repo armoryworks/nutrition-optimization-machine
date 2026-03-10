@@ -1,5 +1,4 @@
 // Nom.Data.Reference/PersonAttributeTypeViewEntity.cs
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Nom.Data.Reference
 {

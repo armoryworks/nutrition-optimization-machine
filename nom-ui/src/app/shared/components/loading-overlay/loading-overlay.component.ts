@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, ChangeDetectionStrategy } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingService } from '../../../core/services/loading.service';
 
@@ -10,6 +10,7 @@ import { LoadingService } from '../../../core/services/loading.service';
   host: {
     '[class.nom-loading-overlay--visible]': 'visible()',
   },
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadingOverlay {
   private loadingService = inject(LoadingService);

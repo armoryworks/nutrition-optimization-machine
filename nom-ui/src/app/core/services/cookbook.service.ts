@@ -2,7 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CookbookResponseModel, CookbookCreateRequest, CookbookUpdateRequest } from '../models/cookbook.model';
+import { CookbookResponseModel } from '../models/cookbook-response.model';
+import { CookbookCreateRequest } from '../models/cookbook-create-request.model';
+import { CookbookUpdateRequest } from '../models/cookbook-update-request.model';
 import { RecipeModel } from '../models/recipe.model';
 
 @Injectable({ providedIn: 'root' })

@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Plan;
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Nom.Api.Controllers
@@ -12,185 +9,73 @@ namespace Nom.Api.Controllers
     [Authorize]
     public class PlanController : BaseApiController
     {
-        private readonly ILogger<PlanController> _logger;
         private readonly IPlanOrchestrationService _planOrch;
 
-        public PlanController(ILogger<PlanController> logger, IPlanOrchestrationService planOrch)
+        public PlanController(IPlanOrchestrationService planOrch)
         {
-            _logger = logger;
             _planOrch = planOrch;
         }
 
         [HttpGet("curated")]
         public async Task<IActionResult> GetCuratedPlans()
         {
-            try
-            {
-                var plans = await _planOrch.GetCuratedPlansAsync();
-                return Ok(plans);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving curated plans.");
-                return StatusCode(500, "An unexpected error occurred while retrieving curated plans.");
-            }
+            var plans = await _planOrch.GetCuratedPlansAsync();
+            return Ok(plans);
         }
 
         [HttpGet("my-plans")]
         public async Task<IActionResult> GetMyPlans()
         {
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                var plans = await _planOrch.GetMyPlansAsync(authorId);
-                return Ok(plans);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving user plans.");
-                return StatusCode(500, "An unexpected error occurred while retrieving your plans.");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            var plans = await _planOrch.GetMyPlansAsync(authorId);
+            return Ok(plans);
         }
 
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetPlanById(long id)
         {
-            try
-            {
-                var plan = await _planOrch.GetPlanByIdAsync(id);
-                return Ok(plan);
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving plan {PlanId}.", id);
-                return StatusCode(500, "An unexpected error occurred while retrieving the plan.");
-            }
+            var plan = await _planOrch.GetPlanByIdAsync(id);
+            return Ok(plan);
         }
 
         [HttpPost("clone")]
         public async Task<IActionResult> ClonePlan([FromBody] ClonePlanRequest request)
         {
-            try
-            {
-                var newAuthorId = GetCurrentPersonIdRequired();
-                var clonedPlan = await _planOrch.ClonePlanAsync(request.SourcePlanId, newAuthorId, request.NewPlanName);
-                return Ok(clonedPlan);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cloning plan {SourcePlanId}.", request.SourcePlanId);
-                return StatusCode(500, "An unexpected error occurred while cloning the plan.");
-            }
+            var newAuthorId = GetCurrentPersonIdRequired();
+            var clonedPlan = await _planOrch.ClonePlanAsync(request.SourcePlanId, newAuthorId, request.NewPlanName);
+            return Ok(clonedPlan);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreatePlan([FromBody] CreatePlanRequest request)
         {
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                var plan = await _planOrch.CreatePlanAsync(request, authorId);
-                return CreatedAtAction(nameof(GetPlanById), new { id = plan.Id }, plan);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating plan");
-                return StatusCode(500, "An error occurred while creating the plan");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            var plan = await _planOrch.CreatePlanAsync(request, authorId);
+            return CreatedAtAction(nameof(GetPlanById), new { id = plan.Id }, plan);
         }
 
         [HttpPut("{id:long}")]
         public async Task<IActionResult> UpdatePlan(long id, [FromBody] UpdatePlanRequest request)
         {
-            try
-            {
-                var newAuthorId = GetCurrentPersonIdRequired();
-                await _planOrch.UpdatePlanAsync(id, request, newAuthorId);
-                return Ok();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating plan {PlanId}", id);
-                return StatusCode(500, "An error occurred while updating the plan");
-            }
+            var newAuthorId = GetCurrentPersonIdRequired();
+            await _planOrch.UpdatePlanAsync(id, request, newAuthorId);
+            return Ok();
         }
 
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> DeletePlan(long id)
         {
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                await _planOrch.DeletePlanAsync(id, authorId);
-                return Ok();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting plan {PlanId}", id);
-                return StatusCode(500, "An error occurred while deleting the plan");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            await _planOrch.DeletePlanAsync(id, authorId);
+            return Ok();
         }
 
         [HttpPost("{id:long}/submit-for-curation")]
         public async Task<IActionResult> SubmitPlanForCuration(long id)
         {
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                await _planOrch.SubmitPlanForCurationAsync(id, authorId);
-                return Ok();
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized("User profile not complete. Please complete registration first.");
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error submitting plan {PlanId} for curation.", id);
-                return StatusCode(500, "An unexpected error occurred while submitting the plan for curation.");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            await _planOrch.SubmitPlanForCurationAsync(id, authorId);
+            return Ok();
         }
     }
-
-    public class ClonePlanRequest
-    {
-        public long SourcePlanId { get; set; }
-        public string NewPlanName { get; set; } = string.Empty;
-    }
-} 
+}

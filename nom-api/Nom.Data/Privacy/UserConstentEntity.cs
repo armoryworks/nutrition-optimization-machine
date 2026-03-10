@@ -1,7 +1,6 @@
 // File: Nom.Data/Privacy/UserConsentEntity.cs
 
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Data.Privacy
 {
@@ -14,7 +13,6 @@ namespace Nom.Data.Privacy
         /// <summary>
         /// The type of consent granted (e.g., "Analytics", "Marketing").
         /// </summary>
-        [Required]
         public string ConsentType { get; set; } = string.Empty;
 
         /// <summary>

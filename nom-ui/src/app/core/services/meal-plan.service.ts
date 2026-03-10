@@ -2,18 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  MealPlanWeekResponse,
-  MealPlanCreateRequest,
-  MealPlanUpdateRequest,
-  MealPlanResponse,
-  MealPlanExclusion,
-  MealPlanExclusionCreateRequest,
-  MealPlanShuffleRequest,
-  MealPlanShuffleResponse,
-  MealPlanRule,
-  MealPlanRuleCreateRequest,
-} from '../models/meal-plan.model';
+import { MealPlanWeekResponse } from '../models/meal-plan-week-response.model';
+import { MealPlanCreateRequest } from '../models/meal-plan-create-request.model';
+import { MealPlanUpdateRequest } from '../models/meal-plan-update-request.model';
+import { MealPlanResponse } from '../models/meal-plan-response.model';
+import { MealPlanExclusion } from '../models/meal-plan-exclusion.model';
+import { MealPlanExclusionCreateRequest } from '../models/meal-plan-exclusion-create-request.model';
+import { MealPlanShuffleRequest } from '../models/meal-plan-shuffle-request.model';
+import { MealPlanShuffleResponse } from '../models/meal-plan-shuffle-response.model';
+import { MealPlanRule } from '../models/meal-plan-rule.model';
+import { MealPlanRuleCreateRequest } from '../models/meal-plan-rule-create-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class MealPlanService {

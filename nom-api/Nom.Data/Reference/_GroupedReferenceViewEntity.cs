@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Nom.Data.Reference
 {
     /// <summary>
@@ -11,7 +9,6 @@ namespace Nom.Data.Reference
         /// <summary>
         /// Id is NOT to be used - this is not mapped to the database view
         /// </summary>
-        [NotMapped]
         public Guid Id { get; set; } = Guid.NewGuid();
         // Properties to match the columns selected in the SQL View (reference.ReferenceGroupView)
 

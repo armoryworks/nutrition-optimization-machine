@@ -1,4 +1,5 @@
 using Nom.Data;
+using Nom.Data.CustomMigration;
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;

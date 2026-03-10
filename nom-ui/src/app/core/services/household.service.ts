@@ -2,17 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  HouseholdResponseModel,
-  HouseholdCreateModel,
-  HouseholdCreateResponseModel,
-  HouseholdUpdateModel,
-  HouseholdMemberResponseModel,
-  HouseholdMemberCreateModel,
-  HouseholdInviteTokenCreateModel,
-  HouseholdInviteTokenResponseModel,
-  JoinHouseholdRequest,
-} from '../models/household.model';
+import { HouseholdResponseModel } from '../models/household-response.model';
+import { HouseholdCreateModel } from '../models/household-create.model';
+import { HouseholdCreateResponseModel } from '../models/household-create-response.model';
+import { HouseholdUpdateModel } from '../models/household-update.model';
+import { HouseholdMemberResponseModel } from '../models/household-member-response.model';
+import { HouseholdMemberCreateModel } from '../models/household-member-create.model';
+import { HouseholdInviteTokenCreateModel } from '../models/household-invite-token-create.model';
+import { HouseholdInviteTokenResponseModel } from '../models/household-invite-token-response.model';
+import { JoinHouseholdRequest } from '../models/join-household-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class HouseholdService {

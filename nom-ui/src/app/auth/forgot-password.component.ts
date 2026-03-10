@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,6 +21,7 @@ import { AuthService } from '../core/services/auth.service';
   ],
   templateUrl: './forgot-password.component.html',
   styleUrl: './forgot-password.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ForgotPassword {
   private authService = inject(AuthService);

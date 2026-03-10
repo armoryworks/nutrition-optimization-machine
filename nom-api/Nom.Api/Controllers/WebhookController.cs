@@ -12,30 +12,19 @@ namespace Nom.Api.Controllers
     public class WebhookController : BaseApiController
     {
         private readonly IWebhookOrchestrationService _webhookService;
-        private readonly ILogger<WebhookController> _logger;
 
         public WebhookController(
-            IWebhookOrchestrationService webhookService,
-            ILogger<WebhookController> logger)
+            IWebhookOrchestrationService webhookService)
         {
             _webhookService = webhookService;
-            _logger = logger;
         }
 
         [HttpGet]
         [ProducesResponseType(typeof(List<WebhookResponseModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetWebhooks([FromQuery, Required] long householdId)
         {
-            try
-            {
-                var result = await _webhookService.GetWebhooksAsync(householdId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting webhooks for household {HouseholdId}", householdId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _webhookService.GetWebhooksAsync(householdId);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -43,17 +32,9 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetWebhook(long id)
         {
-            try
-            {
-                var result = await _webhookService.GetWebhookAsync(id);
-                if (result == null) return NotFound();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting webhook {WebhookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _webhookService.GetWebhookAsync(id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
         [HttpPost]
@@ -63,16 +44,8 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                var id = await _webhookService.CreateWebhookAsync(model);
-                return Ok(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating webhook");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var id = await _webhookService.CreateWebhookAsync(model);
+            return Ok(id);
         }
 
         [HttpPut("{id}")]
@@ -82,17 +55,9 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                var result = await _webhookService.UpdateWebhookAsync(id, model);
-                if (result == null) return NotFound();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating webhook {WebhookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _webhookService.UpdateWebhookAsync(id, model);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
@@ -100,33 +65,17 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteWebhook(long id)
         {
-            try
-            {
-                var success = await _webhookService.DeleteWebhookAsync(id);
-                if (!success) return NotFound();
-                return Ok(new { Message = "Webhook deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting webhook {WebhookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var success = await _webhookService.DeleteWebhookAsync(id);
+            if (!success) return NotFound();
+            return Ok(new { Message = "Webhook deleted successfully." });
         }
 
         [HttpPost("{id}/test")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> TestWebhook(long id)
         {
-            try
-            {
-                var success = await _webhookService.TestWebhookAsync(id);
-                return Ok(new { Success = success, Message = success ? "Webhook test succeeded." : "Webhook test failed." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error testing webhook {WebhookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var success = await _webhookService.TestWebhookAsync(id);
+            return Ok(new { Success = success, Message = success ? "Webhook test succeeded." : "Webhook test failed." });
         }
     }
 }

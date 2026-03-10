@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 // RouterLink not used directly but may be needed for future navigation
@@ -9,23 +9,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { environment } from '../../environments/environment';
 import { PantryService } from '../core/services/pantry.service';
 import { HouseholdService } from '../core/services/household.service';
-import { PantryItemResponse, PantryItemCreateRequest } from '../core/models/pantry.model';
+import { MeasurementService } from '../core/services/measurement.service';
+import { IngredientService } from '../core/services/ingredient.service';
+import { PantryItemResponse } from '../core/models/pantry-item-response.model';
+import { PantryItemCreateRequest } from '../core/models/pantry-item-create-request.model';
+import { IngredientSearchResult } from '../core/models/ingredient-search-result.model';
+import { MeasurementOption } from '../core/models/measurement.model';
 import { debounceTime, distinctUntilChanged, Subject, switchMap, of } from 'rxjs';
-
-interface IngredientOption {
-  id: number;
-  name: string;
-}
-
-interface MeasurementOption {
-  id: number;
-  name: string;
-  symbol: string;
-}
 
 /** Department-based default shelf life in days */
 const SHELF_LIFE_DEFAULTS: Record<string, number> = {
@@ -60,11 +52,13 @@ const SHELF_LIFE_DEFAULTS: Record<string, number> = {
   ],
   templateUrl: './pantry.component.html',
   styleUrls: ['./pantry.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PantryComponent implements OnInit {
   private pantryService = inject(PantryService);
   private householdService = inject(HouseholdService);
-  private http = inject(HttpClient);
+  private measurementService = inject(MeasurementService);
+  private ingredientService = inject(IngredientService);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -74,8 +68,8 @@ export class PantryComponent implements OnInit {
 
   // Add form state
   ingredientSearch = signal('');
-  ingredientOptions = signal<IngredientOption[]>([]);
-  selectedIngredient = signal<IngredientOption | null>(null);
+  ingredientOptions = signal<IngredientSearchResult[]>([]);
+  selectedIngredient = signal<IngredientSearchResult | null>(null);
   newQuantity = signal<number>(1);
   measurements = signal<MeasurementOption[]>([]);
   selectedMeasurementId = signal<number | null>(null);
@@ -140,7 +134,7 @@ export class PantryComponent implements OnInit {
   }
 
   private loadMeasurements() {
-    this.http.get<MeasurementOption[]>(`${environment.apiUrl}/Measurement/all`).subscribe({
+    this.measurementService.loadMeasurements().subscribe({
       next: (m) => this.measurements.set(m),
     });
   }
@@ -151,10 +145,7 @@ export class PantryComponent implements OnInit {
       distinctUntilChanged(),
       switchMap(query => {
         if (query.length < 2) return of([]);
-        const params = new HttpParams().set('q', query);
-        return this.http.get<IngredientOption[]>(
-          `${environment.apiUrl}/Ingredients/search`, { params }
-        );
+        return this.ingredientService.searchIngredients(query);
       }),
     ).subscribe(options => this.ingredientOptions.set(options));
   }
@@ -165,13 +156,13 @@ export class PantryComponent implements OnInit {
     this.searchSubject.next(value);
   }
 
-  selectIngredient(option: IngredientOption) {
+  selectIngredient(option: IngredientSearchResult) {
     this.selectedIngredient.set(option);
     this.ingredientSearch.set(option.name);
     this.ingredientOptions.set([]);
   }
 
-  displayIngredient(option: IngredientOption): string {
+  displayIngredient(option: IngredientSearchResult): string {
     return option?.name ?? '';
   }
 

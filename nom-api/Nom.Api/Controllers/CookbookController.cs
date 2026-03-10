@@ -13,14 +13,11 @@ namespace Nom.Api.Controllers
     public class CookbookController : BaseApiController
     {
         private readonly ICookbookOrchestrationService _cookbookService;
-        private readonly ILogger<CookbookController> _logger;
 
         public CookbookController(
-            ICookbookOrchestrationService cookbookService,
-            ILogger<CookbookController> logger)
+            ICookbookOrchestrationService cookbookService)
         {
             _cookbookService = cookbookService;
-            _logger = logger;
         }
 
         [HttpGet]
@@ -30,16 +27,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(householdId))
                 return Forbid();
 
-            try
-            {
-                var result = await _cookbookService.GetCookbooksAsync(householdId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cookbooks for household {HouseholdId}", householdId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _cookbookService.GetCookbooksAsync(householdId);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -47,21 +36,13 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCookbook(long id)
         {
-            try
-            {
-                var result = await _cookbookService.GetCookbookAsync(id);
-                if (result == null) return NotFound();
+            var result = await _cookbookService.GetCookbookAsync(id);
+            if (result == null) return NotFound();
 
-                if (!IsHouseholdMember(result.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(result.HouseholdId))
+                return Forbid();
 
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cookbook {CookbookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(result);
         }
 
         [HttpPost]
@@ -74,16 +55,8 @@ namespace Nom.Api.Controllers
             if (!IsHouseholdMember(model.HouseholdId))
                 return Forbid();
 
-            try
-            {
-                var id = await _cookbookService.CreateCookbookAsync(model);
-                return Ok(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating cookbook");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var id = await _cookbookService.CreateCookbookAsync(model);
+            return Ok(id);
         }
 
         [HttpPut("{id}")]
@@ -93,22 +66,14 @@ namespace Nom.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                var existing = await _cookbookService.GetCookbookAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _cookbookService.GetCookbookAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var result = await _cookbookService.UpdateCookbookAsync(id, model);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating cookbook {CookbookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _cookbookService.UpdateCookbookAsync(id, model);
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
@@ -116,22 +81,14 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteCookbook(long id)
         {
-            try
-            {
-                var existing = await _cookbookService.GetCookbookAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _cookbookService.GetCookbookAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                await _cookbookService.DeleteCookbookAsync(id);
-                return Ok(new { Message = "Cookbook deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting cookbook {CookbookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            await _cookbookService.DeleteCookbookAsync(id);
+            return Ok(new { Message = "Cookbook deleted successfully." });
         }
 
         [HttpPost("{id}/recipe/{recipeId}")]
@@ -139,23 +96,15 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> AddRecipe(long id, long recipeId)
         {
-            try
-            {
-                var existing = await _cookbookService.GetCookbookAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _cookbookService.GetCookbookAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var added = await _cookbookService.AddRecipeToCookbookAsync(id, recipeId);
-                if (!added) return Conflict(new { Message = "Recipe already in cookbook." });
-                return Ok(new { Message = "Recipe added to cookbook." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding recipe {RecipeId} to cookbook {CookbookId}", recipeId, id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var added = await _cookbookService.AddRecipeToCookbookAsync(id, recipeId);
+            if (!added) return Conflict(new { Message = "Recipe already in cookbook." });
+            return Ok(new { Message = "Recipe added to cookbook." });
         }
 
         [HttpDelete("{id}/recipe/{recipeId}")]
@@ -163,45 +112,29 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> RemoveRecipe(long id, long recipeId)
         {
-            try
-            {
-                var existing = await _cookbookService.GetCookbookAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _cookbookService.GetCookbookAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var removed = await _cookbookService.RemoveRecipeFromCookbookAsync(id, recipeId);
-                if (!removed) return NotFound();
-                return Ok(new { Message = "Recipe removed from cookbook." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing recipe {RecipeId} from cookbook {CookbookId}", recipeId, id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var removed = await _cookbookService.RemoveRecipeFromCookbookAsync(id, recipeId);
+            if (!removed) return NotFound();
+            return Ok(new { Message = "Recipe removed from cookbook." });
         }
 
         [HttpGet("{id}/recipes")]
         [ProducesResponseType(typeof(List<RecipeResponseModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCookbookRecipes(long id)
         {
-            try
-            {
-                var existing = await _cookbookService.GetCookbookAsync(id);
-                if (existing == null) return NotFound();
+            var existing = await _cookbookService.GetCookbookAsync(id);
+            if (existing == null) return NotFound();
 
-                if (!IsHouseholdMember(existing.HouseholdId))
-                    return Forbid();
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
 
-                var result = await _cookbookService.GetCookbookRecipesAsync(id);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting recipes for cookbook {CookbookId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var result = await _cookbookService.GetCookbookRecipesAsync(id);
+            return Ok(result);
         }
     }
 }

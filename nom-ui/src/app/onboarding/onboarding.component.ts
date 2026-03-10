@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,7 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../core/services/auth.service';
 import { PersonService } from '../core/services/person.service';
 import { LoadingService } from '../core/services/loading.service';
-import { OnboardingCompleteRequest, RestrictionRequest, SaveProfileRequest } from '../core/models/person.model';
+import { OnboardingCompleteRequest } from '../core/models/onboarding-complete-request.model';
+import { RestrictionRequest } from '../core/models/restriction-request.model';
+import { SaveProfileRequest } from '../core/models/save-profile-request.model';
 import { Profile, ProfileFormData } from '../profile/profile.component';
 import { Restrictions } from '../restrictions/restrictions.component';
 import { Household, HouseholdFormData } from '../household/household.component';
@@ -24,6 +26,7 @@ import { Plan, PlanFormData } from '../plan/plan.component';
   ],
   templateUrl: './onboarding.component.html',
   styleUrl: './onboarding.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Onboarding implements OnInit {
   private router = inject(Router);

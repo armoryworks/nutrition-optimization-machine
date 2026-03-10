@@ -1,15 +1,16 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import { Component, inject, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
-import { RecipeSearchResult } from '../core/models/recipe-search.model';
+import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
 
 @Component({
   selector: 'nom-search',
   imports: [MatIconModule, RouterLink],
   templateUrl: './search.component.html',
-  styleUrl: './search.component.scss'
+  styleUrl: './search.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Search {
   private route = inject(ActivatedRoute);

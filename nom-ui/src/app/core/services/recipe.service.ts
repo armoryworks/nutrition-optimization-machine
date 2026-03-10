@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { RecipeModel, RecipeCreateRequest, RecipeCreateResponse, RecipeUpdateRequest, RecipeAssetResponse } from '../models/recipe.model';
+import { RecipeModel } from '../models/recipe.model';
+import { RecipeCreateRequest } from '../models/recipe-create-request.model';
+import { RecipeCreateResponse } from '../models/recipe-create-response.model';
+import { RecipeUpdateRequest } from '../models/recipe-update-request.model';
+import { RecipeAssetResponse } from '../models/recipe-asset-response.model';
+import { RecipeCommentResponseModel } from '../models/recipe-comment-response.model';
+import { RecipeRatingResponseModel } from '../models/recipe-rating-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeService {
@@ -45,5 +51,46 @@ export class RecipeService {
 
   getAssets(recipeId: number): Observable<RecipeAssetResponse[]> {
     return this.http.get<RecipeAssetResponse[]>(`${this.apiUrl}/${recipeId}/assets`);
+  }
+
+  // Comments
+  getComments(recipeId: number): Observable<RecipeCommentResponseModel[]> {
+    return this.http.get<RecipeCommentResponseModel[]>(
+      `${environment.apiUrl}/recipe/${recipeId}/comments`
+    );
+  }
+
+  addComment(recipeId: number, comment: string): Observable<RecipeCommentResponseModel> {
+    return this.http.post<RecipeCommentResponseModel>(
+      `${environment.apiUrl}/recipe/${recipeId}/comments`,
+      { comment }
+    );
+  }
+
+  deleteComment(commentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/recipe/comments/${commentId}`
+    );
+  }
+
+  // Ratings
+  getRatings(recipeId: number): Observable<RecipeRatingResponseModel[]> {
+    return this.http.get<RecipeRatingResponseModel[]>(
+      `${environment.apiUrl}/recipe/${recipeId}/ratings`
+    );
+  }
+
+  addRating(recipeId: number, rating: number): Observable<RecipeRatingResponseModel> {
+    return this.http.post<RecipeRatingResponseModel>(
+      `${environment.apiUrl}/recipe/${recipeId}/ratings`,
+      { rating }
+    );
+  }
+
+  updateRating(ratingId: number, rating: number): Observable<RecipeRatingResponseModel> {
+    return this.http.put<RecipeRatingResponseModel>(
+      `${environment.apiUrl}/recipe/ratings/${ratingId}`,
+      { rating }
+    );
   }
 }

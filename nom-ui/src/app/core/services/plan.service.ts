@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { PlanModel, CreatePlanRequest, UpdatePlanRequest, ClonePlanRequest } from '../models/plan.model';
+import { PlanModel } from '../models/plan.model';
+import { CreatePlanRequest } from '../models/create-plan-request.model';
+import { UpdatePlanRequest } from '../models/update-plan-request.model';
+import { ClonePlanRequest } from '../models/clone-plan-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class PlanService {

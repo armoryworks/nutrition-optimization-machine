@@ -2,7 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ConsentRequest, DataExportRequest, DataDeletionRequest } from '../models/privacy.model';
+import { ConsentRequest } from '../models/consent-request.model';
+import { DataExportRequest } from '../models/data-export-request.model';
+import { DataDeletionRequest } from '../models/data-deletion-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class PrivacyService {

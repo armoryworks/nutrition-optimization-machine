@@ -3,8 +3,6 @@ using Nom.Data.Audit; // Assuming BaseEntity is in Nom.Data.Audit namespace
 using Nom.Data.Reference; // For other references
 using Nom.Data.Measurement; // For Measurement
 using System.Collections.Generic; // Not strictly needed for this entity but often included
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations; // For MaxLength
 
 namespace Nom.Data.Recipe
 {
@@ -12,59 +10,49 @@ namespace Nom.Data.Recipe
     /// Represents a specific ingredient used in a recipe, including its quantity and measurement unit.
     /// Maps to the 'Recipe.recipe_ingredient' table.
     /// </summary>
-    [Table("RecipeIngredient", Schema = "recipe")]
     public class RecipeIngredientEntity : BaseEntity
     {
         /// <summary>
         /// Foreign key to the associated RecipeEntity this ingredient belongs to.
         /// </summary>
-        [Required]
         public long RecipeId { get; set; }
 
         /// <summary>
         /// Navigation property to the RecipeEntity.
         /// </summary>
-        [ForeignKey(nameof(RecipeId))]
         public virtual RecipeEntity Recipe { get; set; } = default!;
 
         /// <summary>
         /// Foreign key to the standardized IngredientEntity.
         /// </summary>
-        [Required]
         public long IngredientId { get; set; }
 
         /// <summary>
         /// Navigation property to the standardized IngredientEntity.
         /// </summary>
-        [ForeignKey(nameof(IngredientId))]
         public virtual IngredientEntity Ingredient { get; set; } = default!;
 
         /// <summary>
         /// The quantity of the ingredient (e.g., 1.5, 0.5, 2.0).
         /// Corresponds to DECIMAL(18,4) NOT NULL.
         /// </summary>
-        [Required]
-        [Column(TypeName = "decimal(18,4)")]
         public decimal Quantity { get; set; }
 
         /// <summary>
         /// Foreign key to the Measurement.Measurement table, indicating the unit of measurement
         /// for the quantity (e.g., "cup", "gram", "each").
         /// </summary>
-        [Required]
         public long MeasurementId { get; set; }
 
         /// <summary>
         /// Navigation property to the associated MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(MeasurementId))]
         public virtual MeasurementEntity? Measurement { get; set; }
 
         /// <summary>
         /// The original raw text line of the ingredient as it appeared in the source recipe (e.g., "1 1/2 cups all-purpose flour").
         /// Useful for debugging, display, or if parsing is incomplete.
         /// </summary>
-        [Column(TypeName = "Text")]
         public string RawLine { get; set; } = string.Empty;
     }
 }

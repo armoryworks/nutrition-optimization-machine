@@ -1,24 +1,24 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { environment } from '../../environments/environment';
 import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdService } from '../core/services/household.service';
 import { RecipeService } from '../core/services/recipe.service';
 import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
-import { MealPlanWeekResponse } from '../core/models/meal-plan.model';
+import { MeasurementService } from '../core/services/measurement.service';
+import { MealPlanWeekResponse } from '../core/models/meal-plan-week-response.model';
 import { RecipeModel } from '../core/models/recipe.model';
-import { PantryItemResponse, PantryItemCreateRequest } from '../core/models/pantry.model';
-import { RetailPackagingResponse } from '../core/models/retail-packaging.model';
+import { PantryItemResponse } from '../core/models/pantry-item-response.model';
+import { PantryItemCreateRequest } from '../core/models/pantry-item-create-request.model';
+import { RetailPackagingResponse } from '../core/models/retail-packaging-response.model';
 
 export interface ShoppingPortion {
   quantity: number;
@@ -276,6 +276,7 @@ interface RawAccumulator {
   ],
   templateUrl: './shopping.component.html',
   styleUrl: './shopping.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShoppingComponent implements OnInit {
   private mealPlanService = inject(MealPlanService);
@@ -283,7 +284,7 @@ export class ShoppingComponent implements OnInit {
   private recipeService = inject(RecipeService);
   private pantryService = inject(PantryService);
   private retailPackagingService = inject(RetailPackagingService);
-  private http = inject(HttpClient);
+  private measurementService = inject(MeasurementService);
   private snackBar = inject(MatSnackBar);
 
   householdId = signal(0);
@@ -894,7 +895,7 @@ export class ShoppingComponent implements OnInit {
       packaging: this.retailPackagingService.getAll(),
       measurements: this.measurements().length > 0
         ? of(this.measurements())
-        : this.http.get<{ id: number; name: string; symbol: string }[]>(`${environment.apiUrl}/Measurement/all`),
+        : this.measurementService.loadMeasurements(),
     }).subscribe({
       next: ({ weeks, pantry, packaging, measurements }) => {
         this.weekDataList.set(weeks);

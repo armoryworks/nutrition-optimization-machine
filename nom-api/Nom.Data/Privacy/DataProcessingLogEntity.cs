@@ -1,7 +1,6 @@
 // File: Nom.Data/Privacy/DataProcessingLogEntity.cs
 
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Nom.Data.Privacy
 {
@@ -14,7 +13,6 @@ namespace Nom.Data.Privacy
         /// <summary>
         /// The type of action performed (e.g., "Read", "Update", "Delete", "Export").
         /// </summary>
-        [Required]
         public string ActionType { get; set; } = string.Empty;
 
         /// <summary>

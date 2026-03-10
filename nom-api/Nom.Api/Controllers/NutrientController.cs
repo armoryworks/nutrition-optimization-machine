@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Orch.Models.Nutrient;
 using System.Collections.Generic;
@@ -14,12 +13,10 @@ namespace Nom.Api.Controllers
     public class NutrientController : BaseApiController
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly ILogger<NutrientController> _logger;
 
-        public NutrientController(ApplicationDbContext dbContext, ILogger<NutrientController> logger)
+        public NutrientController(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
-            _logger = logger;
         }
 
         /// <summary>
@@ -30,33 +27,25 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(typeof(List<NutrientModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllNutrients()
         {
-            try
-            {
-                var nutrients = await _dbContext.Nutrients
-                    .Include(n => n.DefaultMeasurement)
-                    .AsNoTracking()
-                    .OrderBy(n => n.Name)
-                    .Select(n => new NutrientModel
-                    {
-                        Id = n.Id,
-                        Name = n.Name,
-                        Description = n.Description,
-                        DefaultMeasurementId = n.DefaultMeasurementId,
-                        DefaultMeasurementName = n.DefaultMeasurement.Name,
-                        DefaultMeasurementSymbol = n.DefaultMeasurement.Symbol,
-                        Rank = n.Rank,
-                        CreatedDate = n.CreatedDate,
-                        LastModifiedDate = n.LastModifiedDate
-                    })
-                    .ToListAsync();
+            var nutrients = await _dbContext.Nutrients
+                .Include(n => n.DefaultMeasurement)
+                .AsNoTracking()
+                .OrderBy(n => n.Name)
+                .Select(n => new NutrientModel
+                {
+                    Id = n.Id,
+                    Name = n.Name,
+                    Description = n.Description,
+                    DefaultMeasurementId = n.DefaultMeasurementId,
+                    DefaultMeasurementName = n.DefaultMeasurement.Name,
+                    DefaultMeasurementSymbol = n.DefaultMeasurement.Symbol,
+                    Rank = n.Rank,
+                    CreatedDate = n.CreatedDate,
+                    LastModifiedDate = n.LastModifiedDate
+                })
+                .ToListAsync();
 
-                return Ok(nutrients);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving all nutrients");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving nutrients." });
-            }
+            return Ok(nutrients);
         }
 
         /// <summary>
@@ -68,38 +57,30 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetNutrientById(long id)
         {
-            try
-            {
-                var nutrient = await _dbContext.Nutrients
-                    .Include(n => n.DefaultMeasurement)
-                    .AsNoTracking()
-                    .Where(n => n.Id == id)
-                    .Select(n => new NutrientModel
-                    {
-                        Id = n.Id,
-                        Name = n.Name,
-                        Description = n.Description,
-                        DefaultMeasurementId = n.DefaultMeasurementId,
-                        DefaultMeasurementName = n.DefaultMeasurement.Name,
-                        DefaultMeasurementSymbol = n.DefaultMeasurement.Symbol,
-                        Rank = n.Rank,
-                        CreatedDate = n.CreatedDate,
-                        LastModifiedDate = n.LastModifiedDate
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (nutrient == null)
+            var nutrient = await _dbContext.Nutrients
+                .Include(n => n.DefaultMeasurement)
+                .AsNoTracking()
+                .Where(n => n.Id == id)
+                .Select(n => new NutrientModel
                 {
-                    return NotFound(new { message = $"Nutrient with ID {id} not found." });
-                }
+                    Id = n.Id,
+                    Name = n.Name,
+                    Description = n.Description,
+                    DefaultMeasurementId = n.DefaultMeasurementId,
+                    DefaultMeasurementName = n.DefaultMeasurement.Name,
+                    DefaultMeasurementSymbol = n.DefaultMeasurement.Symbol,
+                    Rank = n.Rank,
+                    CreatedDate = n.CreatedDate,
+                    LastModifiedDate = n.LastModifiedDate
+                })
+                .FirstOrDefaultAsync();
 
-                return Ok(nutrient);
-            }
-            catch (Exception ex)
+            if (nutrient == null)
             {
-                _logger.LogError(ex, "Error retrieving nutrient with ID {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the nutrient." });
+                return NotFound(new { message = $"Nutrient with ID {id} not found." });
             }
+
+            return Ok(nutrient);
         }
     }
 }

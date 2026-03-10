@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -18,9 +18,14 @@ import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdService } from '../core/services/household.service';
 import { LoadingService } from '../core/services/loading.service';
 import { PlanModel } from '../core/models/plan.model';
-import { HouseholdResponseModel, HouseholdMemberResponseModel } from '../core/models/household.model';
-import { MealPlanWeekResponse, MealPlanDay, MealPlanCell, MealPlanEntry, MealPlanExclusion } from '../core/models/meal-plan.model';
-import { RestrictionRequest } from '../core/models/person.model';
+import { HouseholdResponseModel } from '../core/models/household-response.model';
+import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
+import { MealPlanWeekResponse } from '../core/models/meal-plan-week-response.model';
+import { MealPlanDay } from '../core/models/meal-plan-day.model';
+import { MealPlanCell } from '../core/models/meal-plan-cell.model';
+import { MealPlanEntry } from '../core/models/meal-plan-entry.model';
+import { MealPlanExclusion } from '../core/models/meal-plan-exclusion.model';
+import { RestrictionRequest } from '../core/models/restriction-request.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
 import { ShuffleConfirmDialog, ShuffleConfirmResult } from './shuffle-confirm-dialog.component';
 
@@ -52,6 +57,7 @@ export interface PlanFormData {
   ],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Plan implements OnInit {
   mode = input<'standalone' | 'wizard'>('standalone');

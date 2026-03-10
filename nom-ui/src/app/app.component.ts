@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Component, computed, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
@@ -15,7 +15,8 @@ import { LoadingOverlay } from './shared/components/loading-overlay/loading-over
   selector: 'nom-root',
   imports: [RouterOutlet, MatIconModule, Header, Footer, Sidebar, LoadingOverlay],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrl: './app.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   private router = inject(Router);

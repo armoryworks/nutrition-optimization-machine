@@ -27,25 +27,9 @@ namespace Nom.Api.Controllers
         [HttpPost("test-scrape-url")]
         public async Task<ActionResult<ScrapedRecipeModel>> TestScrapeRecipe([FromBody] RecipeScrapingTestRequestModel request)
         {
-            try
-            {
-                _logger.LogInformation("Testing recipe scraping from URL: {Url}", request.Url);
-                var result = await _recipeScrapingService.TestScrapeRecipeAsync(request);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = "Invalid URL format", error = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = "Failed to scrape recipe", error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error testing recipe scraping from URL: {Url}", request.Url);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            _logger.LogInformation("Testing recipe scraping from URL: {Url}", request.Url);
+            var result = await _recipeScrapingService.TestScrapeRecipeAsync(request);
+            return Ok(result);
         }
 
         /// <summary>
@@ -54,24 +38,16 @@ namespace Nom.Api.Controllers
         [HttpPost("create/html-or-json")]
         public async Task<ActionResult<RecipeScrapingResponseModel>> CreateRecipeFromData([FromBody] RecipeScrapingDataRequestModel request)
         {
-            try
+            _logger.LogInformation("Creating recipe from HTML or JSON data");
+            var result = await _recipeScrapingService.ScrapeRecipeFromDataAsync(request);
+
+            if (result.Success)
             {
-                _logger.LogInformation("Creating recipe from HTML or JSON data");
-                var result = await _recipeScrapingService.ScrapeRecipeFromDataAsync(request);
-                
-                if (result.Success)
-                {
-                    return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
-                }
-                else
-                {
-                    return BadRequest(new { message = "Failed to create recipe", error = result.Error });
-                }
+                return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error creating recipe from data");
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+                return BadRequest(new { message = "Failed to create recipe", error = result.Error });
             }
         }
 
@@ -81,24 +57,16 @@ namespace Nom.Api.Controllers
         [HttpPost("create/url")]
         public async Task<ActionResult<RecipeScrapingResponseModel>> CreateRecipeFromUrl([FromBody] RecipeScrapingRequestModel request)
         {
-            try
+            _logger.LogInformation("Creating recipe from URL: {Url}", request.Url);
+            var result = await _recipeScrapingService.ScrapeRecipeFromUrlAsync(request);
+
+            if (result.Success)
             {
-                _logger.LogInformation("Creating recipe from URL: {Url}", request.Url);
-                var result = await _recipeScrapingService.ScrapeRecipeFromUrlAsync(request);
-                
-                if (result.Success)
-                {
-                    return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
-                }
-                else
-                {
-                    return BadRequest(new { message = "Failed to create recipe", error = result.Error });
-                }
+                return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error creating recipe from URL: {Url}", request.Url);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+                return BadRequest(new { message = "Failed to create recipe", error = result.Error });
             }
         }
 
@@ -108,17 +76,9 @@ namespace Nom.Api.Controllers
         [HttpPost("bulk-scrape")]
         public async Task<ActionResult<RecipeBulkScrapingResponseModel>> BulkScrapeRecipes([FromBody] RecipeBulkScrapingRequestModel request)
         {
-            try
-            {
-                _logger.LogInformation("Bulk scraping {Count} recipes", request.Imports.Count);
-                var result = await _recipeScrapingService.BulkScrapeRecipesAsync(request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error bulk scraping recipes");
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            _logger.LogInformation("Bulk scraping {Count} recipes", request.Imports.Count);
+            var result = await _recipeScrapingService.BulkScrapeRecipesAsync(request);
+            return Ok(result);
         }
 
         /// <summary>
@@ -127,20 +87,12 @@ namespace Nom.Api.Controllers
         [HttpGet("reports/{reportId}")]
         public async Task<ActionResult<RecipeBulkScrapingResponseModel>> GetScrapingReport(long reportId)
         {
-            try
+            var report = await _recipeScrapingService.GetScrapingReportAsync(reportId);
+            if (report == null)
             {
-                var report = await _recipeScrapingService.GetScrapingReportAsync(reportId);
-                if (report == null)
-                {
-                    return NotFound(new { message = "Scraping report not found" });
-                }
-                return Ok(report);
+                return NotFound(new { message = "Scraping report not found" });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting scraping report: {ReportId}", reportId);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            return Ok(report);
         }
 
         /// <summary>
@@ -149,16 +101,8 @@ namespace Nom.Api.Controllers
         [HttpGet("reports")]
         public async Task<ActionResult<List<RecipeBulkScrapingResponseModel>>> GetScrapingReports()
         {
-            try
-            {
-                var reports = await _recipeScrapingService.GetScrapingReportsAsync();
-                return Ok(reports);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting scraping reports");
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            var reports = await _recipeScrapingService.GetScrapingReportsAsync();
+            return Ok(reports);
         }
 
         /// <summary>
@@ -172,4 +116,4 @@ namespace Nom.Api.Controllers
             return NotFound();
         }
     }
-} 
+}

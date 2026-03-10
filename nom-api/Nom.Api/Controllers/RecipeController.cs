@@ -23,64 +23,35 @@ namespace Nom.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<List<RecipeResponseModel>>> GetRecipes()
         {
-            try
-            {
-                var personId = GetCurrentPersonId();
-                var recipes = await _recipeService.GetAllRecipesAsync(personId);
-                return Ok(recipes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve recipes", error = ex.Message });
-            }
+            var personId = GetCurrentPersonId();
+            var recipes = await _recipeService.GetAllRecipesAsync(personId);
+            return Ok(recipes);
         }
 
         [HttpGet("my")]
         public async Task<ActionResult<List<RecipeResponseModel>>> GetMyRecipes()
         {
-            try
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
             {
-                var personId = GetCurrentPersonId();
-                if (!personId.HasValue)
-                {
-                    return Unauthorized("User not authenticated");
-                }
+                return Unauthorized("User not authenticated");
+            }
 
-                var recipes = await _recipeService.GetMyRecipesAsync(personId.Value);
-                return Ok(recipes);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve your recipes", error = ex.Message });
-            }
+            var recipes = await _recipeService.GetMyRecipesAsync(personId.Value);
+            return Ok(recipes);
         }
 
         [HttpPost]
         public async Task<ActionResult<RecipeCreateResponseModel>> CreateRecipe([FromBody] RecipeCreateModel request)
         {
-            try
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue)
             {
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                {
-                    return Unauthorized("User not authenticated");
-                }
+                return Unauthorized("User not authenticated");
+            }
 
-                var response = await _recipeService.CreateRecipeAsync(request, currentPersonId.Value);
-                return CreatedAtAction(nameof(GetRecipe), new { id = response.Id }, response);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to create recipe", error = ex.Message });
-            }
+            var response = await _recipeService.CreateRecipeAsync(request, currentPersonId.Value);
+            return CreatedAtAction(nameof(GetRecipe), new { id = response.Id }, response);
         }
 
         /// <summary>
@@ -91,223 +62,146 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
         {
-            try
+            var recipe = await _recipeService.GetRecipeAsync(id);
+            if (recipe == null)
             {
-                var recipe = await _recipeService.GetRecipeAsync(id);
-                if (recipe == null)
+                return NotFound(new { message = "Recipe not found" });
+            }
+
+            // Check if recipe is public (Approved)
+            var isPublic = recipe.CurationStatus == "Approved";
+
+            if (!isPublic)
+            {
+                // Recipe is private - require authentication and ownership
+                var currentPersonId = GetCurrentPersonId();
+                if (!currentPersonId.HasValue)
                 {
-                    return NotFound(new { message = "Recipe not found" });
+                    return Unauthorized(new { message = "Authentication required to view this recipe" });
                 }
 
-                // Check if recipe is public (Approved)
-                var isPublic = recipe.CurationStatus == "Approved";
-
-                if (!isPublic)
+                // Check if user is the author
+                if (recipe.AuthorId != currentPersonId.Value)
                 {
-                    // Recipe is private - require authentication and ownership
-                    var currentPersonId = GetCurrentPersonId();
-                    if (!currentPersonId.HasValue)
-                    {
-                        return Unauthorized(new { message = "Authentication required to view this recipe" });
-                    }
-
-                    // Check if user is the author
-                    if (recipe.AuthorId != currentPersonId.Value)
-                    {
-                        return Forbid("You do not have permission to view this recipe");
-                    }
+                    return Forbid("You do not have permission to view this recipe");
                 }
+            }
 
-                return Ok(recipe);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve recipe", error = ex.Message });
-            }
+            return Ok(recipe);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
         {
-            try
-            {
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                    return Unauthorized("User not authenticated");
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue)
+                return Unauthorized("User not authenticated");
 
-                var existing = await _recipeService.GetRecipeAsync(id);
-                if (existing == null)
-                    return NotFound(new { message = "Recipe not found" });
+            var existing = await _recipeService.GetRecipeAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Recipe not found" });
 
-                if (existing.AuthorId != currentPersonId.Value)
-                    return Forbid("You can only edit your own recipes");
+            if (existing.AuthorId != currentPersonId.Value)
+                return Forbid("You can only edit your own recipes");
 
-                var response = await _recipeService.UpdateRecipeAsync(id, request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to update recipe", error = ex.Message });
-            }
+            var response = await _recipeService.UpdateRecipeAsync(id, request);
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteRecipe(long id)
         {
-            try
-            {
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                    return Unauthorized("User not authenticated");
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue)
+                return Unauthorized("User not authenticated");
 
-                var existing = await _recipeService.GetRecipeAsync(id);
-                if (existing == null)
-                    return NotFound(new { message = "Recipe not found" });
+            var existing = await _recipeService.GetRecipeAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Recipe not found" });
 
-                if (existing.AuthorId != currentPersonId.Value)
-                    return Forbid("You can only delete your own recipes");
+            if (existing.AuthorId != currentPersonId.Value)
+                return Forbid("You can only delete your own recipes");
 
-                await _recipeService.DeleteRecipeAsync(id);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete recipe", error = ex.Message });
-            }
+            await _recipeService.DeleteRecipeAsync(id);
+            return NoContent();
         }
 
         [HttpGet("dashboard/analytics")]
         [ProducesResponseType(typeof(RecipeDashboardAnalyticsModel), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDashboardAnalytics()
         {
-            try
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
             {
-                var personId = GetCurrentPersonId();
-                if (!personId.HasValue)
-                {
-                    return Unauthorized("User not authenticated");
-                }
-                var analytics = await _recipeService.GetDashboardAnalyticsAsync(personId.Value);
-                return Ok(analytics);
+                return Unauthorized("User not authenticated");
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve dashboard analytics", error = ex.Message });
-            }
+            var analytics = await _recipeService.GetDashboardAnalyticsAsync(personId.Value);
+            return Ok(analytics);
         }
 
         // Recipe Comments Endpoints
         [HttpPost("{id}/comments")]
         public async Task<ActionResult<RecipeCommentResponseModel>> AddComment(long id, [FromBody] RecipeCommentCreateModel request)
         {
-            try
-            {
-                request.RecipeId = id;
-                var response = await _recipeService.AddCommentAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to add comment", error = ex.Message });
-            }
+            request.RecipeId = id;
+            var response = await _recipeService.AddCommentAsync(request);
+            return Ok(response);
         }
 
         [HttpGet("{id}/comments")]
         public async Task<ActionResult<List<RecipeCommentResponseModel>>> GetComments(long id)
         {
-            try
-            {
-                var comments = await _recipeService.GetCommentsAsync(id);
-                return Ok(comments);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve comments", error = ex.Message });
-            }
+            var comments = await _recipeService.GetCommentsAsync(id);
+            return Ok(comments);
         }
 
         [HttpDelete("comments/{commentId}")]
         public async Task<ActionResult> DeleteComment(long commentId)
         {
-            try
+            var success = await _recipeService.DeleteCommentAsync(commentId);
+            if (!success)
             {
-                var success = await _recipeService.DeleteCommentAsync(commentId);
-                if (!success)
-                {
-                    return NotFound(new { message = "Comment not found" });
-                }
-                return NoContent();
+                return NotFound(new { message = "Comment not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete comment", error = ex.Message });
-            }
+            return NoContent();
         }
 
         // Recipe Ratings Endpoints
         [HttpPost("{id}/ratings")]
         public async Task<ActionResult<RecipeRatingResponseModel>> AddRating(long id, [FromBody] RecipeRatingCreateModel request)
         {
-            try
-            {
-                request.RecipeId = id;
-                var response = await _recipeService.AddRatingAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to add rating", error = ex.Message });
-            }
+            request.RecipeId = id;
+            var response = await _recipeService.AddRatingAsync(request);
+            return Ok(response);
         }
 
         [HttpGet("{id}/ratings")]
         public async Task<ActionResult<List<RecipeRatingResponseModel>>> GetRatings(long id)
         {
-            try
-            {
-                var ratings = await _recipeService.GetRatingsAsync(id);
-                return Ok(ratings);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve ratings", error = ex.Message });
-            }
+            var ratings = await _recipeService.GetRatingsAsync(id);
+            return Ok(ratings);
         }
 
         [HttpPut("ratings/{ratingId}")]
         public async Task<ActionResult<RecipeRatingResponseModel>> UpdateRating(long ratingId, [FromBody] RecipeRatingUpdateModel request)
         {
-            try
+            var response = await _recipeService.UpdateRatingAsync(ratingId, request);
+            if (response == null)
             {
-                var response = await _recipeService.UpdateRatingAsync(ratingId, request);
-                if (response == null)
-                {
-                    return NotFound(new { message = "Rating not found" });
-                }
-                return Ok(response);
+                return NotFound(new { message = "Rating not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to update rating", error = ex.Message });
-            }
+            return Ok(response);
         }
 
         [HttpDelete("ratings/{ratingId}")]
         public async Task<ActionResult> DeleteRating(long ratingId)
         {
-            try
+            var success = await _recipeService.DeleteRatingAsync(ratingId);
+            if (!success)
             {
-                var success = await _recipeService.DeleteRatingAsync(ratingId);
-                if (!success)
-                {
-                    return NotFound(new { message = "Rating not found" });
-                }
-                return NoContent();
+                return NotFound(new { message = "Rating not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete rating", error = ex.Message });
-            }
+            return NoContent();
         }
 
         // Recipe Image/Asset Endpoints
@@ -316,96 +210,56 @@ namespace Nom.Api.Controllers
         [RequestSizeLimit(10_485_760)] // 10MB
         public async Task<ActionResult<RecipeAssetResponseModel>> UploadImage(long id, IFormFile file)
         {
-            try
-            {
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                    return Unauthorized("User not authenticated");
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue)
+                return Unauthorized("User not authenticated");
 
-                if (file == null || file.Length == 0)
-                    return BadRequest(new { message = "No file provided" });
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "No file provided" });
 
-                var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-                if (!allowedTypes.Contains(file.ContentType.ToLower()))
-                    return BadRequest(new { message = "Only JPEG, PNG, GIF, and WebP images are allowed" });
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                return BadRequest(new { message = "Only JPEG, PNG, GIF, and WebP images are allowed" });
 
-                using var ms = new System.IO.MemoryStream();
-                await file.CopyToAsync(ms);
-                var fileData = ms.ToArray();
+            using var ms = new System.IO.MemoryStream();
+            await file.CopyToAsync(ms);
+            var fileData = ms.ToArray();
 
-                var result = await _recipeService.UploadImageAsync(id, currentPersonId.Value, file.FileName, file.ContentType, fileData);
-                return Ok(result);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to upload image", error = ex.Message });
-            }
+            var result = await _recipeService.UploadImageAsync(id, currentPersonId.Value, file.FileName, file.ContentType, fileData);
+            return Ok(result);
         }
 
         [AllowAnonymous]
         [HttpGet("{id}/image")]
         public async Task<IActionResult> GetImage(long id)
         {
-            try
-            {
-                var result = await _recipeService.GetImageAsync(id);
-                if (result == null)
-                    return NotFound(new { message = "No image found for this recipe" });
+            var result = await _recipeService.GetImageAsync(id);
+            if (result == null)
+                return NotFound(new { message = "No image found for this recipe" });
 
-                var (fileData, contentType) = result.Value;
-                return File(fileData, contentType);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve image", error = ex.Message });
-            }
+            var (fileData, contentType) = result.Value;
+            return File(fileData, contentType);
         }
 
         [HttpDelete("{id}/image/{assetId}")]
         public async Task<ActionResult> DeleteImage(long id, long assetId)
         {
-            try
-            {
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                    return Unauthorized("User not authenticated");
+            var currentPersonId = GetCurrentPersonId();
+            if (!currentPersonId.HasValue)
+                return Unauthorized("User not authenticated");
 
-                var success = await _recipeService.DeleteImageAsync(id, assetId, currentPersonId.Value);
-                if (!success)
-                    return NotFound(new { message = "Image not found" });
+            var success = await _recipeService.DeleteImageAsync(id, assetId, currentPersonId.Value);
+            if (!success)
+                return NotFound(new { message = "Image not found" });
 
-                return NoContent();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to delete image", error = ex.Message });
-            }
+            return NoContent();
         }
 
         [HttpGet("{id}/assets")]
         public async Task<ActionResult<List<RecipeAssetResponseModel>>> GetAssets(long id)
         {
-            try
-            {
-                var assets = await _recipeService.GetAssetsAsync(id);
-                return Ok(assets);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Failed to retrieve assets", error = ex.Message });
-            }
+            var assets = await _recipeService.GetAssetsAsync(id);
+            return Ok(assets);
         }
     }
 }

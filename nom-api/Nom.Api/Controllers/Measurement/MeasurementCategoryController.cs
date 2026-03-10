@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Nom.Api.Controllers;
 using Nom.Orch.Interfaces.Measurement;
 using Nom.Orch.Models.Measurement;
@@ -16,14 +15,11 @@ namespace Nom.Api.Controllers.Measurement
     public class MeasurementCategoryController : BaseApiController
     {
         private readonly IMeasurementCategoryOrchestrationService _categoryOrchestrationService;
-        private readonly ILogger<MeasurementCategoryController> _logger;
 
         public MeasurementCategoryController(
-            IMeasurementCategoryOrchestrationService categoryOrchestrationService,
-            ILogger<MeasurementCategoryController> logger)
+            IMeasurementCategoryOrchestrationService categoryOrchestrationService)
         {
             _categoryOrchestrationService = categoryOrchestrationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -33,16 +29,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<MeasurementCategoryModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllCategories()
         {
-            try
-            {
-                var categories = await _categoryOrchestrationService.GetAllCategoriesAsync();
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement categories");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurement categories." });
-            }
+            var categories = await _categoryOrchestrationService.GetAllCategoriesAsync();
+            return Ok(categories);
         }
 
         /// <summary>
@@ -53,21 +41,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCategoryById(long id)
         {
-            try
+            var category = await _categoryOrchestrationService.GetCategoryByIdAsync(id);
+            if (category == null)
             {
-                var category = await _categoryOrchestrationService.GetCategoryByIdAsync(id);
-                if (category == null)
-                {
-                    return NotFound(new { message = $"Measurement category with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement category with ID {id} not found." });
+            }
 
-                return Ok(category);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurement category with ID {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the measurement category." });
-            }
+            return Ok(category);
         }
 
         /// <summary>
@@ -83,16 +63,8 @@ namespace Nom.Api.Controllers.Measurement
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var category = await _categoryOrchestrationService.CreateCategoryAsync(request);
-                return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating measurement category {Name}", request.Name);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while creating the measurement category." });
-            }
+            var category = await _categoryOrchestrationService.CreateCategoryAsync(request);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
         }
 
         /// <summary>
@@ -114,21 +86,13 @@ namespace Nom.Api.Controllers.Measurement
                 return BadRequest(new { message = "ID in request body must match route parameter." });
             }
 
-            try
+            var updated = await _categoryOrchestrationService.UpdateCategoryAsync(request);
+            if (!updated)
             {
-                var updated = await _categoryOrchestrationService.UpdateCategoryAsync(request);
-                if (!updated)
-                {
-                    return NotFound(new { message = $"Measurement category with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement category with ID {id} not found." });
+            }
 
-                return Ok(new { message = "Measurement category updated successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating measurement category {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating the measurement category." });
-            }
+            return Ok(new { message = "Measurement category updated successfully." });
         }
 
         /// <summary>
@@ -139,21 +103,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteCategory(long id)
         {
-            try
+            var deleted = await _categoryOrchestrationService.DeleteCategoryAsync(id);
+            if (!deleted)
             {
-                var deleted = await _categoryOrchestrationService.DeleteCategoryAsync(id);
-                if (!deleted)
-                {
-                    return NotFound(new { message = $"Measurement category with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Measurement category with ID {id} not found." });
+            }
 
-                return Ok(new { message = "Measurement category deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting measurement category {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while deleting the measurement category." });
-            }
+            return Ok(new { message = "Measurement category deleted successfully." });
         }
 
         /// <summary>
@@ -163,16 +119,8 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(typeof(List<MeasurementModel>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetMeasurementsInCategory(long id)
         {
-            try
-            {
-                var measurements = await _categoryOrchestrationService.GetMeasurementsInCategoryAsync(id);
-                return Ok(measurements);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving measurements in category {Id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving measurements in the category." });
-            }
+            var measurements = await _categoryOrchestrationService.GetMeasurementsInCategoryAsync(id);
+            return Ok(measurements);
         }
 
         /// <summary>
@@ -183,21 +131,13 @@ namespace Nom.Api.Controllers.Measurement
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> SetBaseUnit(long id, long measurementId)
         {
-            try
+            var set = await _categoryOrchestrationService.SetBaseUnitAsync(id, measurementId);
+            if (!set)
             {
-                var set = await _categoryOrchestrationService.SetBaseUnitAsync(id, measurementId);
-                if (!set)
-                {
-                    return NotFound(new { message = $"Category or measurement not found, or measurement does not belong to category." });
-                }
+                return NotFound(new { message = $"Category or measurement not found, or measurement does not belong to category." });
+            }
 
-                return Ok(new { message = "Base unit set successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error setting base unit {MeasurementId} for category {Id}", measurementId, id);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while setting the base unit." });
-            }
+            return Ok(new { message = "Base unit set successfully." });
         }
     }
 }

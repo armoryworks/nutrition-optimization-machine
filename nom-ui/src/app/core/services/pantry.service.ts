@@ -2,12 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  PantryItemResponse,
-  PantryItemCreateRequest,
-  PantryItemUpdateRequest,
-  ShoppingNeedsResponse,
-} from '../models/pantry.model';
+import { PantryItemResponse } from '../models/pantry-item-response.model';
+import { PantryItemCreateRequest } from '../models/pantry-item-create-request.model';
+import { PantryItemUpdateRequest } from '../models/pantry-item-update-request.model';
+import { ShoppingNeedsResponse } from '../models/shopping-needs-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class PantryService {

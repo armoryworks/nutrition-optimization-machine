@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Nom.Data.Reference
 {
@@ -8,10 +6,8 @@ namespace Nom.Data.Reference
     /// Abstract base class for all reference items. Implements Table-Per-Hierarchy (TPH).
     /// Maps to the 'Reference.References' table.
     /// </summary>
-    [Table("Reference", Schema ="reference")]
     public class ReferenceEntity : BaseEntity // Remains abstract
     {
-        [Required]
         public required string Name { get; set; }
         public string? Description { get; set; }
 

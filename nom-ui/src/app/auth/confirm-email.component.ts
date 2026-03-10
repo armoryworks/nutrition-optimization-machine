@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import { Component, inject, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,47 +9,9 @@ import { AuthService } from '../core/services/auth.service';
 @Component({
   selector: 'nom-confirm-email',
   imports: [RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
-  template: `
-    <div class="nom-form--card">
-      <div class="nom-form__card nom-form__card--narrow">
-        @if (loading()) {
-          <div class="nom-form__card-icon">
-            <mat-spinner diameter="48"></mat-spinner>
-          </div>
-          <div class="nom-form__card-header">
-            <h1 class="nom-form__card-title">Confirming your email...</h1>
-          </div>
-        } @else if (success()) {
-          <div class="nom-form__card-icon">
-            <mat-icon>check_circle</mat-icon>
-          </div>
-          <div class="nom-form__card-header">
-            <h1 class="nom-form__card-title">Email Confirmed</h1>
-            <p class="nom-form__card-subtitle">Your email has been confirmed. You can now sign in.</p>
-          </div>
-          <div class="nom-form__card-content">
-            <div class="nom-form__card-actions">
-              <a mat-flat-button routerLink="/home">Sign In</a>
-            </div>
-          </div>
-        } @else {
-          <div class="nom-form__card-icon">
-            <mat-icon>error_outline</mat-icon>
-          </div>
-          <div class="nom-form__card-header">
-            <h1 class="nom-form__card-title">Confirmation Failed</h1>
-            <p class="nom-form__card-subtitle">{{ error() }}</p>
-          </div>
-          <div class="nom-form__card-content">
-            <div class="nom-form__card-actions">
-              <a mat-flat-button routerLink="/home">Go to Sign In</a>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  `,
-  styles: ``,
+  templateUrl: './confirm-email.component.html',
+  styleUrl: './confirm-email.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfirmEmail {
   private route = inject(ActivatedRoute);

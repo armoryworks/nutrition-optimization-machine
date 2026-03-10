@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Identity; // Assuming IdentityUser is used here
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Plan;
 using Nom.Data.Audit; // For PlanEntity and PlanParticipantEntity
 using Nom.Data.Recipe; // For RecipeEntity relationships
@@ -13,14 +11,11 @@ namespace Nom.Data.Person
     /// Represents a person in the system, distinct from their Identity user account.
     /// A person can be an administrator, a plan participant, or a recipient of notifications.
     /// </summary>
-    [Table("Person", Schema = "person")]
     public class PersonEntity : BaseEntity
     {
         /// <summary>
         /// The display name for the person within the application (e.g., "John Doe", "Mom", "My Admin").
         /// </summary>
-        [Required]
-        [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
@@ -33,7 +28,6 @@ namespace Nom.Data.Person
         /// Optional email for non-user persons (e.g., dependents). For user-linked persons,
         /// the canonical email lives in ASP.NET Identity.
         /// </summary>
-        [MaxLength(255)]
         public string? Email { get; set; }
 
         public virtual ICollection<PlanParticipantEntity> PlanParticipations { get; set; } = new List<PlanParticipantEntity>();
@@ -43,13 +37,9 @@ namespace Nom.Data.Person
         public virtual ICollection<RestrictionEntity> Restrictions { get; set; } = new List<RestrictionEntity>();
 
         // User-specific features (from Mealie User entity) - Not mapped for now
-        [NotMapped]
         public virtual ICollection<RecipeEntity> FavoriteRecipes { get; set; } = new List<RecipeEntity>();
-        [NotMapped]
         public virtual ICollection<RecipeEntity> RatedRecipes { get; set; } = new List<RecipeEntity>();
-        [NotMapped]
         public virtual ICollection<RecipeRatingEntity> RecipeRatings { get; set; } = new List<RecipeRatingEntity>();
-        [NotMapped]
         public virtual ICollection<RecipeEntity> AuthoredRecipes { get; set; } = new List<RecipeEntity>();
     }
 }

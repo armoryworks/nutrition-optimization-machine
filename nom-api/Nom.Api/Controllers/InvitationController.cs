@@ -20,38 +20,16 @@ namespace Nom.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<InvitationModel>> CreateInvitation([FromBody] CreateInvitationRequest request)
         {
-            try
-            {
-                var inviterPersonId = GetCurrentPersonIdRequired();
-                var invitation = await _invitationOrchestrationService.CreateInvitationAsync(request, inviterPersonId);
-                return Ok(invitation);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var inviterPersonId = GetCurrentPersonIdRequired();
+            var invitation = await _invitationOrchestrationService.CreateInvitationAsync(request, inviterPersonId);
+            return Ok(invitation);
         }
 
         [HttpPost("claim")]
         public async Task<ActionResult<InvitationModel>> ClaimInvitation([FromBody] ClaimInvitationRequest request)
         {
-            try
-            {
-                var invitation = await _invitationOrchestrationService.ClaimInvitationAsync(request);
-                return Ok(invitation);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { error = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var invitation = await _invitationOrchestrationService.ClaimInvitationAsync(request);
+            return Ok(invitation);
         }
 
         [HttpGet("validate/{code}")]

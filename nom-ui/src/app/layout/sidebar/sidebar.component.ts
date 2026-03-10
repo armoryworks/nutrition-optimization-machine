@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, startWith, map, switchMap, of } from 'rxjs';
@@ -6,7 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MealPlanService } from '../../core/services/meal-plan.service';
 import { HouseholdService } from '../../core/services/household.service';
-import { MealPlanWeekResponse, MealPlanEntry } from '../../core/models/meal-plan.model';
+import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
+import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 
 interface UpcomingMeal {
   dayLabel: string;
@@ -18,7 +19,8 @@ interface UpcomingMeal {
   selector: 'nom-sidebar',
   imports: [RouterLink, MatIconModule, MatButtonModule],
   templateUrl: './sidebar.component.html',
-  styleUrl: './sidebar.component.scss'
+  styleUrl: './sidebar.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Sidebar {
   private router = inject(Router);

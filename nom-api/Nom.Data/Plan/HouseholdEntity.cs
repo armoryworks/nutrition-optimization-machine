@@ -2,30 +2,21 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Audit;
 using Nom.Data.Person;
 using Nom.Data.Recipe;
 namespace Nom.Data.Plan
 {
-    [Table("Household", Schema = "plan")]
     public class HouseholdEntity : BaseEntity
     {
-        [Required]
-        [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(255)]
         public string? Slug { get; set; }
 
-        [MaxLength(2047)]
         public string? Description { get; set; }
 
         // Household group association
-        [Required]
         public long HouseholdGroupId { get; set; }
-        [ForeignKey(nameof(HouseholdGroupId))]
         public virtual HouseholdGroupEntity? HouseholdGroup { get; set; }
 
         // Navigation properties

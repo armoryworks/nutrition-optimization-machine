@@ -1,6 +1,6 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { RecipeNutritionModel } from '../../../core/models/recipe.model';
+import { RecipeNutritionModel } from '../../../core/models/recipe-nutrition.model';
 
 interface NutrientDisplayRow {
   displayName: string;
@@ -39,7 +39,8 @@ const FDA_NUTRIENT_ORDER: NutrientDisplayConfig[] = [
   selector: 'nom-nutrition-label',
   imports: [DecimalPipe],
   templateUrl: './nutrition-label.component.html',
-  styleUrl: './nutrition-label.component.scss'
+  styleUrl: './nutrition-label.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NutritionLabel {
   nutrition = input<RecipeNutritionModel[]>([]);

@@ -31,16 +31,8 @@ namespace Nom.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ShoppingListResponseModel>>> GetShoppingLists()
         {
-            try
-            {
-                var shoppingLists = await _shoppingListOrchestrationService.GetAllShoppingListsAsync();
-                return Ok(shoppingLists);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetShoppingLists.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to retrieve shopping lists", error = ex.Message });
-            }
+            var shoppingLists = await _shoppingListOrchestrationService.GetAllShoppingListsAsync();
+            return Ok(shoppingLists);
         }
 
         [HttpPost]
@@ -53,17 +45,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var authorId = GetCurrentPersonIdRequired();
-                var response = await _shoppingListOrchestrationService.CreateShoppingListAsync(model, authorId);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in CreateShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var authorId = GetCurrentPersonIdRequired();
+            var response = await _shoppingListOrchestrationService.CreateShoppingListAsync(model, authorId);
+            return Ok(response);
         }
 
         [HttpGet("{id}")]
@@ -71,40 +55,24 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetShoppingList([Required] long id)
         {
-            try
+            var response = await _shoppingListOrchestrationService.GetShoppingListAsync(id);
+            if (response == null)
             {
-                var response = await _shoppingListOrchestrationService.GetShoppingListAsync(id);
-                if (response == null)
-                {
-                    return NotFound();
-                }
-                return Ok(response);
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in GetShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(response);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<ShoppingListResponseModel>> UpdateShoppingList(long id, [FromBody] ShoppingListUpdateModel request)
         {
-            try
+            var response = await _shoppingListOrchestrationService.UpdateShoppingListAsync(id, request);
+            if (response == null)
             {
-                var response = await _shoppingListOrchestrationService.UpdateShoppingListAsync(id, request);
-                if (response == null)
-                {
-                    _logger.LogWarning("Shopping list with ID {ShoppingListId} not found for update.", id);
-                    return NotFound(new { message = "Shopping list not found" });
-                }
-                return Ok(response);
+                _logger.LogWarning("Shopping list with ID {ShoppingListId} not found for update.", id);
+                return NotFound(new { message = "Shopping list not found" });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to update shopping list", error = ex.Message });
-            }
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
@@ -112,20 +80,12 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteShoppingList([Required] long id)
         {
-            try
+            var success = await _shoppingListOrchestrationService.DeleteShoppingListAsync(id);
+            if (!success)
             {
-                var success = await _shoppingListOrchestrationService.DeleteShoppingListAsync(id);
-                if (!success)
-                {
-                    return NotFound();
-                }
-                return Ok(new { Message = "Shopping list deleted successfully." });
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(new { Message = "Shopping list deleted successfully." });
         }
 
         [HttpPost("item")]
@@ -138,16 +98,8 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _shoppingListOrchestrationService.AddItemAsync(model);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in AddItem.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            var response = await _shoppingListOrchestrationService.AddItemAsync(model);
+            return Ok(response);
         }
 
         [HttpPut("item/{id}")]
@@ -161,20 +113,12 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var response = await _shoppingListOrchestrationService.UpdateItemAsync(id, model);
+            if (response == null)
             {
-                var response = await _shoppingListOrchestrationService.UpdateItemAsync(id, model);
-                if (response == null)
-                {
-                    return NotFound();
-                }
-                return Ok(response);
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UpdateItem.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(response);
         }
 
         [HttpDelete("item/{id}")]
@@ -182,103 +126,63 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteItem([Required] long id)
         {
-            try
+            var success = await _shoppingListOrchestrationService.DeleteItemAsync(id);
+            if (!success)
             {
-                var success = await _shoppingListOrchestrationService.DeleteItemAsync(id);
-                if (!success)
-                {
-                    return NotFound();
-                }
-                return Ok(new { Message = "Shopping list item deleted successfully." });
+                return NotFound();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in DeleteItem.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            return Ok(new { Message = "Shopping list item deleted successfully." });
         }
 
         // Recipe Integration Endpoints
         [HttpPost("{id}/recipe/{recipeId}")]
         public async Task<ActionResult<ShoppingListResponseModel>> AddRecipeIngredients(long id, long recipeId, [FromBody] ShoppingListRecipeAddModel request)
         {
-            try
-            {
-                request.ShoppingListId = id;
-                request.RecipeId = recipeId;
-                var response = await _shoppingListOrchestrationService.AddRecipeIngredientsAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in AddRecipeIngredients.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to add recipe ingredients", error = ex.Message });
-            }
+            request.ShoppingListId = id;
+            request.RecipeId = recipeId;
+            var response = await _shoppingListOrchestrationService.AddRecipeIngredientsAsync(request);
+            return Ok(response);
         }
 
         [HttpDelete("{id}/recipe/{recipeId}")]
         public async Task<ActionResult<ShoppingListResponseModel>> RemoveRecipeIngredients(long id, long recipeId, [FromBody] ShoppingListRecipeRemoveModel request)
         {
-            try
-            {
-                request.ShoppingListId = id;
-                request.RecipeId = recipeId;
-                var response = await _shoppingListOrchestrationService.RemoveRecipeIngredientsAsync(request);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in RemoveRecipeIngredients.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to remove recipe ingredients", error = ex.Message });
-            }
+            request.ShoppingListId = id;
+            request.RecipeId = recipeId;
+            var response = await _shoppingListOrchestrationService.RemoveRecipeIngredientsAsync(request);
+            return Ok(response);
         }
 
         [HttpPost("{id}/share")]
         public async Task<IActionResult> ShareShoppingList(long id, [FromBody] ShoppingListShareRequest request)
         {
-            try
-            {
-                var exists = await _db.ShoppingListShares
-                    .AnyAsync(s => s.ShoppingListId == id && s.PersonId == request.PersonId);
+            var exists = await _db.ShoppingListShares
+                .AnyAsync(s => s.ShoppingListId == id && s.PersonId == request.PersonId);
 
-                if (exists)
-                    return Conflict(new { message = "Shopping list is already shared with this person." });
+            if (exists)
+                return Conflict(new { message = "Shopping list is already shared with this person." });
 
-                _db.ShoppingListShares.Add(new ShoppingListShareEntity
-                {
-                    ShoppingListId = id,
-                    PersonId = request.PersonId
-                });
-                await _db.SaveChangesAsync();
-                return Ok(new { message = "Shopping list shared successfully." });
-            }
-            catch (Exception ex)
+            _db.ShoppingListShares.Add(new ShoppingListShareEntity
             {
-                _logger.LogError(ex, "An error occurred in ShareShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+                ShoppingListId = id,
+                PersonId = request.PersonId
+            });
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Shopping list shared successfully." });
         }
 
         [HttpDelete("{id}/share/{personId}")]
         public async Task<IActionResult> UnshareShoppingList(long id, long personId)
         {
-            try
-            {
-                var share = await _db.ShoppingListShares
-                    .FirstOrDefaultAsync(s => s.ShoppingListId == id && s.PersonId == personId);
+            var share = await _db.ShoppingListShares
+                .FirstOrDefaultAsync(s => s.ShoppingListId == id && s.PersonId == personId);
 
-                if (share == null)
-                    return NotFound(new { message = "Share not found." });
+            if (share == null)
+                return NotFound(new { message = "Share not found." });
 
-                _db.ShoppingListShares.Remove(share);
-                await _db.SaveChangesAsync();
-                return Ok(new { message = "Shopping list unshared successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred in UnshareShoppingList.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
-            }
+            _db.ShoppingListShares.Remove(share);
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Shopping list unshared successfully." });
         }
     }
-} 
+}

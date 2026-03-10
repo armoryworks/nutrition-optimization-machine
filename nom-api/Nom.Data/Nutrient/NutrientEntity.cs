@@ -1,7 +1,5 @@
 // Nom.Data/Nutrient/NutrientEntity.cs
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Nom.Data.Reference; // For other references
 using Nom.Data.Measurement; // For Measurement reference
 
@@ -11,25 +9,20 @@ namespace Nom.Data.Nutrient
     /// Represents a distinct nutritional component (e.g., Protein, Vitamin C, Calcium).
     /// Maps to the 'Nutrient.nutrient' table.
     /// </summary>
-    [Table("Nutrient", Schema = "nutrient")]
     public class NutrientEntity : BaseEntity
     {
         /// <summary>
         /// The unique name of the nutrient (e.g., "Protein", "Vitamin C").
         /// Corresponds to VARCHAR(255) NOT NULL.
         /// </summary>
-        [Required]
-        [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// A brief description of the nutrient's function or source.
         /// Corresponds to VARCHAR(1023) NULLABLE.
         /// </summary>
-        [MaxLength(1023)]
         public string? Description { get; set; }
 
-        [Column(TypeName = "decimal(18,4)")]
         public decimal? Rank { get; set; }
 
         /// <summary>
@@ -42,7 +35,6 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Navigation property to the associated default MeasurementEntity.
         /// </summary>
-        [ForeignKey(nameof(DefaultMeasurementId))]
         public virtual MeasurementEntity DefaultMeasurement { get; set; } = default!;
 
         /// <summary>
@@ -54,7 +46,6 @@ namespace Nom.Data.Nutrient
         /// <summary>
         /// Navigation property to the parent NutrientEntity.
         /// </summary>
-        [ForeignKey(nameof(ParentNutrientId))]
         public virtual NutrientEntity? ParentNutrient { get; set; }
 
         /// <summary>
@@ -67,7 +58,6 @@ namespace Nom.Data.Nutrient
         /// Useful for traceability and linking back to the FDC database.
         /// Corresponds to VARCHAR(50) NULLABLE.
         /// </summary>
-        [MaxLength(50)] // FDC nutrient IDs are integers, but stored as string to match general FdcId pattern
         public string? FdcId { get; set; }
 
         /// <summary>
