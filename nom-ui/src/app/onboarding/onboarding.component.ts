@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,6 +34,7 @@ export class Onboarding implements OnInit {
   private authService = inject(AuthService);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   currentStep = signal(0);
   completedSteps = signal<Set<number>>(new Set());
@@ -58,7 +60,8 @@ export class Onboarding implements OnInit {
     }
 
     this.personService.getOnboardingState(personId).pipe(
-      this.loadingService.loading('Checking your progress...')
+      this.loadingService.loading('Checking your progress...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (state) => {
         if (state.isComplete) {
@@ -105,7 +108,8 @@ export class Onboarding implements OnInit {
     };
 
     this.personService.saveProfile(personId, request).pipe(
-      this.loadingService.loading('Saving profile...')
+      this.loadingService.loading('Saving profile...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.profileSaved.set(true);
@@ -129,7 +133,8 @@ export class Onboarding implements OnInit {
     }
 
     this.personService.saveRestrictions(personId, restrictions).pipe(
-      this.loadingService.loading('Saving dietary preferences...')
+      this.loadingService.loading('Saving dietary preferences...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.markComplete(1);
@@ -215,6 +220,7 @@ export class Onboarding implements OnInit {
     this.personService.completeOnboarding(personId, request).pipe(
       this.loadingService.loading('Setting up your account...'),
       switchMap(() => this.authService.refreshClaims()),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.router.navigate(['/home']);

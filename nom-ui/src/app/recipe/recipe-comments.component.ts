@@ -1,4 +1,5 @@
-import { Component, inject, input, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,7 @@ import { RecipeCommentResponseModel } from '../core/models/recipe-comment-respon
 })
 export class RecipeComments implements OnInit {
   private recipeService = inject(RecipeService);
+  private destroyRef = inject(DestroyRef);
 
   recipeId = input.required<number>();
   currentPersonId = input<number | null>(null);
@@ -32,7 +34,7 @@ export class RecipeComments implements OnInit {
 
   loadComments(): void {
     this.loading.set(true);
-    this.recipeService.getComments(this.recipeId()).subscribe({
+    this.recipeService.getComments(this.recipeId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (comments) => {
         // Newest first
         this.comments.set(comments.sort((a, b) =>
@@ -52,7 +54,7 @@ export class RecipeComments implements OnInit {
     if (!text) return;
 
     this.submitting.set(true);
-    this.recipeService.addComment(this.recipeId(), text).subscribe({
+    this.recipeService.addComment(this.recipeId(), text).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (comment) => {
         this.comments.set([comment, ...this.comments()]);
         this.newCommentText.setValue('');
@@ -65,7 +67,7 @@ export class RecipeComments implements OnInit {
   }
 
   onDeleteComment(commentId: number): void {
-    this.recipeService.deleteComment(commentId).subscribe({
+    this.recipeService.deleteComment(commentId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.comments.set(this.comments().filter(c => c.id !== commentId));
       }

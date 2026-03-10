@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -30,6 +30,7 @@ export class ResetPassword {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   private queryParams = toSignal(this.route.queryParams);
   private email = computed(() => this.queryParams()?.['email'] ?? '');
@@ -59,7 +60,7 @@ export class ResetPassword {
     this.errorMessage.set('');
 
     const { newPassword, confirmNewPassword } = this.resetForm.getRawValue();
-    this.authService.resetPassword(this.email(), this.token(), newPassword!, confirmNewPassword!).subscribe({
+    this.authService.resetPassword(this.email(), this.token(), newPassword!, confirmNewPassword!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/home']);

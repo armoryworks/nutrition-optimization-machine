@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
@@ -22,6 +23,7 @@ interface RecipeCategory {
 export class Home implements OnInit {
   private recipeSearch = inject(RecipeSearchService);
   private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
 
   isLoggedIn = computed(() => this.authService.isLoggedIn());
   categories = signal<RecipeCategory[]>([]);
@@ -38,7 +40,7 @@ export class Home implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    this.recipeSearch.getPopular(50).subscribe({
+    this.recipeSearch.getPopular(50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.categories.set(this.groupByCategory(response.results));
         this.loading.set(false);

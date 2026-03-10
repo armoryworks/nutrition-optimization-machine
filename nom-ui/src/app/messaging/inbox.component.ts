@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +28,7 @@ export class Inbox implements OnInit {
   private router = inject(Router);
   private messagingService = inject(MessagingService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   threads = signal<MessageThread[]>([]);
   loading = signal(true);
@@ -49,7 +51,8 @@ export class Inbox implements OnInit {
   private loadThreads(): void {
     this.loading.set(true);
     this.messagingService.getThreads().pipe(
-      this.loadingService.loading('Loading messages...')
+      this.loadingService.loading('Loading messages...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (threads) => {
         this.threads.set(threads);
@@ -75,25 +78,25 @@ export class Inbox implements OnInit {
   }
 
   pin(thread: MessageThread): void {
-    this.messagingService.pinThread(thread.id).subscribe(() => {
+    this.messagingService.pinThread(thread.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.threads.update(list => list.map(t => t.id === thread.id ? { ...t, isPinned: true } : t));
     });
   }
 
   unpin(thread: MessageThread): void {
-    this.messagingService.unpinThread(thread.id).subscribe(() => {
+    this.messagingService.unpinThread(thread.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.threads.update(list => list.map(t => t.id === thread.id ? { ...t, isPinned: false } : t));
     });
   }
 
   archive(thread: MessageThread): void {
-    this.messagingService.archiveThread(thread.id).subscribe(() => {
+    this.messagingService.archiveThread(thread.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.threads.update(list => list.map(t => t.id === thread.id ? { ...t, isArchived: true } : t));
     });
   }
 
   deleteThread(thread: MessageThread): void {
-    this.messagingService.deleteThread(thread.id).subscribe(() => {
+    this.messagingService.deleteThread(thread.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.threads.update(list => list.filter(t => t.id !== thread.id));
     });
   }

@@ -1,4 +1,5 @@
-import { Component, computed, inject, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, output, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class UserMenu {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   closed = output<void>();
 
@@ -24,7 +26,7 @@ export class UserMenu {
   });
 
   onLogout(): void {
-    this.authService.logout().subscribe(() => {
+    this.authService.logout().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.router.navigate(['/home']);
     });
     this.closed.emit();

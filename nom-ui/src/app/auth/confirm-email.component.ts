@@ -1,6 +1,6 @@
-import { Component, inject, signal, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, effect, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,6 +16,7 @@ import { AuthService } from '../core/services/auth.service';
 export class ConfirmEmail {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
 
   private queryParams = toSignal(this.route.queryParams);
 
@@ -37,7 +38,7 @@ export class ConfirmEmail {
         return;
       }
 
-      this.authService.confirmEmail(userId, token).subscribe({
+      this.authService.confirmEmail(userId, token).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.success.set(true);
           this.loading.set(false);

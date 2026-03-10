@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,7 @@ import { IngredientEditModel } from '../core/models/ingredient-edit.model';
 export class MyIngredients implements OnInit {
   private ingredientService = inject(IngredientService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   ingredients = signal<IngredientEditModel[]>([]);
   loading = signal(true);
@@ -27,7 +29,8 @@ export class MyIngredients implements OnInit {
 
   ngOnInit(): void {
     this.ingredientService.getMyIngredients().pipe(
-      this.loadingService.loading('Loading ingredients...')
+      this.loadingService.loading('Loading ingredients...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (data) => {
         this.ingredients.set(data);

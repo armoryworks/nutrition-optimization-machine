@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -24,6 +25,7 @@ export class CuratedPlans implements OnInit {
   private loadingService = inject(LoadingService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   plans = signal<PlanModel[]>([]);
   loading = signal(true);
@@ -32,6 +34,7 @@ export class CuratedPlans implements OnInit {
   ngOnInit(): void {
     this.planService.getCuratedPlans().pipe(
       this.loadingService.loading('Loading curated plans...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (plans) => {
         this.plans.set(plans);

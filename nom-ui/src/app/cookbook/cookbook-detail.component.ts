@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { MatIconModule } from '@angular/material/icon';
@@ -33,6 +34,8 @@ export class CookbookDetail implements OnInit {
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
 
+  private destroyRef = inject(DestroyRef);
+
   cookbook = signal<CookbookResponseModel | null>(null);
   recipes = signal<RecipeModel[]>([]);
   loading = signal(true);
@@ -54,7 +57,9 @@ export class CookbookDetail implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.cookbookService.getCookbook(this.cookbookId).subscribe({
+    this.cookbookService.getCookbook(this.cookbookId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (cookbook) => {
         this.cookbook.set(cookbook);
         this.loadRecipes();
@@ -67,7 +72,9 @@ export class CookbookDetail implements OnInit {
   }
 
   private loadRecipes(): void {
-    this.cookbookService.getRecipes(this.cookbookId).subscribe({
+    this.cookbookService.getRecipes(this.cookbookId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (recipes) => {
         this.recipes.set(recipes);
         this.loading.set(false);
@@ -126,7 +133,9 @@ export class CookbookDetail implements OnInit {
   }
 
   onRemoveRecipe(recipeId: number): void {
-    this.cookbookService.removeRecipe(this.cookbookId, recipeId).subscribe({
+    this.cookbookService.removeRecipe(this.cookbookId, recipeId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => {
         this.recipes.update(list => list.filter(r => r.id !== recipeId));
         // Update the recipe count on the cookbook signal

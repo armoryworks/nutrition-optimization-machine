@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, viewChild, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, viewChild, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,6 +37,7 @@ export class AddMemberDialog implements OnInit {
   data: AddMemberDialogData = inject(MAT_DIALOG_DATA);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   loading = signal(false);
   errorMessage = signal('');
@@ -68,7 +70,8 @@ export class AddMemberDialog implements OnInit {
       email: profileData.email,
       householdId: this.data.householdId,
     }).pipe(
-      this.loadingService.loading(this.isEditMode() ? 'Saving profile...' : 'Creating member profile...')
+      this.loadingService.loading(this.isEditMode() ? 'Saving profile...' : 'Creating member profile...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (person) => {
         this.createdPersonId.set(person.id);
@@ -90,7 +93,7 @@ export class AddMemberDialog implements OnInit {
     }
 
     this.loading.set(true);
-    this.personService.saveRestrictions(personId, restrictions).subscribe({
+    this.personService.saveRestrictions(personId, restrictions).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.close();
@@ -116,7 +119,8 @@ export class AddMemberDialog implements OnInit {
 
   private loadExistingData(personId: number): void {
     this.personService.getOnboardingState(personId).pipe(
-      this.loadingService.loading('Loading member data...')
+      this.loadingService.loading('Loading member data...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (state) => {
         this.profileInitialData.set({

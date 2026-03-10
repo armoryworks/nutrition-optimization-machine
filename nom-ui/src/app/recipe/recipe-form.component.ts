@@ -94,11 +94,15 @@ export class RecipeForm implements OnInit {
   submitLabel = computed(() => this.isEditMode() ? 'Save Changes' : 'Create Recipe');
 
   ngOnInit(): void {
-    this.measurementService.loadMeasurements().subscribe({
+    this.measurementService.loadMeasurements().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (data) => this.measurements.set(data),
     });
 
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(params => {
       const id = params['id'];
       if (id) {
         this.isEditMode.set(true);
@@ -232,6 +236,7 @@ export class RecipeForm implements OnInit {
         steps,
       }).pipe(
         this.loadingService.loading('Saving recipe...'),
+        takeUntilDestroyed(this.destroyRef),
       ).subscribe({
         next: () => {
           this.saving.set(false);
@@ -250,6 +255,7 @@ export class RecipeForm implements OnInit {
         steps,
       }).pipe(
         this.loadingService.loading('Creating recipe...'),
+        takeUntilDestroyed(this.destroyRef),
       ).subscribe({
         next: (res) => {
           this.saving.set(false);
@@ -279,6 +285,7 @@ export class RecipeForm implements OnInit {
       if (!confirmed) return;
       this.recipeService.deleteRecipe(id).pipe(
         this.loadingService.loading('Deleting recipe...'),
+        takeUntilDestroyed(this.destroyRef),
       ).subscribe({
         next: () => this.router.navigate(['/recipes/mine']),
         error: () => this.errorMessage.set('Failed to delete recipe. Please try again.'),
@@ -305,6 +312,7 @@ export class RecipeForm implements OnInit {
 
     this.recipeService.uploadImage(id, file).pipe(
       this.loadingService.loading('Uploading image...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (result) => {
         this.currentImageUrl.set(`/api/recipe/${id}/image?t=${Date.now()}`);
@@ -324,6 +332,7 @@ export class RecipeForm implements OnInit {
 
     this.recipeService.deleteImage(id, assetId).pipe(
       this.loadingService.loading('Removing image...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.currentImageUrl.set(null);
@@ -338,6 +347,7 @@ export class RecipeForm implements OnInit {
   private loadRecipe(id: number): void {
     this.recipeService.getRecipe(id).pipe(
       this.loadingService.loading('Loading recipe...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (recipe) => {
         this.recipeForm.patchValue({
@@ -380,7 +390,9 @@ export class RecipeForm implements OnInit {
         if (recipe.imageUrl) {
           this.currentImageUrl.set(recipe.imageUrl);
           // Load assets to get the current asset ID for deletion
-          this.recipeService.getAssets(id).subscribe({
+          this.recipeService.getAssets(id).pipe(
+            takeUntilDestroyed(this.destroyRef),
+          ).subscribe({
             next: (assets) => {
               if (assets.length > 0) {
                 this.currentAssetId.set(assets[0].id);

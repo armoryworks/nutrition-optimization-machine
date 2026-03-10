@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,6 +43,7 @@ export class RecipeSearchDialog implements OnInit {
   data: RecipeSearchDialogData = inject(MAT_DIALOG_DATA);
   private recipeSearchService = inject(RecipeSearchService);
   private mealPlanService = inject(MealPlanService);
+  private destroyRef = inject(DestroyRef);
 
   entries = signal<MealPlanEntry[]>([]);
   changed = signal(false);
@@ -78,6 +80,7 @@ export class RecipeSearchDialog implements OnInit {
           includeNutrition: false,
         });
       }),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (response) => {
         this.searching.set(false);
@@ -97,7 +100,9 @@ export class RecipeSearchDialog implements OnInit {
 
   surpriseMe(): void {
     this.rouletteLoading.set(true);
-    this.recipeSearchService.getRandom(1, this.data.householdId).subscribe({
+    this.recipeSearchService.getRandom(1, this.data.householdId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (response) => {
         this.rouletteLoading.set(false);
         if (response.results.length > 0) {
@@ -119,7 +124,9 @@ export class RecipeSearchDialog implements OnInit {
       title: recipe.name,
       notes: null,
       recipeId: recipe.id,
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (response) => {
         this.entries.update(list => [...list, {
           id: response.id,
@@ -158,7 +165,9 @@ export class RecipeSearchDialog implements OnInit {
       title: title || null,
       notes: notes || null,
       recipeId: null,
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (response) => {
         this.entries.update(list => [...list, {
           id: response.id,
@@ -186,7 +195,9 @@ export class RecipeSearchDialog implements OnInit {
 
   removeEntry(entry: MealPlanEntry): void {
     this.busy.set(true);
-    this.mealPlanService.deleteMealPlan(entry.id).subscribe({
+    this.mealPlanService.deleteMealPlan(entry.id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => {
         this.entries.update(list => list.filter(e => e.id !== entry.id));
         this.changed.set(true);
@@ -205,7 +216,9 @@ export class RecipeSearchDialog implements OnInit {
     this.busy.set(true);
     let completed = 0;
     for (const id of ids) {
-      this.mealPlanService.deleteMealPlan(id).subscribe({
+      this.mealPlanService.deleteMealPlan(id).pipe(
+        takeUntilDestroyed(this.destroyRef),
+      ).subscribe({
         next: () => {
           completed++;
           if (completed === ids.length) {

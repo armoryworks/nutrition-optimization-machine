@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -36,6 +37,8 @@ export class PlanRules implements OnInit {
   private householdService = inject(HouseholdService);
   private loadingService = inject(LoadingService);
 
+  private destroyRef = inject(DestroyRef);
+
   rules = signal<MealPlanRule[]>([]);
   loading = signal(true);
   saving = signal(false);
@@ -51,7 +54,9 @@ export class PlanRules implements OnInit {
   });
 
   ngOnInit(): void {
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (list) => {
         if (list.length > 0) {
           this.householdId.set(list[0].id);
@@ -71,7 +76,8 @@ export class PlanRules implements OnInit {
   private loadRules(): void {
     this.loading.set(true);
     this.mealPlanService.getRules(this.householdId()).pipe(
-      this.loadingService.loading('Loading rules...')
+      this.loadingService.loading('Loading rules...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (rules) => {
         this.rules.set(rules);
@@ -97,7 +103,9 @@ export class PlanRules implements OnInit {
       queryFilter: form.queryFilter ?? '',
       maxRecipes: form.maxRecipes!,
       isActive: form.isActive ?? true,
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (rule) => {
         this.rules.update(r => [...r, rule]);
         this.ruleForm.reset({ maxRecipes: 3, isActive: true });
@@ -111,7 +119,9 @@ export class PlanRules implements OnInit {
   }
 
   deleteRule(id: number): void {
-    this.mealPlanService.deleteRule(id).subscribe({
+    this.mealPlanService.deleteRule(id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => this.rules.update(r => r.filter(rule => rule.id !== id)),
       error: () => this.errorMessage.set('Failed to delete rule.'),
     });

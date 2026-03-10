@@ -1,4 +1,5 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,6 +27,7 @@ import { AuthService } from '../core/services/auth.service';
 export class ForgotPassword {
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
 
   forgotForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -42,7 +44,7 @@ export class ForgotPassword {
     this.errorMessage.set('');
 
     const { email } = this.forgotForm.getRawValue();
-    this.authService.forgotPassword(email!).subscribe({
+    this.authService.forgotPassword(email!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.submitted.set(true);

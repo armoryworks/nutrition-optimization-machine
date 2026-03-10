@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
 import { MatIconModule } from '@angular/material/icon';
@@ -32,6 +33,8 @@ export class CookbookList implements OnInit {
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
 
+  private destroyRef = inject(DestroyRef);
+
   cookbooks = signal<CookbookResponseModel[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -45,7 +48,9 @@ export class CookbookList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (households) => {
         if (households.length > 0) {
           this.householdId.set(households[0].id);
@@ -66,7 +71,9 @@ export class CookbookList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.cookbookService.getCookbooks(this.householdId()).subscribe({
+    this.cookbookService.getCookbooks(this.householdId()).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (cookbooks) => {
         this.cookbooks.set(cookbooks);
         this.loading.set(false);

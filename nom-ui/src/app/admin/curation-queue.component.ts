@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -29,6 +30,7 @@ import { LoadingService } from '../core/services/loading.service';
 export class CurationQueue implements OnInit {
   private adminService = inject(AdminService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   items = signal<CurationQueueItem[]>([]);
   loading = signal(true);
@@ -45,7 +47,8 @@ export class CurationQueue implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
     this.adminService.getCurationQueue().pipe(
-      this.loadingService.loading('Loading curation queue...')
+      this.loadingService.loading('Loading curation queue...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (items) => {
         this.items.set(items);
@@ -64,7 +67,7 @@ export class CurationQueue implements OnInit {
       entityId: item.entityId,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);
@@ -84,7 +87,7 @@ export class CurationQueue implements OnInit {
       entityId: item.entityId,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);
@@ -104,7 +107,7 @@ export class CurationQueue implements OnInit {
       entityId: item.entityId,
       entityType: item.entityType,
       feedbackNotes: this.feedbackNotes.value ?? '',
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.items.update(list => list.filter(i => i.id !== item.id));
         this.expandedId.set(null);

@@ -1,6 +1,6 @@
-import { Component, inject, signal, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, effect, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { RecipeSearchService } from '../core/services/recipe-search.service';
 import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
@@ -15,6 +15,7 @@ import { RecipeSearchResult } from '../core/models/recipe-search-result.model';
 export class Search {
   private route = inject(ActivatedRoute);
   private recipeSearch = inject(RecipeSearchService);
+  private destroyRef = inject(DestroyRef);
 
   query = signal('');
   results = signal<RecipeSearchResult[]>([]);
@@ -37,7 +38,7 @@ export class Search {
     this.error.set('');
 
     if (!query.trim()) {
-      this.recipeSearch.getPopular(50).subscribe({
+      this.recipeSearch.getPopular(50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (response) => {
           this.results.set(response.results);
           this.totalCount.set(response.totalCount);
@@ -58,7 +59,7 @@ export class Search {
       includeIngredients: false,
       includeSteps: false,
       includeNutrition: false,
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.results.set(response.results);
         this.totalCount.set(response.totalCount);

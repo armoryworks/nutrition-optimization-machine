@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, effect, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,12 +25,15 @@ import { LoadingService } from '../core/services/loading.service';
   styleUrl: './ingredient-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class IngredientForm implements OnInit {
+export class IngredientForm {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private ingredientService = inject(IngredientService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
+
+  private routeParams = toSignal(this.route.params);
 
   isEditMode = signal(false);
   ingredientId = signal<number | null>(null);
@@ -48,9 +52,10 @@ export class IngredientForm implements OnInit {
   pageTitle = computed(() => this.isEditMode() ? 'Edit Ingredient' : 'New Ingredient');
   pageSubtitle = computed(() => this.isEditMode() ? 'Update ingredient details' : 'Create a custom ingredient');
 
-  ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      const id = params['id'];
+  constructor() {
+    effect(() => {
+      const params = this.routeParams();
+      const id = params?.['id'];
       if (id) {
         this.isEditMode.set(true);
         this.ingredientId.set(Number(id));
@@ -62,7 +67,8 @@ export class IngredientForm implements OnInit {
   private loadIngredient(id: number): void {
     this.loading.set(true);
     this.ingredientService.getIngredient(id).pipe(
-      this.loadingService.loading('Loading ingredient...')
+      this.loadingService.loading('Loading ingredient...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (ing) => {
         this.ingredientForm.patchValue({
@@ -96,7 +102,8 @@ export class IngredientForm implements OnInit {
         pluralName: form.pluralName ?? '',
         description: form.description ?? '',
       }).pipe(
-        this.loadingService.loading('Saving ingredient...')
+        this.loadingService.loading('Saving ingredient...'),
+        takeUntilDestroyed(this.destroyRef),
       ).subscribe({
         next: () => {
           this.saving.set(false);
@@ -113,7 +120,8 @@ export class IngredientForm implements OnInit {
         pluralName: form.pluralName ?? '',
         description: form.description ?? '',
       }).pipe(
-        this.loadingService.loading('Creating ingredient...')
+        this.loadingService.loading('Creating ingredient...'),
+        takeUntilDestroyed(this.destroyRef),
       ).subscribe({
         next: () => {
           this.saving.set(false);

@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -41,6 +42,7 @@ export class Webhooks implements OnInit {
   private loadingService = inject(LoadingService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   webhooks = signal<WebhookResponse[]>([]);
   loading = signal(true);
@@ -57,7 +59,7 @@ export class Webhooks implements OnInit {
   });
 
   ngOnInit(): void {
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
         if (list.length > 0) {
           this.householdId.set(list[0].id);
@@ -77,7 +79,8 @@ export class Webhooks implements OnInit {
   private loadWebhooks(): void {
     this.loading.set(true);
     this.webhookService.getWebhooks(this.householdId()).pipe(
-      this.loadingService.loading('Loading webhooks...')
+      this.loadingService.loading('Loading webhooks...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (webhooks) => {
         this.webhooks.set(webhooks);
@@ -102,7 +105,7 @@ export class Webhooks implements OnInit {
       url: form.url!,
       eventType: form.eventType!,
       isActive: form.isActive ?? true,
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.webhookForm.reset({ isActive: true });
         this.saving.set(false);
@@ -117,7 +120,7 @@ export class Webhooks implements OnInit {
 
   testWebhook(wh: WebhookResponse): void {
     this.testing.set(wh.id);
-    this.webhookService.testWebhook(wh.id).subscribe({
+    this.webhookService.testWebhook(wh.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.snackBar.open('Test payload sent successfully', 'OK', { duration: 3000 });
         this.testing.set(null);

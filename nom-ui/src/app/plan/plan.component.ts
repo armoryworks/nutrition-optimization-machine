@@ -1,4 +1,5 @@
-import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -73,6 +74,7 @@ export class Plan implements OnInit {
   private householdService = inject(HouseholdService);
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   // Wizard mode state
   plans = signal<PlanModel[]>([]);
@@ -207,7 +209,9 @@ export class Plan implements OnInit {
   private callShuffle(householdId: number, startDate: string, endDate: string, replaceExisting: boolean): void {
     this.shuffling.set(true);
 
-    this.mealPlanService.shuffle({ householdId, startDate, endDate, replaceExisting }).subscribe({
+    this.mealPlanService.shuffle({ householdId, startDate, endDate, replaceExisting }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
         this.shuffling.set(false);
@@ -241,14 +245,18 @@ export class Plan implements OnInit {
 
     const existing = this.getExclusionForMember(day, member);
     if (existing) {
-      this.mealPlanService.deleteExclusion(existing.id).subscribe(() => this.loadWeek());
+      this.mealPlanService.deleteExclusion(existing.id).pipe(
+        takeUntilDestroyed(this.destroyRef),
+      ).subscribe(() => this.loadWeek());
     } else {
       this.mealPlanService.createExclusion({
         householdId,
         personId: member.personId,
         date: day.date,
         mealTypeId: null,
-      }).subscribe(() => this.loadWeek());
+      }).pipe(
+        takeUntilDestroyed(this.destroyRef),
+      ).subscribe(() => this.loadWeek());
     }
   }
 
@@ -328,7 +336,9 @@ export class Plan implements OnInit {
   // --- Private methods ---
 
   private loadHouseholds(): void {
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (list) => {
         this.households.set(list);
         if (list.length > 0) {
@@ -347,7 +357,8 @@ export class Plan implements OnInit {
 
     this.loading.set(true);
     this.mealPlanService.getWeek(householdId, this.currentWeekStart()).pipe(
-      this.loadingService.loading('Loading meal plan...')
+      this.loadingService.loading('Loading meal plan...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (data) => {
         this.weekData.set(data);
@@ -382,7 +393,8 @@ export class Plan implements OnInit {
           }))
         : [],
     }).pipe(
-      this.loadingService.loading('Creating plan...')
+      this.loadingService.loading('Creating plan...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.loading.set(false);
@@ -402,7 +414,9 @@ export class Plan implements OnInit {
   completeMeal(event: Event, entry: MealPlanEntry): void {
     event.stopPropagation(); // Prevent cell click from opening recipe dialog
 
-    this.mealPlanService.completeMealPlan(entry.id).subscribe({
+    this.mealPlanService.completeMealPlan(entry.id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => {
         // Update the entry in-place to show completed state
         entry.completedDate = Plan.toDateString(new Date());

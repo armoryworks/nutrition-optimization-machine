@@ -1,4 +1,5 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,6 +23,7 @@ export class RecipeImport {
   private scrapingService = inject(RecipeScrapingService);
   private loadingService = inject(LoadingService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   url = new FormControl('');
   importKeywordsAsTags = new FormControl(true);
@@ -36,7 +38,7 @@ export class RecipeImport {
     this.previewLoading.set(true);
     this.preview.set(null);
 
-    this.scrapingService.testScrape({ url: this.url.value ?? '' }).subscribe({
+    this.scrapingService.testScrape({ url: this.url.value ?? '' }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         this.preview.set(result);
         this.previewLoading.set(false);
@@ -58,6 +60,7 @@ export class RecipeImport {
       importKeywordsAsTags: this.importKeywordsAsTags.value ?? true,
     }).pipe(
       this.loadingService.loading('Importing recipe...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (result) => {
         this.importing.set(false);

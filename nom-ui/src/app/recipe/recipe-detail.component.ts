@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,10 +17,13 @@ import { RecipeRating } from './recipe-rating.component';
   styleUrl: './recipe-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RecipeDetail implements OnInit {
+export class RecipeDetail {
   private route = inject(ActivatedRoute);
   private recipeService = inject(RecipeService);
+  private destroyRef = inject(DestroyRef);
   authService = inject(AuthService);
+
+  private routeParams = toSignal(this.route.params);
 
   recipe = signal<RecipeModel | null>(null);
   loading = signal(true);
@@ -32,8 +36,10 @@ export class RecipeDetail implements OnInit {
     return r != null && personId != null && r.authorId === personId;
   });
 
-  ngOnInit(): void {
-    this.route.params.subscribe(params => {
+  constructor() {
+    effect(() => {
+      const params = this.routeParams();
+      if (!params) return;
       const id = Number(params['id']);
       if (isNaN(id)) {
         this.loading.set(false);
@@ -47,7 +53,9 @@ export class RecipeDetail implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    this.recipeService.getRecipe(id).subscribe({
+    this.recipeService.getRecipe(id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (recipe) => {
         this.recipe.set(recipe);
         this.loading.set(false);

@@ -1,6 +1,6 @@
-import { Component, inject, signal, effect, ElementRef, viewChild, AfterViewChecked, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, effect, ElementRef, viewChild, AfterViewChecked, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -31,6 +31,7 @@ export class Thread implements AfterViewChecked {
   private route = inject(ActivatedRoute);
   private messagingService = inject(MessagingService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   messagesContainer = viewChild<ElementRef>('messagesContainer');
 
@@ -69,10 +70,10 @@ export class Thread implements AfterViewChecked {
 
   private loadThread(id: number): void {
     this.loading.set(true);
-    this.messagingService.getThread(id).subscribe({
+    this.messagingService.getThread(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (thread) => {
         this.thread.set(thread);
-        this.messagingService.markAsRead(id).subscribe();
+        this.messagingService.markAsRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
         this.loadMessages(id);
       },
       error: () => this.loading.set(false),
@@ -81,7 +82,8 @@ export class Thread implements AfterViewChecked {
 
   private loadMessages(threadId: number): void {
     this.messagingService.getMessages(threadId).pipe(
-      this.loadingService.loading('Loading messages...')
+      this.loadingService.loading('Loading messages...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (messages) => {
         this.messages.set(messages);
@@ -98,7 +100,7 @@ export class Thread implements AfterViewChecked {
     if (!content || !threadId || this.sending()) return;
 
     this.sending.set(true);
-    this.messagingService.sendMessage({ threadId, content }).subscribe({
+    this.messagingService.sendMessage({ threadId, content }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (msg) => {
         this.messages.update(list => [...list, msg]);
         this.newMessage.setValue('');

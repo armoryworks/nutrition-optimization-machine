@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 // RouterLink not used directly but may be needed for future navigation
@@ -75,6 +76,7 @@ export class PantryComponent implements OnInit {
   selectedMeasurementId = signal<number | null>(null);
   adding = signal(false);
 
+  private destroyRef = inject(DestroyRef);
   private searchSubject = new Subject<string>();
 
   // Computed views
@@ -100,7 +102,9 @@ export class PantryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (list) => {
         if (list.length > 0) {
           this.householdId.set(list[0].id);
@@ -121,7 +125,9 @@ export class PantryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.pantryService.getPantryItems(this.householdId()).subscribe({
+    this.pantryService.getPantryItems(this.householdId()).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (items) => {
         this.items.set(items);
         this.loading.set(false);
@@ -134,7 +140,9 @@ export class PantryComponent implements OnInit {
   }
 
   private loadMeasurements() {
-    this.measurementService.loadMeasurements().subscribe({
+    this.measurementService.loadMeasurements().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (m) => this.measurements.set(m),
     });
   }
@@ -147,6 +155,7 @@ export class PantryComponent implements OnInit {
         if (query.length < 2) return of([]);
         return this.ingredientService.searchIngredients(query);
       }),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe(options => this.ingredientOptions.set(options));
   }
 
@@ -197,7 +206,9 @@ export class PantryComponent implements OnInit {
       expectedExpirationDate: this.formatDate(expDate),
     };
 
-    this.pantryService.addPantryItem(request).subscribe({
+    this.pantryService.addPantryItem(request).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (item) => {
         this.items.update(items => [...items, item]);
         this.resetAddForm();
@@ -211,7 +222,9 @@ export class PantryComponent implements OnInit {
   }
 
   removeItem(id: number) {
-    this.pantryService.removePantryItem(id).subscribe({
+    this.pantryService.removePantryItem(id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => {
         this.items.update(items => items.filter(i => i.id !== id));
       },

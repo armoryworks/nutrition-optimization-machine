@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +27,7 @@ export class Dashboard implements OnInit {
   private mealPlanService = inject(MealPlanService);
   private householdService = inject(HouseholdService);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   households = signal<HouseholdResponseModel[]>([]);
   weekData = signal<MealPlanWeekResponse | null>(null);
@@ -171,7 +173,7 @@ export class Dashboard implements OnInit {
       startDate: date,
       endDate: date,
       replaceExisting,
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
         this.shufflingToday.set(false);
@@ -182,7 +184,7 @@ export class Dashboard implements OnInit {
 
   private loadDashboardData(): void {
     this.loading.set(true);
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
         this.households.set(list);
         if (list.length > 0) {
@@ -200,7 +202,7 @@ export class Dashboard implements OnInit {
 
   private loadWeek(householdId: number): void {
     const monday = Dashboard.getMonday(new Date());
-    this.mealPlanService.getWeek(householdId, monday).subscribe({
+    this.mealPlanService.getWeek(householdId, monday).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.weekData.set(data);
         this.loading.set(false);

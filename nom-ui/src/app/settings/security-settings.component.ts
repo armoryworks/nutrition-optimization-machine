@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -28,6 +29,7 @@ import { LoadingService } from '../core/services/loading.service';
 export class SecuritySettings implements OnInit {
   private twoFactorService = inject(TwoFactorService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   // State
   loading = signal(true);
@@ -56,7 +58,7 @@ export class SecuritySettings implements OnInit {
   }
 
   private loadStatus(): void {
-    this.twoFactorService.getStatus().subscribe({
+    this.twoFactorService.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => {
         this.status.set(status);
         this.loading.set(false);
@@ -73,6 +75,7 @@ export class SecuritySettings implements OnInit {
     this.success.set('');
     this.twoFactorService.setup().pipe(
       this.loadingService.loading('Setting up authenticator...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (result) => {
         this.sharedKey.set(result.sharedKey);
@@ -89,6 +92,7 @@ export class SecuritySettings implements OnInit {
 
     this.twoFactorService.verify(this.verifyCode.value ?? '').pipe(
       this.loadingService.loading('Verifying code...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (result) => {
         this.setupMode.set(false);
@@ -114,6 +118,7 @@ export class SecuritySettings implements OnInit {
 
     this.twoFactorService.disable(this.disableCode.value ?? '').pipe(
       this.loadingService.loading('Disabling 2FA...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.disableMode.set(false);

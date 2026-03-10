@@ -1,4 +1,5 @@
-import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -55,6 +56,7 @@ export class Restrictions implements OnInit {
 
   private referenceService = inject(ReferenceService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   sections = signal<RestrictionSection[]>([]);
   selectedIds = signal<Set<number>>(new Set());
@@ -130,7 +132,8 @@ export class Restrictions implements OnInit {
 
   private loadRestrictionGroups(): void {
     this.referenceService.getRestrictionGroups().pipe(
-      this.loadingService.loading('Loading dietary options...')
+      this.loadingService.loading('Loading dietary options...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (data) => {
         const lookup = new Map<number, ReferenceItem>();

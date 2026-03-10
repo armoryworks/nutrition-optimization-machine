@@ -1,4 +1,5 @@
-import { Component, inject, input, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RecipeService } from '../core/services/recipe.service';
@@ -13,6 +14,7 @@ import { RecipeRatingResponseModel } from '../core/models/recipe-rating-response
 })
 export class RecipeRating implements OnInit {
   private recipeService = inject(RecipeService);
+  private destroyRef = inject(DestroyRef);
 
   recipeId = input.required<number>();
   currentPersonId = input<number | null>(null);
@@ -50,7 +52,7 @@ export class RecipeRating implements OnInit {
 
   loadRatings(): void {
     this.loading.set(true);
-    this.recipeService.getRatings(this.recipeId()).subscribe({
+    this.recipeService.getRatings(this.recipeId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (ratings) => {
         this.ratings.set(ratings);
         this.loading.set(false);
@@ -66,7 +68,7 @@ export class RecipeRating implements OnInit {
     const existing = this.userRating();
     if (existing) {
       // Update existing rating
-      this.recipeService.updateRating(existing.id, star).subscribe({
+      this.recipeService.updateRating(existing.id, star).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (updated) => {
           this.ratings.set(
             this.ratings().map(r => r.id === updated.id ? updated : r)
@@ -75,7 +77,7 @@ export class RecipeRating implements OnInit {
       });
     } else {
       // Create new rating
-      this.recipeService.addRating(this.recipeId(), star).subscribe({
+      this.recipeService.addRating(this.recipeId(), star).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (created) => {
           this.ratings.set([...this.ratings(), created]);
         }

@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
@@ -286,6 +287,7 @@ export class ShoppingComponent implements OnInit {
   private retailPackagingService = inject(RetailPackagingService);
   private measurementService = inject(MeasurementService);
   private snackBar = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
 
   householdId = signal(0);
   daysAhead = signal(4);
@@ -722,7 +724,9 @@ export class ShoppingComponent implements OnInit {
     }
 
     this.completingTrip.set(true);
-    this.pantryService.addPantryItemsBatch(items).subscribe({
+    this.pantryService.addPantryItemsBatch(items).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => {
         this.snackBar.open(`${items.length} item(s) added to pantry!`, 'OK', { duration: 3000 });
         // Clear checked items and overrides
@@ -814,7 +818,9 @@ export class ShoppingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.householdService.getHouseholds().subscribe({
+    this.householdService.getHouseholds().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (list) => {
         if (list.length > 0) {
           this.householdId.set(list[0].id);
@@ -896,7 +902,9 @@ export class ShoppingComponent implements OnInit {
       measurements: this.measurements().length > 0
         ? of(this.measurements())
         : this.measurementService.loadMeasurements(),
-    }).subscribe({
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: ({ weeks, pantry, packaging, measurements }) => {
         this.weekDataList.set(weeks);
         this.pantryItems.set(pantry);
@@ -938,6 +946,8 @@ export class ShoppingComponent implements OnInit {
 
     forkJoin(
       Array.from(recipeIds).map(id => this.recipeService.getRecipe(id))
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (recipes) => {
         const cache = new Map<number, RecipeModel>();
@@ -974,7 +984,9 @@ export class ShoppingComponent implements OnInit {
     if (unmatchedNames.length === 0) return;
 
     this.lookingUpPackaging.set(true);
-    this.retailPackagingService.lookup(unmatchedNames).subscribe({
+    this.retailPackagingService.lookup(unmatchedNames).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (response) => {
         if (response.results.length > 0) {
           // Merge new results into existing packages

@@ -1,4 +1,5 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -29,6 +30,7 @@ export class Register {
   private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
 
   registerForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -58,7 +60,8 @@ export class Register {
 
     const { email, password, fullName } = this.registerForm.getRawValue();
     this.authService.register(email!, password!, fullName || undefined).pipe(
-      this.loadingService.loading('Creating your account...')
+      this.loadingService.loading('Creating your account...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.loading.set(false);
@@ -76,7 +79,8 @@ export class Register {
     if (!email) return;
 
     this.authService.resendConfirmation(email).pipe(
-      this.loadingService.loading('Resending confirmation email...')
+      this.loadingService.loading('Resending confirmation email...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => this.resendSuccess.set(true),
       error: () => this.errorMessage.set('Failed to resend confirmation email.'),

@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +19,7 @@ import { RecipeModel } from '../core/models/recipe.model';
 export class MyRecipes implements OnInit {
   private recipeService = inject(RecipeService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   recipes = signal<RecipeModel[]>([]);
   loading = signal(true);
@@ -26,6 +28,7 @@ export class MyRecipes implements OnInit {
   ngOnInit(): void {
     this.recipeService.getMyRecipes().pipe(
       this.loadingService.loading('Loading your recipes...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (recipes) => {
         this.recipes.set(recipes);

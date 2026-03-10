@@ -1,4 +1,5 @@
-import { Component, inject, input, output, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -50,6 +51,7 @@ export class Household implements OnInit {
   private householdService = inject(HouseholdService);
   private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   households = signal<HouseholdResponseModel[]>([]);
   members = signal<HouseholdMemberResponseModel[]>([]);
@@ -96,7 +98,8 @@ export class Household implements OnInit {
       description: form.description || null,
       householdGroupId: 1,
     }).pipe(
-      this.loadingService.loading('Creating household...')
+      this.loadingService.loading('Creating household...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (household) => {
         this.loading.set(false);
@@ -122,7 +125,8 @@ export class Household implements OnInit {
     this.errorMessage.set('');
 
     this.householdService.joinHousehold(token).pipe(
-      this.loadingService.loading('Joining household...')
+      this.loadingService.loading('Joining household...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.loading.set(false);
@@ -196,7 +200,9 @@ export class Household implements OnInit {
     const householdId = this.activeHouseholdId();
     if (!householdId) return;
 
-    this.householdService.removeMember(householdId, member.id).subscribe({
+    this.householdService.removeMember(householdId, member.id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: () => this.loadMembersForHousehold(householdId),
       error: () => this.errorMessage.set('Unable to remove member. Please try again.'),
     });
@@ -204,7 +210,8 @@ export class Household implements OnInit {
 
   private loadHouseholds(): void {
     this.householdService.getHouseholds().pipe(
-      this.loadingService.loading('Loading households...')
+      this.loadingService.loading('Loading households...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (list) => {
         this.households.set(list);
@@ -218,7 +225,9 @@ export class Household implements OnInit {
 
   private loadMembersForHousehold(householdId: number): void {
     this.activeHouseholdId.set(householdId);
-    this.householdService.getHousehold(householdId).subscribe({
+    this.householdService.getHousehold(householdId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (household) => this.members.set(household.members ?? []),
       error: () => {},
     });

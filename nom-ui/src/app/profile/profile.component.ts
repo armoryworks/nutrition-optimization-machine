@@ -1,4 +1,5 @@
-import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -60,6 +61,7 @@ export class Profile implements OnInit {
   private referenceService = inject(ReferenceService);
   private personService = inject(PersonService);
   private loadingService = inject(LoadingService);
+  private destroyRef = inject(DestroyRef);
 
   activityLevels = signal<ReferenceItem[]>([]);
   healthGoals = signal<ReferenceItem[]>([]);
@@ -142,7 +144,8 @@ export class Profile implements OnInit {
       ReferenceDiscriminator.PersonHealthGoalType,
       ReferenceDiscriminator.PersonAttributeType,
     ]).pipe(
-      this.loadingService.loading('Loading profile options...')
+      this.loadingService.loading('Loading profile options...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (data) => {
         this.activityLevels.set(data[ReferenceDiscriminator.PersonActivityLevelType] ?? []);
@@ -158,7 +161,8 @@ export class Profile implements OnInit {
     if (!personId) return;
 
     this.personService.getOnboardingState(personId).pipe(
-      this.loadingService.loading('Loading your profile...')
+      this.loadingService.loading('Loading your profile...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (state) => {
         if (state.personDetails) {
@@ -330,7 +334,8 @@ export class Profile implements OnInit {
     };
 
     this.personService.saveProfile(personId, request).pipe(
-      this.loadingService.loading('Saving profile...')
+      this.loadingService.loading('Saving profile...'),
+      takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.loading.set(false);

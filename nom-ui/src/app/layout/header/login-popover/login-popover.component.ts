@@ -1,4 +1,5 @@
-import { Component, inject, output, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, output, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,6 +32,7 @@ export class LoginPopover {
   private personService = inject(PersonService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -48,7 +50,7 @@ export class LoginPopover {
     this.errorMessage.set('');
 
     const { email, password } = this.loginForm.getRawValue();
-    this.authService.login(email!, password!).subscribe({
+    this.authService.login(email!, password!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.closed.emit();
@@ -69,7 +71,7 @@ export class LoginPopover {
     const personId = this.authService.personId();
     if (!personId) return;
 
-    this.personService.getOnboardingState(personId).subscribe({
+    this.personService.getOnboardingState(personId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (state) => {
         if (!state.isComplete) {
           this.router.navigate(['/onboarding']);
