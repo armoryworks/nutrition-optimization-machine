@@ -146,11 +146,12 @@ export class Dashboard implements OnInit {
     const day = this.today();
     if (!householdId || !day) return;
 
-    const hasFilledSlots = day.cells.some(c => c.entries.length > 0);
+    const unshoppedEntries = (c: { entries: { shoppingCompletedAt: string | null }[] }) =>
+      c.entries.filter(e => !e.shoppingCompletedAt);
+    const hasFilledSlots = day.cells.some(c => unshoppedEntries(c).length > 0);
     const hasEmptySlots = day.cells.some(c => c.entries.length === 0);
     const todayStr = day.date;
 
-    // TODO: Also skip meals where shopping has been completed (shopping feature incomplete)
     if (hasFilledSlots) {
       const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
       dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {

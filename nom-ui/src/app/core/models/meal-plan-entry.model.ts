@@ -10,4 +10,5 @@ export interface MealPlanEntry {
   carbGrams: number | null;
   fatGrams: number | null;
   completedDate: string | null;
+  shoppingCompletedAt: string | null;
 }

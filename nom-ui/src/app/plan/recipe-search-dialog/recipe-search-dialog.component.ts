@@ -140,6 +140,7 @@ export class RecipeSearchDialog implements OnInit {
           carbGrams: null,
           fatGrams: null,
           completedDate: null,
+          shoppingCompletedAt: null,
         }]);
         this.changed.set(true);
         this.busy.set(false);
@@ -181,6 +182,7 @@ export class RecipeSearchDialog implements OnInit {
           carbGrams: null,
           fatGrams: null,
           completedDate: null,
+          shoppingCompletedAt: null,
         }]);
         this.changed.set(true);
         this.busy.set(false);

@@ -184,14 +184,14 @@ export class Plan implements OnInit {
     const futureDays = data.days.filter(d => d.date >= today);
     if (futureDays.length === 0) return;
 
-    const hasFilledSlots = futureDays.some(d => d.cells.some(c => c.entries.length > 0));
+    const unshoppedEntries = (c: { entries: { shoppingCompletedAt: string | null }[] }) =>
+      c.entries.filter(e => !e.shoppingCompletedAt);
+    const hasFilledSlots = futureDays.some(d => d.cells.some(c => unshoppedEntries(c).length > 0));
     const hasEmptySlots = futureDays.some(d => d.cells.some(c => c.entries.length === 0));
 
     // Determine date range from future days
     const startDate = futureDays[0].date;
     const endDate = futureDays[futureDays.length - 1].date;
-
-    // TODO: Also skip meals where shopping has been completed (shopping feature incomplete)
     if (hasFilledSlots) {
       const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
       dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {

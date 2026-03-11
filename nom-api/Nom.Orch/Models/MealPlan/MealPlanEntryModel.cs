@@ -15,5 +15,6 @@ namespace Nom.Orch.Models.MealPlan
         public decimal? CarbGrams { get; set; }
         public decimal? FatGrams { get; set; }
         public DateOnly? CompletedDate { get; set; }
+        public DateTime? ShoppingCompletedAt { get; set; }
     }
 }

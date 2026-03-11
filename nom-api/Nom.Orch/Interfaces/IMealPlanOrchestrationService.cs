@@ -26,6 +26,9 @@ namespace Nom.Orch.Interfaces
         // Shuffle
         Task<MealPlanShuffleResponseModel> ShuffleMealPlansAsync(MealPlanShuffleModel model, long authorId);
 
+        // Shopping completion
+        Task<bool> MarkShoppingCompletedAsync(long mealPlanId);
+
         // Meal Plan Exclusions
         Task<MealPlanExclusionResponseModel> CreateExclusionAsync(MealPlanExclusionCreateModel model);
         Task<MealPlanExclusionResponseModel?> GetExclusionAsync(long id);

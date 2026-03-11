@@ -35,5 +35,11 @@ namespace Nom.Data.Plan
         /// Null means the meal has not been completed yet.
         /// </summary>
         public DateOnly? CompletedDate { get; set; }
+
+        /// <summary>
+        /// When shopping was completed for this meal entry.
+        /// Entries with this set are protected from being replaced during shuffles.
+        /// </summary>
+        public DateTime? ShoppingCompletedAt { get; set; }
     }
 }

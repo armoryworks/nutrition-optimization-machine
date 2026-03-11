@@ -169,6 +169,17 @@ namespace Nom.Orch.Services
             return true;
         }
 
+        public async Task<bool> MarkShoppingCompletedAsync(long mealPlanId)
+        {
+            var mealPlan = await _context.MealPlans.FindAsync(mealPlanId);
+            if (mealPlan == null)
+                return false;
+
+            mealPlan.ShoppingCompletedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<MealPlanRuleCreateResponseModel> CreateRuleAsync(MealPlanRuleCreateModel model)
         {
             var rule = new MealPlanRuleEntity
@@ -240,12 +251,14 @@ namespace Nom.Orch.Services
             int deletedCount = 0;
 
             // 1. If replacing, delete existing entries in the date range
+            //    but preserve entries where shopping has already been completed
             if (model.ReplaceExisting)
             {
                 var existing = await _context.MealPlans
                     .Where(mp => mp.HouseholdId == model.HouseholdId
                         && mp.Date >= model.StartDate
-                        && mp.Date <= model.EndDate)
+                        && mp.Date <= model.EndDate
+                        && mp.ShoppingCompletedAt == null)
                     .ToListAsync();
 
                 deletedCount = existing.Count;
@@ -462,6 +475,7 @@ namespace Nom.Orch.Services
                             Title = e.Title,
                             Notes = e.Note,
                             CompletedDate = e.CompletedDate,
+                            ShoppingCompletedAt = e.ShoppingCompletedAt,
                         };
 
                         if (e.Recipe?.Nutrition != null)

@@ -61,6 +61,10 @@ export class MealPlanService {
     return this.http.put<{ message: string }>(`${this.apiUrl}/${id}/complete`, {});
   }
 
+  markShoppingCompleted(id: number): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.apiUrl}/${id}/shopping-completed`, {});
+  }
+
   getRules(householdId: number): Observable<MealPlanRule[]> {
     return this.http.get<MealPlanRule[]>(`${this.apiUrl}/rule`, { params: { householdId } });
   }

@@ -248,5 +248,24 @@ namespace Nom.Api.Controllers
 
             return Ok(new { message = "Meal completed and pantry updated" });
         }
+
+        [HttpPut("{id}/shopping-completed")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> MarkShoppingCompleted([Required] long id)
+        {
+            var existing = await _mealPlanOrchestrationService.GetMealPlanAsync(id);
+            if (existing == null)
+                return NotFound(new { message = "Meal plan entry not found" });
+
+            if (!IsHouseholdMember(existing.HouseholdId))
+                return Forbid();
+
+            var success = await _mealPlanOrchestrationService.MarkShoppingCompletedAsync(id);
+            if (!success)
+                return NotFound(new { message = "Meal plan entry not found" });
+
+            return Ok(new { message = "Shopping marked as completed" });
+        }
     }
 }
