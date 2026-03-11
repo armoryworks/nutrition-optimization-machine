@@ -14,6 +14,9 @@ namespace Nom.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
+                name: "person");
+
+            migrationBuilder.EnsureSchema(
                 name: "auth");
 
             migrationBuilder.EnsureSchema(
@@ -38,9 +41,6 @@ namespace Nom.Data.Migrations
                 name: "nutrient");
 
             migrationBuilder.EnsureSchema(
-                name: "person");
-
-            migrationBuilder.EnsureSchema(
                 name: "measurement");
 
             migrationBuilder.EnsureSchema(
@@ -48,6 +48,31 @@ namespace Nom.Data.Migrations
 
             migrationBuilder.EnsureSchema(
                 name: "shopping");
+
+            migrationBuilder.CreateTable(
+                name: "ApiToken",
+                schema: "person",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    TokenHash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    LastUsedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApiToken", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
@@ -3233,6 +3258,19 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ApiToken_TokenHash",
+                schema: "person",
+                table: "ApiToken",
+                column: "TokenHash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApiToken_UserId",
+                schema: "person",
+                table: "ApiToken",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 schema: "auth",
                 table: "AspNetRoleClaims",
@@ -4382,6 +4420,10 @@ namespace Nom.Data.Migrations
                 name: "FK_Nutrient_Measurement_DefaultMeasurementId",
                 schema: "nutrient",
                 table: "Nutrient");
+
+            migrationBuilder.DropTable(
+                name: "ApiToken",
+                schema: "person");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
