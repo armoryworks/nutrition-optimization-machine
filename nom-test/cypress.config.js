@@ -3,7 +3,7 @@ const { defineConfig } = require('cypress')
 module.exports = defineConfig({
   e2e: {
     // Support both local dev and containerized test environments
-    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4200', // Angular dev server
+    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4210', // Angular dev server
     supportFile: 'cypress/support/e2e.ts',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     viewportWidth: 1280,

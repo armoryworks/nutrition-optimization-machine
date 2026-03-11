@@ -36,8 +36,8 @@ jobs:
         POSTGRES_USER=nom
         POSTGRES_PASSWORD=test_password_${{ github.run_id }}
         JWT_SECRET_KEY=test_jwt_secret_key_minimum_32_characters_long_${{ github.run_id }}
-        API_TEST_PORT=8081
-        UI_TEST_PORT=4201
+        API_TEST_PORT=8082
+        UI_TEST_PORT=4211
         EOF
 
     - name: Start test environment
@@ -48,9 +48,9 @@ jobs:
         echo "Waiting for PostgreSQL..."
         timeout 60 bash -c 'until docker exec nom_postgres_test pg_isready -U nom -d nom_test; do sleep 2; done'
         echo "Waiting for API..."
-        timeout 120 bash -c 'until curl -sf http://localhost:8081/health; do sleep 3; done'
+        timeout 120 bash -c 'until curl -sf http://localhost:8082/health; do sleep 3; done'
         echo "Waiting for UI..."
-        timeout 60 bash -c 'until curl -sf http://localhost:4201; do sleep 2; done'
+        timeout 60 bash -c 'until curl -sf http://localhost:4211; do sleep 2; done'
 
     - name: Install test dependencies
       working-directory: ./nom-test
@@ -59,8 +59,8 @@ jobs:
     - name: Run Cypress E2E tests
       working-directory: ./nom-test
       env:
-        CYPRESS_BASE_URL: http://localhost:4201
-        CYPRESS_API_URL: http://localhost:8081
+        CYPRESS_BASE_URL: http://localhost:4211
+        CYPRESS_API_URL: http://localhost:8082
       run: npm run test:e2e
 
     - name: Upload screenshots on failure

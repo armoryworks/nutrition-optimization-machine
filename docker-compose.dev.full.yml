@@ -60,7 +60,7 @@ services:
       - JWT__Issuer=NOMApi
       - JWT__Audience=NOMAngular
       - JWT__ExpirationMinutes=1440
-      - AllowedOrigins=http://localhost:4200,http://localhost:4201
+      - AllowedOrigins=http://localhost:4210,http://localhost:4211
     ports:
       - "8080:8080"
       - "8081:8081"  # For debugging
@@ -100,7 +100,7 @@ services:
     environment:
       - NODE_ENV=development
     ports:
-      - "4200:4200"
+      - "4210:4200"
     depends_on:
       - api-dev
     networks:

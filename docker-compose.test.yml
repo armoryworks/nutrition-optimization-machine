@@ -58,7 +58,7 @@ services:
       - JWT__Issuer=NOMApi
       - JWT__Audience=NOMAngular
       - JWT__ExpirationMinutes=1440
-      - AllowedOrigins=http://localhost:4200,http://localhost:4201
+      - AllowedOrigins=http://localhost:4210,http://localhost:4211
     ports:
       - "${API_TEST_PORT:-8082}:8080"
     depends_on:
@@ -83,7 +83,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "${UI_TEST_PORT:-4202}:80"
+      - "${UI_TEST_PORT:-4212}:80"
     depends_on:
       nom-api-test:
         condition: service_healthy
