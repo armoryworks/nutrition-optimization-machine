@@ -25,7 +25,10 @@ namespace Nom.Api.Controllers
         [HttpGet("self")]
         public async Task<ActionResult<UserResponseModel>> GetCurrentUser()
         {
-            var user = await _userService.GetCurrentUserAsync();
+            var userId = GetCurrentUserId();
+            var user = await _userService.GetCurrentUserAsync(userId);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
             return Ok(user);
         }
 

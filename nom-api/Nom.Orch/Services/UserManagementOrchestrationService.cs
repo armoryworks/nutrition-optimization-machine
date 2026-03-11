@@ -68,33 +68,9 @@ namespace Nom.Orch.Services
         }
 
         // User CRUD operations
-        public async Task<UserResponseModel> GetCurrentUserAsync()
+        public async Task<UserResponseModel?> GetCurrentUserAsync(string userId)
         {
-            // This would typically get the current user from the HttpContext
-            // For now, we'll return a placeholder that indicates this needs to be implemented
-            // based on the current request context
-            _logger.LogWarning("GetCurrentUserAsync needs to be implemented with proper HttpContext access");
-            
-            // Simulate async operation for getting current user context
-            await Task.Delay(10);
-            
-            return new UserResponseModel
-            {
-                Id = "current-user-id",
-                Username = "current-user",
-                UserName = "current-user",
-                Email = "current@example.com",
-                EmailConfirmed = true,
-                PhoneNumber = null,
-                PhoneNumberConfirmed = false,
-                TwoFactorEnabled = false,
-                LockoutEnd = null,
-                LockoutEnabled = false,
-                AccessFailedCount = 0,
-                IsActive = true,
-                CreatedDate = DateTime.UtcNow,
-                RecipeCount = 0
-            };
+            return await GetUserByIdAsync(userId);
         }
 
         public async Task<UserResponseModel> GetUserByIdAsync(string userId)

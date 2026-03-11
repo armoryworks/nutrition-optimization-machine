@@ -26,6 +26,7 @@ using Nom.Orch.Interfaces;
 using Nom.Api.Settings;
 using Nom.Orch.Settings;
 using Serilog;
+using Nom.Orch.Services.Measurement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -223,6 +224,7 @@ builder.Services.AddHttpClient<Nom.Orch.UtilityServices.WebScrapingService>();
 // Security services are automatically registered via AddOrchestrationServices()
 
 builder.Services.AddOrchestrationServices();
+builder.Services.AddSingleton<IMeasurementPerformanceMonitor, MeasurementPerformanceMonitor>();
 
 // Add health checks
 builder.Services.AddHealthChecks()

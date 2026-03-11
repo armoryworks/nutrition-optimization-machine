@@ -9,7 +9,7 @@ namespace Nom.Orch.Interfaces
         Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request);
         
         // User CRUD operations (from Mealie)
-        Task<UserResponseModel> GetCurrentUserAsync();
+        Task<UserResponseModel?> GetCurrentUserAsync(string userId);
         Task<UserResponseModel> GetUserByIdAsync(string userId);
         Task<List<UserResponseModel>> GetAllUsersAsync();
         Task<UserResponseModel> CreateUserAsync(CreateUserRequestModel request);

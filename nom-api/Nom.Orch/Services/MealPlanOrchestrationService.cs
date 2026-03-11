@@ -208,7 +208,10 @@ namespace Nom.Orch.Services
 
         public async Task<MealPlanRuleResponseModel?> GetRuleAsync(long id)
         {
-            var rule = await _context.MealPlanRules.FindAsync(id);
+            var rule = await _context.MealPlanRules
+                .Include(r => r.DayOfWeek)
+                .Include(r => r.MealType)
+                .FirstOrDefaultAsync(r => r.Id == id);
             if (rule == null)
                 return null;
 
@@ -217,9 +220,9 @@ namespace Nom.Orch.Services
                 Id = rule.Id,
                 HouseholdId = rule.HouseholdId,
                 DayOfWeekId = rule.DayOfWeekId,
-                DayOfWeek = "Monday", // Placeholder - would get from reference
+                DayOfWeek = rule.DayOfWeek?.Name ?? string.Empty,
                 MealTypeId = rule.MealTypeId,
-                MealType = "Meal", // Placeholder - would get from reference
+                MealType = rule.MealType?.Name ?? string.Empty,
                 QueryFilterString = rule.QueryFilter ?? string.Empty,
                 CreatedDate = rule.CreatedDate,
                 ModifiedDate = rule.LastModifiedDate

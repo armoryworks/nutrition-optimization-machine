@@ -16,11 +16,14 @@ namespace Nom.Api.Controllers.Measurement
     public class MeasurementController : BaseApiController
     {
         private readonly IMeasurementOrchestrationService _measurementOrchestrationService;
+        private readonly IMeasurementPerformanceMonitor _performanceMonitor;
 
         public MeasurementController(
-            IMeasurementOrchestrationService measurementOrchestrationService)
+            IMeasurementOrchestrationService measurementOrchestrationService,
+            IMeasurementPerformanceMonitor performanceMonitor)
         {
             _measurementOrchestrationService = measurementOrchestrationService;
+            _performanceMonitor = performanceMonitor;
         }
 
         /// <summary>
@@ -87,11 +90,10 @@ namespace Nom.Api.Controllers.Measurement
         /// </summary>
         [HttpGet("performance-stats")]
         [ProducesResponseType(typeof(MeasurementPerformanceStats), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetPerformanceStats()
+        public Task<IActionResult> GetPerformanceStats()
         {
-            // This would require injecting IMeasurementPerformanceMonitor into the controller
-            // For now, we'll return a placeholder
-            return Ok(new { message = "Performance monitoring endpoint - implementation pending" });
+            var stats = _performanceMonitor.GetPerformanceStats();
+            return Task.FromResult<IActionResult>(Ok(stats));
         }
 
         /// <summary>
