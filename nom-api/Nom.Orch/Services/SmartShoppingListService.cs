@@ -216,16 +216,18 @@ namespace Nom.Orch.Services
                 }).ToList();
 
                 // Apply optimizations
+                var recommendations = new List<string>();
+
                 if (request.OptimizeForBudget)
                 {
                     var budgetRecommendations = await OptimizeForBudgetAsync(items);
-                    // TODO: Apply budget optimizations to items
+                    recommendations.AddRange(budgetRecommendations);
                 }
 
                 if (request.OptimizeForNutrition)
                 {
                     var nutritionRecommendations = await OptimizeForNutritionAsync(items);
-                    // TODO: Apply nutrition optimizations to items
+                    recommendations.AddRange(nutritionRecommendations);
                 }
 
                 // Apply dietary restrictions
@@ -247,7 +249,8 @@ namespace Nom.Orch.Services
                     Categories = items.Select(i => i.Category).Distinct().ToList(),
                     EstimatedTotal = estimatedTotal,
                     TotalItems = items.Count,
-                    GenerationMethod = "Optimization"
+                    GenerationMethod = "Optimization",
+                    Recommendations = recommendations
                 };
             }
             catch (Exception ex)
@@ -857,20 +860,86 @@ namespace Nom.Orch.Services
             return recommendations;
         }
 
+        private static readonly (string Pattern, string Category)[] CategoryRules = new[]
+        {
+            // Produce
+            (@"\b(lettuce|spinach|kale|arugula|cabbage|bok choy|collard|chard)\b", "Produce"),
+            (@"\b(tomato|onion|garlic|pepper|carrot|celery|potato|sweet potato)\b", "Produce"),
+            (@"\b(broccoli|cauliflower|zucchini|squash|eggplant|mushroom|corn)\b", "Produce"),
+            (@"\b(cucumber|avocado|bean sprout|scallion|green onion|shallot|leek)\b", "Produce"),
+            (@"\b(apple|banana|orange|lemon|lime|berry|berries|blueberr|strawberr|raspberr)\b", "Produce"),
+            (@"\b(grape|mango|pineapple|peach|pear|melon|watermelon|cherry|plum|kiwi)\b", "Produce"),
+            (@"\b(ginger|cilantro|parsley|basil|mint|dill|rosemary|thyme|chives|jalape)\b", "Produce"),
+            (@"\b(asparagus|artichoke|beet|radish|turnip|parsnip|fennel|okra|peas)\b", "Produce"),
+            (@"\b(green bean|snap pea|snow pea|edamame|brussels sprout|watercress)\b", "Produce"),
+
+            // Meat & Seafood
+            (@"\b(chicken|turkey|beef|pork|lamb|veal|duck|bison|venison)\b", "Meat & Seafood"),
+            (@"\b(steak|ground meat|ground beef|ground turkey|ground pork|sausage|bacon|ham|prosciutto)\b", "Meat & Seafood"),
+            (@"\b(salmon|tuna|shrimp|prawn|cod|tilapia|halibut|trout|crab|lobster|scallop|clam|mussel|anchov)\b", "Meat & Seafood"),
+            (@"\b(fish sauce)\b", "Condiments & Sauces"),
+            (@"\b(fish)\b", "Meat & Seafood"),
+
+            // Dairy & Eggs
+            (@"\b(milk|cream|half.and.half|buttermilk|yogurt|kefir|sour cream|cr[eè]me)\b", "Dairy & Eggs"),
+            (@"\b(cheese|parmesan|mozzarella|cheddar|feta|ricotta|gouda|brie|gruy[eè]re|cream cheese)\b", "Dairy & Eggs"),
+            (@"\b(butter|margarine|ghee)\b", "Dairy & Eggs"),
+            (@"\b(egg)\b", "Dairy & Eggs"),
+
+            // Bakery
+            (@"\b(bread|baguette|roll|bun|pita|naan|tortilla|wrap|croissant|english muffin|bagel)\b", "Bakery"),
+
+            // Grains & Pasta
+            (@"\b(rice|pasta|spaghetti|penne|linguine|fettuccine|macaroni|noodle|ramen|udon|soba)\b", "Grains & Pasta"),
+            (@"\b(quinoa|couscous|barley|farro|bulgur|polenta|oat|oatmeal|cereal|granola)\b", "Grains & Pasta"),
+            (@"\b(lentil|chickpea|black bean|kidney bean|pinto bean|cannellini|navy bean)\b", "Grains & Pasta"),
+
+            // Canned & Jarred
+            (@"\b(canned|diced tomato|crushed tomato|tomato paste|tomato sauce|salsa|marinara)\b", "Canned & Jarred"),
+            (@"\b(broth|stock|bouillon|coconut milk|coconut cream)\b", "Canned & Jarred"),
+            (@"\b(peanut butter|almond butter|jam|jelly|preserve|nutella)\b", "Canned & Jarred"),
+
+            // Condiments & Sauces
+            (@"\b(soy sauce|tamari|worcestershire|hot sauce|sriracha|tabasco)\b", "Condiments & Sauces"),
+            (@"\b(ketchup|mustard|mayo|mayonnaise|relish|barbecue|teriyaki|hoisin|oyster sauce)\b", "Condiments & Sauces"),
+            (@"\b(vinegar|dressing|marinade|miso|tahini|harissa|gochujang|sambal)\b", "Condiments & Sauces"),
+            (@"\b(honey|maple syrup|agave|molasses)\b", "Condiments & Sauces"),
+
+            // Spices & Seasonings
+            (@"\b(salt|pepper|cumin|paprika|chili powder|cayenne|turmeric|cinnamon|nutmeg)\b", "Spices & Seasonings"),
+            (@"\b(oregano|thyme|rosemary|sage|bay leaf|coriander|cardamom|clove|allspice)\b", "Spices & Seasonings"),
+            (@"\b(garlic powder|onion powder|smoked paprika|red pepper flake|italian season|curry powder)\b", "Spices & Seasonings"),
+            (@"\b(sesame seed|poppy seed|fennel seed|mustard seed|caraway|star anise|saffron)\b", "Spices & Seasonings"),
+
+            // Oils & Vinegars
+            (@"\b(olive oil|vegetable oil|canola oil|coconut oil|sesame oil|avocado oil|cooking spray)\b", "Oils & Vinegars"),
+            (@"\b(balsamic|rice vinegar|apple cider vinegar|red wine vinegar|white wine vinegar)\b", "Oils & Vinegars"),
+
+            // Baking
+            (@"\b(flour|sugar|brown sugar|powdered sugar|baking soda|baking powder|yeast)\b", "Baking"),
+            (@"\b(vanilla|cocoa|chocolate chip|cornstarch|corn starch|gelatin|food color)\b", "Baking"),
+            (@"\b(almond flour|coconut flour|breadcrumb|panko)\b", "Baking"),
+
+            // Frozen
+            (@"\b(frozen|ice cream)\b", "Frozen"),
+
+            // Beverages
+            (@"\b(juice|coffee|tea|water|soda|wine|beer|sparkling)\b", "Beverages"),
+
+            // Nuts & Seeds
+            (@"\b(almond|walnut|pecan|cashew|pistachio|peanut|hazelnut|macadamia|pine nut|sunflower seed|pumpkin seed|chia|flax)\b", "Other"),
+            (@"\b(tofu|tempeh|seitan)\b", "Other"),
+        };
+
         private string CategorizeItem(string itemName)
         {
             var name = itemName.ToLower();
-            //TODO: Actually make this smart and categorize in a more meaningful way
-            if (name.Contains("milk") || name.Contains("cheese") || name.Contains("yogurt") || name.Contains("cream"))
-                return "Dairy";
-            if (name.Contains("chicken") || name.Contains("beef") || name.Contains("pork") || name.Contains("fish"))
-                return "Meat";
-            if (name.Contains("apple") || name.Contains("banana") || name.Contains("tomato") || name.Contains("lettuce"))
-                return "Produce";
-            if (name.Contains("bread") || name.Contains("pasta") || name.Contains("rice") || name.Contains("flour"))
-                return "Grains";
-            if (name.Contains("oil") || name.Contains("sauce") || name.Contains("spice"))
-                return "Pantry";
+
+            foreach (var (pattern, category) in CategoryRules)
+            {
+                if (System.Text.RegularExpressions.Regex.IsMatch(name, pattern))
+                    return category;
+            }
 
             return "Other";
         }

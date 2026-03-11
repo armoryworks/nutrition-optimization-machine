@@ -153,9 +153,7 @@ namespace Nom.Orch.Services
             var recipeCount = householdWithRelations?.MadeRecipes?.Count ?? 0;
             var mealPlanCount = householdWithRelations?.Plans?.Count ?? 0;
 
-            // ShoppingListEntity doesn't have direct navigation from Household
-            // Setting to 0 until proper relationship is established
-            var shoppingListCount = 0; // TODO: Establish ShoppingList relationship with Household
+            var shoppingListCount = await _context.ShoppingLists.CountAsync(sl => sl.HouseholdId == id);
 
             return new HouseholdResponseModel
             {
