@@ -63,6 +63,7 @@ namespace Nom.Data
         public DbSet<PersonEntity> Persons { get; set; } = default!;
         public DbSet<PersonAttributeEntity> PersonAttributes { get; set; } = default!;
         public DbSet<InvitationEntity> Invitations { get; set; } = default!;
+        public DbSet<ApiTokenEntity> ApiTokens { get; set; } = default!;
         #endregion
 
         #region Plan

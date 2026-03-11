@@ -7,6 +7,9 @@ using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Data.Recipe;
 using System.Security.Claims;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace Nom.Orch.Services
 {
@@ -122,8 +125,9 @@ namespace Nom.Orch.Services
                         break;
 
                     case ExportTypes.Pdf:
-                        // PDF generation would require additional libraries like iText7 or PdfSharp
-                        content = "PDF export not implemented yet";
+                        var pdfBytes = GenerateRecipePdf(exportData);
+                        await File.WriteAllBytesAsync(filePath, pdfBytes);
+                        content = null!; // PDF written as bytes directly
                         contentType = "application/pdf";
                         break;
 
@@ -131,7 +135,8 @@ namespace Nom.Orch.Services
                         throw new ArgumentException($"Unsupported export type: {request.ExportType}");
                 }
 
-                await File.WriteAllTextAsync(filePath, content);
+                if (content != null)
+                    await File.WriteAllTextAsync(filePath, content);
 
                 // Create export file record
                 var exportFile = new RecipeExportFileModel
@@ -644,6 +649,86 @@ namespace Nom.Orch.Services
         }
 
         #region Private Methods
+
+        private byte[] GenerateRecipePdf(dynamic exportData)
+        {
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+            var document = QuestPDF.Fluent.Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(QuestPDF.Helpers.PageSizes.Letter);
+                    page.Margin(1, QuestPDF.Infrastructure.Unit.Inch);
+                    page.DefaultTextStyle(x => x.FontSize(11));
+
+                    page.Header().Text("Recipe Export").FontSize(20).Bold().FontColor(QuestPDF.Helpers.Colors.Blue.Darken3);
+
+                    page.Content().Column(col =>
+                    {
+                        col.Item().Text($"Exported: {exportData.ExportDate:yyyy-MM-dd}").FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
+                        col.Item().Text($"{exportData.RecipeCount} recipe(s)").FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
+                        col.Item().PaddingVertical(8);
+
+                        foreach (var recipe in exportData.Recipes)
+                        {
+                            col.Item().BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Grey.Lighten2).PaddingBottom(12).PaddingTop(8).Column(recipeCol =>
+                            {
+                                recipeCol.Item().Text((string)(recipe.Name ?? "Untitled")).FontSize(16).Bold();
+
+                                if (!string.IsNullOrEmpty((string?)recipe.Description))
+                                    recipeCol.Item().PaddingTop(4).Text((string)recipe.Description).FontSize(10).Italic();
+
+                                // Time info
+                                var times = new List<string>();
+                                if (!string.IsNullOrEmpty((string?)recipe.PrepTime)) times.Add($"Prep: {recipe.PrepTime}");
+                                if (!string.IsNullOrEmpty((string?)recipe.CookTime)) times.Add($"Cook: {recipe.CookTime}");
+                                if (!string.IsNullOrEmpty((string?)recipe.TotalTime)) times.Add($"Total: {recipe.TotalTime}");
+                                if (times.Count > 0)
+                                    recipeCol.Item().PaddingTop(4).Text(string.Join(" | ", times)).FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
+
+                                // Ingredients
+                                if (recipe.Ingredients != null)
+                                {
+                                    recipeCol.Item().PaddingTop(8).Text("Ingredients").FontSize(12).SemiBold();
+                                    foreach (var ing in recipe.Ingredients)
+                                    {
+                                        var line = !string.IsNullOrEmpty((string?)ing.RawLine)
+                                            ? (string)ing.RawLine
+                                            : $"{ing.Quantity} {ing.ReferenceName} {ing.Name}".Trim();
+                                        recipeCol.Item().PaddingLeft(12).Text($"• {line}").FontSize(10);
+                                    }
+                                }
+
+                                // Steps
+                                if (recipe.Steps != null)
+                                {
+                                    recipeCol.Item().PaddingTop(8).Text("Instructions").FontSize(12).SemiBold();
+                                    int stepNum = 1;
+                                    foreach (var step in recipe.Steps)
+                                    {
+                                        recipeCol.Item().PaddingLeft(12).Text($"{stepNum}. {step.Description}").FontSize(10);
+                                        stepNum++;
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Page ");
+                        x.CurrentPageNumber();
+                        x.Span(" of ");
+                        x.TotalPages();
+                    });
+                });
+            });
+
+            using var stream = new MemoryStream();
+            document.GeneratePdf(stream);
+            return stream.ToArray();
+        }
 
         private string ConvertToCsv(dynamic exportData)
         {

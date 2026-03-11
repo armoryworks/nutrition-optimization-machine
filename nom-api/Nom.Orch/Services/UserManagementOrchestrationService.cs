@@ -16,6 +16,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 namespace Nom.Orch.Services
@@ -411,54 +412,70 @@ namespace Nom.Orch.Services
 
         public async Task<string> UploadUserImageAsync(string userId, byte[] imageData)
         {
-            // This would save the image to storage and return the URL
-            // For now, return a placeholder URL
-            _logger.LogInformation("UploadUserImageAsync called for user {UserId} with {ImageSize} bytes", userId, imageData.Length);
-            
-            // Simulate async file upload
-            await Task.Delay(100);
-            
-            return $"https://example.com/user-images/{userId}.jpg";
+            var imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "user-images");
+            Directory.CreateDirectory(imagesDir);
+
+            var fileName = $"{userId}.jpg";
+            var filePath = Path.Combine(imagesDir, fileName);
+            await File.WriteAllBytesAsync(filePath, imageData);
+
+            _logger.LogInformation("Saved user image for {UserId} ({Size} bytes)", userId, imageData.Length);
+            return $"/user-images/{fileName}";
         }
 
         public async Task<bool> DeleteUserImageAsync(string userId)
         {
-            // This would delete the user's image from storage
-            _logger.LogInformation("DeleteUserImageAsync called for user {UserId}", userId);
-            
-            // Simulate async file deletion
-            await Task.Delay(50);
-            
+            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "user-images", $"{userId}.jpg");
+            if (!File.Exists(filePath))
+                return false;
+
+            await Task.Run(() => File.Delete(filePath));
+            _logger.LogInformation("Deleted user image for {UserId}", userId);
             return true;
         }
 
         public async Task<List<ApiTokenResponseModel>> GetUserApiTokensAsync(string userId)
         {
-            // This would query the database for user API tokens
-            // For now, return empty list as this needs database context
-            _logger.LogInformation("GetUserApiTokensAsync called for user {UserId}", userId);
-            
-            // Simulate async database query
-            await Task.Delay(30);
-            
-            return new List<ApiTokenResponseModel>();
+            return await _context.ApiTokens
+                .Where(t => t.UserId == userId && t.IsActive)
+                .OrderByDescending(t => t.CreatedDate)
+                .Select(t => new ApiTokenResponseModel
+                {
+                    Id = t.Id.ToString(),
+                    Name = t.Name,
+                    Token = string.Empty, // Never return the hash
+                    CreatedDate = t.CreatedDate,
+                    LastUsedDate = t.LastUsedDate,
+                    IsActive = t.IsActive
+                })
+                .ToListAsync();
         }
 
         public async Task<ApiTokenResponseModel> CreateApiTokenAsync(string userId, CreateApiTokenRequestModel request)
         {
-            // This would create and store an API token
-            // For now, return a mock token
-            _logger.LogInformation("CreateApiTokenAsync called for user {UserId} with name {TokenName}", userId, request.Name);
-            
-            // Simulate async token creation
-            await Task.Delay(75);
-            
+            var rawToken = $"nom_{Guid.NewGuid():N}";
+            var tokenHash = HashToken(rawToken);
+
+            var entity = new ApiTokenEntity
+            {
+                UserId = userId,
+                Name = request.Name,
+                TokenHash = tokenHash,
+                IsActive = true,
+                CreatedDate = DateTime.UtcNow
+            };
+
+            _context.ApiTokens.Add(entity);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Created API token '{Name}' for user {UserId}", request.Name, userId);
+
             return new ApiTokenResponseModel
             {
-                Id = Guid.NewGuid().ToString(),
-                Name = request.Name,
-                Token = $"api_token_{Guid.NewGuid():N}",
-                CreatedDate = DateTime.UtcNow,
+                Id = entity.Id.ToString(),
+                Name = entity.Name,
+                Token = rawToken, // Only returned once at creation
+                CreatedDate = entity.CreatedDate,
                 LastUsedDate = null,
                 IsActive = true
             };
@@ -466,11 +483,25 @@ namespace Nom.Orch.Services
 
         public async Task DeleteApiTokenAsync(string userId, string tokenId)
         {
-            // This would delete the API token from storage
-            _logger.LogInformation("DeleteApiTokenAsync called for user {UserId} and token {TokenId}", userId, tokenId);
-            
-            // Simulate async token deletion
-            await Task.Delay(25);
+            if (!long.TryParse(tokenId, out var id))
+                return;
+
+            var token = await _context.ApiTokens
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+
+            if (token != null)
+            {
+                token.IsActive = false;
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Deactivated API token {TokenId} for user {UserId}", tokenId, userId);
+            }
+        }
+
+        private static string HashToken(string token)
+        {
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
         private async Task<string> GenerateJwtTokenAsync(IdentityUser user)

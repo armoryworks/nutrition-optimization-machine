@@ -81,7 +81,8 @@ namespace Nom.Orch.UtilityServices
         }
 
         /// <summary>
-        /// Extracts text from image using Tesseract OCR
+        /// Extracts text from image using Tesseract OCR engine.
+        /// Requires eng.traineddata in the tessdata directory.
         /// </summary>
         private async Task<string> ExtractTextFromImageAsync(Image image)
         {
@@ -89,50 +90,41 @@ namespace Nom.Orch.UtilityServices
             {
                 try
                 {
-                    // For cross-platform compatibility, we'll use a simpler approach
-                    // In a real implementation, you would use a cross-platform Tesseract wrapper
-                    // like Tesseract.Net.SDK or call the tesseract executable directly
-                    
-                    // For now, we'll extract basic text patterns from the image
-                    return ExtractBasicTextPatterns(image);
+                    // Pre-process: grayscale improves OCR accuracy
+                    image.Mutate(x => x.Grayscale());
+
+                    using var ms = new MemoryStream();
+                    image.Save(ms, new PngEncoder());
+                    var imageBytes = ms.ToArray();
+
+                    if (!Directory.Exists(_tesseractDataPath) ||
+                        !File.Exists(Path.Combine(_tesseractDataPath, "eng.traineddata")))
+                    {
+                        _logger.LogWarning(
+                            "Tesseract traineddata not found at {Path}. " +
+                            "Download eng.traineddata from https://github.com/tesseract-ocr/tessdata and place it there.",
+                            _tesseractDataPath);
+                        return string.Empty;
+                    }
+
+                    using var engine = new Tesseract.TesseractEngine(_tesseractDataPath, "eng", Tesseract.EngineMode.Default);
+                    using var pix = Tesseract.Pix.LoadFromMemory(imageBytes);
+                    using var page = engine.Process(pix);
+
+                    var text = page.GetText();
+                    var confidence = page.GetMeanConfidence();
+
+                    _logger.LogInformation("OCR completed with {Confidence:P0} confidence, extracted {Length} characters",
+                        confidence, text.Length);
+
+                    return text;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error extracting text from image");
-                    return "Recipe text could not be extracted";
+                    _logger.LogError(ex, "Tesseract OCR extraction failed");
+                    return string.Empty;
                 }
             });
-        }
-
-        /// <summary>
-        /// Extracts basic text patterns from image (fallback method)
-        /// </summary>
-        private string ExtractBasicTextPatterns(Image image)
-        {
-            try
-            {
-                // Convert image to grayscale for better text detection
-                image.Mutate(x => x.Grayscale());
-
-                // In a real implementation, you would use a cross-platform OCR library
-                // For now, we'll return a placeholder that indicates OCR processing
-                return "Recipe Title\n\nIngredients:\n- Ingredient 1\n- Ingredient 2\n\nInstructions:\n1. Step one\n2. Step two\n\nPrep time: 15 minutes\nCook time: 30 minutes";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in basic text pattern extraction");
-                return "Recipe text extraction failed";
-            }
-        }
-
-        /// <summary>
-        /// Saves image to stream for OCR processing
-        /// </summary>
-        private async Task<byte[]> SaveImageToBytesAsync(Image image)
-        {
-            using var memoryStream = new MemoryStream();
-            await image.SaveAsync(memoryStream, new PngEncoder());
-            return memoryStream.ToArray();
         }
 
         /// <summary>
