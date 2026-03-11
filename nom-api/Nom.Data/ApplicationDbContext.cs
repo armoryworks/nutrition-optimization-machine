@@ -173,14 +173,34 @@ namespace Nom.Data
             modelBuilder.HasDefaultSchema("auth");
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
+            // Apply soft-delete configuration to all BaseEntity types:
+            // - Default IsDeleted to false so seed SQL INSERTs don't need to specify it
+            // - Query filter only on root entity types (EF Core TPH restriction)
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
                 {
-                    var parameter = Expression.Parameter(entityType.ClrType, "e");
-                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
-                    var filter = Expression.Lambda(Expression.Not(property), parameter);
-                    modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+                    modelBuilder.Entity(entityType.ClrType)
+                        .Property(nameof(BaseEntity.IsDeleted))
+                        .HasDefaultValue(false);
+
+                    // For composite-PK entities, the inherited Id column isn't the PK
+                    // and won't get identity generation — give it a default so seed SQL works
+                    var pk = entityType.FindPrimaryKey();
+                    if (pk != null && !pk.Properties.Any(p => p.Name == nameof(BaseEntity.Id)))
+                    {
+                        modelBuilder.Entity(entityType.ClrType)
+                            .Property(nameof(BaseEntity.Id))
+                            .HasDefaultValue(0L);
+                    }
+
+                    if (entityType.BaseType == null)
+                    {
+                        var parameter = Expression.Parameter(entityType.ClrType, "e");
+                        var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+                        var filter = Expression.Lambda(Expression.Not(property), parameter);
+                        modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+                    }
                 }
             }
         }

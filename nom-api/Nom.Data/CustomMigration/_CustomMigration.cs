@@ -361,10 +361,10 @@ namespace Nom.Data.CustomMigration
             migrationBuilder.InsertData(
                 schema: "person",
                 table: "Person",
-                columns: new[] { "Id", "Name", "UserId", "CreatedDate", "CreatedByPersonId" },
+                columns: new[] { "Id", "Name", "UserId", "CreatedDate", "CreatedByPersonId", "IsDeleted" },
                 values: new object[,]
                 {
-                    { SystemPersonId, "System", null, DateTime.UtcNow, SystemPersonId }
+                    { SystemPersonId, "System", null, DateTime.UtcNow, SystemPersonId, false }
                 });
         }
 

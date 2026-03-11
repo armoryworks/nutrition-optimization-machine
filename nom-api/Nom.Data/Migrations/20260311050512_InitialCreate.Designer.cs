@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Nom.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260223181121_InitialCreate")]
+    [Migration("20260311050512_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -25,6 +25,51 @@ namespace Nom.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("HouseholdEntityPersonEntity", b =>
+                {
+                    b.Property<long>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MembersId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("HouseholdEntityId", "MembersId");
+
+                    b.HasIndex("MembersId");
+
+                    b.ToTable("HouseholdEntityPersonEntity", "auth");
+                });
+
+            modelBuilder.Entity("HouseholdEntityPlanEntity", b =>
+                {
+                    b.Property<long>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PlansId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("HouseholdEntityId", "PlansId");
+
+                    b.HasIndex("PlansId");
+
+                    b.ToTable("HouseholdEntityPlanEntity", "plan");
+                });
+
+            modelBuilder.Entity("HouseholdEntityRecipeEntity", b =>
+                {
+                    b.Property<long>("HouseholdEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MadeRecipesId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("HouseholdEntityId", "MadeRecipesId");
+
+                    b.HasIndex("MadeRecipesId");
+
+                    b.ToTable("HouseholdEntityRecipeEntity", "auth");
+                });
 
             modelBuilder.Entity("MealRecipeIndex", b =>
                 {
@@ -301,6 +346,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
 
@@ -342,8 +398,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -388,14 +455,24 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("DateJoined")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
 
                     b.Property<bool>("IsArchived")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean");
@@ -430,6 +507,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("EntityId")
                         .HasColumnType("bigint");
 
@@ -442,6 +525,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("FeedbackTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -477,9 +565,20 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -516,12 +615,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Formula")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<long>("FromMeasurementId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDirectConversion")
                         .HasColumnType("boolean");
@@ -564,12 +674,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsBaseUnit")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -623,12 +744,26 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("FdcId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<long?>("IngredientEntityId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -643,6 +778,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IngredientEntityId");
 
                     b.HasIndex("MeasurementId");
 
@@ -671,6 +808,12 @@ namespace Nom.Data.Migrations
                     b.Property<long>("DefaultMeasurementId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1023)
                         .HasColumnType("character varying(1023)");
@@ -678,6 +821,11 @@ namespace Nom.Data.Migrations
                     b.Property<string>("FdcId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool?>("IsMicronutrient")
                         .HasColumnType("boolean");
@@ -730,8 +878,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("GoalTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -787,6 +946,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -800,6 +965,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("InviterPersonId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsUsed")
                         .HasColumnType("boolean");
@@ -851,6 +1021,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -891,12 +1072,20 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Email")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<long?>("HouseholdEntityId")
-                        .HasColumnType("bigint");
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -913,8 +1102,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("HouseholdEntityId");
 
                     b.HasIndex("UserId")
                         .IsUnique()
@@ -940,6 +1127,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
@@ -950,6 +1143,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("GoalTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -988,6 +1186,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
@@ -998,6 +1202,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsQuantifiable")
                         .HasColumnType("boolean");
@@ -1057,12 +1266,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
@@ -1103,8 +1323,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdCookbookId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1138,12 +1369,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
                     b.Property<long>("HouseholdGroupId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1184,6 +1426,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("EventType")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1193,6 +1441,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1230,9 +1483,20 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1268,11 +1532,22 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1303,11 +1578,22 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1350,6 +1636,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
 
@@ -1358,6 +1650,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime?>("JoinedDate")
                         .HasColumnType("timestamp with time zone");
@@ -1406,8 +1703,19 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1455,6 +1763,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -1464,6 +1778,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1499,8 +1818,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1534,8 +1864,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1569,6 +1910,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("EventType")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1578,6 +1925,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1619,6 +1971,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1664,8 +2027,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1682,6 +2056,9 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("RecipeId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ShoppingCompletedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .HasMaxLength(255)
@@ -1717,8 +2094,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1761,11 +2149,22 @@ namespace Nom.Data.Migrations
                     b.Property<long>("DayOfWeekId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1820,6 +2219,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("DateSubmittedForCuration")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -1827,12 +2232,14 @@ namespace Nom.Data.Migrations
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
-                    b.Property<long?>("HouseholdEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("InvitationCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -1859,8 +2266,6 @@ namespace Nom.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("CurationStatusId");
-
-                    b.HasIndex("HouseholdEntityId");
 
                     b.HasIndex("InvitationCode")
                         .IsUnique()
@@ -1891,14 +2296,24 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
 
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("JoinedDate")
                         .HasColumnType("timestamp with time zone");
@@ -1938,6 +2353,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -1947,6 +2368,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long?>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2018,6 +2444,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Details")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2025,6 +2457,11 @@ namespace Nom.Data.Migrations
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2065,6 +2502,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2122,8 +2570,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("IsConsented")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2165,12 +2624,23 @@ namespace Nom.Data.Migrations
                     b.Property<long>("CurationStatusId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("Icon")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2203,11 +2673,21 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2244,6 +2724,12 @@ namespace Nom.Data.Migrations
                     b.Property<long>("CurationStatusId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
@@ -2255,6 +2741,11 @@ namespace Nom.Data.Migrations
                     b.Property<string>("FdcId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LabelId")
                         .HasColumnType("bigint");
@@ -2321,8 +2812,19 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Key")
                         .IsRequired()
@@ -2363,6 +2865,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -2383,6 +2891,11 @@ namespace Nom.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2423,6 +2936,12 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("ErrorCount")
                         .HasColumnType("integer");
 
@@ -2431,6 +2950,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime?>("EstimatedCompletionTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2492,6 +3016,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -2532,6 +3067,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2584,6 +3130,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("DateSubmittedForCuration")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -2592,12 +3144,14 @@ namespace Nom.Data.Migrations
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
-                    b.Property<long?>("HouseholdEntityId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Image")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool?>("IsOcrRecipe")
                         .HasColumnType("boolean");
@@ -2685,8 +3239,6 @@ namespace Nom.Data.Migrations
 
                     b.HasIndex("CurationStatusId");
 
-                    b.HasIndex("HouseholdEntityId");
-
                     b.HasIndex("ParentRecipeId");
 
                     b.HasIndex("ServingQuantityMeasurementId");
@@ -2708,14 +3260,24 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
 
                     b.Property<long?>("IngredientEntityId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2761,6 +3323,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
 
@@ -2778,7 +3351,6 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Title")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
@@ -2813,6 +3385,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime?>("DateCalculated")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2856,6 +3439,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime?>("DateRated")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -2893,6 +3487,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -2935,8 +3540,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
@@ -2983,6 +3599,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2047)
@@ -2990,9 +3612,13 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3028,6 +3654,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3072,6 +3709,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
@@ -3084,6 +3727,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("EventTypeId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3124,6 +3772,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
 
@@ -3162,6 +3821,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ErrorDetails")
                         .HasColumnType("text");
 
@@ -3170,6 +3835,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<string>("FailedUrls")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3220,12 +3890,23 @@ namespace Nom.Data.Migrations
                     b.Property<long>("CurationStatusId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("Icon")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3288,8 +3969,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3320,8 +4012,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3356,6 +4059,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("IngredientPattern")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -3363,6 +4072,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3418,6 +4132,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateOnly?>("ExpectedExpirationDate")
                         .HasColumnType("date");
 
@@ -3426,6 +4146,11 @@ namespace Nom.Data.Migrations
 
                     b.Property<long>("IngredientId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long>("ItemStatusTypeId")
                         .HasColumnType("bigint");
@@ -3490,12 +4215,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
                     b.Property<long>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3535,12 +4271,23 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
 
                     b.Property<long?>("HouseholdId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3581,6 +4328,12 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal?>("EstimatedCost")
                         .HasColumnType("decimal(10,2)");
 
@@ -3597,6 +4350,11 @@ namespace Nom.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("ItemCount")
                         .HasColumnType("integer");
@@ -3641,9 +4399,20 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2047)
                         .HasColumnType("character varying(2047)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3682,11 +4451,22 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("IngredientId")
                         .HasColumnType("bigint");
 
                     b.Property<bool>("IsChecked")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3746,6 +4526,17 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long>("LabelId")
                         .HasColumnType("bigint");
 
@@ -3780,6 +4571,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3822,8 +4624,19 @@ namespace Nom.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("IncludePantryItems")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3857,6 +4670,17 @@ namespace Nom.Data.Migrations
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DeletedByPersonId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long?>("LastModifiedByPersonId")
                         .HasColumnType("bigint");
@@ -3936,8 +4760,6 @@ namespace Nom.Data.Migrations
                 {
                     b.HasBaseType("Nom.Data.Measurement.MeasurementEntity");
 
-                    b.ToTable("Measurement", "measurement");
-
                     b.HasDiscriminator().HasValue("Base");
                 });
 
@@ -3972,8 +4794,6 @@ namespace Nom.Data.Migrations
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("PreferredMeasurementId");
-
-                    b.ToTable("Measurement", "measurement");
 
                     b.HasDiscriminator().HasValue("Ingredient");
                 });
@@ -4201,6 +5021,51 @@ namespace Nom.Data.Migrations
                     b.HasDiscriminator().HasValue(6009L);
                 });
 
+            modelBuilder.Entity("HouseholdEntityPersonEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdEntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Person.PersonEntity", null)
+                        .WithMany()
+                        .HasForeignKey("MembersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HouseholdEntityPlanEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdEntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Plan.PlanEntity", null)
+                        .WithMany()
+                        .HasForeignKey("PlansId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HouseholdEntityRecipeEntity", b =>
+                {
+                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
+                        .WithMany()
+                        .HasForeignKey("HouseholdEntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Nom.Data.Recipe.RecipeEntity", null)
+                        .WithMany()
+                        .HasForeignKey("MadeRecipesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MealRecipeIndex", b =>
                 {
                     b.HasOne("Nom.Data.Plan.MealEntity", null)
@@ -4403,7 +5268,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Measurement.MeasurementCategoryEntity", "Category")
                         .WithMany("Measurements")
                         .HasForeignKey("MeasurementCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -4411,22 +5276,26 @@ namespace Nom.Data.Migrations
 
             modelBuilder.Entity("Nom.Data.Nutrient.IngredientNutrientEntity", b =>
                 {
-                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", null)
                         .WithMany("IngredientNutrients")
+                        .HasForeignKey("IngredientEntityId");
+
+                    b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
+                        .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
                         .HasForeignKey("MeasurementId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany("IngredientNutrients")
                         .HasForeignKey("NutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Ingredient");
@@ -4441,7 +5310,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
                         .WithMany()
                         .HasForeignKey("DefaultMeasurementId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "ParentNutrient")
@@ -4459,19 +5328,19 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "GoalType")
                         .WithMany()
                         .HasForeignKey("GoalTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
                         .HasForeignKey("MeasurementId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany("Guidelines")
                         .HasForeignKey("NutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("GoalType");
@@ -4525,18 +5394,12 @@ namespace Nom.Data.Migrations
                     b.Navigation("Person");
                 });
 
-            modelBuilder.Entity("Nom.Data.Person.PersonEntity", b =>
-                {
-                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
-                        .WithMany("Members")
-                        .HasForeignKey("HouseholdEntityId");
-                });
-
             modelBuilder.Entity("Nom.Data.Plan.GoalEntity", b =>
                 {
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "GoalType")
                         .WithMany()
-                        .HasForeignKey("GoalTypeId");
+                        .HasForeignKey("GoalTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
                         .WithMany("Goals")
@@ -4559,19 +5422,23 @@ namespace Nom.Data.Migrations
 
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
-                        .HasForeignKey("IngredientId");
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementId");
+                        .HasForeignKey("MeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany()
-                        .HasForeignKey("NutrientId");
+                        .HasForeignKey("NutrientId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "TimeframeType")
                         .WithMany()
-                        .HasForeignKey("TimeframeTypeId");
+                        .HasForeignKey("TimeframeTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Goal");
 
@@ -4606,7 +5473,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
                         .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("HouseholdCookbook");
@@ -4619,7 +5486,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Plan.HouseholdGroupEntity", "HouseholdGroup")
                         .WithMany()
                         .HasForeignKey("HouseholdGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("HouseholdGroup");
@@ -4647,7 +5514,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Household");
@@ -4701,7 +5568,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Actor")
                         .WithMany()
                         .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
@@ -4713,7 +5580,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
                         .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Actor");
@@ -4734,7 +5601,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
                         .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Household");
@@ -4753,7 +5620,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tool")
                         .WithMany()
                         .HasForeignKey("ToolId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Household");
@@ -4777,7 +5644,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
                         .WithMany()
                         .HasForeignKey("MealTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
@@ -4796,7 +5663,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
@@ -4808,12 +5675,13 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
                         .WithMany()
                         .HasForeignKey("MealTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
-                        .HasForeignKey("RecipeId");
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Author");
 
@@ -4855,7 +5723,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "DayOfWeek")
                         .WithMany()
                         .HasForeignKey("DayOfWeekId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
@@ -4867,7 +5735,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "MealType")
                         .WithMany()
                         .HasForeignKey("MealTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("DayOfWeek");
@@ -4890,10 +5758,6 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("CurationStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
-                        .WithMany("Plans")
-                        .HasForeignKey("HouseholdEntityId");
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "ParentPlan")
                         .WithMany()
@@ -5035,7 +5899,8 @@ namespace Nom.Data.Migrations
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Label")
                         .WithMany()
-                        .HasForeignKey("LabelId");
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Author");
 
@@ -5075,7 +5940,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5094,7 +5959,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5121,10 +5986,6 @@ namespace Nom.Data.Migrations
                         .HasForeignKey("CurationStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Nom.Data.Plan.HouseholdEntity", null)
-                        .WithMany("MadeRecipes")
-                        .HasForeignKey("HouseholdEntityId");
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "ParentRecipe")
                         .WithMany()
@@ -5181,7 +6042,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5200,7 +6061,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany()
                         .HasForeignKey("NutrientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5219,7 +6080,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Rater")
                         .WithMany()
                         .HasForeignKey("RaterId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5265,7 +6126,8 @@ namespace Nom.Data.Migrations
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "StepType")
                         .WithMany()
-                        .HasForeignKey("StepTypeId");
+                        .HasForeignKey("StepTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Recipe");
 
@@ -5287,7 +6149,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tag")
                         .WithMany()
                         .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Recipe");
@@ -5300,13 +6162,13 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Actor")
                         .WithMany()
                         .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "EventType")
                         .WithMany()
                         .HasForeignKey("EventTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
@@ -5333,7 +6195,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Tool")
                         .WithMany()
                         .HasForeignKey("ToolId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Recipe");
@@ -5345,35 +6207,37 @@ namespace Nom.Data.Migrations
                 {
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
                         .WithMany()
-                        .HasForeignKey("HouseholdId");
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "ItemStatusType")
                         .WithMany()
                         .HasForeignKey("ItemStatusTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
                         .HasForeignKey("MeasurementId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.PlanEntity", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Shopping.ShoppingTripEntity", "ShoppingTrip")
                         .WithMany()
-                        .HasForeignKey("ShoppingTripId");
+                        .HasForeignKey("ShoppingTripId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Household");
 
@@ -5393,7 +6257,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
                         .WithMany()
                         .HasForeignKey("HouseholdId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Household");
@@ -5404,16 +6268,18 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Plan.HouseholdEntity", "Household")
                         .WithMany()
-                        .HasForeignKey("HouseholdId");
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Shopping.ShoppingListGroupEntity", "ShoppingListGroup")
                         .WithMany()
-                        .HasForeignKey("ShoppingListGroupId");
+                        .HasForeignKey("ShoppingListGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Author");
 
@@ -5426,19 +6292,23 @@ namespace Nom.Data.Migrations
                 {
                     b.HasOne("Nom.Data.Shopping.ShoppingListCategoryEntity", "Category")
                         .WithMany("Items")
-                        .HasForeignKey("CategoryId");
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
-                        .HasForeignKey("IngredientId");
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "Measurement")
                         .WithMany()
-                        .HasForeignKey("MeasurementId");
+                        .HasForeignKey("MeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Recipe.RecipeEntity", "Recipe")
                         .WithMany()
-                        .HasForeignKey("RecipeId");
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Shopping.ShoppingListEntity", "ShoppingList")
                         .WithMany("Items")
@@ -5462,7 +6332,7 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Label")
                         .WithMany()
                         .HasForeignKey("LabelId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Shopping.ShoppingListEntity", "ShoppingList")
@@ -5511,12 +6381,13 @@ namespace Nom.Data.Migrations
                     b.HasOne("Nom.Data.Person.PersonEntity", "Person")
                         .WithMany()
                         .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Nom.Data.Reference.ReferenceEntity", "Status")
                         .WithMany()
-                        .HasForeignKey("StatusId");
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Person");
 
@@ -5578,7 +6449,8 @@ namespace Nom.Data.Migrations
                 {
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
                         .WithMany()
-                        .HasForeignKey("DefaultMeasurementId");
+                        .HasForeignKey("DefaultMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Recipe.IngredientEntity", "Ingredient")
                         .WithMany()
@@ -5588,7 +6460,8 @@ namespace Nom.Data.Migrations
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "PreferredMeasurement")
                         .WithMany()
-                        .HasForeignKey("PreferredMeasurementId");
+                        .HasForeignKey("PreferredMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DefaultMeasurement");
 
@@ -5601,7 +6474,8 @@ namespace Nom.Data.Migrations
                 {
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "DefaultMeasurement")
                         .WithMany()
-                        .HasForeignKey("DefaultMeasurementId");
+                        .HasForeignKey("DefaultMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Nom.Data.Nutrient.NutrientEntity", "Nutrient")
                         .WithMany()
@@ -5611,7 +6485,8 @@ namespace Nom.Data.Migrations
 
                     b.HasOne("Nom.Data.Measurement.MeasurementEntity", "StandardMeasurement")
                         .WithMany()
-                        .HasForeignKey("StandardMeasurementId");
+                        .HasForeignKey("StandardMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DefaultMeasurement");
 
@@ -5669,12 +6544,6 @@ namespace Nom.Data.Migrations
                     b.Navigation("IngredientsOnHand");
 
                     b.Navigation("InviteTokens");
-
-                    b.Navigation("MadeRecipes");
-
-                    b.Navigation("Members");
-
-                    b.Navigation("Plans");
 
                     b.Navigation("Preferences");
 

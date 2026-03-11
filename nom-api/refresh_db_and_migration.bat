@@ -82,7 +82,7 @@ echo Migration generated.
 REM --- Step 6: Patch migration with custom seed operations ---
 echo.
 echo [6/8] Patching migration with ApplyCustomUpOperations/ApplyCustomDownOperations...
-docker exec %API_CONTAINER% sh -c "cd /src/Nom.Data/Migrations && MIGRATION_FILE=$(ls *_InitialCreate.cs 2>/dev/null | head -1) && if [ -z \"$MIGRATION_FILE\" ]; then echo 'ERROR: Migration file not found'; exit 1; fi && sed -i '1s/^/using Nom.Data;\n/' \"$MIGRATION_FILE\" && sed -i '/protected override void Up(MigrationBuilder migrationBuilder)/,/^        }/ s/^        }/            migrationBuilder.ApplyCustomUpOperations();\n        }/' \"$MIGRATION_FILE\" && sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{n;s/{/{ \n            migrationBuilder.ApplyCustomDownOperations();/}' \"$MIGRATION_FILE\" && echo 'Patched: '$MIGRATION_FILE"
+docker exec %API_CONTAINER% sh -c "cd /src/Nom.Data/Migrations && MIGRATION_FILE=$(ls *_InitialCreate.cs 2>/dev/null | head -1) && if [ -z \"$MIGRATION_FILE\" ]; then echo 'ERROR: Migration file not found'; exit 1; fi && sed -i '1s/^/using Nom.Data.CustomMigration;\n/' \"$MIGRATION_FILE\" && sed -i '/protected override void Up(MigrationBuilder migrationBuilder)/,/^        }/ s/^        }/            migrationBuilder.ApplyCustomUpOperations();\n        }/' \"$MIGRATION_FILE\" && sed -i '/protected override void Down(MigrationBuilder migrationBuilder)/{n;s/{/{ \n            migrationBuilder.ApplyCustomDownOperations();/}' \"$MIGRATION_FILE\" && echo 'Patched: '$MIGRATION_FILE"
 if errorlevel 1 (
     echo ERROR: Migration patching failed.
     exit /b 1

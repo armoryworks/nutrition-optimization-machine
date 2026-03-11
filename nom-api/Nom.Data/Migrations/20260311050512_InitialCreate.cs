@@ -1,6 +1,5 @@
-using Nom.Data;
-using Nom.Data.CustomMigration;
-﻿using System;
+﻿using Nom.Data.CustomMigration;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -106,7 +105,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -126,7 +128,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -146,11 +151,37 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_HouseholdGroup", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Person",
+                schema: "person",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: true),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Person", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -176,7 +207,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -195,7 +229,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -220,7 +257,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -246,7 +286,10 @@ namespace Nom.Data.Migrations
                     FailedUrls = table.Column<string>(type: "text", nullable: true),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -274,7 +317,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -294,7 +340,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -316,7 +365,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -454,7 +506,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -465,311 +520,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "plan",
                         principalTable: "HouseholdGroup",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ReferenceIndex",
-                schema: "reference",
-                columns: table => new
-                {
-                    ReferenceId = table.Column<long>(type: "bigint", nullable: false),
-                    GroupId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ReferenceIndex", x => new { x.ReferenceId, x.GroupId });
-                    table.ForeignKey(
-                        name: "FK_ReferenceIndex_ReferenceEntity_ReferenceId",
-                        column: x => x.ReferenceId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ReferenceIndex_ReferenceGroupEntity_GroupId",
-                        column: x => x.GroupId,
-                        principalSchema: "reference",
-                        principalTable: "Group",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdCookbook",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdCookbook", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdCookbook_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdEventNotifier",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    EventType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    NotificationType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Configuration = table.Column<string>(type: "text", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdEventNotifier", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdEventNotifier_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdInviteToken",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    Token = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    ExpirationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    UsesLeft = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdInviteToken", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdInviteToken_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdPreference",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    PreferenceKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    PreferenceValue = table.Column<string>(type: "text", nullable: true),
-                    DataType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdPreference", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdPreference_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdTool",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    ToolId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdTool", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdTool_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdTool_Reference_ToolId",
-                        column: x => x.ToolId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdWebhook",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Url = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
-                    EventType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdWebhook", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdWebhook_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MealPlanRule",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    MealTypeId = table.Column<long>(type: "bigint", nullable: false),
-                    DayOfWeekId = table.Column<long>(type: "bigint", nullable: false),
-                    QueryFilter = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    MaxRecipes = table.Column<int>(type: "integer", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MealPlanRule", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MealPlanRule_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlanRule_Reference_DayOfWeekId",
-                        column: x => x.DayOfWeekId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlanRule_Reference_MealTypeId",
-                        column: x => x.MealTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Person",
-                schema: "person",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    UserId = table.Column<string>(type: "text", nullable: true),
-                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Person", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Person_Household_HouseholdEntityId",
-                        column: x => x.HouseholdEntityId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ShoppingListCategory",
-                schema: "shopping",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    Color = table.Column<string>(type: "text", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShoppingListCategory", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShoppingListCategory_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -801,6 +552,136 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DataProcessingLog",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ActionType = table.Column<string>(type: "text", nullable: false),
+                    ActorId = table.Column<long>(type: "bigint", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false),
+                    IpAddress = table.Column<string>(type: "text", nullable: false),
+                    UserAgent = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DataProcessingLog", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DataProcessingLog_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PrivacyRequest",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RequestType = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    RequestTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CompletionTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RequestDetails = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrivacyRequest", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PrivacyRequest_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShoppingPreference",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    AutoGenerateShoppingList = table.Column<bool>(type: "boolean", nullable: false),
+                    IncludePantryItems = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingPreference", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShoppingPreference_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserConsent",
+                schema: "privacy",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ConsentType = table.Column<string>(type: "text", nullable: false),
+                    IsConsented = table.Column<bool>(type: "boolean", nullable: false),
+                    ConsentTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ConsentVersion = table.Column<string>(type: "text", nullable: false),
+                    LegalBasis = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserConsent", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserConsent_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CurationFeedback",
                 schema: "curation",
                 columns: table => new
@@ -815,7 +696,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -844,77 +728,6 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DataProcessingLog",
-                schema: "privacy",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ActionType = table.Column<string>(type: "text", nullable: false),
-                    ActorId = table.Column<long>(type: "bigint", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Details = table.Column<string>(type: "text", nullable: false),
-                    IpAddress = table.Column<string>(type: "text", nullable: false),
-                    UserAgent = table.Column<string>(type: "text", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DataProcessingLog", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DataProcessingLog_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "HouseholdMember",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false),
-                    Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    JoinedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LeftDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
-                    CanManage = table.Column<bool>(type: "boolean", nullable: false),
-                    CanInvite = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_HouseholdMember", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_HouseholdMember_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_HouseholdMember_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Ingredient",
                 schema: "recipe",
                 columns: table => new
@@ -935,7 +748,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -959,47 +775,6 @@ namespace Nom.Data.Migrations
                         column: x => x.LabelId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MealPlanExclusion",
-                schema: "plan",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false),
-                    Date = table.Column<DateOnly>(type: "date", nullable: false),
-                    MealTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MealPlanExclusion", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MealPlanExclusion_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlanExclusion_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MealPlanExclusion_Reference_MealTypeId",
-                        column: x => x.MealTypeId,
-                        principalSchema: "reference",
-                        principalTable: "Reference",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -1018,7 +793,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1057,21 +835,17 @@ namespace Nom.Data.Migrations
                     DateCurationCompleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ParentPlanId = table.Column<long>(type: "bigint", nullable: true),
                     Version = table.Column<long>(type: "bigint", nullable: false),
-                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Plan", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Plan_Household_HouseholdEntityId",
-                        column: x => x.HouseholdEntityId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Plan_Person_AuthorId",
                         column: x => x.AuthorId,
@@ -1096,99 +870,28 @@ namespace Nom.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PrivacyRequest",
-                schema: "privacy",
+                name: "ReferenceIndex",
+                schema: "reference",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RequestType = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    RequestTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CompletionTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    RequestDetails = table.Column<string>(type: "text", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                    ReferenceId = table.Column<long>(type: "bigint", nullable: false),
+                    GroupId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PrivacyRequest", x => x.Id);
+                    table.PrimaryKey("PK_ReferenceIndex", x => new { x.ReferenceId, x.GroupId });
                     table.ForeignKey(
-                        name: "FK_PrivacyRequest_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ShoppingList",
-                schema: "shopping",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
-                    HouseholdId = table.Column<long>(type: "bigint", nullable: true),
-                    ShoppingListGroupId = table.Column<long>(type: "bigint", nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShoppingList", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShoppingList_Household_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_ShoppingList_Person_AuthorId",
-                        column: x => x.AuthorId,
-                        principalSchema: "person",
-                        principalTable: "Person",
+                        name: "FK_ReferenceIndex_ReferenceEntity_ReferenceId",
+                        column: x => x.ReferenceId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ShoppingList_ShoppingListGroup_ShoppingListGroupId",
-                        column: x => x.ShoppingListGroupId,
-                        principalSchema: "shopping",
-                        principalTable: "ShoppingListGroup",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ShoppingPreference",
-                schema: "shopping",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false),
-                    AutoGenerateShoppingList = table.Column<bool>(type: "boolean", nullable: false),
-                    IncludePantryItems = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShoppingPreference", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShoppingPreference_Person_PersonId",
-                        column: x => x.PersonId,
-                        principalSchema: "person",
-                        principalTable: "Person",
+                        name: "FK_ReferenceIndex_ReferenceGroupEntity_GroupId",
+                        column: x => x.GroupId,
+                        principalSchema: "reference",
+                        principalTable: "Group",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1208,7 +911,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1219,43 +925,449 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShoppingTrip_Reference_StatusId",
                         column: x => x.StatusId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserConsent",
-                schema: "privacy",
+                name: "HouseholdCookbook",
+                schema: "plan",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ConsentType = table.Column<string>(type: "text", nullable: false),
-                    IsConsented = table.Column<bool>(type: "boolean", nullable: false),
-                    ConsentTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ConsentVersion = table.Column<string>(type: "text", nullable: false),
-                    LegalBasis = table.Column<string>(type: "text", nullable: false),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    Slug = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
-                    PersonId = table.Column<long>(type: "bigint", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserConsent", x => x.Id);
+                    table.PrimaryKey("PK_HouseholdCookbook", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserConsent_Person_PersonId",
+                        name: "FK_HouseholdCookbook_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdEntityPersonEntity",
+                schema: "auth",
+                columns: table => new
+                {
+                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: false),
+                    MembersId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdEntityPersonEntity", x => new { x.HouseholdEntityId, x.MembersId });
+                    table.ForeignKey(
+                        name: "FK_HouseholdEntityPersonEntity_Household_HouseholdEntityId",
+                        column: x => x.HouseholdEntityId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_HouseholdEntityPersonEntity_Person_MembersId",
+                        column: x => x.MembersId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdEventNotifier",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    EventType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    NotificationType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Configuration = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdEventNotifier", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdEventNotifier_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdInviteToken",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    Token = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    ExpirationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UsesLeft = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdInviteToken", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdInviteToken_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdMember",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    JoinedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LeftDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
+                    CanManage = table.Column<bool>(type: "boolean", nullable: false),
+                    CanInvite = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdMember", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdMember_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_HouseholdMember_Person_PersonId",
                         column: x => x.PersonId,
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdPreference",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    PreferenceKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PreferenceValue = table.Column<string>(type: "text", nullable: true),
+                    DataType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdPreference", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdPreference_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdTool",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    ToolId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdTool", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdTool_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_HouseholdTool_Reference_ToolId",
+                        column: x => x.ToolId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdWebhook",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Url = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
+                    EventType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdWebhook", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HouseholdWebhook_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MealPlanExclusion",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    PersonId = table.Column<long>(type: "bigint", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    MealTypeId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MealPlanExclusion", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Person_PersonId",
+                        column: x => x.PersonId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlanExclusion_Reference_MealTypeId",
+                        column: x => x.MealTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MealPlanRule",
+                schema: "plan",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    MealTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    DayOfWeekId = table.Column<long>(type: "bigint", nullable: false),
+                    QueryFilter = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    MaxRecipes = table.Column<int>(type: "integer", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MealPlanRule", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MealPlanRule_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MealPlanRule_Reference_DayOfWeekId",
+                        column: x => x.DayOfWeekId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MealPlanRule_Reference_MealTypeId",
+                        column: x => x.MealTypeId,
+                        principalSchema: "reference",
+                        principalTable: "Reference",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShoppingList",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    AuthorId = table.Column<long>(type: "bigint", nullable: false),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: true),
+                    ShoppingListGroupId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingList", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShoppingList_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ShoppingList_Person_AuthorId",
+                        column: x => x.AuthorId,
+                        principalSchema: "person",
+                        principalTable: "Person",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ShoppingList_ShoppingListGroup_ShoppingListGroupId",
+                        column: x => x.ShoppingListGroupId,
+                        principalSchema: "shopping",
+                        principalTable: "ShoppingListGroup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShoppingListCategory",
+                schema: "shopping",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
+                    HouseholdId = table.Column<long>(type: "bigint", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShoppingListCategory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShoppingListCategory_Household_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1270,7 +1382,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1288,7 +1403,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "recipe",
                         principalTable: "Ingredient",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1299,12 +1414,14 @@ namespace Nom.Data.Migrations
                     IngredientId = table.Column<long>(type: "bigint", nullable: false),
                     AliasName = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: false),
                     SourceContext = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1332,7 +1449,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1362,7 +1482,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1379,7 +1502,35 @@ namespace Nom.Data.Migrations
                         column: x => x.GoalTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdEntityPlanEntity",
+                schema: "plan",
+                columns: table => new
+                {
+                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: false),
+                    PlansId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdEntityPlanEntity", x => new { x.HouseholdEntityId, x.PlansId });
+                    table.ForeignKey(
+                        name: "FK_HouseholdEntityPlanEntity_Household_HouseholdEntityId",
+                        column: x => x.HouseholdEntityId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_HouseholdEntityPlanEntity_Plan_PlansId",
+                        column: x => x.PlansId,
+                        principalSchema: "plan",
+                        principalTable: "Plan",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1401,6 +1552,9 @@ namespace Nom.Data.Migrations
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     ExpirationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
@@ -1442,7 +1596,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1460,7 +1617,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1475,12 +1632,14 @@ namespace Nom.Data.Migrations
                     IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
                     CanManage = table.Column<bool>(type: "boolean", nullable: false),
                     CanInvite = table.Column<bool>(type: "boolean", nullable: false),
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1520,7 +1679,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1531,7 +1693,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShoppingListLabel_ShoppingList_ShoppingListId",
                         column: x => x.ShoppingListId,
@@ -1554,7 +1716,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1622,7 +1787,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1639,13 +1807,15 @@ namespace Nom.Data.Migrations
                         column: x => x.IngredientId,
                         principalSchema: "recipe",
                         principalTable: "Ingredient",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_GoalItem_Reference_TimeframeTypeId",
                         column: x => x.TimeframeTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1660,7 +1830,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1670,6 +1843,26 @@ namespace Nom.Data.Migrations
                         column: x => x.HouseholdCookbookId,
                         principalSchema: "plan",
                         principalTable: "HouseholdCookbook",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HouseholdEntityRecipeEntity",
+                schema: "auth",
+                columns: table => new
+                {
+                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: false),
+                    MadeRecipesId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HouseholdEntityRecipeEntity", x => new { x.HouseholdEntityId, x.MadeRecipesId });
+                    table.ForeignKey(
+                        name: "FK_HouseholdEntityRecipeEntity_Household_HouseholdEntityId",
+                        column: x => x.HouseholdEntityId,
+                        principalSchema: "plan",
+                        principalTable: "Household",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1686,7 +1879,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1717,7 +1913,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1735,7 +1934,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1750,21 +1949,31 @@ namespace Nom.Data.Migrations
                     Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     MeasurementId = table.Column<long>(type: "bigint", nullable: false),
                     FdcId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IngredientEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_IngredientNutrient", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_IngredientNutrient_Ingredient_IngredientEntityId",
+                        column: x => x.IngredientEntityId,
+                        principalSchema: "recipe",
+                        principalTable: "Ingredient",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_IngredientNutrient_Ingredient_IngredientId",
                         column: x => x.IngredientId,
                         principalSchema: "recipe",
                         principalTable: "Ingredient",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1802,10 +2011,14 @@ namespace Nom.Data.Migrations
                     Note = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
                     Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     CompletedDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    ShoppingCompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1823,14 +2036,14 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_MealPlan_Reference_MealTypeId",
                         column: x => x.MealTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1865,7 +2078,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1882,25 +2098,29 @@ namespace Nom.Data.Migrations
                         column: x => x.DefaultMeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Measurement_Measurement_NutrientMeasurementEntity_DefaultMe~",
                         column: x => x.NutrientMeasurementEntity_DefaultMeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Measurement_Measurement_PreferredMeasurementId",
                         column: x => x.PreferredMeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Measurement_Measurement_StandardMeasurementId",
                         column: x => x.StandardMeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1916,7 +2136,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1946,7 +2169,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1984,7 +2210,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1995,7 +2224,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "measurement",
                         principalTable: "Measurement",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Nutrient_Nutrient_ParentNutrientId",
                         column: x => x.ParentNutrientId,
@@ -2026,7 +2255,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2036,41 +2268,43 @@ namespace Nom.Data.Migrations
                         column: x => x.HouseholdId,
                         principalSchema: "plan",
                         principalTable: "Household",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PantryItem_Ingredient_IngredientId",
                         column: x => x.IngredientId,
                         principalSchema: "recipe",
                         principalTable: "Ingredient",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PantryItem_Measurement_MeasurementId",
                         column: x => x.MeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PantryItem_Plan_PlanId",
                         column: x => x.PlanId,
                         principalSchema: "plan",
                         principalTable: "Plan",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PantryItem_Reference_ItemStatusTypeId",
                         column: x => x.ItemStatusTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PantryItem_ShoppingTrip_ShoppingTripId",
                         column: x => x.ShoppingTripId,
                         principalSchema: "shopping",
                         principalTable: "ShoppingTrip",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -2110,21 +2344,17 @@ namespace Nom.Data.Migrations
                     IsOcrRecipe = table.Column<bool>(type: "boolean", nullable: true),
                     NameNormalized = table.Column<string>(type: "character varying(511)", maxLength: 511, nullable: true),
                     DescriptionNormalized = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: true),
-                    HouseholdEntityId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Recipe", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Recipe_Household_HouseholdEntityId",
-                        column: x => x.HouseholdEntityId,
-                        principalSchema: "plan",
-                        principalTable: "Household",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Recipe_Measurement_ServingQuantityMeasurementId",
                         column: x => x.ServingQuantityMeasurementId,
@@ -2171,7 +2401,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2182,21 +2415,21 @@ namespace Nom.Data.Migrations
                         principalSchema: "measurement",
                         principalTable: "Measurement",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_NutrientGuideline_Nutrient_NutrientId",
                         column: x => x.NutrientId,
                         principalSchema: "nutrient",
                         principalTable: "Nutrient",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_NutrientGuideline_Reference_GoalTypeId",
                         column: x => x.GoalTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2220,7 +2453,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2283,7 +2519,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2356,7 +2595,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2383,7 +2625,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2407,7 +2652,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2423,7 +2668,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2434,7 +2682,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeComment_Recipe_RecipeId",
                         column: x => x.RecipeId,
@@ -2455,12 +2703,14 @@ namespace Nom.Data.Migrations
                     MeasurementId = table.Column<long>(type: "bigint", nullable: false),
                     RawLine = table.Column<string>(type: "Text", nullable: false),
                     IngredientEntityId = table.Column<long>(type: "bigint", nullable: true),
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2505,11 +2755,14 @@ namespace Nom.Data.Migrations
                     AuthorId = table.Column<long>(type: "bigint", nullable: false),
                     Note = table.Column<string>(type: "text", nullable: false),
                     IsPublic = table.Column<bool>(type: "boolean", nullable: false),
-                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2520,7 +2773,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeNote_Recipe_RecipeId",
                         column: x => x.RecipeId,
@@ -2546,7 +2799,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2557,7 +2813,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "nutrient",
                         principalTable: "Nutrient",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeNutrition_Recipe_RecipeId",
                         column: x => x.RecipeId,
@@ -2581,7 +2837,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2592,7 +2851,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeRating_Recipe_RecipeId",
                         column: x => x.RecipeId,
@@ -2616,7 +2875,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2645,6 +2907,9 @@ namespace Nom.Data.Migrations
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     ExpirationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     UsesLeft = table.Column<int>(type: "integer", nullable: true)
                 },
@@ -2670,12 +2935,14 @@ namespace Nom.Data.Migrations
                     StepTypeId = table.Column<long>(type: "bigint", nullable: true),
                     Summary = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "character varying(2047)", maxLength: 2047, nullable: false),
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2692,7 +2959,8 @@ namespace Nom.Data.Migrations
                         column: x => x.StepTypeId,
                         principalSchema: "reference",
                         principalTable: "Reference",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2708,7 +2976,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2726,7 +2997,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeTag_Tag_TagEntityId",
                         column: x => x.TagEntityId,
@@ -2752,7 +3023,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2763,7 +3037,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "person",
                         principalTable: "Person",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RecipeTimelineEvent_Recipe_RecipeId",
                         column: x => x.RecipeId,
@@ -2777,7 +3051,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2792,7 +3066,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2810,7 +3087,7 @@ namespace Nom.Data.Migrations
                         principalSchema: "reference",
                         principalTable: "Reference",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2833,7 +3110,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2843,25 +3123,29 @@ namespace Nom.Data.Migrations
                         column: x => x.IngredientId,
                         principalSchema: "recipe",
                         principalTable: "Ingredient",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShoppingListItem_Measurement_MeasurementId",
                         column: x => x.MeasurementId,
                         principalSchema: "measurement",
                         principalTable: "Measurement",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShoppingListItem_Recipe_RecipeId",
                         column: x => x.RecipeId,
                         principalSchema: "recipe",
                         principalTable: "Recipe",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ShoppingListItem_ShoppingListCategory_CategoryId",
                         column: x => x.CategoryId,
                         principalSchema: "shopping",
                         principalTable: "ShoppingListCategory",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_ShoppingListItem_ShoppingList_ShoppingListId",
                         column: x => x.ShoppingListId,
@@ -2886,7 +3170,10 @@ namespace Nom.Data.Migrations
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2917,12 +3204,14 @@ namespace Nom.Data.Migrations
                     DateJoined = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsArchived = table.Column<bool>(type: "boolean", nullable: false),
                     IsPinned = table.Column<bool>(type: "boolean", nullable: false),
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedByPersonId = table.Column<long>(type: "bigint", nullable: true),
                     LastModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true)
+                    LastModifiedByPersonId = table.Column<long>(type: "bigint", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByPersonId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3084,6 +3373,24 @@ namespace Nom.Data.Migrations
                 column: "RecipeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_HouseholdEntityPersonEntity_MembersId",
+                schema: "auth",
+                table: "HouseholdEntityPersonEntity",
+                column: "MembersId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HouseholdEntityPlanEntity_PlansId",
+                schema: "plan",
+                table: "HouseholdEntityPlanEntity",
+                column: "PlansId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HouseholdEntityRecipeEntity_MadeRecipesId",
+                schema: "auth",
+                table: "HouseholdEntityRecipeEntity",
+                column: "MadeRecipesId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_HouseholdEventNotifier_HouseholdId",
                 schema: "plan",
                 table: "HouseholdEventNotifier",
@@ -3211,6 +3518,12 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "IngredientExtras",
                 column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IngredientNutrient_IngredientEntityId",
+                schema: "nutrient",
+                table: "IngredientNutrient",
+                column: "IngredientEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientNutrient_IngredientId_NutrientId",
@@ -3514,12 +3827,6 @@ namespace Nom.Data.Migrations
                 column: "ShoppingTripId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Person_HouseholdEntityId",
-                schema: "person",
-                table: "Person",
-                column: "HouseholdEntityId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Person_UserId",
                 schema: "person",
                 table: "Person",
@@ -3550,12 +3857,6 @@ namespace Nom.Data.Migrations
                 schema: "plan",
                 table: "Plan",
                 column: "CurationStatusId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Plan_HouseholdEntityId",
-                schema: "plan",
-                table: "Plan",
-                column: "HouseholdEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Plan_InvitationCode",
@@ -3600,12 +3901,6 @@ namespace Nom.Data.Migrations
                 schema: "recipe",
                 table: "Recipe",
                 column: "CurationStatusId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Recipe_HouseholdEntityId",
-                schema: "recipe",
-                table: "Recipe",
-                column: "HouseholdEntityId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipe_ParentRecipeId",
@@ -3938,7 +4233,8 @@ namespace Nom.Data.Migrations
                 column: "MeasurementId",
                 principalSchema: "measurement",
                 principalTable: "Measurement",
-                principalColumn: "Id");
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_GoalItem_Nutrient_NutrientId",
@@ -3947,13 +4243,24 @@ namespace Nom.Data.Migrations
                 column: "NutrientId",
                 principalSchema: "nutrient",
                 principalTable: "Nutrient",
-                principalColumn: "Id");
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_HouseholdCookbookRecipe_Recipe_RecipeId",
                 schema: "plan",
                 table: "HouseholdCookbookRecipe",
                 column: "RecipeId",
+                principalSchema: "recipe",
+                principalTable: "Recipe",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_HouseholdEntityRecipeEntity_Recipe_MadeRecipesId",
+                schema: "auth",
+                table: "HouseholdEntityRecipeEntity",
+                column: "MadeRecipesId",
                 principalSchema: "recipe",
                 principalTable: "Recipe",
                 principalColumn: "Id",
@@ -3967,7 +4274,7 @@ namespace Nom.Data.Migrations
                 principalSchema: "recipe",
                 principalTable: "Recipe",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_HouseholdRecipeAction_Recipe_RecipeId",
@@ -3977,7 +4284,7 @@ namespace Nom.Data.Migrations
                 principalSchema: "recipe",
                 principalTable: "Recipe",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_IngredientNutrient_Measurement_MeasurementId",
@@ -3987,7 +4294,7 @@ namespace Nom.Data.Migrations
                 principalSchema: "measurement",
                 principalTable: "Measurement",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_IngredientNutrient_Nutrient_NutrientId",
@@ -3997,7 +4304,7 @@ namespace Nom.Data.Migrations
                 principalSchema: "nutrient",
                 principalTable: "Nutrient",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_MealRecipeIndex_RecipeEntity_RecipeId",
@@ -4016,7 +4323,8 @@ namespace Nom.Data.Migrations
                 column: "RecipeId",
                 principalSchema: "recipe",
                 principalTable: "Recipe",
-                principalColumn: "Id");
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Measurement_MeasurementCategory_MeasurementCategoryId",
@@ -4026,7 +4334,7 @@ namespace Nom.Data.Migrations
                 principalSchema: "measurement",
                 principalTable: "MeasurementCategory",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Measurement_Nutrient_NutrientId",
@@ -4037,12 +4345,13 @@ namespace Nom.Data.Migrations
                 principalTable: "Nutrient",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
             migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        { 
+        {
             migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropForeignKey(
                 name: "FK_Ingredient_Person_AuthorId",
@@ -4113,6 +4422,18 @@ namespace Nom.Data.Migrations
             migrationBuilder.DropTable(
                 name: "HouseholdCookbookRecipe",
                 schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "HouseholdEntityPersonEntity",
+                schema: "auth");
+
+            migrationBuilder.DropTable(
+                name: "HouseholdEntityPlanEntity",
+                schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "HouseholdEntityRecipeEntity",
+                schema: "auth");
 
             migrationBuilder.DropTable(
                 name: "HouseholdEventNotifier",
@@ -4375,20 +4696,20 @@ namespace Nom.Data.Migrations
                 schema: "plan");
 
             migrationBuilder.DropTable(
-                name: "ShoppingListGroup",
-                schema: "shopping");
-
-            migrationBuilder.DropTable(
-                name: "Person",
-                schema: "person");
-
-            migrationBuilder.DropTable(
                 name: "Household",
                 schema: "plan");
 
             migrationBuilder.DropTable(
+                name: "ShoppingListGroup",
+                schema: "shopping");
+
+            migrationBuilder.DropTable(
                 name: "HouseholdGroup",
                 schema: "plan");
+
+            migrationBuilder.DropTable(
+                name: "Person",
+                schema: "person");
 
             migrationBuilder.DropTable(
                 name: "Reference",

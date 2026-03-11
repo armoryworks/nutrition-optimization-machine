@@ -255,9 +255,9 @@ if [ -z "$MIGRATION_FILE" ]; then
 fi
 echo "Found migration file: $MIGRATION_FILE"
 
-# Add 'using Nom.Data;' at the top of the file
-sed -i '1s/^/using Nom.Data;\n/' "$MIGRATION_FILE"
-check_status "Adding using Nom.Data;"
+# Add 'using Nom.Data.CustomMigration;' at the top of the file
+sed -i '1s/^/using Nom.Data.CustomMigration;\n/' "$MIGRATION_FILE"
+check_status "Adding using Nom.Data.CustomMigration;"
 
 # Insert ApplyCustomUpOperations() before the closing brace of the Up method
 sed -i '/protected override void Up(MigrationBuilder migrationBuilder)/,/^        }/ s/^        }/            migrationBuilder.ApplyCustomUpOperations();\n        }/' "$MIGRATION_FILE"
