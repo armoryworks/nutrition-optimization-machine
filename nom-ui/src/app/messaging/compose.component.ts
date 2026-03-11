@@ -11,7 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MessagingService } from '../core/services/messaging.service';
 import { HouseholdService } from '../core/services/household.service';
 import { LoadingService } from '../core/services/loading.service';
-import { HouseholdMemberResponseModel } from '../core/models/household-member-response.model';
 
 @Component({
   selector: 'nom-compose',

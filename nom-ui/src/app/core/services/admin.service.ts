@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CurationQueueItem } from '../models/curation-queue-item.model';
 import { CurationDecisionRequest } from '../models/curation-decision-request.model';
-import { UserSummary } from '../models/user-summary.model';
 import { UpdateUserClaimsRequest } from '../models/update-user-claims-request.model';
 
 @Injectable({ providedIn: 'root' })
