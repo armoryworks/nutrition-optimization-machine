@@ -22,6 +22,8 @@
     "test:admin:headed": "cypress run --spec \"cypress/e2e/admin-curation-workflow.cy.ts\" --headed",
     "test:anon": "cypress run --spec \"cypress/e2e/anonymous-browse.cy.ts\"",
     "test:anon:headed": "cypress run --spec \"cypress/e2e/anonymous-browse.cy.ts\" --headed",
+    "test:screenshots": "cypress run --spec \"cypress/e2e/screenshot-walkthrough.cy.ts\"",
+    "test:screenshots:headed": "cypress run --spec \"cypress/e2e/screenshot-walkthrough.cy.ts\" --headed --no-exit",
     "test:headed": "cypress run --headed",
     "test:record": "cypress run --record",
     "test:docker": "cypress run --e2e --config-file cypress.config.js --env-file .env.test",
