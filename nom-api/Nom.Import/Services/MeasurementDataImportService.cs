@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
@@ -362,7 +364,8 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Imports measurement data from external sources.
+        /// Imports measurement data from a CSV file.
+        /// Expected CSV format: Name,Symbol,Category,Description,IsBaseUnit,BaseUnitConversionFactor
         /// </summary>
         public async Task ImportMeasurementDataAsync(string sourcePath)
         {
@@ -370,10 +373,77 @@ namespace Nom.Import.Services
             {
                 _logger.LogInformation("Starting measurement data import from {SourcePath}", sourcePath);
 
-                // TODO: Implement import logic for external measurement data sources
-                // This could include CSV files, API calls, or other data sources
+                if (!File.Exists(sourcePath))
+                    throw new FileNotFoundException("Import source file not found", sourcePath);
 
-                _logger.LogInformation("Measurement data import completed successfully.");
+                var lines = await File.ReadAllLinesAsync(sourcePath);
+                if (lines.Length < 2)
+                {
+                    _logger.LogWarning("Import file is empty or has only a header row");
+                    return;
+                }
+
+                var categories = await _dbContext.MeasurementCategories.ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
+                var imported = 0;
+
+                // Skip header row
+                foreach (var line in lines.Skip(1))
+                {
+                    var fields = line.Split(',');
+                    if (fields.Length < 4)
+                    {
+                        _logger.LogWarning("Skipping malformed CSV line: {Line}", line);
+                        continue;
+                    }
+
+                    var name = fields[0].Trim().Trim('"');
+                    var symbol = fields[1].Trim().Trim('"');
+                    var categoryName = fields[2].Trim().Trim('"');
+                    var description = fields[3].Trim().Trim('"');
+                    var isBaseUnit = fields.Length > 4 && bool.TryParse(fields[4].Trim(), out var b) && b;
+                    var conversionFactor = fields.Length > 5 && decimal.TryParse(fields[5].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var cf) ? cf : 1.0m;
+
+                    // Find or create category
+                    if (!categories.TryGetValue(categoryName, out var category))
+                    {
+                        category = new MeasurementCategoryEntity
+                        {
+                            Name = categoryName,
+                            Description = $"{categoryName} measurements",
+                            CreatedDate = DateTime.UtcNow,
+                            CreatedByPersonId = 1
+                        };
+                        _dbContext.MeasurementCategories.Add(category);
+                        await _dbContext.SaveChangesAsync();
+                        categories[categoryName] = category;
+                    }
+
+                    // Skip if measurement already exists in this category
+                    var exists = await _dbContext.Measurements.AnyAsync(m => m.Symbol == symbol && m.MeasurementCategoryId == category.Id);
+                    if (exists)
+                    {
+                        _logger.LogDebug("Measurement {Symbol} already exists in {Category}, skipping", symbol, categoryName);
+                        continue;
+                    }
+
+                    var measurement = new BaseMeasurementEntity
+                    {
+                        Name = name,
+                        Symbol = symbol,
+                        Description = description,
+                        MeasurementCategoryId = category.Id,
+                        IsBaseUnit = isBaseUnit,
+                        BaseUnitConversionFactor = conversionFactor,
+                        CreatedDate = DateTime.UtcNow,
+                        CreatedByPersonId = 1
+                    };
+
+                    _dbContext.Measurements.Add(measurement);
+                    imported++;
+                }
+
+                await _dbContext.SaveChangesAsync();
+                _logger.LogInformation("Measurement data import completed. Imported {Count} measurements.", imported);
             }
             catch (Exception ex)
             {
@@ -383,7 +453,7 @@ namespace Nom.Import.Services
         }
 
         /// <summary>
-        /// Exports measurement data to external formats.
+        /// Exports measurement data to CSV or JSON format.
         /// </summary>
         public async Task ExportMeasurementDataAsync(string targetPath, string format = "csv")
         {
@@ -391,16 +461,107 @@ namespace Nom.Import.Services
             {
                 _logger.LogInformation("Starting measurement data export to {TargetPath} in {Format} format", targetPath, format);
 
-                // TODO: Implement export logic for measurement data
-                // This could include CSV, JSON, or other export formats
+                var measurements = await _dbContext.Measurements
+                    .Include(m => m.Category)
+                    .OrderBy(m => m.Category.Name)
+                    .ThenBy(m => m.Name)
+                    .ToListAsync();
 
-                _logger.LogInformation("Measurement data export completed successfully.");
+                var conversions = await _dbContext.MeasurementConversions
+                    .Include(c => c.FromMeasurement)
+                    .Include(c => c.ToMeasurement)
+                    .ToListAsync();
+
+                var targetDir = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(targetDir))
+                    Directory.CreateDirectory(targetDir);
+
+                switch (format.ToLowerInvariant())
+                {
+                    case "json":
+                        await ExportAsJsonAsync(targetPath, measurements, conversions);
+                        break;
+                    case "csv":
+                    default:
+                        await ExportAsCsvAsync(targetPath, measurements, conversions);
+                        break;
+                }
+
+                _logger.LogInformation("Measurement data export completed. Exported {MeasurementCount} measurements and {ConversionCount} conversions.",
+                    measurements.Count, conversions.Count);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error exporting measurement data to {TargetPath}", targetPath);
                 throw;
             }
+        }
+
+        private static async Task ExportAsCsvAsync(string targetPath, List<BaseMeasurementEntity> measurements, List<MeasurementConversionEntity> conversions)
+        {
+            var lines = new List<string>
+            {
+                "Name,Symbol,Category,Description,IsBaseUnit,BaseUnitConversionFactor"
+            };
+
+            foreach (var m in measurements)
+            {
+                lines.Add(string.Format(CultureInfo.InvariantCulture,
+                    "\"{0}\",\"{1}\",\"{2}\",\"{3}\",{4},{5}",
+                    m.Name, m.Symbol, m.Category?.Name ?? "", m.Description ?? "",
+                    m.IsBaseUnit, m.BaseUnitConversionFactor ?? 1.0m));
+            }
+
+            await File.WriteAllLinesAsync(targetPath, lines);
+
+            // Write conversions as a separate file alongside the measurements
+            var conversionPath = Path.Combine(
+                Path.GetDirectoryName(targetPath) ?? ".",
+                Path.GetFileNameWithoutExtension(targetPath) + "_conversions.csv");
+
+            var conversionLines = new List<string>
+            {
+                "FromSymbol,ToSymbol,ConversionFactor,Offset,Formula,IsDirectConversion"
+            };
+
+            foreach (var c in conversions)
+            {
+                conversionLines.Add(string.Format(CultureInfo.InvariantCulture,
+                    "\"{0}\",\"{1}\",{2},{3},\"{4}\",{5}",
+                    c.FromMeasurement?.Symbol ?? "", c.ToMeasurement?.Symbol ?? "",
+                    c.ConversionFactor, c.Offset ?? 0m, c.Formula ?? "",
+                    c.IsDirectConversion));
+            }
+
+            await File.WriteAllLinesAsync(conversionPath, conversionLines);
+        }
+
+        private static async Task ExportAsJsonAsync(string targetPath, List<BaseMeasurementEntity> measurements, List<MeasurementConversionEntity> conversions)
+        {
+            var exportData = new
+            {
+                measurements = measurements.Select(m => new
+                {
+                    m.Name,
+                    m.Symbol,
+                    Category = m.Category?.Name ?? "",
+                    Description = m.Description ?? "",
+                    m.IsBaseUnit,
+                    BaseUnitConversionFactor = m.BaseUnitConversionFactor ?? 1.0m
+                }),
+                conversions = conversions.Select(c => new
+                {
+                    FromSymbol = c.FromMeasurement?.Symbol ?? "",
+                    ToSymbol = c.ToMeasurement?.Symbol ?? "",
+                    c.ConversionFactor,
+                    Offset = c.Offset ?? 0m,
+                    Formula = c.Formula ?? "",
+                    c.IsDirectConversion
+                })
+            };
+
+            var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(targetPath, json);
         }
     }
 }

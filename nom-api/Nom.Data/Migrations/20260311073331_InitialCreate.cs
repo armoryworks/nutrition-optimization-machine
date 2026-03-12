@@ -1,5 +1,5 @@
-﻿using Nom.Data.CustomMigration;
-using System;
+using Nom.Data.CustomMigration;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -4383,13 +4383,12 @@ namespace Nom.Data.Migrations
                 principalTable: "Nutrient",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
-
             migrationBuilder.ApplyCustomUpOperations();
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
+        { 
             migrationBuilder.ApplyCustomDownOperations();
             migrationBuilder.DropForeignKey(
                 name: "FK_Ingredient_Person_AuthorId",

@@ -1,13 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.UtilityInterfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Nom.Orch.Services
 {
@@ -252,31 +255,100 @@ namespace Nom.Orch.Services
         }
 
         // Helper methods
-        private async Task<ParsedRecipeData> ParseHtmlOrJsonAsync(string htmlOrJson)
+        private Task<ParsedRecipeData> ParseHtmlOrJsonAsync(string htmlOrJson)
         {
-            // This would parse recipe data from HTML or JSON format
-            // For now, return basic data
-            await Task.Delay(100); // Simulate async work
-            return new ParsedRecipeData
+            var trimmed = htmlOrJson.TrimStart();
+
+            // Try JSON first
+            if (trimmed.StartsWith("{") || trimmed.StartsWith("["))
             {
-                Title = "Parsed Recipe",
-                Description = "Recipe description from parsing"
-            };
+                return Task.FromResult(ParseJsonRecipe(trimmed));
+            }
+
+            // Otherwise treat as HTML
+            return Task.FromResult(ParseHtmlRecipe(trimmed));
         }
 
-        private async Task<List<ScrapedRecipeData>> ExtractRecipesFromZipAsync(byte[] zipData)
+        private ParsedRecipeData ParseJsonRecipe(string json)
         {
-            // This would extract and process recipe files from a ZIP archive
-            // For now, return basic data
-            await Task.Delay(100); // Simulate async work
-            return new List<ScrapedRecipeData>
+            try
             {
-                new ScrapedRecipeData
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                return new ParsedRecipeData
                 {
-                    Title = "ZIP Recipe 1",
-                    Description = "Recipe from ZIP archive"
+                    Title = root.TryGetProperty("name", out var name) ? name.GetString() ?? ""
+                          : root.TryGetProperty("title", out var title) ? title.GetString() ?? ""
+                          : "Imported Recipe",
+                    Description = root.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : ""
+                };
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse JSON recipe data");
+                return new ParsedRecipeData { Title = "Imported Recipe" };
+            }
+        }
+
+        private ParsedRecipeData ParseHtmlRecipe(string html)
+        {
+            var result = new ParsedRecipeData();
+
+            // Extract title from <title>, <h1>, or schema.org name
+            var titleMatch = System.Text.RegularExpressions.Regex.Match(html, @"<title[^>]*>([^<]+)</title>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!titleMatch.Success)
+                titleMatch = System.Text.RegularExpressions.Regex.Match(html, @"<h1[^>]*>([^<]+)</h1>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            result.Title = titleMatch.Success ? System.Net.WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim()) : "Imported Recipe";
+
+            // Extract description from meta tag
+            var descMatch = System.Text.RegularExpressions.Regex.Match(html, @"<meta\s+name=""description""\s+content=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (descMatch.Success)
+                result.Description = System.Net.WebUtility.HtmlDecode(descMatch.Groups[1].Value.Trim());
+
+            return result;
+        }
+
+        private Task<List<ScrapedRecipeData>> ExtractRecipesFromZipAsync(byte[] zipData)
+        {
+            var recipes = new List<ScrapedRecipeData>();
+
+            using var stream = new MemoryStream(zipData);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.Length == 0) continue; // skip directories
+
+                var ext = Path.GetExtension(entry.Name).ToLowerInvariant();
+                if (ext is not ".json" and not ".html" and not ".htm" and not ".txt")
+                    continue;
+
+                try
+                {
+                    using var entryStream = entry.Open();
+                    using var reader = new StreamReader(entryStream);
+                    var content = reader.ReadToEnd();
+
+                    var parsed = (ext == ".json") ? ParseJsonRecipe(content) : ParseHtmlRecipe(content);
+
+                    recipes.Add(new ScrapedRecipeData
+                    {
+                        Title = string.IsNullOrWhiteSpace(parsed.Title) ? Path.GetFileNameWithoutExtension(entry.Name) : parsed.Title,
+                        Description = parsed.Description
+                    });
                 }
-            };
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse recipe from ZIP entry: {EntryName}", entry.FullName);
+                }
+            }
+
+            if (!recipes.Any())
+                _logger.LogWarning("No valid recipe files found in ZIP archive");
+
+            return Task.FromResult(recipes);
         }
 
         // Helper data classes

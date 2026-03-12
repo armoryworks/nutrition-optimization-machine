@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http; // Added for DefaultHttpContext
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nom.Data;
@@ -317,18 +316,6 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<AuthTokenResponseModel> RefreshTokenAsync()
-        {
-            // This would validate the refresh token and generate a new access token
-            // For now, return null as this needs proper token validation
-            _logger.LogWarning("RefreshTokenAsync needs to be implemented with proper token validation");
-            
-            // Simulate async token validation
-            await Task.Delay(50);
-            
-            return null;
-        }
-
         public async Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -396,18 +383,6 @@ namespace Nom.Orch.Services
             }
 
             return await GetUserByIdAsync(user.Id);
-        }
-
-        public async Task<bool> ValidateRegistrationTokenAsync(string token)
-        {
-            // This would validate a registration confirmation token
-            // For now, return true as this needs proper token validation
-            _logger.LogInformation("ValidateRegistrationTokenAsync called with token: {Token}", token);
-            
-            // Simulate async token validation
-            await Task.Delay(25);
-            
-            return true;
         }
 
         public async Task<string> UploadUserImageAsync(string userId, byte[] imageData)

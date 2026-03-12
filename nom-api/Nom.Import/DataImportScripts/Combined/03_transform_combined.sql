@@ -16,8 +16,10 @@ USING (
     ORDER BY LOWER(TRIM(description)), source_priority ASC
 ) AS source
 ON target."FdcId" = source.fdc_id
+   OR target."Name" = source.description
 WHEN MATCHED THEN
     UPDATE SET
+        "FdcId" = COALESCE(target."FdcId", source.fdc_id),
         "Name" = source.description,
         "NameNormalized" = LOWER(TRIM(source.description)),
         "FdcDataType" = source.data_type

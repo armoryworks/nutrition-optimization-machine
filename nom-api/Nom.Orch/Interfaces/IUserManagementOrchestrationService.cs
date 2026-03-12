@@ -23,15 +23,13 @@ namespace Nom.Orch.Interfaces
         
         // User authentication (from Mealie)
         Task<AuthTokenResponseModel> AuthenticateUserAsync(LoginRequestModel request);
-        Task<AuthTokenResponseModel> RefreshTokenAsync();
         Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request);
         Task<bool> ForgotPasswordAsync(ForgotPasswordRequestModel request);
         Task<bool> ResetPasswordAsync(ResetPasswordRequestModel request);
         
         // User registration (from Mealie)
         Task<UserResponseModel> RegisterUserAsync(RegisterUserRequestModel request);
-        Task<bool> ValidateRegistrationTokenAsync(string token);
-        
+
         // User images and profile (from Mealie)
         Task<string> UploadUserImageAsync(string userId, byte[] imageData);
         Task<bool> DeleteUserImageAsync(string userId);

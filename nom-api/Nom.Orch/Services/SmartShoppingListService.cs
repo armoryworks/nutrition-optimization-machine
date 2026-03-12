@@ -355,17 +355,10 @@ namespace Nom.Orch.Services
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
-
-                // Query the database for shopping list templates
-                var templates = await _dbContext.Set<object>()
-                    .FromSqlRaw($"SELECT * FROM shopping_list_templates WHERE created_by_user_id = {currentUserId} OR is_public = 1 ORDER BY usage_count DESC, created_date DESC")
-                    .ToListAsync();
-
                 var result = new List<ShoppingListTemplateModel>();
 
-                // For now, return default templates since we don't have the actual table structure
-                // In a real implementation, this would map from the database entities
+                // For now, return default templates
+                // TODO: Replace with proper entity queries once ShoppingListTemplate table exists
                 result.Add(new ShoppingListTemplateModel
                 {
                     Id = 1,
@@ -406,24 +399,9 @@ namespace Nom.Orch.Services
             {
                 var currentUserId = GetCurrentUserId();
 
-                // Save template to database
-                var template = new
-                {
-                    Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    Name = request.Name,
-                    Description = request.Description,
-                    Categories = string.Join(",", request.Categories),
-                    Tags = string.Join(",", request.Tags),
-                    IsPublic = request.IsPublic,
-                    UsageCount = 0
-                };
-
-                // In a real implementation, this would save to the actual template table
-                await _dbContext.Database.ExecuteSqlRawAsync(
-                    $"INSERT INTO shopping_list_templates (id, name, description, categories, tags, is_public, created_by_user_id, created_date, usage_count) " +
-                    $"VALUES ({template.Id}, '{template.Name}', '{template.Description}', '{template.Categories}', '{template.Tags}', {template.IsPublic}, {GetCurrentUserId}, '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}', {template.UsageCount})");
-
-                request.Id = template.Id;
+                // TODO: Save to actual ShoppingListTemplate entity once table exists
+                // For now, assign a temporary ID and return the request as-is
+                request.Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
                 return request;
             }
@@ -666,15 +644,10 @@ namespace Nom.Orch.Services
         {
             try
             {
-                // Query the database for pantry items for this household
-                var pantryItems = await _dbContext.Set<object>()
-                    .FromSqlRaw($"SELECT * FROM pantry_items WHERE household_id = {householdId}")
-                    .ToListAsync();
-
                 var result = new List<SmartShoppingListItemModel>();
 
-                // For now, return common pantry items since we don't have the actual table structure
-                // In a real implementation, this would map from the database entities
+                // TODO: Replace with proper entity queries once PantryItem table exists
+                // For now, return common pantry items as placeholders
                 result.Add(new SmartShoppingListItemModel
                 {
                     Name = "Salt",
@@ -693,19 +666,14 @@ namespace Nom.Orch.Services
                     IsPantryItem = true
                 });
 
-                // If we have pantry items in the database, add them
-                if (pantryItems.Any())
+                result.Add(new SmartShoppingListItemModel
                 {
-                    // In a real implementation, this would map from the database entities
-                    result.Add(new SmartShoppingListItemModel
-                    {
-                        Name = "Olive Oil",
-                        Quantity = 1,
-                        Unit = "bottle",
-                        Category = "Pantry",
-                        IsPantryItem = true
-                    });
-                }
+                    Name = "Olive Oil",
+                    Quantity = 1,
+                    Unit = "bottle",
+                    Category = "Pantry",
+                    IsPantryItem = true
+                });
 
                 return result;
             }

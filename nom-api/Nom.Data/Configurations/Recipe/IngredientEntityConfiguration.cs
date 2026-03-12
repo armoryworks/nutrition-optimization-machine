@@ -14,7 +14,7 @@ public class IngredientEntityConfiguration : IEntityTypeConfiguration<Ingredient
         builder.Property(e => e.Name).IsRequired().HasMaxLength(2047);
         builder.Property(e => e.Description).HasColumnType("text");
         builder.Property(e => e.PluralName).HasMaxLength(2047);
-        builder.Property(e => e.FdcId).HasMaxLength(50);
+        builder.Property(e => e.FdcId).HasMaxLength(255);
         builder.Property(e => e.FdcDataType).HasMaxLength(255);
         builder.Property(e => e.NameNormalized).HasMaxLength(2047);
         builder.Property(e => e.PluralNameNormalized).HasMaxLength(2047);

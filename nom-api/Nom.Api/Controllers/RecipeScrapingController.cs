@@ -43,7 +43,7 @@ namespace Nom.Api.Controllers
 
             if (result.Success)
             {
-                return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
+                return CreatedAtAction("GetRecipe", "Recipe", new { id = result.RecipeId }, result);
             }
             else
             {
@@ -62,7 +62,7 @@ namespace Nom.Api.Controllers
 
             if (result.Success)
             {
-                return CreatedAtAction(nameof(GetRecipe), new { id = result.RecipeId }, result);
+                return CreatedAtAction("GetRecipe", "Recipe", new { id = result.RecipeId }, result);
             }
             else
             {
@@ -105,15 +105,5 @@ namespace Nom.Api.Controllers
             return Ok(reports);
         }
 
-        /// <summary>
-        /// Get recipe by ID (helper method for CreatedAtAction)
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
-        {
-            // This is a placeholder for the CreatedAtAction
-            // The actual implementation would be in RecipeController
-            return NotFound();
-        }
     }
 }

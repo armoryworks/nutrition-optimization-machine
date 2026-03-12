@@ -236,23 +236,8 @@ namespace Nom.Orch.UtilityServices
                 var cutoffDate = DateTime.UtcNow.AddDays(-SESSION_DATA_RETENTION_DAYS);
                 var deletedCount = 0;
 
-                // Clean up old session data from the database
-                // This would typically clean up session records, but since we're using in-memory cache,
-                // we'll clean up any persistent session data that might exist
-                
-                // Clean up old user sessions that might be stored in the database
-                var oldSessions = await _dbContext.Set<object>()
-                    .FromSqlRaw("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE '%session%'")
-                    .ToListAsync();
-
-                if (oldSessions.Any())
-                {
-                    // If session tables exist, clean them up
-                    await _dbContext.Database.ExecuteSqlRawAsync(
-                        $"DELETE FROM session_data WHERE created_date < '{cutoffDate:yyyy-MM-dd}'");
-                    deletedCount = await _dbContext.Database.ExecuteSqlRawAsync(
-                        $"SELECT COUNT(*) FROM session_data WHERE created_date < '{cutoffDate:yyyy-MM-dd}'");
-                }
+                // TODO: Implement session cleanup once session persistence table exists
+                // Currently sessions use in-memory cache, so no DB cleanup needed
 
                 return new CleanupResult
                 {
@@ -329,20 +314,7 @@ namespace Nom.Orch.UtilityServices
                 var cutoffDate = DateTime.UtcNow.AddDays(-FAILED_LOGIN_RETENTION_DAYS);
                 var deletedCount = 0;
 
-                // Clean up old failed login attempts from the database
-                // This would typically clean up failed login records stored in the database
-                
-                // Check if we have any failed login tracking tables
-                var failedLoginTables = await _dbContext.Database.SqlQueryRaw<int>(
-                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE '%failed_login%' OR TABLE_NAME LIKE '%login_attempt%'")
-                    .ToListAsync();
-
-                if (failedLoginTables.FirstOrDefault() > 0)
-                {
-                    // Clean up failed login attempts
-                    deletedCount = await _dbContext.Database.ExecuteSqlRawAsync(
-                        $"DELETE FROM failed_login_attempts WHERE attempt_date < '{cutoffDate:yyyy-MM-dd}'");
-                }
+                // TODO: Implement failed login cleanup once login attempt tracking table exists
 
                 return new CleanupResult
                 {

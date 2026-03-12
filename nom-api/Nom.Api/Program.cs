@@ -1,5 +1,6 @@
 // File: Nom.Api/Program.cs
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
@@ -351,6 +352,26 @@ app.MapPost("api/auth/logout", async (SignInManager<IdentityUser> signInManager)
     await signInManager.SignOutAsync();
     return Results.Ok("User logged out successfully");
 });
+
+app.MapPost("api/auth/refresh-claims", async (
+    HttpContext httpContext,
+    SignInManager<IdentityUser> signInManager,
+    UserManager<IdentityUser> userManager) =>
+{
+    var user = await userManager.GetUserAsync(httpContext.User);
+    if (user == null)
+    {
+        httpContext.Response.StatusCode = 401;
+        return;
+    }
+
+    // CreateUserPrincipalAsync triggers CustomClaimsPrincipalFactory with fresh DB claims
+    var principal = await signInManager.CreateUserPrincipalAsync(user);
+
+    // SignInAsync with bearer scheme writes the token JSON response body
+    // (same code path as the built-in Identity login endpoint)
+    await httpContext.SignInAsync(IdentityConstants.BearerScheme, principal);
+}).RequireAuthorization();
 
 // Your API controllers will use JWT Bearer authentication via explicit attributes.
 app.MapControllers();

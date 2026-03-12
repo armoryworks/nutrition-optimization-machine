@@ -375,25 +375,24 @@ namespace Nom.Orch.Services
         {
             try
             {
-                var trendingRecipes = await _context.Recipes
+                return await _context.Recipes
                     .Where(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)
                     .OrderByDescending(r => r.Rating)
                     .ThenByDescending(r => r.Ratings.Count)
                     .Take(limit)
+                    .Select(r => new RecipeTrendingModel
+                    {
+                        RecipeId = r.Id,
+                        RecipeName = r.Name,
+                        TrendingReason = "High ratings and engagement",
+                        ViewCount = r.Ratings.Count,
+                        RatingCount = r.Ratings.Count,
+                        CommentCount = _context.RecipeComments.Count(c => c.RecipeId == r.Id),
+                        AverageRating = r.Rating ?? 0,
+                        TrendingStartDate = r.CreatedDate,
+                        TrendingFactors = new List<string> { "High rating", "Popular category" }
+                    })
                     .ToListAsync();
-
-                return trendingRecipes.Select(r => new RecipeTrendingModel
-                {
-                    RecipeId = r.Id,
-                    RecipeName = r.Name,
-                    TrendingReason = "High ratings and engagement",
-                    ViewCount = r.Ratings?.Count ?? 0,
-                    RatingCount = r.Ratings?.Count ?? 0,
-                    CommentCount = 0, // Not implemented in current model
-                    AverageRating = r.Rating ?? 0,
-                    TrendingStartDate = r.CreatedDate,
-                    TrendingFactors = new List<string> { "High rating", "Popular category" }
-                }).ToList();
             }
             catch (Exception ex)
             {

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Nom.Data;
 using Nom.Data.Person;
 using Nom.Data.Plan;
@@ -240,6 +239,9 @@ namespace Nom.Orch.Services
             return true;
         }
 
+        // Default goal type name for nutrient guidelines (loaded dynamically by name)
+        private const string DefaultGoalTypeName = "Adults and Children 4+ years";
+
         // Meal composition templates: defines how many recipes of each type compose a meal
         private static readonly Dictionary<long, (long RecipeTypeId, string Label)[]> MealComposition = new()
         {
@@ -367,28 +369,141 @@ namespace Nom.Orch.Services
                 recipePools[(recipeTypeId, mealTypeId)] = mealAffineRecipes;
             }
 
-            // 6. Assign recipes to slots, preferring unused but allowing reuse
+            // 5b. Load all nutrient guidelines for the default goal type (fully dynamic)
+            var guidelines = await _context.NutrientGuidelines
+                .Where(ng => ng.GoalType.Name == DefaultGoalTypeName
+                    && ng.RecommendedAmount != null)
+                .Include(ng => ng.Nutrient)
+                .Select(ng => new
+                {
+                    ng.NutrientId,
+                    NutrientName = ng.Nutrient.Name,
+                    Target = ng.RecommendedAmount!.Value,
+                    UpperLimit = ng.MaxAmount,
+                })
+                .ToListAsync();
+
+            var guidelinesByNutrient = guidelines.ToDictionary(g => g.NutrientId);
+            var trackedNutrientIds = guidelines.Select(g => g.NutrientId).ToList();
+            var caloriesNutrientId = guidelines.FirstOrDefault(g => g.NutrientName == "Calories")?.NutrientId;
+
+            // 5c. Load nutrition data for all candidate recipes (all guideline-tracked nutrients)
+            var allCandidateIds = recipePools.Values
+                .SelectMany(pool => pool.Select(r => r.Id))
+                .Distinct()
+                .ToList();
+
+            var recipeNutritionData = await _context.RecipeNutrition
+                .Where(rn => trackedNutrientIds.Contains(rn.NutrientId)
+                    && allCandidateIds.Contains(rn.RecipeId))
+                .ToListAsync();
+
+            // Build lookup: recipeId → { nutrientId → amount }
+            var recipeNutrients = recipeNutritionData
+                .GroupBy(rn => rn.RecipeId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.ToDictionary(rn => rn.NutrientId, rn => rn.Amount));
+
+            // 6. Assign recipes to slots with nutrient-aware scoring
+            //    Dynamically tracks all nutrients that have guidelines in NutrientGuidelines.
+            //    Uses MaxAmount (when set) as a hard ceiling with heavier overshoot penalty.
+            //    Uses RecommendedAmount as the target for all nutrients.
             var usedIds = new HashSet<long>();
             var poolCounters = new Dictionary<(long, long), int>();
             var newEntities = new List<MealPlanEntity>();
+            var dailyTotals = new Dictionary<DateOnly, Dictionary<long, decimal>>();
             var now = DateTime.UtcNow;
 
-            foreach (var slot in expanded)
+            foreach (var slot in expanded.OrderBy(s => s.Date).ThenBy(s => s.MealTypeId))
             {
                 var poolKey = (slot.RecipeTypeId, slot.MealTypeId);
                 if (!recipePools.TryGetValue(poolKey, out var pool) || pool.Count == 0)
                     continue;
 
-                // Prefer an unused recipe; if all used, cycle through the pool
-                var recipe = pool.FirstOrDefault(r => !usedIds.Contains(r.Id));
-                if (recipe == null)
+                if (!dailyTotals.TryGetValue(slot.Date, out var dayTotals))
+                {
+                    dayTotals = new Dictionary<long, decimal>();
+                    dailyTotals[slot.Date] = dayTotals;
+                }
+
+                RecipeEntity? bestRecipe = null;
+                var bestScore = decimal.MinValue;
+
+                foreach (var candidate in pool)
+                {
+                    var isUnused = !usedIds.Contains(candidate.Id);
+                    recipeNutrients.TryGetValue(candidate.Id, out var nutrients);
+
+                    var score = 0m;
+                    if (isUnused) score += 1000m;
+
+                    // Score every nutrient that has a guideline
+                    foreach (var guideline in guidelines)
+                    {
+                        var candidateAmount = nutrients?.GetValueOrDefault(guideline.NutrientId, 0m) ?? 0m;
+                        if (candidateAmount == 0m) continue;
+
+                        var currentTotal = dayTotals.GetValueOrDefault(guideline.NutrientId, 0m);
+                        var remaining = guideline.Target - currentTotal;
+                        // Heavier penalty when MaxAmount is set (hard ceiling like sodium)
+                        var overshootWeight = guideline.UpperLimit.HasValue ? 3m : 1.5m;
+
+                        if (remaining > 0 && candidateAmount <= remaining)
+                        {
+                            // Contributes toward target without exceeding — reward
+                            score += 100m * candidateAmount / guideline.Target;
+                        }
+                        else if (remaining > 0)
+                        {
+                            // Partially contributes but overshoots — partial reward, proportional penalty
+                            score += 100m * remaining / guideline.Target;
+                            score -= overshootWeight * 100m * (candidateAmount - remaining) / guideline.Target;
+                        }
+                        else
+                        {
+                            // Target already met — penalize further addition
+                            score -= overshootWeight * 50m * candidateAmount / guideline.Target;
+                        }
+                    }
+
+                    // Calorie distribution: prefer even spread across remaining slots
+                    if (caloriesNutrientId.HasValue && nutrients != null)
+                    {
+                        var calAmount = nutrients.GetValueOrDefault(caloriesNutrientId.Value, 0m);
+                        if (calAmount > 0 && guidelinesByNutrient.TryGetValue(caloriesNutrientId.Value, out var calGuideline))
+                        {
+                            var calRemaining = calGuideline.Target - dayTotals.GetValueOrDefault(caloriesNutrientId.Value, 0m);
+                            if (calRemaining > 0)
+                                score -= Math.Abs(calAmount - calRemaining / 3m) * 0.5m;
+                        }
+                    }
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestRecipe = candidate;
+                    }
+                }
+
+                // Fallback: cycle through pool if scoring found no candidate
+                if (bestRecipe == null)
                 {
                     poolCounters.TryGetValue(poolKey, out var idx);
-                    recipe = pool[idx % pool.Count];
+                    bestRecipe = pool[idx % pool.Count];
                     poolCounters[poolKey] = idx + 1;
                 }
 
-                usedIds.Add(recipe.Id);
+                usedIds.Add(bestRecipe.Id);
+
+                // Update daily totals for all tracked nutrients
+                if (recipeNutrients.TryGetValue(bestRecipe.Id, out var selectedNutrients))
+                {
+                    foreach (var (nutrientId, amount) in selectedNutrients)
+                    {
+                        dayTotals[nutrientId] = dayTotals.GetValueOrDefault(nutrientId, 0m) + amount;
+                    }
+                }
 
                 newEntities.Add(new MealPlanEntity
                 {
@@ -396,8 +511,8 @@ namespace Nom.Orch.Services
                     AuthorId = authorId,
                     Date = slot.Date,
                     MealTypeId = slot.MealTypeId,
-                    Title = recipe.Name,
-                    RecipeId = recipe.Id,
+                    Title = bestRecipe.Name,
+                    RecipeId = bestRecipe.Id,
                     CreatedDate = now,
                     LastModifiedDate = now,
                 });

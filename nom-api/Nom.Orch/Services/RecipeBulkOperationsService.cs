@@ -148,7 +148,7 @@ namespace Nom.Orch.Services
                     ContentType = contentType,
                     CreatedDate = DateTime.UtcNow,
                     ExpiryDate = DateTime.UtcNow.AddDays(7), // 7 days expiry
-                    RecipeCount = (int)(int)(int)recipes.Count,
+                    RecipeCount = (int)recipes.Count,
                     ExportType = request.ExportType
                 };
 
@@ -156,8 +156,8 @@ namespace Nom.Orch.Services
                 {
                     Success = true,
                     Message = $"Successfully exported {recipes.Count} recipes",
-                    ProcessedCount = (int)(int)(int)request.RecipeIds.Count,
-                    SuccessCount = (int)(int)(int)recipes.Count,
+                    ProcessedCount = (int)request.RecipeIds.Count,
+                    SuccessCount = (int)recipes.Count,
                     ErrorCount = request.RecipeIds.Count - recipes.Count,
                     ExportId = exportId,
                     DownloadUrl = $"/api/RecipeBulkOperations/download/{exportId}"
@@ -220,9 +220,9 @@ namespace Nom.Orch.Services
                 {
                     Success = importedCount > 0,
                     Message = $"Successfully imported {importedCount} recipes",
-                    ProcessedCount = (int)(int)(int)importedCount + errorCount,
-                    SuccessCount = (int)(int)(int)importedCount,
-                    ErrorCount = (int)(int)(int)errorCount,
+                    ProcessedCount = (int)importedCount + errorCount,
+                    SuccessCount = (int)importedCount,
+                    ErrorCount = (int)errorCount,
                     Errors = errors
                 };
             }
@@ -233,9 +233,9 @@ namespace Nom.Orch.Services
                 {
                     Success = false,
                     Message = "Failed to import recipes",
-                    ProcessedCount = (int)(int)(int)0,
-                    SuccessCount = (int)(int)(int)0,
-                    ErrorCount = (int)(int)(int)1,
+                    ProcessedCount = (int)0,
+                    SuccessCount = (int)0,
+                    ErrorCount = (int)1,
                     Errors = { ex.Message }
                 };
             }
@@ -251,36 +251,65 @@ namespace Nom.Orch.Services
                 _logger.LogInformation("Assigning {CategoryCount} categories to {RecipeCount} recipes",
                     request.Categories.Count, request.RecipeIds.Count);
 
-                var recipes = await _dbContext.Recipes
-                    .Where(r => request.RecipeIds.Contains(r.Id))
+                var personId = GetCurrentPersonId();
+
+                // Resolve category names to IDs, creating missing categories
+                var categoryIds = new List<long>();
+                foreach (var name in request.Categories)
+                {
+                    var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == name);
+                    if (category == null)
+                    {
+                        category = new CategoryEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId };
+                        _dbContext.Categories.Add(category);
+                        await _dbContext.SaveChangesAsync();
+                    }
+                    categoryIds.Add(category.Id);
+                }
+
+                // Load existing assignments to avoid duplicates
+                var existing = await _dbContext.RecipeCategories
+                    .Where(rc => request.RecipeIds.Contains(rc.RecipeId) && categoryIds.Contains(rc.CategoryId))
+                    .Select(rc => new { rc.RecipeId, rc.CategoryId })
                     .ToListAsync();
 
-                var successCount = (int)(int)(int)0;
+                var successCount = 0;
                 var errors = new List<string>();
 
-                foreach (var recipe in recipes)
+                foreach (var recipeId in request.RecipeIds)
                 {
                     try
                     {
-                        // Implementation would depend on how categories are stored
-                        // For now, we'll log the action
-                        _logger.LogInformation("Assigning categories {Categories} to recipe {RecipeId}",
-                            string.Join(",", request.Categories), recipe.Id);
+                        foreach (var categoryId in categoryIds)
+                        {
+                            if (!existing.Any(e => e.RecipeId == recipeId && e.CategoryId == categoryId))
+                            {
+                                _dbContext.RecipeCategories.Add(new RecipeCategoryEntity
+                                {
+                                    RecipeId = recipeId,
+                                    CategoryId = categoryId,
+                                    CreatedDate = DateTime.UtcNow,
+                                    CreatedByPersonId = personId
+                                });
+                            }
+                        }
                         successCount++;
                     }
                     catch (Exception ex)
                     {
-                        errors.Add($"Failed to assign categories to recipe {recipe.Id}: {ex.Message}");
+                        errors.Add($"Failed to assign categories to recipe {recipeId}: {ex.Message}");
                     }
                 }
+
+                await _dbContext.SaveChangesAsync();
 
                 return new RecipeBulkOperationResponseModel
                 {
                     Success = successCount > 0,
                     Message = $"Successfully assigned categories to {successCount} recipes",
-                    ProcessedCount = (int)(int)(int)recipes.Count,
-                    SuccessCount = (int)(int)(int)successCount,
-                    ErrorCount = (int)(int)(int)recipes.Count - successCount,
+                    ProcessedCount = request.RecipeIds.Count,
+                    SuccessCount = successCount,
+                    ErrorCount = request.RecipeIds.Count - successCount,
                     Errors = errors
                 };
             }
@@ -291,9 +320,9 @@ namespace Nom.Orch.Services
                 {
                     Success = false,
                     Message = "Failed to assign categories",
-                    ProcessedCount = (int)(int)(int)0,
-                    SuccessCount = (int)(int)(int)0,
-                    ErrorCount = (int)(int)(int)request.RecipeIds.Count,
+                    ProcessedCount = 0,
+                    SuccessCount = 0,
+                    ErrorCount = request.RecipeIds.Count,
                     Errors = { ex.Message }
                 };
             }
@@ -309,36 +338,65 @@ namespace Nom.Orch.Services
                 _logger.LogInformation("Assigning {TagCount} tags to {RecipeCount} recipes",
                     request.Tags.Count, request.RecipeIds.Count);
 
-                var recipes = await _dbContext.Recipes
-                    .Where(r => request.RecipeIds.Contains(r.Id))
+                var personId = GetCurrentPersonId();
+
+                // Resolve tag names to IDs, creating missing tags
+                var tagIds = new List<long>();
+                foreach (var name in request.Tags)
+                {
+                    var tag = await _dbContext.Tags.FirstOrDefaultAsync(t => t.Name == name);
+                    if (tag == null)
+                    {
+                        tag = new TagEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId };
+                        _dbContext.Tags.Add(tag);
+                        await _dbContext.SaveChangesAsync();
+                    }
+                    tagIds.Add(tag.Id);
+                }
+
+                // Load existing assignments to avoid duplicates
+                var existing = await _dbContext.RecipeTags
+                    .Where(rt => request.RecipeIds.Contains(rt.RecipeId) && tagIds.Contains(rt.TagId))
+                    .Select(rt => new { rt.RecipeId, rt.TagId })
                     .ToListAsync();
 
-                var successCount = (int)(int)(int)0;
+                var successCount = 0;
                 var errors = new List<string>();
 
-                foreach (var recipe in recipes)
+                foreach (var recipeId in request.RecipeIds)
                 {
                     try
                     {
-                        // Implementation would depend on how tags are stored
-                        // For now, we'll log the action
-                        _logger.LogInformation("Assigning tags {Tags} to recipe {RecipeId}",
-                            string.Join(",", request.Tags), recipe.Id);
+                        foreach (var tagId in tagIds)
+                        {
+                            if (!existing.Any(e => e.RecipeId == recipeId && e.TagId == tagId))
+                            {
+                                _dbContext.RecipeTags.Add(new RecipeTagEntity
+                                {
+                                    RecipeId = recipeId,
+                                    TagId = tagId,
+                                    CreatedDate = DateTime.UtcNow,
+                                    CreatedByPersonId = personId
+                                });
+                            }
+                        }
                         successCount++;
                     }
                     catch (Exception ex)
                     {
-                        errors.Add($"Failed to assign tags to recipe {recipe.Id}: {ex.Message}");
+                        errors.Add($"Failed to assign tags to recipe {recipeId}: {ex.Message}");
                     }
                 }
+
+                await _dbContext.SaveChangesAsync();
 
                 return new RecipeBulkOperationResponseModel
                 {
                     Success = successCount > 0,
                     Message = $"Successfully assigned tags to {successCount} recipes",
-                    ProcessedCount = (int)(int)(int)recipes.Count,
-                    SuccessCount = (int)(int)(int)successCount,
-                    ErrorCount = (int)(int)(int)recipes.Count - successCount,
+                    ProcessedCount = request.RecipeIds.Count,
+                    SuccessCount = successCount,
+                    ErrorCount = request.RecipeIds.Count - successCount,
                     Errors = errors
                 };
             }
@@ -349,9 +407,9 @@ namespace Nom.Orch.Services
                 {
                     Success = false,
                     Message = "Failed to assign tags",
-                    ProcessedCount = (int)(int)(int)0,
-                    SuccessCount = (int)(int)(int)0,
-                    ErrorCount = (int)(int)(int)request.RecipeIds.Count,
+                    ProcessedCount = 0,
+                    SuccessCount = 0,
+                    ErrorCount = request.RecipeIds.Count,
                     Errors = { ex.Message }
                 };
             }
@@ -370,7 +428,7 @@ namespace Nom.Orch.Services
                     .Where(r => request.RecipeIds.Contains(r.Id))
                     .ToListAsync();
 
-                var successCount = (int)(int)(int)0;
+                var successCount = (int)0;
                 var errors = new List<string>();
 
                 foreach (var recipe in recipes)
@@ -410,9 +468,9 @@ namespace Nom.Orch.Services
                 {
                     Success = successCount > 0,
                     Message = $"Successfully updated settings for {successCount} recipes",
-                    ProcessedCount = (int)(int)(int)recipes.Count,
-                    SuccessCount = (int)(int)(int)successCount,
-                    ErrorCount = (int)(int)(int)recipes.Count - successCount,
+                    ProcessedCount = (int)recipes.Count,
+                    SuccessCount = (int)successCount,
+                    ErrorCount = (int)recipes.Count - successCount,
                     Errors = errors
                 };
             }
@@ -423,9 +481,9 @@ namespace Nom.Orch.Services
                 {
                     Success = false,
                     Message = "Failed to update settings",
-                    ProcessedCount = (int)(int)(int)0,
-                    SuccessCount = (int)(int)(int)0,
-                    ErrorCount = (int)(int)(int)request.RecipeIds.Count,
+                    ProcessedCount = (int)0,
+                    SuccessCount = (int)0,
+                    ErrorCount = (int)request.RecipeIds.Count,
                     Errors = { ex.Message }
                 };
             }
@@ -445,7 +503,7 @@ namespace Nom.Orch.Services
                     .Where(r => request.RecipeIds.Contains(r.Id))
                     .ToListAsync();
 
-                var successCount = (int)(int)(int)0;
+                var successCount = (int)0;
                 var errors = new List<string>();
 
                 foreach (var recipe in recipes)
@@ -471,9 +529,9 @@ namespace Nom.Orch.Services
                 {
                     Success = successCount > 0,
                     Message = $"Successfully deleted {successCount} recipes",
-                    ProcessedCount = (int)(int)(int)recipes.Count,
-                    SuccessCount = (int)(int)(int)successCount,
-                    ErrorCount = (int)(int)(int)recipes.Count - successCount,
+                    ProcessedCount = (int)recipes.Count,
+                    SuccessCount = (int)successCount,
+                    ErrorCount = (int)recipes.Count - successCount,
                     Errors = errors
                 };
             }
@@ -484,9 +542,9 @@ namespace Nom.Orch.Services
                 {
                     Success = false,
                     Message = "Failed to delete recipes",
-                    ProcessedCount = (int)(int)(int)0,
-                    SuccessCount = (int)(int)(int)0,
-                    ErrorCount = (int)(int)(int)request.RecipeIds.Count,
+                    ProcessedCount = (int)0,
+                    SuccessCount = (int)0,
+                    ErrorCount = (int)request.RecipeIds.Count,
                     Errors = { ex.Message }
                 };
             }
@@ -559,7 +617,7 @@ namespace Nom.Orch.Services
                             ContentType = GetContentType(fileName),
                             CreatedDate = fileInfo.CreationTimeUtc,
                             ExpiryDate = fileInfo.CreationTimeUtc.AddDays(7),
-                            RecipeCount = (int)(int)(int)0, // Would need to parse file to get count
+                            RecipeCount = (int)0, // Would need to parse file to get count
                             ExportType = GetExportType(fileName)
                         });
                     }
@@ -628,7 +686,7 @@ namespace Nom.Orch.Services
             {
                 var files = await GetExportFilesAsync();
                 var expiredFiles = files.Where(f => f.ExpiryDate < DateTime.UtcNow).ToList();
-                var deletedCount = (int)(int)(int)0;
+                var deletedCount = (int)0;
 
                 foreach (var file in expiredFiles)
                 {
@@ -746,8 +804,8 @@ namespace Nom.Orch.Services
 
         private async Task<(int importedCount, int errorCount, List<string> errors)> ImportFromJsonAsync(string content, RecipeBulkImportModel request)
         {
-            var importedCount = (int)(int)(int)0;
-            var errorCount = (int)(int)(int)0;
+            var importedCount = (int)0;
+            var errorCount = (int)0;
             var errors = new List<string>();
 
             try
@@ -802,8 +860,8 @@ namespace Nom.Orch.Services
 
         private async Task<(int importedCount, int errorCount, List<string> errors)> ImportFromCsvAsync(string content, RecipeBulkImportModel request)
         {
-            var importedCount = (int)(int)(int)0;
-            var errorCount = (int)(int)(int)0;
+            var importedCount = (int)0;
+            var errorCount = (int)0;
             var errors = new List<string>();
 
             try

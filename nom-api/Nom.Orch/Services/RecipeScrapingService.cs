@@ -247,10 +247,8 @@ namespace Nom.Orch.Services
         {
             try
             {
-                // Query the database for scraping reports
-                var report = await _dbContext.Set<object>()
-                    .FromSqlRaw($"SELECT * FROM scraping_reports WHERE id = {reportId}")
-                    .FirstOrDefaultAsync();
+                var report = await _dbContext.ScrapingReports
+                    .FirstOrDefaultAsync(r => r.Id == reportId);
 
                 if (report == null)
                 {
@@ -258,17 +256,15 @@ namespace Nom.Orch.Services
                     return null;
                 }
 
-                // For now, return a mock response since we don't have the actual table structure
-                // In a real implementation, this would map from the database entity
                 return new RecipeBulkScrapingResponseModel
                 {
-                    Id = reportId,
-                    Status = "Completed",
-                    TotalUrls = 1,
-                    SuccessfulScrapes = 1,
-                    FailedScrapes = 0,
-                    CreatedDate = DateTime.UtcNow,
-                    CompletedDate = DateTime.UtcNow
+                    Id = report.Id,
+                    Status = report.Status,
+                    TotalUrls = report.TotalUrls,
+                    SuccessfulScrapes = report.SuccessfulScrapes,
+                    FailedScrapes = report.FailedScrapes,
+                    CreatedDate = report.CreatedDate,
+                    CompletedDate = report.CompletedDate
                 };
             }
             catch (Exception ex)

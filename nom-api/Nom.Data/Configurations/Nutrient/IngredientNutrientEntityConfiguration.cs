@@ -20,7 +20,7 @@ public class IngredientNutrientEntityConfiguration : IEntityTypeConfiguration<In
             .HasColumnType("decimal(18,4)");
 
         builder.Property(e => e.FdcId)
-            .HasMaxLength(50);
+            .HasMaxLength(255);
 
         // Relationships
         builder.HasOne(e => e.Ingredient)
