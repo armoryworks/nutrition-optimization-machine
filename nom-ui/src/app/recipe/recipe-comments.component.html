@@ -1,16 +1,16 @@
-<div class="nom-comments">
+<div class="nom-comments" data-testid="recipe-comments">
   <h3 class="nom-comments__title">
     <mat-icon>chat</mat-icon>
     Comments ({{ comments().length }})
   </h3>
 
   @if (currentPersonId()) {
-    <div class="nom-comments__form">
+    <div class="nom-comments__form" data-testid="recipe-comments-form">
       <mat-form-field class="nom-comments__input">
         <mat-label>Add a comment</mat-label>
         <textarea matInput [formControl]="newCommentText" rows="3" maxlength="2047"></textarea>
       </mat-form-field>
-      <button mat-flat-button [disabled]="!(newCommentText.value ?? '').trim() || submitting()" (click)="onSubmitComment()">
+      <button mat-flat-button [disabled]="!(newCommentText.value ?? '').trim() || submitting()" (click)="onSubmitComment()" data-testid="recipe-comments-submit-btn">
         Post Comment
       </button>
     </div>
@@ -21,9 +21,9 @@
   } @else if (comments().length === 0) {
     <p class="nom-comments__empty">No comments yet. Be the first to comment!</p>
   } @else {
-    <div class="nom-comments__list">
+    <div class="nom-comments__list" data-testid="recipe-comments-list">
       @for (comment of comments(); track comment.id) {
-        <div class="nom-comments__item">
+        <div class="nom-comments__item" data-testid="recipe-comment-item">
           <div class="nom-comments__item-header">
             <span class="nom-comments__author">{{ comment.authorName }}</span>
             <span class="nom-comments__date">{{ comment.createdDate | date:'mediumDate' }}</span>

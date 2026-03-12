@@ -1,4 +1,4 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="household">
   @if (isStandalone()) {
     <div class="nom-form__header">
       <h1 class="nom-form__title">Household</h1>
@@ -55,7 +55,7 @@
         </mat-slide-toggle>
       </div>
 
-      <div class="nom-household__member-grid">
+      <div class="nom-household__member-grid" data-testid="household-member-grid">
         <!-- Primary user row -->
         <div class="nom-household__member-row nom-household__member-row--primary">
           <div class="nom-household__member-info">
@@ -73,7 +73,7 @@
 
         <!-- Other member rows -->
         @for (member of nonUserMembers(); track member.id) {
-          <div class="nom-household__member-row">
+          <div class="nom-household__member-row" data-testid="household-member-row">
             <div class="nom-household__member-info">
               <span class="nom-household__member-name">{{ member.personName }}</span>
               @if (member.personEmail) {
@@ -114,7 +114,7 @@
       </div>
 
       <div class="nom-household__add-member">
-        <button mat-stroked-button (click)="openAddMemberDialog()">
+        <button mat-stroked-button (click)="openAddMemberDialog()" data-testid="household-add-person-btn">
           <mat-icon>person_add</mat-icon>
           Add Person
         </button>
@@ -130,7 +130,7 @@
     }
   } @else {
     <!-- Tab toggle -->
-    <div class="nom-household__tabs">
+    <div class="nom-household__tabs" data-testid="household-tabs">
       <button
         type="button"
         class="nom-household__tab"
@@ -154,7 +154,7 @@
         <h2 class="nom-form__section-title">Create a New Household</h2>
         <p class="nom-form__section-description">Set up a household to plan meals together with family or roommates</p>
 
-        <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()">
+        <form [formGroup]="createForm" (ngSubmit)="onCreateSubmit()" data-testid="household-create-form">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Household Name</mat-label>
@@ -171,7 +171,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()">
+            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()" data-testid="household-create-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
@@ -186,7 +186,7 @@
         <h2 class="nom-form__section-title">Join an Existing Household</h2>
         <p class="nom-form__section-description">Enter an invite code from someone in the household</p>
 
-        <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()">
+        <form [formGroup]="joinForm" (ngSubmit)="onJoinSubmit()" data-testid="household-join-form">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Invite Code</mat-label>
@@ -199,7 +199,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()">
+            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()" data-testid="household-join-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {

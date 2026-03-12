@@ -2,10 +2,24 @@
 // RESET
 // =============================================================================
 
+@use 'variables' as vars;
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+// Global focus-visible outlines for keyboard accessibility
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+  border-radius: vars.$nom-border-radius-sm;
 }
 
 html {
@@ -15,7 +29,7 @@ html {
 
 body {
   margin: 0;
-  padding: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

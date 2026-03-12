@@ -1,13 +1,5 @@
 @use 'variables' as vars;
 
-.nom-privacy__back {
-  display: inline-flex;
-  align-items: center;
-  color: var(--mat-sys-primary);
-  text-decoration: none;
-  margin-bottom: vars.$spacing-2;
-}
-
 .nom-privacy__success {
   display: flex;
   align-items: center;

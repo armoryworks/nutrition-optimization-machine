@@ -74,19 +74,29 @@
   color: var(--mat-sys-on-surface);
   border-radius: vars.$nom-border-radius;
   text-decoration: none;
-  transition: background-color 150ms ease;
+  transition: background-color vars.$transition-duration-fast vars.$transition-timing;
   width: 100%;
   text-align: left;
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: vars.$icon-size-md;
+    width: vars.$icon-size-md;
+    height: vars.$icon-size-md;
     color: var(--mat-sys-on-surface-variant);
   }
 
   &:hover {
     background: var(--mat-sys-surface-container);
+  }
+
+  &--active {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+    font-weight: vars.$font-weight-semibold;
+
+    mat-icon {
+      color: var(--mat-sys-on-secondary-container);
+    }
   }
 
   &--danger {

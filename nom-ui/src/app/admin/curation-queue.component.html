@@ -1,6 +1,10 @@
-<div class="nom-dashboard">
+<div class="nom-dashboard" data-testid="curation-queue">
   <div class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="curation-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
       <h1 class="nom-dashboard__title">Curation Queue</h1>
       <span class="nom-dashboard__subtitle">{{ items().length }} items pending review</span>
     </div>
@@ -23,15 +27,15 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (items().length === 0) {
-    <div class="nom-dashboard__empty">
+    <div class="nom-dashboard__empty" data-testid="curation-empty">
       <mat-icon class="nom-dashboard__empty-icon">fact_check</mat-icon>
       <h2 class="nom-dashboard__empty-title">Queue is empty</h2>
       <p class="nom-dashboard__empty-message">No items waiting for review.</p>
     </div>
   } @else {
-    <div class="nom-curation__list">
+    <div class="nom-curation__list" data-testid="curation-list">
       @for (item of items(); track item.id) {
-        <div class="nom-curation__item">
+        <div class="nom-curation__item" data-testid="curation-item">
           <div class="nom-curation__item-header">
             <mat-icon class="nom-curation__item-icon">
               {{ item.entityType === 'Recipe' ? 'restaurant_menu' : 'egg' }}
@@ -52,24 +56,24 @@
                 <textarea matInput [formControl]="feedbackNotes" rows="2" placeholder="Optional notes for the author..."></textarea>
               </mat-form-field>
               <div class="nom-curation__action-buttons">
-                <button mat-flat-button (click)="approve(item)" [disabled]="processing()">
-                  <mat-icon>check</mat-icon>
-                  Approve
-                </button>
-                <button mat-stroked-button (click)="requestRevision(item)" [disabled]="processing()">
-                  <mat-icon>edit_note</mat-icon>
-                  Request Revision
-                </button>
-                <button mat-button class="nom-btn--destructive" (click)="reject(item)" [disabled]="processing()">
+                <button mat-button class="nom-btn--destructive" data-testid="curation-reject-btn" (click)="reject(item)" [disabled]="processing()">
                   <mat-icon>close</mat-icon>
                   Reject
                 </button>
-                <span style="flex:1"></span>
+                <span class="nom-curation__spacer"></span>
                 <button mat-button (click)="expandedId.set(null)">Cancel</button>
+                <button mat-stroked-button data-testid="curation-revision-btn" (click)="requestRevision(item)" [disabled]="processing()">
+                  <mat-icon>edit_note</mat-icon>
+                  Request Revision
+                </button>
+                <button mat-flat-button data-testid="curation-approve-btn" (click)="approve(item)" [disabled]="processing()">
+                  <mat-icon>check</mat-icon>
+                  Approve
+                </button>
               </div>
             </div>
           } @else {
-            <button mat-stroked-button (click)="expandedId.set(item.id)" class="nom-curation__review-btn">
+            <button mat-stroked-button (click)="expandedId.set(item.id)" class="nom-curation__review-btn" data-testid="curation-review-btn">
               Review
             </button>
           }

@@ -1,4 +1,4 @@
-<header class="nom-header">
+<header class="nom-header" data-testid="header">
   <a class="nom-header__brand" routerLink="/home">
     <mat-icon class="nom-header__brand-icon">restaurant</mat-icon>
     <div class="nom-header__brand-text">
@@ -12,6 +12,7 @@
     <input
       type="text"
       class="nom-header__search-input"
+      data-testid="header-search-input"
       [placeholder]="isLoggedIn() ? 'Search recipes, ingredients, plans...' : 'Search recipes...'"
       aria-label="Search"
       (keydown.enter)="onSearch($event)">
@@ -21,16 +22,17 @@
     <button
       mat-icon-button
       class="nom-header__action-btn"
+      data-testid="header-theme-toggle-btn"
       (click)="themeToggle.emit()"
       [attr.aria-label]="isDarkTheme() ? 'Switch to light theme' : 'Switch to dark theme'">
       <mat-icon>{{ isDarkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
 
     @if (isLoggedIn()) {
-      <button mat-icon-button class="nom-header__action-btn" aria-label="Notifications">
+      <button mat-icon-button class="nom-header__action-btn" data-testid="header-notifications-btn" aria-label="Notifications">
         <mat-icon>notifications_none</mat-icon>
       </button>
-      <button class="nom-header__avatar" (click)="toggleUserMenu()" aria-label="User menu">
+      <button class="nom-header__avatar" data-testid="header-avatar-btn" (click)="toggleUserMenu()" aria-label="User menu">
         <span>{{ userInitial() }}</span>
       </button>
 
@@ -43,6 +45,7 @@
         mat-flat-button
         color="primary"
         class="nom-header__login-btn"
+        data-testid="header-login-btn"
         (click)="toggleLoginPopover()">
         <mat-icon>login</mat-icon>
         Sign In

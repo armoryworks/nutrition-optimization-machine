@@ -179,12 +179,12 @@
 }
 
 .nom-household__badge-edit {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  opacity: 0;
+  font-size: vars.$font-size-sm;
+  width: vars.$font-size-sm;
+  height: vars.$font-size-sm;
+  opacity: 0.6;
   margin-left: vars.$spacing-1;
-  transition: opacity 150ms vars.$transition-timing;
+  transition: opacity vars.$transition-duration-fast vars.$transition-timing;
 }
 
 .nom-household__member-actions {

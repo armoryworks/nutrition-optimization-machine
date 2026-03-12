@@ -1,4 +1,4 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="recipe-form">
   <div class="nom-form__header">
     <h1 class="nom-form__title">{{ pageTitle() }}</h1>
     <p class="nom-form__subtitle">{{ pageSubtitle() }}</p>
@@ -16,7 +16,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else {
-    <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" data-testid="recipe-form-fields">
       <!-- ── Details ── -->
       <div class="nom-form__section">
         <h2 class="nom-form__section-title">Details</h2>
@@ -115,7 +115,7 @@
           }
         </div>
 
-        <button type="button" mat-stroked-button (click)="addIngredient()">
+        <button type="button" mat-stroked-button (click)="addIngredient()" data-testid="recipe-add-ingredient-btn">
           <mat-icon>add</mat-icon>
           Add Ingredient
         </button>
@@ -146,7 +146,7 @@
           }
         </div>
 
-        <button type="button" mat-stroked-button (click)="addStep()">
+        <button type="button" mat-stroked-button (click)="addStep()" data-testid="recipe-add-step-btn">
           <mat-icon>add</mat-icon>
           Add Step
         </button>
@@ -155,7 +155,7 @@
       <!-- ── Actions ── -->
       <div class="nom-form__actions">
         @if (isEditMode()) {
-          <button type="button" mat-button class="nom-btn--destructive" (click)="onDelete()">
+          <button type="button" mat-button class="nom-btn--destructive" (click)="onDelete()" data-testid="recipe-delete-btn">
             <mat-icon>delete</mat-icon>
             Delete
           </button>
@@ -163,7 +163,8 @@
         <span class="nom-recipe-form__spacer"></span>
         <button mat-button type="button" routerLink="/recipes/mine">Cancel</button>
         <button mat-flat-button type="submit"
-                [disabled]="recipeForm.invalid || saving()">
+                [disabled]="recipeForm.invalid || saving()"
+                data-testid="recipe-submit-btn">
           {{ submitLabel() }}
         </button>
       </div>

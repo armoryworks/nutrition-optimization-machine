@@ -59,16 +59,16 @@
 }
 
 .nom-db-today__thumb {
-  width: 40px;
-  height: 40px;
+  width: vars.$icon-button-size;
+  height: vars.$icon-button-size;
   border-radius: vars.$nom-border-radius;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .nom-db-today__thumb-placeholder {
-  width: 40px;
-  height: 40px;
+  width: vars.$icon-button-size;
+  height: vars.$icon-button-size;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,9 +78,9 @@
   flex-shrink: 0;
 
   mat-icon {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
+    font-size: vars.$icon-size-lg;
+    width: vars.$icon-size-lg;
+    height: vars.$icon-size-lg;
   }
 }
 
@@ -109,9 +109,9 @@
   }
 
   mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: vars.$icon-size-sm;
+    width: vars.$icon-size-sm;
+    height: vars.$icon-size-sm;
   }
 }
 
@@ -178,8 +178,8 @@
 }
 
 .nom-db-week__dot {
-  width: 8px;
-  height: 8px;
+  width: vars.$spacing-2;
+  height: vars.$spacing-2;
   border-radius: 50%;
   background: var(--mat-sys-outline-variant);
 
@@ -206,9 +206,9 @@
 }
 
 .nom-db-macro__icon {
-  font-size: 28px;
-  width: 28px;
-  height: 28px;
+  font-size: vars.$icon-size-xl;
+  width: vars.$icon-size-xl;
+  height: vars.$icon-size-xl;
   color: var(--mat-sys-primary);
 }
 
@@ -233,9 +233,9 @@
 }
 
 .nom-db-nav__icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
+  font-size: vars.$icon-size-xl;
+  width: vars.$icon-size-xl;
+  height: vars.$icon-size-xl;
   color: var(--mat-sys-primary);
   margin-bottom: vars.$spacing-2;
 }

@@ -247,11 +247,11 @@
 
 .nom-plan__cell-add {
   color: var(--mat-sys-on-surface-variant);
-  opacity: 0.3;
+  opacity: 0.5;
   transition: opacity vars.$transition-duration-fast vars.$transition-timing;
 
   .nom-plan__cell:hover & {
-    opacity: 0.7;
+    opacity: 0.85;
   }
 }
 
@@ -269,7 +269,7 @@
 // --- Nutrition Summary Row ---
 
 .nom-plan__meal-label--summary {
-  font-size: 10px;
+  font-size: vars.$font-size-xs;
   border-bottom: none;
 }
 
@@ -278,11 +278,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: vars.$spacing-1;
   padding: vars.$spacing-1 vars.$spacing-2;
   border-right: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface-container);
-  min-height: 52px;
+  min-height: vars.$spacing-12;
 
   &:last-child { border-right: none; }
 
@@ -292,7 +292,7 @@
 }
 
 .nom-plan__macro {
-  font-size: 10px;
+  font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-medium;
   color: var(--mat-sys-on-surface-variant);
   line-height: 1.2;

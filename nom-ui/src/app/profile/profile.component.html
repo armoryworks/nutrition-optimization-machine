@@ -1,4 +1,4 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="profile">
   @if (isStandalone()) {
     <div class="nom-form__header">
       <h1 class="nom-form__title">Profile</h1>
@@ -20,7 +20,7 @@
     </div>
   }
 
-  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" data-testid="profile-form">
     <!-- Personal Information -->
     <div class="nom-form__section">
       <h2 class="nom-form__section-title">Personal Information</h2>
@@ -180,7 +180,7 @@
         @if (showCancel()) {
           <button mat-button type="button" (click)="cancelled.emit()">Cancel</button>
         }
-        <button mat-flat-button type="submit" [disabled]="profileForm.invalid || loading()">
+        <button mat-flat-button type="submit" data-testid="profile-submit-btn" [disabled]="profileForm.invalid || loading()">
           @if (loading()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {

@@ -1,4 +1,4 @@
-<div class="nom-dashboard">
+<div class="nom-dashboard" data-testid="inbox">
   <div class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
       <h1 class="nom-dashboard__title">Messages</h1>
@@ -7,7 +7,7 @@
       }
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-flat-button routerLink="/messages/new">
+      <a mat-flat-button routerLink="/messages/new" data-testid="inbox-compose-btn">
         <mat-icon>edit</mat-icon>
         Compose
       </a>
@@ -19,7 +19,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (threads().length === 0) {
-    <div class="nom-dashboard__empty">
+    <div class="nom-dashboard__empty" data-testid="inbox-empty">
       <mat-icon class="nom-dashboard__empty-icon">forum</mat-icon>
       <h2 class="nom-dashboard__empty-title">No messages</h2>
       <p class="nom-dashboard__empty-message">Start a conversation with household members.</p>
@@ -29,9 +29,9 @@
       </a>
     </div>
   } @else {
-    <div class="nom-inbox__list">
+    <div class="nom-inbox__list" data-testid="inbox-list">
       @for (thread of sortedThreads(); track thread.id) {
-        <div class="nom-inbox__thread"
+        <div class="nom-inbox__thread" data-testid="inbox-thread"
              [class.nom-inbox__thread--unread]="thread.unreadCount > 0"
              [class.nom-inbox__thread--pinned]="thread.isPinned"
              (click)="openThread(thread.id)"

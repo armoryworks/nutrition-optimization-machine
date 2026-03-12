@@ -231,6 +231,32 @@
   border-width: 0;
 }
 
+// --- Back Links ---
+
+@mixin nom-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  text-decoration: none;
+  margin-bottom: vars.$spacing-2;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius;
+  @include nom-transition(color, background-color);
+
+  mat-icon {
+    font-size: vars.$icon-size-sm;
+    width: vars.$icon-size-sm;
+    height: vars.$icon-size-sm;
+  }
+
+  &:hover {
+    color: var(--mat-sys-on-surface);
+    background: var(--mat-sys-surface-container);
+  }
+}
+
 // --- Transitions ---
 
 @mixin nom-transition($property: all, $duration: vars.$transition-duration-normal, $timing: vars.$transition-timing) {

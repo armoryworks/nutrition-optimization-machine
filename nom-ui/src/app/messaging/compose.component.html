@@ -1,4 +1,4 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="compose">
   <div class="nom-form__header">
     <h1 class="nom-form__title">New Message</h1>
     <p class="nom-form__subtitle">Send a message to household members</p>
@@ -11,7 +11,7 @@
     </div>
   }
 
-  <form [formGroup]="composeForm" (ngSubmit)="onSubmit()">
+  <form [formGroup]="composeForm" (ngSubmit)="onSubmit()" data-testid="compose-form">
     <div class="nom-form__section">
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
@@ -46,7 +46,7 @@
 
     <div class="nom-form__actions">
       <a mat-button routerLink="/messages">Cancel</a>
-      <button mat-flat-button type="submit" [disabled]="composeForm.invalid || sending()">
+      <button mat-flat-button type="submit" data-testid="compose-send-btn" [disabled]="composeForm.invalid || sending()">
         @if (sending()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {

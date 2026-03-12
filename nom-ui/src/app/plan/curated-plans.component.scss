@@ -23,7 +23,7 @@
   padding: vars.$spacing-4;
   background: var(--mat-sys-surface-container-low);
   border-radius: vars.$spacing-3;
-  transition: background 0.15s;
+  transition: background vars.$transition-duration-fast vars.$transition-timing;
 
   &:hover {
     background: var(--mat-sys-surface-container);

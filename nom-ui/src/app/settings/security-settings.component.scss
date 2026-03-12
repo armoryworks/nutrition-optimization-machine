@@ -9,9 +9,6 @@
 }
 
 .nom-security__header {
-  display: flex;
-  align-items: center;
-  gap: vars.$spacing-3;
   margin-bottom: vars.$spacing-8;
 }
 
@@ -52,7 +49,7 @@
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface-variant);
   margin: 0 0 vars.$spacing-6;
-  line-height: 1.5;
+  line-height: vars.$line-height-normal;
 }
 
 .nom-security__status {

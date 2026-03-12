@@ -1,5 +1,9 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="webhooks">
   <div class="nom-form__header">
+    <a routerLink="/admin" class="nom-form__back" data-testid="webhooks-back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Admin
+    </a>
     <h1 class="nom-form__title">Webhooks</h1>
     <p class="nom-form__subtitle">Get notified when events happen in your household</p>
   </div>
@@ -49,7 +53,7 @@
   <!-- Add webhook form -->
   <div class="nom-form__section">
     <h2 class="nom-form__section-title">Add Webhook</h2>
-    <form [formGroup]="webhookForm" (ngSubmit)="onAddWebhook()">
+    <form [formGroup]="webhookForm" (ngSubmit)="onAddWebhook()" data-testid="webhooks-form">
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
           <mat-label>Name</mat-label>
@@ -80,7 +84,7 @@
 
       <div class="nom-form__actions">
         <a mat-button routerLink="/admin">Back to Admin</a>
-        <button mat-flat-button type="submit" [disabled]="webhookForm.invalid || saving()">
+        <button mat-flat-button type="submit" data-testid="webhooks-submit-btn" [disabled]="webhookForm.invalid || saving()">
           @if (saving()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {

@@ -73,7 +73,9 @@ export class Thread implements AfterViewChecked {
     this.messagingService.getThread(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (thread) => {
         this.thread.set(thread);
-        this.messagingService.markAsRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+        this.messagingService.markAsRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          error: () => {},
+        });
         this.loadMessages(id);
       },
       error: () => this.loading.set(false),

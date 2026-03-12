@@ -1,9 +1,9 @@
-<h2 mat-dialog-title>Shuffle meals</h2>
+<h2 mat-dialog-title data-testid="shuffle-dialog">Shuffle meals</h2>
 <mat-dialog-content>
   <p>Some meals already have recipes assigned. What would you like to do?</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-stroked-button [mat-dialog-close]="'empty'">Fill empty only</button>
-  <button mat-flat-button [mat-dialog-close]="'replace'">Replace all</button>
+  <button mat-stroked-button [mat-dialog-close]="'empty'" data-testid="shuffle-empty-btn">Fill empty only</button>
+  <button mat-flat-button [mat-dialog-close]="'replace'" data-testid="shuffle-replace-btn">Replace all</button>
 </mat-dialog-actions>

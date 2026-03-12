@@ -46,8 +46,8 @@
 
 .nom-cookbook-recipe__img,
 .nom-cookbook-recipe__img-placeholder {
-  width: 56px;
-  height: 56px;
+  width: $header-height;
+  height: $header-height;
   border-radius: $spacing-2;
   object-fit: cover;
   flex-shrink: 0;
@@ -64,7 +64,7 @@
 .nom-cookbook-recipe__info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $spacing-1;
   min-width: 0;
 }
 

@@ -3,7 +3,7 @@
 .nom-thread {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - vars.$header-height - vars.$footer-height - vars.$spacing-8);
+  height: calc(100dvh - vars.$header-height - vars.$footer-height - vars.$spacing-8);
   max-width: vars.$content-max-narrow;
   margin: 0 auto;
   padding: 0 vars.$spacing-4;
@@ -69,7 +69,7 @@
   display: flex;
   align-items: baseline;
   gap: vars.$spacing-2;
-  margin-bottom: 2px;
+  margin-bottom: vars.$spacing-1;
   padding: 0 vars.$spacing-2;
 }
 
@@ -94,6 +94,7 @@
   color: var(--mat-sys-on-surface);
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .nom-thread__compose {

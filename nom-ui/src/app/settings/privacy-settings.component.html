@@ -1,8 +1,9 @@
-<div class="nom-form--card">
+<div class="nom-form--card" data-testid="privacy-settings">
   <div class="nom-form__card">
     <div class="nom-form__card-header">
-      <a routerLink="/settings" class="nom-privacy__back">
+      <a routerLink="/settings" class="nom-form__back" data-testid="privacy-back-link">
         <mat-icon>arrow_back</mat-icon>
+        Back to Settings
       </a>
       <h1 class="nom-form__card-title">Privacy & Data</h1>
       <p class="nom-form__card-subtitle">Manage your data and account privacy</p>
@@ -33,11 +34,11 @@
           Download a copy of all your data including recipes, meal plans, and preferences.
         </p>
         <div class="nom-privacy__actions">
-          <button mat-stroked-button (click)="onExportJson()">
+          <button mat-stroked-button data-testid="privacy-export-json-btn" (click)="onExportJson()">
             <mat-icon>code</mat-icon>
             Export as JSON
           </button>
-          <button mat-stroked-button (click)="onExportCsv()">
+          <button mat-stroked-button data-testid="privacy-export-csv-btn" (click)="onExportCsv()">
             <mat-icon>table_chart</mat-icon>
             Export as CSV
           </button>
@@ -53,7 +54,7 @@
         <p class="nom-privacy__section-desc">
           Permanently delete your account and all associated data. This action cannot be undone.
         </p>
-        <button mat-flat-button class="nom-btn--destructive" (click)="onDeleteAccount()">
+        <button mat-flat-button class="nom-btn--destructive" data-testid="privacy-delete-btn" (click)="onDeleteAccount()">
           <mat-icon>delete_forever</mat-icon>
           Delete My Account
         </button>

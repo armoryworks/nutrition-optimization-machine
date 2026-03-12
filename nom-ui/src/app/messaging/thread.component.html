@@ -1,4 +1,4 @@
-<div class="nom-thread">
+<div class="nom-thread" data-testid="thread">
   <div class="nom-thread__header">
     <a mat-icon-button routerLink="/messages" aria-label="Back to inbox">
       <mat-icon>arrow_back</mat-icon>
@@ -14,9 +14,9 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else {
-    <div class="nom-thread__messages" #messagesContainer>
+    <div class="nom-thread__messages" data-testid="thread-messages" #messagesContainer>
       @for (msg of messages(); track msg.id) {
-        <div class="nom-thread__message" [class.nom-thread__message--own]="msg.senderPersonId === currentPersonId()">
+        <div class="nom-thread__message" data-testid="thread-message" [class.nom-thread__message--own]="msg.senderPersonId === currentPersonId()">
           <div class="nom-thread__message-header">
             <span class="nom-thread__message-sender">{{ msg.senderName }}</span>
             <span class="nom-thread__message-time">{{ formatTime(msg.timestamp) }}</span>
@@ -26,7 +26,7 @@
       }
     </div>
 
-    <div class="nom-thread__compose">
+    <div class="nom-thread__compose" data-testid="thread-compose">
       <mat-form-field appearance="outline" class="nom-thread__input">
         <input matInput
                [formControl]="newMessage"
@@ -34,7 +34,7 @@
                (keydown.enter)="send()"
                [disabled]="sending()" />
       </mat-form-field>
-      <button mat-flat-button (click)="send()" [disabled]="!(newMessage.value ?? '').trim() || sending()">
+      <button mat-flat-button data-testid="thread-send-btn" (click)="send()" [disabled]="!(newMessage.value ?? '').trim() || sending()">
         @if (sending()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {

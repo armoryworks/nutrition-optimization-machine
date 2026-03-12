@@ -1,5 +1,14 @@
 @use 'variables' as vars;
 
+:host {
+  @media (max-width: vars.$breakpoint-mobile) {
+    .mat-mdc-dialog-content {
+      max-height: 60dvh;
+      overflow-y: auto;
+    }
+  }
+}
+
 .nom-dialog__title-bar {
   display: flex;
   align-items: center;
@@ -21,8 +30,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: vars.$control-height-sm;
+  height: vars.$control-height-sm;
   border: none;
   background: transparent;
   cursor: pointer;

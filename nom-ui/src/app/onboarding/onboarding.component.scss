@@ -4,7 +4,7 @@
   max-width: vars.$content-max-narrow;
   margin: 0 auto;
   padding: vars.$spacing-6;
-  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
+  min-height: calc(100dvh - vars.$header-height - vars.$footer-height);
   display: flex;
   flex-direction: column;
 

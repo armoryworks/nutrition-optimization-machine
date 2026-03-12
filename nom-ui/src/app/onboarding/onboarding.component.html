@@ -1,6 +1,6 @@
-<div class="nom-onboarding">
+<div class="nom-onboarding" data-testid="onboarding">
   <!-- Step indicator -->
-  <div class="nom-onboarding__stepper" role="navigation" aria-label="Onboarding progress">
+  <div class="nom-onboarding__stepper" data-testid="onboarding-stepper" role="navigation" aria-label="Onboarding progress">
     @for (label of stepLabels; track label; let i = $index) {
       <button
         type="button"
@@ -33,7 +33,7 @@
   }
 
   <!-- Step content -->
-  <div class="nom-onboarding__content">
+  <div class="nom-onboarding__content" data-testid="onboarding-content">
     @switch (currentStep()) {
       @case (0) {
         <nom-profile
@@ -64,15 +64,15 @@
   </div>
 
   <!-- Navigation bar -->
-  <div class="nom-onboarding__nav">
+  <div class="nom-onboarding__nav" data-testid="onboarding-nav">
     @if (!isFirstStep()) {
-      <button mat-stroked-button (click)="previous()">
+      <button mat-stroked-button data-testid="onboarding-back-btn" (click)="previous()">
         <mat-icon>arrow_back</mat-icon>
         Back
       </button>
     }
     <span class="nom-onboarding__spacer"></span>
-    <button mat-button (click)="skipStep()">
+    <button mat-button data-testid="onboarding-skip-btn" (click)="skipStep()">
       @if (isLastStep()) {
         Finish Later
       } @else {

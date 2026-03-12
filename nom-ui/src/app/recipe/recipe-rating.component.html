@@ -1,4 +1,4 @@
-<div class="nom-rating">
+<div class="nom-rating" data-testid="recipe-rating">
   <h3 class="nom-rating__title">
     <mat-icon>star</mat-icon>
     Rating
@@ -16,7 +16,7 @@
     </div>
 
     @if (currentPersonId()) {
-      <div class="nom-rating__user">
+      <div class="nom-rating__user" data-testid="recipe-rating-input">
         <span class="nom-rating__user-label">Your rating:</span>
         <div class="nom-rating__stars nom-rating__stars--interactive">
           @for (star of stars; track star) {

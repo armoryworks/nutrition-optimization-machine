@@ -110,16 +110,22 @@ $icon-button-size: 40px;
 $icon-button-size-sm: 32px;
 $icon-button-size-lg: 48px;
 
+// Icon Sizes
+$icon-size-sm: 18px;
+$icon-size-md: 20px;
+$icon-size-lg: 24px;
+$icon-size-xl: 32px;
+
 // Card Dimensions
 $card-min-width: 320px;
-$card-gap: 16px;
-$card-border-radius: 8px;
+$card-gap: $spacing-4;
+$card-border-radius: $nom-border-radius-lg;
 
 // Modal Dimensions
 $modal-width-sm: 500px;
 $modal-width-md: 600px;
 $modal-width-lg: 800px;
-$modal-padding: 24px;
+$modal-padding: $spacing-6;
 
 // Z-Index Scale
 $z-base: 0;

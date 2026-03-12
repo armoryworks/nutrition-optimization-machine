@@ -1,4 +1,4 @@
-<div class="nom-dialog__title-bar">
+<div class="nom-dialog__title-bar" data-testid="add-member-dialog">
   <h2 mat-dialog-title>
     @if (currentStep() === 0) {
       {{ isEditMode() ? 'Edit ' + data.personName : 'Add Household Member' }}
@@ -40,7 +40,8 @@
     <button mat-button (click)="cancel()">Cancel</button>
     <button mat-flat-button
             (click)="profileRef()?.submit()"
-            [disabled]="profileRef()?.profileForm?.invalid || profileRef()?.loading()">
+            [disabled]="profileRef()?.profileForm?.invalid || profileRef()?.loading()"
+            data-testid="add-member-save-btn">
       Save & Continue
     </button>
   } @else {

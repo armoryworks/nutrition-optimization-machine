@@ -1,4 +1,4 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="restrictions">
   @if (isStandalone()) {
     <div class="nom-form__header">
       <h1 class="nom-form__title">Dietary Restrictions & Preferences</h1>
@@ -69,7 +69,7 @@
 
   @if (!hideActions()) {
     <div class="nom-form__actions">
-      <button mat-flat-button type="button" (click)="onSubmit()">
+      <button mat-flat-button type="button" data-testid="restrictions-submit-btn" (click)="onSubmit()">
         {{ isStandalone() ? 'Save Preferences' : 'Continue' }}
       </button>
     </div>

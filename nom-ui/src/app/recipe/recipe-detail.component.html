@@ -8,11 +8,11 @@
     <mat-icon class="nom-recipe__not-found-icon">error_outline</mat-icon>
     <h2>Something went wrong</h2>
     <p>{{ error() }}</p>
-    <a mat-flat-button color="primary" routerLink="/home">Browse Recipes</a>
+    <a mat-flat-button color="primary" routerLink="/recipes/mine">Back to My Recipes</a>
   </div>
 } @else if (recipe()) {
   <div class="nom-recipe__banner">
-    <a routerLink="/home" class="nom-recipe__back" data-testid="recipe-back-link">
+    <a routerLink="/recipes/mine" class="nom-recipe__back" data-testid="recipe-back-link">
       <mat-icon>arrow_back</mat-icon>
       Back to recipes
     </a>
@@ -165,6 +165,6 @@
     <mat-icon class="nom-recipe__not-found-icon">search_off</mat-icon>
     <h2>Recipe not found</h2>
     <p>The recipe you're looking for doesn't exist.</p>
-    <a mat-flat-button color="primary" routerLink="/home">Browse Recipes</a>
+    <a mat-flat-button color="primary" routerLink="/recipes/mine">Back to My Recipes</a>
   </div>
 }

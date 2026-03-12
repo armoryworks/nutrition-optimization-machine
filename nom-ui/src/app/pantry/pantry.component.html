@@ -1,4 +1,4 @@
-<div class="nom-pantry">
+<div class="nom-pantry" data-testid="pantry">
   <!-- Header -->
   <div class="nom-pantry__header">
     <div class="nom-pantry__header-left">
@@ -10,7 +10,7 @@
       }
     </div>
     <div class="nom-pantry__header-right">
-      <button mat-stroked-button (click)="toggleAddForm()">
+      <button mat-stroked-button (click)="toggleAddForm()" data-testid="pantry-add-toggle-btn">
         <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
         {{ showAddForm() ? 'Cancel' : 'Add Item' }}
       </button>
@@ -22,7 +22,7 @@
 
   <!-- Add Item Form -->
   @if (showAddForm()) {
-    <div class="nom-pantry__add-form">
+    <div class="nom-pantry__add-form" data-testid="pantry-add-form">
       <h3 class="nom-pantry__add-title">Add to Pantry</h3>
       <div class="nom-pantry__add-fields">
         <mat-form-field class="nom-pantry__add-ingredient">
@@ -63,6 +63,7 @@
 
         <button mat-flat-button
                 class="nom-pantry__add-btn"
+                data-testid="pantry-add-submit-btn"
                 (click)="addItem()"
                 [disabled]="!selectedIngredient() || !selectedMeasurementId() || adding()">
           @if (adding()) {
@@ -92,7 +93,7 @@
       </button>
     </div>
   } @else if (activeItems().length === 0 && expiredItems().length === 0) {
-    <div class="nom-pantry__empty">
+    <div class="nom-pantry__empty" data-testid="pantry-empty">
       <mat-icon class="nom-pantry__empty-icon">kitchen</mat-icon>
       <h2>Pantry is empty</h2>
       <p>Add items to your pantry so your shopping list only shows what you need.</p>
@@ -111,7 +112,7 @@
     }
 
     <!-- Active Items -->
-    <div class="nom-pantry__list">
+    <div class="nom-pantry__list" data-testid="pantry-list">
       <div class="nom-pantry__list-header">
         <span class="nom-pantry__col-name">Ingredient</span>
         <span class="nom-pantry__col-qty">Quantity</span>
@@ -119,7 +120,7 @@
         <span class="nom-pantry__col-actions"></span>
       </div>
       @for (item of activeItems(); track item.id) {
-        <div class="nom-pantry__item"
+        <div class="nom-pantry__item" data-testid="pantry-item"
              [class.nom-pantry__item--expiring]="item.isExpiringSoon">
           <span class="nom-pantry__col-name">{{ item.ingredientName }}</span>
           <span class="nom-pantry__col-qty">

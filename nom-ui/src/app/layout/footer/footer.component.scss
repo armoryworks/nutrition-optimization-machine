@@ -8,7 +8,7 @@
   padding: 0 vars.$spacing-6;
   background: var(--mat-sys-surface-container);
   border-top: 2px solid var(--mat-sys-outline);
-  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: vars.$elevation-1;
   flex-shrink: 0;
   font-size: vars.$font-size-xs;
   color: var(--mat-sys-on-surface-variant);

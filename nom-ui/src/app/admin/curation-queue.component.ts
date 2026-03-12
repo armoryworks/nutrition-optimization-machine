@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +17,7 @@ import { LoadingService } from '../core/services/loading.service';
   selector: 'nom-curation-queue',
   imports: [
     DatePipe,
+    RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
     MatIconModule,

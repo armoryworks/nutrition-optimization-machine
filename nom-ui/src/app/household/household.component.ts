@@ -1,6 +1,7 @@
 import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { switchMap } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -98,6 +99,9 @@ export class Household implements OnInit {
       description: form.description || null,
       householdGroupId: 1,
     }).pipe(
+      switchMap(household => this.authService.refreshClaims().pipe(
+        switchMap(() => [household])
+      )),
       this.loadingService.loading('Creating household...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -125,6 +129,7 @@ export class Household implements OnInit {
     this.errorMessage.set('');
 
     this.householdService.joinHousehold(token).pipe(
+      switchMap(() => this.authService.refreshClaims()),
       this.loadingService.loading('Joining household...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({

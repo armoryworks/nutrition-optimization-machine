@@ -1,4 +1,4 @@
-<div class="nom-form--card">
+<div class="nom-form--card" data-testid="register">
   @if (registeredEmail()) {
     <div class="nom-form__card nom-form__card--narrow">
       <div class="nom-form__card-icon">
@@ -22,7 +22,7 @@
           </div>
         }
         <div class="nom-form__card-actions">
-          <button mat-stroked-button (click)="onResendConfirmation()">
+          <button mat-stroked-button (click)="onResendConfirmation()" data-testid="register-resend-btn">
             <mat-icon>send</mat-icon>
             Resend Confirmation Email
           </button>
@@ -45,13 +45,13 @@
 
       <div class="nom-form__card-content">
         @if (errorMessage()) {
-          <div class="nom-form__error">
+          <div class="nom-form__error" data-testid="register-error">
             <mat-icon>error_outline</mat-icon>
             <span>{{ errorMessage() }}</span>
           </div>
         }
 
-        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" data-testid="register-form">
           <div class="nom-form__fields">
             <mat-form-field appearance="outline">
               <mat-label>Email</mat-label>
@@ -104,7 +104,7 @@
 
           <div class="nom-form__card-actions">
             <button mat-flat-button color="primary" type="submit"
-                    class="nom-register__submit"
+                    class="nom-register__submit" data-testid="register-submit-btn"
                     [disabled]="loading() || registerForm.invalid">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>

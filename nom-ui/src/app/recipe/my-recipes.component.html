@@ -1,14 +1,14 @@
-<div class="nom-dashboard">
+<div class="nom-dashboard" data-testid="my-recipes">
   <div class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
       <h1 class="nom-dashboard__title">My Recipes</h1>
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-stroked-button routerLink="/recipe/import">
+      <a mat-stroked-button routerLink="/recipe/import" data-testid="my-recipes-import-btn">
         <mat-icon>link</mat-icon>
         Import from URL
       </a>
-      <a mat-flat-button routerLink="/recipe/new">
+      <a mat-flat-button routerLink="/recipe/new" data-testid="my-recipes-new-btn">
         <mat-icon>add</mat-icon>
         New Recipe
       </a>
@@ -37,10 +37,11 @@
       </a>
     </div>
   } @else {
-    <div class="nom-dashboard__grid">
+    <div class="nom-dashboard__grid" data-testid="my-recipes-grid">
       @for (recipe of recipes(); track recipe.id) {
         <a class="nom-dashboard__card nom-dashboard__card--clickable"
-           [routerLink]="'/recipe/' + recipe.id">
+           [routerLink]="'/recipe/' + recipe.id"
+           data-testid="recipe-card">
           <div class="nom-dashboard__card-content nom-my-recipes__card">
             @if (recipe.imageUrl) {
               <img class="nom-my-recipes__image"

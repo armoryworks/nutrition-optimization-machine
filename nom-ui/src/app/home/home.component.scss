@@ -27,9 +27,9 @@
 }
 
 .nom-home__category-icon {
-  font-size: 24px;
-  width: 24px;
-  height: 24px;
+  font-size: vars.$icon-size-lg;
+  width: vars.$icon-size-lg;
+  height: vars.$icon-size-lg;
   color: var(--mat-sys-primary);
 }
 
@@ -48,6 +48,10 @@
   gap: vars.$spacing-4;
 
   @media (max-width: vars.$breakpoint-desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: vars.$breakpoint-tablet) {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -68,8 +72,8 @@
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: vars.$elevation-1;
+  transition: transform vars.$transition-duration-fast vars.$transition-timing, box-shadow vars.$transition-duration-fast vars.$transition-timing;
 
   &:hover {
     transform: translateY(-2px);
@@ -109,19 +113,19 @@
 .nom-home__recipe-time {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: vars.$spacing-1;
 }
 
 .nom-home__recipe-meta-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
+  font-size: vars.$font-size-sm;
+  width: vars.$font-size-sm;
+  height: vars.$font-size-sm;
 }
 
 .nom-home__recipe-rating {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: vars.$spacing-1;
 }
 
 // ── Image placeholder ──
@@ -131,12 +135,12 @@
   align-items: center;
   justify-content: center;
   color: var(--mat-sys-on-surface-variant);
-  opacity: 0.4;
+  opacity: 0.5;
 
   mat-icon {
-    font-size: 40px;
-    width: 40px;
-    height: 40px;
+    font-size: vars.$spacing-10;
+    width: vars.$spacing-10;
+    height: vars.$spacing-10;
   }
 }
 
@@ -155,10 +159,10 @@
 
 .nom-home__error-icon,
 .nom-home__empty-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
-  opacity: 0.4;
+  font-size: vars.$spacing-16;
+  width: vars.$spacing-16;
+  height: vars.$spacing-16;
+  opacity: 0.5;
   margin-bottom: vars.$spacing-4;
 }
 

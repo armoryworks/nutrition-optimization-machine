@@ -8,7 +8,7 @@
   padding: 0 vars.$spacing-6;
   background: var(--mat-sys-surface-container);
   border-bottom: 2px solid var(--mat-sys-outline);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: vars.$elevation-2;
   flex-shrink: 0;
 }
 
@@ -22,9 +22,9 @@
 }
 
 .nom-header__brand-icon {
-  font-size: 28px;
-  width: 28px;
-  height: 28px;
+  font-size: vars.$icon-size-xl;
+  width: vars.$icon-size-xl;
+  height: vars.$icon-size-xl;
   color: var(--mat-sys-primary);
 }
 
@@ -63,7 +63,7 @@
   background: var(--mat-sys-surface-container);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius-lg;
-  transition: border-color 0.2s ease;
+  transition: border-color vars.$transition-duration-normal vars.$transition-timing;
 
   &:focus-within {
     border-color: var(--mat-sys-primary);
@@ -75,11 +75,11 @@
 }
 
 .nom-header__search-icon {
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
+  font-size: vars.$icon-size-md;
+  width: vars.$icon-size-md;
+  height: vars.$icon-size-md;
   color: var(--mat-sys-on-surface-variant);
-  opacity: 0.6;
+  opacity: 0.78;
   flex-shrink: 0;
 }
 
@@ -94,7 +94,7 @@
 
   &::placeholder {
     color: var(--mat-sys-on-surface-variant);
-    opacity: 0.6;
+    opacity: 0.78;
   }
 }
 
@@ -114,19 +114,19 @@
 }
 
 .nom-header__action-btn {
-  width: 36px;
-  height: 36px;
+  width: vars.$control-height-sm;
+  height: vars.$control-height-sm;
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: vars.$icon-size-md;
+    width: vars.$icon-size-md;
+    height: vars.$icon-size-md;
   }
 }
 
 .nom-header__avatar {
-  width: 32px;
-  height: 32px;
+  width: vars.$icon-button-size-sm;
+  height: vars.$icon-button-size-sm;
   border-radius: 50%;
   background: var(--mat-sys-primary);
   color: var(--mat-sys-on-primary);

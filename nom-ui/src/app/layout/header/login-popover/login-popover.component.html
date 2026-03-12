@@ -1,7 +1,7 @@
-<div class="nom-login-popover">
+<div class="nom-login-popover" data-testid="login-popover">
   <h3 class="nom-login-popover__title">Sign In</h3>
 
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" data-testid="login-form">
     <mat-form-field appearance="outline" class="nom-login-popover__field">
       <mat-label>Email</mat-label>
       <input matInput formControlName="email" type="email" autocomplete="email">
@@ -22,7 +22,7 @@
     </mat-form-field>
 
     @if (errorMessage()) {
-      <p class="nom-login-popover__error">{{ errorMessage() }}</p>
+      <p class="nom-login-popover__error" data-testid="login-error">{{ errorMessage() }}</p>
     }
 
     <div class="nom-login-popover__forgot-row">
@@ -30,7 +30,7 @@
     </div>
 
     <button mat-flat-button color="primary" type="submit"
-            class="nom-login-popover__submit"
+            class="nom-login-popover__submit" data-testid="login-submit-btn"
             [disabled]="loading() || loginForm.invalid">
       @if (loading()) {
         <mat-spinner diameter="20"></mat-spinner>

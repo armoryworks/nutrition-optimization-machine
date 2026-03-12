@@ -72,6 +72,7 @@ export class CuratedPlans implements OnInit {
   selector: 'nom-clone-plan-dialog',
   imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
   templateUrl: './clone-plan-dialog.component.html',
+  styleUrl: './clone-plan-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClonePlanDialog {

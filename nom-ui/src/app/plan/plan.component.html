@@ -21,7 +21,7 @@
             </mat-select>
           </mat-form-field>
         }
-        <button mat-icon-button (click)="printPlan()" [disabled]="!weekData()" matTooltip="Print meal plan">
+        <button mat-icon-button (click)="printPlan()" [disabled]="!weekData()" matTooltip="Print meal plan" data-testid="plan-print-btn">
           <mat-icon>print</mat-icon>
         </button>
         <a mat-icon-button routerLink="/plan/curated" matTooltip="Browse curated plans">
@@ -31,6 +31,7 @@
           <mat-icon>tune</mat-icon>
         </a>
         <button mat-stroked-button
+                data-testid="plan-shuffle-btn"
                 (click)="shuffleEmptySlots()"
                 [disabled]="!weekData() || shuffling()"
                 matTooltip="Fill empty slots with random recipes">
@@ -41,7 +42,7 @@
           }
           Shuffle
         </button>
-        <div class="nom-plan__nav">
+        <div class="nom-plan__nav" data-testid="plan-nav">
           <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week">
             <mat-icon>chevron_left</mat-icon>
           </button>
@@ -61,7 +62,7 @@
     }
 
     @if (!hasHousehold()) {
-      <div class="nom-dashboard__empty">
+      <div class="nom-dashboard__empty" data-testid="plan-empty">
         <mat-icon class="nom-dashboard__empty-icon">home</mat-icon>
         <h2 class="nom-dashboard__empty-title">No household yet</h2>
         <p class="nom-dashboard__empty-message">
@@ -77,7 +78,7 @@
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else if (weekData()) {
-      <div class="nom-plan__calendar">
+      <div class="nom-plan__calendar" data-testid="plan-calendar">
         <!-- Corner cell -->
         <div class="nom-plan__corner"></div>
 
@@ -110,6 +111,7 @@
           @for (day of weekData()!.days; track day.date) {
             <div
               class="nom-plan__cell"
+              data-testid="plan-cell"
               [class.nom-plan__cell--filled]="day.cells[mealIdx].entries.length > 0"
               [class.nom-plan__cell--today]="isToday(day.date)"
               (click)="onCellClick(day, day.cells[mealIdx])"
@@ -182,7 +184,7 @@
     }
 
     <!-- Tab toggle -->
-    <div class="nom-plan__tabs">
+    <div class="nom-plan__tabs" data-testid="plan-tabs">
       <button
         type="button"
         class="nom-plan__tab"
@@ -245,7 +247,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()">
+            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()" data-testid="plan-create-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
@@ -273,7 +275,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()">
+            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()" data-testid="plan-join-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {

@@ -1,4 +1,4 @@
-<div class="nom-user-menu">
+<div class="nom-user-menu" data-testid="user-menu">
   <div class="nom-user-menu__identity">
     <div class="nom-user-menu__avatar">
       <span>{{ initial() }}</span>
@@ -11,39 +11,39 @@
   <div class="nom-user-menu__divider"></div>
 
   <nav class="nom-user-menu__nav" aria-label="Quick navigation">
-    <a class="nom-user-menu__item" routerLink="/plan" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/plan" data-testid="nav-meal-plan" (click)="closed.emit()">
       <mat-icon>calendar_month</mat-icon>
       <span>Meal Plan</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/recipes/mine" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/recipes/mine" data-testid="nav-my-recipes" (click)="closed.emit()">
       <mat-icon>menu_book</mat-icon>
       <span>My Recipes</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/cookbooks" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/cookbooks" data-testid="nav-cookbooks" (click)="closed.emit()">
       <mat-icon>collections_bookmark</mat-icon>
       <span>Cookbooks</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/pantry" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/pantry" data-testid="nav-pantry" (click)="closed.emit()">
       <mat-icon>kitchen</mat-icon>
       <span>Pantry</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/shopping" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/shopping" data-testid="nav-shopping" (click)="closed.emit()">
       <mat-icon>shopping_cart</mat-icon>
       <span>Shopping</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/ingredients/mine" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/ingredients/mine" data-testid="nav-ingredients" (click)="closed.emit()">
       <mat-icon>egg</mat-icon>
       <span>Ingredients</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/messages" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/messages" data-testid="nav-messages" (click)="closed.emit()">
       <mat-icon>forum</mat-icon>
       <span>Messages</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/household" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/household" data-testid="nav-household" (click)="closed.emit()">
       <mat-icon>group</mat-icon>
       <span>Household</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/restrictions" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/restrictions" data-testid="nav-restrictions" (click)="closed.emit()">
       <mat-icon>block</mat-icon>
       <span>Restrictions</span>
     </a>
@@ -52,11 +52,11 @@
   <div class="nom-user-menu__divider"></div>
 
   <nav class="nom-user-menu__nav" aria-label="User menu">
-    <a class="nom-user-menu__item" routerLink="/profile" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/profile" data-testid="nav-profile" (click)="closed.emit()">
       <mat-icon>person</mat-icon>
       <span>Profile</span>
     </a>
-    <a class="nom-user-menu__item" routerLink="/settings" (click)="closed.emit()">
+    <a class="nom-user-menu__item" routerLinkActive="nom-user-menu__item--active" routerLink="/settings" data-testid="nav-settings" (click)="closed.emit()">
       <mat-icon>settings</mat-icon>
       <span>Settings</span>
     </a>
@@ -64,7 +64,7 @@
 
   <div class="nom-user-menu__divider"></div>
 
-  <button class="nom-user-menu__item nom-user-menu__item--danger" (click)="onLogout()">
+  <button class="nom-user-menu__item nom-user-menu__item--danger" data-testid="nav-sign-out" (click)="onLogout()">
     <mat-icon>logout</mat-icon>
     <span>Sign Out</span>
   </button>

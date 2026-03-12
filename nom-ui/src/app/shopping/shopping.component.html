@@ -1,4 +1,4 @@
-<div class="nom-shopping">
+<div class="nom-shopping" data-testid="shopping">
   <!-- Header -->
   <div class="nom-shopping__header">
     <div class="nom-shopping__header-left">
@@ -13,6 +13,7 @@
       @if (checkedCount() > 0 && !completingTrip()) {
         <button mat-flat-button
                 class="nom-shopping__complete-btn"
+                data-testid="shopping-complete-btn"
                 (click)="completeTrip()">
           <mat-icon>move_to_inbox</mat-icon>
           Complete Trip ({{ checkedCount() }})
@@ -38,13 +39,13 @@
       <button mat-icon-button (click)="refresh()" aria-label="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text">
+      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text" data-testid="shopping-copy-btn">
         <mat-icon>content_copy</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV">
+      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV" data-testid="shopping-download-btn">
         <mat-icon>download</mat-icon>
       </button>
-      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list">
+      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list" data-testid="shopping-share-btn">
         <mat-icon>share</mat-icon>
       </button>
     </div>
@@ -64,7 +65,7 @@
       </button>
     </div>
   } @else if (departments().length === 0) {
-    <div class="nom-shopping__empty">
+    <div class="nom-shopping__empty" data-testid="shopping-empty">
       <mat-icon class="nom-shopping__empty-icon">shopping_cart</mat-icon>
       <h2>No upcoming meals</h2>
       <p>Add meals to your plan to generate a shopping list.</p>
@@ -81,7 +82,7 @@
       </div>
     }
     @for (dept of departments(); track dept.name) {
-      <section class="nom-shopping__dept">
+      <section class="nom-shopping__dept" data-testid="shopping-dept">
         <div class="nom-shopping__dept-header">
           <mat-icon class="nom-shopping__dept-icon">{{ dept.icon }}</mat-icon>
           <h2 class="nom-shopping__dept-name">{{ dept.name }}</h2>
@@ -89,7 +90,7 @@
         </div>
         <ul class="nom-shopping__items">
           @for (item of dept.items; track item.checkKey) {
-            <li class="nom-shopping__item"
+            <li class="nom-shopping__item" data-testid="shopping-item"
                 [class.nom-shopping__item--checked]="isChecked(item.checkKey)">
               <mat-checkbox
                 [checked]="isChecked(item.checkKey)"

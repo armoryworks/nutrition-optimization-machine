@@ -1,11 +1,11 @@
-<div class="nom-dashboard">
+<div class="nom-dashboard" data-testid="my-ingredients">
   <div class="nom-dashboard__header">
     <div class="nom-dashboard__header-left">
       <h1 class="nom-dashboard__title">My Ingredients</h1>
       <span class="nom-dashboard__subtitle">{{ ingredients().length }} ingredients</span>
     </div>
     <div class="nom-dashboard__header-right">
-      <a mat-flat-button routerLink="/ingredient/new">
+      <a mat-flat-button data-testid="my-ingredients-new-btn" routerLink="/ingredient/new">
         <mat-icon>add</mat-icon>
         New Ingredient
       </a>
@@ -17,7 +17,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (ingredients().length === 0) {
-    <div class="nom-dashboard__empty">
+    <div class="nom-dashboard__empty" data-testid="my-ingredients-empty">
       <mat-icon class="nom-dashboard__empty-icon">egg</mat-icon>
       <h2 class="nom-dashboard__empty-title">No ingredients yet</h2>
       <p class="nom-dashboard__empty-message">Create custom ingredients to use in your recipes.</p>
@@ -27,9 +27,9 @@
       </a>
     </div>
   } @else {
-    <div class="nom-ingredients__list">
+    <div class="nom-ingredients__list" data-testid="my-ingredients-list">
       @for (ing of ingredients(); track ing.id) {
-        <a class="nom-ingredients__item" [routerLink]="['/ingredient', ing.id, 'edit']">
+        <a class="nom-ingredients__item" data-testid="ingredient-item" [routerLink]="['/ingredient', ing.id, 'edit']">
           <div class="nom-ingredients__item-info">
             <span class="nom-ingredients__item-name">{{ ing.name }}</span>
             @if (ing.description) {

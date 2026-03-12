@@ -29,7 +29,7 @@
   } @else {
     <div class="nom-cookbook-grid">
       @for (cookbook of cookbooks(); track cookbook.id) {
-        <div class="nom-cookbook-card">
+        <div class="nom-cookbook-card" data-testid="cookbook-card">
           <a class="nom-cookbook-card__body" [routerLink]="'/cookbook/' + cookbook.id">
             <div class="nom-cookbook-card__icon-wrap">
               <mat-icon>collections_bookmark</mat-icon>

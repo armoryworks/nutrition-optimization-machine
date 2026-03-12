@@ -1,5 +1,9 @@
-<div class="nom-form--full">
+<div class="nom-form--full" data-testid="plan-rules">
   <div class="nom-form__header">
+    <a routerLink="/plan" class="nom-form__back" data-testid="plan-rules-back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Plan
+    </a>
     <h1 class="nom-form__title">Meal Plan Rules</h1>
     <p class="nom-form__subtitle">Set constraints for automatic meal plan generation</p>
   </div>
@@ -23,7 +27,7 @@
       <p class="nom-plan-rules__empty">No rules yet. Add one below to constrain how recipes are assigned.</p>
     } @else {
       @for (rule of rules(); track rule.id) {
-        <div class="nom-plan-rules__rule">
+        <div class="nom-plan-rules__rule" data-testid="plan-rule-item">
           <div class="nom-plan-rules__rule-info">
             <span class="nom-plan-rules__rule-filter">{{ rule.queryFilter || 'Any recipe' }}</span>
             <span class="nom-plan-rules__rule-meta">
@@ -43,7 +47,7 @@
   <!-- Add rule form -->
   <div class="nom-form__section">
     <h2 class="nom-form__section-title">Add Rule</h2>
-    <form [formGroup]="ruleForm" (ngSubmit)="onAddRule()">
+    <form [formGroup]="ruleForm" (ngSubmit)="onAddRule()" data-testid="plan-rules-form">
       <div class="nom-form__fields">
         <mat-form-field appearance="outline">
           <mat-label>Recipe Filter</mat-label>
@@ -88,7 +92,7 @@
 
       <div class="nom-form__actions">
         <a mat-button routerLink="/plan">Back to Plan</a>
-        <button mat-flat-button type="submit" [disabled]="ruleForm.invalid || saving()">
+        <button mat-flat-button type="submit" [disabled]="ruleForm.invalid || saving()" data-testid="plan-rules-submit-btn">
           @if (saving()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {

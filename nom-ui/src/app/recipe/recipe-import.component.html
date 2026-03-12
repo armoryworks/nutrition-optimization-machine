@@ -1,4 +1,4 @@
-<div class="nom-form--card">
+<div class="nom-form--card" data-testid="recipe-import">
   <div class="nom-form__card">
     <div class="nom-form__card-header">
       <a routerLink="/recipes/mine" class="nom-import__back">
@@ -29,7 +29,7 @@
       </div>
 
       <div class="nom-import__actions">
-        <button mat-stroked-button [disabled]="!(url.value ?? '').trim() || previewLoading()" (click)="onPreview()">
+        <button mat-stroked-button [disabled]="!(url.value ?? '').trim() || previewLoading()" (click)="onPreview()" data-testid="recipe-import-preview-btn">
           @if (previewLoading()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {
@@ -37,7 +37,7 @@
           }
           Preview
         </button>
-        <button mat-flat-button [disabled]="!(url.value ?? '').trim() || importing()" (click)="onImport()">
+        <button mat-flat-button [disabled]="!(url.value ?? '').trim() || importing()" (click)="onImport()" data-testid="recipe-import-submit-btn">
           @if (importing()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {
@@ -48,7 +48,7 @@
       </div>
 
       @if (preview()) {
-        <div class="nom-import__preview">
+        <div class="nom-import__preview" data-testid="recipe-import-preview">
           <h3 class="nom-import__preview-title">Preview</h3>
           <div class="nom-import__preview-content">
             @if (preview()!.image) {

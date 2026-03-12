@@ -1,4 +1,4 @@
-<div class="nom-dialog__title-bar">
+<div class="nom-dialog__title-bar" data-testid="recipe-search-dialog">
   <h2 mat-dialog-title>
     {{ data.mealType }} — {{ data.date }}
   </h2>
@@ -42,6 +42,7 @@
     <mat-icon matPrefix>search</mat-icon>
     <input
       matInput
+      data-testid="recipe-search-input"
       [value]="searchQuery()"
       (input)="onSearchInput($any($event.target).value)"
       placeholder="Type to search..."
@@ -51,6 +52,7 @@
   <button
     mat-stroked-button
     class="nom-recipe-dialog__surprise"
+    data-testid="recipe-search-surprise-btn"
     (click)="surpriseMe()"
     [disabled]="busy() || rouletteLoading()">
     @if (rouletteLoading()) {
@@ -68,7 +70,7 @@
   }
 
   @if (results().length > 0) {
-    <div class="nom-recipe-dialog__results">
+    <div class="nom-recipe-dialog__results" data-testid="recipe-search-results">
       @for (recipe of results(); track recipe.id) {
         <button
           class="nom-recipe-dialog__result"
@@ -107,7 +109,7 @@
         <mat-label>Notes</mat-label>
         <textarea matInput [value]="noteText()" (input)="noteText.set($any($event.target).value)" rows="2" [disabled]="busy()"></textarea>
       </mat-form-field>
-      <button mat-stroked-button (click)="addNote()" [disabled]="busy() || (!noteTitle() && !noteText())">
+      <button mat-stroked-button (click)="addNote()" [disabled]="busy() || (!noteTitle() && !noteText())" data-testid="recipe-search-add-note-btn">
         <mat-icon>add</mat-icon>
         Add Note
       </button>
@@ -117,12 +119,12 @@
 
 <mat-dialog-actions align="end">
   @if (entries().length > 0) {
-    <button mat-button color="warn" (click)="clearAll()" [disabled]="busy()">
+    <button mat-button color="warn" (click)="clearAll()" [disabled]="busy()" data-testid="recipe-search-clear-btn">
       <mat-icon>delete_sweep</mat-icon>
       Clear All
     </button>
   }
-  <button mat-flat-button (click)="done()" [disabled]="busy()">
+  <button mat-flat-button (click)="done()" [disabled]="busy()" data-testid="recipe-search-done-btn">
     Done
   </button>
 </mat-dialog-actions>

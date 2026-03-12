@@ -36,10 +36,12 @@
   }
 }
 
+.nom-dashboard__back { @include mixins.nom-back-link; }
+
 .nom-dashboard__header-left {
   display: flex;
-  align-items: baseline;
-  gap: vars.$spacing-3;
+  flex-direction: column;
+  gap: vars.$spacing-1;
   flex-shrink: 0;
 }
 

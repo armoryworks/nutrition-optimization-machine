@@ -3,6 +3,7 @@
 // =============================================================================
 
 @use 'variables' as vars;
+@use 'mixins' as mixins;
 
 // --- Form-Card Variant (Centered card forms) ---
 
@@ -10,7 +11,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: calc(100vh - vars.$header-height - vars.$footer-height);
+  min-height: calc(100dvh - vars.$header-height - vars.$footer-height);
   padding: vars.$spacing-8 vars.$spacing-4;
 
   @media (max-width: vars.$breakpoint-mobile) {
@@ -88,6 +89,8 @@
 
   @media (max-width: vars.$breakpoint-mobile) { padding: vars.$spacing-4; }
 }
+
+.nom-form__back { @include mixins.nom-back-link; }
 
 .nom-form__header { margin-bottom: vars.$spacing-6; }
 

@@ -54,7 +54,7 @@
     z-index: vars.$z-modal;
     width: vars.$layout-sidebar-width;
     max-width: 90vw;
-    height: 100vh;
+    height: 100dvh;
     background: var(--mat-sys-surface);
     box-shadow: vars.$elevation-3;
     transform: translateX(100%);
@@ -91,7 +91,7 @@
 
   mat-icon {
     writing-mode: horizontal-tb;
-    font-size: 18px;
+    font-size: vars.$icon-size-sm;
     margin-bottom: vars.$spacing-1;
   }
 
