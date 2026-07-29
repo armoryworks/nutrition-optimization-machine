@@ -748,8 +748,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("FdcId")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<long?>("IngredientEntityId")
                         .HasColumnType("bigint");
@@ -2800,8 +2800,8 @@ namespace Nom.Data.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<string>("FdcId")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
