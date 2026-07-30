@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { PlanService } from '../core/services/plan.service';
 import { MealPlanService } from '../core/services/meal-plan.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { PlanModel } from '../core/models/plan.model';
 import { HouseholdResponseModel } from '../core/models/household-response.model';
@@ -72,7 +72,7 @@ export class Plan implements OnInit {
   private fb = inject(FormBuilder);
   private planService = inject(PlanService);
   private mealPlanService = inject(MealPlanService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
@@ -337,7 +337,7 @@ export class Plan implements OnInit {
   // --- Private methods ---
 
   private loadHouseholds(): void {
-    this.householdService.getHouseholds().pipe(
+    this.householdStore.getHouseholds().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (list) => {

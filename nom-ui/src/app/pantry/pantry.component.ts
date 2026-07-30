@@ -20,7 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { PantryService } from '../core/services/pantry.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { MeasurementService } from '../core/services/measurement.service';
 import { IngredientService } from '../core/services/ingredient.service';
 import { PantryItemResponse } from '../core/models/pantry-item-response.model';
@@ -52,7 +52,7 @@ import { formatQuantity } from '../core/domain/shopping/unit-conversion';
 })
 export class PantryComponent implements OnInit {
   private pantryService = inject(PantryService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private measurementService = inject(MeasurementService);
   private ingredientService = inject(IngredientService);
 
@@ -93,7 +93,7 @@ export class PantryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.householdService
+    this.householdStore
       .getHouseholds()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

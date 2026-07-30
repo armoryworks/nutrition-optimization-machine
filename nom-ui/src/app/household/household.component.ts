@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { AuthService } from '../core/services/auth.service';
 import { LoadingService } from '../core/services/loading.service';
 import { HouseholdResponseModel } from '../core/models/household-response.model';
@@ -50,6 +51,7 @@ export class Household implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private authService = inject(AuthService);
   private loadingService = inject(LoadingService);
   private destroyRef = inject(DestroyRef);
@@ -94,7 +96,7 @@ export class Household implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.householdService.createHousehold({
+    this.householdStore.createHousehold({
       name: form.name!,
       description: form.description || null,
       householdGroupId: 1,
@@ -128,7 +130,7 @@ export class Household implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.householdService.joinHousehold(token).pipe(
+    this.householdStore.joinHousehold(token).pipe(
       switchMap(() => this.authService.refreshClaims()),
       this.loadingService.loading('Joining household...'),
       takeUntilDestroyed(this.destroyRef),
@@ -214,7 +216,7 @@ export class Household implements OnInit {
   }
 
   private loadHouseholds(): void {
-    this.householdService.getHouseholds().pipe(
+    this.householdStore.getHouseholds().pipe(
       this.loadingService.loading('Loading households...'),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({

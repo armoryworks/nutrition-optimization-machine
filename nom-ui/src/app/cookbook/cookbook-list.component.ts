@@ -7,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { CookbookService } from '../core/services/cookbook.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { CookbookResponseModel } from '../core/models/cookbook-response.model';
 import { CookbookFormDialog, CookbookFormDialogData, CookbookFormDialogResult } from './cookbook-form-dialog.component';
@@ -29,7 +29,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
 })
 export class CookbookList implements OnInit {
   private cookbookService = inject(CookbookService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
 
@@ -48,7 +48,7 @@ export class CookbookList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.householdService.getHouseholds().pipe(
+    this.householdStore.getHouseholds().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (households) => {

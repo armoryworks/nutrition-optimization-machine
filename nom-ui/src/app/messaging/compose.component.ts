@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MessagingService } from '../core/services/messaging.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 
 @Component({
@@ -32,10 +32,10 @@ export class Compose {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private messagingService = inject(MessagingService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
 
-  private households = toSignal(this.householdService.getHouseholds(), { initialValue: [] });
+  private households = toSignal(this.householdStore.getHouseholds(), { initialValue: [] });
   members = computed(() => {
     const list = this.households();
     return list.length > 0 && list[0].members ? list[0].members : [];

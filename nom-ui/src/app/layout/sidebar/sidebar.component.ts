@@ -6,7 +6,7 @@ import { filter, startWith, map, switchMap, of } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MealPlanService } from '../../core/services/meal-plan.service';
-import { HouseholdService } from '../../core/services/household.service';
+import { HouseholdStore } from '../../core/services/household-store';
 import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
 import { MealPlanEntry } from '../../core/models/meal-plan-entry.model';
 
@@ -26,7 +26,7 @@ interface UpcomingMeal {
 export class Sidebar {
   private router = inject(Router);
   private mealPlanService = inject(MealPlanService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
 
   private navEnd = toSignal(
     this.router.events.pipe(
@@ -42,7 +42,7 @@ export class Sidebar {
   });
 
   weekData = toSignal(
-    this.householdService.getHouseholds().pipe(
+    this.householdStore.getHouseholds().pipe(
       switchMap(list => {
         if (list.length === 0) return of(null);
         const monday = Sidebar.getMonday(new Date());

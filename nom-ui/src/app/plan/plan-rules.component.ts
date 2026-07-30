@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MealPlanService } from '../core/services/meal-plan.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { MealPlanRule } from '../core/models/meal-plan-rule.model';
 
@@ -34,7 +34,7 @@ import { MealPlanRule } from '../core/models/meal-plan-rule.model';
 export class PlanRules implements OnInit {
   private fb = inject(FormBuilder);
   private mealPlanService = inject(MealPlanService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
 
   private destroyRef = inject(DestroyRef);
@@ -54,7 +54,7 @@ export class PlanRules implements OnInit {
   });
 
   ngOnInit(): void {
-    this.householdService.getHouseholds().pipe(
+    this.householdStore.getHouseholds().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (list) => {
