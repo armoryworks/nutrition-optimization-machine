@@ -6,6 +6,7 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import {
   Router,
   RouterOutlet,
@@ -32,9 +33,14 @@ import { LoadingOverlay } from './shared/components/loading-overlay/loading-over
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'onEscape()',
+  },
 })
 export class App {
   private router = inject(Router);
+  private document = inject(DOCUMENT);
+  private firstNavigationDone = false;
   private destroyRef = inject(DestroyRef);
   private themeService = inject(ThemeService);
   private authService = inject(AuthService);
@@ -67,6 +73,15 @@ export class App {
           this.loadingService.remove(this.navLoadingKey);
           this.navLoadingKey = null;
         }
+
+        // Move focus to the content region on navigation so keyboard and
+        // screen-reader users land on the new page, not stale chrome.
+        if (e instanceof NavigationEnd) {
+          if (this.firstNavigationDone) {
+            this.document.getElementById('main-content')?.focus({ preventScroll: true });
+          }
+          this.firstNavigationDone = true;
+        }
       });
   }
 
@@ -84,5 +99,10 @@ export class App {
 
   closeNav(): void {
     this.navOpen.set(false);
+  }
+
+  onEscape(): void {
+    if (this.navOpen()) this.closeNav();
+    if (this.sidebarOpen()) this.sidebarOpen.set(false);
   }
 }
