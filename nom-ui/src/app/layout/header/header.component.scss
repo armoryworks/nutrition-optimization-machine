@@ -144,3 +144,11 @@
 .nom-header__login-btn {
   margin-left: vars.$spacing-2;
 }
+
+.nom-header__nav-toggle {
+  display: none;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    display: inline-flex;
+  }
+}

@@ -54,18 +54,22 @@
       <mat-icon class="nom-settings__card-icon">shield</mat-icon>
       <div class="nom-settings__card-content">
         <h3 class="nom-settings__card-title">Privacy & Data</h3>
-        <p class="nom-settings__card-desc">Export your data, manage privacy, or delete your account</p>
+        <p class="nom-settings__card-desc">
+          Export your data, manage privacy, or delete your account
+        </p>
       </div>
       <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
     </a>
 
-    <a routerLink="/admin" class="nom-settings__card">
-      <mat-icon class="nom-settings__card-icon">admin_panel_settings</mat-icon>
-      <div class="nom-settings__card-content">
-        <h3 class="nom-settings__card-title">Administration</h3>
-        <p class="nom-settings__card-desc">Curation queue, webhooks, and system management</p>
-      </div>
-      <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
-    </a>
+    @if (isAdmin()) {
+      <a routerLink="/admin" class="nom-settings__card" data-testid="settings-admin-card">
+        <mat-icon class="nom-settings__card-icon">admin_panel_settings</mat-icon>
+        <div class="nom-settings__card-content">
+          <h3 class="nom-settings__card-title">Administration</h3>
+          <p class="nom-settings__card-desc">Curation queue, webhooks, and system management</p>
+        </div>
+        <mat-icon class="nom-settings__card-arrow">chevron_right</mat-icon>
+      </a>
+    }
   </div>
 </div>

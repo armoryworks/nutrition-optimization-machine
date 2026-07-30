@@ -1,0 +1,89 @@
+<nav
+  class="nom-nav"
+  [class.nom-nav--collapsed]="collapsed()"
+  data-testid="nav"
+  aria-label="Primary navigation"
+>
+  <div class="nom-nav__scroll">
+    <a
+      class="nom-nav__item"
+      [routerLink]="home.route"
+      routerLinkActive="nom-nav__item--active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      [attr.data-testid]="home.testId"
+      [attr.aria-label]="home.label"
+      [matTooltip]="home.label"
+      [matTooltipDisabled]="!collapsed()"
+      matTooltipPosition="right"
+      (click)="navigated.emit()"
+    >
+      <mat-icon>{{ home.icon }}</mat-icon>
+      <span class="nom-nav__label">{{ home.label }}</span>
+    </a>
+
+    @for (group of groups; track group.title) {
+      <div class="nom-nav__group">
+        <span class="nom-nav__group-title">{{ group.title }}</span>
+        @for (item of group.items; track item.route) {
+          <a
+            class="nom-nav__item"
+            [routerLink]="item.route"
+            routerLinkActive="nom-nav__item--active"
+            [attr.data-testid]="item.testId"
+            [attr.aria-label]="item.label"
+            [matTooltip]="item.label"
+            [matTooltipDisabled]="!collapsed()"
+            matTooltipPosition="right"
+            (click)="navigated.emit()"
+          >
+            <mat-icon>{{ item.icon }}</mat-icon>
+            <span class="nom-nav__label">{{ item.label }}</span>
+          </a>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="nom-nav__bottom">
+    @if (isAdmin()) {
+      <a
+        class="nom-nav__item"
+        [routerLink]="adminItem.route"
+        routerLinkActive="nom-nav__item--active"
+        [attr.data-testid]="adminItem.testId"
+        [attr.aria-label]="adminItem.label"
+        [matTooltip]="adminItem.label"
+        [matTooltipDisabled]="!collapsed()"
+        matTooltipPosition="right"
+        (click)="navigated.emit()"
+      >
+        <mat-icon>{{ adminItem.icon }}</mat-icon>
+        <span class="nom-nav__label">{{ adminItem.label }}</span>
+      </a>
+    }
+    <a
+      class="nom-nav__item"
+      [routerLink]="settingsItem.route"
+      routerLinkActive="nom-nav__item--active"
+      [attr.data-testid]="settingsItem.testId"
+      [attr.aria-label]="settingsItem.label"
+      [matTooltip]="settingsItem.label"
+      [matTooltipDisabled]="!collapsed()"
+      matTooltipPosition="right"
+      (click)="navigated.emit()"
+    >
+      <mat-icon>{{ settingsItem.icon }}</mat-icon>
+      <span class="nom-nav__label">{{ settingsItem.label }}</span>
+    </a>
+    <button
+      class="nom-nav__collapse-btn"
+      data-testid="nav-collapse-btn"
+      [attr.aria-label]="collapsed() ? 'Expand navigation' : 'Collapse navigation'"
+      [attr.aria-expanded]="!collapsed()"
+      (click)="toggleCollapsed()"
+    >
+      <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+      <span class="nom-nav__label">Collapse</span>
+    </button>
+  </div>
+</nav>
