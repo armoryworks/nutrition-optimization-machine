@@ -21,12 +21,4 @@ module.exports = defineConfig({
       // implement node event listeners here
     },
   },
-  component: {
-    devServer: {
-      framework: 'angular',
-      bundler: 'webpack',
-    },
-    specPattern: 'cypress/component/**/*.cy.{js,jsx,ts,tsx}',
-    supportFile: 'cypress/support/component.ts',
-  },
 }) 
