@@ -8,12 +8,10 @@
         <p>Loading recipes...</p>
       </div>
     } @else if (error()) {
-      <div class="nom-home__error">
-        <mat-icon class="nom-home__error-icon">error_outline</mat-icon>
-        <h2>Something went wrong</h2>
-        <p>{{ error() }}</p>
-        <button class="nom-home__retry-btn" (click)="loadRecipes()">Try Again</button>
-      </div>
+      <nom-error-banner
+        [message]="error()"
+        [showRetry]="true"
+        (retry)="loadRecipes()" />
     } @else if (categories().length === 0) {
       <div class="nom-home__empty">
         <mat-icon class="nom-home__empty-icon">restaurant</mat-icon>

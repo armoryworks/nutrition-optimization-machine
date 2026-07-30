@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -11,7 +12,7 @@ import { RecipeModel } from '../core/models/recipe.model';
 
 @Component({
   selector: 'nom-my-recipes',
-  imports: [RouterLink, DatePipe, DecimalPipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [RouterLink, DatePipe, DecimalPipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule, ErrorBanner],
   templateUrl: './my-recipes.component.html',
   styleUrl: './my-recipes.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

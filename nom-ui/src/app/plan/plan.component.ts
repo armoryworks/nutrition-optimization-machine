@@ -1,4 +1,5 @@
 import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
@@ -55,8 +56,7 @@ export interface PlanFormData {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule, ErrorBanner],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

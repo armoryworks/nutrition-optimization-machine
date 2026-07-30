@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../../shared/components/error-banner/error-banner.component';
 import { toLocalDateString } from '../../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
@@ -19,7 +20,7 @@ import { ShuffleFlowService } from '../../plan/shuffle-flow.service';
 
 @Component({
   selector: 'nom-dashboard',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

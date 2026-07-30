@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -23,8 +24,7 @@ import { LoadingService } from '../core/services/loading.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatFormFieldModule,
-    MatInputModule,
-  ],
+    MatInputModule, ErrorBanner],
   templateUrl: './curation-queue.component.html',
   styleUrl: './curation-queue.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

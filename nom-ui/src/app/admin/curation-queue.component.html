@@ -16,10 +16,7 @@
   </div>
 
   @if (errorMessage()) {
-    <div class="nom-dashboard__error">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ errorMessage() }}</p>
-    </div>
+    <nom-error-banner [message]="errorMessage()" />
   }
 
   @if (loading()) {

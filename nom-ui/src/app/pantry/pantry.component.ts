@@ -7,6 +7,7 @@ import {
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
@@ -44,8 +45,7 @@ import { formatQuantity } from '../core/domain/shopping/unit-conversion';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatAutocompleteModule,
-  ],
+    MatAutocompleteModule, ErrorBanner],
   templateUrl: './pantry.component.html',
   styleUrls: ['./pantry.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
