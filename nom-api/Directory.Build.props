@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    Shared build guardrails. Analyzers run at the informational level so the
+    build stays green while surfacing issues; ratchet AnalysisLevel and add
+    TreatWarningsAsErrors once the existing warning backlog is paid down.
+    (Nullable stays per-project for now — flipping it globally added ~190
+    warnings of pure noise.)
+  -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+  </PropertyGroup>
+</Project>
