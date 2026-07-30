@@ -17,27 +17,18 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public RecipeOrchestrationService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly ICurrentUserService _currentUser;
+
+        public RecipeOrchestrationService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor, ICurrentUserService currentUser)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _currentUser = currentUser;
         }
 
-        private string GetCurrentUserId()
-        {
-            // This is a simplified implementation - in a real app, you'd get this from JWT token or session
-            return _httpContextAccessor.HttpContext.User.FindFirst("UserId")?.Value.ToString();
-        }
+        private string? GetCurrentUserId() => _currentUser.UserId;
 
-        private long? GetCurrentPersonId()
-        {
-            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
-            if (long.TryParse(personIdClaim, out long personId))
-            {
-                return personId;
-            }
-            return null;
-        }
+        private long? GetCurrentPersonId() => _currentUser.PersonId;
 
         public async Task<List<IngredientSearchResponseModel>> SearchIngredientsAsync(string query)
         {

@@ -17,6 +17,7 @@ namespace Nom.Orch.Services.Measurement
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<MeasurementOrchestrationService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly Nom.Orch.Interfaces.ICurrentUserService? _currentUser;
         private readonly IMeasurementCacheService _cacheService;
         private readonly IMeasurementPerformanceMonitor _performanceMonitor;
 
@@ -25,11 +26,13 @@ namespace Nom.Orch.Services.Measurement
             ILogger<MeasurementOrchestrationService> logger,
             IHttpContextAccessor httpContextAccessor,
             IMeasurementCacheService? cacheService = null,
-            IMeasurementPerformanceMonitor? performanceMonitor = null)
+            IMeasurementPerformanceMonitor? performanceMonitor = null,
+            Nom.Orch.Interfaces.ICurrentUserService? currentUser = null)
         {
             _dbContext = dbContext;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
+            _currentUser = currentUser;
             _cacheService = cacheService ?? new MeasurementCacheService(new MemoryCache(new MemoryCacheOptions()), 
                 new Logger<MeasurementCacheService>(new LoggerFactory()));
             _performanceMonitor = performanceMonitor ?? new MeasurementPerformanceMonitor(
@@ -38,6 +41,10 @@ namespace Nom.Orch.Services.Measurement
 
         private long GetCurrentPersonId()
         {
+            if (_currentUser != null)
+            {
+                return _currentUser.PersonIdOrSystem;
+            }
             var personIdClaim = _httpContextAccessor.HttpContext?.User.Claims
                 .FirstOrDefault(c => c.Type == "PersonId")?.Value;
             return long.TryParse(personIdClaim, out var id) ? id : SystemConstants.SystemPersonId;
