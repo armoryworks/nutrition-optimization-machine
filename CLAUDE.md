@@ -2,7 +2,10 @@
 
 ## Database Setup
 
-Run `nom-api/refresh_db_and_migration.bat` (Windows) or `nom-api/refresh_db_and_migration.sh` (Linux/Mac) to do a full database setup — drops and recreates the database, applies all migrations, and seeds reference data.
+The database uses a declarative (DACPAC-style) workflow — `db/schema.sql` is the source of truth; there are no EF migrations. See `db/README.md`.
+
+- Fresh or existing DB: `./db/apply.sh` (use `--dry-run` to preview the delta)
+- After changing entities in Nom.Data: `./db/sync-from-model.sh` regenerates `db/schema.sql`; `--check` is the CI drift guard.
 
 ## E2E Test IDs (`data-testid`)
 

@@ -15,7 +15,11 @@ services:
     ports:
       - "${POSTGRES_TEST_PORT:-5433}:5432"  # Different port to avoid conflicts
     volumes:
-      - ./_GrantInitialAdminClaims.sql:/docker-entrypoint-initdb.d/_GrantInitialAdminClaims.sql
+      # Declarative schema + seed applied automatically on first container init.
+      # (_GrantInitialAdminClaims.sql must run manually AFTER the first user
+      # registers — it cannot live in initdb.d, where no users exist yet.)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     networks:
       - nom-test-network
     healthcheck:

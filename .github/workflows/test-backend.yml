@@ -3,10 +3,10 @@ name: Test Backend (.NET)
 on:
   push:
     branches: [main, develop]
-    paths: ["nom-api/**"]
+    paths: ["nom-api/**", "db/**"]
   pull_request:
     branches: [main, develop]
-    paths: ["nom-api/**"]
+    paths: ["nom-api/**", "db/**"]
 
 jobs:
   test:
@@ -49,3 +49,40 @@ jobs:
           file: ./nom-api/**/coverage.cobertura.xml
           flags: backend
           name: backend-coverage
+
+  schema-drift:
+    # Guards the declarative schema workflow: fails if entities in Nom.Data
+    # changed without regenerating db/schema.sql (see db/README.md).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nom
+          POSTGRES_PASSWORD: dev_password
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install dotnet-ef and Atlas
+        run: |
+          dotnet tool install --global dotnet-ef
+          curl -fsSL -o /usr/local/bin/atlas https://release.ariga.io/atlas/atlas-linux-amd64-latest
+          chmod +x /usr/local/bin/atlas
+
+      - name: Check schema.sql is in sync with the EF model
+        env:
+          DB_SUPERUSER: nom
+        run: ./db/sync-from-model.sh --check
