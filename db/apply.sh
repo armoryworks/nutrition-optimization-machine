@@ -5,11 +5,12 @@
 # This script makes any target database match it:
 #   - missing database  -> created
 #   - empty database    -> full provision (schema.sql + seed.sql)
-#   - existing database -> state-based diff via Atlas, delta applied
+#   - existing database -> state-based diff via internal pgdiff.py, delta applied
 #
 # Usage:
-#   ./db/apply.sh                 # apply to default dev DB (nom_dev)
-#   ./db/apply.sh --dry-run       # show the delta without applying
+#   ./db/apply.sh                       # apply to default dev DB (nom_dev)
+#   ./db/apply.sh --dry-run             # show the delta without applying
+#   ./db/apply.sh --allow-destructive   # permit DROP TABLE / DROP COLUMN in the delta
 #   DB_NAME=nom_test ./db/apply.sh
 #
 # Env (defaults): DB_HOST=localhost DB_PORT=5432 DB_NAME=nom_dev
@@ -25,7 +26,14 @@ DB_USER="${DB_USER:-nom}"
 DB_PASSWORD="${DB_PASSWORD:-dev_password}"
 DB_SUPERUSER="${DB_SUPERUSER:-postgres}"
 DRY_RUN=0
-[ "${1:-}" = "--dry-run" ] && DRY_RUN=1
+ALLOW_DESTRUCTIVE=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    --allow-destructive) ALLOW_DESTRUCTIVE=1 ;;
+    *) echo "Unknown option: $arg"; exit 1 ;;
+  esac
+done
 
 export PGPASSWORD="$DB_PASSWORD"
 TARGET_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
@@ -83,5 +91,10 @@ if [ "$DRY_RUN" -eq 1 ]; then
   echo "[dry-run] Delta NOT applied."
   exit 0
 fi
-echo "$DIFF" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q
+if echo "$DIFF" | grep -qE '^\s*(DROP TABLE|ALTER TABLE .* DROP COLUMN)' && [ "$ALLOW_DESTRUCTIVE" -ne 1 ]; then
+  echo "ERROR: Delta contains destructive statements (DROP TABLE / DROP COLUMN)."
+  echo "       Review the delta above, back up affected data, then re-run with --allow-destructive."
+  exit 1
+fi
+echo "$DIFF" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q --single-transaction
 echo "Delta applied. '$DB_NAME' now matches schema.sql."

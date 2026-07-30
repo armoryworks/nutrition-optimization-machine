@@ -1,7 +1,7 @@
 version: "3.8"
 
 # Development-only setup
-# Runs PostgreSQL and Redis in containers, while API and UI run natively
+# Runs PostgreSQL in a container, while API and UI run natively
 # This allows for faster development with hot reload
 
 services:
@@ -30,23 +30,6 @@ services:
       timeout: 3s
       retries: 5
 
-  # Redis Cache for Development
-  redis-dev:
-    container_name: nom_redis_dev
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"  # Expose to host for local development
-    volumes:
-      - redis_dev_data:/data
-    networks:
-      - nom-dev-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
 
   # Optional: pgAdmin for database management
   pgadmin:
@@ -70,8 +53,6 @@ services:
 
 volumes:
   postgres_dev_data:
-    driver: local
-  redis_dev_data:
     driver: local
   pgadmin_data:
     driver: local

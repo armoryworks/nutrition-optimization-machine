@@ -12,10 +12,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__NomConnection=Host=postgres;Database=nom;Username=nom;Password=${POSTGRES_PASSWORD}
-      - JWT__SecretKey=${JWT_SECRET_KEY}
-      - JWT__Issuer=NOMApi
-      - JWT__Audience=NOMAngular
-      - JWT__ExpirationMinutes=1440
       - AllowedOrigins=${ALLOWED_ORIGINS}
     ports:
       - "${API_PORT:-8080}:8080"
@@ -66,28 +62,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache (for session management)
-  redis:
-    container_name: nom_redis
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    networks:
-      - nom-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
 volumes:
   nom_data:
     driver: local
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
 
 networks:

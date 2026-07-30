@@ -7,7 +7,7 @@
 #   scratch A  <- db/schema.sql                       (current artifact)
 #   scratch B  <- `dotnet ef dbcontext script`        (current EF model DDL)
 #                 + db/custom-objects.sql             (non-EF objects, e.g. views)
-#   atlas schema diff A B                             (state-based comparison)
+#   pgdiff.py A B                                     (state-based comparison)
 #
 # Usage:
 #   ./db/sync-from-model.sh --check    # CI guard: exit 1 if model drifted from schema.sql

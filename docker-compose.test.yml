@@ -29,25 +29,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Redis Cache for Testing
-  redis-test:
-    container_name: nom_redis_test
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly no  # Disable persistence for tests
-    ports:
-      - "${REDIS_TEST_PORT:-6380}:6379"
-    networks:
-      - nom-test-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    tmpfs:
-      - /data  # Use tmpfs for faster tests
-
-  # NOM API for Testing
   nom-api-test:
     container_name: nom_api_test
     build:
@@ -58,17 +39,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__NomConnection=Host=postgres-test;Database=${POSTGRES_TEST_DB:-nom_test};Username=${POSTGRES_USER:-nom};Password=${POSTGRES_PASSWORD:-test_password}
-      - JWT__SecretKey=${JWT_SECRET_KEY:-test_jwt_secret_key_minimum_32_characters_long}
-      - JWT__Issuer=NOMApi
-      - JWT__Audience=NOMAngular
-      - JWT__ExpirationMinutes=1440
       - AllowedOrigins=http://localhost:4210,http://localhost:4211
     ports:
       - "${API_TEST_PORT:-8082}:8080"
     depends_on:
       postgres-test:
-        condition: service_healthy
-      redis-test:
         condition: service_healthy
     networks:
       - nom-test-network

@@ -30,24 +30,6 @@ services:
       timeout: 3s
       retries: 5
 
-  # Redis Cache
-  redis-dev:
-    container_name: nom_redis_dev
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_dev_data:/data
-    networks:
-      - nom-dev-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-
   # .NET API with hot reload
   api-dev:
     container_name: nom_api_dev
@@ -59,18 +41,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__NomConnection=Host=postgres-dev;Database=${POSTGRES_DB:-nom_dev};Username=${POSTGRES_USER:-nom};Password=${POSTGRES_PASSWORD:-dev_password}
-      - JWT__SecretKey=${JWT_SECRET_KEY:-dev_jwt_secret_key_minimum_32_characters_long_for_development}
-      - JWT__Issuer=NOMApi
-      - JWT__Audience=NOMAngular
-      - JWT__ExpirationMinutes=1440
       - AllowedOrigins=http://localhost:4210,http://localhost:4211
     ports:
       - "8080:8080"
       - "8081:8081"  # For debugging
     depends_on:
       postgres-dev:
-        condition: service_healthy
-      redis-dev:
         condition: service_healthy
     networks:
       - nom-dev-network
@@ -140,8 +116,6 @@ services:
 
 volumes:
   postgres_dev_data:
-    driver: local
-  redis_dev_data:
     driver: local
   pgadmin_data:
     driver: local
