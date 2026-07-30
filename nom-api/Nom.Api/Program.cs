@@ -1,7 +1,6 @@
 // File: Nom.Api/Program.cs
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.IdentityModel.Tokens;
 using Nom.Api.Authentication;
 using Nom.Api.Middleware;
 using Nom.Data;
@@ -48,30 +46,24 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: corsPolicyName,
         policy =>
         {
-            if (allowedOrigins != null)
+            // Accept both ';' and ',' as delimiters (.env files historically used commas).
+            var origins = allowedOrigins?.Split(new[] { ';', ',' },
+                System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
+                ?? Array.Empty<string>();
+
+            if (origins.Any())
             {
-                var origins = allowedOrigins.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
-                if (origins.Any())
-                {
-                    policy.WithOrigins(origins)
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                }
-                else
-                {
-                    // Fallback: allow all origins in development
-                    policy.AllowAnyOrigin()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                }
+                policy.WithOrigins(origins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
             }
-            else
+            else if (builder.Environment.IsDevelopment())
             {
-                // Fallback: allow all origins in development
                 policy.AllowAnyOrigin()
                       .AllowAnyHeader()
                       .AllowAnyMethod();
             }
+            // Outside Development, no configured origins means no cross-origin access.
         });
 });
 
@@ -128,77 +120,56 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                         b => b.MigrationsAssembly("Nom.Data")));
 
 // Use AddIdentity for more control, allowing for custom claims factory registration
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.Lockout.AllowedForNewUsers = true;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+})
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders()
     .AddClaimsPrincipalFactory<CustomClaimsPrincipalFactory>(); // Register our custom claims factory
 
 
 
-// Configure Bearer token authentication and set it as the default scheme
+// Default scheme routes to the API-token handler when X-Api-Key is present,
+// otherwise to Identity bearer tokens.
+const string authSelectorScheme = "BearerOrApiToken";
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
-    options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
-    options.DefaultScheme = IdentityConstants.BearerScheme;
-}).AddBearerToken(IdentityConstants.BearerScheme, options =>
+    options.DefaultAuthenticateScheme = authSelectorScheme;
+    options.DefaultChallengeScheme = authSelectorScheme;
+    options.DefaultScheme = authSelectorScheme;
+})
+.AddPolicyScheme(authSelectorScheme, "Bearer or API token", options =>
+{
+    options.ForwardDefaultSelector = context =>
+        context.Request.Headers.ContainsKey(Nom.Api.Authentication.ApiTokenAuthenticationHandler.HeaderName)
+            ? Nom.Api.Authentication.ApiTokenAuthenticationHandler.SchemeName
+            : IdentityConstants.BearerScheme;
+})
+.AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Nom.Api.Authentication.ApiTokenAuthenticationHandler>(
+    Nom.Api.Authentication.ApiTokenAuthenticationHandler.SchemeName, null)
+.AddBearerToken(IdentityConstants.BearerScheme, options =>
 {
     // Configure Bearer token expiration (default is 15 minutes)
     // Set to 24 hours for longer sessions
     options.BearerTokenExpiration = TimeSpan.FromHours(24);
-})
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    // Configure JWT Bearer authentication for compatibility with existing tokens
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = false,
-        ClockSkew = TimeSpan.Zero
-    };
 });
 // --- END OF UPDATED CONFIGURATION ---
 
 builder.Services.AddAuthorization(options =>
 {
-    // Existing policies
+    // The only two system-wide policies; both are satisfiable via stored user claims.
+    // (Former AdminOnly/HouseholdManager/CanInviteUsers/CanOrganize/GroupManager policies
+    // required claim types that were never minted and were referenced by no endpoint.)
     options.AddPolicy("CanManageCuration", policy =>
         policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
               .RequireClaim("CanManageCuration", "true"));
 
     options.AddPolicy("CanManageUserRoles", policy =>
         policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
               .RequireClaim("CanManageUserRoles", "true"));
-
-    // Additional recommended policies
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
-              .RequireClaim("IsAdmin", "true"));
-
-    options.AddPolicy("HouseholdManager", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
-              .RequireClaim("CanManageHousehold", "true"));
-
-    options.AddPolicy("CanInviteUsers", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
-              .RequireClaim("CanInvite", "true"));
-
-    options.AddPolicy("CanOrganize", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
-              .RequireClaim("CanOrganize", "true"));
-
-    options.AddPolicy("GroupManager", policy =>
-        policy.RequireAuthenticatedUser()
-              .AddAuthenticationSchemes(IdentityConstants.BearerScheme, JwtBearerDefaults.AuthenticationScheme)
-              .RequireClaim("CanManage", "true"));
 });
 
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
@@ -258,6 +229,7 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // serves wwwroot (e.g. /user-images)
 app.UseCors(corsPolicyName);
 app.UseRouting();
 

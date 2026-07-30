@@ -80,6 +80,8 @@ namespace Nom.Orch.Services
                 .Include(r => r.RecipeTags)
                     .ThenInclude(rt => rt.Tag)
                 .Include(r => r.Author)
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Where(r => r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.Ratings!.Count)
                 .ThenByDescending(r => r.Ratings!.Average(rating => rating.Rating))
@@ -107,6 +109,8 @@ namespace Nom.Orch.Services
                 .Include(r => r.RecipeTags)
                     .ThenInclude(rt => rt.Tag)
                 .Include(r => r.Author)
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Where(r => r.CurationStatus!.Name == "Approved")
                 .OrderByDescending(r => r.CreatedDate)
                 .Take(count)
@@ -133,6 +137,8 @@ namespace Nom.Orch.Services
                 .Include(r => r.RecipeTags)
                     .ThenInclude(rt => rt.Tag)
                 .Include(r => r.Author)
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Where(r => r.CurationStatus!.Name == "Approved");
 
             // Exclude recipes that contain restricted ingredients for household members
@@ -447,6 +453,8 @@ namespace Nom.Orch.Services
         {
             query = query
                 .Include(r => r.Author)
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(r => r.Ratings)
                 .Include(r => r.RecipeCategories)
                 .ThenInclude(rc => rc.Category)

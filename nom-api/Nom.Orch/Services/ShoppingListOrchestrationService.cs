@@ -26,10 +26,34 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
-        public async Task<List<ShoppingListResponseModel>> GetAllShoppingListsAsync()
+        /// <summary>Lists are visible to their author and to members of their household.</summary>
+        private async Task<bool> CanAccessListAsync(ShoppingListEntity shoppingList, long personId)
         {
+            if (shoppingList.AuthorId == personId)
+                return true;
+            if (!shoppingList.HouseholdId.HasValue)
+                return false;
+            return await _context.HouseholdMembers
+                .AnyAsync(hm => hm.PersonId == personId && hm.HouseholdId == shoppingList.HouseholdId.Value);
+        }
+
+        private async Task<bool> IsHouseholdMemberAsync(long personId, long householdId)
+        {
+            return await _context.HouseholdMembers
+                .AnyAsync(hm => hm.PersonId == personId && hm.HouseholdId == householdId);
+        }
+
+        public async Task<List<ShoppingListResponseModel>> GetAllShoppingListsAsync(long personId)
+        {
+            var householdIds = await _context.HouseholdMembers
+                .Where(hm => hm.PersonId == personId)
+                .Select(hm => hm.HouseholdId)
+                .ToListAsync();
+
             var shoppingLists = await _context.ShoppingLists
                 .Include(sl => sl.Items)
+                .Where(sl => sl.AuthorId == personId ||
+                             (sl.HouseholdId.HasValue && householdIds.Contains(sl.HouseholdId.Value)))
                 .ToListAsync();
 
             return shoppingLists.Select(sl => new ShoppingListResponseModel
@@ -49,6 +73,9 @@ namespace Nom.Orch.Services
 
         public async Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model, long authorId)
         {
+            if (model.HouseholdId.HasValue && !await IsHouseholdMemberAsync(authorId, model.HouseholdId.Value))
+                throw new InvalidOperationException("Cannot create a shopping list in a household you are not a member of");
+
             var shoppingList = new ShoppingListEntity
             {
                 Name = model.Name,
@@ -75,13 +102,13 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<ShoppingListResponseModel?> GetShoppingListAsync(long id)
+        public async Task<ShoppingListResponseModel?> GetShoppingListAsync(long id, long personId)
         {
             var shoppingList = await _context.ShoppingLists
                 .Include(sl => sl.Items)
                 .FirstOrDefaultAsync(sl => sl.Id == id);
 
-            if (shoppingList == null)
+            if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
                 return null;
 
             return new ShoppingListResponseModel
@@ -99,10 +126,16 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<ShoppingListResponseModel?> UpdateShoppingListAsync(long id, ShoppingListUpdateModel model)
+        public async Task<ShoppingListResponseModel?> UpdateShoppingListAsync(long id, ShoppingListUpdateModel model, long personId)
         {
             var shoppingList = await _context.ShoppingLists.FindAsync(id);
-            if (shoppingList == null)
+            if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
+                return null;
+
+            // A list may only be moved into a household the caller belongs to.
+            if (model.HouseholdId.HasValue &&
+                model.HouseholdId != shoppingList.HouseholdId &&
+                !await IsHouseholdMemberAsync(personId, model.HouseholdId.Value))
                 return null;
 
             shoppingList.Name = model.Name;
@@ -128,10 +161,10 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<bool> DeleteShoppingListAsync(long id)
+        public async Task<bool> DeleteShoppingListAsync(long id, long personId)
         {
             var shoppingList = await _context.ShoppingLists.FindAsync(id);
-            if (shoppingList == null)
+            if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
                 return false;
 
             _context.ShoppingLists.Remove(shoppingList);
@@ -139,8 +172,12 @@ namespace Nom.Orch.Services
             return true;
         }
 
-        public async Task<ShoppingListItemResponseModel> AddItemAsync(ShoppingListItemCreateModel model)
+        public async Task<ShoppingListItemResponseModel?> AddItemAsync(ShoppingListItemCreateModel model, long personId)
         {
+            var parentList = await _context.ShoppingLists.FindAsync(model.ShoppingListId);
+            if (parentList == null || !await CanAccessListAsync(parentList, personId))
+                return null;
+
             var item = new ShoppingListItemEntity
             {
                 ShoppingListId = model.ShoppingListId,
@@ -173,10 +210,14 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<ShoppingListItemResponseModel?> UpdateItemAsync(long id, ShoppingListItemUpdateModel model)
+        public async Task<ShoppingListItemResponseModel?> UpdateItemAsync(long id, ShoppingListItemUpdateModel model, long personId)
         {
             var item = await _context.ShoppingListItems.FindAsync(id);
             if (item == null)
+                return null;
+
+            var parentList = await _context.ShoppingLists.FindAsync(item.ShoppingListId);
+            if (parentList == null || !await CanAccessListAsync(parentList, personId))
                 return null;
 
             item.Name = model.Name;
@@ -204,10 +245,14 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<bool> DeleteItemAsync(long id)
+        public async Task<bool> DeleteItemAsync(long id, long personId)
         {
             var item = await _context.ShoppingListItems.FindAsync(id);
             if (item == null)
+                return false;
+
+            var parentList = await _context.ShoppingLists.FindAsync(item.ShoppingListId);
+            if (parentList == null || !await CanAccessListAsync(parentList, personId))
                 return false;
 
             _context.ShoppingListItems.Remove(item);
@@ -216,7 +261,7 @@ namespace Nom.Orch.Services
         }
 
         // Recipe Integration Implementation
-        public async Task<ShoppingListResponseModel> AddRecipeIngredientsAsync(ShoppingListRecipeAddModel model)
+        public async Task<ShoppingListResponseModel> AddRecipeIngredientsAsync(ShoppingListRecipeAddModel model, long personId)
         {
             // Get the recipe with its ingredients
             var recipe = await _context.Recipes
@@ -231,7 +276,7 @@ namespace Nom.Orch.Services
                 .Include(sl => sl.Items)
                 .FirstOrDefaultAsync(sl => sl.Id == model.ShoppingListId);
 
-            if (shoppingList == null)
+            if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
                 throw new InvalidOperationException($"Shopping list with ID {model.ShoppingListId} not found");
 
             // Get existing items to avoid duplicates
@@ -273,17 +318,17 @@ namespace Nom.Orch.Services
             await _context.SaveChangesAsync();
 
             // Return updated shopping list
-            return await GetShoppingListAsync(model.ShoppingListId) ?? 
+            return await GetShoppingListAsync(model.ShoppingListId, personId) ?? 
                 throw new InvalidOperationException("Failed to retrieve updated shopping list");
         }
 
-        public async Task<ShoppingListResponseModel> RemoveRecipeIngredientsAsync(ShoppingListRecipeRemoveModel model)
+        public async Task<ShoppingListResponseModel> RemoveRecipeIngredientsAsync(ShoppingListRecipeRemoveModel model, long personId)
         {
             var shoppingList = await _context.ShoppingLists
                 .Include(sl => sl.Items)
                 .FirstOrDefaultAsync(sl => sl.Id == model.ShoppingListId);
 
-            if (shoppingList == null)
+            if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
                 throw new InvalidOperationException($"Shopping list with ID {model.ShoppingListId} not found");
 
             var itemsToRemove = model.RemoveAllIngredients
@@ -298,7 +343,7 @@ namespace Nom.Orch.Services
             }
 
             // Return updated shopping list
-            return await GetShoppingListAsync(model.ShoppingListId) ?? 
+            return await GetShoppingListAsync(model.ShoppingListId, personId) ?? 
                 throw new InvalidOperationException("Failed to retrieve updated shopping list");
         }
     }

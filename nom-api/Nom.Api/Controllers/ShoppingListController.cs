@@ -31,7 +31,8 @@ namespace Nom.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ShoppingListResponseModel>>> GetShoppingLists()
         {
-            var shoppingLists = await _shoppingListOrchestrationService.GetAllShoppingListsAsync();
+            var personId = GetCurrentPersonIdRequired();
+            var shoppingLists = await _shoppingListOrchestrationService.GetAllShoppingListsAsync(personId);
             return Ok(shoppingLists);
         }
 
@@ -55,7 +56,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetShoppingList([Required] long id)
         {
-            var response = await _shoppingListOrchestrationService.GetShoppingListAsync(id);
+            var response = await _shoppingListOrchestrationService.GetShoppingListAsync(id, GetCurrentPersonIdRequired());
             if (response == null)
             {
                 return NotFound();
@@ -66,7 +67,7 @@ namespace Nom.Api.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ShoppingListResponseModel>> UpdateShoppingList(long id, [FromBody] ShoppingListUpdateModel request)
         {
-            var response = await _shoppingListOrchestrationService.UpdateShoppingListAsync(id, request);
+            var response = await _shoppingListOrchestrationService.UpdateShoppingListAsync(id, request, GetCurrentPersonIdRequired());
             if (response == null)
             {
                 _logger.LogWarning("Shopping list with ID {ShoppingListId} not found for update.", id);
@@ -80,7 +81,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteShoppingList([Required] long id)
         {
-            var success = await _shoppingListOrchestrationService.DeleteShoppingListAsync(id);
+            var success = await _shoppingListOrchestrationService.DeleteShoppingListAsync(id, GetCurrentPersonIdRequired());
             if (!success)
             {
                 return NotFound();
@@ -98,7 +99,11 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var response = await _shoppingListOrchestrationService.AddItemAsync(model);
+            var response = await _shoppingListOrchestrationService.AddItemAsync(model, GetCurrentPersonIdRequired());
+            if (response == null)
+            {
+                return NotFound(new { message = "Shopping list not found" });
+            }
             return Created($"api/shoppinglist/item/{response.Id}", response);
         }
 
@@ -113,7 +118,7 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var response = await _shoppingListOrchestrationService.UpdateItemAsync(id, model);
+            var response = await _shoppingListOrchestrationService.UpdateItemAsync(id, model, GetCurrentPersonIdRequired());
             if (response == null)
             {
                 return NotFound();
@@ -126,7 +131,7 @@ namespace Nom.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteItem([Required] long id)
         {
-            var success = await _shoppingListOrchestrationService.DeleteItemAsync(id);
+            var success = await _shoppingListOrchestrationService.DeleteItemAsync(id, GetCurrentPersonIdRequired());
             if (!success)
             {
                 return NotFound();
@@ -140,7 +145,7 @@ namespace Nom.Api.Controllers
         {
             request.ShoppingListId = id;
             request.RecipeId = recipeId;
-            var response = await _shoppingListOrchestrationService.AddRecipeIngredientsAsync(request);
+            var response = await _shoppingListOrchestrationService.AddRecipeIngredientsAsync(request, GetCurrentPersonIdRequired());
             return Ok(response);
         }
 
@@ -149,7 +154,7 @@ namespace Nom.Api.Controllers
         {
             request.ShoppingListId = id;
             request.RecipeId = recipeId;
-            var response = await _shoppingListOrchestrationService.RemoveRecipeIngredientsAsync(request);
+            var response = await _shoppingListOrchestrationService.RemoveRecipeIngredientsAsync(request, GetCurrentPersonIdRequired());
             return Ok(response);
         }
 

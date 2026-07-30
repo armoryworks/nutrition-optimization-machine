@@ -54,7 +54,7 @@ namespace Nom.Orch.Services
                 return personId;
             }
             // Fallback to System user if no claim is present (e.g., during registration)
-            return 1;
+            return Nom.Data.SystemConstants.SystemPersonId;
         }
     }
 }

@@ -23,8 +23,9 @@ DECLARE
 
 BEGIN
     -- Get the first user ID from the AspNetUsers table
-    SELECT "Id" INTO first_user_id 
-    FROM "auth"."AspNetUsers" 
+    SELECT "Id" INTO first_user_id
+    FROM "auth"."AspNetUsers"
+    ORDER BY "Id"
     LIMIT 1;
     
     -- Check if any users exist
