@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MealPlanService } from '../../core/services/meal-plan.service';
-import { HouseholdService } from '../../core/services/household.service';
+import { HouseholdStore } from '../../core/services/household-store';
 import { MealPlanWeekResponse } from '../../core/models/meal-plan-week-response.model';
 import { MealPlanDay } from '../../core/models/meal-plan-day.model';
 import { MealPlanCell } from '../../core/models/meal-plan-cell.model';
@@ -26,7 +26,7 @@ import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-c
 })
 export class Dashboard implements OnInit {
   private mealPlanService = inject(MealPlanService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
 
@@ -186,7 +186,7 @@ export class Dashboard implements OnInit {
 
   private loadDashboardData(): void {
     this.loading.set(true);
-    this.householdService.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.householdStore.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
         this.households.set(list);
         if (list.length > 0) {

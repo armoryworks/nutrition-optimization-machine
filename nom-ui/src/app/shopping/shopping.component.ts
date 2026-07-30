@@ -19,7 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MealPlanService } from '../core/services/meal-plan.service';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { RecipeService } from '../core/services/recipe.service';
 import { PantryService } from '../core/services/pantry.service';
 import { RetailPackagingService } from '../core/services/retail-packaging.service';
@@ -84,7 +84,7 @@ interface RawAccumulator {
 })
 export class ShoppingComponent implements OnInit {
   private mealPlanService = inject(MealPlanService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private recipeService = inject(RecipeService);
   private pantryService = inject(PantryService);
   private retailPackagingService = inject(RetailPackagingService);
@@ -687,7 +687,7 @@ export class ShoppingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.householdService
+    this.householdStore
       .getHouseholds()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

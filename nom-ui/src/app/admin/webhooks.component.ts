@@ -13,7 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { WebhookService } from '../core/services/webhook.service';
 import { WebhookResponse } from '../core/models/webhook-response.model';
-import { HouseholdService } from '../core/services/household.service';
+import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
@@ -38,7 +38,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
 export class Webhooks implements OnInit {
   private fb = inject(FormBuilder);
   private webhookService = inject(WebhookService);
-  private householdService = inject(HouseholdService);
+  private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -59,7 +59,7 @@ export class Webhooks implements OnInit {
   });
 
   ngOnInit(): void {
-    this.householdService.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.householdStore.getHouseholds().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
         if (list.length > 0) {
           this.householdId.set(list[0].id);
