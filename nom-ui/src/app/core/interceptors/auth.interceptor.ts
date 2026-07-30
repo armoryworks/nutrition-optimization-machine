@@ -68,9 +68,13 @@ function refreshAndRetry(
   router: Router,
   originalError: HttpErrorResponse,
 ): Observable<never> | ReturnType<HttpHandlerFn> {
-  if (!refresh$) {
+  // Capture locally: finalize() may null the shared field before we return
+  // (e.g. when the refresh completes synchronously).
+  let pendingRefresh = refresh$;
+  if (!pendingRefresh) {
     const subject = new ReplaySubject<AuthTokenResponse | null>(1);
     refresh$ = subject;
+    pendingRefresh = subject;
     authService
       .attemptTokenRefresh()
       .pipe(
@@ -85,7 +89,7 @@ function refreshAndRetry(
       });
   }
 
-  return refresh$.pipe(
+  return pendingRefresh.pipe(
     take(1),
     switchMap((result) => {
       if (result) {
