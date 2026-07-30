@@ -360,6 +360,28 @@ All UI development must comply with the five immutable design principles defined
 - **Overrides:** `nom-ui/src/_amw-overrides.scss`
 - **Stereotypes:** `nom-ui/src/_stereotype-*.scss`
 
+## UI State Conventions (v1.5)
+
+#### Loading
+- **Global overlay** (`LoadingService` + `nom-loading-overlay`): route navigation only.
+  The app shell drives this automatically; components must not add() for in-page work.
+- **Inline spinners**: all in-page loading (data fetches, form submissions) uses a local
+  `loading`/`saving` signal with an inline `mat-spinner`. Do not dim the whole app for
+  work scoped to one region.
+
+#### Errors
+- Page/section-level failures render `<nom-error-banner [message]="..."/>`
+  (`shared/components/error-banner`) — announced via `role="alert"`; pass
+  `[showRetry]="true" (retry)="reload()"` whenever the operation can be retried.
+- Form-level errors keep the `.nom-form__error` stereotype.
+- Field-level errors use `mat-error` guarded by `hasError(...) && control.touched`.
+- Name the state signal `error` (type `signal<string>('')`) in new code.
+
+#### Form validation
+- Submit buttons stay enabled while the form is invalid (disable only while saving).
+- The submit handler starts with:
+  `if (form.invalid) { form.markAllAsTouched(); return; }`
+
 ## Version History
 
 - **v1.0**: Initial standards definition
@@ -367,3 +389,4 @@ All UI development must comply with the five immutable design principles defined
 - **v1.2**: Clarified abstract vs interface naming conventions
 - **v1.3**: Added Angular selector prefix requirements
 - **v1.4**: Added design system principles (8pt grid, Major Third type, 60-30-10 color, IA, micro-interactions)
+- **v1.5**: Added UI state conventions (loading, errors, form validation)

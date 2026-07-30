@@ -95,9 +95,14 @@ This document consolidates the findings into one prioritized backlog. Items mark
 > `HouseholdStore` caches the household list across 10 former fetch sites;
 > `ShuffleFlowService` deduplicates the plan/dashboard shuffle flow; basic focus
 > management + real Escape handling landed. Test counts: backend 17, frontend 21.
-> Still open below: error/loading convention unification, form-validation pattern,
-> CancellationToken threading, remaining responsive pass, `Nom.Import` decision,
-> plan component calendar/wizard split, build guardrails.
+> Second pass: form-validation pattern fixed (submit stays enabled; invalid submit
+> marks controls touched), shared `nom-error-banner` (role=alert + retry) adopted in
+> ten components. The "split plan calendar/wizard" recommendation is WITHDRAWN:
+> wizard mode is a deliberate shared pattern — Profile, Restrictions, Household, and
+> Plan all embed as `mode="wizard"` steps in onboarding and the add-member dialog;
+> splitting one would break the symmetry and risks onboarding regressions.
+> Still open: loading-convention unification (documented as a convention instead),
+> CancellationToken threading, responsive pass.
 
 - **Delete ~9,500 LOC of dead backend infrastructure** (`Nom.Api/Core|Factories|DI|Events`,
   `Nom.Data/CustomMigration`) — never DI-registered, latently broken (`_BaseRepository`
