@@ -29,7 +29,7 @@ import { MealPlanEntry } from '../core/models/meal-plan-entry.model';
 import { MealPlanExclusion } from '../core/models/meal-plan-exclusion.model';
 import { RestrictionRequest } from '../core/models/restriction-request.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from './recipe-search-dialog/recipe-search-dialog.component';
-import { ShuffleConfirmDialog, ShuffleConfirmResult } from './shuffle-confirm-dialog.component';
+import { ShuffleFlowService } from './shuffle-flow.service';
 
 export interface PlanFormData {
   planName: string | null;
@@ -72,6 +72,7 @@ export class Plan implements OnInit {
   private fb = inject(FormBuilder);
   private planService = inject(PlanService);
   private mealPlanService = inject(MealPlanService);
+  private shuffleFlow = inject(ShuffleFlowService);
   private householdStore = inject(HouseholdStore);
   private loadingService = inject(LoadingService);
   private dialog = inject(MatDialog);
@@ -185,34 +186,13 @@ export class Plan implements OnInit {
     const futureDays = data.days.filter(d => d.date >= today);
     if (futureDays.length === 0) return;
 
-    const unshoppedEntries = (c: { entries: { shoppingCompletedAt: string | null }[] }) =>
-      c.entries.filter(e => !e.shoppingCompletedAt);
-    const hasFilledSlots = futureDays.some(d => d.cells.some(c => unshoppedEntries(c).length > 0));
-    const hasEmptySlots = futureDays.some(d => d.cells.some(c => c.entries.length === 0));
-
-    // Determine date range from future days
-    const startDate = futureDays[0].date;
-    const endDate = futureDays[futureDays.length - 1].date;
-    if (hasFilledSlots) {
-      const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
-      dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {
-        if (result === 'empty') {
-          this.callShuffle(householdId, startDate, endDate, false);
-        } else if (result === 'replace') {
-          this.callShuffle(householdId, startDate, endDate, true);
-        }
-      });
-    } else if (hasEmptySlots) {
-      this.callShuffle(householdId, startDate, endDate, false);
-    }
-  }
-
-  private callShuffle(householdId: number, startDate: string, endDate: string, replaceExisting: boolean): void {
-    this.shuffling.set(true);
-
-    this.mealPlanService.shuffle({ householdId, startDate, endDate, replaceExisting }).pipe(
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
+    this.shuffleFlow.run({
+      householdId,
+      days: futureDays,
+      startDate: futureDays[0].date,
+      endDate: futureDays[futureDays.length - 1].date,
+      onShuffleStart: () => this.shuffling.set(true),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
         this.shuffling.set(false);

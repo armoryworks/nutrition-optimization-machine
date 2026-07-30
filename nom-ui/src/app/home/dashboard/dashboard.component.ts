@@ -15,7 +15,7 @@ import { MealPlanDay } from '../../core/models/meal-plan-day.model';
 import { MealPlanCell } from '../../core/models/meal-plan-cell.model';
 import { HouseholdResponseModel } from '../../core/models/household-response.model';
 import { RecipeSearchDialog, RecipeSearchDialogData, RecipeSearchDialogResult } from '../../plan/recipe-search-dialog/recipe-search-dialog.component';
-import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-confirm-dialog.component';
+import { ShuffleFlowService } from '../../plan/shuffle-flow.service';
 
 @Component({
   selector: 'nom-dashboard',
@@ -26,6 +26,7 @@ import { ShuffleConfirmDialog, ShuffleConfirmResult } from '../../plan/shuffle-c
 })
 export class Dashboard implements OnInit {
   private mealPlanService = inject(MealPlanService);
+  private shuffleFlow = inject(ShuffleFlowService);
   private householdStore = inject(HouseholdStore);
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
@@ -147,34 +148,12 @@ export class Dashboard implements OnInit {
     const day = this.today();
     if (!householdId || !day) return;
 
-    const unshoppedEntries = (c: { entries: { shoppingCompletedAt: string | null }[] }) =>
-      c.entries.filter(e => !e.shoppingCompletedAt);
-    const hasFilledSlots = day.cells.some(c => unshoppedEntries(c).length > 0);
-    const hasEmptySlots = day.cells.some(c => c.entries.length === 0);
-    const todayStr = day.date;
-
-    if (hasFilledSlots) {
-      const dialogRef = this.dialog.open(ShuffleConfirmDialog, { width: '400px' });
-      dialogRef.afterClosed().subscribe((result: ShuffleConfirmResult) => {
-        if (result === 'empty') {
-          this.callShuffle(householdId, todayStr, false);
-        } else if (result === 'replace') {
-          this.callShuffle(householdId, todayStr, true);
-        }
-      });
-    } else if (hasEmptySlots) {
-      this.callShuffle(householdId, todayStr, false);
-    }
-  }
-
-  private callShuffle(householdId: number, date: string, replaceExisting: boolean): void {
-    this.shufflingToday.set(true);
-
-    this.mealPlanService.shuffle({
+    this.shuffleFlow.run({
       householdId,
-      startDate: date,
-      endDate: date,
-      replaceExisting,
+      days: [day],
+      startDate: day.date,
+      endDate: day.date,
+      onShuffleStart: () => this.shufflingToday.set(true),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.weekData.set(response.week);
