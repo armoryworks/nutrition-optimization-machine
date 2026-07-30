@@ -20,6 +20,7 @@ export class Header {
   isLoggedIn = input(false);
   isDarkTheme = input(true);
   themeToggle = output<void>();
+  navToggle = output<void>();
 
   loginPopoverOpen = signal(false);
   userMenuOpen = signal(false);

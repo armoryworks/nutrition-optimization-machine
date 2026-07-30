@@ -1,0 +1,111 @@
+@use 'variables' as vars;
+@use 'mixins';
+
+.nom-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  width: 200px;
+  padding: vars.$spacing-4 vars.$spacing-2;
+  transition: width vars.$transition-duration-normal vars.$transition-timing;
+
+  &--collapsed {
+    width: 64px;
+
+    .nom-nav__label,
+    .nom-nav__group-title {
+      display: none;
+    }
+
+    .nom-nav__item,
+    .nom-nav__collapse-btn {
+      justify-content: center;
+      padding: vars.$spacing-2;
+    }
+  }
+}
+
+.nom-nav__scroll {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  margin-top: vars.$spacing-4;
+}
+
+.nom-nav__group-title {
+  padding: 0 vars.$spacing-3;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-nav__item {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  border-radius: vars.$nom-border-radius;
+  color: var(--mat-sys-on-surface-variant);
+  text-decoration: none;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  white-space: nowrap;
+
+  @include mixins.nom-focus-visible;
+
+  mat-icon {
+    font-size: vars.$icon-size-lg;
+    width: vars.$icon-size-lg;
+    height: vars.$icon-size-lg;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface);
+  }
+
+  &--active {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.nom-nav__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+  padding-top: vars.$spacing-3;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-nav__collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  background: transparent;
+  border: none;
+  border-radius: vars.$nom-border-radius;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  cursor: pointer;
+  white-space: nowrap;
+
+  @include mixins.nom-focus-visible;
+
+  &:hover {
+    background: var(--mat-sys-surface-container);
+  }
+}

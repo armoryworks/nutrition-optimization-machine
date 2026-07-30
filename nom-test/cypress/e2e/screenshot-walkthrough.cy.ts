@@ -26,8 +26,14 @@ describe('Screenshot Walkthrough', () => {
   /** Wait for Angular animations / data to settle before capturing. */
   const settle = (ms = 1500) => cy.wait(ms);
 
-  /** Navigate via the user-menu dropdown. */
+  /** Navigate via the primary nav rail (always visible when signed in). */
   const navigateViaMenu = (testId: string) => {
+    cy.get(`[data-testid="${testId}"]`).click();
+    settle(2000);
+  };
+
+  /** Navigate via the user-menu dropdown (account items: profile, restrictions). */
+  const navigateViaUserMenu = (testId: string) => {
     cy.get('[data-testid="header-avatar-btn"]').click();
     settle(500);
     cy.get(`[data-testid="${testId}"]`).click();
@@ -720,12 +726,12 @@ describe('Screenshot Walkthrough', () => {
     // ────────────────────────────────────────────────────────────
 
     // ── Restrictions (standalone, editing) ──
-    navigateViaMenu('nav-restrictions');
+    navigateViaUserMenu('nav-restrictions');
     cy.get('[data-testid="restrictions"]').should('exist');
     cy.screenshot('26-restrictions', { capture: 'fullPage' });
 
     // ── Profile (standalone, editing) ──
-    navigateViaMenu('nav-profile');
+    navigateViaUserMenu('nav-profile');
     cy.get('[data-testid="profile"]').should('exist');
     cy.screenshot('27-profile', { capture: 'fullPage' });
 

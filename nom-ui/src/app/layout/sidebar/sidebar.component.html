@@ -12,7 +12,10 @@
             <span class="nom-sidebar-panel__meal-type">{{ meal.mealType }}</span>
             <span class="nom-sidebar-panel__meal-recipes">
               @for (entry of meal.entries; track entry.id; let last = $last) {
-                {{ entry.recipeName ?? entry.title }}@if (!last) {, }
+                {{ entry.recipeName ?? entry.title }}
+                @if (!last) {
+                  ,
+                }
               }
             </span>
           </li>
@@ -56,29 +59,32 @@
     </div>
     <div class="nom-sidebar-panel__body">
       <div class="nom-sidebar-panel__actions">
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/plan">
+        <a
+          mat-stroked-button
+          class="nom-sidebar-panel__action-btn"
+          routerLink="/plan"
+          data-testid="quick-action-new-plan-btn"
+        >
           <mat-icon>add</mat-icon>
           <span>New Plan</span>
         </a>
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/recipe/new">
+        <a
+          mat-stroked-button
+          class="nom-sidebar-panel__action-btn"
+          routerLink="/recipe/new"
+          data-testid="quick-action-new-recipe-btn"
+        >
           <mat-icon>restaurant_menu</mat-icon>
           <span>New Recipe</span>
         </a>
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/recipe/import">
+        <a
+          mat-stroked-button
+          class="nom-sidebar-panel__action-btn"
+          routerLink="/recipe/import"
+          data-testid="quick-action-import-btn"
+        >
           <mat-icon>link</mat-icon>
           <span>Import</span>
-        </a>
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/pantry">
-          <mat-icon>kitchen</mat-icon>
-          <span>Pantry</span>
-        </a>
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/shopping">
-          <mat-icon>shopping_cart</mat-icon>
-          <span>Shop</span>
-        </a>
-        <a mat-stroked-button class="nom-sidebar-panel__action-btn" routerLink="/search">
-          <mat-icon>search</mat-icon>
-          <span>Search</span>
         </a>
       </div>
     </div>

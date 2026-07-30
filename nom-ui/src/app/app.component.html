@@ -3,11 +3,22 @@
 <nom-header
   [isLoggedIn]="isLoggedIn()"
   [isDarkTheme]="isDarkTheme()"
-  (themeToggle)="toggleTheme()">
+  (themeToggle)="toggleTheme()"
+  (navToggle)="toggleNav()"
+>
 </nom-header>
 
-<main id="main-content" class="nom-main" [attr.inert]="isLoading() ? '' : null">
-  <div class="nom-layout" [class.nom-layout--with-sidebar]="isLoggedIn()">
+<main id="main-content" class="nom-main" tabindex="-1" [attr.inert]="isLoading() ? '' : null">
+  <div
+    class="nom-layout"
+    [class.nom-layout--with-sidebar]="isLoggedIn()"
+    [class.nom-layout--with-nav]="isLoggedIn()"
+  >
+    @if (isLoggedIn()) {
+      <div class="nom-layout__nav" [class.nom-layout__nav--open]="navOpen()">
+        <nom-nav (navigated)="closeNav()"></nom-nav>
+      </div>
+    }
     <div class="nom-layout__content">
       <router-outlet />
     </div>
@@ -27,14 +38,24 @@
     <mat-icon>widgets</mat-icon>
     <span>Panel</span>
   </button>
-  <div class="nom-sidebar-backdrop"
-       [class.nom-sidebar-backdrop--visible]="sidebarOpen()"
-       (click)="toggleSidebar()"
-       (keydown.escape)="toggleSidebar()"
-       tabindex="-1"
-       role="button"
-       aria-label="Close sidebar">
-  </div>
+  <div
+    class="nom-sidebar-backdrop"
+    [class.nom-sidebar-backdrop--visible]="sidebarOpen()"
+    (click)="toggleSidebar()"
+    (keydown.escape)="toggleSidebar()"
+    tabindex="-1"
+    role="button"
+    aria-label="Close sidebar"
+  ></div>
+  <div
+    class="nom-sidebar-backdrop"
+    [class.nom-sidebar-backdrop--visible]="navOpen()"
+    (click)="closeNav()"
+    (keydown.escape)="closeNav()"
+    tabindex="-1"
+    role="button"
+    aria-label="Close navigation"
+  ></div>
 }
 
 <nom-loading-overlay [visible]="isLoading()" />

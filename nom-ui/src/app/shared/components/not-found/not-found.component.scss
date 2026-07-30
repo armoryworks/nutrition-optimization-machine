@@ -1,0 +1,22 @@
+@use 'variables' as vars;
+@use 'mixins';
+
+.nom-not-found {
+  @include mixins.nom-empty-state(vars.$spacing-16);
+  flex: 1;
+  gap: vars.$spacing-3;
+}
+
+.nom-not-found__icon {
+  @include mixins.nom-empty-state-icon(3rem);
+}
+
+.nom-not-found__title {
+  margin: 0;
+  font-size: vars.$font-size-xl;
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-not-found__message {
+  @include mixins.nom-empty-state-text;
+}

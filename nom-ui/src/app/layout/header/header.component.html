@@ -1,4 +1,15 @@
 <header class="nom-header" data-testid="header">
+  @if (isLoggedIn()) {
+    <button
+      mat-icon-button
+      class="nom-header__nav-toggle"
+      data-testid="header-nav-toggle-btn"
+      aria-label="Open navigation menu"
+      (click)="navToggle.emit()"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
+  }
   <a class="nom-header__brand" routerLink="/home">
     <mat-icon class="nom-header__brand-icon">restaurant</mat-icon>
     <div class="nom-header__brand-text">
@@ -15,7 +26,8 @@
       data-testid="header-search-input"
       [placeholder]="isLoggedIn() ? 'Search recipes, ingredients, plans...' : 'Search recipes...'"
       aria-label="Search"
-      (keydown.enter)="onSearch($event)">
+      (keydown.enter)="onSearch($event)"
+    />
   </div>
 
   <div class="nom-header__actions">
@@ -24,20 +36,40 @@
       class="nom-header__action-btn"
       data-testid="header-theme-toggle-btn"
       (click)="themeToggle.emit()"
-      [attr.aria-label]="isDarkTheme() ? 'Switch to light theme' : 'Switch to dark theme'">
+      [attr.aria-label]="isDarkTheme() ? 'Switch to light theme' : 'Switch to dark theme'"
+    >
       <mat-icon>{{ isDarkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
 
     @if (isLoggedIn()) {
-      <button mat-icon-button class="nom-header__action-btn" data-testid="header-notifications-btn" aria-label="Notifications">
+      <button
+        mat-icon-button
+        class="nom-header__action-btn"
+        data-testid="header-notifications-btn"
+        aria-label="Notifications"
+      >
         <mat-icon>notifications_none</mat-icon>
       </button>
-      <button class="nom-header__avatar" data-testid="header-avatar-btn" (click)="toggleUserMenu()" aria-label="User menu">
+      <button
+        class="nom-header__avatar"
+        data-testid="header-avatar-btn"
+        (click)="toggleUserMenu()"
+        aria-label="User menu"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="userMenuOpen()"
+      >
         <span>{{ userInitial() }}</span>
       </button>
 
       @if (userMenuOpen()) {
-        <div class="nom-header__popover-backdrop" (click)="userMenuOpen.set(false)" (keydown.escape)="userMenuOpen.set(false)" tabindex="-1" role="button" aria-label="Close menu"></div>
+        <div
+          class="nom-header__popover-backdrop"
+          (click)="userMenuOpen.set(false)"
+          (keydown.escape)="userMenuOpen.set(false)"
+          tabindex="-1"
+          role="button"
+          aria-label="Close menu"
+        ></div>
         <nom-user-menu (closed)="userMenuOpen.set(false)"></nom-user-menu>
       }
     } @else {
@@ -46,13 +78,23 @@
         color="primary"
         class="nom-header__login-btn"
         data-testid="header-login-btn"
-        (click)="toggleLoginPopover()">
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="loginPopoverOpen()"
+        (click)="toggleLoginPopover()"
+      >
         <mat-icon>login</mat-icon>
         Sign In
       </button>
 
       @if (loginPopoverOpen()) {
-        <div class="nom-header__popover-backdrop" (click)="loginPopoverOpen.set(false)" (keydown.escape)="loginPopoverOpen.set(false)" tabindex="-1" role="button" aria-label="Close popover"></div>
+        <div
+          class="nom-header__popover-backdrop"
+          (click)="loginPopoverOpen.set(false)"
+          (keydown.escape)="loginPopoverOpen.set(false)"
+          tabindex="-1"
+          role="button"
+          aria-label="Close popover"
+        ></div>
         <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
       }
     }

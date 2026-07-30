@@ -1,4 +1,5 @@
 import { Component, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { toLocalDateString } from '../../core/utils/local-date';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, startWith, map, switchMap, of } from 'rxjs';
@@ -102,6 +103,6 @@ export class Sidebar {
   }
 
   static toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return toLocalDateString(date);
   }
 }
