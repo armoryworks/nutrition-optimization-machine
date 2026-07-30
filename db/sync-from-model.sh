@@ -22,7 +22,7 @@ CHECK=0; [ "${1:-}" = "--check" ] && CHECK=1
 A="nom_sync_a_$$"; B="nom_sync_b_$$"
 
 export PGPASSWORD="$DB_PASSWORD"
-command -v atlas >/dev/null || { echo "ERROR: atlas not found on PATH."; exit 1; }
+command -v python3 >/dev/null || { echo "ERROR: python3 is required for the diff step."; exit 1; }
 
 PSQL_SUPER() { psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_SUPERUSER" -d postgres -v ON_ERROR_STOP=1 -q "$@"; }
 PSQL_DB()    { psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$1" -v ON_ERROR_STOP=1 -q "${@:2}"; }
@@ -49,10 +49,11 @@ PSQL_DB "$A" -f db/schema.sql
 PSQL_DB "$B" -f /tmp/nom-model-ddl-$$.sql
 PSQL_DB "$B" -f db/custom-objects.sql
 
-DIFF=$(atlas schema diff --from "$(URL "$A")" --to "$(URL "$B")" \
-  --exclude 'public.__EFMigrationsHistory' 2>/dev/null | sed '/^Skipped triggers/,$d')
+DIFF=$(python3 db/pgdiff.py --target "$A" --desired "$B" \
+  --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --password "$DB_PASSWORD" \
+  --exclude-table 'public.__EFMigrationsHistory')
 
-if [ -z "$(echo "$DIFF" | tr -d '[:space:]')" ] || echo "$DIFF" | grep -q "Schemas are synced"; then
+if [ -z "$(echo "$DIFF" | grep -v '^--' | tr -d '[:space:]')" ]; then
   echo "db/schema.sql is in sync with the EF model."
   exit 0
 fi
