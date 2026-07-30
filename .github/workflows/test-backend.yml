@@ -76,11 +76,8 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Install dotnet-ef and Atlas
-        run: |
-          dotnet tool install --global dotnet-ef
-          curl -fsSL -o /usr/local/bin/atlas https://release.ariga.io/atlas/atlas-linux-amd64-latest
-          chmod +x /usr/local/bin/atlas
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef
 
       - name: Check schema.sql is in sync with the EF model
         env:

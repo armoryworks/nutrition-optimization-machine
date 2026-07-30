@@ -53,8 +53,8 @@ if [ "$TABLE_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-# 3. Existing database -> state-based diff (DACPAC-style)
-command -v atlas >/dev/null || { echo "ERROR: atlas not found. Install: curl -fsSL -o ~/bin/atlas https://release.ariga.io/atlas/atlas-linux-amd64-latest && chmod +x ~/bin/atlas"; exit 1; }
+# 3. Existing database -> state-based diff (DACPAC-style, internal differ)
+command -v python3 >/dev/null || { echo "ERROR: python3 is required for the diff step."; exit 1; }
 
 DESIRED_DB="nom_desired_$$"
 echo "Building desired-state database '$DESIRED_DB' from schema.sql..."
@@ -67,11 +67,11 @@ cleanup() {
 trap cleanup EXIT
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DESIRED_DB" -v ON_ERROR_STOP=1 -q -f schema.sql
 
-DESIRED_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DESIRED_DB}?sslmode=disable"
-DIFF=$(atlas schema diff --from "$TARGET_URL" --to "$DESIRED_URL" \
-  --exclude 'public.__EFMigrationsHistory' 2>/dev/null | sed '/^Skipped triggers/,$d')
+DIFF=$(python3 pgdiff.py --target "$DB_NAME" --desired "$DESIRED_DB" \
+  --host "$DB_HOST" --port "$DB_PORT" --user "$DB_USER" --password "$DB_PASSWORD" \
+  --exclude-table 'public.__EFMigrationsHistory')
 
-if [ -z "$(echo "$DIFF" | tr -d '[:space:]')" ] || echo "$DIFF" | grep -q "Schemas are synced"; then
+if [ -z "$(echo "$DIFF" | grep -v '^--' | tr -d '[:space:]')" ]; then
   echo "'$DB_NAME' already matches schema.sql. Nothing to do."
   exit 0
 fi

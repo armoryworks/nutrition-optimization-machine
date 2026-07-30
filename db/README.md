@@ -11,8 +11,9 @@ schema workflow, analogous to SQL Server DACPAC: the repository holds the
 | `schema.sql` | **Source of truth** for the database schema (all 12 domain schemas, 89 tables, views, indexes, FKs). Generated artifact — do not hand-edit. |
 | `seed.sql` | Idempotent reference + demo data (`ON CONFLICT DO NOTHING`), including the System person and default groups. Applied once on fresh databases. |
 | `custom-objects.sql` | DDL not represented in the EF model (currently the `reference."ReferenceGroupView"` view). Input to `sync-from-model.sh`. |
-| `apply.sh` | **Deploy**: creates/provisions an empty database, or diffs an existing one against `schema.sql` (via [Atlas](https://atlasgo.io)) and applies only the delta. `--dry-run` prints the delta. |
+| `apply.sh` | **Deploy**: creates/provisions an empty database, or diffs an existing one against `schema.sql` (via `pgdiff.py`) and applies only the delta. `--dry-run` prints the delta. |
 | `sync-from-model.sh` | **Build**: re-derives `schema.sql` after C# entity changes (EF `dbcontext script` + custom objects → dump). `--check` mode is a CI drift guard. |
+| `pgdiff.py` | **Internal schema differ** (stdlib Python + `psql`/`pg_dump`, zero third-party dependencies). Compares system catalogs of two live databases and emits delta DDL: schemas, tables, columns (type/null/default/identity), PK/FK/UNIQUE/CHECK constraints, indexes, views. |
 
 ## Workflows
 
@@ -40,8 +41,8 @@ git diff db/schema.sql       # review, then commit
 
 ## Requirements
 
-- `psql`/`pg_dump` (PostgreSQL 16 client), and the `atlas` CLI for diffing:
-  `curl -fsSL -o ~/bin/atlas https://release.ariga.io/atlas/atlas-linux-amd64-latest && chmod +x ~/bin/atlas`
+- `psql`/`pg_dump` (PostgreSQL 16 client) and `python3` — nothing else.
+  All tooling is open source (PostgreSQL license) or internal (`pgdiff.py`).
 - A superuser (default `postgres`) for database creation and for `seed.sql`
   (it uses `SET LOCAL session_replication_role = replica` to load data with
   circular FKs).
@@ -55,9 +56,11 @@ git diff db/schema.sql       # review, then commit
   `dotnet ef database update`. The legacy `refresh_db_and_migration.sh` is
   superseded by `apply.sh` (it still works — it regenerates a migration from
   scratch — but produces nothing that gets committed).
-- Atlas' free tier diffs tables/columns/indexes/constraints/views but **skips
-  functions, triggers, and procedures**. NOM currently has none of those; if
-  they're ever added, put them in `custom-objects.sql` and revisit the diff
-  step (Atlas Pro or migra cover them).
+- `pgdiff.py` diffs schemas, tables, columns, constraints, indexes, and views.
+  It does **not** yet handle functions, triggers, procedures, standalone
+  sequences, or RLS policies (NOM currently has none of these); if they're
+  ever added, put them in `custom-objects.sql` and extend `pgdiff.py`.
+  Renames are expressed as drop + add; identity-mode changes emit a warning
+  comment instead of DDL.
 - `seed.sql` intentionally contains demo recipes (144) alongside reference
   data. If you want production seeds without demo content, split it.
