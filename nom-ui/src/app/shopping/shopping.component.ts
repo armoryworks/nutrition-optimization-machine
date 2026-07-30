@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -574,7 +575,7 @@ export class ShoppingComponent implements OnInit {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `shopping-list-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `shopping-list-${toLocalDateString(new Date())}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       this.snackBar.open('CSV downloaded', 'OK', { duration: 2000 });
@@ -659,7 +660,7 @@ export class ShoppingComponent implements OnInit {
     }
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toLocalDateString(today);
     const items: PantryItemCreateRequest[] = [];
 
     for (const dept of departments) {
@@ -713,7 +714,7 @@ export class ShoppingComponent implements OnInit {
           quantity,
           measurementId,
           acquisitionDate: todayStr,
-          expectedExpirationDate: expDate.toISOString().split('T')[0],
+          expectedExpirationDate: toLocalDateString(expDate),
         });
       }
     }
@@ -1044,7 +1045,7 @@ export class ShoppingComponent implements OnInit {
   }
 
   static toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return toLocalDateString(date);
   }
 }
 

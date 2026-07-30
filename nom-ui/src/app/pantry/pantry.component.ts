@@ -1,4 +1,5 @@
 import { Component, computed, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -248,7 +249,7 @@ export class PantryComponent implements OnInit {
   }
 
   private formatDate(d: Date): string {
-    return d.toISOString().split('T')[0];
+    return toLocalDateString(d);
   }
 
   private categorizeDepartment(name: string): string {
