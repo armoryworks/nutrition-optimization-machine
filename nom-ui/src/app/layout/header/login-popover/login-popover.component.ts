@@ -51,7 +51,10 @@ export class LoginPopover {
   showPassword = signal(false);
 
   onSubmit(): void {
-    if (this.loginForm.invalid) return;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
 
     this.loading.set(true);
     this.errorMessage.set('');

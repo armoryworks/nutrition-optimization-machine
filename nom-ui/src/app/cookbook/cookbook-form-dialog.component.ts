@@ -54,6 +54,10 @@ export class CookbookFormDialog implements OnInit {
   }
 
   onSave(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     if (this.form.valid) {
       const value = this.form.getRawValue();
       const result: CookbookFormDialogResult = {

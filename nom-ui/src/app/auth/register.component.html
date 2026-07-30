@@ -105,7 +105,7 @@
           <div class="nom-form__card-actions">
             <button mat-flat-button color="primary" type="submit"
                     class="nom-register__submit" data-testid="register-submit-btn"
-                    [disabled]="loading() || registerForm.invalid">
+                    [disabled]="loading()">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {

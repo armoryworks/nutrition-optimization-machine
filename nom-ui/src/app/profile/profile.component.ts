@@ -125,7 +125,10 @@ export class Profile implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.profileForm.invalid) return;
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
 
     const formData = this.buildFormData();
     if (this.isStandalone()) {

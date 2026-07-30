@@ -270,7 +270,10 @@ export class Plan implements OnInit {
   // --- Wizard mode methods (unchanged) ---
 
   onCreateSubmit(): void {
-    if (this.createForm.invalid) return;
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
     const form = this.createForm.getRawValue();
 
     const data: PlanFormData = {
@@ -290,7 +293,10 @@ export class Plan implements OnInit {
   }
 
   onJoinSubmit(): void {
-    if (this.joinForm.invalid) return;
+    if (this.joinForm.invalid) {
+      this.joinForm.markAllAsTouched();
+      return;
+    }
     const code = this.joinForm.getRawValue().invitationCode!;
 
     const data: PlanFormData = {

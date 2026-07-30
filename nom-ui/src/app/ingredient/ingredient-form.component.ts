@@ -88,7 +88,11 @@ export class IngredientForm {
   }
 
   onSubmit(): void {
-    if (this.ingredientForm.invalid || this.saving()) return;
+    if (this.ingredientForm.invalid) {
+      this.ingredientForm.markAllAsTouched();
+      return;
+    }
+    if (this.saving()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 

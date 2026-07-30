@@ -91,7 +91,11 @@ export class PlanRules implements OnInit {
   }
 
   onAddRule(): void {
-    if (this.ruleForm.invalid || this.saving()) return;
+    if (this.ruleForm.invalid) {
+      this.ruleForm.markAllAsTouched();
+      return;
+    }
+    if (this.saving()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 

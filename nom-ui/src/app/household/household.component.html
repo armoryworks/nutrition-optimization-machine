@@ -171,7 +171,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="createForm.invalid || loading()" data-testid="household-create-btn">
+            <button mat-flat-button type="submit" [disabled]="loading()" data-testid="household-create-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
@@ -199,7 +199,7 @@
           </div>
 
           <div class="nom-form__actions">
-            <button mat-flat-button type="submit" [disabled]="joinForm.invalid || loading()" data-testid="household-join-btn">
+            <button mat-flat-button type="submit" [disabled]="loading()" data-testid="household-join-btn">
               @if (loading()) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {

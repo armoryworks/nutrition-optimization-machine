@@ -38,7 +38,10 @@ export class ForgotPassword {
   errorMessage = signal('');
 
   onSubmit(): void {
-    if (this.forgotForm.invalid) return;
+    if (this.forgotForm.invalid) {
+      this.forgotForm.markAllAsTouched();
+      return;
+    }
 
     this.loading.set(true);
     this.errorMessage.set('');
