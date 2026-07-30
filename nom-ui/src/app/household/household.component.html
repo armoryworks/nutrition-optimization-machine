@@ -159,7 +159,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Household Name</mat-label>
               <input matInput formControlName="name" placeholder="e.g. The Smith Family" />
-              @if (createForm.get('name')?.hasError('required')) {
+              @if (createForm.get('name')?.hasError('required') && createForm.get('name')?.touched) {
                 <mat-error>Name is required</mat-error>
               }
             </mat-form-field>
@@ -192,7 +192,7 @@
               <mat-label>Invite Code</mat-label>
               <input matInput formControlName="token" placeholder="Paste invite code here" />
               <mat-icon matPrefix>vpn_key</mat-icon>
-              @if (joinForm.get('token')?.hasError('required')) {
+              @if (joinForm.get('token')?.hasError('required') && joinForm.get('token')?.touched) {
                 <mat-error>Invite code is required</mat-error>
               }
             </mat-form-field>

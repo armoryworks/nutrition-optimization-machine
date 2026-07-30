@@ -21,7 +21,7 @@
               <mat-option [value]="m.personId">{{ m.personName }}</mat-option>
             }
           </mat-select>
-          @if (composeForm.get('recipientIds')?.hasError('required')) {
+          @if (composeForm.get('recipientIds')?.hasError('required') && composeForm.get('recipientIds')?.touched) {
             <mat-error>Select at least one recipient</mat-error>
           }
         </mat-form-field>
@@ -29,7 +29,7 @@
         <mat-form-field appearance="outline">
           <mat-label>Subject</mat-label>
           <input matInput formControlName="subject" maxlength="255" />
-          @if (composeForm.get('subject')?.hasError('required')) {
+          @if (composeForm.get('subject')?.hasError('required') && composeForm.get('subject')?.touched) {
             <mat-error>Subject is required</mat-error>
           }
         </mat-form-field>
@@ -37,7 +37,7 @@
         <mat-form-field appearance="outline">
           <mat-label>Message</mat-label>
           <textarea matInput formControlName="message" rows="6"></textarea>
-          @if (composeForm.get('message')?.hasError('required')) {
+          @if (composeForm.get('message')?.hasError('required') && composeForm.get('message')?.touched) {
             <mat-error>Message is required</mat-error>
           }
         </mat-form-field>

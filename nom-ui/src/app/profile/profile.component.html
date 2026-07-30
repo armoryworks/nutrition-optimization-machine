@@ -30,7 +30,7 @@
         <mat-form-field appearance="outline">
           <mat-label>Name</mat-label>
           <input matInput formControlName="name" placeholder="Your name" />
-          @if (profileForm.get('name')?.hasError('required')) {
+          @if (profileForm.get('name')?.hasError('required') && profileForm.get('name')?.touched) {
             <mat-error>Name is required</mat-error>
           }
         </mat-form-field>
@@ -39,7 +39,7 @@
           <mat-form-field appearance="outline">
             <mat-label>Email (optional)</mat-label>
             <input matInput type="email" formControlName="email" placeholder="For sending an invite later" />
-            @if (profileForm.get('email')?.hasError('email')) {
+            @if (profileForm.get('email')?.hasError('email') && profileForm.get('email')?.touched) {
               <mat-error>Please enter a valid email address</mat-error>
             }
           </mat-form-field>

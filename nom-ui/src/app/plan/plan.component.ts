@@ -1,4 +1,5 @@
 import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -438,6 +439,6 @@ export class Plan implements OnInit {
   }
 
   static toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return toLocalDateString(date);
   }
 }

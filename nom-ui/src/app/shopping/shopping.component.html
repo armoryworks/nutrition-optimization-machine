@@ -39,13 +39,13 @@
       <button mat-icon-button (click)="refresh()" aria-label="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text" data-testid="shopping-copy-btn">
+      <button mat-icon-button (click)="exportList('text')" [disabled]="departments().length === 0" matTooltip="Copy as text" aria-label="Copy list as text" data-testid="shopping-copy-btn">
         <mat-icon>content_copy</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV" data-testid="shopping-download-btn">
+      <button mat-icon-button (click)="exportList('csv')" [disabled]="departments().length === 0" matTooltip="Download CSV" aria-label="Download list as CSV" data-testid="shopping-download-btn">
         <mat-icon>download</mat-icon>
       </button>
-      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list" data-testid="shopping-share-btn">
+      <button mat-icon-button (click)="shareList()" [disabled]="departments().length === 0" matTooltip="Share list" aria-label="Share list" data-testid="shopping-share-btn">
         <mat-icon>share</mat-icon>
       </button>
     </div>

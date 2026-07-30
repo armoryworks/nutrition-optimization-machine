@@ -1,18 +1,50 @@
-import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpInterceptorFn,
+  HttpRequest,
+  HttpHandlerFn,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
+import {
+  Observable,
+  ReplaySubject,
+  catchError,
+  finalize,
+  of,
+  switchMap,
+  take,
+  throwError,
+} from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { AuthTokenResponse } from '../models/auth-token-response.model';
 
-let isRefreshing = false;
+/**
+ * Auth endpoints that must be called WITHOUT a bearer token. Everything else —
+ * including /api/auth/manage/* and /api/auth/2fa/* — gets the token attached.
+ */
+const UNAUTHENTICATED_AUTH_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/register-custom',
+  '/api/auth/refresh',
+  '/api/auth/forgotPassword',
+  '/api/auth/resetPassword',
+  '/api/auth/confirm-email',
+  '/api/auth/resend-confirmation',
+];
 
-export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
+/** Shared in-flight refresh so concurrent 401s trigger exactly one refresh call. */
+let refresh$: ReplaySubject<AuthTokenResponse | null> | null = null;
+
+export const authInterceptor: HttpInterceptorFn = (
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Don't attach token to auth endpoints (login, register, refresh, etc.)
-  // except for /manage/info which requires auth
-  if (isAuthEndpoint(req.url) && !req.url.includes('/manage/')) {
+  if (isUnauthenticatedEndpoint(req.url)) {
     return next(req);
   }
 
@@ -21,28 +53,49 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
 
   return next(authedReq).pipe(
     catchError((error) => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && token && !isRefreshing) {
-        isRefreshing = true;
-        return authService.attemptTokenRefresh().pipe(
-          switchMap((result) => {
-            isRefreshing = false;
-            if (result) {
-              return next(addToken(req, result.accessToken));
-            }
-            router.navigate(['/home']);
-            return throwError(() => error);
-          }),
-          catchError((refreshError) => {
-            isRefreshing = false;
-            router.navigate(['/home']);
-            return throwError(() => refreshError);
-          })
-        );
+      if (error instanceof HttpErrorResponse && error.status === 401 && token) {
+        return refreshAndRetry(req, next, authService, router, error);
       }
       return throwError(() => error);
-    })
+    }),
   );
 };
+
+function refreshAndRetry(
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  authService: AuthService,
+  router: Router,
+  originalError: HttpErrorResponse,
+): Observable<never> | ReturnType<HttpHandlerFn> {
+  if (!refresh$) {
+    const subject = new ReplaySubject<AuthTokenResponse | null>(1);
+    refresh$ = subject;
+    authService
+      .attemptTokenRefresh()
+      .pipe(
+        catchError(() => of(null)),
+        finalize(() => {
+          refresh$ = null;
+        }),
+      )
+      .subscribe((result) => {
+        subject.next(result);
+        subject.complete();
+      });
+  }
+
+  return refresh$.pipe(
+    take(1),
+    switchMap((result) => {
+      if (result) {
+        return next(addToken(req, result.accessToken));
+      }
+      router.navigate(['/home']);
+      return throwError(() => originalError);
+    }),
+  );
+}
 
 function addToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
   return req.clone({
@@ -50,6 +103,7 @@ function addToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown
   });
 }
 
-function isAuthEndpoint(url: string): boolean {
-  return url.includes('/api/auth/');
+function isUnauthenticatedEndpoint(url: string): boolean {
+  const path = url.split('?')[0];
+  return UNAUTHENTICATED_AUTH_PATHS.some((p) => path.endsWith(p));
 }

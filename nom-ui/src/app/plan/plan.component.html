@@ -21,13 +21,13 @@
             </mat-select>
           </mat-form-field>
         }
-        <button mat-icon-button (click)="printPlan()" [disabled]="!weekData()" matTooltip="Print meal plan" data-testid="plan-print-btn">
+        <button mat-icon-button (click)="printPlan()" [disabled]="!weekData()" matTooltip="Print meal plan" aria-label="Print meal plan" data-testid="plan-print-btn">
           <mat-icon>print</mat-icon>
         </button>
-        <a mat-icon-button routerLink="/plan/curated" matTooltip="Browse curated plans">
+        <a mat-icon-button routerLink="/plan/curated" matTooltip="Browse curated plans" aria-label="Browse curated plans">
           <mat-icon>auto_awesome</mat-icon>
         </a>
-        <a mat-icon-button routerLink="/plan/rules" matTooltip="Manage rules">
+        <a mat-icon-button routerLink="/plan/rules" matTooltip="Manage rules" aria-label="Manage rules">
           <mat-icon>tune</mat-icon>
         </a>
         <button mat-stroked-button
@@ -43,11 +43,11 @@
           Shuffle
         </button>
         <div class="nom-plan__nav" data-testid="plan-nav">
-          <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week">
+          <button mat-icon-button (click)="navigateWeek(-1)" matTooltip="Previous week" aria-label="Previous week">
             <mat-icon>chevron_left</mat-icon>
           </button>
           <button mat-stroked-button (click)="goToToday()" [disabled]="isCurrentWeek()">Today</button>
-          <button mat-icon-button (click)="navigateWeek(1)" matTooltip="Next week">
+          <button mat-icon-button (click)="navigateWeek(1)" matTooltip="Next week" aria-label="Next week">
             <mat-icon>chevron_right</mat-icon>
           </button>
         </div>
@@ -213,7 +213,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Plan Name</mat-label>
               <input matInput formControlName="name" placeholder="e.g. Spring Weight Loss Plan" />
-              @if (createForm.get('name')?.hasError('required')) {
+              @if (createForm.get('name')?.hasError('required') && createForm.get('name')?.touched) {
                 <mat-error>Plan name is required</mat-error>
               }
             </mat-form-field>
@@ -268,7 +268,7 @@
               <mat-label>Invitation Code</mat-label>
               <input matInput formControlName="invitationCode" placeholder="Paste invitation code here" />
               <mat-icon matPrefix>link</mat-icon>
-              @if (joinForm.get('invitationCode')?.hasError('required')) {
+              @if (joinForm.get('invitationCode')?.hasError('required') && joinForm.get('invitationCode')?.touched) {
                 <mat-error>Invitation code is required</mat-error>
               }
             </mat-form-field>

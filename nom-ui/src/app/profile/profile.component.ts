@@ -1,4 +1,5 @@
 import { Component, inject, input, output, signal, computed, effect, untracked, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -279,7 +280,7 @@ export class Profile implements OnInit {
     // Date of Birth
     const dobId = this.getAttributeTypeId('Date of Birth');
     if (dobId && form.dateOfBirth) {
-      attributes.push({ attributeTypeRefId: dobId, value: form.dateOfBirth.toISOString().split('T')[0] });
+      attributes.push({ attributeTypeRefId: dobId, value: toLocalDateString(form.dateOfBirth) });
     }
 
     // Activity Level — store the selected referenceId as the value
