@@ -18,10 +18,13 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public AuditOrchestrationService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+        private readonly ICurrentUserService _currentUser;
+
+        public AuditOrchestrationService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ICurrentUserService currentUser)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _currentUser = currentUser;
         }
 
         public async Task LogAsync(long personId, string actionType, string details)
@@ -46,15 +49,8 @@ namespace Nom.Orch.Services
             await _dbContext.SaveChangesAsync();
         }
 
-        private long GetCurrentPersonId()
-        {
-            var personIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirstValue("PersonId");
-            if (long.TryParse(personIdClaim, out long personId))
-            {
-                return personId;
-            }
-            // Fallback to System user if no claim is present (e.g., during registration)
-            return Nom.Data.SystemConstants.SystemPersonId;
-        }
+        // System fallback: audit rows written outside a user context (e.g. registration)
+        // are attributed to the System person.
+        private long GetCurrentPersonId() => _currentUser.PersonIdOrSystem;
     }
 }

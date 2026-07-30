@@ -19,17 +19,20 @@ namespace Nom.Orch.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICurrentUserService _currentUser;
         private readonly ILogger<RecipeScrapingService> _logger;
         private readonly HttpClient _httpClient;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
             IHttpContextAccessor httpContextAccessor,
+            ICurrentUserService currentUser,
             ILogger<RecipeScrapingService> logger,
             HttpClient httpClient)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _currentUser = currentUser;
             _logger = logger;
             _httpClient = httpClient;
         }
@@ -690,25 +693,11 @@ namespace Nom.Orch.Services
             }
         }
 
-        private string GetCurrentUserId()
-        {
-            var userId = _httpContextAccessor.HttpContext?.User?.Claims.First(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId) || !long.TryParse(userId, out var id))
-            {
-                throw new UnauthorizedAccessException("User not authenticated");
-            }
-            return userId;
-        }
+        // Note: the previous implementation long.TryParse'd the GUID user id and
+        // therefore threw for every authenticated user.
+        private string GetCurrentUserId() => _currentUser.RequiredUserId;
 
-        private long? GetCurrentPersonId()
-        {
-            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
-            if (long.TryParse(personIdClaim, out long personId))
-            {
-                return personId;
-            }
-            return null;
-        }
+        private long? GetCurrentPersonId() => _currentUser.PersonId;
 
         #endregion
     }

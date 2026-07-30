@@ -29,14 +29,18 @@ namespace Nom.Orch.Services
         private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
         private readonly ILogger<PersonOrchestrationService> _logger;
 
+        private readonly ICurrentUserService _currentUser;
+
         public PersonOrchestrationService(
             ApplicationDbContext dbContext,
             IHttpContextAccessor httpContextAccessor,
+            ICurrentUserService currentUser,
             IPrivacyOrchestrationService privacyOrchestrationService,
             ILogger<PersonOrchestrationService> logger)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _currentUser = currentUser;
             _privacyOrchestrationService = privacyOrchestrationService;
             _logger = logger;
         }
@@ -461,15 +465,7 @@ namespace Nom.Orch.Services
         /// Retrieves the current PersonId from the authenticated user's claims.
         /// Returns null if the user is in registration phase and doesn't have a PersonId yet.
         /// </summary>
-        public long? GetCurrentPersonId()
-        {
-            var personIdClaim = _httpContextAccessor.HttpContext?.User?.Claims?.FirstOrDefault(c => c.Type == "PersonId")?.Value;
-            if (long.TryParse(personIdClaim, out long personId))
-            {
-                return personId;
-            }
-            return null;
-        }
+        public long? GetCurrentPersonId() => _currentUser.PersonId;
 
         /// <summary>
         /// Retrieves the current PersonId from the authenticated user's claims.
