@@ -64,13 +64,10 @@
       @if (userMenuOpen()) {
         <div
           class="nom-header__popover-backdrop"
-          (click)="userMenuOpen.set(false)"
-          (keydown.escape)="userMenuOpen.set(false)"
-          tabindex="-1"
-          role="button"
-          aria-label="Close menu"
+          (click)="closeUserMenu()"
+          aria-hidden="true"
         ></div>
-        <nom-user-menu (closed)="userMenuOpen.set(false)"></nom-user-menu>
+        <nom-user-menu (closed)="closeUserMenu()"></nom-user-menu>
       }
     } @else {
       <button
@@ -90,10 +87,7 @@
         <div
           class="nom-header__popover-backdrop"
           (click)="loginPopoverOpen.set(false)"
-          (keydown.escape)="loginPopoverOpen.set(false)"
-          tabindex="-1"
-          role="button"
-          aria-label="Close popover"
+          aria-hidden="true"
         ></div>
         <nom-login-popover (closed)="loginPopoverOpen.set(false)"></nom-login-popover>
       }

@@ -42,19 +42,13 @@
     class="nom-sidebar-backdrop"
     [class.nom-sidebar-backdrop--visible]="sidebarOpen()"
     (click)="toggleSidebar()"
-    (keydown.escape)="toggleSidebar()"
-    tabindex="-1"
-    role="button"
-    aria-label="Close sidebar"
+    aria-hidden="true"
   ></div>
   <div
     class="nom-sidebar-backdrop"
     [class.nom-sidebar-backdrop--visible]="navOpen()"
     (click)="closeNav()"
-    (keydown.escape)="closeNav()"
-    tabindex="-1"
-    role="button"
-    aria-label="Close navigation"
+    aria-hidden="true"
   ></div>
 }
 

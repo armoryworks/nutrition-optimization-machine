@@ -1,4 +1,11 @@
-import { Component, inject, output, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  output,
+  signal,
+  DestroyRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -50,33 +57,39 @@ export class LoginPopover {
     this.errorMessage.set('');
 
     const { email, password } = this.loginForm.getRawValue();
-    this.authService.login(email!, password!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.closed.emit();
-        this.checkOnboardingState();
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.errorMessage.set(
-          err.status === 401
-            ? 'Invalid email or password.'
-            : 'Unable to sign in. Please try again.'
-        );
-      },
-    });
+    this.authService
+      .login(email!, password!)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loading.set(false);
+          this.closed.emit();
+          this.checkOnboardingState();
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.errorMessage.set(
+            err.status === 401
+              ? 'Invalid email or password.'
+              : 'Unable to sign in. Please try again.',
+          );
+        },
+      });
   }
 
   private checkOnboardingState(): void {
     const personId = this.authService.personId();
     if (!personId) return;
 
-    this.personService.getOnboardingState(personId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (state) => {
-        if (!state.isComplete) {
-          this.router.navigate(['/onboarding']);
-        }
-      },
-    });
+    this.personService
+      .getOnboardingState(personId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (state) => {
+          if (!state.isComplete) {
+            this.router.navigate(['/onboarding']);
+          }
+        },
+      });
   }
 }
