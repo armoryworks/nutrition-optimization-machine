@@ -7,6 +7,7 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -76,8 +77,7 @@ interface RawAccumulator {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule,
-  ],
+    MatTooltipModule, ErrorBanner],
   templateUrl: './shopping.component.html',
   styleUrl: './shopping.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

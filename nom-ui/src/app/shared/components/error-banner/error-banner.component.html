@@ -1,0 +1,16 @@
+<div class="nom-error-banner" role="alert" data-testid="error-banner">
+  <mat-icon class="nom-error-banner__icon">error_outline</mat-icon>
+  <p class="nom-error-banner__message">{{ message() }}</p>
+  @if (showRetry()) {
+    <button
+      mat-stroked-button
+      class="nom-error-banner__retry"
+      data-testid="error-banner-retry-btn"
+      (click)="retry.emit()"
+    >
+      <mat-icon>refresh</mat-icon>
+      {{ retryLabel() }}
+    </button>
+  }
+  <ng-content />
+</div>

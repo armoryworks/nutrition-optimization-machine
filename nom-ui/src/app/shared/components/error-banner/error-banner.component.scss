@@ -1,0 +1,22 @@
+@use 'variables' as vars;
+@use 'mixins';
+
+.nom-error-banner {
+  @include mixins.nom-empty-state(vars.$spacing-8);
+  gap: vars.$spacing-2;
+}
+
+.nom-error-banner__icon {
+  @include mixins.nom-empty-state-icon(2rem);
+  color: var(--mat-sys-error);
+  opacity: 1;
+}
+
+.nom-error-banner__message {
+  @include mixins.nom-empty-state-text;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-error-banner__retry {
+  margin-top: vars.$spacing-2;
+}

@@ -12,10 +12,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (error()) {
-    <div class="nom-dashboard__error">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error() }}</p>
-    </div>
+    <nom-error-banner [message]="error()!" />
   } @else if (cookbooks().length === 0) {
     <div class="nom-dashboard__empty">
       <mat-icon class="nom-dashboard__empty-icon">collections_bookmark</mat-icon>

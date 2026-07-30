@@ -56,14 +56,7 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (error()) {
-    <div class="nom-shopping__empty">
-      <mat-icon class="nom-shopping__empty-icon">error_outline</mat-icon>
-      <p>{{ error() }}</p>
-      <button mat-stroked-button (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
-        Try Again
-      </button>
-    </div>
+    <nom-error-banner [message]="error()" [showRetry]="true" (retry)="refresh()" />
   } @else if (departments().length === 0) {
     <div class="nom-shopping__empty" data-testid="shopping-empty">
       <mat-icon class="nom-shopping__empty-icon">shopping_cart</mat-icon>

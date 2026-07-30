@@ -1,4 +1,5 @@
 import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -21,8 +22,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
 
     MatIconModule,
     MatButtonModule,
-    MatProgressSpinnerModule,
-  ],
+    MatProgressSpinnerModule, ErrorBanner],
   templateUrl: './cookbook-detail.component.html',
   styleUrls: ['./cookbook-detail.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

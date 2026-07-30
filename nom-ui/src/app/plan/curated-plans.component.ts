@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 
@@ -15,7 +16,7 @@ import { PlanModel } from '../core/models/plan.model';
 
 @Component({
   selector: 'nom-curated-plans',
-  imports: [RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, ErrorBanner],
   templateUrl: './curated-plans.component.html',
   styleUrl: './curated-plans.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -4,11 +4,9 @@
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   } @else if (error()) {
-    <div class="nom-dashboard__error">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error() }}</p>
+    <nom-error-banner [message]="error()!">
       <a mat-flat-button routerLink="/cookbooks">Back to Cookbooks</a>
-    </div>
+    </nom-error-banner>
   } @else if (cookbook()) {
     <div class="nom-dashboard__header">
       <div>

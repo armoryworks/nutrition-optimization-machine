@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +16,7 @@ interface RecipeCategory {
 
 @Component({
   selector: 'nom-home',
-  imports: [MatIconModule, RouterLink, Dashboard],
+  imports: [MatIconModule, RouterLink, Dashboard, ErrorBanner],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
