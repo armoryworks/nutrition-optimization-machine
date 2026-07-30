@@ -1,3 +1,11 @@
+> **⚠️ ARCHIVED — DO NOT FOLLOW (marked 2026-07-30)**
+>
+> This document describes a previous generation of the codebase (largely the UI archived
+> in commit `696db43` and the since-removed EF-migrations workflow). Its claims were
+> verified inaccurate against the current code in the July 2026 deep-dive review.
+> Kept for historical reference only — trust `CLAUDE.md` and the code itself.
+> Current, verified findings: `docs/DEEP_DIVE_REVIEW_2026-07.md`.
+
 # Implementation Status
 
 ## Overview
