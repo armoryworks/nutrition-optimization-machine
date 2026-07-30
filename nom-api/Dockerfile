@@ -28,8 +28,14 @@ RUN dotnet publish "Nom.Api/Nom.Api.csproj" -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
-# Install health check tools
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install health check tools + Tesseract OCR natives and English traineddata.
+# The Tesseract .NET wrapper P/Invokes versioned sonames; the symlinks map the distro
+# libraries to the names the wrapper expects. Verify with a container smoke test.
+RUN apt-get update && apt-get install -y --no-install-recommends curl tesseract-ocr tesseract-ocr-eng libleptonica-dev && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /usr/lib/x86_64-linux-gnu/libtesseract50.so \
+    && ln -sf /usr/lib/x86_64-linux-gnu/liblept.so.5 /usr/lib/x86_64-linux-gnu/libleptonica-1.82.0.so \
+    && mkdir -p /app/tessdata \
+    && cp /usr/share/tesseract-ocr/*/tessdata/eng.traineddata /app/tessdata/
 
 # Copy published application
 COPY --from=build /app/publish .

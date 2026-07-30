@@ -22,7 +22,6 @@ namespace Nom.Orch.Interfaces
         Task<List<UserRatingResponseModel>> GetUserFavoritesAsync(string userId);
         
         // User authentication (from Mealie)
-        Task<AuthTokenResponseModel> AuthenticateUserAsync(LoginRequestModel request);
         Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request);
         Task<bool> ForgotPasswordAsync(ForgotPasswordRequestModel request);
         Task<bool> ResetPasswordAsync(ResetPasswordRequestModel request);

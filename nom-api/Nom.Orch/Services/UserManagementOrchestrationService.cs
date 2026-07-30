@@ -43,7 +43,7 @@ namespace Nom.Orch.Services
         {
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null)
-                throw new Exception($"User with ID {request.UserId} not found.");
+                throw new KeyNotFoundException($"User with ID {request.UserId} not found.");
 
             // Update each claim
             await UpdateClaimAsync(user, "CanManageCuration", request.CanManageCuration);
@@ -92,6 +92,12 @@ namespace Nom.Orch.Services
                     .CountAsync();
             }
 
+            // Stored user claims only (granted via _GrantInitialAdminClaims.sql or user
+            // management) -- deliberately not the per-household claims derived at sign-in.
+            var storedClaims = await _userManager.GetClaimsAsync(user);
+            var canManageCuration = storedClaims.Any(c => c.Type == "CanManageCuration" && c.Value == "true");
+            var canManageUserRoles = storedClaims.Any(c => c.Type == "CanManageUserRoles" && c.Value == "true");
+
             return new UserResponseModel
             {
                 Id = user.Id,
@@ -107,7 +113,9 @@ namespace Nom.Orch.Services
                 AccessFailedCount = user.AccessFailedCount,
                 IsActive = true, // Default value
                 CreatedDate = DateTime.UtcNow, // Default value
-                RecipeCount = recipeCount
+                RecipeCount = recipeCount,
+                CanManage = canManageUserRoles,
+                IsAdmin = canManageCuration || canManageUserRoles
             };
         }
 
@@ -164,7 +172,7 @@ namespace Nom.Orch.Services
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
-                throw new Exception($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
 
             return await GetUserByIdAsync(user.Id);
@@ -174,7 +182,7 @@ namespace Nom.Orch.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                throw new Exception($"User with ID {userId} not found.");
+                throw new KeyNotFoundException($"User with ID {userId} not found.");
 
             user.UserName = request.Username ?? user.UserName;
             user.Email = request.Email ?? user.Email;
@@ -182,7 +190,7 @@ namespace Nom.Orch.Services
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                throw new Exception($"Failed to update user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Failed to update user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
 
             return await GetUserByIdAsync(user.Id);
@@ -192,12 +200,12 @@ namespace Nom.Orch.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                throw new Exception($"User with ID {userId} not found.");
+                throw new KeyNotFoundException($"User with ID {userId} not found.");
 
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
-                throw new Exception($"Failed to delete user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Failed to delete user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
         }
 
@@ -288,34 +296,6 @@ namespace Nom.Orch.Services
             }).ToList();
         }
 
-        public async Task<AuthTokenResponseModel> AuthenticateUserAsync(LoginRequestModel request)
-        {
-            var user = await _userManager.FindByNameAsync(request.Username);
-            if (user == null)
-            {
-                _logger.LogWarning("Authentication failed: User not found for username {Username}", request.Username);
-                return null;
-            }
-
-            var isValidPassword = await _userManager.CheckPasswordAsync(user, request.Password);
-            if (!isValidPassword)
-            {
-                _logger.LogWarning("Authentication failed: Invalid password for user {UserId}", user.Id);
-                return null;
-            }
-
-            // Generate JWT token (this would need proper JWT service)
-            var token = await GenerateJwtTokenAsync(user);
-            
-            return new AuthTokenResponseModel
-            {
-                AccessToken = token,
-                RefreshToken = Guid.NewGuid().ToString(), // Simple refresh token
-                ExpiresIn = 3600, // 1 hour
-                TokenType = "Bearer"
-            };
-        }
-
         public async Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -334,7 +314,7 @@ namespace Nom.Orch.Services
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             // In a real implementation, you would send this token via email
-            _logger.LogInformation("Password reset token generated for user {UserId}: {Token}", user.Id, token);
+            _logger.LogInformation("Password reset token generated for user {UserId}", user.Id);
             return true;
         }
 
@@ -363,7 +343,7 @@ namespace Nom.Orch.Services
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
-                throw new Exception($"Failed to register user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Failed to register user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
 
             // Always create a PersonEntity for the new user
@@ -385,12 +365,43 @@ namespace Nom.Orch.Services
             return await GetUserByIdAsync(user.Id);
         }
 
+        private const int MaxUserImageBytes = 5 * 1024 * 1024;
+        private static readonly string[] UserImageExtensions = { ".jpg", ".png", ".webp" };
+
+        private static string? DetectImageExtension(byte[] data)
+        {
+            if (data.Length > 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+                return ".jpg";
+            if (data.Length > 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+                return ".png";
+            if (data.Length > 12 && data[0] == 'R' && data[1] == 'I' && data[2] == 'F' && data[3] == 'F'
+                && data[8] == 'W' && data[9] == 'E' && data[10] == 'B' && data[11] == 'P')
+                return ".webp";
+            return null;
+        }
+
         public async Task<string> UploadUserImageAsync(string userId, byte[] imageData)
         {
+            if (imageData == null || imageData.Length == 0)
+                throw new ArgumentException("Image data is required.");
+            if (imageData.Length > MaxUserImageBytes)
+                throw new ArgumentException("Image exceeds the 5 MB size limit.");
+
+            var extension = DetectImageExtension(imageData)
+                ?? throw new ArgumentException("Unsupported image format. Only JPEG, PNG, and WebP are accepted.");
+
             var imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "user-images");
             Directory.CreateDirectory(imagesDir);
 
-            var fileName = $"{userId}.jpg";
+            // Remove any previous image with a different extension before writing the new one.
+            foreach (var ext in UserImageExtensions)
+            {
+                var stale = Path.Combine(imagesDir, $"{userId}{ext}");
+                if (ext != extension && File.Exists(stale))
+                    File.Delete(stale);
+            }
+
+            var fileName = $"{userId}{extension}";
             var filePath = Path.Combine(imagesDir, fileName);
             await File.WriteAllBytesAsync(filePath, imageData);
 
@@ -400,13 +411,21 @@ namespace Nom.Orch.Services
 
         public async Task<bool> DeleteUserImageAsync(string userId)
         {
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "user-images", $"{userId}.jpg");
-            if (!File.Exists(filePath))
-                return false;
+            var imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "user-images");
+            var deleted = false;
+            foreach (var ext in UserImageExtensions)
+            {
+                var filePath = Path.Combine(imagesDir, $"{userId}{ext}");
+                if (File.Exists(filePath))
+                {
+                    await Task.Run(() => File.Delete(filePath));
+                    deleted = true;
+                }
+            }
 
-            await Task.Run(() => File.Delete(filePath));
-            _logger.LogInformation("Deleted user image for {UserId}", userId);
-            return true;
+            if (deleted)
+                _logger.LogInformation("Deleted user image for {UserId}", userId);
+            return deleted;
         }
 
         public async Task<List<ApiTokenResponseModel>> GetUserApiTokensAsync(string userId)
@@ -479,46 +498,5 @@ namespace Nom.Orch.Services
             return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
-        private async Task<string> GenerateJwtTokenAsync(IdentityUser user)
-        {
-            try
-            {
-                // Get user claims
-                var claims = await _userManager.GetClaimsAsync(user);
-                
-                // Add standard claims
-                var standardClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Name, user.UserName ?? ""),
-                    new Claim(ClaimTypes.Email, user.Email ?? ""),
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-                };
-
-                // Combine user claims with standard claims
-                var allClaims = standardClaims.Concat(claims).ToList();
-
-                // Create JWT token
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-secret-key-here-minimum-32-characters"));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    issuer: "NOM-API",
-                    audience: "NOM-Client",
-                    claims: allClaims,
-                    expires: DateTime.UtcNow.AddHours(24),
-                    signingCredentials: creds
-                );
-
-                return new JwtSecurityTokenHandler().WriteToken(token);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating JWT token for user {UserId}", user.Id);
-                throw;
-            }
-        }
     }
 }

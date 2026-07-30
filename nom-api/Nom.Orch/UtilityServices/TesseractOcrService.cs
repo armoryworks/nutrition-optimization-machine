@@ -54,6 +54,12 @@ namespace Nom.Orch.UtilityServices
                 // Extract text using Tesseract
                 var extractedText = await ExtractTextFromImageAsync(image);
 
+                if (string.IsNullOrWhiteSpace(extractedText))
+                {
+                    throw new InvalidOperationException(
+                        "OCR produced no text. The Tesseract engine or its eng.traineddata may not be installed on this server.");
+                }
+
                 // Parse recipe data from extracted text
                 var recipeData = ParseRecipeFromText(extractedText);
 
@@ -61,22 +67,11 @@ namespace Nom.Orch.UtilityServices
 
                 return recipeData;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not InvalidOperationException)
             {
                 _logger.LogError(ex, "Failed to process image with Tesseract OCR");
-
-                // Fallback to basic recipe data
-                return new OcrRecipeData
-                {
-                    Title = "OCR Recipe",
-                    Description = "Recipe extracted from image",
-                    Ingredients = new List<string> { "Ingredient 1", "Ingredient 2" },
-                    Instructions = new List<string> { "Step 1", "Step 2" },
-                    PrepTime = "15 minutes",
-                    CookTime = "30 minutes",
-                    TotalTime = "45 minutes",
-                    Yield = "4 servings"
-                };
+                // Never fabricate recipe content on failure -- surface the error to the caller.
+                throw new InvalidOperationException("Failed to extract recipe text from the image.", ex);
             }
         }
 

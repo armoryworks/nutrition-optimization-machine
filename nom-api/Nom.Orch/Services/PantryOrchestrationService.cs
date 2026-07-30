@@ -12,7 +12,7 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PantryOrchestrationService> _logger;
 
-        // Well-known ItemStatusType reference IDs (must match seed data in _CustomMigration.cs)
+        // Well-known ItemStatusType reference IDs (must match seed data in db/seed.sql)
         private const long StatusInPantryId = 502L;
         private const long StatusUsedId = 503L;
         private const long StatusExpiredId = 504L;

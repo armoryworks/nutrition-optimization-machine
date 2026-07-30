@@ -253,19 +253,20 @@ namespace Nom.Orch.Services
 
                 var personId = GetCurrentPersonId();
 
-                // Resolve category names to IDs, creating missing categories
-                var categoryIds = new List<long>();
-                foreach (var name in request.Categories)
+                // Resolve category names to IDs in one query, creating missing categories in one save
+                var existingCategories = await _dbContext.Categories
+                    .Where(c => request.Categories.Contains(c.Name))
+                    .ToListAsync();
+                var newCategories = request.Categories
+                    .Except(existingCategories.Select(c => c.Name))
+                    .Select(name => new CategoryEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId })
+                    .ToList();
+                if (newCategories.Count > 0)
                 {
-                    var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == name);
-                    if (category == null)
-                    {
-                        category = new CategoryEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId };
-                        _dbContext.Categories.Add(category);
-                        await _dbContext.SaveChangesAsync();
-                    }
-                    categoryIds.Add(category.Id);
+                    _dbContext.Categories.AddRange(newCategories);
+                    await _dbContext.SaveChangesAsync();
                 }
+                var categoryIds = existingCategories.Concat(newCategories).Select(c => c.Id).ToList();
 
                 // Load existing assignments to avoid duplicates
                 var existing = await _dbContext.RecipeCategories
@@ -340,19 +341,20 @@ namespace Nom.Orch.Services
 
                 var personId = GetCurrentPersonId();
 
-                // Resolve tag names to IDs, creating missing tags
-                var tagIds = new List<long>();
-                foreach (var name in request.Tags)
+                // Resolve tag names to IDs in one query, creating missing tags in one save
+                var existingTags = await _dbContext.Tags
+                    .Where(t => request.Tags.Contains(t.Name))
+                    .ToListAsync();
+                var newTags = request.Tags
+                    .Except(existingTags.Select(t => t.Name))
+                    .Select(name => new TagEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId })
+                    .ToList();
+                if (newTags.Count > 0)
                 {
-                    var tag = await _dbContext.Tags.FirstOrDefaultAsync(t => t.Name == name);
-                    if (tag == null)
-                    {
-                        tag = new TagEntity { Name = name, CreatedDate = DateTime.UtcNow, CreatedByPersonId = personId };
-                        _dbContext.Tags.Add(tag);
-                        await _dbContext.SaveChangesAsync();
-                    }
-                    tagIds.Add(tag.Id);
+                    _dbContext.Tags.AddRange(newTags);
+                    await _dbContext.SaveChangesAsync();
                 }
+                var tagIds = existingTags.Concat(newTags).Select(t => t.Id).ToList();
 
                 // Load existing assignments to avoid duplicates
                 var existing = await _dbContext.RecipeTags

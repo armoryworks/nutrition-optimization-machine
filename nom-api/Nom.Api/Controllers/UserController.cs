@@ -75,6 +75,12 @@ namespace Nom.Api.Controllers
         [HttpPut("{userId}")]
         public async Task<ActionResult<UserResponseModel>> UpdateUser(string userId, [FromBody] UpdateUserRequestModel request)
         {
+            // Users may update only their own account; CanManageUserRoles may update anyone.
+            if (userId != GetCurrentUserId() && !User.HasClaim("CanManageUserRoles", "true"))
+            {
+                return Forbid();
+            }
+
             var user = await _userService.UpdateUserAsync(userId, request);
             if (user == null)
             {

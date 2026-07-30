@@ -15,7 +15,6 @@ namespace Nom.Api.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<RateLimitingMiddleware> _logger;
         private readonly IMemoryCache _cache;
-        private readonly ConcurrentDictionary<string, RateLimitInfo> _rateLimitStore;
 
         // Rate limiting configuration
         private const int MaxRequestsPerMinute = 100;
@@ -28,7 +27,6 @@ namespace Nom.Api.Middleware
             _next = next;
             _logger = logger;
             _cache = cache;
-            _rateLimitStore = new ConcurrentDictionary<string, RateLimitInfo>();
         }
 
         public async Task InvokeAsync(HttpContext context)

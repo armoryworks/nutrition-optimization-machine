@@ -106,26 +106,9 @@ namespace Nom.Api.Authentication
                         identity.AddClaim(new Claim("admin_plan", planId));
                 }
 
-                // Add global permissions if user has any admin roles
-                if (householdMemberships.Any(hm => hm.IsAdmin) || 
-                    planParticipations.Any(pp => pp.IsAdmin))
-                {
-                    identity.AddClaim(new Claim("admin", "true"));
-                }
-
-                // Add curation permissions if user has any management roles
-                if (householdMemberships.Any(hm => hm.CanManage) ||
-                    planParticipations.Any(pp => pp.CanManage))
-                {
-                    identity.AddClaim(new Claim("CanManageCuration", "true"));
-                }
-
-                // Add user management permissions if user is admin anywhere
-                if (householdMemberships.Any(hm => hm.IsAdmin) ||
-                    planParticipations.Any(pp => pp.IsAdmin))
-                {
-                    identity.AddClaim(new Claim("CanManageUserRoles", "true"));
-                }
+                // System-wide permissions (CanManageCuration, CanManageUserRoles) come only
+                // from stored user claims included by the base factory. Household/plan admin
+                // roles are tenant-scoped and must never grant global claims.
             }
             else
             {
