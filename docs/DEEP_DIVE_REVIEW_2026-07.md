@@ -88,6 +88,17 @@ This document consolidates the findings into one prioritized backlog. Items mark
 
 ## P2 — Architecture & hygiene
 
+> **Progress 2026-07-30 (overnight session):** dead backend infrastructure deleted;
+> `ICurrentUserService` consolidation done (also fixed three GetCurrentUserId copies
+> that threw for every authenticated user); shopping domain logic extracted to
+> `core/domain/shopping` and adopted by pantry (divergent classifier eliminated);
+> `HouseholdStore` caches the household list across 10 former fetch sites;
+> `ShuffleFlowService` deduplicates the plan/dashboard shuffle flow; basic focus
+> management + real Escape handling landed. Test counts: backend 17, frontend 21.
+> Still open below: error/loading convention unification, form-validation pattern,
+> CancellationToken threading, remaining responsive pass, `Nom.Import` decision,
+> plan component calendar/wizard split, build guardrails.
+
 - **Delete ~9,500 LOC of dead backend infrastructure** (`Nom.Api/Core|Factories|DI|Events`,
   `Nom.Data/CustomMigration`) — never DI-registered, latently broken (`_BaseRepository`
   query can't be translated by EF). Also: `test_ollama_integration.cs` (doesn't compile),
