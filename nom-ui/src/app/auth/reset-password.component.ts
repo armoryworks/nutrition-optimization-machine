@@ -54,7 +54,10 @@ export class ResetPassword {
   }
 
   onSubmit(): void {
-    if (this.resetForm.invalid) return;
+    if (this.resetForm.invalid) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
 
     this.loading.set(true);
     this.errorMessage.set('');

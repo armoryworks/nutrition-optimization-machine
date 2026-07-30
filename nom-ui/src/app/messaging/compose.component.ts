@@ -50,7 +50,11 @@ export class Compose {
   });
 
   onSubmit(): void {
-    if (this.composeForm.invalid || this.sending()) return;
+    if (this.composeForm.invalid) {
+      this.composeForm.markAllAsTouched();
+      return;
+    }
+    if (this.sending()) return;
     this.sending.set(true);
     this.errorMessage.set('');
 

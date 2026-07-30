@@ -44,7 +44,7 @@
       type="submit"
       class="nom-login-popover__submit"
       data-testid="login-submit-btn"
-      [disabled]="loading() || loginForm.invalid"
+      [disabled]="loading()"
     >
       @if (loading()) {
         <mat-spinner diameter="20"></mat-spinner>

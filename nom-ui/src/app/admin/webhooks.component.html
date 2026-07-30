@@ -84,7 +84,7 @@
 
       <div class="nom-form__actions">
         <a mat-button routerLink="/admin">Back to Admin</a>
-        <button mat-flat-button type="submit" data-testid="webhooks-submit-btn" [disabled]="webhookForm.invalid || saving()">
+        <button mat-flat-button type="submit" data-testid="webhooks-submit-btn" [disabled]="saving()">
           @if (saving()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {

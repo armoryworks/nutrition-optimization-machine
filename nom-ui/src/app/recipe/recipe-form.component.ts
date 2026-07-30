@@ -210,7 +210,11 @@ export class RecipeForm implements OnInit {
   // ── Submit ──
 
   onSubmit(): void {
-    if (this.recipeForm.invalid || this.saving()) return;
+    if (this.recipeForm.invalid) {
+      this.recipeForm.markAllAsTouched();
+      return;
+    }
+    if (this.saving()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 

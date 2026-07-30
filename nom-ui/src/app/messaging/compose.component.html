@@ -46,7 +46,7 @@
 
     <div class="nom-form__actions">
       <a mat-button routerLink="/messages">Cancel</a>
-      <button mat-flat-button type="submit" data-testid="compose-send-btn" [disabled]="composeForm.invalid || sending()">
+      <button mat-flat-button type="submit" data-testid="compose-send-btn" [disabled]="sending()">
         @if (sending()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {

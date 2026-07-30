@@ -90,7 +90,10 @@ export class Household implements OnInit {
   }
 
   onCreateSubmit(): void {
-    if (this.createForm.invalid) return;
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
     const form = this.createForm.getRawValue();
 
     this.loading.set(true);
@@ -124,7 +127,10 @@ export class Household implements OnInit {
   }
 
   onJoinSubmit(): void {
-    if (this.joinForm.invalid) return;
+    if (this.joinForm.invalid) {
+      this.joinForm.markAllAsTouched();
+      return;
+    }
     const token = this.joinForm.getRawValue().token!;
 
     this.loading.set(true);

@@ -40,7 +40,7 @@
     <button mat-button (click)="cancel()">Cancel</button>
     <button mat-flat-button
             (click)="profileRef()?.submit()"
-            [disabled]="profileRef()?.profileForm?.invalid || profileRef()?.loading()"
+            [disabled]="profileRef()?.loading()"
             data-testid="add-member-save-btn">
       Save & Continue
     </button>

@@ -94,7 +94,11 @@ export class Webhooks implements OnInit {
   }
 
   onAddWebhook(): void {
-    if (this.webhookForm.invalid || this.saving()) return;
+    if (this.webhookForm.invalid) {
+      this.webhookForm.markAllAsTouched();
+      return;
+    }
+    if (this.saving()) return;
     this.saving.set(true);
     this.errorMessage.set('');
 
