@@ -96,7 +96,7 @@ db_reset() {
         echo -e "${YELLOW}Resetting database...${NC}"
         docker exec nom_postgres_dev psql -U nom -d nom_dev -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo -e "${GREEN}✓ Database reset${NC}"
-        echo -e "${YELLOW}Run migrations from your API to recreate schema${NC}"
+        echo -e "${YELLOW}Run ./db/apply.sh to recreate the schema${NC}"
     fi
 }
 

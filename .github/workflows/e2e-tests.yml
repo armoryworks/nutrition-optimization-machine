@@ -52,6 +52,23 @@ jobs:
         echo "Waiting for UI..."
         timeout 60 bash -c 'until curl -sf http://localhost:4211; do sleep 2; done'
 
+    - name: Seed admin account
+      run: |
+        # Register the admin user the admin-curation spec expects, then grant the
+        # stored admin claims directly (deterministic, unlike _GrantInitialAdminClaims.sql).
+        curl -sf -X POST http://localhost:8082/api/auth/register-custom \
+          -H 'Content-Type: application/json' \
+          -d '{"email":"admin@example.com","password":"AdminPassword123!","confirmPassword":"AdminPassword123!","fullName":"Test Admin"}'
+        docker exec nom_postgres_test psql -U nom -d nom_test -v ON_ERROR_STOP=1 -c "
+          INSERT INTO auth.\"AspNetUserClaims\" (\"UserId\", \"ClaimType\", \"ClaimValue\")
+          SELECT u.\"Id\", c.claim, 'true'
+          FROM auth.\"AspNetUsers\" u
+          CROSS JOIN (VALUES ('CanManageCuration'), ('CanManageUserRoles')) AS c(claim)
+          WHERE u.\"Email\" = 'admin@example.com'
+            AND NOT EXISTS (
+              SELECT 1 FROM auth.\"AspNetUserClaims\" x
+              WHERE x.\"UserId\" = u.\"Id\" AND x.\"ClaimType\" = c.claim);"
+
     - name: Install test dependencies
       working-directory: ./nom-test
       run: npm ci
@@ -61,6 +78,8 @@ jobs:
       env:
         CYPRESS_BASE_URL: http://localhost:4211
         CYPRESS_API_URL: http://localhost:8082
+        CYPRESS_ADMIN_EMAIL: admin@example.com
+        CYPRESS_ADMIN_PASSWORD: AdminPassword123!
       run: npm run test:e2e
 
     - name: Upload screenshots on failure
@@ -69,14 +88,6 @@ jobs:
       with:
         name: cypress-screenshots
         path: nom-test/cypress/screenshots
-        retention-days: 7
-
-    - name: Upload videos
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: cypress-videos
-        path: nom-test/cypress/videos
         retention-days: 7
 
     - name: Stop test environment

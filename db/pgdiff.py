@@ -20,6 +20,7 @@ Exit codes: 0 = ok (delta on stdout, possibly empty), 2 = error.
 """
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -76,7 +77,7 @@ def get_schemas(db, args):
     rows = psql(db, f"""
         SELECT nspname FROM pg_namespace
         WHERE nspname NOT IN {SYSTEM_SCHEMAS!r} AND nspname NOT LIKE 'pg_%'
-    """.replace("(", "(", 1), args)
+    """, args)
     return {r[0] for r in rows}
 
 
@@ -232,17 +233,37 @@ def main():
         if ddef and (not tdef or tdef != ddef):
             idx_to_add.append(ddef)
 
-    # 4. Drop removed views
-    for key in sorted(set(t_views) - set(d_views)):
-        out.append(f"DROP VIEW {qual(*key)};")
+    # 4. Drop removed AND changed views. Changed views must be dropped before
+    #    column-level changes on tables they reference (step 7); step 10 recreates them.
+    changed_views = {k for k in set(t_views) & set(d_views) if t_views[k] != d_views[k]}
+    for key in sorted((set(t_views) - set(d_views)) | changed_views):
+        out.append(f"DROP VIEW IF EXISTS {qual(*key)};")
 
     # 5. Drop removed tables
     for schema, table in sorted(gone_tables):
         out.append(f"DROP TABLE {qual(schema, table)} CASCADE;")
 
-    # 6. Create new tables (full pg_dump DDL: includes their constraints/indexes)
+    # 6. Create new tables (full pg_dump DDL: includes their constraints/indexes),
+    #    emitted in FK-dependency order so a new table referencing another new table
+    #    is created after its target (alphabetical order broke this).
+    new_table_ddl = {}
     for schema, table in sorted(new_tables):
-        out.append(pg_dump_table(args.desired, f'"{schema}"."{table}"', args))
+        new_table_ddl[(schema, table)] = pg_dump_table(args.desired, f'"{schema}"."{table}"', args)
+
+    ref_re = re.compile(r'REFERENCES\s+("?[\w]+"?)\.("?[\w]+"?)')
+    deps = {}
+    for key, ddl in new_table_ddl.items():
+        refs = {(s.strip('"'), t.strip('"')) for s, t in ref_re.findall(ddl)}
+        deps[key] = {r for r in refs if r in new_table_ddl and r != key}
+
+    emitted = set()
+    while len(emitted) < len(new_table_ddl):
+        ready = sorted(k for k in new_table_ddl if k not in emitted and deps[k] <= emitted)
+        if not ready:  # dependency cycle -- fall back to alphabetical for the rest
+            ready = sorted(k for k in new_table_ddl if k not in emitted)
+        for key in ready:
+            out.append(new_table_ddl[key])
+            emitted.add(key)
 
     # 7. Column-level changes on common tables
     for key in sorted(set(t_cols) | set(d_cols)):
