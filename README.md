@@ -188,18 +188,15 @@ dev.bat start-full
 ./dev.sh start-full
 ```
 
-**3. Apply database migrations** (first time only):
+**3. Database schema** — nothing to do on first start: the Postgres container
+applies `db/schema.sql` and `db/seed.sql` automatically on initial volume
+creation (declarative schema workflow — see [db/README.md](db/README.md)).
 
-Open a shell in the API container and run:
+To update an *existing* database after pulling schema changes:
 
 ```bash
-docker exec -it nom_api_dev bash
-dotnet tool install --global dotnet-ef
-export PATH="$PATH:$HOME/.dotnet/tools"
-dotnet ef database update \
-  --project Nom.Data/Nom.Data.csproj \
-  --startup-project Nom.Api/Nom.Api.csproj \
-  -- --connection "Host=postgres-dev;Database=nom_dev;Username=nom;Password=dev_password"
+./db/apply.sh --dry-run   # preview the delta
+./db/apply.sh             # apply it
 ```
 
 **4. Grant admin claims** (first time, after creating your first account):

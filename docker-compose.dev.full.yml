@@ -18,7 +18,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ./_GrantInitialAdminClaims.sql:/docker-entrypoint-initdb.d/_GrantInitialAdminClaims.sql
+      # Declarative schema + seed applied automatically on first container init.
+      # (_GrantInitialAdminClaims.sql must run manually AFTER the first user registers.)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     networks:
       - nom-dev-network
     healthcheck:

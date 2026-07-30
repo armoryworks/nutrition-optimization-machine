@@ -58,11 +58,12 @@
 3. **Initialize database:**
 
    ```bash
-   # Run database migrations
-   docker-compose exec nom-api dotnet ef database update
-   
-   # Create initial admin user (optional)
-   docker-compose exec postgres psql -U nom -d nom -f /workspace/_GrantInitialAdminClaims.sql
+   # Apply the declarative schema + seed (see db/README.md)
+   docker-compose exec -T postgres psql -U nom -d nom -f - < db/schema.sql
+   docker-compose exec -T postgres psql -U nom -d nom -f - < db/seed.sql
+
+   # Grant admin claims to the FIRST registered user (run after registering)
+   docker-compose exec -T postgres psql -U nom -d nom -f - < _GrantInitialAdminClaims.sql
    ```
 
 4. **Access:**
@@ -152,8 +153,9 @@ curl http://localhost:8080/health
 ### 3. Database Initialization
 
 ```bash
-# Apply migrations
-docker-compose exec nom-api dotnet ef database update
+# Apply the declarative schema + seed (or use ./db/apply.sh against the exposed port)
+docker-compose exec -T postgres psql -U nom -d nom -f - < db/schema.sql
+docker-compose exec -T postgres psql -U nom -d nom -f - < db/seed.sql
 
 # Verify database connection
 docker-compose exec postgres psql -U nom -d nom -c "SELECT version();"
