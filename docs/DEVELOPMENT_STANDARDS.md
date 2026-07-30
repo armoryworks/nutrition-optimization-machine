@@ -364,7 +364,8 @@ All UI development must comply with the five immutable design principles defined
 
 #### Loading
 - **Global overlay** (`LoadingService` + `nom-loading-overlay`): route navigation only.
-  The app shell drives this automatically; components must not add() for in-page work.
+  The app shell drives this automatically. New code must not add() for in-page work;
+  roughly a dozen older components still do and should migrate to inline spinners when touched.
 - **Inline spinners**: all in-page loading (data fetches, form submissions) uses a local
   `loading`/`saving` signal with an inline `mat-spinner`. Do not dim the whole app for
   work scoped to one region.
