@@ -1,9 +1,31 @@
+# Build + push the NOM app images to GHCR under the armoryworks org (the
+# deployment infrastructure pulls ghcr.io/armoryworks/nom-api|nom-ui — see the
+# armoryworks/nommeal-deploy repo).
+#
+# Because this repo lives under a personal account, the default GITHUB_TOKEN
+# cannot write armoryworks org packages. Add a repo secret GHCR_ARMORYWORKS_PAT:
+# a fine-grained/classic PAT from an armoryworks org member with
+# write:packages. (If this repo is ever moved into the org, swap the login
+# back to GITHUB_TOKEN and delete the secret.)
+#
+# Tags pushed per image:
+#   latest        floating
+#   <git tag>     on v* tag pushes (e.g. v1.2.0)
+#   sha-<sha>     immutable, what deploys should pin
+
 name: Build and Package
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-package-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -15,40 +37,33 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to GHCR (armoryworks org)
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_ARMORYWORKS_PAT }}
 
-      - name: Build and push Backend
-        uses: docker/build-push-action@v5
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
         with:
           context: ./nom-api
           push: true
           tags: |
-            your-org/nom-api:latest
-            your-org/nom-api:${{ github.ref_name }}
+            ghcr.io/armoryworks/nom-api:latest
+            ghcr.io/armoryworks/nom-api:${{ github.ref_name }}
+            ghcr.io/armoryworks/nom-api:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Frontend
-        uses: docker/build-push-action@v5
+      - name: Build and push UI image
+        uses: docker/build-push-action@v6
         with:
           context: ./nom-ui
           push: true
           tags: |
-            your-org/nom-ui:latest
-            your-org/nom-ui:${{ github.ref_name }}
+            ghcr.io/armoryworks/nom-ui:latest
+            ghcr.io/armoryworks/nom-ui:${{ github.ref_name }}
+            ghcr.io/armoryworks/nom-ui:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
