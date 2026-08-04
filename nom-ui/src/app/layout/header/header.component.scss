@@ -21,30 +21,53 @@
   color: inherit;
 }
 
-.nom-header__brand-icon {
-  font-size: vars.$icon-size-xl;
-  width: vars.$icon-size-xl;
-  height: vars.$icon-size-xl;
-  color: var(--mat-sys-primary);
+// Brand lockup mirrors the nommeal.com nav hero: shield-N, amber name over a
+// rule, justified mono sub-line. The shield is a CSS mask so it takes its
+// colour from the theme (light on dark, dark on light).
+.nom-header__brand-shield {
+  display: block;
+  width: 36px;
+  height: 42px;
+  flex-shrink: 0;
+  background: var(--mat-sys-on-surface);
+  -webkit-mask: url('/nom-shield.svg') center / contain no-repeat;
+  mask: url('/nom-shield.svg') center / contain no-repeat;
 }
 
 .nom-header__brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1;
+  gap: 2px;
+  line-height: 1.1;
 }
 
 .nom-header__brand-name {
-  font-size: vars.$font-size-lg;
-  font-weight: vars.$font-weight-bold;
-  color: var(--mat-sys-on-surface);
+  font-size: vars.$font-size-md;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-tertiary);
   letter-spacing: 0.02em;
 }
 
+.nom-header__brand-rule {
+  display: none;
+  width: 100%;
+  height: 1px;
+  background: var(--mat-sys-on-surface);
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    display: block;
+  }
+}
+
 .nom-header__brand-subtitle {
-  font-size: vars.$font-size-xs;
-  color: var(--mat-sys-on-surface-variant);
-  opacity: 0.7;
+  font-family: 'IBM Plex Mono', Consolas, Monaco, monospace;
+  font-size: 9px;
+  font-weight: vars.$font-weight-medium;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface);
+  text-align: justify;
+  text-align-last: justify;
   display: none;
 
   @media (min-width: vars.$breakpoint-tablet) {
