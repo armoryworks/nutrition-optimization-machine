@@ -33,7 +33,12 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--mat-sys-surface);
+  // armoryworks.com hero glow: teal radials over the surface tone
+  background:
+    radial-gradient(ellipse at top left, rgba(13, 148, 136, 0.12), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(45, 212, 191, 0.08), transparent 60%),
+    var(--mat-sys-surface);
+  background-attachment: fixed;
   color: var(--mat-sys-on-surface);
 }
 

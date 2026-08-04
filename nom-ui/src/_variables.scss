@@ -86,10 +86,11 @@ $elevation-4: 0 8px 24px rgba(0, 0, 0, 0.14), 0 4px 8px rgba(0, 0, 0, 0.08);
 $elevation-5: 0 16px 48px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.1);
 
 // Borders
-$nom-border-radius: 4px;
-$nom-border-radius-sm: 2px;
-$nom-border-radius-lg: 8px;
-$nom-border-radius-pill: 5px;
+// Sharp corners — armoryworks.com design language
+$nom-border-radius: 0;
+$nom-border-radius-sm: 0;
+$nom-border-radius-lg: 0;
+$nom-border-radius-pill: 0;
 
 // Layout Dimensions
 $header-height: 56px;
