@@ -7,6 +7,7 @@ namespace Nom.Orch.Interfaces
     public interface IUserManagementOrchestrationService
     {
         Task UpdateUserClaimsAsync(UpdateUserClaimsRequest request);
+        Task<UserClaimsResponseModel> GetUserClaimsAsync(string userId);
         
         // User CRUD operations (from Mealie)
         Task<UserResponseModel?> GetCurrentUserAsync(string userId);

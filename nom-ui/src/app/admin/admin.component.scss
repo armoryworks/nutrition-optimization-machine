@@ -1,0 +1,50 @@
+@use 'variables' as vars;
+
+// Tab bar follows the forge-ui admin idiom, in NOM tokens and sharp corners.
+.nom-admin__tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-1;
+  padding: vars.$spacing-1;
+  margin-bottom: vars.$spacing-6;
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  width: fit-content;
+}
+
+.nom-admin__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-4;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-medium;
+  text-decoration: none;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: vars.$icon-size-md;
+    width: vars.$icon-size-md;
+    height: vars.$icon-size-md;
+  }
+
+  &:hover {
+    color: var(--mat-sys-on-surface);
+    background: var(--mat-sys-surface-container-high);
+  }
+
+  &--active {
+    background: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+
+    &:hover {
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+    }
+  }
+}
+
+.nom-admin__panel {
+  min-height: 200px;
+}

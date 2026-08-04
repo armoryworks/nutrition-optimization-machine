@@ -161,20 +161,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
 
-  // Admin routes
+  // Admin routes — tabbed shell; /admin/curation and /admin/webhooks keep
+  // working as tab deep-links via the :tab parameter.
   {
     path: 'admin',
     loadComponent: () => import('./admin/admin.component').then((m) => m.Admin),
     canActivate: [authGuard, adminGuard],
   },
   {
-    path: 'admin/curation',
-    loadComponent: () => import('./admin/curation-queue.component').then((m) => m.CurationQueue),
-    canActivate: [authGuard, adminGuard],
-  },
-  {
-    path: 'admin/webhooks',
-    loadComponent: () => import('./admin/webhooks.component').then((m) => m.Webhooks),
+    path: 'admin/:tab',
+    loadComponent: () => import('./admin/admin.component').then((m) => m.Admin),
     canActivate: [authGuard, adminGuard],
   },
 
