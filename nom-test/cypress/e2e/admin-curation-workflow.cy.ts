@@ -61,22 +61,24 @@ describe('Admin Curation Workflow', () => {
     // Fill recipe name
     cy.get('input[formcontrolname="name"]').type(name);
 
-    // Fill description
-    cy.get('textarea[formcontrolname="description"]').type(description);
+    // Fill description (first match: the recipe description; instruction
+    // steps carry a formcontrolname="description" too)
+    cy.get('textarea[formcontrolname="description"]').first().type(description);
 
-    // Add at least one ingredient row
-    cy.contains('button', 'Add Ingredient').click();
-    cy.wait(300);
-
-    // Fill the ingredient name (first row)
+    // The form initializes with one empty ingredient row and one empty step
+    // row — fill those rather than adding extra (empty, required) rows.
     cy.get('.nom-recipe-form__ingredient-row').first().within(() => {
-      cy.get('.nom-recipe-form__ing-name input').type('Salt');
-      cy.get('.nom-recipe-form__ing-qty input').clear().type('1');
+      cy.get('.nom-recipe-form__ing-name input').type('salt');
     });
-
-    // Add at least one instruction
-    cy.contains('button', 'Add Step').click();
-    cy.wait(300);
+    // Select the ingredient from the autocomplete overlay (typing alone
+    // leaves ingredientId unset and the form invalid)
+    cy.get('mat-option', { timeout: 10000 }).first().click();
+    cy.get('.nom-recipe-form__ingredient-row').first().within(() => {
+      cy.get('.nom-recipe-form__ing-qty input').clear().type('1');
+      cy.get('.nom-recipe-form__ing-measure mat-select').click();
+    });
+    // mat-select options render in an overlay outside the row
+    cy.get('mat-option').first().click();
 
     cy.get('.nom-recipe-form__step-row').first().within(() => {
       cy.get('textarea').type('Combine all ingredients and serve.');
@@ -243,9 +245,9 @@ describe('Admin Curation Workflow', () => {
       });
     });
 
-    // After approval, verify the queue count decreased
-    cy.get('.nom-curation__item').then(($remaining) => {
-      cy.log(`Remaining items in queue: ${$remaining.length}`);
+    // After approval, log the remaining count (queue may now be empty)
+    cy.get('body').then(($body) => {
+      cy.log(`Remaining items in queue: ${$body.find('.nom-curation__item').length}`);
     });
   });
 

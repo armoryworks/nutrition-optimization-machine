@@ -16,6 +16,8 @@
  */
 
 describe('Screenshot Walkthrough', () => {
+  // Unique-per-run suffix so re-runs never collide with unique constraints
+  const runTag = Date.now().toString().slice(-6);
   // ── Shared config ─────────────────────────────────────────────
   const PASSWORD = 'WalkthroughTest123!';
   const ts = Date.now();
@@ -40,15 +42,18 @@ describe('Screenshot Walkthrough', () => {
     settle(2000);
   };
 
+  const adminEmail = Cypress.env('ADMIN_EMAIL') || 'admin@example.com';
+  const adminPassword = Cypress.env('ADMIN_PASSWORD') || 'AdminPassword123!';
+
   /** Log in via the header popover. */
-  const loginViaPopover = (email: string) => {
+  const loginViaPopover = (email: string, password: string = PASSWORD) => {
     cy.visit('/home');
     settle();
     cy.get('[data-testid="header-login-btn"]').click();
     settle(500);
     cy.get('[data-testid="login-popover"]').within(() => {
       cy.get('input[formcontrolname="email"]').type(email);
-      cy.get('input[formcontrolname="password"]').type(PASSWORD);
+      cy.get('input[formcontrolname="password"]').type(password);
       cy.get('[data-testid="login-submit-btn"]').click();
     });
     cy.get('[data-testid="header-avatar-btn"]', { timeout: 15000 }).should('be.visible');
@@ -155,8 +160,16 @@ describe('Screenshot Walkthrough', () => {
 
     cy.visit('/onboarding');
     settle();
-    cy.get('[data-testid="onboarding"]').should('exist');
-    cy.screenshot('06-onboarding-step1-profile', { capture: 'fullPage' });
+    // Users who register with a full name are already onboarded and are
+    // redirected home; walk the wizard only when it actually shows. All the
+    // steps below are if-present guarded, so they no-op on redirect.
+    cy.get('body').then(($b) => {
+      if ($b.find('[data-testid="onboarding"]').length) {
+        cy.screenshot('06-onboarding-step1-profile', { capture: 'fullPage' });
+      } else {
+        cy.log('Onboarding already complete — redirected home');
+      }
+    });
 
     // Fill profile
     cy.get('body').then(($b) => {
@@ -265,10 +278,10 @@ describe('Screenshot Walkthrough', () => {
     settle();
     cy.screenshot('11-ingredient-form-empty', { capture: 'fullPage' });
 
-    cy.get('[data-testid="ingredient-form"] input[formcontrolname="name"]').type('Chicken Breast');
+    cy.get('[data-testid="ingredient-form"] input[formcontrolname="name"]').type(`Chicken Breast ${runTag}`);
     cy.get('[data-testid="ingredient-form"]').then(($form) => {
       if ($form.find('input[formcontrolname="pluralName"]').length) {
-        cy.get('[data-testid="ingredient-form"] input[formcontrolname="pluralName"]').type('Chicken Breasts');
+        cy.get('[data-testid="ingredient-form"] input[formcontrolname="pluralName"]').type(`Chicken Breasts ${runTag}`);
       }
       if ($form.find('textarea[formcontrolname="description"]').length) {
         cy.get('[data-testid="ingredient-form"] textarea[formcontrolname="description"]').type('Boneless, skinless chicken breast. High in protein, low in fat.');
@@ -283,7 +296,7 @@ describe('Screenshot Walkthrough', () => {
     // Create a second ingredient for recipe use
     cy.visit('/ingredient/new');
     settle();
-    cy.get('[data-testid="ingredient-form"] input[formcontrolname="name"]').type('Brown Rice');
+    cy.get('[data-testid="ingredient-form"] input[formcontrolname="name"]').type(`Brown Rice ${runTag}`);
     cy.get('[data-testid="ingredient-form"]').then(($form) => {
       if ($form.find('textarea[formcontrolname="description"]').length) {
         cy.get('[data-testid="ingredient-form"] textarea[formcontrolname="description"]').type('Whole grain brown rice, a complex carbohydrate source.');
@@ -308,7 +321,7 @@ describe('Screenshot Walkthrough', () => {
     cy.get('[data-testid="recipe-form"] input[formcontrolname="name"]').type('Grilled Chicken & Rice Bowl');
     cy.get('[data-testid="recipe-form"]').then(($form) => {
       if ($form.find('textarea[formcontrolname="description"]').length) {
-        cy.get('[data-testid="recipe-form"] textarea[formcontrolname="description"]').type('A simple, protein-packed grilled chicken bowl served over brown rice with fresh vegetables.');
+        cy.get('[data-testid="recipe-form"] textarea[formcontrolname="description"]').first().type('A simple, protein-packed grilled chicken bowl served over brown rice with fresh vegetables.');
       }
     });
 
@@ -440,30 +453,35 @@ describe('Screenshot Walkthrough', () => {
       }
     });
 
-    // Shuffle button
+    // Shuffle button. An all-empty week shuffles directly (no confirm dialog);
+    // the dialog only appears when filled slots would be affected.
     cy.get('body').then(($b) => {
-      if ($b.find('[data-testid="plan-shuffle-btn"]').length) {
+      const $btn = $b.find('[data-testid="plan-shuffle-btn"]');
+      if ($btn.length && !$btn.prop('disabled')) {
         cy.get('[data-testid="plan-shuffle-btn"]').click();
         settle();
-        cy.get('[data-testid="shuffle-dialog"]').should('exist');
-        cy.screenshot('17-meal-plan-shuffle-dialog', { capture: 'fullPage' });
-
-        // Close shuffle dialog without acting
         cy.get('body').then(($b2) => {
-          if ($b2.find('button:contains("Cancel")').length) {
-            cy.contains('button', 'Cancel').click();
-            settle();
+          if ($b2.find('[data-testid="shuffle-dialog"]').length) {
+            cy.screenshot('17-meal-plan-shuffle-dialog', { capture: 'fullPage' });
+            if ($b2.find('button:contains("Cancel")').length) {
+              cy.contains('button', 'Cancel').click();
+              settle();
+            } else {
+              cy.get('body').type('{esc}');
+              settle();
+            }
           } else {
-            cy.get('body').type('{esc}');
-            settle();
+            cy.screenshot('17-meal-plan-shuffled', { capture: 'fullPage' });
           }
         });
+      } else {
+        cy.log('Shuffle button disabled or absent — skipping shuffle screenshots');
       }
     });
 
     // Print button (just screenshot the tooltip, don't actually trigger print)
     cy.get('body').then(($b) => {
-      if ($b.find('[data-testid="plan-print-btn"]').length) {
+      if ($b.find('[data-testid="plan-print-btn"]').length && !$b.find('[data-testid="plan-print-btn"]').prop('disabled')) {
         cy.get('[data-testid="plan-print-btn"]').trigger('mouseenter');
         settle(500);
         cy.screenshot('17-meal-plan-print-tooltip', { capture: 'viewport' });
@@ -805,39 +823,11 @@ describe('Screenshot Walkthrough', () => {
     //  ADMIN — dashboard, curation queue, webhooks
     // ────────────────────────────────────────────────────────────
 
+    // Admin routes are role-gated: a regular user is redirected home.
     cy.visit('/admin');
     settle();
-    cy.get('[data-testid="admin"]').should('exist');
-    cy.screenshot('29-admin-dashboard', { capture: 'fullPage' });
-
-    // Curation queue
-    cy.visit('/admin/curation');
-    settle();
-    cy.get('[data-testid="curation-queue"]').should('exist');
-    cy.screenshot('29-admin-curation-queue', { capture: 'fullPage' });
-
-    // Expand first item to show review controls
-    cy.get('body').then(($b) => {
-      if ($b.find('[data-testid="curation-review-btn"]').length) {
-        cy.get('[data-testid="curation-review-btn"]').first().click();
-        settle();
-        cy.screenshot('29-admin-curation-expanded', { capture: 'fullPage' });
-
-        // Fill feedback notes
-        cy.get('body').then(($b2) => {
-          if ($b2.find('textarea').length) {
-            cy.get('[data-testid="curation-queue"] textarea').first().type('Looks good! Meets our quality standards.');
-            cy.screenshot('29-admin-curation-feedback', { capture: 'fullPage' });
-          }
-        });
-      }
-    });
-
-    // Webhooks
-    cy.visit('/admin/webhooks');
-    settle();
-    cy.get('[data-testid="webhooks"]').should('exist');
-    cy.screenshot('29-admin-webhooks', { capture: 'fullPage' });
+    cy.get('[data-testid="admin"]').should('not.exist');
+    cy.screenshot('29-admin-redirects-regular-user', { capture: 'fullPage' });
 
     // ── Sign out User A ──
     signOut();
@@ -847,7 +837,7 @@ describe('Screenshot Walkthrough', () => {
     //  PART 3 — User B (admin): curation approval & denial flow
     // ════════════════════════════════════════════════════════════
 
-    loginViaPopover(userB.email);
+    loginViaPopover(adminEmail, adminPassword);
     cy.screenshot('31-admin-user-logged-in', { capture: 'fullPage' });
 
     cy.visit('/admin/curation');
