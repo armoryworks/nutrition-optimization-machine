@@ -1,12 +1,7 @@
 # Build + push the NOM app images to GHCR under the armoryworks org (the
 # deployment infrastructure pulls ghcr.io/armoryworks/nom-api|nom-ui — see the
-# armoryworks/nommeal-deploy repo).
-#
-# Because this repo lives under a personal account, the default GITHUB_TOKEN
-# cannot write armoryworks org packages. Add a repo secret GHCR_ARMORYWORKS_PAT:
-# a fine-grained/classic PAT from an armoryworks org member with
-# write:packages. (If this repo is ever moved into the org, swap the login
-# back to GITHUB_TOKEN and delete the secret.)
+# armoryworks/nommeal-deploy repo). This repo lives in the armoryworks org,
+# so the default GITHUB_TOKEN can publish the packages directly.
 #
 # Tags pushed per image:
 #   latest        floating
@@ -22,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: build-package-${{ github.ref }}
@@ -37,12 +33,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR (armoryworks org)
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_ARMORYWORKS_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push API image
         uses: docker/build-push-action@v6
