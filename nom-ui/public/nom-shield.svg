@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 470" width="400" height="470">
+  <defs>
+    <path id="shield" d="M 200.0,25.0 C 257.0,50.1 323.2,58.1 390.0,60.0 C 374.5,107.7 382.1,162.4 374.9,212.6 C 361.1,309.5 325.5,336.5 251.7,388.6 L 200.0,425.0 L 148.3,388.6 C 74.5,336.5 38.9,309.5 25.1,212.6 C 17.9,162.4 25.5,107.7 10.0,60.0 C 76.8,58.1 143.0,50.1 200.0,25.0 Z"/>
+    <path id="inner" d="M 200.0,99.0 C 235.9,114.8 277.6,119.8 319.7,121.0 C 309.9,151.1 314.7,185.6 310.2,217.2 C 301.5,278.2 279.1,295.3 232.6,328.0 L 200.0,351.0 L 167.4,328.0 C 120.9,295.3 98.5,278.2 89.8,217.2 C 85.3,185.6 90.1,151.1 80.3,121.0 C 122.4,119.8 164.1,114.8 200.0,99.0 Z"/>
+    <clipPath id="leftHalf"><rect x="0" y="0" width="200" height="470"/></clipPath>
+    <clipPath id="rightHalf"><rect x="200" y="0" width="200" height="470"/></clipPath>
+    <g id="N" transform="translate(122.00 294.00) scale(0.235 -0.235)"><path d="M35 681L190 681L480 172L480 599L425 599L425 681L605 681L605 599L550 599L550 82L605 82L605 0L425 0L425 82L160 505L160 82L215 82L215 0L35 0L35 82L90 82L90 599L35 599Z"/></g>
+
+    <mask id="outerRightMask" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="470">
+      <rect x="0" y="0" width="400" height="470" fill="white"/>
+      <g clip-path="url(#rightHalf)">
+        <use href="#inner" fill="black"/>
+        <use href="#N" fill="white"/>
+      </g>
+    </mask>
+
+    <mask id="innerLeftMask" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="470">
+      <rect x="0" y="0" width="400" height="470" fill="black"/>
+      <g clip-path="url(#leftHalf)">
+        <use href="#inner" fill="white"/>
+        <use href="#N" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+
+  <g clip-path="url(#rightHalf)">
+    <use href="#shield" fill="#0d9488" mask="url(#outerRightMask)"/>
+  </g>
+
+  <use href="#inner" fill="#0d9488" mask="url(#innerLeftMask)"/>
+
+  <use href="#shield" fill="none" stroke="#0d9488" stroke-width="6" stroke-linejoin="miter" stroke-miterlimit="4"/>
+
+  <use href="#inner" fill="none" stroke="#0d9488" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="4"/>
+</svg>
