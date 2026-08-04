@@ -82,13 +82,12 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.http.post<void>('/api/auth/logout', {}).pipe(
-      tap(() => this.clearSession()),
-      catchError(() => {
-        this.clearSession();
-        return of(undefined);
-      }),
-    );
+    // End the local session immediately: the server call is best-effort
+    // (component teardown can cancel the request mid-flight, and bearer
+    // tokens are not server-revocable anyway).
+    const post$ = this.http.post<void>('/api/auth/logout', {});
+    this.clearSession();
+    return post$.pipe(catchError(() => of(undefined)));
   }
 
   /** Re-issues the bearer token with fresh claims from the DB (e.g. after household create/join). */

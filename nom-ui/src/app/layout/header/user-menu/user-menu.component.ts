@@ -43,12 +43,11 @@ export class UserMenu {
   });
 
   onLogout(): void {
-    this.authService
-      .logout()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.router.navigate(['/home']);
-      });
+    // logout() clears the session synchronously; the POST is fire-and-forget
+    // (closing the menu destroys this component and would cancel anything we
+    // waited on).
+    this.authService.logout().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.router.navigate(['/home']);
     this.closed.emit();
   }
 }
