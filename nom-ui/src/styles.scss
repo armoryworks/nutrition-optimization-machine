@@ -163,14 +163,33 @@ html {
   @include nom-system-colors($nom-theme);
   @include nom-brand-colors-dark;
 
-  // Override M3 pill-shaped corners with 5px radius site-wide
-  --mat-sys-corner-full: 5px;
-  --mat-button-filled-container-shape: 5px;
-  --mat-button-outlined-container-shape: 5px;
-  --mat-button-text-container-shape: 5px;
-  --mat-button-protected-container-shape: 5px;
-  --mat-fab-small-shape: 5px;
-  --mat-fab-shape: 5px;
+  // Sharp corners site-wide — armoryworks.com design language
+  --mat-sys-corner-extra-small: 0;
+  --mat-sys-corner-small: 0;
+  --mat-sys-corner-medium: 0;
+  --mat-sys-corner-large: 0;
+  --mat-sys-corner-extra-large: 0;
+  --mat-sys-corner-full: 0;
+  --mat-button-filled-container-shape: 0;
+  --mat-button-outlined-container-shape: 0;
+  --mat-button-text-container-shape: 0;
+  --mat-button-protected-container-shape: 0;
+  --mat-fab-small-shape: 0;
+  --mat-fab-shape: 0;
+  --mdc-elevated-card-container-shape: 0;
+  --mdc-outlined-card-container-shape: 0;
+  --mdc-dialog-container-shape: 0;
+  --mdc-outlined-text-field-container-shape: 0;
+  --mdc-filled-text-field-container-shape: 0;
+  --mat-menu-container-shape: 0;
+  --mdc-chip-container-shape: 0;
+
+  // Amber filled buttons — the marketing sites' CTA treatment
+  --mdc-filled-button-container-color: var(--mat-sys-tertiary);
+  --mdc-filled-button-label-text-color: var(--mat-sys-on-tertiary);
+  --mat-button-filled-container-color: var(--mat-sys-tertiary);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-tertiary);
+  --mat-button-filled-state-layer-color: var(--mat-sys-on-tertiary);
 }
 
 // ── Dialog Overrides ──
