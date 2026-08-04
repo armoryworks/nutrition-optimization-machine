@@ -79,6 +79,11 @@ jobs:
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
 
+      # Runner images now ship .NET 10 alongside 9; without a restore the
+      # `dotnet ef dbcontext script` build path fails with NETSDK1004.
+      - name: Restore and build for dotnet-ef
+        run: dotnet build nom-api/nom-api.sln -c Debug
+
       - name: Check schema.sql is in sync with the EF model
         env:
           DB_SUPERUSER: nom
