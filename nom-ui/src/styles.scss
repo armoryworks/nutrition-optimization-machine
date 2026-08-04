@@ -55,12 +55,99 @@
   --mat-sys-scrim: #{mat.get-theme-color($theme, scrim)};
 }
 
-// Define M3 theme - dark default
+// ── NOM brand scheme (nommeal.com design tokens) ─────────────────────────────
+// Exact hexes from the marketing site, layered over the Material theme so
+// every --mat-sys-* consumer picks them up: teal = product primary, amber =
+// warm accent (tertiary), slate surfaces shared with armoryworks.com.
+@mixin nom-brand-colors-dark {
+  --mat-sys-primary: #2dd4bf;
+  --mat-sys-on-primary: #042f2e;
+  --mat-sys-primary-container: #0b7a70;
+  --mat-sys-on-primary-container: #ccfbf1;
+  --mat-sys-inverse-primary: #0d9488;
+  --mat-sys-surface-tint: #2dd4bf;
+
+  --mat-sys-secondary: #5eead4;
+  --mat-sys-on-secondary: #042f2e;
+  --mat-sys-secondary-container: #134e4a;
+  --mat-sys-on-secondary-container: #ccfbf1;
+
+  --mat-sys-tertiary: #fbbf24;
+  --mat-sys-on-tertiary: #451a03;
+  --mat-sys-tertiary-container: #b45309;
+  --mat-sys-on-tertiary-container: #fef3c7;
+
+  --mat-sys-error: #ef4444;
+  --mat-sys-on-error: #450a0a;
+  --mat-sys-error-container: #7f1d1d;
+  --mat-sys-on-error-container: #fecaca;
+
+  --mat-sys-surface: #0f172a;
+  --mat-sys-on-surface: #f1f5f9;
+  --mat-sys-surface-variant: #1e293b;
+  --mat-sys-on-surface-variant: #94a3b8;
+  --mat-sys-surface-container-lowest: #0b1120;
+  --mat-sys-surface-container-low: #172136;
+  --mat-sys-surface-container: #1e293b;
+  --mat-sys-surface-container-high: #273549;
+  --mat-sys-surface-container-highest: #334155;
+  --mat-sys-surface-dim: #0b1120;
+  --mat-sys-surface-bright: #334155;
+  --mat-sys-inverse-surface: #f1f5f9;
+  --mat-sys-inverse-on-surface: #0f172a;
+
+  --mat-sys-outline: #334155;
+  --mat-sys-outline-variant: #273549;
+}
+
+@mixin nom-brand-colors-light {
+  --mat-sys-primary: #0d9488;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #ccfbf1;
+  --mat-sys-on-primary-container: #134e4a;
+  --mat-sys-inverse-primary: #2dd4bf;
+  --mat-sys-surface-tint: #0d9488;
+
+  --mat-sys-secondary: #0f766e;
+  --mat-sys-on-secondary: #ffffff;
+  --mat-sys-secondary-container: #ccfbf1;
+  --mat-sys-on-secondary-container: #134e4a;
+
+  --mat-sys-tertiary: #b45309;
+  --mat-sys-on-tertiary: #ffffff;
+  --mat-sys-tertiary-container: #fef3c7;
+  --mat-sys-on-tertiary-container: #78350f;
+
+  --mat-sys-error: #dc2626;
+  --mat-sys-on-error: #ffffff;
+  --mat-sys-error-container: #fee2e2;
+  --mat-sys-on-error-container: #7f1d1d;
+
+  --mat-sys-surface: #f8fafc;
+  --mat-sys-on-surface: #0f172a;
+  --mat-sys-surface-variant: #e2e8f0;
+  --mat-sys-on-surface-variant: #475569;
+  --mat-sys-surface-container-lowest: #ffffff;
+  --mat-sys-surface-container-low: #f1f5f9;
+  --mat-sys-surface-container: #e2e8f0;
+  --mat-sys-surface-container-high: #cbd5e1;
+  --mat-sys-surface-container-highest: #94a3b8;
+  --mat-sys-surface-dim: #e2e8f0;
+  --mat-sys-surface-bright: #ffffff;
+  --mat-sys-inverse-surface: #0f172a;
+  --mat-sys-inverse-on-surface: #f1f5f9;
+
+  --mat-sys-outline: #cbd5e1;
+  --mat-sys-outline-variant: #e2e8f0;
+}
+
+// Define M3 theme - dark default. Cyan/orange seeds keep any token the brand
+// mixins don't override in the same hue family as the teal/amber scheme.
 $nom-theme: mat.define-theme((
   color: (
     theme-type: dark,
-    primary: mat.$blue-palette,
-    tertiary: mat.$green-palette,
+    primary: mat.$cyan-palette,
+    tertiary: mat.$orange-palette,
   ),
   typography: (
     brand-family: 'Inter, system-ui, -apple-system, sans-serif',
@@ -74,6 +161,7 @@ html {
   @include mat.all-component-themes($nom-theme);
   @include mat.typography-hierarchy($nom-theme);
   @include nom-system-colors($nom-theme);
+  @include nom-brand-colors-dark;
 
   // Override M3 pill-shaped corners with 5px radius site-wide
   --mat-sys-corner-full: 5px;
@@ -99,10 +187,11 @@ html {
   $light-theme: mat.define-theme((
     color: (
       theme-type: light,
-      primary: mat.$blue-palette,
-      tertiary: mat.$green-palette,
+      primary: mat.$cyan-palette,
+      tertiary: mat.$orange-palette,
     ),
   ));
   @include mat.all-component-colors($light-theme);
   @include nom-system-colors($light-theme);
+  @include nom-brand-colors-light;
 }
