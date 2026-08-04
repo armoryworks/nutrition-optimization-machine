@@ -195,3 +195,12 @@ html {
   @include nom-system-colors($light-theme);
   @include nom-brand-colors-light;
 }
+
+// The floating label's required marker (*) sits over the input's hit area on
+// wide labels and intercepts elementFromPoint — blocking real clicks in some
+// geometries and Cypress actionability checks always. It's decoration.
+// (!important: MDC's component styles load after this bundle and win otherwise.)
+.mat-mdc-form-field .mdc-floating-label,
+.mat-mdc-form-field .mdc-floating-label .mat-mdc-form-field-required-marker {
+  pointer-events: none !important;
+}

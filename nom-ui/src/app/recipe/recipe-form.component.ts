@@ -123,11 +123,12 @@ export class RecipeForm implements OnInit {
     const rowId = this.rowCounter++;
     const group = this.fb.group({
       rowId: [rowId],
-      ingredientId: [0, Validators.required],
+      // min(1): 0 is the "nothing selected" sentinel and passes required
+      ingredientId: [0, [Validators.required, Validators.min(1)]],
       name: [''],
       searchText: [''],
       quantity: [null as number | null, [Validators.required, Validators.min(0.01)]],
-      measurementId: [0, Validators.required],
+      measurementId: [0, [Validators.required, Validators.min(1)]],
       notes: [''],
     });
     this.ingredientsArray.push(group);
