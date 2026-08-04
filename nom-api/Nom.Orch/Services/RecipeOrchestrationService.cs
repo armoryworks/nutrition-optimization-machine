@@ -199,6 +199,12 @@ namespace Nom.Orch.Services
             // Add ingredients
             foreach (var ingredient in model.Ingredients)
             {
+                if (ingredient.IngredientId <= 0)
+                {
+                    throw new ArgumentException(
+                        "Each recipe ingredient must reference an existing ingredient (select one from the search).");
+                }
+
                 var recipeIngredient = new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
@@ -544,7 +550,15 @@ namespace Nom.Orch.Services
             Console.WriteLine($"CreateIngredientAsync called with {model.Nutrients.Count} nutrients");
             
             var currentPersonId = GetCurrentPersonId();
-            
+
+            // Ingredient names are globally unique (IX_Ingredient_Name); surface a
+            // clear 400 instead of letting the constraint violation become a 500.
+            var duplicate = await _context.Ingredients.AnyAsync(i => i.Name == model.Name);
+            if (duplicate)
+            {
+                throw new ArgumentException($"An ingredient named \"{model.Name}\" already exists.");
+            }
+
             var ingredient = new IngredientEntity
             {
                 Name = model.Name,
