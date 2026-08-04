@@ -102,7 +102,6 @@ namespace Nom.Orch.Services
             {
                 Id = user.Id,
                 Username = user.UserName ?? string.Empty,
-                UserName = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
                 EmailConfirmed = user.EmailConfirmed,
                 PhoneNumber = user.PhoneNumber,
@@ -142,8 +141,7 @@ namespace Nom.Orch.Services
                 {
                     Id = user.Id,
                     Username = user.UserName ?? string.Empty,
-                    UserName = user.UserName ?? string.Empty,
-                    Email = user.Email ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
                     EmailConfirmed = user.EmailConfirmed,
                     PhoneNumber = user.PhoneNumber,
                     PhoneNumberConfirmed = user.PhoneNumberConfirmed,

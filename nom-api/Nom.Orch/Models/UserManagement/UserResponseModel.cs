@@ -14,8 +14,8 @@ namespace Nom.Orch.Models.UserManagement
         public DateTime CreatedDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         
-        // Additional properties for compatibility
-        public string UserName { get; set; } = string.Empty;
+        // (Former duplicate "UserName" compatibility property removed: with camel-case
+        // serialization it collided with Username and made every response 500.)
         public bool EmailConfirmed { get; set; } = false;
         public string? PhoneNumber { get; set; }
         public bool PhoneNumberConfirmed { get; set; } = false;
