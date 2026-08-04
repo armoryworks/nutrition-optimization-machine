@@ -1,0 +1,115 @@
+@use 'variables' as vars;
+
+.nom-users-admin {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-4;
+}
+
+.nom-users-admin__loading {
+  display: grid;
+  place-items: center;
+  padding: vars.$spacing-8;
+}
+
+.nom-users-admin__empty {
+  color: var(--mat-sys-on-surface-variant);
+  padding: vars.$spacing-4 0;
+}
+
+.nom-users-admin__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-2;
+}
+
+.nom-users-admin__item {
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.nom-users-admin__row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-3;
+  width: 100%;
+  padding: vars.$spacing-3 vars.$spacing-4;
+  background: none;
+  border: none;
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+  }
+}
+
+.nom-users-admin__chevron {
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.nom-users-admin__name {
+  font-weight: vars.$font-weight-semibold;
+}
+
+.nom-users-admin__email {
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nom-users-admin__badge {
+  font-size: vars.$font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px vars.$spacing-2;
+  border: 1px solid var(--mat-sys-outline);
+  color: var(--mat-sys-on-surface-variant);
+
+  &--admin {
+    border-color: var(--mat-sys-tertiary);
+    color: var(--mat-sys-tertiary);
+  }
+}
+
+.nom-users-admin__meta {
+  margin-left: auto;
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+.nom-users-admin__detail {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  padding: vars.$spacing-4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$spacing-6;
+}
+
+.nom-users-admin__claims {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-6;
+}
+
+.nom-users-admin__actions {
+  margin-left: auto;
+}
+
+.nom-users-admin__delete {
+  color: var(--mat-sys-error);
+}
+
+@media (max-width: vars.$breakpoint-mobile) {
+  .nom-users-admin__meta {
+    display: none;
+  }
+}

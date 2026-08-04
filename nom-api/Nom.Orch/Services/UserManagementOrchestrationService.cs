@@ -52,6 +52,21 @@ namespace Nom.Orch.Services
             _logger.LogInformation("Updated claims for user {UserId}", request.UserId);
         }
 
+        public async Task<UserClaimsResponseModel> GetUserClaimsAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+            var claims = await _userManager.GetClaimsAsync(user);
+            return new UserClaimsResponseModel
+            {
+                UserId = userId,
+                CanManageCuration = claims.Any(c => c.Type == "CanManageCuration" && c.Value == "true"),
+                CanManageUserRoles = claims.Any(c => c.Type == "CanManageUserRoles" && c.Value == "true"),
+            };
+        }
+
         private async Task UpdateClaimAsync(IdentityUser user, string claimType, bool hasClaim)
         {
             var existingClaim = (await _userManager.GetClaimsAsync(user))

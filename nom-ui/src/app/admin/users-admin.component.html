@@ -1,0 +1,79 @@
+<div class="nom-users-admin" data-testid="users-admin">
+  <nom-error-banner [message]="errorMessage()" />
+
+  @if (loading()) {
+    <div class="nom-users-admin__loading">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else if (users().length === 0) {
+    <p class="nom-users-admin__empty" data-testid="users-admin-empty">No users found.</p>
+  } @else {
+    <ul class="nom-users-admin__list" data-testid="users-admin-list">
+      @for (user of users(); track user.id) {
+        <li class="nom-users-admin__item" data-testid="users-admin-item">
+          <button
+            type="button"
+            class="nom-users-admin__row"
+            data-testid="users-admin-expand-btn"
+            (click)="toggleExpand(user)"
+            [attr.aria-expanded]="expandedId() === user.id"
+          >
+            <mat-icon class="nom-users-admin__chevron">
+              {{ expandedId() === user.id ? 'expand_more' : 'chevron_right' }}
+            </mat-icon>
+            <span class="nom-users-admin__name">{{ user.username }}</span>
+            <span class="nom-users-admin__email">{{ user.email }}</span>
+            @if (user.isAdmin) {
+              <span class="nom-users-admin__badge nom-users-admin__badge--admin">admin</span>
+            }
+            @if (!user.isActive) {
+              <span class="nom-users-admin__badge">inactive</span>
+            }
+            <span class="nom-users-admin__meta">
+              joined {{ user.createdDate | date: 'mediumDate' }}
+              &middot; {{ user.recipeCount }} recipes
+            </span>
+          </button>
+
+          @if (expandedId() === user.id) {
+            <div class="nom-users-admin__detail">
+              @if (claimsLoading()) {
+                <mat-spinner diameter="24" />
+              } @else if (claims(); as c) {
+                <div class="nom-users-admin__claims">
+                  <mat-slide-toggle
+                    data-testid="users-admin-curation-toggle"
+                    [checked]="c.canManageCuration"
+                    [disabled]="saving()"
+                    (change)="setClaim('canManageCuration', $event.checked)"
+                  >
+                    Can manage curation
+                  </mat-slide-toggle>
+                  <mat-slide-toggle
+                    data-testid="users-admin-roles-toggle"
+                    [checked]="c.canManageUserRoles"
+                    [disabled]="saving()"
+                    (change)="setClaim('canManageUserRoles', $event.checked)"
+                  >
+                    Can manage users &amp; roles
+                  </mat-slide-toggle>
+                </div>
+                <div class="nom-users-admin__actions">
+                  <button
+                    mat-stroked-button
+                    class="nom-users-admin__delete"
+                    data-testid="users-admin-delete-btn"
+                    (click)="deleteUser(user)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                    Delete user
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>
