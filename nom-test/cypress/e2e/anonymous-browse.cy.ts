@@ -87,14 +87,13 @@ describe('Anonymous Browsing', () => {
       cy.get('.nom-recipe__column--ingredients').within(() => {
         cy.contains('Ingredients').should('be.visible');
         // Either has ingredient items or shows "No ingredients listed."
-        cy.get('body').then(() => {
-          cy.root().then(($col) => {
-            if ($col.find('.nom-recipe__ingredient').length > 0) {
-              cy.get('.nom-recipe__ingredient').should('have.length.at.least', 1);
-            } else {
-              cy.contains('No ingredients listed').should('be.visible');
-            }
-          });
+        // (cy.get('body') is invalid inside .within() — use the scoped root.)
+        cy.root().then(($col) => {
+          if ($col.find('.nom-recipe__ingredient').length > 0) {
+            cy.get('.nom-recipe__ingredient').should('have.length.at.least', 1);
+          } else {
+            cy.contains('No ingredients listed').should('be.visible');
+          }
         });
       });
 

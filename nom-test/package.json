@@ -6,8 +6,6 @@
     "test": "cypress run",
     "test:open": "cypress open",
     "test:e2e": "cypress run --e2e",
-    "test:integration": "cypress run --spec \"cypress/e2e/integration-smoke.cy.ts\"",
-    "test:integration:firefox": "cypress run --spec \"cypress/e2e/integration-smoke.cy.ts\" --browser firefox --headed",
     "test:daily": "cypress run --spec \"cypress/e2e/user-daily-workflow.cy.ts\"",
     "test:daily:headed": "cypress run --spec \"cypress/e2e/user-daily-workflow.cy.ts\" --headed",
     "test:admin": "cypress run --spec \"cypress/e2e/admin-curation-workflow.cy.ts\"",

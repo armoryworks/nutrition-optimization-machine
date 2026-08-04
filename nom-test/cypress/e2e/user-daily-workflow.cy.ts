@@ -98,14 +98,12 @@ describe('Daily User Workflow', () => {
       } else {
         // No seed recipes — that's okay, just verify the empty state renders
         cy.log('No seed recipes found — skipping recipe detail check');
-        cy.get('.nom-home__empty, [data-testid="home-page"]').should('exist');
+        cy.get('.nom-home__empty, [data-testid="home-page"], [data-testid="dashboard"]').should('exist');
       }
     });
 
-    // ── Step 4: Navigate to meal plan via user menu ──
-    cy.get('.nom-header__avatar').click();
-    cy.wait(500);
-    cy.get('.nom-user-menu').contains('Meal Plan').click();
+    // ── Step 4: Navigate to meal plan via the nav rail ──
+    cy.get('[data-testid="nav-meal-plan"]').click();
     cy.wait(2000);
 
     // Verify we're on the meal plan page
@@ -133,7 +131,7 @@ describe('Daily User Workflow', () => {
 
         // Verify shuffle button exists
         cy.contains('button', 'Shuffle').should('exist');
-      } else if ($body.find('button:contains("Create Household")').length > 0) {
+      } else if ($body.find('button:contains("Create Household"), a:contains("Create Household")').length > 0) {
         // No household yet — verify the empty state
         cy.log('No household — plan page shows setup prompt');
         cy.contains('No household yet').should('be.visible');
@@ -145,9 +143,7 @@ describe('Daily User Workflow', () => {
     });
 
     // ── Step 5: Navigate to shopping list ──
-    cy.get('.nom-header__avatar').click();
-    cy.wait(500);
-    cy.get('.nom-user-menu').contains('Shopping').click();
+    cy.get('[data-testid="nav-shopping"]').click();
     cy.wait(2000);
 
     // Verify shopping page loaded
@@ -191,16 +187,14 @@ describe('Daily User Workflow', () => {
         // Verify export buttons exist
         cy.get('button[aria-label="Copy as text"], [mattooltip="Copy as text"]').should('exist');
       } else {
-        // Empty shopping list
+        // Empty shopping list, or the no-household error banner
         cy.log('Shopping list is empty — that is expected without a meal plan');
-        cy.get('.nom-shopping__empty').should('exist');
+        cy.get('.nom-shopping__empty, [data-testid="error-banner"]').should('exist');
       }
     });
 
     // ── Step 6: Navigate to pantry ──
-    cy.get('.nom-header__avatar').click();
-    cy.wait(500);
-    cy.get('.nom-user-menu').contains('Pantry').click();
+    cy.get('[data-testid="nav-pantry"]').click();
     cy.wait(2000);
 
     // Verify pantry page loaded
@@ -210,9 +204,7 @@ describe('Daily User Workflow', () => {
     });
 
     // ── Step 7: Navigate to settings to verify account access ──
-    cy.get('.nom-header__avatar').click();
-    cy.wait(500);
-    cy.get('.nom-user-menu').contains('Settings').click();
+    cy.get('[data-testid="nav-settings"]').click();
     cy.wait(1500);
 
     // Verify settings cards are visible
