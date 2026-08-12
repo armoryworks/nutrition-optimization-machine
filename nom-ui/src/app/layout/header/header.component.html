@@ -10,14 +10,23 @@
       <mat-icon>menu</mat-icon>
     </button>
   }
-  <a class="nom-header__brand" routerLink="/home" aria-label="NOM — home">
+  <ng-template #brandLockup>
     <span class="nom-header__brand-shield" aria-hidden="true"></span>
     <div class="nom-header__brand-text" aria-hidden="true">
       <span class="nom-header__brand-name">Nutrition Optimization</span>
       <span class="nom-header__brand-rule"></span>
       <span class="nom-header__brand-subtitle">Armory Works Technology</span>
     </div>
-  </a>
+  </ng-template>
+  @if (brandExternal()) {
+    <a class="nom-header__brand" [href]="marketingSite" aria-label="Back to the site">
+      <ng-container [ngTemplateOutlet]="brandLockup"></ng-container>
+    </a>
+  } @else {
+    <a class="nom-header__brand" routerLink="/home" aria-label="NOM — home">
+      <ng-container [ngTemplateOutlet]="brandLockup"></ng-container>
+    </a>
+  }
 
   <div class="nom-header__search">
     <mat-icon class="nom-header__search-icon">search</mat-icon>
