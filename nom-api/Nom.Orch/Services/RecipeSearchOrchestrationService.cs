@@ -478,7 +478,8 @@ namespace Nom.Orch.Services
 
             if (searchModel.IncludeNutrition)
             {
-                query = query.Include(r => r.Nutrition);
+                query = query.Include(r => r.Nutrition!)
+                    .ThenInclude(n => n.Nutrient);
             }
 
             return query;
@@ -495,7 +496,11 @@ namespace Nom.Orch.Services
                 PrepTime = (int)(recipe.PrepTimeMinutes ?? 0),
                 CookTime = (int)(recipe.CookTimeMinutes ?? 0),
                 TotalTime = (int)((recipe.PrepTimeMinutes ?? 0) + (recipe.CookTimeMinutes ?? 0)),
+                PrepTimeMinutes = (int)(recipe.PrepTimeMinutes ?? 0),
+                CookTimeMinutes = (int)(recipe.CookTimeMinutes ?? 0),
+                TotalTimeMinutes = (int)((recipe.PrepTimeMinutes ?? 0) + (recipe.CookTimeMinutes ?? 0)),
                 Servings = (int)(recipe.Servings ?? 0),
+                Rating = recipe.Ratings?.Any() == true ? recipe.Ratings.Average(r => r.Rating) : (decimal?)null,
                 AverageRating = recipe.Ratings?.Any() == true ? recipe.Ratings.Average(r => r.Rating) : 0,
                 RatingCount = recipe.Ratings?.Count ?? 0,
                 IsPublic = recipe.CurationStatus?.Name == "Approved",
@@ -535,10 +540,14 @@ namespace Nom.Orch.Services
             // Map nutrition if requested
             if (searchModel.IncludeNutrition && recipe.Nutrition != null)
             {
-                // Note: RecipeNutritionEntity stores nutrients by NutrientId, not by specific nutrition fields
-                // This would need to be expanded to map specific nutrients to nutrition values
-                // For now, we'll leave this as an empty list since the nutrition structure is different
-                result.Nutrition = new List<RecipeNutritionSearchModel>();
+                result.Nutrition = recipe.Nutrition.Select(n => new RecipeNutritionSearchModel
+                {
+                    Id = n.Id,
+                    NutrientName = n.Nutrient?.Name ?? string.Empty,
+                    Amount = n.Amount,
+                    Unit = n.Unit ?? string.Empty,
+                    DailyValuePercent = n.DailyValuePercentage
+                }).ToList();
             }
 
             return result;
