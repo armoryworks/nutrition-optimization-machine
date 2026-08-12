@@ -30,6 +30,12 @@ export class RecipeDetail {
   error = signal('');
   activeTab = signal(0);
 
+  // Raw numeric average for the Rating tab — no stars in the rail.
+  ratingDisplay = computed(() => {
+    const r = this.recipe()?.rating;
+    return (r ? Number(r) : 0).toFixed(1);
+  });
+
   isAuthor = computed(() => {
     const r = this.recipe();
     const personId = this.authService.personId();
