@@ -13,6 +13,16 @@ services:
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__NomConnection=Host=postgres;Database=nom;Username=nom;Password=${POSTGRES_PASSWORD}
       - AllowedOrigins=${ALLOWED_ORIGINS}
+      # Public URL of the UI, used in account emails (confirmation links).
+      - Frontend__Url=${FRONTEND_URL:-http://localhost:4210}
+      # SMTP (optional). Leave EMAIL_SMTP_HOST empty to disable outbound email.
+      - Email__SmtpHost=${EMAIL_SMTP_HOST:-}
+      - Email__SmtpPort=${EMAIL_SMTP_PORT:-587}
+      - Email__SmtpUser=${EMAIL_SMTP_USER:-}
+      - Email__SmtpPassword=${EMAIL_SMTP_PASSWORD:-}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS:-noreply@nom.local}
+      - Email__FromName=${EMAIL_FROM_NAME:-NOM}
+      - Email__UseSsl=${EMAIL_USE_SSL:-true}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
