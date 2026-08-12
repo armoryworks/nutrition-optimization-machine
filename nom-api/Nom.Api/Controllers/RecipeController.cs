@@ -233,7 +233,7 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}/image")]
         public async Task<IActionResult> GetImage(long id)
         {
-            var result = await _recipeService.GetImageAsync(id);
+            var result = await _recipeService.GetImageAsync(id, GetCurrentPersonId());
             if (result == null)
                 return NotFound(new { message = "No image found for this recipe" });
 

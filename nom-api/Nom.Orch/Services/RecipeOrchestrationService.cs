@@ -764,8 +764,19 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId)
+        public async Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId, long? requestingPersonId)
         {
+            // Images follow the recipe's visibility: non-authors may only fetch
+            // images of approved (public) recipes.
+            var recipe = await _context.Recipes
+                .AsNoTracking()
+                .Include(r => r.CurationStatus)
+                .FirstOrDefaultAsync(r => r.Id == recipeId);
+            if (recipe == null)
+                return null;
+            if (recipe.AuthorId != requestingPersonId && recipe.CurationStatus?.Name != "Approved")
+                return null;
+
             var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
             var asset = await _context.Set<RecipeAssetEntity>()
                 .Where(a => a.RecipeId == recipeId && imageExtensions.Contains(a.FileExtension.ToLower()))
