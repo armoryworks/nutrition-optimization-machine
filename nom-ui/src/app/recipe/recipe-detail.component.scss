@@ -257,11 +257,12 @@
   padding-left: vars.$spacing-2;
 }
 
-// Engagement section (comments & ratings)
-.nom-recipe__engagement {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 vars.$spacing-4;
+// Raw numeric rating in the tab rail (upright, like the icons)
+.nom-recipe__tab-num {
+  writing-mode: horizontal-tb;
+  transform: rotate(180deg); // counter-rotate to match the icon treatment
+  font-variant-numeric: tabular-nums;
+  font-weight: vars.$font-weight-semibold;
 }
 
 // Empty section text

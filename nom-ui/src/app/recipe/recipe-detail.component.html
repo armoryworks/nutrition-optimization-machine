@@ -46,6 +46,13 @@
           <mat-icon>eco</mat-icon>
           Diet
         </button>
+        <button class="nom-recipe__tab-btn"
+                [class.nom-recipe__tab-btn--active]="activeTab() === 3"
+                (click)="activeTab.set(3)"
+                data-testid="recipe-rating-tab">
+          <span class="nom-recipe__tab-num" aria-hidden="true">{{ ratingDisplay() }}</span>
+          Rating
+        </button>
       </nav>
 
       <div class="nom-recipe__tab-panel">
@@ -104,6 +111,17 @@
               Dietary information and allergen warnings will appear here once configured.
             </p>
           }
+          @case (3) {
+            <nom-recipe-rating
+              [recipeId]="recipe()!.id"
+              [currentPersonId]="authService.personId()">
+            </nom-recipe-rating>
+
+            <nom-recipe-comments
+              [recipeId]="recipe()!.id"
+              [currentPersonId]="authService.personId()">
+            </nom-recipe-comments>
+          }
         }
       </div>
     </div>
@@ -147,19 +165,6 @@
       }
     </div>
   </div>
-
-    <!-- Comments & Rating -->
-    <div class="nom-recipe__engagement">
-      <nom-recipe-rating
-        [recipeId]="recipe()!.id"
-        [currentPersonId]="authService.personId()">
-      </nom-recipe-rating>
-
-      <nom-recipe-comments
-        [recipeId]="recipe()!.id"
-        [currentPersonId]="authService.personId()">
-      </nom-recipe-comments>
-    </div>
 } @else {
   <div class="nom-recipe__not-found" data-testid="recipe-not-found">
     <mat-icon class="nom-recipe__not-found-icon">search_off</mat-icon>
