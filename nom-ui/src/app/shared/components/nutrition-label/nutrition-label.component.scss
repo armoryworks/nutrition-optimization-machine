@@ -53,6 +53,38 @@
   margin: 0 0 vars.$spacing-1;
 }
 
+// Mutually exclusive view toggle (standard / ingredients / micros)
+.nom-nutrition-label__views {
+  display: flex;
+  gap: vars.$spacing-1;
+  margin: 0 0 vars.$spacing-1;
+}
+
+.nom-nutrition-label__view-btn {
+  flex: 1;
+  padding: 2px vars.$spacing-1;
+  font-family: inherit;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  white-space: nowrap;
+  border: 1px solid var(--mat-sys-on-surface);
+  background: none;
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+
+  &--active {
+    background: var(--mat-sys-on-surface);
+    color: var(--mat-sys-surface);
+  }
+}
+
+// Ingredients view (label-style comma list)
+.nom-nutrition-label__ingredients {
+  font-size: vars.$font-size-xs;
+  line-height: 1.5;
+  margin: vars.$spacing-1 0;
+}
+
 // Calories row
 .nom-nutrition-label__calories {
   display: flex;

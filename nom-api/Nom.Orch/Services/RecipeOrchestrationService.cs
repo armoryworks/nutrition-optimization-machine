@@ -240,15 +240,22 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<RecipeResponseModel?> GetRecipeAsync(long id)
+        public async Task<RecipeResponseModel?> GetRecipeAsync(long id, long? personId = null)
         {
             var recipe = await _context.Recipes
                 .Include(r => r.Author)
                 .Include(r => r.Comments)
                 .Include(r => r.Ratings)
                 .Include(r => r.CurationStatus)
+                .Include(r => r.ServingQuantityMeasurement)
                 .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Ingredient)
+                        .ThenInclude(i => i!.Components)
+                            .ThenInclude(c => c.ComponentIngredient)
+                .Include(r => r.RecipeIngredients)
+                    .ThenInclude(ri => ri.Ingredient)
+                        .ThenInclude(i => i!.Substitutions)
+                            .ThenInclude(s => s.SubstituteIngredient)
                 .Include(r => r.RecipeIngredients)
                     .ThenInclude(ri => ri.Measurement)
                 .Include(r => r.RecipeSteps)
@@ -258,6 +265,28 @@ namespace Nom.Orch.Services
 
             if (recipe == null)
                 return null;
+
+            List<RecipeVariationItemModel>? variation = null;
+            if (personId.HasValue)
+            {
+                var v = await _context.Set<RecipeVariationEntity>()
+                    .AsNoTracking()
+                    .Include(x => x.Items).ThenInclude(i => i.SubstituteIngredient)
+                    .Include(x => x.Items).ThenInclude(i => i.Measurement)
+                    .FirstOrDefaultAsync(x => x.RecipeId == id && x.PersonId == personId.Value);
+                if (v != null)
+                {
+                    variation = v.Items.Select(i => new RecipeVariationItemModel
+                    {
+                        IngredientId = i.IngredientId,
+                        SubstituteIngredientId = i.SubstituteIngredientId,
+                        SubstituteName = i.SubstituteIngredient?.Name ?? string.Empty,
+                        Quantity = i.Quantity,
+                        Measurement = i.Measurement?.Name ?? string.Empty,
+                        MeasurementId = i.MeasurementId
+                    }).ToList();
+                }
+            }
 
             return new RecipeResponseModel
             {
@@ -270,6 +299,8 @@ namespace Nom.Orch.Services
                 PrepTimeMinutes = recipe.PrepTimeMinutes,
                 CookTimeMinutes = recipe.CookTimeMinutes,
                 Servings = recipe.Servings,
+                ServingQuantity = recipe.ServingQuantity,
+                ServingUnit = recipe.ServingQuantityMeasurement?.Name,
                 Rating = recipe.Rating ?? 0,
                 CommentCount = recipe.Comments?.Count ?? 0,
                 RatingCount = recipe.Ratings?.Count ?? 0,
@@ -283,8 +314,25 @@ namespace Nom.Orch.Services
                     MeasurementId = ri.MeasurementId,
                     Name = ri.Ingredient?.Name ?? string.Empty,
                     Measurement = ri.Measurement?.Name ?? string.Empty,
-                    Notes = ri.RawLine
+                    Notes = ri.RawLine,
+                    SubIngredients = ri.Ingredient?.Components?
+                        .OrderBy(c => c.SortOrder)
+                        .Select(c => c.ComponentIngredient?.Name ?? string.Empty)
+                        .Where(n => n != string.Empty)
+                        .ToList() ?? new List<string>(),
+                    Substitutions = ri.Ingredient?.Substitutions?
+                        .Where(s => s.SubstituteIngredient != null)
+                        .Select(s => new IngredientSubstitutionModel
+                        {
+                            IngredientId = s.SubstituteIngredientId,
+                            Name = s.SubstituteIngredient!.Name,
+                            Quantity = ri.Quantity * s.Ratio,
+                            Measurement = ri.Measurement?.Name ?? string.Empty,
+                            MeasurementId = ri.MeasurementId,
+                            Notes = s.Notes
+                        }).ToList() ?? new List<IngredientSubstitutionModel>()
                 }).ToList() ?? new List<RecipeIngredientModel>(),
+                Variation = variation,
                 Steps = recipe.RecipeSteps?.Select(rs => new RecipeStepModel
                 {
                     Description = rs.Description ?? string.Empty,
@@ -299,6 +347,100 @@ namespace Nom.Orch.Services
                     DailyValuePercent = n.DailyValuePercentage
                 }).ToList() ?? new List<RecipeNutritionSearchModel>()
             };
+        }
+
+        public async Task<List<RecipeVariationItemModel>?> SaveVariationAsync(long recipeId, long personId, List<SaveVariationItemRequest> items)
+        {
+            var recipeIngredients = await _context.RecipeIngredients
+                .AsNoTracking()
+                .Include(ri => ri.Ingredient)
+                    .ThenInclude(i => i!.Substitutions)
+                .Include(ri => ri.Measurement)
+                .Where(ri => ri.RecipeId == recipeId)
+                .ToListAsync();
+            if (recipeIngredients.Count == 0)
+                return null;
+
+            var resolved = new List<RecipeVariationItemEntity>();
+            foreach (var item in items)
+            {
+                var ri = recipeIngredients.FirstOrDefault(x => x.IngredientId == item.IngredientId);
+                // Only curated substitutions of ingredients actually in the recipe are storable.
+                var sub = ri?.Ingredient?.Substitutions?
+                    .FirstOrDefault(s => s.SubstituteIngredientId == item.SubstituteIngredientId);
+                if (ri == null || sub == null)
+                    return null;
+
+                resolved.Add(new RecipeVariationItemEntity
+                {
+                    IngredientId = item.IngredientId,
+                    SubstituteIngredientId = item.SubstituteIngredientId,
+                    Quantity = ri.Quantity * sub.Ratio,
+                    MeasurementId = ri.MeasurementId
+                });
+            }
+
+            var variation = await _context.Set<RecipeVariationEntity>()
+                .Include(v => v.Items)
+                .FirstOrDefaultAsync(v => v.RecipeId == recipeId && v.PersonId == personId);
+            if (variation == null)
+            {
+                variation = new RecipeVariationEntity { RecipeId = recipeId, PersonId = personId };
+                _context.Add(variation);
+            }
+            else
+            {
+                _context.RemoveRange(variation.Items);
+                variation.Items.Clear();
+            }
+            foreach (var item in resolved)
+                variation.Items.Add(item);
+            await _context.SaveChangesAsync();
+
+            var subNames = await _context.Set<IngredientEntity>()
+                .Where(i => resolved.Select(r => r.SubstituteIngredientId).Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name);
+            return resolved.Select(i => new RecipeVariationItemModel
+            {
+                IngredientId = i.IngredientId,
+                SubstituteIngredientId = i.SubstituteIngredientId,
+                SubstituteName = subNames.GetValueOrDefault(i.SubstituteIngredientId, string.Empty),
+                Quantity = i.Quantity,
+                Measurement = recipeIngredients.First(ri => ri.IngredientId == i.IngredientId).Measurement?.Name ?? string.Empty,
+                MeasurementId = i.MeasurementId
+            }).ToList();
+        }
+
+        public async Task<bool> DeleteVariationAsync(long recipeId, long personId)
+        {
+            var variation = await _context.Set<RecipeVariationEntity>()
+                .FirstOrDefaultAsync(v => v.RecipeId == recipeId && v.PersonId == personId);
+            if (variation == null)
+                return false;
+            _context.Remove(variation);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<RecipeDietMatchModel>> GetDietMatchesAsync(long recipeId, long personId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return await _context.Set<Nom.Data.Plan.RestrictionEntity>()
+                .AsNoTracking()
+                .Where(r => r.PersonId == personId && r.IngredientId != null
+                    && (r.BeginDate == null || r.BeginDate <= today)
+                    && (r.EndDate == null || r.EndDate >= today))
+                .Join(_context.RecipeIngredients.Where(ri => ri.RecipeId == recipeId),
+                    r => r.IngredientId,
+                    ri => ri.IngredientId,
+                    (r, ri) => new RecipeDietMatchModel
+                    {
+                        RestrictionName = r.Name,
+                        RestrictionType = r.RestrictionType != null ? r.RestrictionType.Name : null,
+                        Severity = r.Severity,
+                        IngredientName = ri.Ingredient != null ? ri.Ingredient.Name : string.Empty
+                    })
+                .ToListAsync();
         }
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)

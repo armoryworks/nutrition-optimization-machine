@@ -10,52 +10,89 @@
 
     <p class="nom-nutrition-label__servings">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
 
-    <div class="nom-nutrition-label__calories">
-      <span class="nom-nutrition-label__calories-label">Calories</span>
-      <span class="nom-nutrition-label__calories-value">
-        @if (calories()) {
-          {{ calories()!.amount | number:'1.0-0' }}
-        } @else {
-          —
-        }
-      </span>
+    <div class="nom-nutrition-label__views">
+      <button type="button" class="nom-nutrition-label__view-btn"
+              [class.nom-nutrition-label__view-btn--active]="view() === 'facts'"
+              [attr.aria-pressed]="view() === 'facts'"
+              (click)="view.set('facts')"
+              data-testid="nutrition-view-facts-btn">Standard</button>
+      <button type="button" class="nom-nutrition-label__view-btn"
+              [class.nom-nutrition-label__view-btn--active]="view() === 'ingredients'"
+              [attr.aria-pressed]="view() === 'ingredients'"
+              (click)="view.set('ingredients')"
+              data-testid="nutrition-view-ingredients-btn">Ingredients</button>
+      <button type="button" class="nom-nutrition-label__view-btn"
+              [class.nom-nutrition-label__view-btn--active]="view() === 'micros'"
+              [attr.aria-pressed]="view() === 'micros'"
+              (click)="view.set('micros')"
+              data-testid="nutrition-view-micros-btn">Vitamins &amp; minerals</button>
     </div>
-    <div class="nom-nutrition-label__bar nom-nutrition-label__bar--medium"></div>
 
-    <div class="nom-nutrition-label__dv-header">% Daily Value*</div>
-
-    @for (nutrient of macroNutrients(); track nutrient.displayName) {
-      <div class="nom-nutrition-label__row"
-           [class.nom-nutrition-label__row--child]="nutrient.isChild">
-        <span class="nom-nutrition-label__nutrient">
-          @if (nutrient.bold) {
-            <strong>{{ nutrient.displayName }}</strong> {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+    @if (view() === 'facts') {
+      <div class="nom-nutrition-label__calories">
+        <span class="nom-nutrition-label__calories-label">Calories</span>
+        <span class="nom-nutrition-label__calories-value">
+          @if (calories()) {
+            {{ calories()!.amount | number:'1.0-0' }}
           } @else {
-            {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+            —
           }
         </span>
-        @if (nutrient.dailyValuePercent !== null) {
-          <span class="nom-nutrition-label__dv">
-            <strong>{{ nutrient.dailyValuePercent | number:'1.0-0' }}%</strong>
-          </span>
-        }
       </div>
+      <div class="nom-nutrition-label__bar nom-nutrition-label__bar--medium"></div>
+
+      <div class="nom-nutrition-label__dv-header">% Daily Value*</div>
+
+      @for (nutrient of macroNutrients(); track nutrient.displayName) {
+        <div class="nom-nutrition-label__row"
+             [class.nom-nutrition-label__row--child]="nutrient.isChild">
+          <span class="nom-nutrition-label__nutrient">
+            @if (nutrient.bold) {
+              <strong>{{ nutrient.displayName }}</strong> {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+            } @else {
+              {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+            }
+          </span>
+          @if (nutrient.dailyValuePercent !== null) {
+            <span class="nom-nutrition-label__dv">
+              <strong>{{ nutrient.dailyValuePercent | number:'1.0-0' }}%</strong>
+            </span>
+          }
+        </div>
+      }
+
+    } @else if (view() === 'ingredients') {
+      @if (ingredientNames().length > 0) {
+        <p class="nom-nutrition-label__ingredients">
+          <strong>Ingredients:</strong> {{ ingredientNames().join(', ') }}
+        </p>
+      } @else {
+        <p class="nom-nutrition-label__empty-msg">
+          No ingredient detail for this recipe yet.
+        </p>
+      }
+    } @else {
+      @if (microNutrients().length > 0) {
+        @for (nutrient of microNutrients(); track nutrient.displayName) {
+          <div class="nom-nutrition-label__row">
+            <span class="nom-nutrition-label__nutrient">
+              {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
+            </span>
+            @if (nutrient.dailyValuePercent !== null) {
+              <span class="nom-nutrition-label__dv">
+                {{ nutrient.dailyValuePercent | number:'1.0-0' }}%
+              </span>
+            }
+          </div>
+        }
+      } @else {
+        <p class="nom-nutrition-label__empty-msg">
+          No vitamin or mineral data for this recipe yet.
+        </p>
+      }
     }
 
     <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
-
-    @for (nutrient of microNutrients(); track nutrient.displayName) {
-      <div class="nom-nutrition-label__row">
-        <span class="nom-nutrition-label__nutrient">
-          {{ nutrient.displayName }} {{ nutrient.amount | number:'1.0-1' }}{{ nutrient.unit }}
-        </span>
-        @if (nutrient.dailyValuePercent !== null) {
-          <span class="nom-nutrition-label__dv">
-            {{ nutrient.dailyValuePercent | number:'1.0-0' }}%
-          </span>
-        }
-      </div>
-    }
 
     <div class="nom-nutrition-label__footnote">
       * The % Daily Value tells you how much a nutrient in a serving

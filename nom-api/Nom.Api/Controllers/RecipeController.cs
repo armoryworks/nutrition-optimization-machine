@@ -62,7 +62,7 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
         {
-            var recipe = await _recipeService.GetRecipeAsync(id);
+            var recipe = await _recipeService.GetRecipeAsync(id, GetCurrentPersonId());
             if (recipe == null)
             {
                 return NotFound(new { message = "Recipe not found" });
@@ -202,6 +202,45 @@ namespace Nom.Api.Controllers
                 return NotFound(new { message = "Rating not found" });
             }
             return NoContent();
+        }
+
+        // Variation + diet endpoints
+
+        /// <summary>Save the caller's default variation (ingredient swaps) for this recipe.</summary>
+        [HttpPut("{id}/variation")]
+        public async Task<ActionResult<List<RecipeVariationItemModel>>> SaveVariation(long id, [FromBody] List<SaveVariationItemRequest> items)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            if (items == null || items.Count == 0)
+                return BadRequest(new { message = "At least one substitution is required (DELETE to clear)" });
+
+            var saved = await _recipeService.SaveVariationAsync(id, personId.Value, items);
+            if (saved == null)
+                return BadRequest(new { message = "Substitution not available for this recipe" });
+            return Ok(saved);
+        }
+
+        /// <summary>Clear the caller's default variation for this recipe.</summary>
+        [HttpDelete("{id}/variation")]
+        public async Task<ActionResult> DeleteVariation(long id)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            var removed = await _recipeService.DeleteVariationAsync(id, personId.Value);
+            return removed ? NoContent() : NotFound(new { message = "No variation saved" });
+        }
+
+        /// <summary>The caller's dietary restrictions that this recipe's ingredients trip.</summary>
+        [HttpGet("{id}/diet")]
+        public async Task<ActionResult<List<RecipeDietMatchModel>>> GetDietMatches(long id)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            return Ok(await _recipeService.GetDietMatchesAsync(id, personId.Value));
         }
 
         // Recipe Image/Asset Endpoints

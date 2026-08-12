@@ -265,6 +265,152 @@
   font-weight: vars.$font-weight-semibold;
 }
 
+// Variant bar: original/modified toggle + save-default shortcut
+.nom-recipe__variant-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-3;
+}
+
+.nom-recipe__variant-toggle,
+.nom-recipe__variant-save {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-1;
+  padding: 2px vars.$spacing-2;
+  font-family: inherit;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover { background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface); }
+  &:disabled { cursor: default; opacity: 0.8; }
+}
+
+.nom-recipe__variant-save {
+  border-color: var(--mat-sys-primary);
+  color: var(--mat-sys-primary);
+}
+
+// Ingredient swap affordances
+.nom-recipe__ingredient--swapped {
+  color: var(--mat-sys-primary);
+}
+
+.nom-recipe__swap-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.nom-recipe__swap-btn {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: vars.$spacing-1;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+  &:hover { color: var(--mat-sys-on-surface); }
+}
+
+.nom-recipe__subs-popover {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  padding: vars.$spacing-1;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-high);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.nom-recipe__subs-title {
+  padding: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nom-recipe__subs-option {
+  display: block;
+  width: 100%;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border: none;
+  border-radius: vars.$nom-border-radius;
+  background: none;
+  color: var(--mat-sys-on-surface);
+  font-family: inherit;
+  font-size: vars.$font-size-sm;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: var(--mat-sys-surface-container-highest); }
+}
+
+.nom-recipe__subs-note {
+  display: block;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Diet tab
+.nom-recipe__diet-clear {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  color: var(--mat-sys-primary);
+  font-size: vars.$font-size-sm;
+  margin: 0;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+.nom-recipe__diet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-recipe__diet-match {
+  display: flex;
+  gap: vars.$spacing-2;
+  font-size: vars.$font-size-sm;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--mat-sys-tertiary); }
+
+  &--severe mat-icon { color: var(--mat-sys-error); }
+}
+
+.nom-recipe__diet-type {
+  margin-left: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-recipe__diet-ingredient {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+}
+
 // Empty section text
 .nom-recipe__empty-section {
   color: var(--mat-sys-on-surface-variant);
