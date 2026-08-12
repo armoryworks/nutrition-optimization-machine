@@ -8,6 +8,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,7 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'nom-header',
-  imports: [RouterLink, MatIconModule, MatButtonModule, LoginPopover, UserMenu],
+  imports: [NgTemplateOutlet, RouterLink, MatIconModule, MatButtonModule, LoginPopover, UserMenu],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,14 @@ export class Header {
 
   loginPopoverOpen = signal(false);
   userMenuOpen = signal(false);
+
+  /** Marketing site fronting this instance (NOM_UI_CONFIG, admin-controlled). */
+  marketingSite: string =
+    (typeof window !== 'undefined' && (window as unknown as { NOM_UI_CONFIG?: { marketingSite?: string } }).NOM_UI_CONFIG?.marketingSite) || '';
+
+  /** Logged-out visitors follow the brand back to the marketing site;
+   *  logged-in users go to their own dashboard. */
+  brandExternal = computed(() => !this.isLoggedIn() && this.marketingSite !== '');
 
   userInitial = computed(() => {
     const name = this.authService.username();

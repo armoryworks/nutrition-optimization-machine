@@ -42,7 +42,12 @@
 }
 
 .nom-header__brand-name {
-  font-size: 13px; // golden line sized down, white line up: better balance
+  // Sizes are computed from real font metrics so both lockup lines have the
+  // same natural width (~11.22em/px top vs ~14.95em/px bottom): 14px top =
+  // 10.5px bottom at 0.05em tracking. Keep the pairs in sync with
+  // nommeal.com's nav lockup.
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: vars.$font-weight-semibold;
   color: var(--mat-sys-tertiary);
   letter-spacing: 0.02em;
@@ -61,9 +66,9 @@
 
 .nom-header__brand-subtitle {
   font-family: 'IBM Plex Mono', Consolas, Monaco, monospace;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: vars.$font-weight-medium;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--mat-sys-on-surface);
   text-align: justify;

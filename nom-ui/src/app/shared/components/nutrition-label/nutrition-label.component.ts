@@ -48,6 +48,13 @@ export class NutritionLabel {
 
   hasData = computed(() => this.nutrition().length > 0);
 
+  /** Per-serving weight, when the nutrition data includes one (e.g. "252 g"). */
+  servingWeight = computed(() => {
+    const match = this.findNutrient(this.nutrition(), ['serving weight', 'serving size']);
+    if (!match) return '';
+    return `${Math.round(match.amount)} ${match.unit || 'g'}`;
+  });
+
   calories = computed(() => {
     const data = this.nutrition();
     return this.findNutrient(data, ['energy', 'calories']);

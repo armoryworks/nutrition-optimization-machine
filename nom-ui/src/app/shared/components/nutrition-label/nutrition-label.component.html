@@ -1,11 +1,14 @@
 @if (hasData()) {
   <div class="nom-nutrition-label" role="region" aria-label="Nutrition Facts">
-    <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+    <div class="nom-nutrition-label__head">
+      <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+      @if (servings()) {
+        <span class="nom-nutrition-label__head-servings">Makes {{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }}</span>
+      }
+    </div>
     <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
 
-    @if (servings()) {
-      <p class="nom-nutrition-label__servings">Makes {{ servings() }} {{ servings() === 1 ? 'serving' : 'servings' }}</p>
-    }
+    <p class="nom-nutrition-label__servings">Nutrition per serving{{ servingWeight() ? ' (' + servingWeight() + ')' : '' }}</p>
 
     <div class="nom-nutrition-label__calories">
       <span class="nom-nutrition-label__calories-label">Calories</span>
@@ -62,7 +65,9 @@
   </div>
 } @else {
   <div class="nom-nutrition-label nom-nutrition-label--empty" role="region" aria-label="Nutrition Facts">
-    <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+    <div class="nom-nutrition-label__head">
+      <h2 class="nom-nutrition-label__title">Nutrition Facts</h2>
+    </div>
     <div class="nom-nutrition-label__bar nom-nutrition-label__bar--heavy"></div>
     <p class="nom-nutrition-label__empty-msg">
       Nutrition data is not yet available for this recipe.

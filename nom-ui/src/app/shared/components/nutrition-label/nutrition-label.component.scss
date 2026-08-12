@@ -11,11 +11,25 @@
   width: 100%;
 }
 
+.nom-nutrition-label__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: vars.$spacing-2;
+  margin-bottom: vars.$spacing-1;
+}
+
 .nom-nutrition-label__title {
-  font-size: vars.$font-size-2xl;
+  font-size: vars.$font-size-xl; // sized down so the servings note fits beside it
   font-weight: vars.$font-weight-bold;
   line-height: 1;
-  margin: 0 0 vars.$spacing-1;
+  margin: 0;
+}
+
+.nom-nutrition-label__head-servings {
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  white-space: nowrap;
 }
 
 // Thick and medium divider bars
