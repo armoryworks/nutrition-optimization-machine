@@ -283,9 +283,9 @@ describe('Admin Curation Workflow', () => {
 
     cy.contains('Administration').should('be.visible');
 
-    // Verify admin cards are visible
-    cy.contains('Curation Queue').should('be.visible');
-    cy.contains('Webhooks').should('be.visible');
+    // Verify admin cards are visible (stable testids — labels changed in the tabbed shell)
+    cy.get('[data-testid="admin-card-curation"]').should('be.visible');
+    cy.get('[data-testid="admin-card-webhooks"]').should('be.visible');
 
     // Navigate to webhooks
     cy.contains('Webhooks').click();
