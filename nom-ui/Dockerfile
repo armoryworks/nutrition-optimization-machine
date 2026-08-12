@@ -29,9 +29,11 @@ COPY --from=build /app/dist/nom-ui/browser /usr/share/nginx/html
 # Expose port
 EXPOSE 80
 
-# Health check
+# Health check — probe 127.0.0.1 explicitly: in-container "localhost" resolves
+# to ::1 first, and nginx here only listens on IPv4, so the check would always
+# report unhealthy while the site serves fine.
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost/ || exit 1
+    CMD wget -qO- http://127.0.0.1/ || exit 1
 
 # Substitute only API_URL (preserves nginx $uri, $host, etc.) then start nginx
 CMD ["/bin/sh", "-c", "envsubst '$API_URL' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
