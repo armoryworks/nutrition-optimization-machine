@@ -33,6 +33,14 @@ namespace Nom.Api.Controllers
                 return BadRequest(ModelState);
             }
 
+            // Anonymous callers may only ever see public, approved recipes — force the
+            // filter server-side rather than trusting the request body to opt in.
+            if (!(User.Identity?.IsAuthenticated ?? false))
+            {
+                searchModel.IsPublic = true;
+                searchModel.IsApproved = true;
+            }
+
             var results = await _searchOrchestrationService.SearchRecipesAsync(searchModel);
             return Ok(results);
         }
