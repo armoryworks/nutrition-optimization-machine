@@ -13,6 +13,11 @@ namespace Nom.Orch.Models.Recipe
         public long? PrepTimeMinutes { get; set; }
         public long? CookTimeMinutes { get; set; }
         public long? Servings { get; set; }
+
+        /// <summary>Per-serving amount for the nutrition label, e.g. 252 + "g". Null when unset.</summary>
+        public decimal? ServingQuantity { get; set; }
+        public string? ServingUnit { get; set; }
+
         public decimal Rating { get; set; }
         public int CommentCount { get; set; }
         public int RatingCount { get; set; }
@@ -20,6 +25,9 @@ namespace Nom.Orch.Models.Recipe
         public DateTime? ModifiedDate { get; set; }
         public string? CurationStatus { get; set; }
         public List<RecipeIngredientModel> Ingredients { get; set; } = new();
+
+        /// <summary>The caller's saved default variation, when authenticated and one exists.</summary>
+        public List<RecipeVariationItemModel>? Variation { get; set; }
         public List<RecipeStepModel> Steps { get; set; } = new();
         public List<RecipeNutritionSearchModel> Nutrition { get; set; } = new();
     }

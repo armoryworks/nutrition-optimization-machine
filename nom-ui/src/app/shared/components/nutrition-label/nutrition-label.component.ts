@@ -1,4 +1,4 @@
-import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RecipeNutritionModel } from '../../../core/models/recipe-nutrition.model';
 
@@ -45,11 +45,23 @@ const FDA_NUTRIENT_ORDER: NutrientDisplayConfig[] = [
 export class NutritionLabel {
   nutrition = input<RecipeNutritionModel[]>([]);
   servings = input<number | undefined>(undefined);
+  /** Ingredient names for the label's "Ingredients:" line (sub-ingredient
+   *  detail can replace this once the data model carries it). */
+  ingredientNames = input<string[]>([]);
+
+  /** Mutually exclusive label views: standard facts, ingredients, vitamins/minerals. */
+  view = signal<'facts' | 'ingredients' | 'micros'>('facts');
 
   hasData = computed(() => this.nutrition().length > 0);
 
-  /** Per-serving weight, when the nutrition data includes one (e.g. "252 g"). */
+  /** Per-serving amount from the recipe record (preferred source). */
+  servingQuantity = input<number | undefined>(undefined);
+  servingUnit = input<string | undefined>(undefined);
+
+  /** Per-serving weight: recipe record first, nutrient-row fallback. */
   servingWeight = computed(() => {
+    const q = this.servingQuantity();
+    if (q) return `${q} ${this.servingUnit() || 'g'}`;
     const match = this.findNutrient(this.nutrition(), ['serving weight', 'serving size']);
     if (!match) return '';
     return `${Math.round(match.amount)} ${match.unit || 'g'}`;

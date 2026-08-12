@@ -41,6 +41,12 @@ namespace Nom.Data.Recipe
 
         // Navigation properties
         public virtual ICollection<IngredientNutrientEntity> IngredientNutrients { get; set; } = new List<IngredientNutrientEntity>();
+
+        /// <summary>Sub-ingredients of this (composite) ingredient, label-ordered.</summary>
+        public virtual ICollection<IngredientComponentEntity> Components { get; set; } = new List<IngredientComponentEntity>();
+
+        /// <summary>Curated substitutions usable wherever this ingredient appears.</summary>
+        public virtual ICollection<IngredientSubstitutionEntity> Substitutions { get; set; } = new List<IngredientSubstitutionEntity>();
         public virtual ICollection<IngredientAliasEntity> Aliases { get; set; } = new List<IngredientAliasEntity>();
 
         // New navigation properties (from Mealie)

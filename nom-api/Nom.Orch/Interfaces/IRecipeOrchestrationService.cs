@@ -11,7 +11,10 @@ namespace Nom.Orch.Interfaces
         Task<List<RecipeResponseModel>> GetAllRecipesAsync(long? currentPersonId = null);
         Task<List<RecipeResponseModel>> GetMyRecipesAsync(long personId);
         Task<RecipeCreateResponseModel> CreateRecipeAsync(RecipeCreateModel model, long currentPersonId);
-        Task<RecipeResponseModel?> GetRecipeAsync(long id);
+        Task<RecipeResponseModel?> GetRecipeAsync(long id, long? personId = null);
+        Task<List<RecipeVariationItemModel>?> SaveVariationAsync(long recipeId, long personId, List<SaveVariationItemRequest> items);
+        Task<bool> DeleteVariationAsync(long recipeId, long personId);
+        Task<List<RecipeDietMatchModel>> GetDietMatchesAsync(long recipeId, long personId);
         Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model);
         Task<bool> DeleteRecipeAsync(long id);
 

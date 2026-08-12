@@ -2,6 +2,23 @@ import { RecipeIngredientModel } from './recipe-ingredient.model';
 import { RecipeStepModel } from './recipe-step.model';
 import { RecipeNutritionModel } from './recipe-nutrition.model';
 
+export interface RecipeVariationItemModel {
+  /** The recipe's original ingredient id being replaced. */
+  ingredientId: number;
+  substituteIngredientId: number;
+  substituteName: string;
+  quantity: number;
+  measurement?: string;
+  measurementId?: number;
+}
+
+export interface RecipeDietMatchModel {
+  restrictionName: string;
+  restrictionType?: string;
+  severity?: number;
+  ingredientName: string;
+}
+
 export interface RecipeModel {
   id: number;
   name: string;
@@ -12,6 +29,9 @@ export interface RecipeModel {
   prepTimeMinutes?: number;
   cookTimeMinutes?: number;
   servings?: number;
+  /** Per-serving amount for the nutrition label (e.g. 252 + "g"). */
+  servingQuantity?: number;
+  servingUnit?: string;
   rating: number;
   commentCount: number;
   ratingCount: number;
@@ -21,4 +41,6 @@ export interface RecipeModel {
   ingredients?: RecipeIngredientModel[];
   steps?: RecipeStepModel[];
   nutrition?: RecipeNutritionModel[];
+  /** The caller's saved default variation, when one exists. */
+  variation?: RecipeVariationItemModel[];
 }

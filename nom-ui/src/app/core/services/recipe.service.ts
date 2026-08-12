@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { RecipeModel } from '../models/recipe.model';
+import { RecipeModel, RecipeVariationItemModel, RecipeDietMatchModel } from '../models/recipe.model';
 import { RecipeCreateRequest } from '../models/recipe-create-request.model';
 import { RecipeCreateResponse } from '../models/recipe-create-response.model';
 import { RecipeUpdateRequest } from '../models/recipe-update-request.model';
@@ -17,6 +17,18 @@ export class RecipeService {
 
   getRecipe(id: number): Observable<RecipeModel> {
     return this.http.get<RecipeModel>(`${this.apiUrl}/${id}`);
+  }
+
+  saveVariation(recipeId: number, items: { ingredientId: number; substituteIngredientId: number }[]): Observable<RecipeVariationItemModel[]> {
+    return this.http.put<RecipeVariationItemModel[]>(`${this.apiUrl}/${recipeId}/variation`, items);
+  }
+
+  deleteVariation(recipeId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${recipeId}/variation`);
+  }
+
+  getDietMatches(recipeId: number): Observable<RecipeDietMatchModel[]> {
+    return this.http.get<RecipeDietMatchModel[]>(`${this.apiUrl}/${recipeId}/diet`);
   }
 
   getRecipes(): Observable<RecipeModel[]> {
