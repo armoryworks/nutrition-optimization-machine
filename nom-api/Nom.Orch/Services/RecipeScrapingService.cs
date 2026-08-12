@@ -1,246 +1,236 @@
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using HtmlAgilityPack;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http;
 using Nom.Data;
+using Nom.Data.Recipe;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Recipe;
-using Nom.Data.Recipe;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using Nom.Orch.UtilityInterfaces;
 
 namespace Nom.Orch.Services
 {
     /// <summary>
-    /// Service for scraping recipes from URLs and HTML data
+    /// Imports recipes via the operator-provided scraper service.
+    ///
+    /// Ground rules enforced here:
+    /// - Whitelist-only: a URL is scraped only when an admin has approved its
+    ///   domain. Unknown domains create a pending source request (admins are
+    ///   notified) and nothing is fetched.
+    /// - Copyright posture: the source image URL and verbatim prose are kept
+    ///   for curation review only (SourceImageUrl / ContainsSourceProse); the
+    ///   public image stays empty until a curator provides one.
+    /// - No fabrication: unparsed ingredient quantities land as 0 with the raw
+    ///   line preserved, never a plausible-looking default.
+    /// - Vetting: implausible imports route to RequiresRevision with issues
+    ///   recorded for admin review.
     /// </summary>
     public class RecipeScrapingService : IRecipeScrapingService
     {
+        /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
+        private const long DefaultMeasurementId = 1L;
+
         private readonly ApplicationDbContext _dbContext;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ICurrentUserService _currentUser;
+        private readonly IRecipeScraperClient _scraperClient;
+        private readonly IScrapingSourceService _scrapingSources;
+        private readonly IRecipeVettingService _vetting;
         private readonly ILogger<RecipeScrapingService> _logger;
-        private readonly HttpClient _httpClient;
 
         public RecipeScrapingService(
             ApplicationDbContext dbContext,
-            IHttpContextAccessor httpContextAccessor,
             ICurrentUserService currentUser,
-            ILogger<RecipeScrapingService> logger,
-            HttpClient httpClient)
+            IRecipeScraperClient scraperClient,
+            IScrapingSourceService scrapingSources,
+            IRecipeVettingService vetting,
+            ILogger<RecipeScrapingService> logger)
         {
             _dbContext = dbContext;
-            _httpContextAccessor = httpContextAccessor;
             _currentUser = currentUser;
+            _scraperClient = scraperClient;
+            _scrapingSources = scrapingSources;
+            _vetting = vetting;
             _logger = logger;
-            _httpClient = httpClient;
         }
 
         /// <summary>
-        /// Scrape a recipe from a URL
+        /// Scrape a recipe from a URL. Only whitelisted domains are ever fetched.
         /// </summary>
         public async Task<RecipeScrapingResponseModel> ScrapeRecipeFromUrlAsync(RecipeScrapingRequestModel request)
         {
-            try
+            if (!_scraperClient.IsConfigured)
             {
-                _logger.LogInformation("Starting recipe scraping from URL: {Url}", request.Url);
+                return Fail("Recipe scraping is not enabled on this server. The operator must configure a scraper service (see docs/scraper-integration.md).");
+            }
 
-                // Extract URL using regex (similar to Mealie)
-                var extractedUrl = ExtractUrl(request.Url);
-                if (string.IsNullOrEmpty(extractedUrl))
-                {
-                    return new RecipeScrapingResponseModel
-                    {
-                        Success = false,
-                        Error = "Invalid URL format"
-                    };
-                }
+            var normalizedUrl = NormalizeUrl(request.Url);
+            if (normalizedUrl == null)
+            {
+                return Fail("Invalid URL format");
+            }
 
-                // Fetch HTML content
-                var html = await FetchHtmlAsync(extractedUrl);
-                if (string.IsNullOrEmpty(html))
-                {
-                    return new RecipeScrapingResponseModel
-                    {
-                        Success = false,
-                        Error = "Failed to fetch HTML content"
-                    };
-                }
+            // Whitelist gate — never fetch from a domain no admin has approved.
+            var gate = await CheckSourceGateAsync(normalizedUrl);
+            if (gate != null)
+            {
+                return gate;
+            }
 
-                // Parse recipe data
-                var scrapedRecipe = await ParseRecipeFromHtmlAsync(html, extractedUrl);
-                if (scrapedRecipe == null)
-                {
-                    return new RecipeScrapingResponseModel
-                    {
-                        Success = false,
-                        Error = "Failed to parse recipe data"
-                    };
-                }
-
-                // Create recipe in database
-                var recipeEntity = await CreateRecipeFromScrapedDataAsync(scrapedRecipe, request);
-
+            // Dedup: the same source URL is imported at most once.
+            var existing = await _dbContext.Recipes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.SourceUrl == normalizedUrl && !r.IsDeleted);
+            if (existing != null)
+            {
                 return new RecipeScrapingResponseModel
                 {
-                    RecipeId = recipeEntity.Id,
-                    RecipeName = recipeEntity.Name,
-                    Message = "Recipe successfully scraped and created",
-                    Success = true
+                    RecipeId = existing.Id,
+                    RecipeName = existing.Name,
+                    Message = "This URL was already imported.",
+                    Success = true,
                 };
             }
-            catch (Exception ex)
+
+            var result = await _scraperClient.ScrapeAsync(normalizedUrl);
+            if (!result.Success || result.Recipe == null)
             {
-                _logger.LogError(ex, "Error scraping recipe from URL: {Url}", request.Url);
-                return new RecipeScrapingResponseModel
-                {
-                    Success = false,
-                    Error = ex.Message
-                };
+                _logger.LogWarning("Scrape failed for {Url}: {Reason} {Error}", normalizedUrl, result.FailureReason, result.Error);
+                return Fail(result.Error ?? $"Scraping failed ({result.FailureReason}).");
             }
+
+            var recipeEntity = await CreateRecipeFromScrapedDataAsync(result.Recipe, normalizedUrl, request.ImportKeywordsAsTags);
+
+            return new RecipeScrapingResponseModel
+            {
+                RecipeId = recipeEntity.Id,
+                RecipeName = recipeEntity.Name,
+                Message = recipeEntity.VettingIssues == null
+                    ? "Recipe successfully scraped and created"
+                    : "Recipe imported but flagged for admin review (vetting issues found).",
+                Success = true,
+            };
         }
 
         /// <summary>
-        /// Scrape a recipe from HTML or JSON data
+        /// Import a recipe from caller-supplied HTML or JSON data. Nothing is
+        /// fetched, so the whitelist does not apply — but the content is still
+        /// treated as third-party prose for copyright purposes.
         /// </summary>
         public async Task<RecipeScrapingResponseModel> ScrapeRecipeFromDataAsync(RecipeScrapingDataRequestModel request)
         {
-            try
+            if (!_scraperClient.IsConfigured)
             {
-                _logger.LogInformation("Starting recipe scraping from data");
-
-                ScrapedRecipeModel? scrapedRecipe;
-
-                // Check if data is JSON
-                if (request.Data.TrimStart().StartsWith("{"))
-                {
-                    scrapedRecipe = ParseRecipeFromJsonAsync(request.Data);
-                }
-                else
-                {
-                    // Parse as HTML
-                    scrapedRecipe = await ParseRecipeFromHtmlAsync(request.Data, null);
-                }
-
-                if (scrapedRecipe == null)
-                {
-                    return new RecipeScrapingResponseModel
-                    {
-                        Success = false,
-                        Error = "Failed to parse recipe data"
-                    };
-                }
-
-                // Create recipe in database
-                var recipeEntity = await CreateRecipeFromScrapedDataAsync(scrapedRecipe, new RecipeScrapingRequestModel
-                {
-                    ImportKeywordsAsTags = request.ImportKeywordsAsTags,
-                    StayInEditMode = request.StayInEditMode
-                });
-
-                return new RecipeScrapingResponseModel
-                {
-                    RecipeId = recipeEntity.Id,
-                    RecipeName = recipeEntity.Name,
-                    Message = "Recipe successfully scraped and created",
-                    Success = true
-                };
+                return Fail("Recipe scraping is not enabled on this server. The operator must configure a scraper service (see docs/scraper-integration.md).");
             }
-            catch (Exception ex)
+
+            var result = await _scraperClient.ParseAsync(request.Data, sourceUrl: null);
+            if (!result.Success || result.Recipe == null)
             {
-                _logger.LogError(ex, "Error scraping recipe from data");
-                return new RecipeScrapingResponseModel
-                {
-                    Success = false,
-                    Error = ex.Message
-                };
+                return Fail(result.Error ?? $"Failed to parse recipe data ({result.FailureReason}).");
             }
+
+            var recipeEntity = await CreateRecipeFromScrapedDataAsync(result.Recipe, sourceUrl: null, request.ImportKeywordsAsTags);
+
+            return new RecipeScrapingResponseModel
+            {
+                RecipeId = recipeEntity.Id,
+                RecipeName = recipeEntity.Name,
+                Message = "Recipe successfully scraped and created",
+                Success = true,
+            };
         }
 
         /// <summary>
-        /// Test recipe scraping from a URL
+        /// Test scraping a URL without creating anything. Subject to the same whitelist.
         /// </summary>
         public async Task<ScrapedRecipeModel> TestScrapeRecipeAsync(RecipeScrapingTestRequestModel request)
         {
-            try
+            if (!_scraperClient.IsConfigured)
             {
-                _logger.LogInformation("Testing recipe scraping from URL: {Url}", request.Url);
-
-                var extractedUrl = ExtractUrl(request.Url);
-                if (string.IsNullOrEmpty(extractedUrl))
-                {
-                    throw new ArgumentException("Invalid URL format");
-                }
-
-                var html = await FetchHtmlAsync(extractedUrl);
-                if (string.IsNullOrEmpty(html))
-                {
-                    throw new InvalidOperationException("Failed to fetch HTML content");
-                }
-
-                var scrapedRecipe = await ParseRecipeFromHtmlAsync(html, extractedUrl);
-                if (scrapedRecipe == null)
-                {
-                    throw new InvalidOperationException("Failed to parse recipe data");
-                }
-
-                return scrapedRecipe;
+                throw new InvalidOperationException("Recipe scraping is not enabled on this server.");
             }
-            catch (Exception ex)
+
+            var normalizedUrl = NormalizeUrl(request.Url)
+                ?? throw new ArgumentException("Invalid URL format");
+
+            var gate = await CheckSourceGateAsync(normalizedUrl);
+            if (gate != null)
             {
-                _logger.LogError(ex, "Error testing recipe scraping from URL: {Url}", request.Url);
-                throw;
+                throw new InvalidOperationException(gate.Error ?? gate.Message);
             }
+
+            var result = await _scraperClient.ScrapeAsync(normalizedUrl);
+            if (!result.Success || result.Recipe == null)
+            {
+                throw new InvalidOperationException(result.Error ?? "Failed to parse recipe data");
+            }
+
+            return MapToScrapedModel(result.Recipe);
         }
 
         /// <summary>
-        /// Bulk scrape recipes from multiple URLs
+        /// Bulk scrape recipes from multiple URLs, with a persisted report.
         /// </summary>
         public async Task<RecipeBulkScrapingResponseModel> BulkScrapeRecipesAsync(RecipeBulkScrapingRequestModel request)
         {
-            var report = new RecipeBulkScrapingResponseModel
+            var report = new ScrapingReportEntity
             {
-                ReportId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                TotalProcessed = request.Imports.Count,
-                Results = new List<RecipeScrapingResponseModel>()
+                UserId = _currentUser.RequiredUserId,
+                Status = "Running",
+                TotalUrls = request.Imports.Count,
+                CreatedDate = DateTime.UtcNow,
+                CreatedByPersonId = _currentUser.PersonId,
             };
+            _dbContext.ScrapingReports.Add(report);
+            await _dbContext.SaveChangesAsync();
 
-            var semaphore = new SemaphoreSlim(3, 3); // Limit concurrent requests
+            var results = new List<RecipeScrapingResponseModel>();
 
-            var tasks = request.Imports.Select(async import =>
+            // Sequential on purpose: the scraper service enforces per-domain
+            // politeness, and bulk imports are background work anyway.
+            foreach (var import in request.Imports)
             {
-                await semaphore.WaitAsync();
-                try
+                var result = await ScrapeRecipeFromUrlAsync(new RecipeScrapingRequestModel
                 {
-                    var result = await ScrapeRecipeFromUrlAsync(new RecipeScrapingRequestModel
-                    {
-                        Url = import.Url,
-                        ImportKeywordsAsTags = false,
-                        StayInEditMode = false
-                    });
+                    Url = import.Url,
+                    ImportKeywordsAsTags = false,
+                    StayInEditMode = false,
+                });
 
-                    // Add tags and categories if provided
-                    if (result.Success && (import.Tags?.Any() == true || import.Categories?.Any() == true))
-                    {
-                        await AddTagsAndCategoriesAsync(result.RecipeId, import.Tags, import.Categories);
-                    }
-
-                    return result;
-                }
-                finally
+                if (result.Success && (import.Tags?.Any() == true || import.Categories?.Any() == true))
                 {
-                    semaphore.Release();
+                    await AddTagsAndCategoriesAsync(result.RecipeId, import.Tags, import.Categories);
                 }
-            });
 
-            var results = await Task.WhenAll(tasks);
+                results.Add(result);
+            }
 
-            report.Results.AddRange(results);
-            report.SuccessCount = results.Count(r => r.Success);
-            report.ErrorCount = results.Count(r => !r.Success);
+            report.Status = "Completed";
+            report.SuccessfulScrapes = results.Count(r => r.Success);
+            report.FailedScrapes = results.Count(r => !r.Success);
+            report.CompletedDate = DateTime.UtcNow;
+            report.ScrapedUrls = string.Join("\n", request.Imports.Select(i => i.Url));
+            report.FailedUrls = string.Join("\n",
+                request.Imports.Zip(results).Where(p => !p.Second.Success).Select(p => p.First.Url));
+            await _dbContext.SaveChangesAsync();
 
-            return report;
+            return new RecipeBulkScrapingResponseModel
+            {
+                Id = report.Id,
+                ReportId = report.Id,
+                Status = report.Status,
+                TotalUrls = report.TotalUrls,
+                SuccessfulScrapes = report.SuccessfulScrapes,
+                FailedScrapes = report.FailedScrapes,
+                CreatedDate = report.CreatedDate,
+                CompletedDate = report.CompletedDate,
+                Results = results,
+                TotalProcessed = results.Count,
+                SuccessCount = report.SuccessfulScrapes,
+                ErrorCount = report.FailedScrapes,
+            };
         }
 
         /// <summary>
@@ -248,33 +238,17 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<RecipeBulkScrapingResponseModel?> GetScrapingReportAsync(long reportId)
         {
-            try
-            {
-                var report = await _dbContext.ScrapingReports
-                    .FirstOrDefaultAsync(r => r.Id == reportId);
+            var report = await _dbContext.ScrapingReports
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == reportId);
 
-                if (report == null)
-                {
-                    _logger.LogWarning("Scraping report {ReportId} not found", reportId);
-                    return null;
-                }
-
-                return new RecipeBulkScrapingResponseModel
-                {
-                    Id = report.Id,
-                    Status = report.Status,
-                    TotalUrls = report.TotalUrls,
-                    SuccessfulScrapes = report.SuccessfulScrapes,
-                    FailedScrapes = report.FailedScrapes,
-                    CreatedDate = report.CreatedDate,
-                    CompletedDate = report.CompletedDate
-                };
-            }
-            catch (Exception ex)
+            if (report == null)
             {
-                _logger.LogError(ex, "Error retrieving scraping report {ReportId}", reportId);
+                _logger.LogWarning("Scraping report {ReportId} not found", reportId);
                 return null;
             }
+
+            return MapReport(report);
         }
 
         /// <summary>
@@ -282,410 +256,319 @@ namespace Nom.Orch.Services
         /// </summary>
         public async Task<List<RecipeBulkScrapingResponseModel>> GetScrapingReportsAsync()
         {
-            try
-            {
-                var currentUserId = GetCurrentUserId();
-                var reports = await _dbContext.ScrapingReports
-                    .Where(r => r.UserId == currentUserId)
-                    .OrderByDescending(r => r.CreatedDate)
-                    .ToListAsync();
+            var currentUserId = _currentUser.RequiredUserId;
+            var reports = await _dbContext.ScrapingReports
+                .AsNoTracking()
+                .Where(r => r.UserId == currentUserId)
+                .OrderByDescending(r => r.CreatedDate)
+                .ToListAsync();
 
-                var result = new List<RecipeBulkScrapingResponseModel>();
-
-                foreach (var report in reports)
-                {
-                    result.Add(new RecipeBulkScrapingResponseModel
-                    {
-                        Id = report.Id,
-                        Status = report.Status,
-                        TotalUrls = report.TotalUrls,
-                        SuccessfulScrapes = report.SuccessfulScrapes,
-                        FailedScrapes = report.FailedScrapes,
-                        CreatedDate = report.CreatedDate,
-                        CompletedDate = report.CompletedDate
-                    });
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving scraping reports for user");
-                return new List<RecipeBulkScrapingResponseModel>();
-            }
+            return reports.Select(MapReport).ToList();
         }
 
         #region Private Methods
 
-        private string? ExtractUrl(string input)
+        private static RecipeScrapingResponseModel Fail(string error) => new()
         {
-            var match = Regex.Match(input, @"(https?://|www\.)[^\s]+");
-            return match.Success ? match.Value : null;
-        }
+            Success = false,
+            Error = error,
+        };
 
-        private async Task<string?> FetchHtmlAsync(string url)
+        /// <summary>
+        /// Returns a failure response when the URL's domain isn't approved for
+        /// scraping (registering a pending request for unknown domains), or null
+        /// when scraping may proceed.
+        /// </summary>
+        private async Task<RecipeScrapingResponseModel?> CheckSourceGateAsync(string url)
         {
-            try
-            {
-                _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-                var response = await _httpClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching HTML from URL: {Url}", url);
-                return null;
-            }
-        }
+            var status = await _scrapingSources.GetDomainStatusAsync(url);
 
-        private async Task<ScrapedRecipeModel?> ParseRecipeFromHtmlAsync(string html, string? sourceUrl)
-        {
-            try
+            switch (status)
             {
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html);
+                case ScrapingSourceStatusEnum.Approved:
+                    return null;
 
-                var recipe = new ScrapedRecipeModel
-                {
-                    SourceUrl = sourceUrl,
-                    SourceSite = ExtractDomain(sourceUrl)
-                };
-
-                // Try to find JSON-LD structured data first
-                var jsonLdNodes = doc.DocumentNode.SelectNodes("//script[@type='application/ld+json']");
-                if (jsonLdNodes != null)
-                {
-                    foreach (var node in jsonLdNodes)
+                case ScrapingSourceStatusEnum.Rejected:
+                    return new RecipeScrapingResponseModel
                     {
-                        try
-                        {
-                            var jsonData = JsonSerializer.Deserialize<JsonElement>(node.InnerText);
-                            if (ParseJsonLdRecipe(jsonData, recipe))
-                            {
-                                return recipe;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Error parsing JSON-LD data");
-                        }
-                    }
-                }
+                        Success = false,
+                        SourcePendingApproval = false,
+                        Error = "An admin has rejected this site as a scraping source.",
+                    };
 
-                // Fallback to HTML parsing
-                ParseHtmlRecipe(doc, recipe);
+                case ScrapingSourceStatusEnum.Pending:
+                    return new RecipeScrapingResponseModel
+                    {
+                        Success = false,
+                        SourcePendingApproval = true,
+                        Message = "This site is awaiting admin approval as a scraping source.",
+                        Error = "This site is awaiting admin approval as a scraping source.",
+                    };
 
-                return recipe;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error parsing recipe from HTML");
-                return null;
+                default: // unknown domain — register the request, notify admins
+                    await _scrapingSources.RequestSourceAsync(url, _currentUser.PersonId);
+                    return new RecipeScrapingResponseModel
+                    {
+                        Success = false,
+                        SourcePendingApproval = true,
+                        Message = "This site has been submitted for admin approval. You'll be able to import from it once an admin approves it.",
+                        Error = "This site has been submitted for admin approval. You'll be able to import from it once an admin approves it.",
+                    };
             }
         }
 
-        private ScrapedRecipeModel? ParseRecipeFromJsonAsync(string jsonData)
+        /// <summary>Absolute http(s) URL with fragment stripped and host lowercased.</summary>
+        private static string? NormalizeUrl(string input)
         {
-            try
-            {
-                var jsonElement = JsonSerializer.Deserialize<JsonElement>(jsonData);
-                var recipe = new ScrapedRecipeModel();
-                return ParseJsonLdRecipe(jsonElement, recipe) ? recipe : null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error parsing recipe from JSON");
-                return null;
-            }
-        }
-
-        private bool ParseJsonLdRecipe(JsonElement json, ScrapedRecipeModel recipe)
-        {
-            try
-            {
-                if (json.TryGetProperty("@type", out var type) && type.GetString() == "Recipe")
-                {
-                    if (json.TryGetProperty("name", out var name))
-                        recipe.Name = name.GetString() ?? string.Empty;
-
-                    if (json.TryGetProperty("description", out var description))
-                        recipe.Description = description.GetString();
-
-                    if (json.TryGetProperty("image", out var image))
-                    {
-                        if (image.ValueKind == JsonValueKind.Array)
-                        {
-                            recipe.Image = image.EnumerateArray().FirstOrDefault().GetString();
-                        }
-                        else
-                        {
-                            recipe.Image = image.GetString();
-                        }
-                    }
-
-                    if (json.TryGetProperty("prepTime", out var prepTime))
-                        recipe.PrepTime = prepTime.GetString();
-
-                    if (json.TryGetProperty("cookTime", out var cookTime))
-                        recipe.CookTime = cookTime.GetString();
-
-                    if (json.TryGetProperty("totalTime", out var totalTime))
-                        recipe.TotalTime = totalTime.GetString();
-
-                    if (json.TryGetProperty("recipeYield", out var recipeYield))
-                        recipe.RecipeYield = recipeYield.GetString();
-
-                    if (json.TryGetProperty("recipeServings", out var recipeServings))
-                    {
-                        if (decimal.TryParse(recipeServings.GetString(), out var servings))
-                            recipe.RecipeServings = servings;
-                    }
-
-                    // Parse ingredients
-                    if (json.TryGetProperty("recipeIngredient", out var ingredients))
-                    {
-                        foreach (var ingredient in ingredients.EnumerateArray())
-                        {
-                            recipe.Ingredients.Add(new ScrapedIngredientModel
-                            {
-                                Name = ingredient.GetString() ?? string.Empty
-                            });
-                        }
-                    }
-
-                    // Parse instructions
-                    if (json.TryGetProperty("recipeInstructions", out var instructions))
-                    {
-                        var order = 1;
-                        foreach (var instruction in instructions.EnumerateArray())
-                        {
-                            if (instruction.TryGetProperty("text", out var text))
-                            {
-                                recipe.Steps.Add(new ScrapedStepModel
-                                {
-                                    Order = order++,
-                                    Instruction = text.GetString() ?? string.Empty
-                                });
-                            }
-                            else
-                            {
-                                recipe.Steps.Add(new ScrapedStepModel
-                                {
-                                    Order = order++,
-                                    Instruction = instruction.GetString() ?? string.Empty
-                                });
-                            }
-                        }
-                    }
-
-                    return !string.IsNullOrEmpty(recipe.Name);
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error parsing JSON-LD recipe");
-                return false;
-            }
-        }
-
-        private void ParseHtmlRecipe(HtmlDocument doc, ScrapedRecipeModel recipe)
-        {
-            // Basic HTML parsing fallback
-            var titleNode = doc.DocumentNode.SelectSingleNode("//h1") ??
-                           doc.DocumentNode.SelectSingleNode("//title");
-            if (titleNode != null)
-                recipe.Name = titleNode.InnerText.Trim();
-
-            var descriptionNode = doc.DocumentNode.SelectSingleNode("//meta[@name='description']");
-            if (descriptionNode != null)
-                recipe.Description = descriptionNode.GetAttributeValue("content", "");
-
-            var imageNode = doc.DocumentNode.SelectSingleNode("//meta[@property='og:image']");
-            if (imageNode != null)
-                recipe.Image = imageNode.GetAttributeValue("content", "");
-
-            // Basic ingredient parsing (look for common patterns)
-            var ingredientNodes = doc.DocumentNode.SelectNodes("//li[contains(text(), 'cup') or contains(text(), 'tbsp') or contains(text(), 'tsp')]");
-            if (ingredientNodes != null)
-            {
-                foreach (var node in ingredientNodes.Take(20)) // Limit to first 20
-                {
-                    recipe.Ingredients.Add(new ScrapedIngredientModel
-                    {
-                        Name = node.InnerText.Trim()
-                    });
-                }
-            }
-        }
-
-        private string? ExtractDomain(string? url)
-        {
-            if (string.IsNullOrEmpty(url)) return null;
-            try
-            {
-                var uri = new Uri(url);
-                return uri.Host;
-            }
-            catch
+            var candidate = input.Trim();
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             {
                 return null;
             }
+
+            return uri.GetComponents(
+                UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.PathAndQuery,
+                UriFormat.UriEscaped);
         }
 
-        private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(ScrapedRecipeModel scrapedRecipe, RecipeScrapingRequestModel request)
+        private async Task<RecipeEntity> CreateRecipeFromScrapedDataAsync(
+            ScraperRecipe scraped, string? sourceUrl, bool importKeywordsAsTags)
         {
+            var vettingIssues = await _vetting.VetAsync(scraped);
+            var personId = _currentUser.PersonId;
+
             var recipe = new RecipeEntity
             {
-                Name = string.IsNullOrEmpty(scrapedRecipe.Name) ? "Untitled Recipe" : scrapedRecipe.Name,
-                Description = scrapedRecipe.Description,
-                SourceUrl = scrapedRecipe.SourceUrl,
-                SourceSite = scrapedRecipe.SourceSite,
-                PrepTime = scrapedRecipe.PrepTime,
-                CookTime = scrapedRecipe.CookTime,
-                TotalTime = scrapedRecipe.TotalTime,
-                RecipeYield = scrapedRecipe.RecipeYield,
-                RecipeYieldQuantity = scrapedRecipe.RecipeYieldQuantity,
-                RecipeServings = scrapedRecipe.RecipeServings,
-                Image = scrapedRecipe.Image ?? string.Empty,
-                AuthorId = GetCurrentPersonId() ?? 1,
-                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
+                Name = string.IsNullOrEmpty(scraped.Name) ? "Untitled Recipe" : scraped.Name,
+                Description = scraped.Description,
+                SourceUrl = sourceUrl ?? scraped.SourceUrl,
+                SourceSite = scraped.SourceSite,
+                PrepTime = scraped.PrepTime,
+                CookTime = scraped.CookTime,
+                TotalTime = scraped.TotalTime,
+                PrepTimeMinutes = scraped.PrepTimeMinutes,
+                CookTimeMinutes = scraped.CookTimeMinutes,
+                RecipeYield = scraped.RecipeYield,
+                RecipeServings = scraped.RecipeServings,
+
+                // Copyright posture: the source's image is review-only; the
+                // public Image stays empty until a curator provides one, and
+                // the verbatim prose is quarantined until rewritten.
+                Image = null,
+                SourceImageUrl = scraped.ImageUrl,
+                ContainsSourceProse = true,
+                ScrapedAtUtc = DateTime.UtcNow,
+                LicenseStatus = RecipeLicenseStatus.Unknown,
+                SourceAttribution = BuildAttribution(scraped),
+
+                VettingIssues = vettingIssues.Count > 0 ? string.Join("\n", vettingIssues) : null,
+                CurationStatusId = vettingIssues.Count > 0
+                    ? (long)CurationStatusEnum.RequiresRevision
+                    : (long)CurationStatusEnum.NonCurated,
+
+                AuthorId = personId ?? SystemConstants.SystemPersonId,
                 Version = 1,
                 CreatedDate = DateTime.UtcNow,
-                CreatedByPersonId = GetCurrentPersonId()
+                CreatedByPersonId = personId,
             };
 
             _dbContext.Recipes.Add(recipe);
             await _dbContext.SaveChangesAsync();
 
-            // Add ingredients
-            foreach (var ingredient in scrapedRecipe.Ingredients)
+            if (!string.IsNullOrWhiteSpace(scraped.RawJsonLd))
             {
-                // First, find or create the ingredient
-                var ingredientEntity = await _dbContext.Ingredients
-                    .FirstOrDefaultAsync(i => i.Name.Equals(ingredient.Name, StringComparison.OrdinalIgnoreCase));
-
-                if (ingredientEntity == null)
+                _dbContext.ScrapedDocuments.Add(new ScrapedDocumentEntity
                 {
-                    ingredientEntity = new IngredientEntity
-                    {
-                        Name = ingredient.Name,
-                        CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
-                        CreatedDate = DateTime.UtcNow,
-                        CreatedByPersonId = GetCurrentPersonId()
-                    };
-                    _dbContext.Ingredients.Add(ingredientEntity);
-                    await _dbContext.SaveChangesAsync();
-                }
+                    RecipeId = recipe.Id,
+                    SourceUrl = recipe.SourceUrl ?? string.Empty,
+                    RawJsonLd = scraped.RawJsonLd,
+                    FetchedAtUtc = DateTime.UtcNow,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = personId,
+                });
+            }
 
-                // Find measurement
-                var measurement = await _dbContext.Measurements
-                    .Where(m => ingredient.Unit != null && m.Name.ToLower() == ingredient.Unit.ToLower())
-                    .FirstOrDefaultAsync();
+            foreach (var ingredient in scraped.Ingredients)
+            {
+                var ingredientEntity = await FindOrCreateIngredientAsync(ingredient.Name, personId);
+                var measurementId = await ResolveMeasurementIdAsync(ingredient.Unit);
 
-                var recipeIngredient = new RecipeIngredientEntity
+                _dbContext.RecipeIngredients.Add(new RecipeIngredientEntity
                 {
                     RecipeId = recipe.Id,
                     IngredientId = ingredientEntity.Id,
-                    Quantity = ingredient.Quantity ?? 1,
-                    MeasurementId = measurement?.Id ?? 1, // Default measurement
-                    RawLine = ingredient.Notes ?? ingredient.Name
-                };
-                _dbContext.RecipeIngredients.Add(recipeIngredient);
+                    // 0 = "not parsed" (RawLine holds the truth). Never default
+                    // to a plausible-looking 1 — vetting flags these for review.
+                    Quantity = ingredient.Quantity ?? 0m,
+                    MeasurementId = measurementId,
+                    RawLine = ingredient.RawLine,
+                });
             }
 
-            // Add steps
-            foreach (var step in scrapedRecipe.Steps)
+            var stepNumber = 1;
+            foreach (var step in scraped.Steps.OrderBy(s => s.Order))
             {
-                var recipeStep = new RecipeStepEntity
+                var description = string.IsNullOrWhiteSpace(step.Section)
+                    ? step.Instruction
+                    : $"[{step.Section}] {step.Instruction}";
+
+                _dbContext.RecipeSteps.Add(new RecipeStepEntity
                 {
                     RecipeId = recipe.Id,
                     Summary = step.Instruction,
-                    Description = step.Instruction,
-                    StepNumber = step.Order ?? 1
-                };
-                _dbContext.RecipeSteps.Add(recipeStep);
+                    Description = description,
+                    StepNumber = stepNumber++,
+                });
             }
 
             await _dbContext.SaveChangesAsync();
 
+            if (importKeywordsAsTags)
+            {
+                var tags = scraped.Keywords
+                    .Concat(scraped.SuitableForDiet)
+                    .Concat(scraped.Cuisines)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                await AddTagsAndCategoriesAsync(recipe.Id, tags, scraped.Categories);
+            }
+
             return recipe;
+        }
+
+        private static string? BuildAttribution(ScraperRecipe scraped)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(scraped.Author))
+            {
+                parts.Add($"Recipe by {scraped.Author}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(scraped.SourceSite))
+            {
+                parts.Add(scraped.SourceSite);
+            }
+
+            return parts.Count > 0 ? string.Join(", ", parts) : null;
+        }
+
+        /// <summary>
+        /// Finds an ingredient by exact name or alias (case-insensitive, translated
+        /// to SQL via ToLower — StringComparison overloads don't translate in EF).
+        /// </summary>
+        private async Task<IngredientEntity> FindOrCreateIngredientAsync(string name, long? personId)
+        {
+            var trimmed = name.Trim();
+            var lowered = trimmed.ToLowerInvariant();
+
+            var ingredient = await _dbContext.Ingredients
+                .FirstOrDefaultAsync(i => i.Name.ToLower() == lowered && !i.IsDeleted);
+
+            if (ingredient == null)
+            {
+                ingredient = await _dbContext.IngredientAliases
+                    .Where(a => a.AliasName.ToLower() == lowered && !a.IsDeleted)
+                    .Select(a => a.Ingredient)
+                    .FirstOrDefaultAsync(i => !i.IsDeleted);
+            }
+
+            if (ingredient == null)
+            {
+                ingredient = new IngredientEntity
+                {
+                    Name = trimmed,
+                    CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedByPersonId = personId,
+                };
+                _dbContext.Ingredients.Add(ingredient);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            return ingredient;
+        }
+
+        private async Task<long> ResolveMeasurementIdAsync(string? unit)
+        {
+            if (string.IsNullOrWhiteSpace(unit))
+            {
+                return DefaultMeasurementId;
+            }
+
+            var lowered = unit.Trim().ToLowerInvariant();
+            var trimmedSingular = lowered.TrimEnd('s');
+
+            var measurement = await _dbContext.Measurements
+                .FirstOrDefaultAsync(m =>
+                    m.Name.ToLower() == lowered ||
+                    m.Name.ToLower() == trimmedSingular ||
+                    m.Symbol.ToLower() == lowered);
+
+            return measurement?.Id ?? DefaultMeasurementId;
         }
 
         private async Task AddTagsAndCategoriesAsync(long recipeId, List<string>? tags, List<string>? categories)
         {
             try
             {
-                // Add tags
-                if (tags != null && tags.Any())
+                var personId = _currentUser.PersonId;
+
+                foreach (var tagName in tags ?? new List<string>())
                 {
-                    foreach (var tagName in tags)
+                    var lowered = tagName.Trim().ToLowerInvariant();
+                    var tag = await _dbContext.Tags
+                        .FirstOrDefaultAsync(t => t.Name.ToLower() == lowered && !t.IsDeleted);
+
+                    if (tag == null)
                     {
-                        // Find or create tag
-                        var tag = await _dbContext.Tags
-                            .FirstOrDefaultAsync(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
-
-                        if (tag == null)
+                        tag = new TagEntity
                         {
-                            tag = new TagEntity
-                            {
-                                Name = tagName,
-                                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
-                                CreatedDate = DateTime.UtcNow,
-                                CreatedByPersonId = GetCurrentPersonId()
-                            };
-                            _dbContext.Tags.Add(tag);
-                            await _dbContext.SaveChangesAsync();
-                        }
-
-                        // Create recipe-tag relationship
-                        var recipeTag = new RecipeTagEntity
-                        {
-                            RecipeId = recipeId,
-                            TagId = tag.Id
+                            Name = tagName.Trim(),
+                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                            CreatedDate = DateTime.UtcNow,
+                            CreatedByPersonId = personId,
                         };
-                        _dbContext.RecipeTags.Add(recipeTag);
+                        _dbContext.Tags.Add(tag);
+                        await _dbContext.SaveChangesAsync();
+                    }
+
+                    var alreadyLinked = await _dbContext.RecipeTags
+                        .AnyAsync(rt => rt.RecipeId == recipeId && rt.TagId == tag.Id);
+                    if (!alreadyLinked)
+                    {
+                        _dbContext.RecipeTags.Add(new RecipeTagEntity { RecipeId = recipeId, TagId = tag.Id });
                     }
                 }
 
-                // Add categories
-                if (categories != null && categories.Any())
+                foreach (var categoryName in categories ?? new List<string>())
                 {
-                    foreach (var categoryName in categories)
+                    var lowered = categoryName.Trim().ToLowerInvariant();
+                    var category = await _dbContext.Categories
+                        .FirstOrDefaultAsync(c => c.Name.ToLower() == lowered && !c.IsDeleted);
+
+                    if (category == null)
                     {
-                        // Find or create category
-                        var category = await _dbContext.Categories
-                            .FirstOrDefaultAsync(c => c.Name.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
-
-                        if (category == null)
+                        category = new CategoryEntity
                         {
-                            category = new CategoryEntity
-                            {
-                                Name = categoryName,
-                                CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
-                                CreatedDate = DateTime.UtcNow,
-                                CreatedByPersonId = GetCurrentPersonId()
-                            };
-                            _dbContext.Categories.Add(category);
-                            await _dbContext.SaveChangesAsync();
-                        }
-
-                        // Create recipe-category relationship
-                        var recipeCategory = new RecipeCategoryEntity
-                        {
-                            RecipeId = recipeId,
-                            CategoryId = category.Id
+                            Name = categoryName.Trim(),
+                            CurationStatusId = (long)CurationStatusEnum.NonCurated,
+                            CreatedDate = DateTime.UtcNow,
+                            CreatedByPersonId = personId,
                         };
-                        _dbContext.RecipeCategories.Add(recipeCategory);
+                        _dbContext.Categories.Add(category);
+                        await _dbContext.SaveChangesAsync();
+                    }
+
+                    var alreadyLinked = await _dbContext.RecipeCategories
+                        .AnyAsync(rc => rc.RecipeId == recipeId && rc.CategoryId == category.Id);
+                    if (!alreadyLinked)
+                    {
+                        _dbContext.RecipeCategories.Add(new RecipeCategoryEntity { RecipeId = recipeId, CategoryId = category.Id });
                     }
                 }
 
                 await _dbContext.SaveChangesAsync();
-
-                _logger.LogInformation("Added tags and categories to recipe {RecipeId}: Tags={Tags}, Categories={Categories}",
-                    recipeId, string.Join(",", tags ?? new List<string>()), string.Join(",", categories ?? new List<string>()));
             }
             catch (Exception ex)
             {
@@ -693,11 +576,48 @@ namespace Nom.Orch.Services
             }
         }
 
-        // Note: the previous implementation long.TryParse'd the GUID user id and
-        // therefore threw for every authenticated user.
-        private string GetCurrentUserId() => _currentUser.RequiredUserId;
+        private static ScrapedRecipeModel MapToScrapedModel(ScraperRecipe scraped) => new()
+        {
+            Name = scraped.Name,
+            Description = scraped.Description,
+            Image = scraped.ImageUrl,
+            SourceUrl = scraped.SourceUrl,
+            SourceSite = scraped.SourceSite,
+            PrepTime = scraped.PrepTime,
+            CookTime = scraped.CookTime,
+            TotalTime = scraped.TotalTime,
+            RecipeYield = scraped.RecipeYield,
+            RecipeServings = scraped.RecipeServings,
+            Ingredients = scraped.Ingredients.Select(i => new ScrapedIngredientModel
+            {
+                Name = i.Name,
+                Quantity = i.Quantity,
+                Unit = i.Unit,
+                Notes = i.Notes ?? (i.Quantity == null ? i.RawLine : null),
+            }).ToList(),
+            Steps = scraped.Steps.Select(s => new ScrapedStepModel
+            {
+                Order = s.Order,
+                Instruction = s.Instruction,
+            }).ToList(),
+            Tags = scraped.Keywords,
+            Categories = scraped.Categories,
+        };
 
-        private long? GetCurrentPersonId() => _currentUser.PersonId;
+        private static RecipeBulkScrapingResponseModel MapReport(ScrapingReportEntity report) => new()
+        {
+            Id = report.Id,
+            ReportId = report.Id,
+            Status = report.Status,
+            TotalUrls = report.TotalUrls,
+            SuccessfulScrapes = report.SuccessfulScrapes,
+            FailedScrapes = report.FailedScrapes,
+            CreatedDate = report.CreatedDate,
+            CompletedDate = report.CompletedDate,
+            TotalProcessed = report.TotalUrls,
+            SuccessCount = report.SuccessfulScrapes,
+            ErrorCount = report.FailedScrapes,
+        };
 
         #endregion
     }

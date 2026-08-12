@@ -18,12 +18,18 @@ namespace Nom.Orch.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly ICurrentUserService _currentUser;
+        private readonly Nom.Orch.UtilityInterfaces.IMediaStorageService _mediaStorage;
 
-        public RecipeOrchestrationService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor, ICurrentUserService currentUser)
+        public RecipeOrchestrationService(
+            ApplicationDbContext context,
+            IHttpContextAccessor httpContextAccessor,
+            ICurrentUserService currentUser,
+            Nom.Orch.UtilityInterfaces.IMediaStorageService mediaStorage)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _currentUser = currentUser;
+            _mediaStorage = mediaStorage;
         }
 
         private string? GetCurrentUserId() => _currentUser.UserId;
@@ -872,13 +878,24 @@ namespace Nom.Orch.Services
             var processedData = ms.ToArray();
 
             var extension = Path.GetExtension(fileName);
+
+            // Prefer the configured media volume (fast local storage); fall back
+            // to database storage when none is configured.
+            string? mediaPath = null;
+            if (_mediaStorage.IsConfigured)
+            {
+                mediaPath = await _mediaStorage.SaveAsync(
+                    $"recipe/{recipeId}/{Guid.NewGuid():N}.jpg", processedData);
+            }
+
             var asset = new RecipeAssetEntity
             {
                 RecipeId = recipeId,
                 Name = fileName,
                 FileExtension = extension,
                 Icon = "image",
-                FileData = processedData,
+                FilePath = mediaPath,
+                FileData = mediaPath == null ? processedData : Array.Empty<byte>(),
                 ContentType = "image/jpeg",
                 FileSize = processedData.Length,
                 Description = "Recipe image",
@@ -927,6 +944,13 @@ namespace Nom.Orch.Services
 
             if (asset == null)
                 return null;
+
+            if (!string.IsNullOrEmpty(asset.FilePath))
+            {
+                var fileData = await _mediaStorage.ReadAsync(asset.FilePath);
+                if (fileData != null)
+                    return (fileData, asset.ContentType ?? "image/jpeg");
+            }
 
             return (asset.FileData, asset.ContentType ?? "image/jpeg");
         }

@@ -22,18 +22,18 @@ namespace Nom.Orch.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<RecipeImportOrchestrationService> _logger;
-        private readonly IWebScrapingService _webScrapingService;
+        private readonly IRecipeScrapingService _recipeScraping;
         private readonly ITesseractOcrService _ocrService;
 
         public RecipeImportOrchestrationService(
             ApplicationDbContext context,
             ILogger<RecipeImportOrchestrationService> logger,
-            IWebScrapingService webScrapingService,
+            IRecipeScrapingService recipeScraping,
             ITesseractOcrService ocrService)
         {
             _context = context;
             _logger = logger;
-            _webScrapingService = webScrapingService;
+            _recipeScraping = recipeScraping;
             _ocrService = ocrService;
         }
 
@@ -41,41 +41,24 @@ namespace Nom.Orch.Services
         {
             _logger.LogInformation("Importing recipe from URL: {Url}", url);
 
-            try
+            // Delegate to the scraping pipeline so URL imports get the same
+            // whitelist gate, vetting, provenance, and copyright handling.
+            var result = await _recipeScraping.ScrapeRecipeFromUrlAsync(new RecipeScrapingRequestModel
             {
-                // Use the actual web scraping service
-                var scrapedData = await _webScrapingService.ScrapeRecipeFromUrlAsync(url);
+                Url = url,
+            });
 
-                var recipe = new RecipeEntity
-                {
-                    Name = scrapedData.Title,
-                    Description = scrapedData.Description,
-                    Image = scrapedData.ImageUrl,
-                    PrepTime = scrapedData.PrepTime,
-                    CookTime = scrapedData.CookTime,
-                    TotalTime = scrapedData.TotalTime,
-                    RecipeYield = scrapedData.Yield,
-                    SourceUrl = url,
-                    AuthorId = authorId,
-                    CurationStatusId = (long)CurationStatusEnum.NonCurated, // Default to NonCurated
-                    Version = 1
-                };
-
-                _context.Recipes.Add(recipe);
-                await _context.SaveChangesAsync();
-
-                return new RecipeCreateResponseModel
-                {
-                    Id = (int)recipe.Id,
-                    Name = recipe.Name,
-                    Message = "Recipe imported successfully"
-                };
-            }
-            catch (Exception ex)
+            if (!result.Success)
             {
-                _logger.LogError(ex, "Failed to import recipe from URL: {Url}", url);
-                throw;
+                throw new InvalidOperationException(result.Error ?? "Import failed.");
             }
+
+            return new RecipeCreateResponseModel
+            {
+                Id = (int)result.RecipeId,
+                Name = result.RecipeName,
+                Message = result.Message,
+            };
         }
 
         public async Task<List<RecipeCreateResponseModel>> BulkImportFromUrlsAsync(List<string> urls, long authorId)
@@ -183,21 +166,23 @@ namespace Nom.Orch.Services
 
             try
             {
-                // Use the actual web scraping service
-                var scrapedData = await _webScrapingService.ScrapeRecipeFromUrlAsync(url);
+                var scraped = await _recipeScraping.TestScrapeRecipeAsync(new RecipeScrapingTestRequestModel
+                {
+                    Url = url,
+                });
 
                 return new RecipeScrapeTestModel
                 {
                     Url = url,
-                    Title = scrapedData.Title,
-                    Description = scrapedData.Description,
-                    Image = scrapedData.ImageUrl,
-                    Ingredients = scrapedData.Ingredients,
-                    Instructions = scrapedData.Instructions,
-                    PrepTime = scrapedData.PrepTime,
-                    CookTime = scrapedData.CookTime,
-                    TotalTime = scrapedData.TotalTime,
-                    Yield = scrapedData.Yield,
+                    Title = scraped.Name,
+                    Description = scraped.Description ?? string.Empty,
+                    Image = scraped.Image ?? string.Empty,
+                    Ingredients = scraped.Ingredients.Select(i => i.Name).ToList(),
+                    Instructions = scraped.Steps.Select(st => st.Instruction).ToList(),
+                    PrepTime = scraped.PrepTime ?? string.Empty,
+                    CookTime = scraped.CookTime ?? string.Empty,
+                    TotalTime = scraped.TotalTime ?? string.Empty,
+                    Yield = scraped.RecipeYield ?? string.Empty,
                     IsValid = true
                 };
             }

@@ -45,6 +45,14 @@ export class CurationQueue implements OnInit {
     this.loadQueue();
   }
 
+  /** Import-vetting problems, one per line. */
+  vettingIssueList(item: CurationQueueItem): string[] {
+    return (item.vettingIssues ?? '')
+      .split('\n')
+      .map((issue) => issue.trim())
+      .filter((issue) => issue.length > 0);
+  }
+
   loadQueue(): void {
     this.loading.set(true);
     this.errorMessage.set('');

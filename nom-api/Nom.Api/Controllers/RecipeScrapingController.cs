@@ -64,10 +64,16 @@ namespace Nom.Api.Controllers
             {
                 return CreatedAtAction("GetRecipe", "Recipe", new { id = result.RecipeId }, result);
             }
-            else
+
+            // 202-style semantics: a pending whitelist request is not an error the
+            // user did anything wrong about — surface the full model so the UI can
+            // show the "awaiting admin approval" state (SourcePendingApproval).
+            if (result.SourcePendingApproval)
             {
-                return BadRequest(new { message = "Failed to create recipe", error = result.Error });
+                return Accepted(result);
             }
+
+            return BadRequest(result);
         }
 
         /// <summary>

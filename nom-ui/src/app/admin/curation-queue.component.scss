@@ -56,6 +56,75 @@
   white-space: nowrap;
 }
 
+.nom-curation__item-status--warn {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+// Verbatim-source-text flag: this content must be rewritten before going public
+.nom-curation__prose-chip {
+  font-size: vars.$font-size-xs;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  border: 1px solid var(--mat-sys-error);
+  color: var(--mat-sys-error);
+  white-space: nowrap;
+  cursor: help;
+}
+
+// Import-vetting plausibility problems (expanded detail)
+.nom-curation__vetting {
+  margin-top: vars.$spacing-3;
+  padding: vars.$spacing-3;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface-container);
+}
+
+.nom-curation__vetting-title {
+  display: block;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: vars.$spacing-2;
+}
+
+.nom-curation__vetting-list {
+  margin: 0;
+  padding-left: vars.$spacing-5;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-1;
+}
+
+.nom-curation__vetting-issue {
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+}
+
+// The source's hero image — reviewer comparison only, never the recipe's image
+.nom-curation__source-image {
+  margin: vars.$spacing-3 0 0;
+
+  img {
+    display: block;
+    max-width: 200px;
+    max-height: 120px;
+    object-fit: cover;
+    border-radius: vars.$nom-border-radius;
+    border: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  figcaption {
+    margin-top: vars.$spacing-1;
+    font-size: vars.$font-size-xs;
+    color: var(--mat-sys-on-surface-variant);
+    font-style: italic;
+  }
+}
+
 .nom-curation__review-btn {
   margin-top: vars.$spacing-3;
 }

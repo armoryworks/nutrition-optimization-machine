@@ -18,6 +18,7 @@ public class RecipeAssetEntityConfiguration : IEntityTypeConfiguration<RecipeAss
         builder.Property(e => e.FileData).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(2047);
         builder.Property(e => e.ContentType).HasMaxLength(100);
+        builder.Property(e => e.FilePath).HasMaxLength(1023);
 
         // Relationships
         builder.HasOne(e => e.Recipe)

@@ -62,6 +62,37 @@ namespace Nom.Data.Recipe
 
         public string? SourceSite { get; set; }
 
+        // Scraping provenance and copyright posture
+        public DateTime? ScrapedAtUtc { get; set; }
+
+        /// <summary>See <see cref="RecipeLicenseStatus"/> for the known values.</summary>
+        public string? LicenseStatus { get; set; }
+
+        /// <summary>Human-readable credit line for the source ("Recipe by Jane Baker, example.com").</summary>
+        public string? SourceAttribution { get; set; }
+
+        /// <summary>
+        /// The source's hero-image URL, kept ONLY so curators can compare during
+        /// review. Never published or hotlinked — the public image is
+        /// <see cref="Image"/>, which stays empty until a curator provides one.
+        /// </summary>
+        public string? SourceImageUrl { get; set; }
+
+        /// <summary>
+        /// True while the description/steps still contain the source's verbatim
+        /// prose. Recipes with this flag are excluded from public listings until
+        /// the text is rewritten (by a curator or an enrichment job) and the
+        /// flag cleared. Ingredient facts are not copyrightable; prose is.
+        /// </summary>
+        public bool ContainsSourceProse { get; set; }
+
+        /// <summary>
+        /// Plausibility problems found by vetting (unrealistic times/servings,
+        /// missing steps, ...), newline-separated. Non-null routes the recipe to
+        /// admin review (RequiresRevision) instead of the normal curation queue.
+        /// </summary>
+        public string? VettingIssues { get; set; }
+
         // Social features (from Mealie)
         public decimal? Rating { get; set; }
 

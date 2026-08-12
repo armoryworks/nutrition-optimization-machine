@@ -11,7 +11,7 @@
         [class.nom-admin__tab--active]="activeTab() === tab.id"
         [routerLink]="tab.id === 'overview' ? '/admin' : '/admin/' + tab.id"
         [attr.aria-current]="activeTab() === tab.id ? 'page' : null"
-        [attr.data-testid]="'nav-admin-' + tab.id"
+        [attr.data-testid]="tab.navTestId ?? 'nav-admin-' + tab.id"
       >
         <mat-icon>{{ tab.icon }}</mat-icon>
         {{ tab.label }}
@@ -44,6 +44,9 @@
       }
       @case ('curation') {
         <nom-curation-queue />
+      }
+      @case ('scraping-sources') {
+        <nom-scraping-sources />
       }
       @case ('webhooks') {
         <nom-webhooks />

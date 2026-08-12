@@ -179,10 +179,18 @@
       }
       @if (recipe()!.ingredients && recipe()!.ingredients!.length > 0) {
         <ul class="nom-recipe__ingredients">
-          @for (row of displayIngredients(); track row.ingredient.ingredientId) {
+          @for (row of displayIngredients(); track $index) {
             <li class="nom-recipe__ingredient"
-                [class.nom-recipe__ingredient--swapped]="row.swap">
-              @if (row.swap) {
+                [class.nom-recipe__ingredient--swapped]="row.swap"
+                [class.nom-recipe__ingredient--add-in]="row.addIn"
+                [attr.data-testid]="row.addIn ? 'ingredient-add-in' : null">
+              @if (row.addIn) {
+                @if (row.ingredient.quantity) {
+                  {{ row.ingredient.quantity }} {{ row.ingredient.measurement }}
+                }
+                {{ row.ingredient.name }}
+                <span class="nom-recipe__ingredient-addin-chip">add-in</span>
+              } @else if (row.swap) {
                 {{ row.swap.quantity }} {{ row.swap.measurement }} {{ row.swap.name }}
                 <button type="button" class="nom-recipe__swap-btn" title="Back to {{ row.ingredient.name }}"
                         (click)="revertSwap(row.ingredient.ingredientId)"
@@ -194,7 +202,7 @@
                 @if (row.ingredient.notes) {
                   <span class="nom-recipe__ingredient-notes">({{ row.ingredient.notes }})</span>
                 }
-                @if (row.ingredient.substitutions?.length) {
+                @if (row.ingredient.substitutions?.length || recipeSubsFor(row.ingredient.ingredientId).length) {
                   <span class="nom-recipe__swap-anchor">
                     <button type="button" class="nom-recipe__swap-btn" title="Substitutions"
                             (click)="toggleSubsPopover(row.ingredient.ingredientId, $event)"
@@ -205,13 +213,31 @@
                       <div class="nom-recipe__subs-popover" (click)="$event.stopPropagation()"
                            data-testid="ingredient-subs-popover">
                         <div class="nom-recipe__subs-title">Swap for</div>
-                        @for (sub of row.ingredient.substitutions!; track sub.ingredientId) {
+                        @for (sub of row.ingredient.substitutions ?? []; track sub.ingredientId) {
                           <button type="button" class="nom-recipe__subs-option"
                                   (click)="pickSubstitution(row.ingredient.ingredientId, sub)"
                                   data-testid="ingredient-subs-option">
                             {{ sub.quantity }} {{ sub.measurement }} {{ sub.name }}
                             @if (sub.notes) {
                               <span class="nom-recipe__subs-note">{{ sub.notes }}</span>
+                            }
+                          </button>
+                        }
+                        @for (rsub of recipeSubsFor(row.ingredient.ingredientId); track rsub.id) {
+                          <button type="button" class="nom-recipe__subs-option"
+                                  (click)="pickRecipeSubstitution(row.ingredient, rsub)"
+                                  data-testid="ingredient-subs-option">
+                            {{ recipeSubQuantity(row.ingredient, rsub) }}
+                            {{ rsub.substituteMeasurement ?? row.ingredient.measurement }}
+                            {{ rsub.substituteName }}
+                            @if (rsub.stepEffects.length) {
+                              <span class="nom-recipe__subs-note">
+                                adjusts {{ rsub.stepEffects.length }}
+                                {{ rsub.stepEffects.length === 1 ? 'step' : 'steps' }}
+                              </span>
+                            }
+                            @if (rsub.notes) {
+                              <span class="nom-recipe__subs-note">{{ rsub.notes }}</span>
                             }
                           </button>
                         }
@@ -226,6 +252,47 @@
       } @else {
         <p class="nom-recipe__empty-section">No ingredients listed.</p>
       }
+
+      @if (augmentations().length > 0) {
+        <details class="nom-recipe__aug-panel" data-testid="recipe-augmentations">
+          <summary class="nom-recipe__aug-header">
+            <mat-icon>auto_awesome</mat-icon>
+            Augmentations ({{ augmentations().length }})
+          </summary>
+          <ul class="nom-recipe__aug-list">
+            @for (aug of augmentations(); track aug.id) {
+              <li class="nom-recipe__aug-item">
+                <label class="nom-recipe__aug-toggle">
+                  <input type="checkbox"
+                         [checked]="enabledAugmentations().has(aug.id)"
+                         (change)="toggleAugmentation(aug.id)"
+                         data-testid="augmentation-toggle" />
+                  <span class="nom-recipe__aug-name">
+                    @if (aug.quantity) {
+                      {{ aug.quantity }} {{ aug.measurement }}
+                    }
+                    {{ aug.ingredientName }}
+                  </span>
+                </label>
+                <div class="nom-recipe__aug-flavor">{{ aug.flavorEffect }}</div>
+                @if (aug.instructions) {
+                  <div class="nom-recipe__aug-instructions">{{ aug.instructions }}</div>
+                }
+                @if (aug.newTemperatureFahrenheit != null || aug.durationDeltaMinutes != null) {
+                  <div class="nom-recipe__aug-badges">
+                    @if (aug.newTemperatureFahrenheit != null) {
+                      <span class="nom-recipe__step-badge">{{ aug.newTemperatureFahrenheit }}&deg;F</span>
+                    }
+                    @if (aug.durationDeltaMinutes != null) {
+                      <span class="nom-recipe__step-badge">{{ aug.durationDeltaMinutes > 0 ? '+' : '' }}{{ aug.durationDeltaMinutes }} min</span>
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        </details>
+      }
     </div>
 
     <!-- Column 3: Instructions -->
@@ -237,7 +304,22 @@
       @if (recipe()!.steps && recipe()!.steps!.length > 0) {
         <ol class="nom-recipe__steps">
           @for (step of displaySteps(); track $index) {
-            <li class="nom-recipe__step">{{ step }}</li>
+            <li class="nom-recipe__step"
+                [class.nom-recipe__step--altered]="step.altered"
+                [class.nom-recipe__step--augmentation]="step.augmentation"
+                [attr.data-testid]="step.augmentation ? 'step-augmentation' : (step.altered ? 'step-altered' : null)">
+              {{ step.text }}
+              @if (step.temperatureFahrenheit != null) {
+                <span class="nom-recipe__step-badge" data-testid="step-effect-badge">
+                  {{ step.temperatureFahrenheit }}&deg;F
+                </span>
+              }
+              @if (step.durationDeltaMinutes != null) {
+                <span class="nom-recipe__step-badge" data-testid="step-effect-badge">
+                  {{ step.durationDeltaMinutes > 0 ? '+' : '' }}{{ step.durationDeltaMinutes }} min
+                </span>
+              }
+            </li>
           }
         </ol>
       } @else {

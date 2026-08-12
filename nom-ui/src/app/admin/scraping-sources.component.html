@@ -1,0 +1,146 @@
+<div class="nom-dashboard" data-testid="admin-scraping-sources">
+  <div class="nom-dashboard__header">
+    <div class="nom-dashboard__header-left">
+      <a routerLink="/admin" class="nom-dashboard__back" data-testid="scraping-sources-back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Admin
+      </a>
+      <h1 class="nom-dashboard__title">Scraping Sources</h1>
+      <span class="nom-dashboard__subtitle">
+        {{ sources().length }} {{ statusFilter().toLowerCase() }}
+        {{ sources().length === 1 ? 'domain' : 'domains' }}
+      </span>
+    </div>
+    <div class="nom-dashboard__header-right">
+      <button mat-icon-button (click)="loadSources()" aria-label="Refresh"
+              data-testid="admin-scraping-sources-refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <p class="nom-scraping-sources__warning" data-testid="admin-scraping-sources-warning">
+    <mat-icon>gavel</mat-icon>
+    Approving a source means you accept responsibility for the legality and quality of scraping
+    it. Recipes are only ever imported from approved domains.
+  </p>
+
+  <div class="nom-scraping-sources__filters" role="group" aria-label="Filter by status"
+       data-testid="admin-scraping-sources-status-filter">
+    @for (status of statuses; track status) {
+      <button type="button"
+              class="nom-scraping-sources__filter"
+              [class.nom-scraping-sources__filter--active]="statusFilter() === status"
+              (click)="setFilter(status)"
+              [attr.data-testid]="'admin-scraping-sources-filter-' + status.toLowerCase()">
+        {{ status }}
+      </button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <nom-error-banner [message]="errorMessage()" />
+  }
+
+  @if (loading()) {
+    <div class="nom-scraping-sources__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (sources().length === 0) {
+    <div class="nom-dashboard__empty" data-testid="admin-scraping-sources-empty">
+      <mat-icon class="nom-dashboard__empty-icon">travel_explore</mat-icon>
+      <h2 class="nom-dashboard__empty-title">No {{ statusFilter().toLowerCase() }} sources</h2>
+      <p class="nom-dashboard__empty-message">
+        Nothing with the {{ statusFilter() }} status right now.
+      </p>
+    </div>
+  } @else {
+    <div class="nom-scraping-sources__list" data-testid="admin-scraping-sources-list">
+      @for (source of sources(); track source.id) {
+        <div class="nom-scraping-sources__item" data-testid="scraping-source-item">
+          <div class="nom-scraping-sources__item-header">
+            <mat-icon class="nom-scraping-sources__item-icon">language</mat-icon>
+            <div class="nom-scraping-sources__item-info">
+              @if (source.sampleUrl) {
+                <a class="nom-scraping-sources__domain"
+                   [href]="source.sampleUrl" target="_blank" rel="noopener"
+                   data-testid="scraping-source-domain-link">
+                  {{ source.domain }}
+                  <mat-icon class="nom-scraping-sources__external-icon">open_in_new</mat-icon>
+                </a>
+              } @else {
+                <span class="nom-scraping-sources__domain">{{ source.domain }}</span>
+              }
+              <span class="nom-scraping-sources__item-meta">
+                @if (source.requestedByName) {
+                  Requested by {{ source.requestedByName }} &middot;
+                }
+                {{ source.createdDate | date: 'mediumDate' }}
+              </span>
+              @if (source.reviewedByName || source.reviewedDate) {
+                <span class="nom-scraping-sources__item-meta">
+                  Reviewed
+                  @if (source.reviewedByName) {
+                    by {{ source.reviewedByName }}
+                  }
+                  @if (source.reviewedDate) {
+                    &middot; {{ source.reviewedDate | date: 'mediumDate' }}
+                  }
+                </span>
+              }
+              @if (source.notes) {
+                <span class="nom-scraping-sources__notes">{{ source.notes }}</span>
+              }
+            </div>
+            <span class="nom-scraping-sources__status"
+                  [class.nom-scraping-sources__status--approved]="source.status === 'Approved'"
+                  [class.nom-scraping-sources__status--rejected]="source.status === 'Rejected'">
+              {{ source.status }}
+            </span>
+          </div>
+
+          @if (rejectingId() === source.id) {
+            <div class="nom-scraping-sources__reject-prompt">
+              <mat-form-field appearance="outline" class="nom-scraping-sources__notes-field">
+                <mat-label>Rejection notes</mat-label>
+                <textarea matInput [formControl]="rejectNotes" rows="2"
+                          placeholder="Optional reason for rejecting this domain..."></textarea>
+              </mat-form-field>
+              <div class="nom-scraping-sources__actions">
+                <span class="nom-scraping-sources__spacer"></span>
+                <button mat-button (click)="cancelReject()"
+                        data-testid="scraping-source-reject-cancel-btn">
+                  Cancel
+                </button>
+                <button mat-flat-button class="nom-btn--destructive"
+                        (click)="confirmReject(source)" [disabled]="processing()"
+                        data-testid="scraping-source-reject-confirm-btn">
+                  <mat-icon>block</mat-icon>
+                  Confirm Reject
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="nom-scraping-sources__actions">
+              <span class="nom-scraping-sources__spacer"></span>
+              <button mat-button class="nom-btn--destructive"
+                      (click)="startReject(source)"
+                      [disabled]="processing() || source.status === 'Rejected'"
+                      data-testid="scraping-source-reject-btn">
+                <mat-icon>close</mat-icon>
+                Reject
+              </button>
+              <button mat-flat-button
+                      (click)="approve(source)"
+                      [disabled]="processing() || source.status === 'Approved'"
+                      data-testid="scraping-source-approve-btn">
+                <mat-icon>check</mat-icon>
+                Approve
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

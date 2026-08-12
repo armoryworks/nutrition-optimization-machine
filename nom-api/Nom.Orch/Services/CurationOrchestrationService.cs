@@ -49,7 +49,10 @@ namespace Nom.Orch.Services
                 .Include(r => r.RecipeIngredients)
                 .ThenInclude(ri => ri.Ingredient)
                 .Include(r => r.RecipeSteps)
-                .Where(r => r.CurationStatusId == (long)CurationStatusEnum.PendingCuration)
+                // RequiresRevision covers imports flagged by vetting — they need
+                // admin eyes, so they surface in the same queue.
+                .Where(r => r.CurationStatusId == (long)CurationStatusEnum.PendingCuration ||
+                            r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision)
                 .Select(r => new CurationQueueItemModel
                 {
                     Id = r.Id,
@@ -59,7 +62,12 @@ namespace Nom.Orch.Services
                     DateSubmitted = r.DateSubmittedForCuration ?? r.CreatedDate,
                     Description = r.Description,
                     SourceUrl = r.SourceUrl,
-                    AuthorId = r.AuthorId
+                    AuthorId = r.AuthorId,
+                    Status = r.CurationStatusId == (long)CurationStatusEnum.RequiresRevision
+                        ? "RequiresRevision" : "PendingCuration",
+                    VettingIssues = r.VettingIssues,
+                    ContainsSourceProse = r.ContainsSourceProse,
+                    SourceImageUrl = r.SourceImageUrl
                 })
                 .ToListAsync();
 
@@ -78,7 +86,8 @@ namespace Nom.Orch.Services
                     AuthorName = i.Author!.Name,
                     DateSubmitted = i.CreatedDate,
                     Description = i.Description,
-                    AuthorId = i.AuthorId ?? 0
+                    AuthorId = i.AuthorId ?? 0,
+                    Status = "PendingCuration"
                 })
                 .ToListAsync();
 
@@ -97,7 +106,8 @@ namespace Nom.Orch.Services
                     AuthorName = p.Author!.Name,
                     DateSubmitted = p.DateSubmittedForCuration ?? p.CreatedDate,
                     Description = p.Description,
-                    AuthorId = p.AuthorId
+                    AuthorId = p.AuthorId,
+                    Status = "PendingCuration"
                 })
                 .ToListAsync();
 

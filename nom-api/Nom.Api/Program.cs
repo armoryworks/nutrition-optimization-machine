@@ -182,9 +182,25 @@ else
 }
 // --- END OF CORRECTED CONFIGURATION ---
 
-// Add HttpClient for web scraping
+// Add HttpClient
 builder.Services.AddHttpClient();
-builder.Services.AddHttpClient<Nom.Orch.UtilityServices.WebScrapingService>();
+
+// General-purpose system email (admin notifications) — mirrors the Identity sender selection
+if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
+{
+    builder.Services.AddTransient<Nom.Orch.UtilityInterfaces.ISystemEmailService, SmtpSystemEmailService>();
+}
+else
+{
+    builder.Services.AddTransient<Nom.Orch.UtilityInterfaces.ISystemEmailService, NoOpSystemEmailService>();
+}
+
+// External recipe-scraper service client (operator-provided; scraping features
+// are disabled when RecipeScraper:BaseUrl is not configured).
+// See docs/scraper-integration.md.
+builder.Services.Configure<Nom.Orch.Settings.RecipeScraperSettings>(
+    builder.Configuration.GetSection(Nom.Orch.Settings.RecipeScraperSettings.SectionName));
+builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IRecipeScraperClient, Nom.Orch.UtilityServices.RecipeScraperClient>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

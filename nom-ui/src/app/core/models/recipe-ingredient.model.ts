@@ -1,3 +1,5 @@
+import { RecipeSubstitutionStepEffectModel } from './recipe-substitution.model';
+
 export interface IngredientSubstitutionModel {
   /** The substitute ingredient's id. */
   ingredientId: number;
@@ -7,6 +9,8 @@ export interface IngredientSubstitutionModel {
   measurement?: string;
   measurementId?: number;
   notes?: string;
+  /** Step alterations carried by a recipe-scoped substitution, when it has any. */
+  stepEffects?: RecipeSubstitutionStepEffectModel[];
 }
 
 export interface RecipeIngredientModel {
