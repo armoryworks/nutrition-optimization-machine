@@ -60,7 +60,7 @@ namespace Nom.Orch.Services
             return source?.Status;
         }
 
-        public async Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId)
+        public async Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId, string? note = null)
         {
             var domain = ExtractDomain(url)
                 ?? throw new ArgumentException("Not a valid http(s) URL.", nameof(url));
@@ -77,6 +77,7 @@ namespace Nom.Orch.Services
                 Domain = domain,
                 Status = ScrapingSourceStatusEnum.Pending,
                 SampleUrl = url,
+                Notes = note,
                 RequestedByPersonId = requestedByPersonId,
                 CreatedDate = DateTime.UtcNow,
                 CreatedByPersonId = requestedByPersonId,

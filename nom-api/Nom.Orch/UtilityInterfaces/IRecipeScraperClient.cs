@@ -18,6 +18,13 @@ namespace Nom.Orch.UtilityInterfaces
 
         /// <summary>Parse caller-supplied HTML or JSON-LD without fetching anything.</summary>
         Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Discover candidate recipe sites by following outbound links from the
+        /// given approved seed domains. Candidates are proposals only — nothing
+        /// is imported from them until an admin approves the domain.
+        /// </summary>
+        Task<ScraperDiscoveryResult> DiscoverAsync(List<string> seedDomains, int maxCandidates, CancellationToken cancellationToken = default);
     }
 
     // DTOs mirroring the scraper service's response contract.
@@ -76,5 +83,19 @@ namespace Nom.Orch.UtilityInterfaces
         public int Order { get; set; }
         public string? Section { get; set; }
         public string Instruction { get; set; } = string.Empty;
+    }
+
+    public class ScraperDiscoveryResult
+    {
+        public List<ScraperDiscoveredSource> Candidates { get; set; } = new();
+        public int ProbedWithoutSignal { get; set; }
+    }
+
+    public class ScraperDiscoveredSource
+    {
+        public string Domain { get; set; } = string.Empty;
+        public string EvidenceUrl { get; set; } = string.Empty;
+        public string Signal { get; set; } = string.Empty;
+        public string DiscoveredVia { get; set; } = string.Empty;
     }
 }

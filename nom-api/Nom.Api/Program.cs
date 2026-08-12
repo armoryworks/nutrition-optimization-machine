@@ -202,6 +202,10 @@ builder.Services.Configure<Nom.Orch.Settings.RecipeScraperSettings>(
     builder.Configuration.GetSection(Nom.Orch.Settings.RecipeScraperSettings.SectionName));
 builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IRecipeScraperClient, Nom.Orch.UtilityServices.RecipeScraperClient>();
 
+// Automatic source discovery (off by default; whitelist-gated — discovered
+// sites become Pending sources for admin approval, never direct imports).
+builder.Services.AddHostedService<Nom.Api.Services.SourceDiscoveryHostedService>();
+
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();
 
