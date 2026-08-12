@@ -9,6 +9,10 @@ import { RecipeUpdateRequest } from '../models/recipe-update-request.model';
 import { RecipeAssetResponse } from '../models/recipe-asset-response.model';
 import { RecipeCommentResponseModel } from '../models/recipe-comment-response.model';
 import { RecipeRatingResponseModel } from '../models/recipe-rating-response.model';
+import {
+  RecipeSubstitutionModel,
+  RecipeAugmentationModel,
+} from '../models/recipe-substitution.model';
 
 @Injectable({ providedIn: 'root' })
 export class RecipeService {
@@ -29,6 +33,14 @@ export class RecipeService {
 
   getDietMatches(recipeId: number): Observable<RecipeDietMatchModel[]> {
     return this.http.get<RecipeDietMatchModel[]>(`${this.apiUrl}/${recipeId}/diet`);
+  }
+
+  getSubstitutions(recipeId: number): Observable<RecipeSubstitutionModel[]> {
+    return this.http.get<RecipeSubstitutionModel[]>(`${this.apiUrl}/${recipeId}/substitutions`);
+  }
+
+  getAugmentations(recipeId: number): Observable<RecipeAugmentationModel[]> {
+    return this.http.get<RecipeAugmentationModel[]>(`${this.apiUrl}/${recipeId}/augmentations`);
   }
 
   getRecipes(): Observable<RecipeModel[]> {

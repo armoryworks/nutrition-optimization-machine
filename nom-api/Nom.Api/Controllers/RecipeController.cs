@@ -14,11 +14,17 @@ namespace Nom.Api.Controllers
     public class RecipeController : BaseApiController
     {
         private readonly IRecipeOrchestrationService _recipeService;
+        private readonly IRecipeEnhancementService _enhancementService;
 
-        public RecipeController(IRecipeOrchestrationService recipeService)
+        public RecipeController(
+            IRecipeOrchestrationService recipeService,
+            IRecipeEnhancementService enhancementService)
         {
             _recipeService = recipeService;
+            _enhancementService = enhancementService;
         }
+
+        private bool CanManageCuration() => User.HasClaim("CanManageCuration", "true");
 
         [HttpGet]
         public async Task<ActionResult<List<RecipeResponseModel>>> GetRecipes()
@@ -241,6 +247,109 @@ namespace Nom.Api.Controllers
             if (!personId.HasValue)
                 return Unauthorized("User not authenticated");
             return Ok(await _recipeService.GetDietMatchesAsync(id, personId.Value));
+        }
+
+        // Recipe substitutions (with step effects) and augmentations.
+        // Users see curated entries; curators also see machine-proposed ones.
+
+        [HttpGet("{id}/substitutions")]
+        public async Task<ActionResult<List<RecipeSubstitutionModel>>> GetSubstitutions(long id)
+        {
+            return Ok(await _enhancementService.GetSubstitutionsAsync(id, includeUncurated: CanManageCuration()));
+        }
+
+        [HttpGet("{id}/augmentations")]
+        public async Task<ActionResult<List<RecipeAugmentationModel>>> GetAugmentations(long id)
+        {
+            return Ok(await _enhancementService.GetAugmentationsAsync(id, includeUncurated: CanManageCuration()));
+        }
+
+        [HttpPost("{id}/substitutions")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<ActionResult<RecipeSubstitutionModel>> CreateSubstitution(long id, [FromBody] RecipeSubstitutionUpsertModel model)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            var result = await _enhancementService.UpsertSubstitutionAsync(id, null, model, personId.Value);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/substitutions/{substitutionId:long}")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<ActionResult<RecipeSubstitutionModel>> UpdateSubstitution(long id, long substitutionId, [FromBody] RecipeSubstitutionUpsertModel model)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            var result = await _enhancementService.UpsertSubstitutionAsync(id, substitutionId, model, personId.Value);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/substitutions/{substitutionId:long}/curate")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> CurateSubstitution(long id, long substitutionId)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            return await _enhancementService.CurateSubstitutionAsync(id, substitutionId, personId.Value)
+                ? NoContent() : NotFound();
+        }
+
+        [HttpDelete("{id}/substitutions/{substitutionId:long}")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> DeleteSubstitution(long id, long substitutionId)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            return await _enhancementService.DeleteSubstitutionAsync(id, substitutionId, personId.Value)
+                ? NoContent() : NotFound();
+        }
+
+        [HttpPost("{id}/augmentations")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<ActionResult<RecipeAugmentationModel>> CreateAugmentation(long id, [FromBody] RecipeAugmentationUpsertModel model)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            var result = await _enhancementService.UpsertAugmentationAsync(id, null, model, personId.Value);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/augmentations/{augmentationId:long}")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<ActionResult<RecipeAugmentationModel>> UpdateAugmentation(long id, long augmentationId, [FromBody] RecipeAugmentationUpsertModel model)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            var result = await _enhancementService.UpsertAugmentationAsync(id, augmentationId, model, personId.Value);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/augmentations/{augmentationId:long}/curate")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> CurateAugmentation(long id, long augmentationId)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            return await _enhancementService.CurateAugmentationAsync(id, augmentationId, personId.Value)
+                ? NoContent() : NotFound();
+        }
+
+        [HttpDelete("{id}/augmentations/{augmentationId:long}")]
+        [Authorize(Policy = "CanManageCuration")]
+        public async Task<IActionResult> DeleteAugmentation(long id, long augmentationId)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue)
+                return Unauthorized("User not authenticated");
+            return await _enhancementService.DeleteAugmentationAsync(id, augmentationId, personId.Value)
+                ? NoContent() : NotFound();
         }
 
         // Recipe Image/Asset Endpoints

@@ -4,12 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { CurationQueue } from './curation-queue.component';
+import { ScrapingSources } from './scraping-sources.component';
 import { Webhooks } from './webhooks.component';
 import { UsersAdmin } from './users-admin.component';
 
 // URL-driven tabbed shell (the forge-ui admin idiom): /admin/:tab selects the
 // panel; unknown tabs fall back to the overview launchpad.
-const VALID_TABS = ['overview', 'users', 'curation', 'webhooks'] as const;
+const VALID_TABS = ['overview', 'users', 'curation', 'scraping-sources', 'webhooks'] as const;
 type AdminTab = (typeof VALID_TABS)[number];
 
 interface AdminTabDef {
@@ -17,11 +18,13 @@ interface AdminTabDef {
   label: string;
   icon: string;
   description: string;
+  /** Overrides the default 'nav-admin-{id}' nav test id. */
+  navTestId?: string;
 }
 
 @Component({
   selector: 'nom-admin',
-  imports: [RouterLink, MatIconModule, CurationQueue, Webhooks, UsersAdmin],
+  imports: [RouterLink, MatIconModule, CurationQueue, ScrapingSources, Webhooks, UsersAdmin],
   templateUrl: './admin.component.html',
   styleUrls: ['../settings/settings.component.scss', './admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,6 +49,13 @@ export class Admin {
       label: 'Curation',
       icon: 'fact_check',
       description: 'Review submitted recipes and ingredients',
+    },
+    {
+      id: 'scraping-sources',
+      label: 'Scraping Sources',
+      icon: 'travel_explore',
+      description: 'Approve domains recipes may be imported from',
+      navTestId: 'nav-scraping-sources',
     },
     {
       id: 'webhooks',

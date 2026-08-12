@@ -20,6 +20,12 @@ namespace Nom.Data.Recipe
 
         public byte[] FileData { get; set; } = Array.Empty<byte>();
 
+        /// <summary>
+        /// Relative path in the configured media store (Media:RootPath). When
+        /// set, FileData is empty and the bytes live on the media volume.
+        /// </summary>
+        public string? FilePath { get; set; }
+
         public string? Description { get; set; }
 
         public long FileSize { get; set; }

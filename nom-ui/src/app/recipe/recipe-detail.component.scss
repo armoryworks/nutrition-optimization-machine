@@ -257,6 +257,135 @@
   padding-left: vars.$spacing-2;
 }
 
+// Steps altered by a substitution's step effect: subtle highlight
+.nom-recipe__step--altered {
+  background: var(--mat-sys-surface-container-high);
+  border-left: 3px solid var(--mat-sys-primary);
+  border-radius: vars.$nom-border-radius;
+  padding: vars.$spacing-1 vars.$spacing-2;
+}
+
+// Pseudo-steps injected by an enabled augmentation
+.nom-recipe__step--augmentation {
+  color: var(--mat-sys-tertiary);
+  border-left: 3px solid var(--mat-sys-tertiary);
+  border-radius: vars.$nom-border-radius;
+  padding: vars.$spacing-1 vars.$spacing-2;
+  list-style-type: '+ ';
+}
+
+// Temperature / duration annotations on affected steps and augmentations
+.nom-recipe__step-badge {
+  display: inline-block;
+  margin-left: vars.$spacing-1;
+  padding: 0 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+// Augmentations disclosure panel (below the ingredient list)
+.nom-recipe__aug-panel {
+  margin-top: vars.$spacing-4;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: vars.$nom-border-radius-lg;
+  background: var(--mat-sys-surface-container);
+}
+
+.nom-recipe__aug-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  padding: vars.$spacing-2 vars.$spacing-3;
+  cursor: pointer;
+  font-size: vars.$font-size-sm;
+  font-weight: vars.$font-weight-semibold;
+  color: var(--mat-sys-on-surface);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-tertiary);
+  }
+}
+
+.nom-recipe__aug-list {
+  list-style: none;
+  margin: 0;
+  padding: vars.$spacing-2 vars.$spacing-3 vars.$spacing-3;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-3;
+}
+
+.nom-recipe__aug-item {
+  padding-top: vars.$spacing-2;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  font-size: vars.$font-size-sm;
+  color: var(--mat-sys-on-surface);
+}
+
+.nom-recipe__aug-toggle {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    accent-color: var(--mat-sys-primary);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+.nom-recipe__aug-name {
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-recipe__aug-flavor {
+  margin-top: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-tertiary);
+  font-weight: vars.$font-weight-medium;
+}
+
+.nom-recipe__aug-instructions {
+  margin-top: vars.$spacing-1;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-recipe__aug-badges {
+  margin-top: vars.$spacing-1;
+
+  .nom-recipe__step-badge:first-child {
+    margin-left: 0;
+  }
+}
+
+// Add-in ingredient rows (enabled augmentations)
+.nom-recipe__ingredient--add-in {
+  color: var(--mat-sys-tertiary);
+}
+
+.nom-recipe__ingredient-addin-chip {
+  display: inline-block;
+  margin-left: vars.$spacing-1;
+  padding: 0 vars.$spacing-2;
+  border-radius: vars.$nom-border-radius-pill;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  vertical-align: middle;
+}
+
 // Raw numeric rating in the tab rail (upright, like the icons)
 .nom-recipe__tab-num {
   writing-mode: horizontal-tb;

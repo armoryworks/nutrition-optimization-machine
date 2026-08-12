@@ -1,5 +1,9 @@
 # NOM Project Instructions
 
+## Recipe Scraping
+
+NOM contains no web-scraping code. URL import is delegated to an external, operator-provided scraper service (reference implementation: private repo `armoryworks/nom-scraper`); the contract and setup live in `docs/scraper-integration.md`. Scraping is whitelist-only — domains must be admin-approved in `recipe.ScrapingSource` — and scraped images/prose are quarantined (`SourceImageUrl`, `ContainsSourceProse`) until curated. Never add code that fetches third-party recipe sites directly from nom-api.
+
 ## Database Setup
 
 The database uses a declarative (DACPAC-style) workflow — `db/schema.sql` is the source of truth; there are no EF migrations. See `db/README.md`.

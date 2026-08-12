@@ -122,6 +122,11 @@ namespace Nom.Data
         public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;
         public DbSet<ScrapingReportEntity> ScrapingReports { get; set; } = default!;
+        public DbSet<ScrapingSourceEntity> ScrapingSources { get; set; } = default!;
+        public DbSet<ScrapedDocumentEntity> ScrapedDocuments { get; set; } = default!;
+        public DbSet<RecipeSubstitutionEntity> RecipeSubstitutions { get; set; } = default!;
+        public DbSet<RecipeSubstitutionStepEffectEntity> RecipeSubstitutionStepEffects { get; set; } = default!;
+        public DbSet<RecipeAugmentationEntity> RecipeAugmentations { get; set; } = default!;
         public DbSet<RecipeBulkOperationProgressEntity> RecipeBulkOperationProgress { get; set; } = default!;
         #endregion
 
