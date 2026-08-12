@@ -19,7 +19,7 @@ namespace Nom.Orch.Interfaces
         /// Registers a Pending request for the URL's domain (idempotent) and, when
         /// newly created, notifies all curation admins in-app and by email.
         /// </summary>
-        Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId);
+        Task<ScrapingSourceModel> RequestSourceAsync(string url, long? requestedByPersonId, string? note = null);
 
         Task<List<ScrapingSourceModel>> ListAsync(ScrapingSourceStatusEnum? status);
 

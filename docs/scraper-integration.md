@@ -46,6 +46,15 @@ Request: `{ "url": "https://example.com/recipes/pancakes" }`
 
 Request: `{ "content": "<html … or raw JSON-LD>", "sourceUrl": "optional" }` — parse without fetching.
 
+### `POST /api/discover` (optional)
+
+Request: `{ "seedDomains": ["approved-site.com", …], "maxCandidates": 10 }`
+
+Follows outbound links from the approved seed sites' homepages and probes each
+candidate domain's homepage (one page, robots-aware) for a recipe signal.
+Response: `{ "candidates": [{ "domain", "evidenceUrl", "signal", "discoveredVia" }], "probedWithoutSignal": n }`.
+Discovery proposes; it never imports.
+
 ### Response (both endpoints, HTTP 200)
 
 ```json
@@ -87,6 +96,24 @@ Contract rules an implementation must honor:
 - **Vetting:** imports are checked for plausibility (realistic times/servings, completeness, parseable quantities). Suspect recipes get `RequiresRevision` curation status with the issues recorded in `Recipe.VettingIssues` for admin review.
 - **Copyright quarantine:** `Recipe.SourceImageUrl` (review-only, never published; the public `Image` stays empty until a curator uploads one via the normal asset flow) and `Recipe.ContainsSourceProse = true` until the description/steps are rewritten and a curator clears it. The raw JSON-LD is kept in `recipe.ScrapedDocument`.
 - **Dedup:** a normalized source URL is imported at most once.
+
+## Automatic source discovery (optional, off by default)
+
+With a scraper configured, NOM can look for new public recipe sources automatically:
+
+```json
+"SourceDiscovery": { "Enabled": true, "IntervalHours": 168, "MaxCandidatesPerRun": 10 }
+```
+
+On each run, NOM sends its **approved** domains to the scraper's `/api/discover`;
+newly found candidate domains are registered as **Pending** scraping sources,
+which triggers the standard admin prompt (in-app message + email). The admin
+approves or rejects each one — discovery never scrapes a candidate beyond the
+single robots-compliant probe page, and imports only ever happen from approved
+domains. Domains an admin has rejected are never re-proposed.
+
+Discovery needs at least one approved source to seed from, so approve a first
+site by importing from it (or inserting a row) before enabling this.
 
 ## Media storage (optional)
 

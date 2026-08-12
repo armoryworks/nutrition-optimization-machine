@@ -49,6 +49,33 @@ namespace Nom.Orch.UtilityServices
         public Task<ScraperResult> ParseAsync(string content, string? sourceUrl, CancellationToken cancellationToken = default)
             => PostAsync("api/parse", new { content, sourceUrl }, cancellationToken);
 
+        public async Task<ScraperDiscoveryResult> DiscoverAsync(List<string> seedDomains, int maxCandidates, CancellationToken cancellationToken = default)
+        {
+            if (!IsConfigured)
+            {
+                return new ScraperDiscoveryResult();
+            }
+
+            try
+            {
+                using var response = await _httpClient.PostAsJsonAsync(
+                    "api/discover", new { seedDomains, maxCandidates }, JsonOptions, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Scraper discovery returned {StatusCode}", response.StatusCode);
+                    return new ScraperDiscoveryResult();
+                }
+
+                return await response.Content.ReadFromJsonAsync<ScraperDiscoveryResult>(JsonOptions, cancellationToken)
+                    ?? new ScraperDiscoveryResult();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                _logger.LogError(ex, "Scraper discovery failed");
+                return new ScraperDiscoveryResult();
+            }
+        }
+
         private async Task<ScraperResult> PostAsync(string path, object body, CancellationToken cancellationToken)
         {
             if (!IsConfigured)
