@@ -131,10 +131,11 @@ describe('Daily User Workflow', () => {
 
         // Verify shuffle button exists
         cy.contains('button', 'Shuffle').should('exist');
-      } else if ($body.find('button:contains("Create Household"), a:contains("Create Household")').length > 0) {
-        // No household yet — verify the empty state
-        cy.log('No household — plan page shows setup prompt');
-        cy.contains('No household yet').should('be.visible');
+      } else if ($body.find('[data-testid="no-household-cta"]').length > 0) {
+        // No household yet — the shared setup CTA is shown (solo or create).
+        cy.log('No household — plan page shows the setup CTA');
+        cy.get('[data-testid="no-household-cta"]').should('be.visible');
+        cy.contains('Just cooking for myself').should('be.visible');
       } else {
         // Plan creation wizard
         cy.log('Plan creation wizard visible');
