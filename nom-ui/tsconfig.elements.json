@@ -1,0 +1,13 @@
+/* TS project for the embeddable login element bundle (nom-login-element).
+   Its wrapper component carries the full Material theme as component styles,
+   which would trip the main app's anyComponentStyle budget — so the element
+   entry lives in its own compilation, excluded from tsconfig.app.json. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/elements",
+    "types": []
+  },
+  "files": ["src/elements-main.ts"],
+  "include": ["src/**/*.d.ts"]
+}

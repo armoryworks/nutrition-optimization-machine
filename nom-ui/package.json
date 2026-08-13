@@ -4,12 +4,12 @@
   "license": "Apache-2.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "test:ci": "ng test --watch=false",
-    "lint": "ng lint"
+    "start": "ng serve nom-ui",
+    "build": "ng build nom-ui",
+    "watch": "ng build nom-ui --watch --configuration development",
+    "test": "ng test nom-ui",
+    "test:ci": "ng test nom-ui --watch=false",
+    "lint": "ng lint nom-ui"
   },
   "prettier": {
     "printWidth": 100,
@@ -31,6 +31,7 @@
     "@angular/common": "^21.1.0",
     "@angular/compiler": "^21.1.0",
     "@angular/core": "^21.1.0",
+    "@angular/elements": "^21.1.4",
     "@angular/forms": "^21.1.0",
     "@angular/material": "^21.1.4",
     "@angular/platform-browser": "^21.1.0",

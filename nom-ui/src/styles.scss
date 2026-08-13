@@ -1,195 +1,15 @@
 @use '@angular/material' as mat;
+@use 'nom-theme' as nom;
 
-// Emit all M3 system-level color tokens as CSS custom properties.
-// mat.all-component-themes() only emits the subset that Material components
-// internally reference. This mixin fills in the full palette so our custom
-// components can use any --mat-sys-* variable reliably.
-@mixin nom-system-colors($theme) {
-  // Primary
-  --mat-sys-primary: #{mat.get-theme-color($theme, primary)};
-  --mat-sys-on-primary: #{mat.get-theme-color($theme, on-primary)};
-  --mat-sys-primary-container: #{mat.get-theme-color($theme, primary-container)};
-  --mat-sys-on-primary-container: #{mat.get-theme-color($theme, on-primary-container)};
-  --mat-sys-inverse-primary: #{mat.get-theme-color($theme, inverse-primary)};
-
-  // Secondary
-  --mat-sys-secondary: #{mat.get-theme-color($theme, secondary)};
-  --mat-sys-on-secondary: #{mat.get-theme-color($theme, on-secondary)};
-  --mat-sys-secondary-container: #{mat.get-theme-color($theme, secondary-container)};
-  --mat-sys-on-secondary-container: #{mat.get-theme-color($theme, on-secondary-container)};
-
-  // Tertiary
-  --mat-sys-tertiary: #{mat.get-theme-color($theme, tertiary)};
-  --mat-sys-on-tertiary: #{mat.get-theme-color($theme, on-tertiary)};
-  --mat-sys-tertiary-container: #{mat.get-theme-color($theme, tertiary-container)};
-  --mat-sys-on-tertiary-container: #{mat.get-theme-color($theme, on-tertiary-container)};
-
-  // Error
-  --mat-sys-error: #{mat.get-theme-color($theme, error)};
-  --mat-sys-on-error: #{mat.get-theme-color($theme, on-error)};
-  --mat-sys-error-container: #{mat.get-theme-color($theme, error-container)};
-  --mat-sys-on-error-container: #{mat.get-theme-color($theme, on-error-container)};
-
-  // Surface
-  --mat-sys-surface: #{mat.get-theme-color($theme, surface)};
-  --mat-sys-on-surface: #{mat.get-theme-color($theme, on-surface)};
-  --mat-sys-surface-variant: #{mat.get-theme-color($theme, surface-variant)};
-  --mat-sys-on-surface-variant: #{mat.get-theme-color($theme, on-surface-variant)};
-  --mat-sys-surface-container-lowest: #{mat.get-theme-color($theme, surface-container-lowest)};
-  --mat-sys-surface-container-low: #{mat.get-theme-color($theme, surface-container-low)};
-  --mat-sys-surface-container: #{mat.get-theme-color($theme, surface-container)};
-  --mat-sys-surface-container-high: #{mat.get-theme-color($theme, surface-container-high)};
-  --mat-sys-surface-container-highest: #{mat.get-theme-color($theme, surface-container-highest)};
-  --mat-sys-surface-dim: #{mat.get-theme-color($theme, surface-dim)};
-  --mat-sys-surface-bright: #{mat.get-theme-color($theme, surface-bright)};
-  --mat-sys-surface-tint: #{mat.get-theme-color($theme, surface-tint)};
-  --mat-sys-inverse-surface: #{mat.get-theme-color($theme, inverse-surface)};
-  --mat-sys-inverse-on-surface: #{mat.get-theme-color($theme, inverse-on-surface)};
-
-  // Outline
-  --mat-sys-outline: #{mat.get-theme-color($theme, outline)};
-  --mat-sys-outline-variant: #{mat.get-theme-color($theme, outline-variant)};
-
-  // Shadow & scrim
-  --mat-sys-shadow: #{mat.get-theme-color($theme, shadow)};
-  --mat-sys-scrim: #{mat.get-theme-color($theme, scrim)};
-}
-
-// ── NOM brand scheme (nommeal.com design tokens) ─────────────────────────────
-// Exact hexes from the marketing site, layered over the Material theme so
-// every --mat-sys-* consumer picks them up: teal = product primary, amber =
-// warm accent (tertiary), slate surfaces shared with armoryworks.com.
-@mixin nom-brand-colors-dark {
-  --mat-sys-primary: #2dd4bf;
-  --mat-sys-on-primary: #042f2e;
-  --mat-sys-primary-container: #0b7a70;
-  --mat-sys-on-primary-container: #ccfbf1;
-  --mat-sys-inverse-primary: #0d9488;
-  --mat-sys-surface-tint: #2dd4bf;
-
-  --mat-sys-secondary: #5eead4;
-  --mat-sys-on-secondary: #042f2e;
-  --mat-sys-secondary-container: #134e4a;
-  --mat-sys-on-secondary-container: #ccfbf1;
-
-  --mat-sys-tertiary: #fbbf24;
-  --mat-sys-on-tertiary: #451a03;
-  --mat-sys-tertiary-container: #b45309;
-  --mat-sys-on-tertiary-container: #fef3c7;
-
-  --mat-sys-error: #ef4444;
-  --mat-sys-on-error: #450a0a;
-  --mat-sys-error-container: #7f1d1d;
-  --mat-sys-on-error-container: #fecaca;
-
-  --mat-sys-surface: #0f172a;
-  --mat-sys-on-surface: #f1f5f9;
-  --mat-sys-surface-variant: #1e293b;
-  --mat-sys-on-surface-variant: #94a3b8;
-  --mat-sys-surface-container-lowest: #0b1120;
-  --mat-sys-surface-container-low: #172136;
-  --mat-sys-surface-container: #1e293b;
-  --mat-sys-surface-container-high: #273549;
-  --mat-sys-surface-container-highest: #334155;
-  --mat-sys-surface-dim: #0b1120;
-  --mat-sys-surface-bright: #334155;
-  --mat-sys-inverse-surface: #f1f5f9;
-  --mat-sys-inverse-on-surface: #0f172a;
-
-  --mat-sys-outline: #334155;
-  --mat-sys-outline-variant: #273549;
-}
-
-@mixin nom-brand-colors-light {
-  --mat-sys-primary: #0d9488;
-  --mat-sys-on-primary: #ffffff;
-  --mat-sys-primary-container: #ccfbf1;
-  --mat-sys-on-primary-container: #134e4a;
-  --mat-sys-inverse-primary: #2dd4bf;
-  --mat-sys-surface-tint: #0d9488;
-
-  --mat-sys-secondary: #0f766e;
-  --mat-sys-on-secondary: #ffffff;
-  --mat-sys-secondary-container: #ccfbf1;
-  --mat-sys-on-secondary-container: #134e4a;
-
-  --mat-sys-tertiary: #b45309;
-  --mat-sys-on-tertiary: #ffffff;
-  --mat-sys-tertiary-container: #fef3c7;
-  --mat-sys-on-tertiary-container: #78350f;
-
-  --mat-sys-error: #dc2626;
-  --mat-sys-on-error: #ffffff;
-  --mat-sys-error-container: #fee2e2;
-  --mat-sys-on-error-container: #7f1d1d;
-
-  --mat-sys-surface: #f8fafc;
-  --mat-sys-on-surface: #0f172a;
-  --mat-sys-surface-variant: #e2e8f0;
-  --mat-sys-on-surface-variant: #475569;
-  --mat-sys-surface-container-lowest: #ffffff;
-  --mat-sys-surface-container-low: #f1f5f9;
-  --mat-sys-surface-container: #e2e8f0;
-  --mat-sys-surface-container-high: #cbd5e1;
-  --mat-sys-surface-container-highest: #94a3b8;
-  --mat-sys-surface-dim: #e2e8f0;
-  --mat-sys-surface-bright: #ffffff;
-  --mat-sys-inverse-surface: #0f172a;
-  --mat-sys-inverse-on-surface: #f1f5f9;
-
-  --mat-sys-outline: #cbd5e1;
-  --mat-sys-outline-variant: #e2e8f0;
-}
-
-// Define M3 theme - dark default. Cyan/orange seeds keep any token the brand
-// mixins don't override in the same hue family as the teal/amber scheme.
-$nom-theme: mat.define-theme((
-  color: (
-    theme-type: dark,
-    primary: mat.$cyan-palette,
-    tertiary: mat.$orange-palette,
-  ),
-  typography: (
-    brand-family: 'Inter, system-ui, -apple-system, sans-serif',
-    plain-family: 'Inter, system-ui, -apple-system, sans-serif',
-  ),
-  density: (scale: 0),
-));
-
-// Apply theme globally
+// Apply theme globally. Theme definition + mixins live in _nom-theme.scss,
+// shared with the embeddable login element (which applies them under its own
+// tag instead of html).
 html {
-  @include mat.all-component-themes($nom-theme);
-  @include mat.typography-hierarchy($nom-theme);
-  @include nom-system-colors($nom-theme);
-  @include nom-brand-colors-dark;
-
-  // Sharp corners site-wide — armoryworks.com design language
-  --mat-sys-corner-extra-small: 0;
-  --mat-sys-corner-small: 0;
-  --mat-sys-corner-medium: 0;
-  --mat-sys-corner-large: 0;
-  --mat-sys-corner-extra-large: 0;
-  --mat-sys-corner-full: 0;
-  --mat-button-filled-container-shape: 0;
-  --mat-button-outlined-container-shape: 0;
-  --mat-button-text-container-shape: 0;
-  --mat-button-protected-container-shape: 0;
-  --mat-fab-small-shape: 0;
-  --mat-fab-shape: 0;
-  --mdc-elevated-card-container-shape: 0;
-  --mdc-outlined-card-container-shape: 0;
-  --mdc-dialog-container-shape: 0;
-  --mdc-outlined-text-field-container-shape: 0;
-  --mdc-filled-text-field-container-shape: 0;
-  --mat-menu-container-shape: 0;
-  --mdc-chip-container-shape: 0;
-
-  // Amber filled buttons — the marketing sites' CTA treatment
-  --mdc-filled-button-container-color: var(--mat-sys-tertiary);
-  --mdc-filled-button-label-text-color: var(--mat-sys-on-tertiary);
-  --mat-button-filled-container-color: var(--mat-sys-tertiary);
-  --mat-button-filled-label-text-color: var(--mat-sys-on-tertiary);
-  --mat-button-filled-state-layer-color: var(--mat-sys-on-tertiary);
+  @include mat.all-component-themes(nom.$nom-theme);
+  @include mat.typography-hierarchy(nom.$nom-theme);
+  @include nom.nom-system-colors(nom.$nom-theme);
+  @include nom.nom-brand-colors-dark;
+  @include nom.nom-shape-and-cta-overrides;
 }
 
 // ── Dialog Overrides ──
@@ -211,8 +31,8 @@ html {
     ),
   ));
   @include mat.all-component-colors($light-theme);
-  @include nom-system-colors($light-theme);
-  @include nom-brand-colors-light;
+  @include nom.nom-system-colors($light-theme);
+  @include nom.nom-brand-colors-light;
 }
 
 // The floating label's required marker (*) sits over the input's hit area on

@@ -104,6 +104,28 @@ export class AuthService {
     );
   }
 
+  /**
+   * Trades the current session for a one-time handoff code (cross-origin
+   * sign-in transfer: the embedded popover on the marketing site calls this,
+   * then redirects to the app origin's /auth/handoff with the code).
+   */
+  requestHandoffCode(): Observable<{ code: string }> {
+    return this.http.post<{ code: string }>('/api/auth/handoff', {});
+  }
+
+  /** Redeems a one-time handoff code for this origin's own tokens (mirrors login()). */
+  redeemHandoffCode(code: string): Observable<AuthTokenResponse> {
+    return this.http.post<AuthTokenResponse>('/api/auth/handoff/redeem', { code }).pipe(
+      tap((response) => this.storeTokens(response)),
+      switchMap((response) =>
+        this.fetchAndStoreUserInfo().pipe(
+          catchError(() => of(null)),
+          switchMap(() => of(response)),
+        ),
+      ),
+    );
+  }
+
   attemptTokenRefresh(): Observable<AuthTokenResponse | null> {
     const refreshToken = this.refreshToken;
     if (!refreshToken) {

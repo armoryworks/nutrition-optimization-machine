@@ -8,13 +8,6 @@
   justify-content: center;
   gap: vars.$spacing-5;
   padding: vars.$spacing-5;
-
-  &--embedded {
-    // The marketing popover provides the chrome; fill the iframe edge-to-edge.
-    min-height: 100dvh;
-    padding: vars.$spacing-3;
-    justify-content: flex-start;
-  }
 }
 
 .nom-login-page__brand {
