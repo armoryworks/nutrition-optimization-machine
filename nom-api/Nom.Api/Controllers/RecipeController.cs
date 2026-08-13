@@ -89,6 +89,27 @@ namespace Nom.Api.Controllers
             return Ok(recipe);
         }
 
+        public sealed record SetVisibilityRequest(string Visibility);
+
+        /// <summary>
+        /// Author-only: set the recipe's visibility tier. Audience scoping is
+        /// completed by attaching the recipe to audiences (api/audience).
+        /// </summary>
+        [HttpPut("{id}/visibility")]
+        public async Task<IActionResult> SetVisibility(long id, [FromBody] SetVisibilityRequest request)
+        {
+            var personId = GetCurrentPersonId();
+            if (!personId.HasValue) return Unauthorized();
+
+            if (!Enum.TryParse<Nom.Data.Recipe.RecipeVisibilityEnum>(request.Visibility, ignoreCase: true, out var visibility))
+            {
+                return BadRequest(new { message = "Visibility must be one of: private, household, audience, public." });
+            }
+
+            var changed = await _recipeService.SetVisibilityAsync(id, visibility, personId.Value);
+            return changed ? NoContent() : NotFound();
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> UpdateRecipe(long id, [FromBody] UpdateRecipeRequest request)
         {

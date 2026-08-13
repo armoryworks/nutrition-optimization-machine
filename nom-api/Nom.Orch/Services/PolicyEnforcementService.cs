@@ -29,6 +29,11 @@ namespace Nom.Orch.Services
             _context = context;
         }
 
+        public Task<bool> IsStewardAsync(long personId, long householdId) =>
+            _context.HouseholdMembers.AnyAsync(hm =>
+                hm.HouseholdId == householdId && hm.PersonId == personId
+                && hm.IsActive && (hm.IsAdmin || hm.CanManage));
+
         public async Task<bool> IsFeatureGatedAsync(long personId, long householdId, string gateKey)
         {
             var gatesJson = await _context.MemberPolicies

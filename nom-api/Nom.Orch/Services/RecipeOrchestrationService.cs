@@ -962,6 +962,20 @@ namespace Nom.Orch.Services
             };
         }
 
+        public async Task<bool> SetVisibilityAsync(long recipeId, RecipeVisibilityEnum visibility, long requesterPersonId)
+        {
+            var recipe = await _context.Recipes
+                .FirstOrDefaultAsync(r => r.Id == recipeId && r.AuthorId == requesterPersonId);
+            if (recipe == null)
+            {
+                return false;
+            }
+
+            recipe.Visibility = visibility;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId, long? requestingPersonId)
         {
             // Images follow the recipe's visibility (central rule — includes

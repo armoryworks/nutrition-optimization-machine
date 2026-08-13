@@ -44,5 +44,8 @@ namespace Nom.Orch.Interfaces
         Task<(byte[] FileData, string ContentType)?> GetImageAsync(long recipeId, long? requestingPersonId);
         Task<bool> DeleteImageAsync(long recipeId, long assetId, long personId);
         Task<List<RecipeAssetResponseModel>> GetAssetsAsync(long recipeId, long? requestingPersonId = null);
+
+        /// <summary>Author-only visibility change; false when not found or not the author.</summary>
+        Task<bool> SetVisibilityAsync(long recipeId, Nom.Data.Recipe.RecipeVisibilityEnum visibility, long requesterPersonId);
     }
 }
