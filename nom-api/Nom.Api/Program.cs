@@ -195,7 +195,15 @@ builder.Services.AddHttpClient("webhook")
 // licensed pricing APIs, partner feeds, scrapers, and vision OCR replace these
 // without touching consumers — see epic #23 / D-060). Not auto-registered:
 // their interfaces don't follow the I*Service convention.
-builder.Services.AddScoped<Nom.Orch.Interfaces.IPriceSource, Nom.Orch.Services.Commerce.DbPriceSource>();
+// Price sources compose (D-060 "all of the above"): register each leaf, then
+// expose IPriceSource as the composite that merges them. Add API/partner/scrape
+// leaves to the array as they're built — nothing downstream changes.
+builder.Services.AddScoped<Nom.Orch.Services.Commerce.DbPriceSource>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.IPriceSource>(sp =>
+    new Nom.Orch.Services.Commerce.CompositePriceSource(new Nom.Orch.Interfaces.IPriceSource[]
+    {
+        sp.GetRequiredService<Nom.Orch.Services.Commerce.DbPriceSource>(),
+    }));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ICouponSource, Nom.Orch.Services.Commerce.DbCouponSource>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
 builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
