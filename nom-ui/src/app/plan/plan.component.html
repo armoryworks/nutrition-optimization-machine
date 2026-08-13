@@ -62,14 +62,10 @@
     @if (!hasHousehold()) {
       <div class="nom-dashboard__empty" data-testid="plan-empty">
         <mat-icon class="nom-dashboard__empty-icon">home</mat-icon>
-        <h2 class="nom-dashboard__empty-title">No household yet</h2>
-        <p class="nom-dashboard__empty-message">
-          Create a household first to start planning meals for your family or group.
-        </p>
-        <a mat-flat-button routerLink="/household">
-          <mat-icon>add</mat-icon>
-          Create Household
-        </a>
+        <h2 class="nom-dashboard__empty-title">Let's get you set up</h2>
+        <nom-no-household-cta
+          message="Set up your kitchen to start planning meals."
+          (created)="onHouseholdCreated()" />
       </div>
     } @else if (loading() && !weekData()) {
       <div class="nom-plan__loading">

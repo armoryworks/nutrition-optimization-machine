@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 
@@ -22,7 +23,7 @@ import { ConfirmDeleteDialog, ConfirmDeleteDialogData } from '../shared/confirm-
 
     MatIconModule,
     MatButtonModule,
-    MatProgressSpinnerModule, ErrorBanner],
+    MatProgressSpinnerModule, ErrorBanner, NoHouseholdCta],
   templateUrl: './cookbook-list.component.html',
   styleUrls: ['./cookbook-list.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,9 +39,17 @@ export class CookbookList implements OnInit {
   cookbooks = signal<CookbookResponseModel[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  /** Household-absence is a setup state, not an error — it gets the shared CTA. */
+  noHousehold = signal(false);
   householdId = signal(0);
 
   ngOnInit(): void {
+    this.loadHouseholdThenCookbooks();
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
+    this.loading.set(true);
     this.loadHouseholdThenCookbooks();
   }
 
@@ -53,10 +62,11 @@ export class CookbookList implements OnInit {
     ).subscribe({
       next: (households) => {
         if (households.length > 0) {
+          this.noHousehold.set(false);
           this.householdId.set(households[0].id);
           this.loadCookbooks();
         } else {
-          this.error.set('No household found. Create a household first.');
+          this.noHousehold.set(true);
           this.loading.set(false);
         }
       },

@@ -8,6 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
@@ -45,7 +46,7 @@ import { formatQuantity } from '../core/domain/shopping/unit-conversion';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatAutocompleteModule, ErrorBanner],
+    MatAutocompleteModule, ErrorBanner, NoHouseholdCta],
   templateUrl: './pantry.component.html',
   styleUrls: ['./pantry.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,6 +59,8 @@ export class PantryComponent implements OnInit {
 
   loading = signal(true);
   error = signal<string | null>(null);
+  /** Household-absence is a setup state, not an error — it gets the shared CTA. */
+  noHousehold = signal(false);
   items = signal<PantryItemResponse[]>([]);
   householdId = signal(0);
   showAddForm = signal(false);
@@ -99,10 +102,11 @@ export class PantryComponent implements OnInit {
       .subscribe({
         next: (list) => {
           if (list.length > 0) {
+            this.noHousehold.set(false);
             this.householdId.set(list[0].id);
             this.loadPantryItems();
           } else {
-            this.error.set('No household found.');
+            this.noHousehold.set(true);
             this.loading.set(false);
           }
         },
@@ -231,6 +235,11 @@ export class PantryComponent implements OnInit {
 
   refresh() {
     this.loadPantryItems();
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
+    this.loadHouseholdThenItems();
   }
 
   formatQuantity(qty: number): string {

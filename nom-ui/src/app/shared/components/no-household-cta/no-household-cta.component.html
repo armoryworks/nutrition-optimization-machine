@@ -1,0 +1,35 @@
+<div class="nom-no-household" data-testid="no-household-cta">
+  @if (message()) {
+    <p class="nom-no-household__message">{{ message() }}</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="nom-no-household__error" data-testid="no-household-error">{{ errorMessage() }}</p>
+  }
+
+  <div class="nom-no-household__actions">
+    <button mat-flat-button type="button" (click)="createSolo()" [disabled]="creating()"
+            data-testid="no-household-solo-btn">
+      @if (creating()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <mat-icon>person</mat-icon>
+        Just cooking for myself
+      }
+    </button>
+    @if (showCreate()) {
+      <a mat-stroked-button routerLink="/household" data-testid="no-household-create-btn">
+        <mat-icon>group_add</mat-icon>
+        Create a household
+      </a>
+    }
+  </div>
+
+  @if (showCreate()) {
+    <p class="nom-no-household__benefits" data-testid="household-benefits-note">
+      A household unlocks: one shared meal plan and shopping list &bull;
+      per-person dietary restrictions the plan respects &bull;
+      a shared pantry so you never double-buy.
+    </p>
+  }
+</div>

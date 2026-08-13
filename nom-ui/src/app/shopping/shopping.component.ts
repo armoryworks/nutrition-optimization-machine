@@ -8,6 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -77,7 +78,7 @@ interface RawAccumulator {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule, ErrorBanner],
+    MatTooltipModule, ErrorBanner, NoHouseholdCta],
   templateUrl: './shopping.component.html',
   styleUrl: './shopping.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -101,6 +102,8 @@ export class ShoppingComponent implements OnInit {
   lookingUpPackaging = signal(false);
   loading = signal(true);
   error = signal('');
+  /** Household-absence is a setup state, not an error — it gets the shared CTA. */
+  noHousehold = signal(false);
   checkedItems = signal<Set<string>>(new Set());
 
   // Inline quantity editing
@@ -693,11 +696,12 @@ export class ShoppingComponent implements OnInit {
       .subscribe({
         next: (list) => {
           if (list.length > 0) {
+            this.noHousehold.set(false);
             this.householdId.set(list[0].id);
             this.loadData();
           } else {
             this.loading.set(false);
-            this.error.set('No household found.');
+            this.noHousehold.set(true);
           }
         },
         error: () => {
@@ -719,6 +723,26 @@ export class ShoppingComponent implements OnInit {
   refresh(): void {
     this.loading.set(true);
     this.loadData();
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
+    this.loading.set(true);
+    this.householdStore
+      .getHouseholds()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (list) => {
+          if (list.length > 0) {
+            this.noHousehold.set(false);
+            this.householdId.set(list[0].id);
+            this.loadData();
+          } else {
+            this.loading.set(false);
+          }
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   isChecked(key: string): boolean {

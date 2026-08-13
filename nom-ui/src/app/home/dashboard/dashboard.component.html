@@ -15,16 +15,12 @@
   } @else if (error()) {
     <nom-error-banner [message]="error()" />
   } @else if (!hasHousehold()) {
-    <div class="nom-dashboard__empty">
+    <div class="nom-dashboard__empty" data-testid="dashboard-empty">
       <mat-icon class="nom-dashboard__empty-icon">home</mat-icon>
       <h2 class="nom-dashboard__empty-title">Welcome to NOM</h2>
-      <p class="nom-dashboard__empty-message">
-        Create a household to start planning meals for yourself or your family.
-      </p>
-      <a mat-flat-button routerLink="/household">
-        <mat-icon>add</mat-icon>
-        Create Household
-      </a>
+      <nom-no-household-cta
+        message="Set up your kitchen to start planning meals for yourself or your family."
+        (created)="onHouseholdCreated()" />
     </div>
   } @else {
     <nom-enrollment-consent-banner [household]="households()[0] ?? null" />

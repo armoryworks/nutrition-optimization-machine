@@ -56,4 +56,8 @@ export class HouseholdStore {
   convertToShared(householdId: number, name: string): Observable<HouseholdResponseModel> {
     return this.householdService.convertToShared(householdId, name).pipe(tap(() => this.invalidate()));
   }
+
+  createPersonalHousehold(): Observable<HouseholdCreateResponseModel> {
+    return this.householdService.createPersonalHousehold().pipe(tap(() => this.invalidate()));
+  }
 }
