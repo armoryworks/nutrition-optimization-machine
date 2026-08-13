@@ -1938,7 +1938,7 @@ CREATE TABLE recipe."Recipe" (
     "LicenseStatus" text,
     "SourceAttribution" text,
     "SourceImageUrl" text,
-    "ContainsSourceProse" boolean NOT NULL,
+    "ContainsSourceProse" boolean DEFAULT false NOT NULL,
     "VettingIssues" text,
     "Rating" numeric(3,2),
     "LastMade" timestamp with time zone,
