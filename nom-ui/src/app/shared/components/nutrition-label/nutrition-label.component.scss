@@ -7,8 +7,11 @@
   padding: vars.$spacing-2 vars.$spacing-3;
   font-size: vars.$font-size-sm;
   color: var(--mat-sys-on-surface);
-  max-width: 280px;
+  // Wide enough for the three-segment toggle and the "% Daily Value" rows to
+  // sit on one line each; the recipe-detail column has ample room to its right.
+  max-width: 360px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .nom-nutrition-label__head {
@@ -61,16 +64,23 @@
 }
 
 .nom-nutrition-label__view-btn {
-  flex: 1;
-  padding: 2px vars.$spacing-1;
+  flex: 1 1 0;
+  min-width: 0; // let flex shrink the segments instead of overflowing the card
+  padding: 3px vars.$spacing-1;
   font-family: inherit;
   font-size: vars.$font-size-xs;
   font-weight: vars.$font-weight-medium;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border: 1px solid var(--mat-sys-on-surface);
   background: none;
   color: var(--mat-sys-on-surface);
   cursor: pointer;
+
+  // Collapse the shared borders into one crisp segmented control.
+  & + & { border-left: none; }
 
   &--active {
     background: var(--mat-sys-on-surface);

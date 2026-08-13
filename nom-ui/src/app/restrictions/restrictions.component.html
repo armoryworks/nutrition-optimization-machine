@@ -76,17 +76,33 @@
         <mat-autocomplete #auto="matAutocomplete"
                           [displayWith]="displayFn"
                           (optionSelected)="addFromAutocomplete($event, section)">
-          @for (item of filteredItems(section); track item.referenceId) {
+          @let nameHits = nameMatches(section);
+          @let descHits = descriptionMatches(section);
+
+          @for (item of nameHits; track item.referenceId) {
             <mat-option [value]="item">
               <span>{{ item.referenceName }}</span>
               @if (item.referenceDescription) {
                 <small class="nom-restrictions__option-desc">{{ item.referenceDescription }}</small>
               }
             </mat-option>
-          } @empty {
-            @if (section.searchControl.value) {
-              <mat-option disabled>No matching options</mat-option>
-            }
+          }
+
+          @if (descHits.length > 0) {
+            <mat-optgroup label="Matched in description">
+              @for (item of descHits; track item.referenceId) {
+                <mat-option [value]="item">
+                  <span>{{ item.referenceName }}</span>
+                  @if (item.referenceDescription) {
+                    <small class="nom-restrictions__option-desc">{{ item.referenceDescription }}</small>
+                  }
+                </mat-option>
+              }
+            </mat-optgroup>
+          }
+
+          @if (nameHits.length === 0 && descHits.length === 0 && section.searchControl.value) {
+            <mat-option disabled>No matching options</mat-option>
           }
         </mat-autocomplete>
       </mat-form-field>

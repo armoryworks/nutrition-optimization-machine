@@ -119,16 +119,31 @@ export class Restrictions implements OnInit {
     });
   }
 
-  filteredItems(section: RestrictionSection): ReferenceItem[] {
-    const search = section.searchControl.value?.toLowerCase() ?? '';
-    if (!search) return [];
+  /** Selectable items in this section (not already chosen, not locked). */
+  private availableItems(section: RestrictionSection): ReferenceItem[] {
     const selected = this.selectedIds();
     const locked = this.lockedTypeIds();
     return section.allItems.filter(
-      item => !selected.has(item.referenceId) &&
-        !locked.has(item.referenceId) &&
-        (item.referenceName.toLowerCase().includes(search) ||
-         (item.referenceDescription?.toLowerCase().includes(search) ?? false))
+      item => !selected.has(item.referenceId) && !locked.has(item.referenceId),
+    );
+  }
+
+  /** Matches on the name — the strong matches, shown first. */
+  nameMatches(section: RestrictionSection): ReferenceItem[] {
+    const search = section.searchControl.value?.toLowerCase() ?? '';
+    if (!search) return [];
+    return this.availableItems(section).filter(
+      item => item.referenceName.toLowerCase().includes(search),
+    );
+  }
+
+  /** Matches only in the description (name did not match) — shown below the divider. */
+  descriptionMatches(section: RestrictionSection): ReferenceItem[] {
+    const search = section.searchControl.value?.toLowerCase() ?? '';
+    if (!search) return [];
+    return this.availableItems(section).filter(
+      item => !item.referenceName.toLowerCase().includes(search) &&
+        (item.referenceDescription?.toLowerCase().includes(search) ?? false),
     );
   }
 

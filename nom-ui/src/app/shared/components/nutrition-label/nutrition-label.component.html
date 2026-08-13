@@ -25,7 +25,8 @@
               [class.nom-nutrition-label__view-btn--active]="view() === 'micros'"
               [attr.aria-pressed]="view() === 'micros'"
               (click)="view.set('micros')"
-              data-testid="nutrition-view-micros-btn">Vitamins &amp; minerals</button>
+              aria-label="Vitamins and minerals"
+              data-testid="nutrition-view-micros-btn">Vitamins</button>
     </div>
 
     @if (view() === 'facts') {

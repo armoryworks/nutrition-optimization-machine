@@ -1,13 +1,15 @@
 import { Component, inject, input, output, signal, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HouseholdStore } from '../../../core/services/household-store';
 import { AuthService } from '../../../core/services/auth.service';
+import { PersonService } from '../../../core/services/person.service';
 
 /**
  * The ONE shared call-to-action for anywhere a user is blocked by not having
@@ -36,6 +38,8 @@ export class NoHouseholdCta {
 
   private householdStore = inject(HouseholdStore);
   private authService = inject(AuthService);
+  private personService = inject(PersonService);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   creating = signal(false);
@@ -50,10 +54,7 @@ export class NoHouseholdCta {
       switchMap(() => this.authService.refreshClaims()),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: () => {
-        this.creating.set(false);
-        this.created.emit();
-      },
+      next: () => this.afterSetup(),
       error: (err) => {
         this.creating.set(false);
         if (err instanceof HttpErrorResponse && err.error?.reason === 'already_in_household') {
@@ -65,5 +66,35 @@ export class NoHouseholdCta {
         this.errorMessage.set('Unable to set things up. Please try again.');
       },
     });
+  }
+
+  /**
+   * A brand-new solo user hasn't done any setup yet, so send them into the
+   * onboarding workflow (profile, goals, restrictions) rather than dropping
+   * them on an empty dashboard — same rule the login flow uses. Only if
+   * onboarding is already complete do we reload the host in place.
+   */
+  private afterSetup(): void {
+    const personId = this.authService.personId();
+    if (!personId) {
+      this.finishInPlace();
+      return;
+    }
+    this.personService.getOnboardingState(personId).pipe(
+      catchError(() => of(null)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((state) => {
+      if (state && !state.isComplete) {
+        this.creating.set(false);
+        this.router.navigate(['/onboarding']);
+        return;
+      }
+      this.finishInPlace();
+    });
+  }
+
+  private finishInPlace(): void {
+    this.creating.set(false);
+    this.created.emit();
   }
 }

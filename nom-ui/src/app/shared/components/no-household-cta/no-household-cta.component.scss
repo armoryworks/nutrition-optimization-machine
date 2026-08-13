@@ -22,8 +22,17 @@
 .nom-no-household__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: stretch;
   justify-content: center;
   gap: vars.$spacing-3;
+
+  // Filled <button> and stroked <a> render at slightly different heights
+  // (anchor baseline + border box); pin both so the pair reads as one control.
+  .mat-mdc-button-base {
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 .nom-no-household__benefits {
