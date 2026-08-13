@@ -37,7 +37,9 @@ export const APP_ORIGIN = new InjectionToken<string>('APP_ORIGIN', {
   selector: 'nom-login-embed',
   imports: [LoginPopover],
   template: `
-    <nom-login-popover [deferNavigation]="true" (loggedIn)="onLoggedIn()" (closed)="onClosed()" />
+    <div class="nom-login-embed__card">
+      <nom-login-popover [deferNavigation]="true" (loggedIn)="onLoggedIn()" (closed)="onClosed()" />
+    </div>
   `,
   styleUrl: './login-embed.component.scss',
   encapsulation: ViewEncapsulation.None,

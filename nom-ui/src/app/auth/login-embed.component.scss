@@ -18,10 +18,16 @@ nom-login-embed {
   @include nom.nom-brand-colors-dark;
   @include nom.nom-shape-and-cta-overrides;
 
-  // LoginPopover positions itself as a header dropdown; neutralize that here
-  // (same treatment as the standalone /login page).
-  nom-login-popover {
-    position: static;
-    display: block;
+  // LoginPopover positions itself as a header dropdown via :host (compiled to
+  // an attribute selector, specificity 0,1,0); neutralize that with the same
+  // class-wrapper idiom the standalone /login page uses — a bare descendant
+  // selector loses that specificity fight and the form escapes the panel.
+  .nom-login-embed__card {
+    position: relative;
+
+    nom-login-popover {
+      position: static;
+      display: block;
+    }
   }
 }
