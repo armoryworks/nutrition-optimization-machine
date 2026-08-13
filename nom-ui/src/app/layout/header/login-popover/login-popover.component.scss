@@ -8,12 +8,20 @@
 }
 
 .nom-login-popover {
+  position: relative;
   width: 320px;
   padding: vars.$spacing-5;
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: vars.$nom-border-radius-lg;
   box-shadow: vars.$elevation-3;
+}
+
+.nom-login-popover__close {
+  position: absolute;
+  top: vars.$spacing-2;
+  right: vars.$spacing-2;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .nom-login-popover__title {

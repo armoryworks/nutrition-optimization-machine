@@ -7,7 +7,9 @@ import {
   InjectionToken,
   OnDestroy,
   ViewEncapsulation,
+  booleanAttribute,
   inject,
+  input,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoginPopover } from '../layout/header/login-popover/login-popover.component';
@@ -38,7 +40,12 @@ export const APP_ORIGIN = new InjectionToken<string>('APP_ORIGIN', {
   imports: [LoginPopover],
   template: `
     <div class="nom-login-embed__card">
-      <nom-login-popover [deferNavigation]="true" (loggedIn)="onLoggedIn()" (closed)="onClosed()" />
+      <nom-login-popover
+        [deferNavigation]="true"
+        [showClose]="showClose()"
+        (loggedIn)="onLoggedIn()"
+        (closed)="onClosed()"
+      />
     </div>
   `,
   styleUrl: './login-embed.component.scss',
@@ -46,6 +53,13 @@ export const APP_ORIGIN = new InjectionToken<string>('APP_ORIGIN', {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginEmbed implements AfterViewInit, OnDestroy {
+  /**
+   * Show the card's built-in close button (host page can opt out via the
+   * show-close attribute). Clicking it only raises the nom-login-close DOM
+   * event — the host page owns what "close" means.
+   */
+  showClose = input(true, { transform: booleanAttribute });
+
   private authService = inject(AuthService);
   private appOrigin = inject(APP_ORIGIN);
   private el = inject(ElementRef<HTMLElement>);

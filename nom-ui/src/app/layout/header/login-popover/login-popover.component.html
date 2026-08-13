@@ -1,4 +1,16 @@
 <div class="nom-login-popover" data-testid="login-popover">
+  @if (showClose()) {
+    <button
+      mat-icon-button
+      type="button"
+      class="nom-login-popover__close"
+      (click)="closed.emit()"
+      aria-label="Close sign-in"
+      data-testid="login-popover-close-btn"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  }
   <h3 class="nom-login-popover__title">Sign In</h3>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" data-testid="login-form">
