@@ -9,6 +9,13 @@ namespace Nom.Orch.Interfaces
     /// </summary>
     public interface IPolicyEnforcementService
     {
+        /// <summary>
+        /// True when the person is a steward of the household (admin/manage
+        /// membership). ALWAYS read from the database — household permissions
+        /// are baked into bearer tokens at sign-in and go stale.
+        /// </summary>
+        Task<bool> IsStewardAsync(long personId, long householdId);
+
         /// <summary>True when the member's policy explicitly gates the feature (absent key/row = allowed).</summary>
         Task<bool> IsFeatureGatedAsync(long personId, long householdId, string gateKey);
 
