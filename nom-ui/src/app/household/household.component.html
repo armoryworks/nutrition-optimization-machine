@@ -198,15 +198,6 @@
       <nom-meal-split-form [householdId]="households()[0].id" />
     </div>
 
-    <!-- Grocery budget -->
-    <div class="nom-form__section" data-testid="household-budget">
-      <h2 class="nom-form__section-title">Grocery Budget</h2>
-      <p class="nom-form__section-description">
-        A weekly or monthly grocery target. The shopping list tracks against it,
-        and store recommendations aim to keep you under it.
-      </p>
-      <nom-budget-form [householdId]="households()[0].id" />
-    </div>
 
     @if (!isStandalone()) {
       <div class="nom-form__actions">

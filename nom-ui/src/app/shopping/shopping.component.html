@@ -58,50 +58,6 @@
     </div>
   </div>
 
-  @if (!loading() && !noHousehold() && departments().length > 0) {
-    <div class="nom-shopping__advice" data-testid="shopping-where-to-shop">
-      <div class="nom-shopping__advice-controls">
-        <label class="nom-shopping__advice-zip">
-          <span>ZIP</span>
-          <input type="text" inputmode="numeric" maxlength="10"
-                 class="nom-shopping__days-input"
-                 [value]="postalCode()"
-                 (change)="onPostalCodeChange($any($event.target).value)"
-                 placeholder="84101"
-                 aria-label="Postal code for store pricing" />
-        </label>
-        <button mat-stroked-button
-                (click)="whereToShop()"
-                [disabled]="!postalCode().trim() || findingStore()"
-                data-testid="where-to-shop-btn">
-          @if (findingStore()) {
-            <mat-spinner diameter="16"></mat-spinner>
-          } @else {
-            <mat-icon>storefront</mat-icon>
-          }
-          Where should I shop?
-        </button>
-      </div>
-
-      @if (recommendation(); as rec) {
-        <div class="nom-shopping__advice-result" data-testid="where-to-shop-result">
-          <p class="nom-shopping__advice-explanation">{{ rec.explanation }}</p>
-          @if (!rec.insufficientData && rec.stores.length > 0) {
-            <ul class="nom-shopping__advice-stores">
-              @for (store of rec.stores; track store.groceryStoreId) {
-                <li [class.nom-shopping__advice-store--best]="store.groceryStoreId === rec.best?.groceryStoreId">
-                  <span class="nom-shopping__advice-store-name">{{ store.storeName }}</span>
-                  <span class="nom-shopping__advice-store-total">{{ store.total | currency }}</span>
-                  <span class="nom-shopping__advice-store-cov">{{ store.itemsPriced }}/{{ store.itemsTotal }} priced</span>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      }
-    </div>
-  }
-
   @if (loading()) {
     <div class="nom-shopping__loading">
       <mat-spinner diameter="40"></mat-spinner>
