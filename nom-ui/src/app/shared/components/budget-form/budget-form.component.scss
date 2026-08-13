@@ -1,0 +1,27 @@
+@use 'variables' as vars;
+
+.nom-budget-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-3;
+}
+
+.nom-budget-form__amount { flex: 2 1 160px; }
+.nom-budget-form__period { flex: 1 1 100px; }
+
+.nom-budget-form__error {
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-budget-form__success {
+  color: var(--mat-sys-primary);
+  font-size: vars.$font-size-sm;
+  margin: 0 0 vars.$spacing-2;
+}
+
+.nom-budget-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}

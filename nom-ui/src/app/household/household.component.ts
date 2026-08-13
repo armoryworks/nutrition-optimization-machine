@@ -22,6 +22,7 @@ import { ConvertHouseholdDialog, ConvertHouseholdDialogData, ConvertHouseholdDia
 import { MemberPolicyPanel } from './member-policy-panel/member-policy-panel.component';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
 import { MealSplitForm } from '../shared/components/meal-split-form/meal-split-form.component';
+import { BudgetForm } from '../shared/components/budget-form/budget-form.component';
 import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { EnrollmentConsentBanner } from '../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
 
@@ -46,6 +47,7 @@ export interface HouseholdFormData {
     MemberPolicyPanel,
     MacroGoalForm,
     MealSplitForm,
+    BudgetForm,
     EnrollmentConsentBanner,
     NoHouseholdCta,
   ],

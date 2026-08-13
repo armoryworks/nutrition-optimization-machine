@@ -15,15 +15,36 @@ namespace Nom.Api.Controllers
         private readonly IHouseholdOrchestrationService _householdService;
         private readonly IMacroGoalOrchestrationService _macroGoalService;
         private readonly IPortionOrchestrationService _portionService;
+        private readonly IBudgetOrchestrationService _budgetService;
 
         public HouseholdController(
             IHouseholdOrchestrationService householdService,
             IMacroGoalOrchestrationService macroGoalService,
-            IPortionOrchestrationService portionService)
+            IPortionOrchestrationService portionService,
+            IBudgetOrchestrationService budgetService)
         {
             _householdService = householdService;
             _macroGoalService = macroGoalService;
             _portionService = portionService;
+            _budgetService = budgetService;
+        }
+
+        /// <summary>Gets the household's grocery budget (null amount when unset).</summary>
+        [HttpGet("{id:long}/budget")]
+        public async Task<ActionResult<BudgetModel>> GetBudget(long id)
+        {
+            if (!IsHouseholdMember(id)) return Forbid();
+            var budget = await _budgetService.GetHouseholdBudgetAsync(id);
+            return Ok(budget ?? new BudgetModel { Amount = 0 });
+        }
+
+        /// <summary>Creates or replaces the household's grocery budget.</summary>
+        [HttpPut("{id:long}/budget")]
+        public async Task<ActionResult<BudgetModel>> SaveBudget(long id, [FromBody] BudgetModel request)
+        {
+            if (!CanManageHousehold(id)) return Forbid();
+            try { return Ok(await _budgetService.SaveHouseholdBudgetAsync(id, request)); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         /// <summary>

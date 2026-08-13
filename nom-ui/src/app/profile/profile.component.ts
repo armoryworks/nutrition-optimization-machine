@@ -12,6 +12,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MacroGoalForm } from '../shared/components/macro-goal-form/macro-goal-form.component';
+import { BudgetForm } from '../shared/components/budget-form/budget-form.component';
 import { AuthService } from '../core/services/auth.service';
 import { ReferenceService } from '../core/services/reference.service';
 import { PersonService } from '../core/services/person.service';
@@ -42,6 +43,7 @@ export interface ProfileFormData {
     MatNativeDateModule,
     MatProgressSpinnerModule,
     MacroGoalForm,
+    BudgetForm,
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss',

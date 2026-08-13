@@ -70,6 +70,11 @@ namespace Nom.Data
         public DbSet<GoalEntity> Goals { get; set; } = default!;
         public DbSet<GoalItemEntity> GoalItems { get; set; } = default!;
         public DbSet<MacroGoalEntity> MacroGoals { get; set; } = default!;
+        public DbSet<BudgetEntity> Budgets { get; set; } = default!;
+        public DbSet<Commerce.GroceryStoreEntity> GroceryStores { get; set; } = default!;
+        public DbSet<Commerce.StorePriceEntity> StorePrices { get; set; } = default!;
+        public DbSet<Commerce.PriceObservationEntity> PriceObservations { get; set; } = default!;
+        public DbSet<Commerce.CouponEntity> Coupons { get; set; } = default!;
         public DbSet<MealEntity> Meals { get; set; } = default!;
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
