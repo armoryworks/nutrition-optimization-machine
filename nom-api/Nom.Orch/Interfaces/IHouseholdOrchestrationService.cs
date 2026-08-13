@@ -14,6 +14,7 @@ namespace Nom.Orch.Interfaces
         Task<HouseholdResponseModel?> GetHouseholdAsync(long id);
         Task<HouseholdEnrollmentInfoModel?> GetEnrollmentInfoAsync(long id);
         Task<HouseholdResponseModel?> ConvertToSharedAsync(long id, string name, long requesterPersonId);
+        Task<HouseholdCreateResponseModel> CreatePersonalHouseholdAsync(long personId);
         Task<HouseholdResponseModel?> UpdateHouseholdAsync(long id, HouseholdUpdateModel model);
         Task<bool> DeleteHouseholdAsync(long id);
         Task<HouseholdInviteTokenResponseModel> CreateInviteTokenAsync(HouseholdInviteTokenCreateModel model);

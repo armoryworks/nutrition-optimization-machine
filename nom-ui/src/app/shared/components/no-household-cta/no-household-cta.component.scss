@@ -1,0 +1,34 @@
+@use 'variables' as vars;
+
+.nom-no-household {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: vars.$spacing-3;
+  text-align: center;
+}
+
+.nom-no-household__message {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.nom-no-household__error {
+  margin: 0;
+  color: var(--mat-sys-error);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-no-household__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: vars.$spacing-3;
+}
+
+.nom-no-household__benefits {
+  margin: 0;
+  max-width: 460px;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}

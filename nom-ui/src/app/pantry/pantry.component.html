@@ -10,7 +10,7 @@
       }
     </div>
     <div class="nom-pantry__header-right">
-      <button mat-stroked-button (click)="toggleAddForm()" data-testid="pantry-add-toggle-btn">
+      <button mat-stroked-button (click)="toggleAddForm()" [disabled]="noHousehold()" data-testid="pantry-add-toggle-btn">
         <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
         {{ showAddForm() ? 'Cancel' : 'Add Item' }}
       </button>
@@ -82,6 +82,14 @@
   @if (loading()) {
     <div class="nom-pantry__loading">
       <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (noHousehold()) {
+    <div class="nom-pantry__empty" data-testid="pantry-no-household">
+      <mat-icon class="nom-pantry__empty-icon">kitchen</mat-icon>
+      <h2>Let's get you set up</h2>
+      <nom-no-household-cta
+        message="Set up your kitchen to start tracking what you have on hand."
+        (created)="onHouseholdCreated()" />
     </div>
   } @else if (error()) {
     <nom-error-banner [message]="error()!" [showRetry]="true" (retry)="refresh()" />

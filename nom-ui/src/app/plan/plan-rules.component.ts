@@ -13,6 +13,7 @@ import { MealPlanService } from '../core/services/meal-plan.service';
 import { HouseholdStore } from '../core/services/household-store';
 import { LoadingService } from '../core/services/loading.service';
 import { MealPlanRule } from '../core/models/meal-plan-rule.model';
+import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 
 @Component({
   selector: 'nom-plan-rules',
@@ -26,6 +27,7 @@ import { MealPlanRule } from '../core/models/meal-plan-rule.model';
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    NoHouseholdCta,
   ],
   templateUrl: './plan-rules.component.html',
   styleUrl: './plan-rules.component.scss',
@@ -41,6 +43,8 @@ export class PlanRules implements OnInit {
 
   rules = signal<MealPlanRule[]>([]);
   loading = signal(true);
+  /** Household-absence is a setup state, not an error — it gets the shared CTA. */
+  noHousehold = signal(false);
   saving = signal(false);
   errorMessage = signal('');
   householdId = signal(0);
@@ -54,16 +58,27 @@ export class PlanRules implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadHouseholdThenRules();
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
+    this.loading.set(true);
+    this.loadHouseholdThenRules();
+  }
+
+  private loadHouseholdThenRules(): void {
     this.householdStore.getHouseholds().pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (list) => {
         if (list.length > 0) {
+          this.noHousehold.set(false);
           this.householdId.set(list[0].id);
           this.loadRules();
         } else {
           this.loading.set(false);
-          this.errorMessage.set('Create a household first to manage rules.');
+          this.noHousehold.set(true);
         }
       },
       error: () => {

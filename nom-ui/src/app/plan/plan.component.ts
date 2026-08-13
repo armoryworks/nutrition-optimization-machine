@@ -1,5 +1,6 @@
 import { Component, inject, input, output, signal, computed, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
+import { NoHouseholdCta } from '../shared/components/no-household-cta/no-household-cta.component';
 import { toLocalDateString } from '../core/utils/local-date';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
@@ -57,7 +58,7 @@ export interface PlanFormData {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatTooltipModule, ErrorBanner],
+    MatTooltipModule, ErrorBanner, NoHouseholdCta],
   templateUrl: './plan.component.html',
   styleUrl: './plan.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -136,6 +137,11 @@ export class Plan implements OnInit {
     if (this.isStandalone()) {
       this.loadHouseholds();
     }
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
+    this.loadHouseholds();
   }
 
   // --- Print ---

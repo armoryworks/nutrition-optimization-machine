@@ -22,10 +22,11 @@ import { MacroGoalService } from '../../core/services/macro-goal.service';
 import { EffectiveMacroGoal } from '../../core/models/macro-goal.model';
 import { PolicyService } from '../../core/services/policy.service';
 import { EnrollmentConsentBanner } from '../../shared/components/enrollment-consent-banner/enrollment-consent-banner.component';
+import { NoHouseholdCta } from '../../shared/components/no-household-cta/no-household-cta.component';
 
 @Component({
   selector: 'nom-dashboard',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner, EnrollmentConsentBanner],
+  imports: [DecimalPipe, RouterLink, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule, ErrorBanner, EnrollmentConsentBanner, NoHouseholdCta],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -122,6 +123,12 @@ export class Dashboard implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadDashboardData();
+    this.loadEffectiveGoal();
+  }
+
+  /** The no-household CTA created a kitchen — reload page state in place. */
+  onHouseholdCreated(): void {
     this.loadDashboardData();
     this.loadEffectiveGoal();
   }

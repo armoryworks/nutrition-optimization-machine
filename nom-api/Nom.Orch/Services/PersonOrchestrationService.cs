@@ -175,20 +175,7 @@ namespace Nom.Orch.Services
                     .AnyAsync(hm => hm.PersonId == primaryPerson.Id && hm.IsActive);
                 if (!alreadyInHousehold)
                 {
-                    var firstName = (primaryPerson.Name ?? string.Empty).Trim()
-                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                        .FirstOrDefault();
-                    var kitchenName = string.IsNullOrWhiteSpace(firstName)
-                        ? "My Kitchen"
-                        : $"{firstName}'s Kitchen";
-
-                    await _householdOrchestrationService.CreateHouseholdAsync(new Models.Household.HouseholdCreateModel
-                    {
-                        Name = kitchenName,
-                        HouseholdGroupId = 1,
-                        IsPersonal = true,
-                    }, primaryPerson.Id);
-
+                    await _householdOrchestrationService.CreatePersonalHouseholdAsync(primaryPerson.Id);
                     _logger.LogInformation("Created personal kitchen for person {PersonId}", primaryPerson.Id);
                 }
             }

@@ -73,9 +73,33 @@ namespace Nom.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<HouseholdCreateResponseModel>> CreateHousehold([FromBody] HouseholdCreateModel request)
         {
+            // IsPersonal is server-controlled: personal kitchens are created
+            // only via POST household/personal (or the onboarding solo path).
+            request.IsPersonal = false;
+
             var personId = GetCurrentPersonId();
             var response = await _householdService.CreateHouseholdAsync(request, personId);
             return CreatedAtAction(nameof(GetHousehold), new { id = response.Id }, response);
+        }
+
+        /// <summary>
+        /// "Just cooking for myself": creates the caller's personal kitchen —
+        /// name and IsPersonal flag are decided server-side.
+        /// </summary>
+        [HttpPost("personal")]
+        public async Task<ActionResult<HouseholdCreateResponseModel>> CreatePersonalHousehold()
+        {
+            var personId = GetCurrentPersonIdRequired();
+
+            try
+            {
+                var response = await _householdService.CreatePersonalHouseholdAsync(personId);
+                return CreatedAtAction(nameof(GetHousehold), new { id = response.Id }, response);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "already_in_household")
+            {
+                return BadRequest(new { message = "You already belong to a household.", reason = "already_in_household" });
+            }
         }
 
         [HttpGet("{id}")]

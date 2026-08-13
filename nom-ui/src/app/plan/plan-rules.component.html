@@ -15,7 +15,16 @@
     </div>
   }
 
+  @if (noHousehold()) {
+    <div class="nom-form__section" data-testid="plan-rules-no-household">
+      <nom-no-household-cta
+        message="Set up your kitchen to manage meal plan rules."
+        (created)="onHouseholdCreated()" />
+    </div>
+  }
+
   <!-- Existing rules -->
+  @if (!noHousehold()) {
   <div class="nom-form__section">
     <h2 class="nom-form__section-title">Active Rules</h2>
 
@@ -102,4 +111,5 @@
       </div>
     </form>
   </div>
+  }
 </div>

@@ -55,6 +55,14 @@
     <div class="nom-shopping__loading">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
+  } @else if (noHousehold()) {
+    <div class="nom-shopping__empty" data-testid="shopping-no-household">
+      <mat-icon class="nom-shopping__empty-icon">shopping_cart</mat-icon>
+      <h2>Let's get you set up</h2>
+      <nom-no-household-cta
+        message="Set up your kitchen to generate shopping lists from your meal plan."
+        (created)="onHouseholdCreated()" />
+    </div>
   } @else if (error()) {
     <nom-error-banner [message]="error()" [showRetry]="true" (retry)="refresh()" />
   } @else if (departments().length === 0) {

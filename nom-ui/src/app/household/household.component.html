@@ -196,6 +196,16 @@
       </div>
     }
   } @else {
+    @if (isStandalone()) {
+      <!-- Solo shortcut: skip the household ceremony entirely -->
+      <div class="nom-form__section" data-testid="household-solo-section">
+        <nom-no-household-cta
+          [showCreate]="false"
+          message="Just cooking for yourself? Skip the setup — you can turn your kitchen into a household later by inviting someone."
+          (created)="onHouseholdCreated()" />
+      </div>
+    }
+
     <!-- Tab toggle -->
     <div class="nom-household__tabs" data-testid="household-tabs">
       <button

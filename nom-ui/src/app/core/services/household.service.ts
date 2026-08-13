@@ -54,6 +54,11 @@ export class HouseholdService {
     return this.http.post<HouseholdMemberResponseModel>(`${this.apiUrl}/join`, request);
   }
 
+  /** "Just cooking for myself": server-side creates the caller's personal kitchen (name + flag decided server-side). */
+  createPersonalHousehold(): Observable<HouseholdCreateResponseModel> {
+    return this.http.post<HouseholdCreateResponseModel>(`${this.apiUrl}/personal`, {});
+  }
+
   /** Convert a personal kitchen into a shared household (rename + clear the personal flag). */
   convertToShared(householdId: number, name: string): Observable<HouseholdResponseModel> {
     return this.http.post<HouseholdResponseModel>(`${this.apiUrl}/${householdId}/convert`, { name });

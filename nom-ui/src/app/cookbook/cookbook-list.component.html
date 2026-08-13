@@ -11,6 +11,14 @@
     <div class="nom-dashboard__empty">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
+  } @else if (noHousehold()) {
+    <div class="nom-dashboard__empty" data-testid="cookbooks-no-household">
+      <mat-icon class="nom-dashboard__empty-icon">collections_bookmark</mat-icon>
+      <h2 class="nom-dashboard__empty-title">Let's get you set up</h2>
+      <nom-no-household-cta
+        message="Set up your kitchen to organize recipes into cookbooks."
+        (created)="onHouseholdCreated()" />
+    </div>
   } @else if (error()) {
     <nom-error-banner [message]="error()!" />
   } @else if (cookbooks().length === 0) {

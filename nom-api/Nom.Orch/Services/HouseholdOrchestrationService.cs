@@ -225,6 +225,40 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
+        /// Creates a solo user's personal kitchen server-side: the name
+        /// ("&lt;FirstName&gt;'s Kitchen", fallback "My Kitchen") and the
+        /// IsPersonal flag are never client-supplied. Creator becomes
+        /// Admin/steward exactly like a normal household creation.
+        /// </summary>
+        public async Task<HouseholdCreateResponseModel> CreatePersonalHouseholdAsync(long personId)
+        {
+            var alreadyInHousehold = await _context.HouseholdMembers
+                .AnyAsync(hm => hm.PersonId == personId && hm.IsActive);
+            if (alreadyInHousehold)
+            {
+                throw new InvalidOperationException("already_in_household");
+            }
+
+            var personName = await _context.Persons
+                .Where(p => p.Id == personId)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync();
+            var firstName = (personName ?? string.Empty).Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault();
+            var kitchenName = string.IsNullOrWhiteSpace(firstName)
+                ? "My Kitchen"
+                : $"{firstName}'s Kitchen";
+
+            return await CreateHouseholdAsync(new HouseholdCreateModel
+            {
+                Name = kitchenName,
+                HouseholdGroupId = 1,
+                IsPersonal = true,
+            }, personId);
+        }
+
+        /// <summary>
         /// Converts a personal kitchen into a shared household: renames it and
         /// clears the personal flag. Conversion is the side effect of the first
         /// invite — there is no standalone "convert" affordance in the UI.
