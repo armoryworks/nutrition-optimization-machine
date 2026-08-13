@@ -58,11 +58,17 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
-    // Standalone sign-in page; also embedded by the marketing site's login
-    // popover (?embedded=1). No guestGuard — the page itself forwards
-    // already-signed-in visitors to the right screen (incl. iframe breakout).
+    // Standalone sign-in page. No guestGuard — the page itself forwards
+    // already-signed-in visitors to the right screen.
     path: 'login',
     loadComponent: () => import('./auth/login-page.component').then((m) => m.LoginPage),
+  },
+  {
+    // Redeems a one-time sign-in handoff code from the marketing site's
+    // embedded login popover (#code=… fragment). No guard — the component
+    // itself routes signed-in/failed visitors appropriately.
+    path: 'auth/handoff',
+    loadComponent: () => import('./auth/handoff.component').then((m) => m.AuthHandoff),
   },
   {
     path: 'forgot-password',

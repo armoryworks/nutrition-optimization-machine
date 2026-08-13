@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -364,6 +365,54 @@ app.MapPost("api/auth/refresh-claims", async (
     // (same code path as the built-in Identity login endpoint)
     await httpContext.SignInAsync(IdentityConstants.BearerScheme, principal);
 }).RequireAuthorization();
+
+// One-time login handoff: a sign-in performed on the marketing origin (the
+// embedded popover on nommeal.com) trades its bearer token for a short-lived,
+// single-use code; the app origin redeems the code for its own tokens. Tokens
+// themselves never transit URLs — only the code rides the redirect fragment.
+app.MapPost("api/auth/handoff", async (
+    HttpContext httpContext,
+    UserManager<IdentityUser> userManager,
+    IMemoryCache cache) =>
+{
+    var user = await userManager.GetUserAsync(httpContext.User);
+    if (user == null)
+    {
+        httpContext.Response.StatusCode = 401;
+        return;
+    }
+
+    var code = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+    cache.Set($"login-handoff:{code}", user.Id, TimeSpan.FromSeconds(60));
+    await httpContext.Response.WriteAsJsonAsync(new { code });
+}).RequireAuthorization();
+
+app.MapPost("api/auth/handoff/redeem", async (
+    [FromBody] HandoffRedeemRequest request,
+    HttpContext httpContext,
+    SignInManager<IdentityUser> signInManager,
+    UserManager<IdentityUser> userManager,
+    IMemoryCache cache) =>
+{
+    var cacheKey = $"login-handoff:{request.Code}";
+    if (string.IsNullOrWhiteSpace(request.Code) ||
+        !cache.TryGetValue<string>(cacheKey, out var userId) || userId is null)
+    {
+        httpContext.Response.StatusCode = 401;
+        return;
+    }
+    cache.Remove(cacheKey); // single-use
+
+    var user = await userManager.FindByIdAsync(userId);
+    if (user == null || await userManager.IsLockedOutAsync(user))
+    {
+        httpContext.Response.StatusCode = 401;
+        return;
+    }
+
+    var principal = await signInManager.CreateUserPrincipalAsync(user);
+    await httpContext.SignInAsync(IdentityConstants.BearerScheme, principal);
+});
 
 // Your API controllers will use JWT Bearer authentication via explicit attributes.
 app.MapControllers();

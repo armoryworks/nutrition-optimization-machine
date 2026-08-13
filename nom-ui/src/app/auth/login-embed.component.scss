@@ -1,0 +1,27 @@
+@use '@angular/material' as mat;
+@use 'nom-theme' as nom;
+
+// The embed runs inside the marketing site's static page, which carries none
+// of the app's global styles. Everything the popover needs — Material
+// component tokens, the NOM brand palette, shape/CTA overrides — is applied
+// here, scoped under the custom element tag so nothing leaks into the host
+// page. (ViewEncapsulation.None on the component injects this into the page.)
+nom-login-embed {
+  display: block;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface);
+
+  @include mat.all-component-themes(nom.$nom-theme);
+  @include nom.nom-system-colors(nom.$nom-theme);
+  @include nom.nom-brand-colors-dark;
+  @include nom.nom-shape-and-cta-overrides;
+
+  // LoginPopover positions itself as a header dropdown; neutralize that here
+  // (same treatment as the standalone /login page).
+  nom-login-popover {
+    position: static;
+    display: block;
+  }
+}
