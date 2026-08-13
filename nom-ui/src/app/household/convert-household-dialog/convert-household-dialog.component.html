@@ -1,0 +1,48 @@
+<div class="nom-dialog__title-bar" data-testid="household-convert-dialog">
+  <h2 mat-dialog-title>Create a Household</h2>
+  <button class="nom-dialog__close" (click)="cancel()" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="household-convert-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <p class="nom-convert__intro">
+    Inviting someone turns your personal kitchen into a shared household. Name it:
+  </p>
+
+  <mat-form-field appearance="outline" class="nom-convert__name-field">
+    <mat-label>Household Name</mat-label>
+    <input matInput [formControl]="name" placeholder="e.g. The Smith Family"
+           data-testid="household-convert-name-input" />
+    @if (name.hasError('required') && name.touched) {
+      <mat-error>Name is required</mat-error>
+    }
+  </mat-form-field>
+
+  <p class="nom-convert__benefits" data-testid="household-benefits-note">
+    A household unlocks: one shared meal plan and shopping list &bull;
+    per-person dietary restrictions the plan respects &bull;
+    a shared pantry so you never double-buy.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" data-testid="household-convert-cancel-btn">
+    Cancel
+  </button>
+  <button mat-flat-button type="button" (click)="convertAndContinue()" [disabled]="converting()"
+          data-testid="household-convert-create-btn">
+    @if (converting()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      Create household &amp; invite
+    }
+  </button>
+</mat-dialog-actions>

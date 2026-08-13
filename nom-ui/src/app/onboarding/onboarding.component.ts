@@ -46,6 +46,9 @@ export class Onboarding implements OnInit {
   householdData = signal<HouseholdFormData | null>(null);
   planData = signal<PlanFormData | null>(null);
 
+  /** The solo/household fork: 'solo' auto-creates a personal kitchen on completion. */
+  householdMode = signal<'undecided' | 'solo' | 'household'>('undecided');
+
   readonly stepLabels = ['Profile', 'Dietary', 'Household', 'Plan'];
   readonly totalSteps = 4;
 
@@ -156,6 +159,22 @@ export class Onboarding implements OnInit {
     this.next();
   }
 
+  /** "Just me": skip household naming/invites entirely; a personal kitchen is auto-created on completion. */
+  chooseSolo(): void {
+    this.householdMode.set('solo');
+    this.householdData.set(null);
+    this.markComplete(2);
+    this.next();
+  }
+
+  chooseHousehold(): void {
+    this.householdMode.set('household');
+  }
+
+  backToHouseholdChoice(): void {
+    this.householdMode.set('undecided');
+  }
+
   onPlanComplete(data: PlanFormData): void {
     this.planData.set(data);
     this.markComplete(3);
@@ -215,6 +234,7 @@ export class Onboarding implements OnInit {
         attributes: [],
       })),
       applyIndividualPreferencesToEachPerson: household?.dietaryScope === 'individual',
+      createSoloHousehold: this.householdMode() === 'solo',
     };
 
     this.personService.completeOnboarding(personId, request).pipe(

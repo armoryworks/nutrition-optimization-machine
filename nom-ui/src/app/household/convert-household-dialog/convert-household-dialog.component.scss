@@ -1,0 +1,15 @@
+@use 'variables' as vars;
+
+.nom-convert__intro {
+  margin: 0 0 vars.$spacing-4;
+}
+
+.nom-convert__name-field {
+  width: 100%;
+}
+
+.nom-convert__benefits {
+  margin: 0;
+  font-size: vars.$font-size-xs;
+  color: var(--mat-sys-on-surface-variant);
+}

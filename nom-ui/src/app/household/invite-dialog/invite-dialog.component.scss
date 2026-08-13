@@ -1,0 +1,30 @@
+@use 'variables' as vars;
+
+.nom-invite__loading {
+  display: flex;
+  justify-content: center;
+  padding: vars.$spacing-5;
+}
+
+.nom-invite__hint {
+  margin: 0 0 vars.$spacing-3;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-sm;
+}
+
+.nom-invite__code-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-2;
+}
+
+.nom-invite__code {
+  flex: 1;
+  padding: vars.$spacing-3;
+  border: 1px dashed var(--mat-sys-outline);
+  border-radius: vars.$nom-border-radius;
+  background: var(--mat-sys-surface-container-low);
+  font-size: vars.$font-size-sm;
+  word-break: break-all;
+  user-select: all;
+}

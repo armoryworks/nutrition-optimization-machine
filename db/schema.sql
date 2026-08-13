@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict jaep0FYfTj6xzzb7ALVJUOuOuoVgbqYupfOvoLGDZKQsoCtnK06eWAQIPYg4edG
+\restrict 01mp3jMb5VAbHfqVjnuLrnm2aYAzMQtQBkZ4K9Sdg3FAs3I9cg55PFYymyXAbwN
 
--- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+-- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
@@ -898,6 +898,7 @@ CREATE TABLE plan."Household" (
     "Slug" character varying(255),
     "Description" character varying(2047),
     "ManagedBy" character varying(100),
+    "IsPersonal" boolean DEFAULT false NOT NULL,
     "HouseholdGroupId" bigint NOT NULL,
     "CreatedDate" timestamp with time zone NOT NULL,
     "CreatedByPersonId" bigint,
@@ -7471,5 +7472,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jaep0FYfTj6xzzb7ALVJUOuOuoVgbqYupfOvoLGDZKQsoCtnK06eWAQIPYg4edG
+\unrestrict 01mp3jMb5VAbHfqVjnuLrnm2aYAzMQtQBkZ4K9Sdg3FAs3I9cg55PFYymyXAbwN
 

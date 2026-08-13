@@ -1,16 +1,19 @@
 import {
   Component,
+  computed,
   inject,
   output,
   signal,
   DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth.service';
+import { HouseholdStore } from '../../core/services/household-store';
 
 interface NavItem {
   label: string;
@@ -33,6 +36,7 @@ interface NavGroup {
 })
 export class Nav {
   private authService = inject(AuthService);
+  private householdStore = inject(HouseholdStore);
   private destroyRef = inject(DestroyRef);
 
   navigated = output<void>();
@@ -40,9 +44,28 @@ export class Nav {
   isAdmin = this.authService.isAdmin;
   collapsed = signal(localStorage.getItem('nom-nav-collapsed') === 'true');
 
+  private households = toSignal(
+    this.householdStore.getHouseholds().pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+
+  /** A solo user's personal kitchen is labeled "My Kitchen", not "Household". */
+  private isPersonalKitchen = computed(() => !!this.households()[0]?.isPersonal);
+
   readonly home: NavItem = { label: 'Home', icon: 'home', route: '/home', testId: 'nav-home' };
 
-  readonly groups: NavGroup[] = [
+  groups = computed<NavGroup[]>(() => {
+    const householdItem: NavItem = this.isPersonalKitchen()
+      ? { label: 'My Kitchen', icon: 'person', route: '/household', testId: 'nav-household' }
+      : { label: 'Household', icon: 'group', route: '/household', testId: 'nav-household' };
+    return this.staticGroups.map((group) =>
+      group.title === 'People'
+        ? { ...group, items: group.items.map((item) => (item.testId === 'nav-household' ? householdItem : item)) }
+        : group,
+    );
+  });
+
+  private readonly staticGroups: NavGroup[] = [
     {
       title: 'Plan',
       items: [

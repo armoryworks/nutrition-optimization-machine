@@ -22,6 +22,15 @@ namespace Nom.Data.Plan
         /// </summary>
         public string? ManagedBy { get; set; }
 
+        /// <summary>
+        /// True for a solo user's auto-created "personal kitchen": no member
+        /// management, no invites. Cleared (never re-set) when the owner
+        /// converts it into a shared household via the first invite.
+        /// Managed enrollment does NOT convert it — a solo client keeps
+        /// their personal kitchen.
+        /// </summary>
+        public bool IsPersonal { get; set; }
+
         // Household group association
         public long HouseholdGroupId { get; set; }
         public virtual HouseholdGroupEntity? HouseholdGroup { get; set; }

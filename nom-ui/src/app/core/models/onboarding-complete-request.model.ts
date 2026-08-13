@@ -12,4 +12,6 @@ export interface OnboardingCompleteRequest {
   numberOfAdditionalParticipants: number;
   additionalParticipantDetails: PersonDetailsRequest[];
   applyIndividualPreferencesToEachPerson: boolean;
+  /** "Just me" fork: silently auto-create a personal kitchen for this person. */
+  createSoloHousehold: boolean;
 }

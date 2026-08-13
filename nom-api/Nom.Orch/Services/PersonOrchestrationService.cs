@@ -27,6 +27,7 @@ namespace Nom.Orch.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPrivacyOrchestrationService _privacyOrchestrationService;
+        private readonly IHouseholdOrchestrationService _householdOrchestrationService;
         private readonly ILogger<PersonOrchestrationService> _logger;
 
         private readonly ICurrentUserService _currentUser;
@@ -36,12 +37,14 @@ namespace Nom.Orch.Services
             IHttpContextAccessor httpContextAccessor,
             ICurrentUserService currentUser,
             IPrivacyOrchestrationService privacyOrchestrationService,
+            IHouseholdOrchestrationService householdOrchestrationService,
             ILogger<PersonOrchestrationService> logger)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _currentUser = currentUser;
             _privacyOrchestrationService = privacyOrchestrationService;
+            _householdOrchestrationService = householdOrchestrationService;
             _logger = logger;
         }
 
@@ -161,6 +164,34 @@ namespace Nom.Orch.Services
             }
 
 
+
+            // Solo "personal kitchen" fork: silently auto-create a household
+            // of one. The creator becomes Admin/steward exactly like a normal
+            // household creation; the flag only suppresses membership growth
+            // until the household is converted by the first invite.
+            if (request.CreateSoloHousehold)
+            {
+                var alreadyInHousehold = await _dbContext.HouseholdMembers
+                    .AnyAsync(hm => hm.PersonId == primaryPerson.Id && hm.IsActive);
+                if (!alreadyInHousehold)
+                {
+                    var firstName = (primaryPerson.Name ?? string.Empty).Trim()
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault();
+                    var kitchenName = string.IsNullOrWhiteSpace(firstName)
+                        ? "My Kitchen"
+                        : $"{firstName}'s Kitchen";
+
+                    await _householdOrchestrationService.CreateHouseholdAsync(new Models.Household.HouseholdCreateModel
+                    {
+                        Name = kitchenName,
+                        HouseholdGroupId = 1,
+                        IsPersonal = true,
+                    }, primaryPerson.Id);
+
+                    _logger.LogInformation("Created personal kitchen for person {PersonId}", primaryPerson.Id);
+                }
+            }
 
             // Handle plan invitation if provided
             if (!string.IsNullOrWhiteSpace(request.PlanInvitationCode))
@@ -688,6 +719,12 @@ namespace Nom.Orch.Services
                 // Add to household if specified
                 if (request.HouseholdId.HasValue)
                 {
+                    // Personal kitchens refuse membership growth until converted.
+                    if (await _dbContext.Households.AnyAsync(h => h.Id == request.HouseholdId.Value && h.IsPersonal))
+                    {
+                        throw new InvalidOperationException("personal_household");
+                    }
+
                     _dbContext.HouseholdMembers.Add(new HouseholdMemberEntity
                     {
                         HouseholdId = request.HouseholdId.Value,

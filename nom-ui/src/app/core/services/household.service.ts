@@ -53,4 +53,9 @@ export class HouseholdService {
     const request: JoinHouseholdRequest = { token };
     return this.http.post<HouseholdMemberResponseModel>(`${this.apiUrl}/join`, request);
   }
+
+  /** Convert a personal kitchen into a shared household (rename + clear the personal flag). */
+  convertToShared(householdId: number, name: string): Observable<HouseholdResponseModel> {
+    return this.http.post<HouseholdResponseModel>(`${this.apiUrl}/${householdId}/convert`, { name });
+  }
 }

@@ -1,0 +1,36 @@
+<div class="nom-dialog__title-bar" data-testid="invite-dialog">
+  <h2 mat-dialog-title>Invite Someone</h2>
+  <button class="nom-dialog__close" mat-dialog-close aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  @if (errorMessage()) {
+    <div class="nom-form__error" data-testid="invite-dialog-error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  } @else if (loading()) {
+    <div class="nom-invite__loading">
+      <mat-spinner diameter="28"></mat-spinner>
+    </div>
+  } @else {
+    <p class="nom-invite__hint">
+      Share this invite code. The other person enters it under
+      <strong>Household &rarr; Join Household</strong> to join yours.
+    </p>
+    <div class="nom-invite__code-row">
+      <code class="nom-invite__code" data-testid="invite-dialog-code">{{ token() }}</code>
+      <button mat-icon-button type="button" (click)="copyToken()"
+              matTooltip="Copy invite code" aria-label="Copy invite code"
+              data-testid="invite-dialog-copy-btn">
+        <mat-icon>content_copy</mat-icon>
+      </button>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close data-testid="invite-dialog-done-btn">Done</button>
+</mat-dialog-actions>
