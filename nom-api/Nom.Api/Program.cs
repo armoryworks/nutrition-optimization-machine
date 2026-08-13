@@ -191,6 +191,15 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("webhook")
     .ConfigurePrimaryHttpMessageHandler(Nom.Orch.UtilityServices.SsrfGuard.BuildGuardedHandler);
 
+// Commerce sources (swappable seams — DB-backed / heuristic defaults ship now;
+// licensed pricing APIs, partner feeds, scrapers, and vision OCR replace these
+// without touching consumers — see epic #23 / D-060). Not auto-registered:
+// their interfaces don't follow the I*Service convention.
+builder.Services.AddScoped<Nom.Orch.Interfaces.IPriceSource, Nom.Orch.Services.Commerce.DbPriceSource>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.ICouponSource, Nom.Orch.Services.Commerce.DbCouponSource>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
+builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
+
 // General-purpose system email (admin notifications) — mirrors the Identity sender selection
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
 {
