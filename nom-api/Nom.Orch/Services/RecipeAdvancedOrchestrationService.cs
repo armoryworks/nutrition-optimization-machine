@@ -31,6 +31,16 @@ namespace Nom.Orch.Services
             _logger = logger;
         }
 
+        private long GetCurrentPersonId()
+        {
+            var personId = _httpContextAccessor.HttpContext?.User?.FindFirst("PersonId")?.Value;
+            if (string.IsNullOrEmpty(personId) || !long.TryParse(personId, out var id))
+            {
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+            return id;
+        }
+
         private long GetCurrentUserId()
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
@@ -257,13 +267,27 @@ namespace Nom.Orch.Services
         // Share Tokens
         public async Task<RecipeShareTokenResponseModel> CreateShareTokenAsync(RecipeShareTokenCreateModel model)
         {
-            var currentUserId = GetCurrentUserId();
+            var currentPersonId = GetCurrentPersonId();
             var recipe = await _dbContext.Recipes
                 .FirstOrDefaultAsync(r => r.Id == model.RecipeId);
 
             if (recipe == null)
             {
                 throw new ArgumentException("Recipe not found");
+            }
+
+            // Only the author mints share tokens (previously any authenticated
+            // user could mint a public token for any recipe id).
+            if (recipe.AuthorId != currentPersonId)
+            {
+                throw new UnauthorizedAccessException("Only the recipe author can create share tokens.");
+            }
+
+            // Audience-scoped recipes are never shareable by token — scoped
+            // visibility is the point (household-policies design doc §4).
+            if (recipe.Visibility == Nom.Data.Recipe.RecipeVisibilityEnum.Audience)
+            {
+                throw new InvalidOperationException("Audience-scoped recipes cannot be shared by token.");
             }
 
             // Generate unique share token
@@ -278,7 +302,7 @@ namespace Nom.Orch.Services
                 UsesLeft = model.UsesLeft,
                 ExpirationDate = model.ExpirationDate,
                 CreatedDate = DateTime.UtcNow,
-                CreatedByPersonId = currentUserId
+                CreatedByPersonId = currentPersonId
             };
 
             _dbContext.RecipeShareTokens.Add(shareTokenEntity);
@@ -301,6 +325,14 @@ namespace Nom.Orch.Services
 
         public async Task<List<RecipeShareTokenResponseModel>> GetRecipeShareTokensAsync(long recipeId)
         {
+            var currentPersonId = GetCurrentPersonId();
+            var isAuthor = await _dbContext.Recipes
+                .AnyAsync(r => r.Id == recipeId && r.AuthorId == currentPersonId);
+            if (!isAuthor)
+            {
+                return new List<RecipeShareTokenResponseModel>();
+            }
+
             var shareTokens = await _dbContext.RecipeShareTokens
                 .Include(st => st.Recipe)
                 .Where(st => st.RecipeId == recipeId)
@@ -340,7 +372,8 @@ namespace Nom.Orch.Services
         {
             var shareTokenEntity = await _dbContext.RecipeShareTokens
                 .Include(st => st.Recipe)
-                .FirstOrDefaultAsync(st => st.Token == shareToken && st.IsPublic);
+                .FirstOrDefaultAsync(st => st.Token == shareToken && st.IsPublic
+                    && st.Recipe!.Visibility != Nom.Data.Recipe.RecipeVisibilityEnum.Audience);
 
             if (shareTokenEntity == null)
             {

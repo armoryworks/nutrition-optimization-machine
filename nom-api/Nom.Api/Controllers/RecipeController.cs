@@ -68,29 +68,13 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<RecipeResponseModel>> GetRecipe(long id)
         {
+            // Visibility is enforced inside the service (central rule: public,
+            // own, household, audience, grandfathered). Not visible == 404 so
+            // the existence of private recipes is never disclosed.
             var recipe = await _recipeService.GetRecipeAsync(id, GetCurrentPersonId());
             if (recipe == null)
             {
                 return NotFound(new { message = "Recipe not found" });
-            }
-
-            // Check if recipe is public (Approved)
-            var isPublic = recipe.CurationStatus == "Approved";
-
-            if (!isPublic)
-            {
-                // Recipe is private - require authentication and ownership
-                var currentPersonId = GetCurrentPersonId();
-                if (!currentPersonId.HasValue)
-                {
-                    return Unauthorized(new { message = "Authentication required to view this recipe" });
-                }
-
-                // Check if user is the author
-                if (recipe.AuthorId != currentPersonId.Value)
-                {
-                    return Forbid("You do not have permission to view this recipe");
-                }
             }
 
             return Ok(recipe);
@@ -406,7 +390,7 @@ namespace Nom.Api.Controllers
         [HttpGet("{id}/assets")]
         public async Task<ActionResult<List<RecipeAssetResponseModel>>> GetAssets(long id)
         {
-            var assets = await _recipeService.GetAssetsAsync(id);
+            var assets = await _recipeService.GetAssetsAsync(id, GetCurrentPersonId());
             return Ok(assets);
         }
     }
