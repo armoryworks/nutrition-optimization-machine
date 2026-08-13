@@ -1,12 +1,14 @@
-<a href="#main-content" class="nom-skip-link">Skip to main content</a>
+@if (!chromeless()) {
+  <a href="#main-content" class="nom-skip-link">Skip to main content</a>
 
-<nom-header
-  [isLoggedIn]="isLoggedIn()"
-  [isDarkTheme]="isDarkTheme()"
-  (themeToggle)="toggleTheme()"
-  (navToggle)="toggleNav()"
->
-</nom-header>
+  <nom-header
+    [isLoggedIn]="isLoggedIn()"
+    [isDarkTheme]="isDarkTheme()"
+    (themeToggle)="toggleTheme()"
+    (navToggle)="toggleNav()"
+  >
+  </nom-header>
+}
 
 <main id="main-content" class="nom-main" tabindex="-1" [attr.inert]="isLoading() ? '' : null">
   <div
@@ -54,4 +56,6 @@
 
 <nom-loading-overlay [visible]="isLoading()" />
 
-<nom-footer></nom-footer>
+@if (!chromeless()) {
+  <nom-footer></nom-footer>
+}

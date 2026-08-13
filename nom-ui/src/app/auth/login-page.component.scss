@@ -1,0 +1,54 @@
+@use 'variables' as vars;
+
+.nom-login-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: vars.$spacing-5;
+  padding: vars.$spacing-5;
+
+  &--embedded {
+    // The marketing popover provides the chrome; fill the iframe edge-to-edge.
+    min-height: 100dvh;
+    padding: vars.$spacing-3;
+    justify-content: flex-start;
+  }
+}
+
+.nom-login-page__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.nom-login-page__brand-name {
+  color: var(--mat-sys-tertiary);
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: 0.04em;
+}
+
+.nom-login-page__brand-rule {
+  width: 100%;
+  height: 1px;
+  background: var(--mat-sys-outline-variant);
+}
+
+.nom-login-page__brand-sub {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: vars.$font-size-xs;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nom-login-page__card {
+  position: relative;
+
+  // LoginPopover positions itself as a header dropdown; neutralize that here.
+  nom-login-popover {
+    position: static;
+  }
+}
