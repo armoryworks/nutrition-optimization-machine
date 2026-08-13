@@ -11,6 +11,9 @@ namespace Nom.Orch.UtilityInterfaces
         /// <param name="imageData">The image data</param>
         /// <returns>Extracted recipe data</returns>
         Task<OcrRecipeData> ProcessImageWithOcrAsync(byte[] imageData);
+
+        /// <summary>Extracts raw OCR text from an image (no recipe parsing) — used by receipt ingestion.</summary>
+        Task<string> ExtractRawTextAsync(byte[] imageData);
     }
 
 

@@ -210,8 +210,26 @@ builder.Services.AddScoped<Nom.Orch.Interfaces.ICouponSource, Nom.Orch.Services.
 // Connect as the split-payout rail, Braintree/PayPal for consumer checkout.
 builder.Services.AddScoped<Nom.Orch.Interfaces.IPaymentProcessor, Nom.Orch.Services.Commerce.StripePaymentProcessor>();
 builder.Services.AddScoped<Nom.Orch.Services.Commerce.BraintreePaymentProcessor>();
-builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
-builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
+// Local AI (D-061, self-hosted Ollama): when Ai:OllamaUrl is set, use the
+// two-stage receipt parser (Tesseract OCR -> Ollama structuring) and the
+// AI-narrated shop advisor; otherwise fall back to manual/heuristic. The
+// Ollama provisioning/model setup lives in the private nom-ai repo.
+builder.Services.AddHttpClient<Nom.Orch.UtilityInterfaces.IOllamaClient, Nom.Orch.UtilityServices.OllamaClient>(
+    client => client.Timeout = TimeSpan.FromSeconds(120));
+builder.Services.AddScoped<Nom.Orch.UtilityInterfaces.ITesseractOcrService, Nom.Orch.UtilityServices.TesseractOcrService>();
+builder.Services.AddScoped<Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
+
+var aiEnabled = !string.IsNullOrEmpty(builder.Configuration["Ai:OllamaUrl"]);
+if (aiEnabled)
+{
+    builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.LocalAiReceiptParser>();
+    builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.LocalAiShopAdvisor>();
+}
+else
+{
+    builder.Services.AddScoped<Nom.Orch.Interfaces.IReceiptParser, Nom.Orch.Services.Commerce.ManualReceiptParser>();
+    builder.Services.AddScoped<Nom.Orch.Interfaces.IShopAdvisor, Nom.Orch.Services.Commerce.HeuristicShopAdvisor>();
+}
 
 // General-purpose system email (admin notifications) — mirrors the Identity sender selection
 if (!string.IsNullOrEmpty(builder.Configuration["Email:SmtpHost"]))
